@@ -1,0 +1,104 @@
+{
+  "identifier": "stage252a-rc-92cdedccca",
+  "fingerprint": "92cdedccca518a51549c831a712b0ef0f0d79baa266472821c86eb2eb86cc47e",
+  "timerange": "20260601-20260701",
+  "config": {
+    "seed": 42,
+    "fee": 0.001,
+    "simulated_slippage_bps": 0.0,
+    "price_tick": 0.01,
+    "conv_width": 1,
+    "execution_mode": "market_open_causal"
+  },
+  "execution_contract": {
+    "execution_mode": "market_open_causal",
+    "simulated_slippage_bps": 0.0,
+    "price_tick": 0.01,
+    "tick_rounding_version": "side_aware_ceil_floor_v1",
+    "tick_rounding_rule": "买入 ceil_to_tick 向上取整,卖出 floor_to_tick 向下取整",
+    "terminal_liquidation_mode": "close_market_sell_with_slippage_and_fee",
+    "terminal_liquidation_rule": "最后一个执行周期结束于 close[last],以与普通市场卖出完全相同的 simulated_slippage_bps、tick 取整、卖出手续费清算,最终全现金",
+    "order_type": "market(entry/exit 均市场订单;回测以 open[t+1] 成交)",
+    "amount_epsilon": 1e-12,
+    "causality": "成交价只依赖 open[t+1]/方向/simulated_slippage_bps/price_tick/fee;不依赖执行 K 线 high/low/close 或后续 K 线",
+    "live_fill_boundary": "Freqtrade live 使用交易所真实回报价格;simulated_slippage_bps 只属于训练与离线压力环境,不改变 live 市场订单价格",
+    "env_slippage_enabled": false,
+    "env_execution_module_sha256": "ef226152a8b8009ff03176eb747777a2fc450d031127bd0c533eec3faf3a52ca",
+    "legacy_note": "bar_executable_price(bar 内调价)已废弃为 legacy_noncausal_not_for_training,仅历史测试,不在生产调用路径"
+  },
+  "fingerprint_sensitivity": {
+    "bps5_identifier": "stage252a-rc-b03d817635",
+    "tick0.1_identifier": "stage252a-rc-182743d750",
+    "both_differ_from_base": true
+  },
+  "windows": 5,
+  "budgets": [
+    {
+      "model_dir": "sub-train-BTC_1780272000",
+      "base": 482,
+      "rounded": 512,
+      "actual": 512,
+      "rollouts": 4,
+      "episode_resets": 2
+    },
+    {
+      "model_dir": "sub-train-BTC_1780876800",
+      "base": 482,
+      "rounded": 512,
+      "actual": 512,
+      "rollouts": 4,
+      "episode_resets": 2
+    },
+    {
+      "model_dir": "sub-train-BTC_1781481600",
+      "base": 482,
+      "rounded": 512,
+      "actual": 512,
+      "rollouts": 4,
+      "episode_resets": 2
+    },
+    {
+      "model_dir": "sub-train-BTC_1782086400",
+      "base": 482,
+      "rounded": 512,
+      "actual": 512,
+      "rollouts": 4,
+      "episode_resets": 2
+    },
+    {
+      "model_dir": "sub-train-BTC_1782691200",
+      "base": 482,
+      "rounded": 512,
+      "actual": 512,
+      "rollouts": 4,
+      "episode_resets": 2
+    }
+  ],
+  "budget_accuracy_ok": true,
+  "n_actions": 720,
+  "action_distribution": {
+    "1": 508,
+    "0": 212
+  },
+  "actions_valid": true,
+  "cache_content_check": "COMPLETE",
+  "cache_manifest_failure_is_fatal": true,
+  "zero_slippage_bt_prices_equal_open": true,
+  "env_replay": {
+    "final_cash": 84.93992546791314,
+    "telescoping_abs_err": 5.551115123125783e-16,
+    "terminal_liquidation_present": false
+  },
+  "reuse_run": {
+    "cache_state": "COMPLETE",
+    "content_state": "COMPLETE",
+    "trades_reproduced": 5,
+    "new_trainings": 0
+  },
+  "reload_run": {
+    "cache_state": "NONE",
+    "actions_identical": true,
+    "new_trainings": 0
+  },
+  "n_trades": 5
+}

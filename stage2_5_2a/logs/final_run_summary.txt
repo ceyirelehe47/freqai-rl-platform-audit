@@ -1,0 +1,15 @@
+=== 阶段 2.5.2a 最终全量回归 ===
+python -m pytest tests/freqai_rl_stage2_5/ tests/freqai_rl_stage2_5_1/ tests/freqai_rl_stage2_5_2/ tests/freqai_rl_stage2_5_2a/ -q
+271 passed(2.5 38 / 2.5.1 74 / 2.5.2 78 / 2.5.2a 81)
+
+=== PPO 回归烟雾 ===
+python tests/freqai_rl_stage2_5_2a/ppo_smoke.py
+identifier: "stage252a-rc-92cdedccca"
+fingerprint_sensitivity: {"bps5_identifier": "stage252a-rc-b03d817635", "tick0.1_identifier": "stage252a-rc-182743d750", "both_differ_from_base": true}
+windows: 5
+budget_accuracy_ok: true
+action_distribution: {"1": 508, "0": 212}
+cache_content_check: "COMPLETE"
+env_replay: {"final_cash": 84.93992546791314, "telescoping_abs_err": 5.551115123125783e-16, "terminal_liquidation_present": false}
+n_trades: 5
+阶段 2.5.2a PPO 回归烟雾: 全部通过

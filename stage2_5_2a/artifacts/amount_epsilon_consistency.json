@@ -1,0 +1,28 @@
+{
+  "claim": "模型/策略/live 执行状态/manifest 从同一 freqai.route_c.amount_epsilon 读取;边界暴露 5e-4 的判定随 epsilon 一致变化",
+  "boundary_exposure": 0.0005,
+  "by_epsilon": {
+    "0.001": {
+      "state": "PENDING_ENTRY",
+      "model_position": 0,
+      "filled_amount": 0.0005
+    },
+    "1e-08": {
+      "state": "PARTIAL_ENTRY",
+      "model_position": 1,
+      "filled_amount": 0.0005
+    },
+    "1e-12": {
+      "state": "PARTIAL_ENTRY",
+      "model_position": 1,
+      "filled_amount": 0.0005
+    }
+  },
+  "sources": [
+    "RouteCModel.rc_config['amount_epsilon']",
+    "RouteCStrategy.route_c_amount_epsilon(property)",
+    "get_live_execution_snapshot(pair, amount_epsilon=...)",
+    "get_model_position_live(pair, amount_epsilon=...)",
+    "execution_contract manifest(amount_epsilon 字段)"
+  ]
+}

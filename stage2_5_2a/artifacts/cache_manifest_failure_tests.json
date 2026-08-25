@@ -1,0 +1,13 @@
+{
+  "claim": "缓存 manifest 生成或自检失败 -> 整轮实验失败(退出码 4):写入原始错误、backtesting_predictions 整体 quarantine、不删除模型、manifest 标记 invalid、后续运行不复用被隔离缓存;Freqtrade 退出码 0 不得覆盖后处理失败",
+  "pipeline_exit_code": 4,
+  "scenarios": {
+    "build_manifest_exception": "退出码 4 + quarantine + invalid + 模型保留",
+    "manifest_write_failure": "退出码 4 + quarantine + invalid",
+    "self_check_inconsistent": "退出码 4 + quarantine + invalid",
+    "manifest_modified_after_write": "真实 verify 捕获 sha 不符 -> 退出码 4",
+    "normal_success_path": "退出码 0 + self_check=COMPLETE + invalid=false + 幂等",
+    "quarantined_cache_not_reused": "quarantine 后名称/行数层判 NONE(全窗重推理)"
+  },
+  "covered_by": "tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py (6 项)"
+}

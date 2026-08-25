@@ -1,0 +1,14 @@
+{
+  "claim": "环境侧公式与成本/净值单调性;不声称 Freqtrade 已精确复现",
+  "final_cash_by_bps": {
+    "0.0": 96.06125690859984,
+    "5.0": 95.56475662548114,
+    "10.0": 95.08030508474009
+  },
+  "monotone_decreasing": true,
+  "formula": {
+    "buy": "ceil_to_tick(open * (1 + simulated_slippage_bps/10000))",
+    "sell": "floor_to_tick(open * (1 - simulated_slippage_bps/10000))"
+  },
+  "boundary_statement": "Freqtrade live 使用交易所真实回报价格;simulated_slippage_bps 只属于训练与离线压力环境,不改变 live 市场订单价格"
+}
