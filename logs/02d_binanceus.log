@@ -1,0 +1,402 @@
+===== 02d_binanceus 开始 2026-08-25T03:51:10Z =====
+代理已启用: http://127.0.0.1:7897 (关闭: source proxy-off.sh)
+--- binance.us 端点连通性(直连 / http代理 / socks代理) ---
+api.binance.us ping [direct] -> 000 20.000298s
+api.binance.us ping [http] -> 200 1.822044s
+api.binance.us ping [socks] -> 200 1.935465s
+--- ccxt binanceus 实测(显式代理,超时60s) ---
+markets: 627
+ccxt binanceus fetch_ohlcv OK, bars: 5
+first: [1787612400000, 78758.89, 78999.99, 78658.2, 78979.64, 1.41446]
+last: [1787626800000, 80658.15, 80955.19, 80405.41, 80545.19, 8.33772]
+--- freqtrade download-data(binanceus) ---
+2026-08-25 11:51:53,731 - freqtrade - INFO - freqtrade 2026.7
+2026-08-25 11:51:57,109 - numexpr.utils - INFO - NumExpr defaulting to 12 threads.
+2026-08-25 11:52:02,391 - freqtrade.loggers - INFO - Enabling colorized output.
+2026-08-25 11:52:02,392 - freqtrade.loggers - INFO - Logfile configured
+2026-08-25 11:52:02,392 - freqtrade.loggers - INFO - Verbosity set to 0
+2026-08-25 11:52:02,392 - freqtrade.configuration.configuration - INFO - Parameter --timerange detected: 20260401-20260701 ...
+2026-08-25 11:52:02,393 - freqtrade.configuration.configuration - INFO - Using exchange binanceus
+2026-08-25 11:52:02,393 - freqtrade.configuration.configuration - INFO - Using user-data directory: /home/cryptorl/projects/crypto_rl/user_data ...
+2026-08-25 11:52:02,409 - freqtrade.configuration.directory_operations - INFO - Created data directory: None
+2026-08-25 11:52:02,409 - freqtrade.configuration.configuration - INFO - Using data directory: /home/cryptorl/projects/crypto_rl/user_data/data/binanceus ...
+2026-08-25 11:52:02,410 - freqtrade.configuration.configuration - INFO - Using pairs ['BTC/USDT']
+2026-08-25 11:52:02,410 - freqtrade.configuration.configuration - INFO - timeframes --timeframes: ['1h']
+2026-08-25 11:52:02,410 - freqtrade.configuration.configuration - INFO - Using "feather" to store OHLCV data.
+2026-08-25 11:52:02,410 - freqtrade.configuration.configuration - INFO - Filter trades by timerange: 20260401-20260701
+2026-08-25 11:52:02,419 - freqtrade.exchange.check_exchange - INFO - Checking exchange...
+2026-08-25 11:52:02,430 - freqtrade.exchange.check_exchange - INFO - Exchange "binanceus" is officially supported by the Freqtrade development team.
+2026-08-25 11:52:02,431 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-08-25 11:52:05,727 - freqtrade.exchange.exchange - INFO - Instance is running with dry_run enabled
+2026-08-25 11:52:05,728 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.68
+2026-08-25 11:52:05,746 - freqtrade.exchange.exchange - INFO - Using Exchange "Binance US"
+2026-08-25 11:52:05,747 - freqtrade.resolvers.exchange_resolver - INFO - Using resolved exchange class 'Binanceus' ...
+2026-08-25 11:52:05,747 - freqtrade.exchange.exchange - INFO - Markets were not loaded. Loading them now..
+2026-08-25 11:52:16,105 - freqtrade.exchange.common - WARNING - _load_async_markets() returned exception: "Error in reload_markets due to RequestTimeout. Message: binanceus GET 
+https://api.binance.us/api/v3/exchangeInfo". Retrying still for 3 times.
+2026-08-25 11:52:27,106 - freqtrade.exchange.common - WARNING - _load_async_markets() returned exception: "Error in reload_markets due to RequestTimeout. Message: binanceus GET 
+https://api.binance.us/api/v3/exchangeInfo". Retrying still for 2 times.
+2026-08-25 11:52:38,105 - freqtrade.exchange.common - WARNING - _load_async_markets() returned exception: "Error in reload_markets due to RequestTimeout. Message: binanceus GET 
+https://api.binance.us/api/v3/exchangeInfo". Retrying still for 1 times.
+2026-08-25 11:52:49,106 - freqtrade.exchange.common - WARNING - _load_async_markets() returned exception: "Error in reload_markets due to RequestTimeout. Message: binanceus GET 
+https://api.binance.us/api/v3/exchangeInfo". Giving up.
+2026-08-25 11:52:49,107 - freqtrade.exchange.exchange - ERROR - Could not load markets.
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1589, in _create_direct_connection
+    transp, proto = await self._wrap_create_connection(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1316, in _wrap_create_connection
+    return await self._loop.create_connection(*args, **kwargs, sock=sock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1113, in create_connection
+    transport, protocol = await self._create_connection_transport(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1146, in _create_connection_transport
+    await waiter
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 239, in fetch
+    async with session_method(yarl.URL(url, encoded=True),
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 1683, in __aenter__
+    self._resp: _RetType_co = await self._coro
+                              ^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 699, in _request
+    with timer:
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/helpers.py", line 759, in __exit__
+    raise asyncio.TimeoutError from exc_val
+TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 685, in _api_reload_markets
+    await self._api_async.load_markets(reload=reload, params={})
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 367, in load_markets
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 359, in load_markets
+    result = await self.markets_loading
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 326, in load_markets_helper
+    markets = await self.fetch_markets(params)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 3254, in fetch_markets
+    results = await asyncio.gather(*promisesRaw)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 11824, in request
+    response = await self.fetch2(path, api, method, params, headers, body, config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 988, in fetch2
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 971, in fetch2
+    response = await self.fetch(request['url'], request['method'], request['headers'], request['body'])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 275, in fetch
+    raise RequestTimeout(details) from e
+ccxt.base.errors.RequestTimeout: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 181, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 698, in _load_async_markets
+    markets = self.loop.run_until_complete(self._api_reload_markets(reload=reload))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 689, in _api_reload_markets
+    raise TemporaryError(
+freqtrade.exceptions.TemporaryError: Error in reload_markets due to RequestTimeout. Message: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1589, in _create_direct_connection
+    transp, proto = await self._wrap_create_connection(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1316, in _wrap_create_connection
+    return await self._loop.create_connection(*args, **kwargs, sock=sock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1113, in create_connection
+    transport, protocol = await self._create_connection_transport(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1146, in _create_connection_transport
+    await waiter
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 239, in fetch
+    async with session_method(yarl.URL(url, encoded=True),
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 1683, in __aenter__
+    self._resp: _RetType_co = await self._coro
+                              ^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 699, in _request
+    with timer:
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/helpers.py", line 759, in __exit__
+    raise asyncio.TimeoutError from exc_val
+TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 685, in _api_reload_markets
+    await self._api_async.load_markets(reload=reload, params={})
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 367, in load_markets
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 359, in load_markets
+    result = await self.markets_loading
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 326, in load_markets_helper
+    markets = await self.fetch_markets(params)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 3254, in fetch_markets
+    results = await asyncio.gather(*promisesRaw)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 11824, in request
+    response = await self.fetch2(path, api, method, params, headers, body, config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 988, in fetch2
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 971, in fetch2
+    response = await self.fetch(request['url'], request['method'], request['headers'], request['body'])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 275, in fetch
+    raise RequestTimeout(details) from e
+ccxt.base.errors.RequestTimeout: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 181, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 698, in _load_async_markets
+    markets = self.loop.run_until_complete(self._api_reload_markets(reload=reload))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 689, in _api_reload_markets
+    raise TemporaryError(
+freqtrade.exceptions.TemporaryError: Error in reload_markets due to RequestTimeout. Message: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1589, in _create_direct_connection
+    transp, proto = await self._wrap_create_connection(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1316, in _wrap_create_connection
+    return await self._loop.create_connection(*args, **kwargs, sock=sock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1113, in create_connection
+    transport, protocol = await self._create_connection_transport(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1146, in _create_connection_transport
+    await waiter
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 239, in fetch
+    async with session_method(yarl.URL(url, encoded=True),
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 1683, in __aenter__
+    self._resp: _RetType_co = await self._coro
+                              ^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 699, in _request
+    with timer:
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/helpers.py", line 759, in __exit__
+    raise asyncio.TimeoutError from exc_val
+TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 685, in _api_reload_markets
+    await self._api_async.load_markets(reload=reload, params={})
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 367, in load_markets
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 359, in load_markets
+    result = await self.markets_loading
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 326, in load_markets_helper
+    markets = await self.fetch_markets(params)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 3254, in fetch_markets
+    results = await asyncio.gather(*promisesRaw)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 11824, in request
+    response = await self.fetch2(path, api, method, params, headers, body, config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 988, in fetch2
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 971, in fetch2
+    response = await self.fetch(request['url'], request['method'], request['headers'], request['body'])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 275, in fetch
+    raise RequestTimeout(details) from e
+ccxt.base.errors.RequestTimeout: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 181, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 698, in _load_async_markets
+    markets = self.loop.run_until_complete(self._api_reload_markets(reload=reload))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 689, in _api_reload_markets
+    raise TemporaryError(
+freqtrade.exceptions.TemporaryError: Error in reload_markets due to RequestTimeout. Message: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 856, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 810, in _connect_and_send_request
+    conn = await self._connector.connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 657, in connect
+    proto = await self._create_connection(req, traces, timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1242, in _create_connection
+    _, proto = await self._create_direct_connection(req, traces, timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1589, in _create_direct_connection
+    transp, proto = await self._wrap_create_connection(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/connector.py", line 1316, in _wrap_create_connection
+    return await self._loop.create_connection(*args, **kwargs, sock=sock)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1113, in create_connection
+    transport, protocol = await self._create_connection_transport(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 1146, in _create_connection_transport
+    await waiter
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 239, in fetch
+    async with session_method(yarl.URL(url, encoded=True),
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 1683, in __aenter__
+    self._resp: _RetType_co = await self._coro
+                              ^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/client.py", line 699, in _request
+    with timer:
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/aiohttp/helpers.py", line 759, in __exit__
+    raise asyncio.TimeoutError from exc_val
+TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 685, in _api_reload_markets
+    await self._api_async.load_markets(reload=reload, params={})
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 367, in load_markets
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 359, in load_markets
+    result = await self.markets_loading
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 326, in load_markets_helper
+    markets = await self.fetch_markets(params)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 3254, in fetch_markets
+    results = await asyncio.gather(*promisesRaw)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/binance.py", line 11824, in request
+    response = await self.fetch2(path, api, method, params, headers, body, config)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 988, in fetch2
+    raise e
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 971, in fetch2
+    response = await self.fetch(request['url'], request['method'], request['headers'], request['body'])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/ccxt/async_support/base/exchange.py", line 275, in fetch
+    raise RequestTimeout(details) from e
+ccxt.base.errors.RequestTimeout: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 725, in reload_markets
+    retrier(self._load_async_markets, retries=retries)(reload=True)
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 193, in wrapper
+    return wrapper(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 193, in wrapper
+    return wrapper(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 193, in wrapper
+    return wrapper(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 196, in wrapper
+    raise ex
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/common.py", line 181, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 698, in _load_async_markets
+    markets = self.loop.run_until_complete(self._api_reload_markets(reload=reload))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/exchange/exchange.py", line 689, in _api_reload_markets
+    raise TemporaryError(
+freqtrade.exceptions.TemporaryError: Error in reload_markets due to RequestTimeout. Message: binanceus GET https://api.binance.us/api/v3/exchangeInfo
+2026-08-25 11:52:49,232 - freqtrade - ERROR - Markets were not loaded.
+total 8
+drwxr-xr-x 2 cryptorl cryptorl 4096 Aug 25 11:52 .
+drwxr-xr-x 4 cryptorl cryptorl 4096 Aug 25 11:52 ..
+===== 02d_binanceus 完成 =====

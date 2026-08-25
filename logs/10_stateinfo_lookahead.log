@@ -1,0 +1,69 @@
+===== 10_stateinfo_lookahead 开始 2026-08-25T04:56:53Z =====
+代理已启用: http://127.0.0.1:7897 (关闭: source proxy-off.sh)
+=== 实验:add_state_info=true + live=False(回测)构造环境 ===
+RESULT: OperationalException: `add_state_info` is not available in backtesting. Change parameter to false in your rl_config. See `add_state_info` docs for more info.
+
+=== freqtrade lookahead-analysis --help(截取) ===
+usage: freqtrade lookahead-analysis [-h] [-v] [--no-color] [--logfile FILE]
+                                    [-V] [-c PATH] [-d PATH] [--userdir PATH]
+                                    [-s NAME] [--strategy-path PATH]
+                                    [--recursive-strategy-search]
+                                    [--freqaimodel NAME]
+                                    [--freqaimodel-path PATH] [-i TIMEFRAME]
+                                    [--timerange TIMERANGE]
+                                    [--data-format-ohlcv {json,jsongz,feather,parquet}]
+                                    [--max-open-trades INT]
+                                    [--stake-amount STAKE_AMOUNT]
+                                    [--fee FLOAT] [-p PAIRS [PAIRS ...]]
+                                    [--enable-protections]
+                                    [--enable-dynamic-pairlist]
+                                    [--dry-run-wallet DRY_RUN_WALLET]
+                                    [--timeframe-detail TIMEFRAME_DETAIL]
+                                    [--strategy-list STRATEGY_LIST [STRATEGY_LIST ...]]
+                                    [--export {none,trades,signals}]
+                                    [--backtest-filename PATH]
+                                    [--backtest-directory PATH]
+                                    [--freqai-backtest-live-models]
+                                    [--minimum-trade-amount INT]
+                                    [--targeted-trade-amount INT]
+                                    [--lookahead-analysis-exportfilename LOOKAHEAD_ANALYSIS_EXPORTFILENAME]
+                                    [--allow-limit-orders]
+
+options:
+  -h, --help            show this help message and exit
+  -i TIMEFRAME, --timeframe TIMEFRAME
+                        Specify timeframe (`1m`, `5m`, `30m`, `1h`, `1d`).
+  --timerange TIMERANGE
+
+=== freqtrade recursive-analysis --help(截取) ===
+usage: freqtrade recursive-analysis [-h] [-v] [--no-color] [--logfile FILE]
+                                    [-V] [-c PATH] [-d PATH] [--userdir PATH]
+                                    [-s NAME] [--strategy-path PATH]
+                                    [--recursive-strategy-search]
+                                    [--freqaimodel NAME]
+                                    [--freqaimodel-path PATH] [-i TIMEFRAME]
+                                    [--timerange TIMERANGE]
+                                    [--data-format-ohlcv {json,jsongz,feather,parquet}]
+                                    [-p PAIRS [PAIRS ...]]
+                                    [--startup-candle STARTUP_CANDLE [STARTUP_CANDLE ...]]
+
+options:
+  -h, --help            show this help message and exit
+  -i TIMEFRAME, --timeframe TIMEFRAME
+                        Specify timeframe (`1m`, `5m`, `30m`, `1h`, `1d`).
+  --timerange TIMERANGE
+                        Specify what timerange of data to use.
+  --data-format-ohlcv {json,jsongz,feather,parquet}
+                        Storage format for downloaded candle (OHLCV) data.
+                        (default: `feather`).
+  -p PAIRS [PAIRS ...], --pairs PAIRS [PAIRS ...]
+                        Limit command to these pairs. Pairs are space-
+                        separated.
+  --startup-candle STARTUP_CANDLE [STARTUP_CANDLE ...]
+                        Specify startup candles to be checked (`199`, `499`,
+                        `999`, `1999`).
+
+Common arguments:
+  -v, --verbose         Verbose mode (-vv for more, -vvv to get all messages).
+  --no-color            Disable colorization of hyperopt results. May be
+===== 10_stateinfo_lookahead 完成 =====

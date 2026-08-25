@@ -1,0 +1,37 @@
+===== 07_reload 开始 2026-08-25T04:19:37Z =====
+代理已启用: http://127.0.0.1:7897 (关闭: source proxy-off.sh)
+=========== 第二次运行(预期:命中预测缓存) ===========
+2026-08-25 12:20:29,589 - freqtrade.freqai.data_drawer - INFO - Could not find existing historic_predictions, starting from scratch
+2026-08-25 12:20:29,612 - freqtrade.freqai.freqai_interface - INFO - Training 5 timeranges
+2026-08-25 12:20:29,730 - freqtrade.freqai.data_kitchen - INFO - Found backtesting prediction file at 
+2026-08-25 12:20:29,767 - freqtrade.freqai.data_kitchen - INFO - Found backtesting prediction file at 
+2026-08-25 12:20:29,773 - freqtrade.freqai.data_kitchen - INFO - Found backtesting prediction file at 
+2026-08-25 12:20:29,791 - freqtrade.freqai.data_kitchen - INFO - Found backtesting prediction file at 
+2026-08-25 12:20:29,805 - freqtrade.freqai.data_kitchen - INFO - Found backtesting prediction file at 
+│ Total/Daily Avg Trades                 │ 7 / 0.23                                  │
+│ Total profit %                         │ -2.13%                                    │
+第二次运行耗时: 49s
+snapshot -> /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_snapshot_run2.json (47 files)
+对比 /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_baseline_after_run1.json vs /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_snapshot_run2.json: 新增=0 删除=0 变更=1
+  变更: run_params.json
+=========== 删除预测缓存(保留模型),第三次运行(预期:重载模型分支) ===========
+已删除预测缓存 feather,剩余: 0 个文件
+2026-08-25 12:20:45,279 - freqtrade.freqai.data_drawer - INFO - Could not find existing historic_predictions, starting from scratch
+2026-08-25 12:20:45,281 - freqtrade.freqai.freqai_interface - INFO - Training 5 timeranges
+2026-08-25 12:20:45,283 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+2026-08-25 12:20:53,323 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+2026-08-25 12:20:53,685 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+2026-08-25 12:20:54,024 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+2026-08-25 12:20:54,354 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+│ Total/Daily Avg Trades                 │ 7 / 0.23                                  │
+│ Total profit %                         │ -2.13%                                    │
+第三次运行耗时: 16s
+snapshot -> /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_snapshot_run3.json (47 files)
+对比 /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_baseline_after_run1.json vs /home/cryptorl/projects/crypto_rl/artifacts/freqai_rl_platform_audit/reload_snapshot_run3.json: 新增=0 删除=0 变更=6
+  变更: backtesting_predictions/cb_btc_1780272000_prediction.feather
+  变更: backtesting_predictions/cb_btc_1780876800_prediction.feather
+  变更: backtesting_predictions/cb_btc_1781481600_prediction.feather
+  变更: backtesting_predictions/cb_btc_1782086400_prediction.feather
+  变更: backtesting_predictions/cb_btc_1782691200_prediction.feather
+  变更: run_params.json
+===== 07_reload 完成 =====

@@ -1,0 +1,62 @@
+# 阶段一 3ac 审计路径首跑摘要(freqai-rl-platform-audit-2026-7)
+
+- 生成: 2026-08-25T04:18:39.649515+00:00
+| 文件 | 大小(bytes) | 修改时间(UTC) | SHA-256前16 |
+|---|---|---|---|
+| backtesting_predictions/cb_btc_1780272000_prediction.feather | 4482 | 2026-08-25T04:15:58+00:00 | `09ddb4371f30aa5f` |
+| backtesting_predictions/cb_btc_1780876800_prediction.feather | 4434 | 2026-08-25T04:16:17+00:00 | `2cfaff0a95b587da` |
+| backtesting_predictions/cb_btc_1781481600_prediction.feather | 4474 | 2026-08-25T04:16:35+00:00 | `1ea7c4f4ec323d9f` |
+| backtesting_predictions/cb_btc_1782086400_prediction.feather | 4498 | 2026-08-25T04:16:53+00:00 | `e903b0b74d01a943` |
+| backtesting_predictions/cb_btc_1782691200_prediction.feather | 3698 | 2026-08-25T04:17:11+00:00 | `c5234f0fe7604996` |
+| pair_dictionary.json | 216 | 2026-08-25T04:17:11+00:00 | `a6f9f0550828ae1c` |
+| run_params.json | 2295 | 2026-08-25T04:15:32+00:00 | `4062a7b36dc13830` |
+| sub-train-BTC_1780272000/best_model.zip | 32140 | 2026-08-25T04:15:43+00:00 | `57f28fc4691d88d3` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_feature_pipeline.pkl | 2826 | 2026-08-25T04:15:58+00:00 | `fc3af300f7409e12` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_label_pipeline.pkl | 166 | 2026-08-25T04:15:58+00:00 | `2cb7f594a2c1dd4e` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_metadata.json | 629 | 2026-08-25T04:15:58+00:00 | `ffba12007a574257` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_model.zip | 32188 | 2026-08-25T04:15:58+00:00 | `c43333d49debc550` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_trained_dates_df.pkl | 6584 | 2026-08-25T04:15:58+00:00 | `6c0a538db020dd79` |
+| sub-train-BTC_1780272000/cb_btc_1780272000_trained_df.pkl | 47407 | 2026-08-25T04:15:58+00:00 | `81471ac23a014d54` |
+| sub-train-BTC_1780876800/best_model.zip | 32140 | 2026-08-25T04:16:02+00:00 | `1174afdadfef82af` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_feature_pipeline.pkl | 2826 | 2026-08-25T04:16:17+00:00 | `02d55635f1a0999b` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_label_pipeline.pkl | 166 | 2026-08-25T04:16:17+00:00 | `2cb7f594a2c1dd4e` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_metadata.json | 665 | 2026-08-25T04:16:17+00:00 | `53aedcdff5d39297` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_model.zip | 32188 | 2026-08-25T04:16:17+00:00 | `fd36eb09dbf8ed7b` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_trained_dates_df.pkl | 6584 | 2026-08-25T04:16:17+00:00 | `35e2a88a9e0287c0` |
+| sub-train-BTC_1780876800/cb_btc_1780876800_trained_df.pkl | 47407 | 2026-08-25T04:16:17+00:00 | `77594469086c3cb3` |
+| sub-train-BTC_1781481600/best_model.zip | 32140 | 2026-08-25T04:16:21+00:00 | `fa7ce0c92a347acd` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_feature_pipeline.pkl | 2826 | 2026-08-25T04:16:34+00:00 | `b541ff77f898253d` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_label_pipeline.pkl | 166 | 2026-08-25T04:16:34+00:00 | `2cb7f594a2c1dd4e` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_metadata.json | 665 | 2026-08-25T04:16:34+00:00 | `932c97f422f72f27` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_model.zip | 32188 | 2026-08-25T04:16:34+00:00 | `e612c770e1705bbe` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_trained_dates_df.pkl | 6586 | 2026-08-25T04:16:34+00:00 | `6f768e6c79bb1385` |
+| sub-train-BTC_1781481600/cb_btc_1781481600_trained_df.pkl | 47407 | 2026-08-25T04:16:34+00:00 | `25d19297d84fd39d` |
+| sub-train-BTC_1782086400/best_model.zip | 32140 | 2026-08-25T04:16:38+00:00 | `2d879165498cc0d1` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_feature_pipeline.pkl | 2826 | 2026-08-25T04:16:53+00:00 | `5d5caffceb59587c` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_label_pipeline.pkl | 166 | 2026-08-25T04:16:53+00:00 | `2cb7f594a2c1dd4e` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_metadata.json | 665 | 2026-08-25T04:16:53+00:00 | `c7b1295fdbd53116` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_model.zip | 32188 | 2026-08-25T04:16:53+00:00 | `99b7b5984c606753` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_trained_dates_df.pkl | 6586 | 2026-08-25T04:16:53+00:00 | `4e1d0ee1c15f185a` |
+| sub-train-BTC_1782086400/cb_btc_1782086400_trained_df.pkl | 47407 | 2026-08-25T04:16:53+00:00 | `dae635dc1e46ec9b` |
+| sub-train-BTC_1782691200/best_model.zip | 32140 | 2026-08-25T04:16:57+00:00 | `8f21f006d8183b74` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_feature_pipeline.pkl | 2826 | 2026-08-25T04:17:11+00:00 | `7b710b906411ea43` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_label_pipeline.pkl | 166 | 2026-08-25T04:17:11+00:00 | `2cb7f594a2c1dd4e` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_metadata.json | 665 | 2026-08-25T04:17:11+00:00 | `40b9578a9b895cca` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_model.zip | 32188 | 2026-08-25T04:17:11+00:00 | `c913a39da453ba48` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_trained_dates_df.pkl | 6586 | 2026-08-25T04:17:11+00:00 | `8e3127a06d73ca2f` |
+| sub-train-BTC_1782691200/cb_btc_1782691200_trained_df.pkl | 47407 | 2026-08-25T04:17:11+00:00 | `2a45467cda8046ad` |
+| tensorboard/BTC/PPO_1/events.out.tfevents.1787631339.Forst.551.0 | 4135 | 2026-08-25T04:15:54+00:00 | `aa0743aba3044203` |
+| tensorboard/BTC/PPO_2/events.out.tfevents.1787631358.Forst.551.1 | 4135 | 2026-08-25T04:16:14+00:00 | `da5d4c05f8ca73c0` |
+| tensorboard/BTC/PPO_3/events.out.tfevents.1787631377.Forst.551.2 | 4135 | 2026-08-25T04:16:32+00:00 | `72b08b6c655e1f73` |
+| tensorboard/BTC/PPO_4/events.out.tfevents.1787631395.Forst.551.3 | 4135 | 2026-08-25T04:16:51+00:00 | `fcecfaa3ba2863b3` |
+| tensorboard/BTC/PPO_5/events.out.tfevents.1787631413.Forst.551.4 | 4135 | 2026-08-25T04:17:08+00:00 | `11b07d081c7d0154` |
+
+SB3 模型 zip 数量: 10;全部非零字节: True
+
+## 预测缓存与动作分布
+
+- cb_btc_1780272000_prediction.feather: rows=168, 动作分布={0.0: 7, 1.0: 160, 2.0: 1}, do_predict=1 占比=1.000
+- cb_btc_1780876800_prediction.feather: rows=168, 动作分布={1.0: 168}, do_predict=1 占比=1.000
+- cb_btc_1781481600_prediction.feather: rows=168, 动作分布={0.0: 12, 1.0: 155, 2.0: 1}, do_predict=1 占比=1.000
+- cb_btc_1782086400_prediction.feather: rows=168, 动作分布={0.0: 17, 1.0: 147, 2.0: 4}, do_predict=1 占比=1.000
+- cb_btc_1782691200_prediction.feather: rows=48, 动作分布={0.0: 6, 1.0: 42}, do_predict=1 占比=1.000

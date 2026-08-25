@@ -1,0 +1,64 @@
+===== 11_lookahead_run 开始 2026-08-25T04:58:54Z =====
+代理已启用: http://127.0.0.1:7897 (关闭: source proxy-off.sh)
+=== lookahead-analysis(14天短区间) ===
+2026-08-25 12:59:41,483 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'order_types' with value from the configuration: {'entry': 'market', 'exit': 'market', 'stoploss': 'market', 
+'stoploss_on_exchange': False}.
+2026-08-25 12:59:41,484 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_currency' with value from the configuration: USDT.
+2026-08-25 12:59:41,484 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_amount' with value from the configuration: 10000.
+2026-08-25 12:59:41,484 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'max_open_trades' with value from the configuration: -1.
+2026-08-25 12:59:41,484 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using minimal_roi: {'0': 100}
+2026-08-25 12:59:41,485 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using timeframe: 1h
+2026-08-25 12:59:41,485 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stoploss: -0.99
+2026-08-25 12:59:41,485 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop: False
+2026-08-25 12:59:41,485 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive_offset: 0.0
+2026-08-25 12:59:41,486 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_only_offset_is_reached: False
+2026-08-25 12:59:41,486 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_custom_stoploss: False
+2026-08-25 12:59:41,486 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using process_only_new_candles: True
+2026-08-25 12:59:41,486 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_types: {'entry': 'market', 'exit': 'market', 'stoploss': 'market', 'stoploss_on_exchange': False}
+2026-08-25 12:59:41,487 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_time_in_force: {'entry': 'GTC', 'exit': 'GTC'}
+2026-08-25 12:59:41,487 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_currency: USDT
+2026-08-25 12:59:41,487 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_amount: 10000
+2026-08-25 12:59:41,487 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using startup_candle_count: 40
+2026-08-25 12:59:41,488 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_exit_signal: True
+2026-08-25 12:59:41,488 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_only: False
+2026-08-25 12:59:41,488 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_roi_if_entry_signal: False
+2026-08-25 12:59:41,488 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_offset: 0.0
+2026-08-25 12:59:41,488 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using disable_dataframe_checks: False
+2026-08-25 12:59:41,489 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_buying_expired_candle_after: 0
+2026-08-25 12:59:41,489 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using position_adjustment_enable: False
+2026-08-25 12:59:41,489 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_entry_position_adjustment: -1
+2026-08-25 12:59:41,489 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_open_trades: -1
+
+2026-08-25 12:59:41,490 - freqtrade - ERROR - Configuration error: Market entry orders require entry_pricing.price_side = "other".
+Please make sure to review the documentation at https://www.freqtrade.io/en/stable.
+lookahead-analysis 退出码/超时码: 0
+未生成导出文件
+
+=== recursive-analysis(最小 startup 列表) ===
+Episode length: 236.00 +/- 0.00
+New best mean reward!
+Eval num_timesteps=964, episode_reward=-149.81 +/- 0.00
+Episode length: 236.00 +/- 0.00
+Eval num_timesteps=1446, episode_reward=-149.81 +/- 0.00
+Episode length: 236.00 +/- 0.00
+Eval num_timesteps=1928, episode_reward=-149.81 +/- 0.00
+Episode length: 236.00 +/- 0.00
+ 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2,048/482  [ 0:00:03 < 0:00:00 , 105 it/s ]
+2026-08-25 13:01:46,897 - freqtrade.freqai.prediction_models.ReinforcementLearner - INFO - Callback found a best model.
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 13:01:46,907 - freqtrade.freqai.RL.BaseReinforcementLearningModel - INFO - --------------------done training BTC/USDT--------------------
+2026-08-25 13:01:46,907 - freqtrade.freqai.freqai_interface - INFO - Saving backtest model to disk.
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 13:01:46,967 - freqtrade.loggers.set_log_levels - INFO - Restoring log verbosity.
+2026-08-25 13:01:46,967 - freqtrade.optimize.analysis.recursive - INFO - Start checking for recursive bias
+2026-08-25 13:01:46,970 - freqtrade.optimize.analysis.recursive - INFO - No variance on indicator(s) found due to recursive formula.
+2026-08-25 13:01:46,971 - freqtrade.optimize.analysis.recursive - INFO - Start checking for lookahead bias on indicators only
+2026-08-25 13:01:46,972 - freqtrade.optimize.analysis.recursive - INFO - Check indicators at 2026-06-01T10:00:00
+2026-08-25 13:01:46,975 - freqtrade.optimize.analysis.recursive - INFO - => found lookahead in indicator &-action
+2026-08-25 13:01:46,975 - freqtrade.optimize.analysis.recursive - INFO - => found lookahead in indicator do_predict
+2026-08-25 13:01:46,975 - freqtrade.optimize.analysis.recursive_helpers - INFO - Checking recursive and indicator-only lookahead bias of indicators of AuditLongOnlyRLStrategy.py took 125 seconds.
+Startup candle 40 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3/3 100% • 0:00:56 • 0:00:00
+recursive-analysis 退出码/超时码: 0
+===== 11_lookahead_run 完成 =====
