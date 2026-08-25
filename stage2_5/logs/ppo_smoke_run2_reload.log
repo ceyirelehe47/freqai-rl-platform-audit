@@ -1,0 +1,237 @@
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:178: FutureWarning: pyarrow.feather.read_table is deprecated as of 24.0.0. Use pyarrow.ipc.open_file() / RecordBatchFileReader instead. Feather V2 is the Arrow IPC file format.
+  pa_table = feather.read_table(
+2026-08-25 15:31:03,156 - freqtrade - INFO - freqtrade 2026.7
+2026-08-25 15:31:03,414 - numexpr.utils - INFO - NumExpr defaulting to 12 threads.
+2026-08-25 15:31:13,411 - freqtrade.configuration.load_config - INFO - Using config: 
+/home/cryptorl/projects/crypto_rl/experiments/freqai_rl_stage2_5/runtime/config_stage25-rc-b6259bb8d5_ppo_reload.json ...
+2026-08-25 15:31:13,413 - freqtrade.loggers - INFO - Enabling colorized output.
+2026-08-25 15:31:13,413 - freqtrade.loggers - INFO - Logfile configured
+2026-08-25 15:31:13,414 - freqtrade.loggers - INFO - Verbosity set to 0
+2026-08-25 15:31:13,414 - freqtrade.configuration.configuration - INFO - Using max_open_trades: 1 ...
+2026-08-25 15:31:13,414 - freqtrade.configuration.configuration - INFO - Parameter --timerange detected: 20260601-20260701 ...
+2026-08-25 15:31:13,415 - freqtrade.configuration.configuration - INFO - Using user-data directory: /home/cryptorl/projects/crypto_rl/user_data ...
+2026-08-25 15:31:13,415 - freqtrade.configuration.configuration - INFO - Using data directory: /home/cryptorl/projects/crypto_rl/user_data/data/binanceus ...
+2026-08-25 15:31:13,415 - freqtrade.configuration.configuration - INFO - Parameter --export detected: signals ...
+2026-08-25 15:31:13,415 - freqtrade.configuration.configuration - INFO - Parameter --cache=none detected ...
+2026-08-25 15:31:13,416 - freqtrade.configuration.configuration - INFO - Filter trades by timerange: 20260601-20260701
+2026-08-25 15:31:13,416 - freqtrade.configuration.configuration - INFO - Using freqaimodel class name: RouteCModel
+2026-08-25 15:31:13,417 - freqtrade.exchange.check_exchange - INFO - Checking exchange...
+2026-08-25 15:31:13,430 - freqtrade.exchange.check_exchange - INFO - Exchange "binanceus" is officially supported by the Freqtrade development team.
+2026-08-25 15:31:13,431 - freqtrade.configuration.configuration - INFO - Using pairlist from configuration.
+2026-08-25 15:31:13,431 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-08-25 15:31:13,433 - freqtrade.commands.optimize_commands - INFO - Starting freqtrade in Backtesting mode
+2026-08-25 15:31:13,433 - freqtrade.exchange.exchange - INFO - Instance is running with dry_run enabled
+2026-08-25 15:31:13,433 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.68
+2026-08-25 15:31:13,434 - freqtrade.exchange.exchange - INFO - Applying additional ccxt config: {'aiohttp_trust_env': True}
+2026-08-25 15:31:13,439 - freqtrade.exchange.exchange - INFO - Applying additional ccxt config: {'aiohttp_trust_env': True}
+2026-08-25 15:31:13,451 - freqtrade.exchange.exchange - INFO - Using Exchange "Binance US"
+2026-08-25 15:31:15,105 - freqtrade.resolvers.exchange_resolver - INFO - Using resolved exchange class 'Binanceus' ...
+2026-08-25 15:31:15,193 - freqtrade.resolvers.iresolver - INFO - Using resolved strategy RouteCStrategy from '/home/cryptorl/projects/crypto_rl/user_data/strategies/RouteCStrategy.py'...
+2026-08-25 15:31:15,194 - freqtrade.strategy.hyper - INFO - Found no parameter file.
+2026-08-25 15:31:15,194 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'timeframe' with value from the configuration: 1h.
+2026-08-25 15:31:15,195 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_currency' with value from the configuration: USDT.
+2026-08-25 15:31:15,195 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_amount' with value from the configuration: unlimited.
+2026-08-25 15:31:15,195 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'max_open_trades' with value from the configuration: 1.
+2026-08-25 15:31:15,195 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using minimal_roi: {'0': 100}
+2026-08-25 15:31:15,195 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using timeframe: 1h
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stoploss: -0.99
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop: False
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive_offset: 0.0
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_only_offset_is_reached: False
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_custom_stoploss: False
+2026-08-25 15:31:15,196 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using process_only_new_candles: True
+2026-08-25 15:31:15,197 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_types: {'entry': 'limit', 'exit': 'limit', 'stoploss': 'limit', 'stoploss_on_exchange': False, 
+'stoploss_on_exchange_interval': 60}
+2026-08-25 15:31:15,197 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_time_in_force: {'entry': 'GTC', 'exit': 'GTC'}
+2026-08-25 15:31:15,197 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_currency: USDT
+2026-08-25 15:31:15,197 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_amount: unlimited
+2026-08-25 15:31:15,197 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using startup_candle_count: 99
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_exit_signal: True
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_only: False
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_roi_if_entry_signal: False
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_offset: 0.0
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using disable_dataframe_checks: False
+2026-08-25 15:31:15,198 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_buying_expired_candle_after: 0
+2026-08-25 15:31:15,199 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using position_adjustment_enable: False
+2026-08-25 15:31:15,199 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_entry_position_adjustment: -1
+2026-08-25 15:31:15,199 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_open_trades: 1
+2026-08-25 15:31:15,199 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-08-25 15:31:15,238 - freqtrade.resolvers.iresolver - INFO - Using resolved pairlist StaticPairList from 
+'/home/cryptorl/projects/crypto_rl/vendor/freqtrade/freqtrade/plugins/pairlist/StaticPairList.py'...
+2026-08-25 15:31:15,240 - freqtrade.optimize.backtesting - INFO - Using fee 0.1000% from config.
+2026-08-25 15:31:15,241 - freqtrade.data.dataprovider - INFO - Increasing startup_candle_count for freqai on 1h to 819
+2026-08-25 15:31:15,516 - freqtrade.optimize.backtesting - INFO - Loading data from 2026-04-27 21:00:00 up to 2026-07-01 00:00:00 (64 days).
+2026-08-25 15:31:15,535 - freqtrade.optimize.backtesting - INFO - Dataload complete. Calculating indicators
+2026-08-25 15:31:15,536 - freqtrade.optimize.backtesting - INFO - Running backtesting for Strategy RouteCStrategy
+2026-08-25 15:31:33,496 - freqtrade.resolvers.iresolver - INFO - Using resolved freqaimodel RouteCModel from '/home/cryptorl/projects/crypto_rl/user_data/freqaimodels/RouteCModel.py'...
+2026-08-25 15:31:33,496 - freqtrade.freqai.freqai_interface - INFO - Backtesting module configured to save all models.
+2026-08-25 15:31:33,511 - freqtrade.freqai.data_drawer - INFO - Could not find existing historic_predictions, starting from scratch
+2026-08-25 15:31:33,512 - freqtrade.freqai.freqai_interface - INFO - Set existing queue from trained timestamps. Best approximation queue: deque(['BTC/USDT'])
+2026-08-25 15:31:33,535 - freqtrade.freqai.freqai_interface - INFO - Training 5 timeranges
+2026-08-25 15:31:33,536 - freqtrade.freqai.freqai_interface - INFO - Training BTC/USDT, 1/1 pairs from 2026-05-02 00:00:00 to 2026-06-01 00:00:00, 1/5 trains
+2026-08-25 15:31:33,536 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+/home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/backtesting_predictions/cb_btc_1780272000_prediction.feather
+2026-08-25 15:31:33,565 - freqtrade.freqai.freqai_interface - INFO - Found model at /home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/sub-train-BTC_1780272000/cb_btc_1780272000
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 15:31:42,065 - RouteCModel - INFO - RouteC 顺序推理: 窗口行数=168, 窗口末目标仓位=1
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 15:31:42,091 - freqtrade.freqai.freqai_interface - INFO - Training BTC/USDT, 1/1 pairs from 2026-05-09 00:00:00 to 2026-06-08 00:00:00, 2/5 trains
+2026-08-25 15:31:42,092 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+/home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/backtesting_predictions/cb_btc_1780876800_prediction.feather
+2026-08-25 15:31:42,109 - freqtrade.freqai.freqai_interface - INFO - Found model at /home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/sub-train-BTC_1780876800/cb_btc_1780876800
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 15:31:42,442 - RouteCModel - INFO - RouteC 顺序推理: 窗口行数=168, 窗口末目标仓位=1
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 15:31:42,447 - freqtrade.freqai.freqai_interface - INFO - Training BTC/USDT, 1/1 pairs from 2026-05-16 00:00:00 to 2026-06-15 00:00:00, 3/5 trains
+2026-08-25 15:31:42,447 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+/home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/backtesting_predictions/cb_btc_1781481600_prediction.feather
+2026-08-25 15:31:42,483 - freqtrade.freqai.freqai_interface - INFO - Found model at /home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/sub-train-BTC_1781481600/cb_btc_1781481600
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 15:31:42,802 - RouteCModel - INFO - RouteC 顺序推理: 窗口行数=168, 窗口末目标仓位=1
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 15:31:42,807 - freqtrade.freqai.freqai_interface - INFO - Training BTC/USDT, 1/1 pairs from 2026-05-23 00:00:00 to 2026-06-22 00:00:00, 4/5 trains
+2026-08-25 15:31:42,808 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+/home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/backtesting_predictions/cb_btc_1782086400_prediction.feather
+2026-08-25 15:31:42,852 - freqtrade.freqai.freqai_interface - INFO - Found model at /home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/sub-train-BTC_1782086400/cb_btc_1782086400
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 15:31:43,199 - RouteCModel - INFO - RouteC 顺序推理: 窗口行数=168, 窗口末目标仓位=1
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 15:31:43,204 - freqtrade.freqai.freqai_interface - INFO - Training BTC/USDT, 1/1 pairs from 2026-05-30 00:00:00 to 2026-06-29 00:00:00, 5/5 trains
+2026-08-25 15:31:43,205 - freqtrade.freqai.data_kitchen - INFO - Could not find backtesting prediction file at 
+/home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/backtesting_predictions/cb_btc_1782691200_prediction.feather
+2026-08-25 15:31:43,248 - freqtrade.freqai.freqai_interface - INFO - Found model at /home/cryptorl/projects/crypto_rl/user_data/models/stage25-rc-b6259bb8d5/sub-train-BTC_1782691200/cb_btc_1782691200
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+  warnings.warn(
+2026-08-25 15:31:43,374 - RouteCModel - INFO - RouteC 顺序推理: 窗口行数=48, 窗口末目标仓位=0
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+2026-08-25 15:31:43,385 - freqtrade.optimize.backtesting - INFO - Backtesting with data from 2026-06-01 00:00:00 up to 2026-07-01 00:00:00 (30 days).
+backtest ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4/4     100% • 0:00:28 • 0:00:00
+backtest ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 720/720 100% • 0:00:28 • 0:00:00
+2026-08-25 15:31:43,664 - freqtrade.misc - INFO - dumping json to "/home/cryptorl/projects/crypto_rl/user_data/backtest_results/backtest-result-2026-08-25_15-31-43.meta.json"
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+  feather.write_feather(df, handles.handle, **kwargs)
+Result for strategy RouteCStrategy
+                                               BACKTESTING REPORT                                                
+┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃     Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃     Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ BTC/USDT │      1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+│    TOTAL │      1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+└──────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────────┴────────────────────────┘
+                                         LEFT OPEN TRADES REPORT                                          
+┏━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ TOTAL │      0 │          0.0 │           0.000 │          0.0 │         0:00 │    0     0     0     0 │
+└───────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                    ENTER TAG STATS                                                     
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Enter Tag ┃ Entries ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃     Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ route_c_target │       1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+│          TOTAL │       1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+└────────────────┴─────────┴──────────────┴─────────────────┴──────────────┴──────────────────┴────────────────────────┘
+                                                 EXIT REASON STATS                                                 
+┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Exit Reason ┃ Exits ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃     Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ exit_signal │     1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+│       TOTAL │     1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+└─────────────┴───────┴──────────────┴─────────────────┴──────────────┴──────────────────┴────────────────────────┘
+                                                           MIXED TAG STATS                                                           
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Enter Tag ┃ Exit Reason ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃     Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ route_c_target │ exit_signal │      1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+│          TOTAL │             │      1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │
+└────────────────┴─────────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────────┴────────────────────────┘
+                                   SUMMARY METRICS                                    
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric                                 ┃ Value                                     ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Backtesting from                       │ 2026-06-01 00:00:00                       │
+│ Backtesting to                         │ 2026-07-01 00:00:00                       │
+│ Trading Mode                           │ Spot                                      │
+│ Max open trades                        │ 1                                         │
+│                                        │                                           │
+│ Total/Daily Avg Trades                 │ 1 / 0.03                                  │
+│ Starting balance                       │ 100 USDT                                  │
+│ Final balance                          │ 80.606 USDT                               │
+│ Absolute profit                        │ -19.394 USDT                              │
+│ Total profit %                         │ -19.39%                                   │
+│ CAGR %                                 │ -92.74%                                   │
+│ Sharpe (closed trades)                 │ -100.00                                   │
+│ Sortino (closed trades)                │ -100.00                                   │
+│ Calmar (closed trades)                 │ -63.68                                    │
+│ SQN                                    │ -100.00                                   │
+│ Mean profit p-value                    │ 1                                         │
+│ Profit factor                          │ 0.00                                      │
+│ Expectancy (Ratio)                     │ -19.39 (-1.00)                            │
+│ Avg. daily profit                      │ -0.646 USDT                               │
+│ Avg. stake amount                      │ 99.769 USDT                               │
+│ Market change                          │ -20.75%                                   │
+│ Total trade volume                     │ 180.505 USDT                              │
+│                                        │                                           │
+│ Best Pair                              │ BTC/USDT -19.39%                          │
+│ Worst Pair                             │ BTC/USDT -19.39%                          │
+│ Best trade                             │ BTC/USDT -19.42%                          │
+│ Worst trade                            │ BTC/USDT -19.42%                          │
+│ Best day                               │ -19.394 USDT                              │
+│ Worst day                              │ -19.394 USDT                              │
+│ Days win/draw/lose                     │ 0 / 0 / 1                                 │
+│ Min/Max/Avg. Duration Winners          │ 0d 00:00 / 0d 00:00 / 0d 00:00            │
+│ Min/Max/Avg. Duration Losers           │ 28d 00:00 / 28d 00:00 / 28d 00:00         │
+│ Max Consecutive Wins / Loss            │ 0 / 1                                     │
+│ Rejected Entry signals                 │ 0                                         │
+│ Entry/Exit Timeouts                    │ 0 / 0                                     │
+│                                        │                                           │
+│ Min/Max balance (closed trades)        │ 80.606 USDT / 80.606 USDT                 │
+│ Max % of account underwater            │ 19.39%                                    │
+│ Absolute drawdown                      │ 19.394 USDT (19.39%)                      │
+│ Drawdown duration                      │ 0 days 00:00:00                           │
+│ Profit at drawdown start               │ 0 USDT                                    │
+│ Profit at drawdown end                 │ -19.394 USDT                              │
+│ Drawdown start                         │ 2026-06-29 01:00:00                       │
+│ Drawdown end                           │ 2026-06-29 01:00:00                       │
+│                                        │                                           │
+│ Wallet based Metrics                   │                                           │
+│ Min/Max balance (wallet balance)       │ 78.956 USDT / 100 USDT                    │
+│ Min/Max balance dates (wallet balance) │ 2026-06-25 14:00:00 / 2026-06-01 01:00:00 │
+│ Max % of account underwater (balance)  │ 21.04%                                    │
+│ Absolute drawdown (wallet balance)     │ 21.044 USDT (21.04%)                      │
+│ Drawdown duration                      │ 24 days 13:00:00                          │
+│ Profit at drawdown start               │ 0 USDT                                    │
+│ Profit at drawdown end                 │ -21.044 USDT                              │
+│ Drawdown start                         │ 2026-06-01 01:00:00                       │
+│ Drawdown end                           │ 2026-06-25 14:00:00                       │
+│ Sharpe (daily wallet balance)          │ -5.22                                     │
+│ Sortino (daily wallet balance)         │ -7.29                                     │
+│ Calmar (daily wallet balance)          │ -60.71                                    │
+└────────────────────────────────────────┴───────────────────────────────────────────┘
+
+Backtested 2026-06-01 00:00:00 -> 2026-07-01 00:00:00 | Max open trades : 1
+                                                              STRATEGY SUMMARY                                                               
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃       Strategy ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃     Avg Duration ┃  Win  Draw  Loss  Win% ┃            Drawdown ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│ RouteCStrategy │      1 │       -19.42 │         -19.394 │       -19.39 │ 28 days, 0:00:00 │    0     0     1     0 │ 19.394 USDT  19.39% │
+└────────────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────────┴────────────────────────┴─────────────────────┘
+[run_experiment] 未找到 signals feather,无法提取动作序列
+[run_experiment] fingerprint=b6259bb8d591998e1cb05b1e9a09f716ce3dcbb654af17a9964db7c4759c4459
+[run_experiment] identifier=stage25-rc-b6259bb8d5
+[run_experiment] data_slice={'sha256': 'cea1349c564688243ec90df020cfb2a03bae212cf1c2a118864147532a82250a', 'bars': 720, 'first': '2026-06-01 00:00:00+00:00', 'last': '2026-06-30 23:00:00+00:00', 'source_file': 'BTC_USDT-1h.feather'}
+[run_experiment] manifest -> /home/cryptorl/projects/crypto_rl/experiments/freqai_rl_stage2_5/runtime/manifest_stage25-rc-b6259bb8d5_ppo_reload.json
+[run_experiment] config -> /home/cryptorl/projects/crypto_rl/experiments/freqai_rl_stage2_5/runtime/config_stage25-rc-b6259bb8d5_ppo_reload.json
+[run_experiment] freqtrade backtesting --config /home/cryptorl/projects/crypto_rl/experiments/freqai_rl_stage2_5/runtime/config_stage25-rc-b6259bb8d5_ppo_reload.json --userdir /home/cryptorl/projects/crypto_rl/user_data --strategy RouteCStrategy --freqaimodel RouteCModel --timerange 20260601-20260701 --cache none --export signals
+[run_experiment] freqtrade 退出码 0

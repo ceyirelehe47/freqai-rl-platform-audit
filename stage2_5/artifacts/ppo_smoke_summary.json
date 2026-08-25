@@ -1,0 +1,49 @@
+{
+  "command": "python experiments/freqai_rl_stage2_5/run_experiment.py --timerange 20260601-20260701 --seed 42 --suffix ppo_base --extract-actions",
+  "completed": true,
+  "training_windows": 5,
+  "ppo_timesteps_per_window": 482,
+  "device": "cpu",
+  "seed": 42,
+  "sequential_inference_windows": [
+    {
+      "rows": 168,
+      "end_position": 1
+    },
+    {
+      "rows": 168,
+      "end_position": 1
+    },
+    {
+      "rows": 168,
+      "end_position": 1
+    },
+    {
+      "rows": 168,
+      "end_position": 1
+    },
+    {
+      "rows": 48,
+      "end_position": 0
+    }
+  ],
+  "action_distribution": {
+    "1": 672,
+    "0": 48
+  },
+  "nan_actions": false,
+  "degenerate_single_action": false,
+  "backtest_total_profit_pct": -19.39,
+  "backtest_total_trades": 1,
+  "reload_determinism": {
+    "trades_identical_run1_run2": true,
+    "reinference_identical_720_rows": true
+  },
+  "cache_isolation_seed43": {
+    "identifier_seed42": "stage25-rc-b6259bb8d5",
+    "identifier_seed43": "stage25-rc-fd60a4fd52",
+    "new_directory_created": true,
+    "old_cache_reused": false
+  },
+  "note": "烟雾测试不评价收益;-19.39% 为动作流验证结果,单一动作占多数(672/720 为目标 1)如实记录,不代表架构失败。"
+}
