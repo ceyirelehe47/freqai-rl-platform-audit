@@ -1,0 +1,10 @@
+# conv_width 守卫(四处断言)验证记录
+
+- guards.assert_conv_width(1): 通过
+- guards.assert_conv_width(2): 抛 RouteCConvWidthError: Route C 当前仅验证 conv_width=1。提高窗口长度前必须实现跨调用特征缓冲和 live 去重。
+- SequentialPositionPredictor(window_size=2): 抛 RouteCConvWidthError(推理入口)
+- RouteCModel(config conv_width=2): 抛 RouteCConvWidthError(构造检查点)
+- run_experiment.render_config(模板 conv_width=2): 抛 RouteCConvWidthError(渲染检查点)
+- conv_width 进入实验指纹: 是(完整配置 + 顶层字段)
+
+不得自动降级为 1:全部为硬性异常,无静默路径。

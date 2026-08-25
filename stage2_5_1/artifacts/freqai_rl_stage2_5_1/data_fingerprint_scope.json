@@ -1,0 +1,60 @@
+{
+  "data_scope": {
+    "source_file": "BTC_USDT-1h.feather",
+    "sha256": "47e7813723acf2ba69d7198de94c83cf81a7642e8bf469d40730ecb62f914baa",
+    "rows_hashed": 2184,
+    "first_date": "2026-04-01 00:00:00+00:00",
+    "last_hashed_date": "2026-06-30 23:00:00+00:00",
+    "columns": [
+      "date",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ]
+  },
+  "eval_slice": {
+    "eval_rows": 720,
+    "eval_start": "2026-06-01 00:00:00+00:00",
+    "eval_end": "2026-07-01 00:00:00+00:00"
+  },
+  "expected_windows": [
+    {
+      "train_startts": 1777680000,
+      "train_stopts": 1780272000,
+      "bt_startts": 1780272000,
+      "bt_stopts": 1780876800,
+      "timestamp_model_id": 1780272000
+    },
+    {
+      "train_startts": 1778284800,
+      "train_stopts": 1780876800,
+      "bt_startts": 1780876800,
+      "bt_stopts": 1781481600,
+      "timestamp_model_id": 1780876800
+    },
+    {
+      "train_startts": 1778889600,
+      "train_stopts": 1781481600,
+      "bt_startts": 1781481600,
+      "bt_stopts": 1782086400,
+      "timestamp_model_id": 1781481600
+    },
+    {
+      "train_startts": 1779494400,
+      "train_stopts": 1782086400,
+      "bt_startts": 1782086400,
+      "bt_stopts": 1782691200,
+      "timestamp_model_id": 1782086400
+    },
+    {
+      "train_startts": 1780099200,
+      "train_stopts": 1782691200,
+      "bt_startts": 1782691200,
+      "bt_stopts": 1782864000,
+      "timestamp_model_id": 1782691200
+    }
+  ],
+  "scope_rule": "数据文件中所有 date < 评估结束时间的行(覆盖评估 + 全部训练 + startup 预热)"
+}

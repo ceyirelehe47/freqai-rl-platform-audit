@@ -1,0 +1,400 @@
+{
+  "identifier": "stage251-rc-2f131f3b15",
+  "fingerprint": "2f131f3b15e610332d43df6b12b42e292ee70ec5a61f6290d22e447b77196f41",
+  "created_utc": "2026-08-25T10:56:53.151667+00:00",
+  "freqtrade_commit": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "code_tree": {
+    "tree_hash": "609a6404f6c5e062c8a04ea95e48c0328884a9c83d66adcf2cf4fb62e7c29fe2",
+    "files": {
+      "experiments/freqai_rl_stage2_5/configs/config_stage25.template.json": "1679ba30d193a0cedc64b2ac3dee313d9a957257c49b34e81b4589f3cfe42684",
+      "experiments/freqai_rl_stage2_5/run_experiment.py": "1ac613936882fef9122b817e5b3166ffa9dc4ae0b1fd66065c81d8c3daf303c4",
+      "experiments/freqai_rl_stage2_5_1/configs/config_stage251.template.json": "04c820706d5c9a8d3770893ca15d5f952dfc1c6fb6d3d756fb8681e71b68f723",
+      "experiments/freqai_rl_stage2_5_1/run_experiment.py": "a6e86db7538772cf1b07becb0308a590ec4c07072eef127ed7f8747339bd0b02",
+      "src/rl_platform/__init__.py": "df1e1d16ab9b120df225676cc9a63a0b6c3c638be98311c432edcf7ba0236cf0",
+      "src/rl_platform/cache_guard.py": "3aae971fd807e997c5e8e2d783aa0f2a606446e7732c58244f92891a905b8f3d",
+      "src/rl_platform/dryrun_state.py": "7bcd772106e1f29fb405fedf4d7c998d619c36130043e4350b8ad71c2aaf2a4d",
+      "src/rl_platform/env.py": "7ad6c56846b19a5a010132aa2eab7930d84cfdb29e8c50b29dd9620d12f5c80a",
+      "src/rl_platform/fingerprint.py": "373c45c9b28dbec921351c7768e5d8e3326ca64dba2305394e5b3f87b7396d59",
+      "src/rl_platform/guards.py": "95899f323a7e3d2fec6b496d53db29664364f52a58d934fe4b9451db54e706ec",
+      "src/rl_platform/inference.py": "573a21fcab0879a8775756c0ae2e43d166b8654e26d0d6200204bd648e9bd957",
+      "src/rl_platform/ledger.py": "02cd3ff84f3ab85ed89c8e3db7d055b3b15c3082e5cfac89c84983f25d4fc658",
+      "src/rl_platform/live_inference.py": "fbd07cddfd3c4dc8ddcd45d115ff5d1ade876ffbc17cc0bc5e6077633573ddd7",
+      "src/rl_platform/ppo_params.py": "a18131491a1e638528d173fe1b76be1af6b21bb92b2c3a4b8ffef46c589ff1ac",
+      "src/rl_platform/price_clamp.py": "8fd417e541044c79786ab3f6d531bb194730245775e365361cd5485156f2308f",
+      "src/rl_platform/signal_convert.py": "3a4545296f0b4bd62c622be87da9648e4f201b30b8f1b4398e5c11750848190e",
+      "user_data/freqaimodels/RouteCModel.py": "26fd3204ed243bacad0ece9782163f667d766b00d139950cf4d857598305a90c",
+      "user_data/strategies/RouteCStrategy.py": "83d15ab44a7957bebf63a5b567d72146b8f67d93fcf19effb7d81bfceb6488f2"
+    },
+    "n_files": 18
+  },
+  "config_normalized": {
+    "_data_scope": {
+      "columns": [
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "first_date": "2026-04-01 00:00:00+00:00",
+      "last_hashed_date": "2026-06-30 23:00:00+00:00",
+      "rows_hashed": 2184,
+      "sha256": "47e7813723acf2ba69d7198de94c83cf81a7642e8bf469d40730ecb62f914baa",
+      "source_file": "BTC_USDT-1h.feather"
+    },
+    "_eval_slice": {
+      "eval_end": "2026-07-01 00:00:00+00:00",
+      "eval_rows": 720,
+      "eval_start": "2026-06-01 00:00:00+00:00"
+    },
+    "dry_run": true,
+    "dry_run_wallet": 100,
+    "entry_pricing": {
+      "check_depth_of_market": {
+        "bids_to_ask_delta": 1,
+        "enabled": false
+      },
+      "order_book_top": 1,
+      "price_last_balance": 0.0,
+      "price_side": "same",
+      "use_order_book": true
+    },
+    "exchange": {
+      "ccxt_config": {
+        "aiohttp_trust_env": true
+      },
+      "key": "",
+      "name": "binanceus",
+      "pair_blacklist": [],
+      "pair_whitelist": [
+        "BTC/USDT"
+      ],
+      "secret": ""
+    },
+    "exit_pricing": {
+      "order_book_top": 1,
+      "price_side": "other",
+      "use_order_book": true
+    },
+    "fee": 0.001,
+    "fiat_display_currency": "USD",
+    "freqai": {
+      "activate_tensorboard": true,
+      "backtest_period_days": 7,
+      "continual_learning": false,
+      "conv_width": 1,
+      "data_split_parameters": {
+        "random_state": 42,
+        "test_size": 0.33
+      },
+      "enabled": true,
+      "feature_parameters": {
+        "DI_threshold": 0,
+        "buffer_train_data_candles": 0,
+        "include_corr_pairlist": [],
+        "include_shifted_candles": 0,
+        "include_timeframes": [
+          "1h"
+        ],
+        "indicator_periods_candles": [
+          10
+        ],
+        "label_period_candles": 1,
+        "principal_component_analysis": false,
+        "shuffle_after_split": false,
+        "stratify_training_data": 0,
+        "use_SVM_to_remove_outliers": false,
+        "weight_factor": 0
+      },
+      "live_retrain_hours": 0,
+      "purge_old_models": 0,
+      "rl_config": {
+        "add_state_info": false,
+        "cpu_count": 1,
+        "drop_ohlc_from_features": true,
+        "max_trade_duration_candles": 300,
+        "max_training_drawdown_pct": 0.5,
+        "model_reward_parameters": {
+          "profit_aim": 0.02,
+          "rr": 1,
+          "win_reward_factor": 2
+        },
+        "model_type": "PPO",
+        "policy_type": "MlpPolicy",
+        "randomize_starting_position": false,
+        "train_cycles": 1
+      },
+      "route_c": {
+        "device": "cpu",
+        "initial_cash": 100.0,
+        "n_envs": 1,
+        "ppo": {
+          "batch_size": 64,
+          "clip_range": 0.2,
+          "ent_coef": 0.0,
+          "gae_lambda": 0.95,
+          "gamma": 0.9,
+          "learning_rate": 0.00025,
+          "max_grad_norm": 0.5,
+          "n_epochs": 10,
+          "n_steps": 128,
+          "net_arch": [
+            32,
+            32
+          ],
+          "normalize_advantage": true,
+          "vf_coef": 0.5
+        },
+        "reward_scale": 1.0,
+        "seed": 42,
+        "slippage_bps": 5.0
+      },
+      "save_backtest_models": true,
+      "train_period_days": 30
+    },
+    "internals": {
+      "process_throttle_secs": 5
+    },
+    "max_open_trades": 1,
+    "pairlists": [
+      {
+        "method": "StaticPairList"
+      }
+    ],
+    "stake_amount": "unlimited",
+    "stake_currency": "USDT",
+    "timeframe": "1h",
+    "timerange": "20260601-20260701",
+    "tradable_balance_ratio": 1,
+    "trading_mode": "spot"
+  },
+  "config_hash": "a9e55557fefb26c423d1aeb1786f183ea051153837e16fab12a312b7574c0bcf",
+  "data_scope": {
+    "source_file": "BTC_USDT-1h.feather",
+    "sha256": "47e7813723acf2ba69d7198de94c83cf81a7642e8bf469d40730ecb62f914baa",
+    "rows_hashed": 2184,
+    "first_date": "2026-04-01 00:00:00+00:00",
+    "last_hashed_date": "2026-06-30 23:00:00+00:00",
+    "columns": [
+      "date",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ]
+  },
+  "eval_slice": {
+    "eval_rows": 720,
+    "eval_start": "2026-06-01 00:00:00+00:00",
+    "eval_end": "2026-07-01 00:00:00+00:00"
+  },
+  "dependencies": {
+    "python": "3.11.16",
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "freqtrade": "2026.7",
+    "stable_baselines3": "2.9.0",
+    "gymnasium": "1.3.0",
+    "torch": "2.13.0+cu130",
+    "numpy": "2.4.6",
+    "pandas": "3.0.3",
+    "scikit-learn": "1.9.0",
+    "ccxt": "4.5.68"
+  },
+  "resolved_ppo_params": {
+    "runtime": {
+      "policy_type": "MlpPolicy",
+      "device": "cpu",
+      "n_envs": 1,
+      "seed": 42
+    },
+    "constructor": {
+      "n_steps": 128,
+      "batch_size": 64,
+      "n_epochs": 10,
+      "learning_rate": 0.00025,
+      "gamma": 0.9,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.0,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "normalize_advantage": true,
+      "net_arch": [
+        32,
+        32
+      ]
+    }
+  },
+  "expected_windows": [
+    {
+      "train_startts": 1777680000,
+      "train_stopts": 1780272000,
+      "bt_startts": 1780272000,
+      "bt_stopts": 1780876800,
+      "timestamp_model_id": 1780272000
+    },
+    {
+      "train_startts": 1778284800,
+      "train_stopts": 1780876800,
+      "bt_startts": 1780876800,
+      "bt_stopts": 1781481600,
+      "timestamp_model_id": 1780876800
+    },
+    {
+      "train_startts": 1778889600,
+      "train_stopts": 1781481600,
+      "bt_startts": 1781481600,
+      "bt_stopts": 1782086400,
+      "timestamp_model_id": 1781481600
+    },
+    {
+      "train_startts": 1779494400,
+      "train_stopts": 1782086400,
+      "bt_startts": 1782086400,
+      "bt_stopts": 1782691200,
+      "timestamp_model_id": 1782086400
+    },
+    {
+      "train_startts": 1780099200,
+      "train_stopts": 1782691200,
+      "bt_startts": 1782691200,
+      "bt_stopts": 1782864000,
+      "timestamp_model_id": 1782691200
+    }
+  ],
+  "cache_guard": {
+    "state": "NONE",
+    "quarantine": null
+  },
+  "post_run": {
+    "prediction_files": [
+      {
+        "file": "cb_btc_1780272000_prediction.feather",
+        "rows": 168,
+        "first_date": "2026-06-01 00:00:00+00:00",
+        "last_date": "2026-06-07 23:00:00+00:00"
+      },
+      {
+        "file": "cb_btc_1780876800_prediction.feather",
+        "rows": 168,
+        "first_date": "2026-06-08 00:00:00+00:00",
+        "last_date": "2026-06-14 23:00:00+00:00"
+      },
+      {
+        "file": "cb_btc_1781481600_prediction.feather",
+        "rows": 168,
+        "first_date": "2026-06-15 00:00:00+00:00",
+        "last_date": "2026-06-21 23:00:00+00:00"
+      },
+      {
+        "file": "cb_btc_1782086400_prediction.feather",
+        "rows": 168,
+        "first_date": "2026-06-22 00:00:00+00:00",
+        "last_date": "2026-06-28 23:00:00+00:00"
+      },
+      {
+        "file": "cb_btc_1782691200_prediction.feather",
+        "rows": 48,
+        "first_date": "2026-06-29 00:00:00+00:00",
+        "last_date": "2026-06-30 23:00:00+00:00"
+      }
+    ],
+    "actions_csv": "/home/cryptorl/projects/crypto_rl/experiments/freqai_rl_stage2_5_1/runtime/actions_stage251-rc-2f131f3b15_smoke.csv",
+    "action_distribution": {
+      "0": 384,
+      "1": 336
+    },
+    "ppo_budgets": [
+      {
+        "base_budget": 482,
+        "rounded_budget": 512,
+        "n_steps": 128,
+        "n_rollouts": 4,
+        "train_cycles": 1,
+        "n_train_rows": 482,
+        "actual_num_timesteps": 512,
+        "device": "cpu",
+        "seed": 42,
+        "policy_type": "MlpPolicy",
+        "n_envs": 1,
+        "episode_resets": 2,
+        "tensorboard_log": "/home/cryptorl/projects/crypto_rl/user_data/models/stage251-rc-2f131f3b15/tensorboard/BTC",
+        "model_dir": "sub-train-BTC_1780272000"
+      },
+      {
+        "base_budget": 482,
+        "rounded_budget": 512,
+        "n_steps": 128,
+        "n_rollouts": 4,
+        "train_cycles": 1,
+        "n_train_rows": 482,
+        "actual_num_timesteps": 512,
+        "device": "cpu",
+        "seed": 42,
+        "policy_type": "MlpPolicy",
+        "n_envs": 1,
+        "episode_resets": 2,
+        "tensorboard_log": "/home/cryptorl/projects/crypto_rl/user_data/models/stage251-rc-2f131f3b15/tensorboard/BTC",
+        "model_dir": "sub-train-BTC_1780876800"
+      },
+      {
+        "base_budget": 482,
+        "rounded_budget": 512,
+        "n_steps": 128,
+        "n_rollouts": 4,
+        "train_cycles": 1,
+        "n_train_rows": 482,
+        "actual_num_timesteps": 512,
+        "device": "cpu",
+        "seed": 42,
+        "policy_type": "MlpPolicy",
+        "n_envs": 1,
+        "episode_resets": 2,
+        "tensorboard_log": "/home/cryptorl/projects/crypto_rl/user_data/models/stage251-rc-2f131f3b15/tensorboard/BTC",
+        "model_dir": "sub-train-BTC_1781481600"
+      },
+      {
+        "base_budget": 482,
+        "rounded_budget": 512,
+        "n_steps": 128,
+        "n_rollouts": 4,
+        "train_cycles": 1,
+        "n_train_rows": 482,
+        "actual_num_timesteps": 512,
+        "device": "cpu",
+        "seed": 42,
+        "policy_type": "MlpPolicy",
+        "n_envs": 1,
+        "episode_resets": 2,
+        "tensorboard_log": "/home/cryptorl/projects/crypto_rl/user_data/models/stage251-rc-2f131f3b15/tensorboard/BTC",
+        "model_dir": "sub-train-BTC_1782086400"
+      },
+      {
+        "base_budget": 482,
+        "rounded_budget": 512,
+        "n_steps": 128,
+        "n_rollouts": 4,
+        "train_cycles": 1,
+        "n_train_rows": 482,
+        "actual_num_timesteps": 512,
+        "device": "cpu",
+        "seed": 42,
+        "policy_type": "MlpPolicy",
+        "n_envs": 1,
+        "episode_resets": 2,
+        "tensorboard_log": "/home/cryptorl/projects/crypto_rl/user_data/models/stage251-rc-2f131f3b15/tensorboard/BTC",
+        "model_dir": "sub-train-BTC_1782691200"
+      }
+    ],
+    "model_dirs": [
+      "sub-train-BTC_1780272000",
+      "sub-train-BTC_1780876800",
+      "sub-train-BTC_1781481600",
+      "sub-train-BTC_1782086400",
+      "sub-train-BTC_1782691200"
+    ],
+    "exit_code": 0
+  }
+}

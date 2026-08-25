@@ -1,0 +1,17 @@
+=== 阶段 2.5.1 上游完整性(结束检查) ===
+date_utc: 2026-08-25T11:15:21.809686+00:00
+describe: 2026.7
+HEAD: 52bc96f4480b1a0da6a9b455bd00b17fbb6786a5
+status: [](clean)
+
+=== 开始检查(任务启动时 2026-08-25 08:40 UTC) ===
+describe: 2026.7
+HEAD: 52bc96f4480b1a0da6a9b455bd00b17fbb6786a5
+status: 空(clean)
+
+=== quarantine 记录(工作包 E 修复模式产物,保留不删除) ===
+user_data/models/stage251-rc-2f131f3b15/backtesting_predictions_quarantine_20260825T110415Z
+user_data/models/stage251-rc-2f131f3b15/backtesting_predictions_quarantine_20260825T110415Z.txt
+
+=== 后台进程检查 ===
+268 bash -c cd ~/projects/crypto_rl && python3 - <<PYEOF import subprocess, datetime from pathlib import Path def git(*a):     return subprocess.run(["git", "-C", "vendor/freqtrade", *a],                           capture_output=True, text=True).stdout.strip() lines = [] lines.append("=== 阶段 2.5.1 上游完整性(结束检查) ===") lines.append("date_utc: " + datetime.datetime.now(datetime.timezone.utc).isoformat()) lines.append("describe: " + git("describe", "--tags", "--exact-match")) lines.append("HEAD: " + git("rev-parse", "HEAD")) st = git("status", "--short") lines.append("status: [" + st + "]" + ("(clean)" if not st else " DIRTY!")) lines.append("") lines.append("=== 开始检查(任务启动时 2026-08-25 08:40 UTC) ===") lines.append("describe: 2026.7") lines.append("HEAD: 52bc96f4480b1a0da6a9b455bd00b17fbb6786a5") lines.append("status: 空(clean)") lines.append("") lines.append("=== quarantine 记录(工作包 E 修复模式产物,保留不删除) ===") for p in sorted(Path("user_data/models").glob("stage251-rc-*/backtesting_predictions_quarantine_*")):     lines.append(str(p)) lines.append("") lines.append("=== 后台进程检查 ===") import os r = subprocess.run(["pgrep", "-af", "freqtrade|tensorboard"], capture_output=True, text=True) lines.append(r.stdout.strip() if r.stdout.strip() else "无 freqtrade/tensorboard 后台进程") Path("artifacts/freqai_rl_stage2_5_1/upstream_integrity.txt").write_text(     "\n".join(lines) + "\n", encoding="utf-8") print("\n".join(lines[:8])) PYEOF
