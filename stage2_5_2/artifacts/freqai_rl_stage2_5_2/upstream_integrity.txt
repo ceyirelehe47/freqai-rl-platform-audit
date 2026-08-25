@@ -1,0 +1,25 @@
+# 上游完整性(阶段 2.5.2)
+
+## 开始前检查(2026-08-25T12:49:55Z,任务书三节三条命令实际输出)
+
+```
+$ git -C vendor/freqtrade describe --tags --exact-match
+2026.7
+$ git -C vendor/freqtrade rev-parse HEAD
+52bc96f4480b1a0da6a9b455bd00b17fbb6786a5
+$ git -C vendor/freqtrade status --short
+(空输出,clean)
+```
+
+## 结束时复核(2026-08-25,全量回归同批执行)
+
+```
+$ git -C vendor/freqtrade describe --tags --exact-match
+2026.7
+$ git -C vendor/freqtrade rev-parse HEAD
+52bc96f4480b1a0da6a9b455bd00b17fbb6786a5
+$ git -C vendor/freqtrade status --short | wc -l
+0
+```
+
+上游零修改、零未跟踪文件,始终固定于 tag 2026.7 / commit 52bc96f。

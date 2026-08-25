@@ -1,0 +1,30 @@
+# 阶段 2.5.2 PPO 回归烟雾运行日志摘要(UTC 2026-08-25)
+
+三轮:smoke(全新训练)/ smoke-reuse(完整缓存复用)/ smoke-reload(删缓存保模型)。
+
+```
+# run 1 (smoke, 全新训练, seed=42, fee=0.001, slip=5bps, tick=0.01):
+[run_experiment] 预期窗口数=5
+[run_experiment] 缓存状态(名称/行数)=NONE
+[run_experiment] freqtrade 退出码 0
+[run_experiment] 缓存内容清单已生成,自校验=COMPLETE
+[run_experiment] 动作分布 {'0': 212, '1': 508}   # 720 行,全部 ∈{0,1},无 NaN
+PPO 预算: 5 窗全部 base=482 -> rounded=512 -> actual=512
+          (rollouts=4, episode_resets=2, num_timesteps 硬校验通过)
+
+# run 2 (smoke-reuse, 完整缓存复用):
+[run_experiment] 缓存状态(名称/行数)=COMPLETE
+[run_experiment] 缓存状态(内容级)=COMPLETE issues=0
+[run_experiment] freqtrade 退出码 0
+交易路径与 run 1 逐字段一致(2 笔:pair/时间/价格/收益率/退出原因)
+0 次新训练(预算记录数量与 run 1 相同)
+
+# run 3 (smoke-reload, 删 backtesting_predictions、保留模型目录):
+[run_experiment] 缓存状态(名称/行数)=NONE
+[run_experiment] freqtrade 退出码 0
+上游 model_exists 命中 -> 0 次重新训练(无新增 sub-train 目录/预算记录)
+动作序列与 run 1 逐字段一致(date/&-target_position/do_predict)
+```
+
+完整机器可读证据:artifacts/freqai_rl_stage2_5_2/ppo_regression_smoke.json
+(identifier/fingerprint 均在其中,非硬编码)。
