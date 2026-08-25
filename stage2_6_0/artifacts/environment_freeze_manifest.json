@@ -1,0 +1,31 @@
+{
+  "frozen_utc": "2026-08-26(阶段 2.6.0 工作包 0)",
+  "env_core_version": "RouteCEnvCore-v1.0.0",
+  "observation_spec_version": "ObservationSpec-v1",
+  "action_spec_version": "BinaryLongFlatAction-v1",
+  "reward_spec_version": "NetLogEquityReward-v1",
+  "execution_contract_version": "MarketOpenCausalExecution-v1",
+  "terminal_liquidation_version": "TerminalLiquidation-v1",
+  "spec_versions_full": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1",
+    "action_spec_version": "BinaryLongFlatAction-v1",
+    "reward_spec_version": "NetLogEquityReward-v1",
+    "execution_contract_version": "MarketOpenCausalExecution-v1",
+    "terminal_liquidation_version": "TerminalLiquidation-v1"
+  },
+  "pre_freeze_fix_1_terminal_observation": {
+    "terminal_obs_position": 0.0,
+    "ledger_btc_after_liquidation": 0.0,
+    "requested_target_position": 1,
+    "actual_position_after_liquidation": 0,
+    "terminal_liquidation_present": true,
+    "pass": true
+  },
+  "pre_freeze_fix_2_missing_predictions_dir": {
+    "implemented_in": "experiments/freqai_rl_stage2_5_2a/run_experiment.py(freqtrade 退出码 0 且 backtesting_predictions 缺失 -> invalid + 退出码 4 + manifest 记录原始异常 + 模型目录保留)",
+    "verified_by": "tests/route_c_stage2_6_0/test_missing_prediction_dir_is_fatal.py"
+  },
+  "freeze_rule": "完成两项修整后不再修改环境核心;课程/生成器/考试失败默认不得通过修改 env.py/ledger.py/market_execution.py/reward 补救",
+  "version_injection": "spec_versions 注入实验 config(进入指纹)、execution_contract 与 manifest;checkpoint sidecar 携带并逐项校验"
+}

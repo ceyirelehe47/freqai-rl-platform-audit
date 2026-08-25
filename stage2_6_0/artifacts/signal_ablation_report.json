@@ -1,0 +1,131 @@
+{
+  "signal_ablation": [
+    {
+      "test": "signal_ablation",
+      "variant": {
+        "median_net_return": -0.01141358880272525,
+        "net_returns": [
+          -0.003544790317237312,
+          -0.01141358880272525,
+          -0.04013148593811977,
+          -0.035697320100091856,
+          0.045886938358302265
+        ]
+      },
+      "pass": true,
+      "reason": "真信号置乱后中位优势下降(median +0.13067 -> -0.01141)",
+      "action_match_rate": null,
+      "first_divergence_step": null,
+      "base": {
+        "median_net_return": 0.1306724207433554,
+        "net_returns": [
+          0.13210783299548035,
+          -0.010514190910313914,
+          0.1306724207433554,
+          0.12909368590623482,
+          0.1713606923285571
+        ]
+      },
+      "extra": {
+        "median_advantage_drop": 0.14208600954608064
+      }
+    }
+  ],
+  "irrelevant_feature": [
+    {
+      "seed": 305,
+      "test": "irrelevant_feature_shuffle",
+      "variant": {
+        "net_return": 0.13210783299548035,
+        "turnover_rate": 0.031578947368421054,
+        "avg_position": 0.6210526315789474,
+        "n_trades": 3.0,
+        "total_fees": 0.3251510177109496
+      },
+      "pass": true,
+      "reason": "置乱无关特征不改变行为或成绩",
+      "action_match_rate": 1.0,
+      "first_divergence_step": null,
+      "base": {
+        "net_return": 0.13210783299548035,
+        "turnover_rate": 0.031578947368421054,
+        "avg_position": 0.6210526315789474,
+        "n_trades": 3.0,
+        "total_fees": 0.3251510177109496
+      },
+      "extra": {
+        "abs_net_return_diff": 0.0
+      }
+    }
+  ],
+  "trend_mirror": [
+    {
+      "test": "trend_direction_mirror",
+      "variant": {
+        "median_capture": 0.05494751045576951,
+        "captures": [
+          0.05494751045576951,
+          0.170363308758664,
+          0.13086907287175187,
+          0.0354562956008575,
+          0.014388701474330468
+        ],
+        "median_net_return": 0.05437429933747562
+      },
+      "pass": true,
+      "reason": "方向捕获保持(原始中位 +0.12481,镜像中位 +0.05495):市场反转后持仓随之反转",
+      "action_match_rate": null,
+      "first_divergence_step": null,
+      "base": {
+        "median_capture": 0.12481251901610957,
+        "captures": [
+          0.12808123540742056,
+          -0.006569854205045189,
+          0.12481251901610957,
+          0.12341526370784983,
+          0.16416605996280254
+        ],
+        "median_net_return": 0.1306724207433554
+      },
+      "extra": {
+        "capture_base_median": 0.12481251901610957,
+        "capture_mirror_median": 0.05494751045576951,
+        "median_avg_position_base": 0.5157894736842106,
+        "median_avg_position_mirror": 0.30526315789473685
+      }
+    }
+  ],
+  "cost_monotonicity": [
+    {
+      "seed": 305,
+      "test": "cost_monotonicity",
+      "variant": {},
+      "pass": true,
+      "reason": "净值随成本单调不增且换手未显著提高",
+      "action_match_rate": null,
+      "first_divergence_step": null,
+      "base": {
+        "multipliers": [
+          1.0,
+          2.0,
+          4.0
+        ],
+        "net_returns": [
+          0.13210783299548035,
+          0.12758843593822466,
+          0.11860363172862787
+        ],
+        "turnover": [
+          0.031578947368421054,
+          0.031578947368421054,
+          0.031578947368421054
+        ]
+      },
+      "extra": {
+        "net_nonincreasing": true,
+        "turnover_nondecreasing": true
+      }
+    }
+  ],
+  "pass": true
+}

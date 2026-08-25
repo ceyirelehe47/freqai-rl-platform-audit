@@ -1,0 +1,570 @@
+{
+  "policy": "rule_trend",
+  "reads_hidden": false,
+  "eval_config": {
+    "fee": 0.001,
+    "slippage_bps": 0.0,
+    "price_tick": 0.0,
+    "initial_cash": 100.0,
+    "reward_scale": 1.0,
+    "window_size": 1,
+    "deterministic": true
+  },
+  "n_episodes": 12,
+  "overall": {
+    "n": 12,
+    "median": 0.008389845417950403,
+    "mean": 0.024872093013623697,
+    "q10": -0.018573126116822714,
+    "worst": -0.034105609204507115,
+    "best": 0.1865849937644346
+  },
+  "by_split": {
+    "dev_seed_holdout": {
+      "n": 4,
+      "median": 0.012613212590182665,
+      "mean": 0.007524903001517508,
+      "q10": -0.01315421430724385,
+      "worst": -0.01951092034965496,
+      "best": 0.02438410717535966
+    },
+    "family_holdout": {
+      "n": 1,
+      "median": 0.018937568879850986,
+      "mean": 0.018937568879850986,
+      "q10": 0.018937568879850986,
+      "worst": 0.018937568879850986,
+      "best": 0.018937568879850986
+    },
+    "param_extrapolation": {
+      "n": 1,
+      "median": -0.034105609204507115,
+      "mean": -0.034105609204507115,
+      "q10": -0.034105609204507115,
+      "worst": -0.034105609204507115,
+      "best": -0.034105609204507115
+    },
+    "train": {
+      "n": 6,
+      "median": 0.004579067203422993,
+      "mean": 0.047255590747011744,
+      "q10": -0.008940741482971637,
+      "worst": -0.010132978021332506,
+      "best": 0.1865849937644346
+    }
+  },
+  "by_family": {
+    "probe_segmented_drift": {
+      "n": 11,
+      "median": 0.001678099791715404,
+      "mean": 0.025411595207603034,
+      "q10": -0.01951092034965496,
+      "worst": -0.034105609204507115,
+      "best": 0.1865849937644346
+    },
+    "probe_smooth_latent_drift": {
+      "n": 1,
+      "median": 0.018937568879850986,
+      "mean": 0.018937568879850986,
+      "q10": 0.018937568879850986,
+      "worst": 0.018937568879850986,
+      "best": 0.018937568879850986
+    }
+  },
+  "by_param_bucket": {
+    "probe_segmented_drift:strong": {
+      "n": 11,
+      "median": 0.001678099791715404,
+      "mean": 0.025411595207603034,
+      "q10": -0.01951092034965496,
+      "worst": -0.034105609204507115,
+      "best": 0.1865849937644346
+    },
+    "probe_smooth_latent_drift:default": {
+      "n": 1,
+      "median": 0.018937568879850986,
+      "mean": 0.018937568879850986,
+      "q10": 0.018937568879850986,
+      "worst": 0.018937568879850986,
+      "best": 0.018937568879850986
+    }
+  },
+  "behavior": {
+    "median_turnover": 0.06315789473684211,
+    "median_trades": 6.0,
+    "median_avg_position": 0.35789473684210527,
+    "median_max_drawdown": 0.010439641544105593
+  },
+  "episodes": [
+    {
+      "family": "probe_segmented_drift",
+      "seed": 101,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": -0.007748504944610768,
+      "final_cash": 99.22514950553892,
+      "max_drawdown": 0.007748504944610768,
+      "n_trades": 2,
+      "turnover_rate": 0.021052631578947368,
+      "total_fees": 0.19922457387961834,
+      "avg_position": 0.021052631578947368,
+      "avg_holding_bars": 2.0,
+      "n_decisions": 95,
+      "actions_sha256": "d57a9b2cf57f271654b0b27f88ce5548970186dadfd755b921b1315716c08ad9",
+      "actions_count": {
+        "0": 93,
+        "1": 2
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 6.765421556309548e-17
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 102,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.015101591044185403,
+      "final_cash": 101.51015910441853,
+      "max_drawdown": 0.015449721574255393,
+      "n_trades": 6,
+      "turnover_rate": 0.06315789473684211,
+      "total_fees": 0.6115400670958328,
+      "avg_position": 0.24210526315789474,
+      "avg_holding_bars": 7.666666666666667,
+      "n_decisions": 95,
+      "actions_sha256": "7da8f55ce57689c4cf9b70ed4fd4b27a9bb1f28db1f995d1e4927b4a4663e8d7",
+      "actions_count": {
+        "0": 72,
+        "1": 23
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 3.3306690738754696e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 103,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.1865849937644346,
+      "final_cash": 118.65849937644346,
+      "max_drawdown": 0.006939085426817648,
+      "n_trades": 6,
+      "turnover_rate": 0.06315789473684211,
+      "total_fees": 0.6740164443230567,
+      "avg_position": 0.7789473684210526,
+      "avg_holding_bars": 24.666666666666668,
+      "n_decisions": 95,
+      "actions_sha256": "09599bd3f49fa88515bc5853fdfe3d07cf6a2dcd0cbabb0f6216863029551b54",
+      "actions_count": {
+        "0": 21,
+        "1": 74
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 6.38378239159465e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 104,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": -0.010132978021332506,
+      "final_cash": 98.98670219786675,
+      "max_drawdown": 0.010132978021332506,
+      "n_trades": 4,
+      "turnover_rate": 0.042105263157894736,
+      "total_fees": 0.39814957931796996,
+      "avg_position": 0.021052631578947368,
+      "avg_holding_bars": 1.0,
+      "n_decisions": 95,
+      "actions_sha256": "bdb25d0da7f735b3f8b6d72ef2b0f80e972ee8f8e52168c6a0a01f746b44d958",
+      "actions_count": {
+        "0": 93,
+        "1": 2
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 6.938893903907228e-18
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 105,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.10567189927673315,
+      "final_cash": 110.56718992767331,
+      "max_drawdown": 0.003520697663541905,
+      "n_trades": 3,
+      "turnover_rate": 0.031578947368421054,
+      "total_fees": 0.30421019849268055,
+      "avg_position": 0.4631578947368421,
+      "avg_holding_bars": 22.0,
+      "n_decisions": 95,
+      "actions_sha256": "ad871f2af02f89cdb119515fc173b634864ab2cc214c5c6882b45c5ce6e9c9f7",
+      "actions_count": {
+        "0": 51,
+        "1": 44
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 1.0130785099704553e-15
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 106,
+      "split": "train",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": -0.005943456637339417,
+      "final_cash": 99.40565433626605,
+      "max_drawdown": 0.009153029217695563,
+      "n_trades": 6,
+      "turnover_rate": 0.06315789473684211,
+      "total_fees": 0.5967387456927917,
+      "avg_position": 0.09473684210526316,
+      "avg_holding_bars": 3.0,
+      "n_decisions": 95,
+      "actions_sha256": "b87925dc570e4a0fa19af31de1b83dc149e57359149a2e384a7fd8927164d821",
+      "actions_count": {
+        "0": 86,
+        "1": 9
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 3.5475095083725705e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 201,
+      "split": "dev_seed_holdout",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.001678099791715404,
+      "final_cash": 100.16780997917154,
+      "max_drawdown": 0.016573449209639657,
+      "n_trades": 15,
+      "turnover_rate": 0.15789473684210525,
+      "total_fees": 1.4974924988741953,
+      "avg_position": 0.3368421052631579,
+      "avg_holding_bars": 4.0,
+      "n_decisions": 95,
+      "actions_sha256": "25f8f9d25f7fa995a9cb0d46315262985f83d8b2785b764984378b33aee64315",
+      "actions_count": {
+        "0": 63,
+        "1": 32
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 2.3136874360840665e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 202,
+      "split": "dev_seed_holdout",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": -0.01951092034965496,
+      "final_cash": 98.0489079650345,
+      "max_drawdown": 0.025891784077980096,
+      "n_trades": 4,
+      "turnover_rate": 0.042105263157894736,
+      "total_fees": 0.39708544290340403,
+      "avg_position": 0.08421052631578947,
+      "avg_holding_bars": 4.0,
+      "n_decisions": 95,
+      "actions_sha256": "3efe16ce401cf36f86fd73aedffa9eb72f9828f86a3e1d3fc81fceaaeb63cba8",
+      "actions_count": {
+        "0": 87,
+        "1": 8
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 1.9081958235744878e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 203,
+      "split": "dev_seed_holdout",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.02438410717535966,
+      "final_cash": 102.43841071753596,
+      "max_drawdown": 0.01802300052718364,
+      "n_trades": 10,
+      "turnover_rate": 0.10526315789473684,
+      "total_fees": 1.0285384053881819,
+      "avg_position": 0.3894736842105263,
+      "avg_holding_bars": 7.4,
+      "n_decisions": 95,
+      "actions_sha256": "dba5c88fcf426740463b0eaed29811d9443526f1ec3409959c4d418e36502bb9",
+      "actions_count": {
+        "0": 58,
+        "1": 37
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 6.83481049534862e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 204,
+      "split": "dev_seed_holdout",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "net_return": 0.023548325388649927,
+      "final_cash": 102.354832538865,
+      "max_drawdown": 0.008170320247333107,
+      "n_trades": 4,
+      "turnover_rate": 0.042105263157894736,
+      "total_fees": 0.4026850421772962,
+      "avg_position": 0.37894736842105264,
+      "avg_holding_bars": 18.0,
+      "n_decisions": 95,
+      "actions_sha256": "05787b33a820e326deafac27d38667988611b25b3533ebd59266f6815b2c4902",
+      "actions_count": {
+        "0": 59,
+        "1": 36
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 2.8449465006019636e-16
+    },
+    {
+      "family": "probe_segmented_drift",
+      "seed": 701,
+      "split": "param_extrapolation",
+      "params": {
+        "drift_bps_range": [
+          30.0,
+          45.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          32.0,
+          50.0
+        ]
+      },
+      "net_return": -0.034105609204507115,
+      "final_cash": 96.5894390795493,
+      "max_drawdown": 0.05229925237753197,
+      "n_trades": 30,
+      "turnover_rate": 0.3157894736842105,
+      "total_fees": 2.973272011138682,
+      "avg_position": 0.6,
+      "avg_holding_bars": 3.8,
+      "n_decisions": 95,
+      "actions_sha256": "fdcd01055d3d8d1d2bcb4a6feabb6ee2865f6a9a059aff385878def0eab67294",
+      "actions_count": {
+        "0": 38,
+        "1": 57
+      },
+      "family_version": "probe-A-v1",
+      "generator_fingerprint": "g-d8ada8beca5be9a823dadf11bf2e1880ec2da523abe17b5d349a071d39e8f110",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 7.632783294297951e-17
+    },
+    {
+      "family": "probe_smooth_latent_drift",
+      "seed": 702,
+      "split": "family_holdout",
+      "params": {
+        "episode_bars": 96
+      },
+      "net_return": 0.018937568879850986,
+      "final_cash": 101.8937568879851,
+      "max_drawdown": 0.01074630506687868,
+      "n_trades": 12,
+      "turnover_rate": 0.12631578947368421,
+      "total_fees": 1.208668026700359,
+      "avg_position": 0.43157894736842106,
+      "avg_holding_bars": 6.833333333333333,
+      "n_decisions": 95,
+      "actions_sha256": "e75a8cc2b44d2e6d8b32c53f69828e760ff90508fe845916a7f6be7ca4fbe37b",
+      "actions_count": {
+        "0": 54,
+        "1": 41
+      },
+      "family_version": "probe-B-v1",
+      "generator_fingerprint": "g-cd20fe867b50140ac0476a71faa2be84af108b02b4c96b5e453f1f295fc30099",
+      "reward_consistency_ok": true,
+      "reward_abs_error": 1.700029006457271e-16
+    }
+  ],
+  "evaluator_code_hash": "e-370c6064befa332a8034de6cca4c0823807738f248553461ad457fea92a8e7ad",
+  "seed_pass_ratio_vs_always_flat": 0.5833333333333334,
+  "vs_baselines": {
+    "always_flat": {
+      "paired_diff_bootstrap": {
+        "n": 12,
+        "stat": 0.008389845417950403,
+        "ci_low": -0.008940741482971637,
+        "ci_high": 0.023966216282004793
+      },
+      "mean_diff": 0.024872093013623697,
+      "median_diff": 0.008389845417950403,
+      "regret_median": null
+    },
+    "rule_trend": {
+      "paired_diff_bootstrap": {
+        "n": 12,
+        "stat": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "mean_diff": 0.0,
+      "median_diff": 0.0,
+      "regret_median": null
+    }
+  }
+}

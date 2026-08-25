@@ -1,0 +1,135 @@
+{
+  "synthetic_cases": {
+    "G0_train_only": {
+      "grade": "G0",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": false,
+        "param_extrapolation_positive": false,
+        "family_holdout_positive": false
+      },
+      "counterfactual_all_pass": null,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "G1_seed_only": {
+      "grade": "G1",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": false,
+        "family_holdout_positive": false
+      },
+      "counterfactual_all_pass": null,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "G2_param_pass_family_fail": {
+      "grade": "G2",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": true,
+        "family_holdout_positive": false
+      },
+      "counterfactual_all_pass": null,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "G3_family_pass_no_cf": {
+      "grade": "G3",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": true,
+        "family_holdout_positive": true
+      },
+      "counterfactual_all_pass": null,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "G4_cf_pass": {
+      "grade": "G4",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": true,
+        "family_holdout_positive": true
+      },
+      "counterfactual_all_pass": true,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "G4_cf_fail": {
+      "grade": "G3",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": true,
+        "family_holdout_positive": true
+      },
+      "counterfactual_all_pass": false,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    }
+  },
+  "synthetic_expected": {
+    "G0_train_only": "G0",
+    "G1_seed_only": "G1",
+    "G2_param_pass_family_fail": "G2",
+    "G3_family_pass_no_cf": "G3",
+    "G4_cf_pass": "G4",
+    "G4_cf_fail": "G3"
+  },
+  "real_rule_trend": {
+    "report_by_split": {
+      "dev_seed_holdout": {
+        "n": 8,
+        "median": 0.023966216282004793,
+        "mean": 0.03147471396784715,
+        "q10": -0.009108176112942235,
+        "worst": -0.01951092034965496,
+        "best": 0.11190858733908504
+      },
+      "family_holdout": {
+        "n": 8,
+        "median": 0.008502641963059498,
+        "mean": 0.03584466299844094,
+        "q10": -0.006776059408116896,
+        "worst": -0.01036806193345119,
+        "best": 0.12337952131124896
+      },
+      "param_extrapolation": {
+        "n": 2,
+        "median": 0.03476884885776543,
+        "mean": 0.03476884885776543,
+        "q10": 0.016317999254066674,
+        "worst": 0.011705286853141983,
+        "best": 0.05783241086238888
+      },
+      "train": {
+        "n": 6,
+        "median": 0.004579067203422993,
+        "mean": 0.047255590747011744,
+        "q10": -0.008940741482971637,
+        "worst": -0.010132978021332506,
+        "best": 0.1865849937644346
+      }
+    },
+    "grade": {
+      "grade": "G4",
+      "gates": {
+        "train_positive": true,
+        "dev_seed_holdout_positive": true,
+        "param_extrapolation_positive": true,
+        "family_holdout_positive": true
+      },
+      "counterfactual_all_pass": true,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    }
+  },
+  "classification_correct": true,
+  "rules": "G1 不得单独称为真正泛化;G3 至少一个未参与训练的生成机制;G4 必须含 Null 与共同前缀考试;G5 见 transfer_protocol_demo",
+  "pass": true
+}

@@ -1,0 +1,152 @@
+{
+  "half_life_hours": 72.0,
+  "gamma_formula": "exp(log(0.5) * step_duration / reward_half_life)",
+  "equivalence_rows": [
+    {
+      "timeframe": "5m",
+      "hours": 6.0,
+      "bars": 72,
+      "gamma": 0.9991980680382416,
+      "gamma^bars": 0.9438743126816971,
+      "analytic_0.5^(t/hl)": 0.9438743126816935,
+      "abs_error": 3.552713678800501e-15
+    },
+    {
+      "timeframe": "5m",
+      "hours": 24.0,
+      "bars": 288,
+      "gamma": 0.9991980680382416,
+      "gamma^bars": 0.7937005259841118,
+      "analytic_0.5^(t/hl)": 0.7937005259840998,
+      "abs_error": 1.199040866595169e-14
+    },
+    {
+      "timeframe": "5m",
+      "hours": 72.0,
+      "bars": 864,
+      "gamma": 0.9991980680382416,
+      "gamma^bars": 0.5000000000000228,
+      "analytic_0.5^(t/hl)": 0.5,
+      "abs_error": 2.275957200481571e-14
+    },
+    {
+      "timeframe": "5m",
+      "hours": 168.0,
+      "bars": 2016,
+      "gamma": 0.9991980680382416,
+      "gamma^bars": 0.19842513149604604,
+      "analytic_0.5^(t/hl)": 0.19842513149602492,
+      "abs_error": 2.1121993043493603e-14
+    },
+    {
+      "timeframe": "15m",
+      "hours": 6.0,
+      "bars": 24,
+      "gamma": 0.9975961328836203,
+      "gamma^bars": 0.9438743126816934,
+      "analytic_0.5^(t/hl)": 0.9438743126816935,
+      "abs_error": 1.1102230246251565e-16
+    },
+    {
+      "timeframe": "15m",
+      "hours": 24.0,
+      "bars": 96,
+      "gamma": 0.9975961328836203,
+      "gamma^bars": 0.7937005259840995,
+      "analytic_0.5^(t/hl)": 0.7937005259840998,
+      "abs_error": 3.3306690738754696e-16
+    },
+    {
+      "timeframe": "15m",
+      "hours": 72.0,
+      "bars": 288,
+      "gamma": 0.9975961328836203,
+      "gamma^bars": 0.49999999999999956,
+      "analytic_0.5^(t/hl)": 0.5,
+      "abs_error": 4.440892098500626e-16
+    },
+    {
+      "timeframe": "15m",
+      "hours": 168.0,
+      "bars": 672,
+      "gamma": 0.9975961328836203,
+      "gamma^bars": 0.19842513149602453,
+      "analytic_0.5^(t/hl)": 0.19842513149602492,
+      "abs_error": 3.885780586188048e-16
+    },
+    {
+      "timeframe": "1h",
+      "hours": 6.0,
+      "bars": 6,
+      "gamma": 0.9904191474668262,
+      "gamma^bars": 0.9438743126816934,
+      "analytic_0.5^(t/hl)": 0.9438743126816935,
+      "abs_error": 1.1102230246251565e-16
+    },
+    {
+      "timeframe": "1h",
+      "hours": 24.0,
+      "bars": 24,
+      "gamma": 0.9904191474668262,
+      "gamma^bars": 0.7937005259840995,
+      "analytic_0.5^(t/hl)": 0.7937005259840998,
+      "abs_error": 3.3306690738754696e-16
+    },
+    {
+      "timeframe": "1h",
+      "hours": 72.0,
+      "bars": 72,
+      "gamma": 0.9904191474668262,
+      "gamma^bars": 0.49999999999999956,
+      "analytic_0.5^(t/hl)": 0.5,
+      "abs_error": 4.440892098500626e-16
+    },
+    {
+      "timeframe": "1h",
+      "hours": 168.0,
+      "bars": 168,
+      "gamma": 0.9904191474668262,
+      "gamma^bars": 0.1984251314960245,
+      "analytic_0.5^(t/hl)": 0.19842513149602492,
+      "abs_error": 4.163336342344337e-16
+    }
+  ],
+  "max_abs_error": 2.275957200481571e-14,
+  "pass": true,
+  "conversion_manifest": {
+    "timeframe": "15m",
+    "timeframe_minutes": 15,
+    "supported_timeframes": [
+      "5m",
+      "15m",
+      "1h"
+    ],
+    "bars_rounding_rule": "ceil(非整数时长向上取整,Episode 至少覆盖指定时长)",
+    "reference_conversions": {
+      "6h": {
+        "5m": 72,
+        "15m": 24,
+        "1h": 6
+      },
+      "24h": {
+        "5m": 288,
+        "15m": 96,
+        "1h": 24
+      },
+      "7d": {
+        "5m": 2016,
+        "15m": 672,
+        "1h": 168
+      }
+    },
+    "reward_half_life_hours": 72.0,
+    "gamma_by_timeframe": {
+      "5m": 0.9991980680382416,
+      "15m": 0.9975961328836203,
+      "1h": 0.9904191474668262
+    },
+    "gamma_formula": "exp(log(0.5) * step_duration / reward_half_life)"
+  },
+  "rounding_rule": "ceil(非整数向上取整;规则入 manifest)",
+  "note": "本阶段只冻结以真实时间定义 gamma 的机制,不冻结最终数值"
+}

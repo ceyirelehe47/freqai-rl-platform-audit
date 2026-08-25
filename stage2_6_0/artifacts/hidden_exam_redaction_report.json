@@ -1,0 +1,134 @@
+{
+  "cli_exit_code": 0,
+  "status": "PASS",
+  "pack_hash": "p-29ca221649463a9ece843f89bb0743930c76b0b07f9d82449617cbb1a31ae945",
+  "redacted_output_has_no_episode_trace": true,
+  "aggregate_report": {
+    "policy": "rule_trend",
+    "reads_hidden": false,
+    "eval_config": {
+      "fee": 0.001,
+      "slippage_bps": 0.0,
+      "price_tick": 0.0,
+      "initial_cash": 100.0,
+      "reward_scale": 1.0,
+      "window_size": 1,
+      "deterministic": true
+    },
+    "n_episodes": 12,
+    "overall": {
+      "n": 12,
+      "median": 0.008389845417950403,
+      "mean": 0.024872093013623697,
+      "q10": -0.018573126116822714,
+      "worst": -0.034105609204507115,
+      "best": 0.1865849937644346
+    },
+    "by_split": {
+      "dev_seed_holdout": {
+        "n": 4,
+        "median": 0.012613212590182665,
+        "mean": 0.007524903001517508,
+        "q10": -0.01315421430724385,
+        "worst": -0.01951092034965496,
+        "best": 0.02438410717535966
+      },
+      "family_holdout": {
+        "n": 1,
+        "median": 0.018937568879850986,
+        "mean": 0.018937568879850986,
+        "q10": 0.018937568879850986,
+        "worst": 0.018937568879850986,
+        "best": 0.018937568879850986
+      },
+      "param_extrapolation": {
+        "n": 1,
+        "median": -0.034105609204507115,
+        "mean": -0.034105609204507115,
+        "q10": -0.034105609204507115,
+        "worst": -0.034105609204507115,
+        "best": -0.034105609204507115
+      },
+      "train": {
+        "n": 6,
+        "median": 0.004579067203422993,
+        "mean": 0.047255590747011744,
+        "q10": -0.008940741482971637,
+        "worst": -0.010132978021332506,
+        "best": 0.1865849937644346
+      }
+    },
+    "by_family": {
+      "probe_segmented_drift": {
+        "n": 11,
+        "median": 0.001678099791715404,
+        "mean": 0.025411595207603034,
+        "q10": -0.01951092034965496,
+        "worst": -0.034105609204507115,
+        "best": 0.1865849937644346
+      },
+      "probe_smooth_latent_drift": {
+        "n": 1,
+        "median": 0.018937568879850986,
+        "mean": 0.018937568879850986,
+        "q10": 0.018937568879850986,
+        "worst": 0.018937568879850986,
+        "best": 0.018937568879850986
+      }
+    },
+    "by_param_bucket": {
+      "probe_segmented_drift:strong": {
+        "n": 11,
+        "median": 0.001678099791715404,
+        "mean": 0.025411595207603034,
+        "q10": -0.01951092034965496,
+        "worst": -0.034105609204507115,
+        "best": 0.1865849937644346
+      },
+      "probe_smooth_latent_drift:default": {
+        "n": 1,
+        "median": 0.018937568879850986,
+        "mean": 0.018937568879850986,
+        "q10": 0.018937568879850986,
+        "worst": 0.018937568879850986,
+        "best": 0.018937568879850986
+      }
+    },
+    "behavior": {
+      "median_turnover": 0.06315789473684211,
+      "median_trades": 6.0,
+      "median_avg_position": 0.35789473684210527,
+      "median_max_drawdown": 0.010439641544105593
+    },
+    "evaluator_code_hash": "e-370c6064befa332a8034de6cca4c0823807738f248553461ad457fea92a8e7ad",
+    "seed_pass_ratio_vs_always_flat": 0.5833333333333334,
+    "vs_baselines": {
+      "always_flat": {
+        "paired_diff_bootstrap": {
+          "n": 12,
+          "stat": 0.008389845417950403,
+          "ci_low": -0.008940741482971637,
+          "ci_high": 0.023966216282004793
+        },
+        "mean_diff": 0.024872093013623697,
+        "median_diff": 0.008389845417950403,
+        "regret_median": null
+      },
+      "rule_trend": {
+        "paired_diff_bootstrap": {
+          "n": 12,
+          "stat": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0
+        },
+        "mean_diff": 0.0,
+        "median_diff": 0.0,
+        "regret_median": null
+      }
+    },
+    "episodes_redacted": true,
+    "redaction_note": "mock_hidden/隐藏考试:逐 Episode trace、种子与参数明细已脱敏;仅返回聚合成绩与状态"
+  },
+  "redaction_rule": "默认只返回聚合成绩与状态;逐 Episode trace/种子/参数脱敏;训练 Agent 不得读取隐藏 Episode 或逐步 trace",
+  "pass": true
+}

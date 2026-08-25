@@ -1,0 +1,48 @@
+{
+  "demo_only": true,
+  "note": "空白演示:仅验证 G5 协议可执行与结论可机读;未运行正式迁移训练(阶段 2.6.0 范围外)",
+  "protocol": {
+    "protocol_version": "transfer-protocol-v1",
+    "target_course_charter_hash": "c-97132cf40375abd40c5686513c0329a14dff9f6ca108c5a155a48552bf547c5f",
+    "exam_pack_hash": "p-mock(见 mock_hidden_exam_manifest.json)",
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "training_budget_steps": 0,
+    "model_capacity": {
+      "net_arch": "demo-identical"
+    },
+    "ppo_params": {
+      "demo": true
+    },
+    "n_eval_runs": 1
+  },
+  "verdict": "NEUTRAL_TRANSFER",
+  "warm": {
+    "n": 5,
+    "median": 0.0,
+    "mean": 0.0,
+    "q10": 0.0,
+    "worst": 0.0,
+    "best": 0.0
+  },
+  "cold": {
+    "n": 5,
+    "median": 0.0,
+    "mean": 0.0,
+    "q10": 0.0,
+    "worst": 0.0,
+    "best": 0.0
+  },
+  "paired_diff_bootstrap": {
+    "n": 5,
+    "stat": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0
+  },
+  "policy_on_negative_transfer": "NEGATIVE_TRANSFER 时不得强行微调保留预训练;允许放弃旧 checkpoint,保留 Cold Start 路线,记录污染来源"
+}

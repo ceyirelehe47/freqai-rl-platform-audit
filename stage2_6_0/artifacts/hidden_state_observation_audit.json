@@ -1,0 +1,60 @@
+{
+  "families": [
+    {
+      "family": "probe_segmented_drift",
+      "observation_fields": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "declared_hidden_fields": [
+        "regime_direction",
+        "regime_strength_bps",
+        "bars_to_regime_end",
+        "regime_index"
+      ],
+      "leaked_fields": [],
+      "issues": [],
+      "pass": true
+    },
+    {
+      "family": "probe_smooth_latent_drift",
+      "observation_fields": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "declared_hidden_fields": [
+        "latent_drift_bps"
+      ],
+      "leaked_fields": [],
+      "issues": [],
+      "pass": true
+    },
+    {
+      "family": "probe_null_control",
+      "observation_fields": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "declared_hidden_fields": [
+        "regime_direction",
+        "regime_strength_bps",
+        "bars_to_regime_end",
+        "regime_index"
+      ],
+      "leaked_fields": [],
+      "issues": [],
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "forbidden_patterns_note": "观察字段命名审计 + 隐藏列交集检查;修改未来后缀不得改变共同前缀 observation 由 common_prefix_invariance.json 验证"
+}

@@ -1,0 +1,122 @@
+{
+  "price_scale": [
+    {
+      "policy": "oracle",
+      "test": "price_scale_invariance",
+      "variant": {},
+      "pass": true,
+      "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+      "action_match_rate": 1.0,
+      "first_divergence_step": null,
+      "base": {
+        "net_return": 0.07896122260974359,
+        "turnover_rate": 0.031578947368421054,
+        "avg_position": 0.4421052631578947,
+        "n_trades": 3.0,
+        "total_fees": 0.31070814081640546
+      },
+      "extra": {
+        "worst_scale": null
+      }
+    },
+    {
+      "policy": "rule_trend",
+      "test": "price_scale_invariance",
+      "variant": {},
+      "pass": true,
+      "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+      "action_match_rate": 1.0,
+      "first_divergence_step": null,
+      "base": {
+        "net_return": 0.0775573957924045,
+        "turnover_rate": 0.09473684210526316,
+        "avg_position": 0.6421052631578947,
+        "n_trades": 9.0,
+        "total_fees": 0.9279525216508392
+      },
+      "extra": {
+        "worst_scale": null
+      }
+    },
+    {
+      "policy": "cheater_absolute_price",
+      "test": "price_scale_invariance",
+      "variant": {},
+      "pass": false,
+      "reason": "尺度 ×0.1 下动作分歧(一致率 0.032,首个分歧 step=0) -> 绝对价格依赖",
+      "action_match_rate": 0.031578947368421054,
+      "first_divergence_step": 0,
+      "base": {
+        "net_return": 0.0017962148592669536,
+        "turnover_rate": 0.021052631578947368,
+        "avg_position": 0.031578947368421054,
+        "n_trades": 2.0,
+        "total_fees": 0.20018000128741392
+      },
+      "extra": {
+        "worst_scale": 0.1
+      }
+    }
+  ],
+  "initial_price": [
+    {
+      "policy": "oracle",
+      "test": "initial_price_invariance",
+      "variant": {},
+      "pass": true,
+      "reason": "初始价格变化下动作一致(无初始价依赖)",
+      "action_match_rate": 1.0,
+      "first_divergence_step": null,
+      "base": {
+        "net_return": 0.07896122260974359,
+        "turnover_rate": 0.031578947368421054,
+        "avg_position": 0.4421052631578947,
+        "n_trades": 3.0,
+        "total_fees": 0.31070814081640546
+      },
+      "extra": {
+        "worst_initial_price": null
+      }
+    },
+    {
+      "policy": "rule_trend",
+      "test": "initial_price_invariance",
+      "variant": {},
+      "pass": true,
+      "reason": "初始价格变化下动作一致(无初始价依赖)",
+      "action_match_rate": 1.0,
+      "first_divergence_step": null,
+      "base": {
+        "net_return": 0.0775573957924045,
+        "turnover_rate": 0.09473684210526316,
+        "avg_position": 0.6421052631578947,
+        "n_trades": 9.0,
+        "total_fees": 0.9279525216508392
+      },
+      "extra": {
+        "worst_initial_price": null
+      }
+    },
+    {
+      "policy": "cheater_absolute_price",
+      "test": "initial_price_invariance",
+      "variant": {},
+      "pass": false,
+      "reason": "初始价 50.0 下动作分歧(一致率 0.032,首个分歧 step=0) -> 初始价格依赖",
+      "action_match_rate": 0.031578947368421054,
+      "first_divergence_step": 0,
+      "base": {
+        "net_return": 0.0017962148592669536,
+        "turnover_rate": 0.021052631578947368,
+        "avg_position": 0.031578947368421054,
+        "n_trades": 2.0,
+        "total_fees": 0.20018000128741392
+      },
+      "extra": {
+        "worst_initial_price": 50.0
+      }
+    }
+  ],
+  "pass_expectation": "oracle/rule 动作一致(特征为尺度不变量);绝对价格作弊分歧",
+  "oracle_rule_all_pass": true
+}

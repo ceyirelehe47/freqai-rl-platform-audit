@@ -1,0 +1,249 @@
+{
+  "schema": "exam-pack-v1",
+  "name": "mock_hidden_probe_exam",
+  "version": "mock-v1",
+  "visibility": "mock_hidden",
+  "charter_hash": "c-97132cf40375abd40c5686513c0329a14dff9f6ca108c5a155a48552bf547c5f",
+  "spec_versions": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1",
+    "action_spec_version": "BinaryLongFlatAction-v1",
+    "reward_spec_version": "NetLogEquityReward-v1",
+    "execution_contract_version": "MarketOpenCausalExecution-v1",
+    "terminal_liquidation_version": "TerminalLiquidation-v1"
+  },
+  "episodes": [
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 101,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 102,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 103,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 104,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 105,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 106,
+      "split": "train"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 201,
+      "split": "dev_seed_holdout"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 202,
+      "split": "dev_seed_holdout"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 203,
+      "split": "dev_seed_holdout"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ]
+      },
+      "seed": 204,
+      "split": "dev_seed_holdout"
+    },
+    {
+      "family": "probe_segmented_drift",
+      "params": {
+        "drift_bps_range": [
+          30.0,
+          45.0
+        ],
+        "episode_bars": 96,
+        "regime_len_range": [
+          12,
+          40
+        ],
+        "vol_bps_range": [
+          32.0,
+          50.0
+        ]
+      },
+      "seed": 701,
+      "split": "param_extrapolation"
+    },
+    {
+      "family": "probe_smooth_latent_drift",
+      "params": {
+        "episode_bars": 96
+      },
+      "seed": 702,
+      "split": "family_holdout"
+    }
+  ],
+  "created_utc": "2026-08-25T20:31:29.621219+00:00",
+  "notes": {
+    "declaration": "mock-hidden pack 只用于测试隐藏考试基础设施,不具备正式考试资格;正式隐藏生成器将在课程冻结后由独立评估 Agent 在另一工作区创建,种子不进公开仓库"
+  }
+}

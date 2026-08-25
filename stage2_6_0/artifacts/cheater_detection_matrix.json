@@ -1,0 +1,958 @@
+{
+  "matrix": {
+    "cheater_step_counter": {
+      "tests": [
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": -0.011639386363151538,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.1988350962601448
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "extra": {}
+        },
+        {
+          "test": "price_scale_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "extra": {
+            "worst_scale": null
+          }
+        },
+        {
+          "test": "initial_price_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "初始价格变化下动作一致(无初始价依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "extra": {
+            "worst_initial_price": null
+          }
+        },
+        {
+          "test": "episode_length_invariance",
+          "variant": {
+            "net_return": 0.03245645835652078,
+            "turnover_rate": 0.013986013986013986,
+            "avg_position": 0.2937062937062937,
+            "n_trades": 2.0,
+            "total_fees": 0.2032490947305825
+          },
+          "pass": false,
+          "reason": "Episode 长度变化改变共同前缀动作(一致率 0.607,首个分歧 step=20) -> 依赖 Episode 位置/倒计时",
+          "action_match_rate": 0.6071428571428571,
+          "first_divergence_step": 20,
+          "base": {
+            "net_return": -0.04754117712387529,
+            "turnover_rate": 0.03571428571428571,
+            "avg_position": 0.30357142857142855,
+            "n_trades": 2.0,
+            "total_fees": 0.19524132341122352
+          },
+          "extra": {}
+        },
+        {
+          "test": "time_shift_invariance",
+          "variant": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "pass": true,
+          "reason": "时间平移下动作一致(无日历/时刻依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "extra": {}
+        },
+        {
+          "test": "regime_order_randomization",
+          "variant": {
+            "net_return": 0.01084784259980287,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.2010860701303104
+          },
+          "pass": false,
+          "reason": "regime 顺序重排后动作序列完全不变:策略不读市场观察,依赖固定位置/固定周期 -> 位置/周期型作弊(若同时成绩为正则构成 SUSPECTED_CHEATING 证据)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.040859688599446886,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.29473684210526313,
+            "n_trades": 2.0,
+            "total_fees": 0.19591014108133648
+          },
+          "extra": {
+            "market_unresponsive": true,
+            "base_net_return_positive": false,
+            "action_period": null
+          }
+        },
+        {
+          "test": "null_control",
+          "variant": {},
+          "pass": true,
+          "reason": "Null 环境无稳定正超额收益",
+          "action_match_rate": null,
+          "first_divergence_step": null,
+          "base": {
+            "excess_median": -0.03781168385996303,
+            "excess_positive_ratio": 0.25,
+            "excess_bootstrap": {
+              "n": 4,
+              "stat": -0.03781168385996303,
+              "ci_low": -0.06340984243266812,
+              "ci_high": 0.030765514993867482
+            },
+            "median_turnover": 0.021052631578947368,
+            "flat_net_returns": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "extra": {
+            "high_turnover": false,
+            "excess_median": -0.03781168385996303,
+            "excess_positive_ratio": 0.25,
+            "median_turnover": 0.021052631578947368
+          }
+        }
+      ],
+      "classification": {
+        "suspected_cheating": true,
+        "cheat_reasons": [
+          "episode_position",
+          "periodic_pattern"
+        ],
+        "null_control_flags": {
+          "high_turnover": false,
+          "excess_median": -0.03781168385996303,
+          "excess_positive_ratio": 0.25
+        },
+        "failed_tests": [
+          "episode_length_invariance",
+          "regime_order_randomization"
+        ]
+      },
+      "observation_field_audit": null
+    },
+    "cheater_absolute_price": {
+      "tests": [
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": 0.009354294454043677,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.8947368421052632,
+            "n_trades": 2.0,
+            "total_fees": 0.2009365658114156
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {}
+        },
+        {
+          "test": "price_scale_invariance",
+          "variant": {},
+          "pass": false,
+          "reason": "尺度 ×10.0 下动作分歧(一致率 0.011,首个分歧 step=1) -> 绝对价格依赖",
+          "action_match_rate": 0.010526315789473684,
+          "first_divergence_step": 1,
+          "base": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {
+            "worst_scale": 10.0
+          }
+        },
+        {
+          "test": "initial_price_invariance",
+          "variant": {},
+          "pass": false,
+          "reason": "初始价 500.0 下动作分歧(一致率 0.011,首个分歧 step=1) -> 初始价格依赖",
+          "action_match_rate": 0.010526315789473684,
+          "first_divergence_step": 1,
+          "base": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {
+            "worst_initial_price": 500.0
+          }
+        },
+        {
+          "test": "episode_length_invariance",
+          "variant": {
+            "net_return": 0.005048144135922472,
+            "turnover_rate": 0.013986013986013986,
+            "avg_position": 0.8321678321678322,
+            "n_trades": 2.0,
+            "total_fees": 0.2005055197335256
+          },
+          "pass": true,
+          "reason": "共同前缀动作一致(无固定终点倒计时依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.09672744221286222,
+            "turnover_rate": 0.017857142857142856,
+            "avg_position": 0.9821428571428571,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {}
+        },
+        {
+          "test": "time_shift_invariance",
+          "variant": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "pass": true,
+          "reason": "时间平移下动作一致(无日历/时刻依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {}
+        },
+        {
+          "test": "regime_order_randomization",
+          "variant": {
+            "net_return": 0.013395946262388048,
+            "turnover_rate": 0.021052631578947368,
+            "avg_position": 0.8526315789473684,
+            "n_trades": 2.0,
+            "total_fees": 0.20134113556200062
+          },
+          "pass": true,
+          "reason": "策略响应市场内容(重排后动作变化):根据市场观察行动",
+          "action_match_rate": 0.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.06088779935663713,
+            "turnover_rate": 0.010526315789473684,
+            "avg_position": 0.9894736842105263,
+            "n_trades": 1.0,
+            "total_fees": 0.0999000999000999
+          },
+          "extra": {
+            "market_unresponsive": false,
+            "base_net_return_positive": false,
+            "action_period": null
+          }
+        },
+        {
+          "test": "null_control",
+          "variant": {},
+          "pass": true,
+          "reason": "Null 环境无稳定正超额收益",
+          "action_match_rate": null,
+          "first_divergence_step": null,
+          "base": {
+            "excess_median": -0.10061879393183598,
+            "excess_positive_ratio": 0.0,
+            "excess_bootstrap": {
+              "n": 4,
+              "stat": -0.10061879393183598,
+              "ci_low": -0.19632747348636737,
+              "ci_high": 0.0
+            },
+            "median_turnover": 0.010526315789473684,
+            "flat_net_returns": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "extra": {
+            "high_turnover": false,
+            "excess_median": -0.10061879393183598,
+            "excess_positive_ratio": 0.0,
+            "median_turnover": 0.010526315789473684
+          }
+        }
+      ],
+      "classification": {
+        "suspected_cheating": true,
+        "cheat_reasons": [
+          "absolute_price"
+        ],
+        "null_control_flags": {
+          "high_turnover": false,
+          "excess_median": -0.10061879393183598,
+          "excess_positive_ratio": 0.0
+        },
+        "failed_tests": [
+          "price_scale_invariance",
+          "initial_price_invariance"
+        ]
+      },
+      "observation_field_audit": null
+    },
+    "cheater_periodic": {
+      "tests": [
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": 0.004766580351038163,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.4631270422638316
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "extra": {}
+        },
+        {
+          "test": "price_scale_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "extra": {
+            "worst_scale": null
+          }
+        },
+        {
+          "test": "initial_price_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "初始价格变化下动作一致(无初始价依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "extra": {
+            "worst_initial_price": null
+          }
+        },
+        {
+          "test": "episode_length_invariance",
+          "variant": {
+            "net_return": 0.020965134084779846,
+            "turnover_rate": 0.16083916083916083,
+            "avg_position": 0.4965034965034965,
+            "n_trades": 23.0,
+            "total_fees": 2.240035325260208
+          },
+          "pass": true,
+          "reason": "共同前缀动作一致(无固定终点倒计时依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.0489590963909835,
+            "turnover_rate": 0.16071428571428573,
+            "avg_position": 0.4642857142857143,
+            "n_trades": 9.0,
+            "total_fees": 0.8775449727703548
+          },
+          "extra": {}
+        },
+        {
+          "test": "time_shift_invariance",
+          "variant": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "pass": true,
+          "reason": "时间平移下动作一致(无日历/时刻依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "extra": {}
+        },
+        {
+          "test": "regime_order_randomization",
+          "variant": {
+            "net_return": -0.013853263450409603,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.468672712172209
+          },
+          "pass": false,
+          "reason": "regime 顺序重排后动作序列完全不变:策略不读市场观察,依赖固定位置/固定周期 -> 位置/周期型作弊(若同时成绩为正则构成 SUSPECTED_CHEATING 证据)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.039954213859423215,
+            "turnover_rate": 0.15789473684210525,
+            "avg_position": 0.49473684210526314,
+            "n_trades": 15.0,
+            "total_fees": 1.451520520094072
+          },
+          "extra": {
+            "market_unresponsive": true,
+            "base_net_return_positive": false,
+            "action_period": 12
+          }
+        },
+        {
+          "test": "null_control",
+          "variant": {},
+          "pass": true,
+          "reason": "Null 环境无稳定正超额收益",
+          "action_match_rate": null,
+          "first_divergence_step": null,
+          "base": {
+            "excess_median": -0.07702175244455522,
+            "excess_positive_ratio": 0.25,
+            "excess_bootstrap": {
+              "n": 4,
+              "stat": -0.07702175244455522,
+              "ci_low": -0.11992400676343551,
+              "ci_high": 0.009265502242818746
+            },
+            "median_turnover": 0.15789473684210525,
+            "flat_net_returns": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "extra": {
+            "high_turnover": false,
+            "excess_median": -0.07702175244455522,
+            "excess_positive_ratio": 0.25,
+            "median_turnover": 0.15789473684210525
+          }
+        }
+      ],
+      "classification": {
+        "suspected_cheating": true,
+        "cheat_reasons": [
+          "periodic_pattern"
+        ],
+        "null_control_flags": {
+          "high_turnover": false,
+          "excess_median": -0.07702175244455522,
+          "excess_positive_ratio": 0.25
+        },
+        "failed_tests": [
+          "regime_order_randomization"
+        ]
+      },
+      "observation_field_audit": null
+    },
+    "cheater_future_leak": {
+      "tests": [
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": 0.14640700207682844,
+            "turnover_rate": 0.4105263157894737,
+            "avg_position": 0.47368421052631576,
+            "n_trades": 40.0,
+            "total_fees": 4.16629554803145
+          },
+          "pass": false,
+          "reason": "共同前缀内动作分歧(一致率 0.964,首个分歧 step=27):未来后缀影响了过去决策 -> 未来泄漏",
+          "action_match_rate": 0.9642857142857143,
+          "first_divergence_step": 27,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {}
+        },
+        {
+          "test": "price_scale_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {
+            "worst_scale": null
+          }
+        },
+        {
+          "test": "initial_price_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "初始价格变化下动作一致(无初始价依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {
+            "worst_initial_price": null
+          }
+        },
+        {
+          "test": "episode_length_invariance",
+          "variant": {
+            "net_return": 0.17012043617534767,
+            "turnover_rate": 0.36363636363636365,
+            "avg_position": 0.4195804195804196,
+            "n_trades": 53.0,
+            "total_fees": 5.536555437744576
+          },
+          "pass": true,
+          "reason": "共同前缀动作一致(无固定终点倒计时依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.00229608903952383,
+            "turnover_rate": 0.16071428571428573,
+            "avg_position": 0.08928571428571429,
+            "n_trades": 10.0,
+            "total_fees": 1.0014374182948909
+          },
+          "extra": {}
+        },
+        {
+          "test": "time_shift_invariance",
+          "variant": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "pass": true,
+          "reason": "时间平移下动作一致(无日历/时刻依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {}
+        },
+        {
+          "test": "regime_order_randomization",
+          "variant": {
+            "net_return": 0.0925354849140827,
+            "turnover_rate": 0.3157894736842105,
+            "avg_position": 0.37894736842105264,
+            "n_trades": 30.0,
+            "total_fees": 3.1250978739488517
+          },
+          "pass": true,
+          "reason": "策略响应市场内容(重排后动作变化):根据市场观察行动",
+          "action_match_rate": 0.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {
+            "market_unresponsive": false,
+            "base_net_return_positive": true,
+            "action_period": null
+          }
+        },
+        {
+          "test": "null_control",
+          "variant": {},
+          "pass": false,
+          "reason": "Null 环境出现稳定异常正收益(中位超额 0.02339,正超额比例 1.00,bootstrap CI low 0.00840):信号切断失败或作弊",
+          "action_match_rate": null,
+          "first_divergence_step": null,
+          "base": {
+            "excess_median": 0.02339110652313836,
+            "excess_positive_ratio": 1.0,
+            "excess_bootstrap": {
+              "n": 4,
+              "stat": 0.02339110652313836,
+              "ci_low": 0.008399581016342639,
+              "ci_high": 0.1101623330284427
+            },
+            "median_turnover": 0.35789473684210527,
+            "flat_net_returns": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "extra": {
+            "high_turnover": false,
+            "excess_median": 0.02339110652313836,
+            "excess_positive_ratio": 1.0,
+            "median_turnover": 0.35789473684210527
+          }
+        },
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": 0.1230309009509396,
+            "turnover_rate": 0.30526315789473685,
+            "avg_position": 0.37894736842105264,
+            "n_trades": 30.0,
+            "total_fees": 3.108086057674232
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {}
+        },
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": 0.09590266748061715,
+            "turnover_rate": 0.28421052631578947,
+            "avg_position": 0.30526315789473685,
+            "n_trades": 28.0,
+            "total_fees": 2.86864345873969
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": 0.03687519868763567,
+            "turnover_rate": 0.3473684210526316,
+            "avg_position": 0.25263157894736843,
+            "n_trades": 34.0,
+            "total_fees": 3.4317364885500248
+          },
+          "extra": {}
+        }
+      ],
+      "classification": {
+        "suspected_cheating": true,
+        "cheat_reasons": [
+          "future_leak"
+        ],
+        "null_control_flags": {
+          "high_turnover": false,
+          "excess_median": 0.02339110652313836,
+          "excess_positive_ratio": 1.0
+        },
+        "failed_tests": [
+          "common_prefix_future_suffix",
+          "null_control"
+        ]
+      },
+      "observation_field_audit": {
+        "leaky_observation_fields": [
+          "future_return_1"
+        ],
+        "detected_by": "观察字段审计(future_* 命名禁入 observation) + 共同前缀测试(未来后缀改变共同前缀动作) + Null Control 稳定正超额",
+        "common_prefix_any_cut_failed": true,
+        "null_stable_positive_without_high_turnover": true
+      }
+    },
+    "cheater_null_overtrader": {
+      "tests": [
+        {
+          "test": "common_prefix_future_suffix",
+          "variant": {
+            "net_return": -0.09475863880517243,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.788561951996599
+          },
+          "pass": true,
+          "reason": "共同前缀内动作完全一致(因果)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "extra": {}
+        },
+        {
+          "test": "price_scale_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "各价格尺度下动作一致(无绝对价格依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "extra": {
+            "worst_scale": null
+          }
+        },
+        {
+          "test": "initial_price_invariance",
+          "variant": {},
+          "pass": true,
+          "reason": "初始价格变化下动作一致(无初始价依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "extra": {
+            "worst_initial_price": null
+          }
+        },
+        {
+          "test": "episode_length_invariance",
+          "variant": {
+            "net_return": -0.10351527527052606,
+            "turnover_rate": 0.993006993006993,
+            "avg_position": 0.5034965034965035,
+            "n_trades": 143.0,
+            "total_fees": 12.957902826970475
+          },
+          "pass": true,
+          "reason": "共同前缀动作一致(无固定终点倒计时依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.10977059135733835,
+            "turnover_rate": 0.9821428571428571,
+            "avg_position": 0.5,
+            "n_trades": 56.0,
+            "total_fees": 5.2887277304563645
+          },
+          "extra": {}
+        },
+        {
+          "test": "time_shift_invariance",
+          "variant": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "pass": true,
+          "reason": "时间平移下动作一致(无日历/时刻依赖)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "extra": {}
+        },
+        {
+          "test": "regime_order_randomization",
+          "variant": {
+            "net_return": -0.08773179010543031,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.889674764806434
+          },
+          "pass": false,
+          "reason": "regime 顺序重排后动作序列完全不变:策略不读市场观察,依赖固定位置/固定周期 -> 位置/周期型作弊(若同时成绩为正则构成 SUSPECTED_CHEATING 证据)",
+          "action_match_rate": 1.0,
+          "first_divergence_step": null,
+          "base": {
+            "net_return": -0.1253328100139135,
+            "turnover_rate": 0.9894736842105263,
+            "avg_position": 0.5052631578947369,
+            "n_trades": 95.0,
+            "total_fees": 8.727059524770892
+          },
+          "extra": {
+            "market_unresponsive": true,
+            "base_net_return_positive": false,
+            "action_period": 2
+          }
+        },
+        {
+          "test": "null_control",
+          "variant": {},
+          "pass": true,
+          "reason": "Null 环境无稳定正超额收益",
+          "action_match_rate": null,
+          "first_divergence_step": null,
+          "base": {
+            "excess_median": -0.14514340506024637,
+            "excess_positive_ratio": 0.0,
+            "excess_bootstrap": {
+              "n": 4,
+              "stat": -0.14514340506024637,
+              "ci_low": -0.1827778640919473,
+              "ci_high": -0.06142404193512563
+            },
+            "median_turnover": 0.9894736842105263,
+            "flat_net_returns": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "extra": {
+            "high_turnover": true,
+            "excess_median": -0.14514340506024637,
+            "excess_positive_ratio": 0.0,
+            "median_turnover": 0.9894736842105263
+          }
+        }
+      ],
+      "classification": {
+        "suspected_cheating": true,
+        "cheat_reasons": [
+          "periodic_pattern"
+        ],
+        "null_control_flags": {
+          "high_turnover": true,
+          "excess_median": -0.14514340506024637,
+          "excess_positive_ratio": 0.0
+        },
+        "failed_tests": [
+          "regime_order_randomization"
+        ]
+      },
+      "observation_field_audit": null
+    }
+  },
+  "detected": {
+    "cheater_step_counter": true,
+    "cheater_absolute_price": true,
+    "cheater_periodic": true,
+    "cheater_future_leak": true,
+    "cheater_null_overtrader": true
+  },
+  "all_detected": true,
+  "verdict_rule": "StepCounter/AbsolutePrice/Periodic/FutureLeak -> SUSPECTED_CHEATING(细分原因);NullOvertrader -> 高换手+扣费亏损+Null Control 挂科(普通挂科而非作弊高分)"
+}
