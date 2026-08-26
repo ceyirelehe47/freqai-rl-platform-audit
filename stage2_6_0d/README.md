@@ -1,60 +1,66 @@
 # 阶段 2.6.0d:Strict Null 统计资格与经济等价闭环
 
-> **阶段 2.6.0c 独立审查发现的一项集中阻塞在本目录全部修复。**
-> 阻塞内容:strict Null 的报告内容已被正确密封与验证,但资格判定
-> 采用了错误的统计单位(bootstrap 把 3 个 seed 的 288 根 bar 当独立
-> 样本)、过宽的漂移容差(per-bar 0.0008 在 96 根 15m Episode 上
-> 允许约 7.68% 累计 log drift),并把"没有显著发现正收益"错误解释
-> 为"已证明不存在经济上可交易的优势"——`probe_null_stochvol` 的
-> 3-seed 资格样本中 Always Flat 中位 0、Always Long 中位约 +2.40%
-> 仍判 `always_flat_strong_baseline=true` 并整体 PASS(`probe_null_sign`
-> 的 +0.75% 同样 PASS):旧检查根本不比较 Always Long vs Always Flat。
+> **阶段 2.6.0c 独立审查发现的集中阻塞在本目录全部修复(完整任务书语义)。**
+> 阻塞:资格判定统计单位错误(bootstrap 把 3 seed 的 288 根 bar 当
+> 独立样本)、漂移容差过宽(per-bar 0.0008 折算 ~7.68%/日)、把
+> "没有显著发现正收益"当作"已证明不存在可交易优势"——stochvol
+> 3-seed 样本 Always Long 中位 ~+2.40%(sign ~+0.75%)且 Always
+> Flat 中位 0 仍判 `always_flat_strong_baseline=true` 并 PASS。
 >
 > **本目录只完成资格统计语义修复,未开始正式课程训练。**
 
-- 判定:**PASS**(详见 report/route_c_stage2_6_0d_strict_null_statistical_closure.md)
-- 测试:2.5 → 2.6.0d 全量回归 **904 项全部通过,零失败**
-  (= 2.6.0c 基线 864 + 本阶段新增 40)
-- 上游:Freqtrade 2026.7(commit `52bc96f`)clean,零修改
-- `RouteCEnvCore-v1.0.0` 及全部冻结合同未修改
-  (`src/rl_platform` 与 stage2_6_0c 基线逐字节一致)
+- 判定:**PASS**(report/route_c_stage2_6_0d_strict_null_statistical_
+  qualification.md)
+- 测试:2.5 → 2.6.0d 全量回归 **921 项全部通过,零失败零跳过**
+- 上游:Freqtrade 2026.7(`52bc96f`)clean,零修改;冻结六合同未变
 
-## 本阶段修复
+## 本阶段实现(工作包 A-F)
 
-| 项 | 修复 |
+| 项 | 实现 |
 |---|---|
-| A1 显式三态结论 | `QUALIFIED / INVALID_NULL / INSUFFICIENT_EVIDENCE` 取代单一布尔;反证优先裁决(结构反证或经济反证 → INVALID_NULL;六项 checks 全真 → QUALIFIED;其余 → INSUFFICIENT_EVIDENCE);INSUFFICIENT 不得进入正式考试、不得被自动转换为 PASS;**当前 3-seed 资格报告全部得到 INSUFFICIENT_EVIDENCE**(任务书硬性要求) |
-| A2 seed/cluster 统计单位 | 每 seed 构成一个 cluster,其 K=8 个关联 Episode(派生 seed=seed+1000k)先在 cluster 内按算术平均聚合(per-seed-mean-episode-v1);bootstrap 抽样单位是 cluster 值列表,不再是单根 bar;报告记录原始 Episode 数/cluster 数/distinct seed 数/聚合规则/bootstrap 实际 n;**断言 bootstrap n == distinct independent clusters**(四统计块 × 三族);同 seed 9 个 Episode 只算 1 cluster |
-| 经济等价(检查语义修复) | `always_flat_strong_baseline` 真正比较 Always Long vs Always Flat:cluster 级 bootstrap CI 上界 ≤ 0.005(单侧 TOST:证明无可交易无条件多头优势);per-bar 容差与 bar 级 bootstrap 全部废除;`episode_net_drift_nonexploitable` 以每 episode 累计 log drift 定义不对称带(正侧 +0.5%:可被 Long/Flat 现货利用;负侧 -1.0%:不可利用,仅结构性非中心证据) |
-| 统计功效门槛 | `MIN_QUALIFICATION_CLUSTERS=64`(预注册;功效推导:每 episode Always Long 净收益 std ≈3%,K=8 的 cluster std ≈1.1%,n=64 时 CI 半宽 ≈0.27%,足以单侧 TOST 覆盖 0.005 带;实测三族 lf CI 上界 +0.0008/-0.0013/-0.0015 全部带内) |
-| 协议升级 | null-qualification-v3(v1/v2 报告在 verify 层显式拒绝:"bar 级统计单位/布尔-only 语义不得使用");nqc-/nq-/format 三通道使全部旧承诺与旧报告自动失效;verify 新增 cluster 单位/聚合规则/预注册参数/三态一致性对账;sealed-exam-commitment v3 / context v3 / CLI v4 / checkpoint manifest v3 / attestation v1 语义未变不升级 |
-| 2.6.0c 实现保留 | issuer 信任根(承诺唯一来源/API 面无覆盖参数)、candidate-runtime-manifest-v1 逐文件绑定、反作弊复制闭环(动态 seed 门槛,无硬编码截断,无永真断言)、Null 报告内容绑定(bool-only 拒绝)全部保留并有守卫测试;20 例篡改矩阵全拒 |
+| A1 三态结论 | QUALIFIED / INVALID_NULL / INSUFFICIENT_EVIDENCE;反证优先;INSUFFICIENT 不得进入考试、不得自动转 PASS;**3-seed 报告全部不再 QUALIFIED**(stochvol 因 CI 下界超 margin 判 INVALID_NULL) |
+| A2 统计单位 | seed cluster(每 seed 聚合 K 个关联 Episode);**bootstrap n == distinct independent clusters**(四差值块 × 三族);288-bar 场景 n==3;antithetic pack 6 ep/3 cluster/n==3 |
+| A3 非优越性检验 | 四个差值(AlwaysLong/Oracle/Rule/HFT vs Flat)全部要求**中心 <= margin 且 97.5% 单侧上置信界 <= margin**(HFT 容差 0);不用 p-value、不用 CI 包含零;统计方法/置信 0.95/bootstrap 2000 次/seed 20260826 冻结进 spec 哈希 |
+| A4 经济 margin | 只来自 Null Qualification Spec:**精确往返摩擦 1-(1-fee)²×(1-slip)² = 0.001999**(按 EvalConfig 计算,非写死);绑定 fee/slippage/price tick/Episode 真实时长(24h)/timeframe/比较策略/聚合方式;生成器参数通道删除 |
+| A5 功效 | 每族 **64 独立 cluster × 16 原始 Episode**;确定性 MC(六类场景):零优势误判 INVALID 0.0%、2×margin 错判 QUALIFIED 0.3%、1×margin 拒绝功效 84.8% 全达标;**32 cluster 实证不足**(零优势 QUALIFIED 成功率仅 59.25%,固定预注册 seeds 不允许重选) |
+| B 结构平衡 | **antithetic pairing(生成层镜像)**:同 seed 同随机流收益逐位取负(绝对收益/波动状态/wick 不变);pair 内多头优势与累计漂移精确抵消;无终点约束;pair 不进 obs;顺序 seeded 随机化。**关键结论:镜像同样抵消任何确定性漂移 → family 资格判定必须用原始样本,结构平衡只用于 pack 层** |
+| B2 pack-level validity | family 与 pack 分离;执行器候选评估前对物化 null episodes 现算 pack validity 并与承诺 npv- 哈希对账;每族 ≥32 独立 cluster;**偶然正漂移 pack → EXAM_INVALID(候选不进入评估,不判 FAIL/作弊)**;mock pack 每族扩到 32 antithetic pair |
+| B4 构建不可候选依赖 | 构建算法候选出现前冻结(npb- 哈希入承诺);namespace seed 推导;attempt counter + 匿名拒绝原因;签名无任何候选输入 |
+| C 报告与绑定 | 报告记录完整统计证据(协议/三态/实现绑定/spec hash/margin 推导/统计协议/真实时长/每 cluster 差值/中心与上界/功效引用/level);承诺 v4 绑定 nqs-/nq-/npv-/nqc-/npa-/npac-/npb- 全部哈希;隐藏 seed 不进公开承诺(只 hash+非敏感摘要) |
+| E 协议 | **sealed-exam-commitment-v4**(v3 进弃用)/ **null-qualification-v3** / **hidden-exam-cli-v5**;context v3 / checkpoint manifest v3 / attestation v1 / runtime manifest v1 语义未变不升级;旧协议显式拒绝,不静默补默认 |
+| F mock 全链路 | Spec → 功效 → 64×16 三族资格 → mock null pack(32 pair/族)→ pack validity → issuer → 256-step PPO smoke(允许挂科)→ attestation → v4 承诺 → 系统级沙箱(pack validity 现算对账)→ 反事实 → FAIL → 幂等 → 披露退休;双篡改矩阵全拒 |
 
-## 关键证据(artifacts/)
+## 关键证据(artifacts/,任务书清单逐名对齐)
 
 | 文件 | 结论 |
 |---|---|
-| null_qualification_v3_full_sample.json + null_reports/*.json | 三族 64 cluster × 8 episode 全部 QUALIFIED(实测 CI) |
-| null_qualification_small_sample_counterexample.json | **3-seed 反例闭环**:stochvol 中位 +0.02399 / sign +0.00748 复现,三族 INSUFFICIENT_EVIDENCE,verify 拒绝进入考试 |
-| null_qualification_economic_disproof.json | 漂移伪 Null(64 cluster)lf CI 下界 ≈+16.6% >> 带 → INVALID_NULL |
-| economic_band_registration.json | 带/语义/功效推导预注册(0.005/0.005/0.010/64) |
-| cluster_bootstrap_unit_audit.json | bootstrap n == distinct clusters 全过;9 ep/1 seed → n_clusters=1 |
-| sealed_commitment_verification_v3.json | v3 承诺完整验证通过(全部 checks) |
-| mock_sealed_exam_flow_v3_nulls.json | 系统级沙箱考试 FAIL(正常挂科)+ 幂等重试 + 详细披露退休 |
-| null_qualification_tamper_matrix_v3.json | 20 例篡改(旧格式/非 QUALIFIED 三态/统计单位/预注册参数/bool-only...)全部被拒,baseline 通过 |
-| stage2_6_0c_guards_preserved.json | 2.6.0c 闭环保留(issuer/runtime/反作弊/报告绑定) |
-| upstream_integrity.txt | vendor `52bc96f` clean;冻结六合同逐项未变 |
+| null_qualification_spec.json | margin 0.001999 精确推导 + 统计协议冻结 |
+| null_economic_margin_derivation.json | 往返摩擦硬上限 + 按 Episode 真实时间语义 |
+| null_power_analysis.json | 三目标全达标;32-cluster 充分性实证 |
+| seed_cluster_bootstrap_evidence.json | bootstrap n == distinct clusters(全块) |
+| legacy_three_seed_reports_rejection.json | 旧 3-seed 证据全部被新 verifier 拒收 |
+| stochvol / sign_positive_long_edge_rejection.json | +2.40%/+0.75% 反例复现且经济检查失败 |
+| valid_null_family_qualification.json | 三族 64×16 全部 QUALIFIED(lf 上界 ≤ margin) |
+| actual_pack_null_validity.json | mock pack 32 pair/族 PACK_VALID |
+| antithetic_pair_integrity.json | 逐位镜像/漂移精确抵消/builder attempt 记录 |
+| pseudo_null_rejection_matrix.json | 固定漂移/可预测趋势/HFT 正收益/小幅漂移全拒 |
+| pack_accidental_drift_rejection.json | 偶然正漂移 pack → EXAM_INVALID(候选不评估) |
+| null_qualification_tamper_matrix_v3.json | 16 例全拒(含 seeds 偏离 namespace 重算对账) |
+| sealed_exam_tamper_matrix_v4.json | v3 承诺/缺字段全拒 |
+| mock_sealed_exam_v5_summary.json | 沙箱考试 FAIL(正常挂科)+ 幂等 + 披露退休 |
+| regression_test_summary.md | 921 项零失败 |
+| upstream_integrity.txt | vendor 52bc96f clean;冻结六合同未变 |
 
 ## 目录结构
 
 ```text
-report/       阶段报告(修复对照/协议设计/功效推导/回归/完整性确认)
+report/       阶段报告(修复对照/协议设计/功效推导/回归/PASS 对照)
 src/          评估侧 + 最小候选运行时 + 冻结平台核心(未修改)
-tests/        本阶段 40 项测试 + 共享资格缓存 helper(null_qual_cache.py)
+tests/        本阶段 57 项测试 + 共享资格链缓存 helper
 experiments/  全链路实验脚本(run_all.py)
-artifacts/    全部证据文件(null_reports/ 为三族完整资格报告)
+artifacts/    全部证据文件(含 null_reports/ 三族完整报告)
 logs/         实验运行日志
 ```
 
-复现:`python3 experiments/route_c_stage2_6_0d/run_all.py`(约 80s;
-三族资格报告经确定性磁盘缓存,首次生成约 35s)。
+复现:`python3 experiments/route_c_stage2_6_0d/run_all.py`(资格链
+经确定性磁盘缓存,首次生成约 12 分钟,之后秒级)。

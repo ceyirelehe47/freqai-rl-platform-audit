@@ -237,8 +237,13 @@ class BaseMarketGenerator(ABC):
         统一传入);原始 duration_hours 与解析 episode_bars 不再产生
         不同的 RNG 流(声明形式不影响生成内容,只影响 manifest)。
         """
+        # antithetic_flip 不进入种子派生(阶段 2.6.0d B3):镜像变体
+        # 必须与基准路径共享同一随机流(收益逐位取负的前提);
+        # wick/volume 噪声因此也逐位一致(|路径形状| 镜像)
+        seed_params = {k: v for k, v in params.items()
+                       if k != "antithetic_flip"}
         payload = json.dumps(
-            [self.family, self.family_version, params, int(seed)],
+            [self.family, self.family_version, seed_params, int(seed)],
             sort_keys=True, separators=(",", ":"), ensure_ascii=False,
         )
         return int.from_bytes(

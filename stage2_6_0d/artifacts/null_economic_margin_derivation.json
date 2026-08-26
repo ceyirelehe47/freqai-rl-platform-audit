@@ -1,0 +1,33 @@
+{
+  "margin": 0.001998999999999973,
+  "derivation": {
+    "fee": 0.001,
+    "formula": "1 - (1 - fee)^2 * (1 - slippage)^2",
+    "hard_cap_satisfied": true,
+    "price_tick": 0.0,
+    "semantics": "一次完整往返的乘法交易摩擦;无条件策略相对 Flat 的允许正优势上限(经济解释:无信息交易者的套利屏障——优势低于该摩擦时任何单次往返都无法稳定获利)",
+    "slippage_bps": 0.0
+  },
+  "hard_cap": "任务书 A4:任一无条件策略相对 Flat 的允许正优势 <= 一次完整往返交易摩擦;按冻结环境实际乘法成本精确计算 1-(1-fee)^2*(1-slippage)^2 = 0.001999(fee=0.001,slippage=0),不写死常数",
+  "per_time_semantics": {
+    "episode_duration_hours": 24.0,
+    "timeframe": "15m",
+    "note": "margin 按 Episode 真实时间定义,非每 bar 阈值"
+  },
+  "statistical_protocol": {
+    "bootstrap_iters": 2000,
+    "bootstrap_seed": 20260826,
+    "bootstrap_stat": "mean",
+    "confidence_level": 0.95,
+    "decision_rule": "每个差值要求中心统计量 <= margin 且单侧置信上界(97.5%)<= margin;HighTurnover 容差为 0;不使用 p-value或 CI 包含零",
+    "method": "cluster-percentile-bootstrap-upper-bound",
+    "test_style": "non-inferiority-tost-single-sided"
+  },
+  "comparison_strategies": [
+    "oracle",
+    "observable_rule",
+    "always_long",
+    "high_turnover"
+  ],
+  "generated_utc": "2026-08-26T22:09:49.409058+00:00"
+}

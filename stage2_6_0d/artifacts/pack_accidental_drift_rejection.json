@@ -1,0 +1,12 @@
+{
+  "scenario": "分布理论零漂移(stochvol)但实际 pack 恰好显著向上(3-seed 反例 seeds [11,22,33])",
+  "pack_verdict": "PACK_INVALID",
+  "reasons": [
+    "probe_null_stochvol: antithetic 结构不完整:3 个 seed 的镜像对不完整(每 seed 必须 orig 与 flip 各恰好一个;首批异常 seed(匿名序号): [11, 22, 33]",
+    "probe_null_stochvol: pack 内独立 cluster 数 3 < 32(pack-level 冻结要求)",
+    "probe_null_stochvol: long: 中心 +0.02485 / CI 上界 +0.04804 未满足 pack-level 容差 0.001999(模式 upper_bound;pack 实际样本存在可交易优势)"
+  ],
+  "executor_behavior": "run_sealed_exam 在候选评估前现算 pack validity 并与承诺hash 对账;该 pack -> EXAM_INVALID,候选不进入评估,不判 FAIL/作弊",
+  "family_level_still_valid": true,
+  "generated_utc": "2026-08-26T22:10:41.971774+00:00"
+}

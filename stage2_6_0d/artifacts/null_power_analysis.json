@@ -1,0 +1,359 @@
+{
+  "summary": {
+    "margin": 0.001998999999999973,
+    "min_qualification_clusters": 64,
+    "mc_iters": 400,
+    "mc_seed": 20260827,
+    "max_false_invalid_at_zero": 0.0,
+    "max_false_qualified_at_2x_margin": 0.0025,
+    "min_rejection_power_at_1x_margin": 0.8475,
+    "targets_met": true,
+    "n32_sufficiency": {
+      "decision": "32 cluster 未同时满足拒绝功效与零优势可得率 -> 采用 64(留余量;固定预注册 seeds 不允许重选)",
+      "meets_targets_with_margin": false,
+      "n": 32,
+      "one_margin_rejection_power": 0.9,
+      "zero_edge_qualified_rate": 0.5925
+    }
+  },
+  "full_report": {
+    "code_hash": "npac-e74bbe921bb89c049316bf8ea910e051af48c5759480ea88f2b87c2f87132da4",
+    "format": "null-power-analysis-v1",
+    "margin": 0.001998999999999973,
+    "mc_iters": 400,
+    "mc_seed": 20260827,
+    "min_qualification_clusters": 64,
+    "n32_sufficiency": {
+      "decision": "32 cluster 未同时满足拒绝功效与零优势可得率 -> 采用 64(留余量;固定预注册 seeds 不允许重选)",
+      "meets_targets_with_margin": false,
+      "n": 32,
+      "one_margin_rejection_power": 0.9,
+      "zero_edge_qualified_rate": 0.5925
+    },
+    "oracle_scenarios_skipped": [
+      {
+        "family": "probe_null_stochvol",
+        "reason": "Oracle cluster 分布零方差(恒 flat),平移场景退化为常数序列,无统计意义"
+      }
+    ],
+    "power_targets": {
+      "max_false_invalid_rate_at_zero_edge": 0.05,
+      "max_false_qualified_rate_at_2x_margin": 0.05,
+      "min_rejection_power_at_1x_margin": 0.8
+    },
+    "scenarios": [
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.165,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.835
+        },
+        "scenario": "always_long_zero_edge"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0009994999999999865,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.51,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.49
+        },
+        "scenario": "always_long_half_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.8875,
+          "INVALID_NULL": 0.0075,
+          "QUALIFIED": 0.105
+        },
+        "scenario": "always_long_one_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.7125,
+          "INVALID_NULL": 0.285,
+          "QUALIFIED": 0.0025
+        },
+        "scenario": "always_long_two_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_stochvol",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.2075,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.7925
+        },
+        "scenario": "always_long_zero_edge"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0009994999999999865,
+        "family": "probe_null_stochvol",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.5275,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.4725
+        },
+        "scenario": "always_long_half_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_stochvol",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.8425,
+          "INVALID_NULL": 0.005,
+          "QUALIFIED": 0.1525
+        },
+        "scenario": "always_long_one_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_stochvol",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.8825,
+          "INVALID_NULL": 0.115,
+          "QUALIFIED": 0.0025
+        },
+        "scenario": "always_long_two_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.3575,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.6425
+        },
+        "scenario": "always_long_zero_edge"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0009994999999999865,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.69,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.31
+        },
+        "scenario": "always_long_half_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.9125,
+          "INVALID_NULL": 0.0075,
+          "QUALIFIED": 0.08
+        },
+        "scenario": "always_long_one_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.69,
+          "INVALID_NULL": 0.31,
+          "QUALIFIED": 0.0
+        },
+        "scenario": "always_long_two_margin"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 32,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.4075,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.5925
+        },
+        "scenario": "always_long_zero_edge_n32"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 32,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.8875,
+          "INVALID_NULL": 0.0125,
+          "QUALIFIED": 0.1
+        },
+        "scenario": "always_long_one_margin_n32"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 32,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.805,
+          "INVALID_NULL": 0.1925,
+          "QUALIFIED": 0.0025
+        },
+        "scenario": "always_long_two_margin_n32"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.1375,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.8625
+        },
+        "scenario": "volatility_clustering_check"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_stochvol",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.245,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.755
+        },
+        "scenario": "heavy_tail_check"
+      },
+      {
+        "block": "always_long_vs_flat",
+        "delta": 0.0,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.3225,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.6775
+        },
+        "scenario": "volatility_clustering_check"
+      },
+      {
+        "block": "oracle",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.835,
+          "INVALID_NULL": 0.0025,
+          "QUALIFIED": 0.1625
+        },
+        "scenario": "oracle_edge_one_margin"
+      },
+      {
+        "block": "oracle",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_sign",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.25,
+          "INVALID_NULL": 0.75,
+          "QUALIFIED": 0.0
+        },
+        "scenario": "oracle_edge_two_margin"
+      },
+      {
+        "block": "oracle",
+        "delta": 0.001998999999999973,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.735,
+          "INVALID_NULL": 0.0,
+          "QUALIFIED": 0.265
+        },
+        "scenario": "oracle_edge_one_margin"
+      },
+      {
+        "block": "oracle",
+        "delta": 0.003997999999999946,
+        "family": "probe_null_volstate",
+        "mc_iters": 400,
+        "n": 64,
+        "rates": {
+          "INSUFFICIENT_EVIDENCE": 0.6325,
+          "INVALID_NULL": 0.3675,
+          "QUALIFIED": 0.0
+        },
+        "scenario": "oracle_edge_two_margin"
+      }
+    ],
+    "targets": {
+      "max_false_invalid_at_zero": 0.0,
+      "max_false_qualified_at_2x_margin": 0.0025,
+      "min_rejection_power_at_1x_margin": 0.8475,
+      "one_margin_rejection_power_by_family": {
+        "probe_null_sign": 0.895,
+        "probe_null_stochvol": 0.8475,
+        "probe_null_volstate": 0.92
+      },
+      "oracle_edge_rejection_power_by_family": {
+        "probe_null_sign": 0.8375,
+        "probe_null_volstate": 0.735
+      },
+      "targets_met": true,
+      "two_margin_false_qualified_rate_by_family": {
+        "probe_null_sign": 0.0025,
+        "probe_null_stochvol": 0.0025,
+        "probe_null_volstate": 0.0
+      },
+      "zero_edge_false_invalid_rate_by_family": {
+        "probe_null_sign": 0.0,
+        "probe_null_stochvol": 0.0,
+        "probe_null_volstate": 0.0
+      }
+    }
+  },
+  "generated_utc": "2026-08-26T22:09:49.409293+00:00"
+}

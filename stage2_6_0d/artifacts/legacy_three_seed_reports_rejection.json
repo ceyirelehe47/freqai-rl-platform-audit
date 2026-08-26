@@ -1,0 +1,60 @@
+{
+  "legacy_reports": {
+    "probe_null_sign": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "always_long_median": 0.007477867856317433,
+      "lf_ci": [
+        0.001937365963120552,
+        0.025377350835439794
+      ],
+      "checks": {
+        "oracle_no_tradable_edge": true,
+        "rule_no_tradable_edge": true,
+        "always_flat_strong_baseline": false,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": false
+      },
+      "report_hash": "nq-71157364917162f0f3d8800a57f8f61c0e04be1185dc5f8c2e64d91f1007277c"
+    },
+    "probe_null_volstate": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "always_long_median": -0.017956873482715685,
+      "lf_ci": [
+        -0.029473151702342104,
+        0.007393278664634684
+      ],
+      "checks": {
+        "oracle_no_tradable_edge": true,
+        "rule_no_tradable_edge": true,
+        "always_flat_strong_baseline": false,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": false
+      },
+      "report_hash": "nq-2e8356ea3a447a67953ff2b49fd2f8804d28854368544292894a1d9e663518a2"
+    },
+    "probe_null_stochvol": {
+      "verdict": "INVALID_NULL",
+      "always_long_median": 0.02398753344204585,
+      "lf_ci": [
+        0.0025213050334351728,
+        0.048040891809196795
+      ],
+      "checks": {
+        "oracle_no_tradable_edge": true,
+        "rule_no_tradable_edge": false,
+        "always_flat_strong_baseline": false,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": false
+      },
+      "report_hash": "nq-25356452ddd8f4abfc615b0beb6f4e7fc081b00713a984054ed94f7c3fa3ccb8"
+    }
+  },
+  "none_qualified": true,
+  "rejected_by_new_verifier": true,
+  "problems_head": [
+    "Null 族 'probe_null_sign' 资格报告对账失败: 报告 power_analysis_ref 与承诺的 power analysis 不一致(功效分析未绑定或被替换); 独立 cluster 数不足(去重 3 < 64:统计功效不足以证明经济等价,INSUFFICIENT_EVIDENCE 不得进入正式考试); 报告 seeds 不符合资格 namespace 推导序列(资格 seed 不得挑选); 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_EVIDENCE 不得被自动转换为PASS,INVALID_NULL 为明确反证); 报告存在未通过的检查: ['always_flat_strong_baseline', 'multi_seed_coverage']; 报告最终 pass 不为真",
+    "Null 族 'probe_null_volstate' 资格报告对账失败: 报告 power_analysis_ref 与承诺的 power analysis 不一致(功效分析未绑定或被替换); 独立 cluster 数不足(去重 3 < 64:统计功效不足以证明经济等价,INSUFFICIENT_EVIDENCE 不得进入正式考试); 报告 seeds 不符合资格 namespace 推导序列(资格 seed 不得挑选); 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_EVIDENCE 不得被自动转换为PASS,INVALID_NULL 为明确反证); 报告存在未通过的检查: ['always_flat_strong_baseline', 'multi_seed_coverage']; 报告最终 pass 不为真"
+  ],
+  "note": "旧证据不得自动升级;stochvol 因 lf CI 下界超 margin 升级为 INVALID_NULL(经济反证),sign/volstate 为 INSUFFICIENT_EVIDENCE",
+  "generated_utc": "2026-08-26T22:09:50.173859+00:00"
+}

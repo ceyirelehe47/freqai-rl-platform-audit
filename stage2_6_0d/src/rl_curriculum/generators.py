@@ -432,6 +432,13 @@ class _ProbeNullBase(BaseMarketGenerator):
             raise GeneratorError(
                 f"源轨迹长度 {len(src_returns)} != episode_bars {n}")
         returns = self._transform_returns(src_returns, params, rng)
+        # 阶段 2.6.0d 工作包 B3:antithetic 变体——同一 seed/随机流的
+        # 基准路径收益逐位取负(绝对收益与波动状态路径保持不变);
+        # pair 内镜像使无条件多头优势与累计漂移在聚合层精确抵消,
+        # 且不在单个 Episode 内施加终点约束(无 Brownian bridge 类
+        # 位置泄漏)
+        if params.get("antithetic_flip"):
+            returns = -np.asarray(returns, dtype=np.float64)
         doc = _NULL_META_DOC.get(self.family, {})
         meta = {
             "mode": self.family,
@@ -630,6 +637,10 @@ class ProbeNullStochasticVolGenerator(BaseMarketGenerator):
         scale = math.sqrt(t_df / (t_df - 2.0))
         increments = rng.standard_t(t_df, size=n) / scale
         returns = vols[states] * increments  # 符号 iid 对称,零漂移
+        # 阶段 2.6.0d 工作包 B3:antithetic 变体(同 states/increments
+        # 随机流,收益逐位取负;波动状态路径与 |增量| 不变)
+        if params.get("antithetic_flip"):
+            returns = -returns
         # 隐藏状态:波动状态(方向恒 0——本族无方向信息)
         to_end = np.empty(n, dtype=int)
         run_start = 0

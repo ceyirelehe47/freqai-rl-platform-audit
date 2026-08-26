@@ -68,49 +68,142 @@ FAMILY_HOLDOUT_PARAMS: dict[str, Any] = {
 
 
 def build_mock_hidden_pack(*, name: str = "mock_hidden_probe_pack",
-                           version: str = "mock-hidden-v3",
-                           timeframe: str = "15m") -> ExamPack:
+                           version: str = "mock-hidden-v4",
+                           timeframe: str = "15m",
+                           null_attempt: int = 0,
+                           with_builder_log: bool = False):
     """mock 隐藏考试包(公开标记;split 覆盖 G4 全部门 + 严格三族 Null)。
 
-    阶段 2.6.0b:probe_null_block(诊断族)不再进入包;
-    probe_null_stochvol(独立实现的随机波动率零漂移)加入严格集合。
+    阶段 2.6.0b:probe_null_block(诊断族)不再进入包;stochvol 加入。
+    阶段 2.6.0d(任务书 B2/B4):每族 null_control 扩容到 32 个独立
+    seed cluster(seeds 来自 pack_construction namespace 的确定性
+    推导,与资格/训练/dev 种子隔离;attempt 推进 seeds——构建规则
+    在候选出现前冻结,不依赖任何候选模型成绩)。选择标准只依赖
+    Null 结构/Oracle/规则/trivial baseline(pack-level validity)。
+
+    with_builder_log=True 时返回 (pack, builder_log);builder_log 记录
+    各 attempt 的 pack-level 验证结果与匿名拒绝原因(B4)。
     """
-    episodes: list[EpisodeSpec] = []
-
-    def add(family: str, params: dict[str, Any], seeds, split: str) -> None:
-        for s in seeds:
-            episodes.append(EpisodeSpec(
-                family=family, params=dict(params), seed=int(s),
-                split=split, timeframe=timeframe))
-
-    add("probe_segmented_drift", BASE_PARAMS, (101, 102, 103), "train")
-    add("probe_segmented_drift", BASE_PARAMS, (201, 202, 203),
-        "dev_seed_holdout")
-    add("probe_segmented_drift", EXTRAPOLATION_PARAMS, (301, 302, 303),
-        "param_extrapolation")
-    add("probe_smooth_latent_drift", FAMILY_HOLDOUT_PARAMS,
-        (401, 402, 403), "family_holdout")
-    add("probe_null_sign", BASE_PARAMS, (501, 502), "null_control")
-    add("probe_null_volstate", BASE_PARAMS, (701, 702), "null_control")
-    add("probe_null_stochvol", BASE_PARAMS, (801, 802), "null_control")
-    return ExamPack(
-        name=name, version=version, visibility="mock_hidden",
-        charter_hash=charter_hash(audit_probe_charter()),
-        spec_versions=spec_versions(),
-        episodes=episodes, timeframe=timeframe,
-        notes={
-            "mock": True,
-            "声明": (
-                "公开 mock hidden pack:仅用于验证密封考试基础设施,"
-                "不构成正式隐藏考试;正式隐藏生成器与种子不进入公开仓库"
-            ),
-            "null_families": (
-                "严格三族 probe_null_sign/probe_null_volstate/"
-                "probe_null_stochvol;probe_null_block 已重新分类为"
-                "partial_dependency_destruction 诊断族,不进入正式包"
-            ),
-        },
+    from rl_curriculum.null_qualification_spec import (
+        MIN_PACK_CLUSTERS_PER_FAMILY,
+        pack_construction_seeds,
     )
+
+    def _assemble(attempt: int) -> ExamPack:
+        episodes: list[EpisodeSpec] = []
+
+        def add(family: str, params: dict[str, Any], seeds,
+                split: str) -> None:
+            for s in seeds:
+                episodes.append(EpisodeSpec(
+                    family=family, params=dict(params), seed=int(s),
+                    split=split, timeframe=timeframe))
+
+        add("probe_segmented_drift", BASE_PARAMS, (101, 102, 103), "train")
+        add("probe_segmented_drift", BASE_PARAMS, (201, 202, 203),
+            "dev_seed_holdout")
+        add("probe_segmented_drift", EXTRAPOLATION_PARAMS,
+            (301, 302, 303), "param_extrapolation")
+        add("probe_smooth_latent_drift", FAMILY_HOLDOUT_PARAMS,
+            (401, 402, 403), "family_holdout")
+        # 严格 Null 三族:每族 32 个 base seed x (orig, antithetic flip)
+        # = 64 Episode = 32 独立 pair cluster(B2/B3);pair 内镜像使
+        # 无条件多头优势与累计漂移在 pack 层精确抵消;pair 顺序由
+        # 构建 namespace seeded 随机化(镜像关系不可由固定顺序识别)
+        import numpy as _np
+
+        from rl_curriculum.null_qualification_spec import pack_order_seed
+
+        for fam in ("probe_null_sign", "probe_null_volstate",
+                    "probe_null_stochvol"):
+            base_seeds = pack_construction_seeds(
+                fam, attempt, MIN_PACK_CLUSTERS_PER_FAMILY)
+            order_rng = _np.random.default_rng(pack_order_seed(fam, attempt))
+            flip_params = dict(BASE_PARAMS)
+            flip_params["antithetic_flip"] = True
+            for s in order_rng.permutation(len(base_seeds)):
+                episodes.append(EpisodeSpec(
+                    family=fam, params=dict(flip_params),
+                    seed=int(base_seeds[s]), split="null_control",
+                    timeframe=timeframe))
+                episodes.append(EpisodeSpec(
+                    family=fam, params=dict(BASE_PARAMS),
+                    seed=int(base_seeds[s]), split="null_control",
+                    timeframe=timeframe))
+        return ExamPack(
+            name=name, version=version, visibility="mock_hidden",
+            charter_hash=charter_hash(audit_probe_charter()),
+            spec_versions=spec_versions(),
+            episodes=episodes, timeframe=timeframe,
+            notes={
+                "mock": True,
+                "声明": (
+                    "公开 mock hidden pack:仅用于验证密封考试基础设施,"
+                    "不构成正式隐藏考试;正式隐藏生成器与种子不进入公开"
+                    "仓库"
+                ),
+                "null_families": (
+                    "严格三族 probe_null_sign/probe_null_volstate/"
+                    "probe_null_stochvol;probe_null_block 已重新分类为"
+                    "partial_dependency_destruction 诊断族,不进入正式包"
+                ),
+                "null_pack_builder": (
+                    "阶段 2.6.0d:每族 32 独立 seed cluster,seeds 由 "
+                    "pack_construction namespace 确定性推导并按 "
+                    "attempt 推进;构建只依赖 pack-level Null 结构"
+                    "验证,与任何候选 checkpoint 无关"
+                ),
+            },
+        )
+
+    if not with_builder_log:
+        return _assemble(null_attempt)
+
+    # 预注册构建循环(B4):attempt 0..MAX-1,pack-level validity 通过
+    # 即选定;全部失败则拒绝构建(记录匿名原因)
+    from rl_curriculum.null_pack_validation import (
+        MAX_PACK_ATTEMPTS,
+        pack_builder_attempt_log,
+        validate_null_pack,
+    )
+
+    cfg = default_eval_config()
+    schema = probe_observation_schema()
+    attempts: list[dict[str, Any]] = []
+    for attempt in range(MAX_PACK_ATTEMPTS):
+        pack = _assemble(attempt)
+        report = _validate_pack_ephemeral(pack, cfg, schema)
+        reject = [] if report["pass"] else report["reasons"][:3]
+        attempts.append({
+            "attempt": attempt, "verdict": report["verdict"],
+            "reject_reasons": reject,
+        })
+        if report["pass"]:
+            return pack, pack_builder_attempt_log(attempts)
+    raise RuntimeError(
+        f"mock null pack 构建在 {MAX_PACK_ATTEMPTS} 次尝试内未通过 "
+        f"pack-level validity(不应发生;请检查生成器/参数)")
+
+
+def _validate_pack_ephemeral(pack: ExamPack, cfg, schema) -> dict[str, Any]:
+    """物化 pack 内 null episodes 并执行 pack-level validity(构建期
+    选择标准;不涉及任何候选)。"""
+    from rl_curriculum.null_pack_validation import build_spec_for_pack
+    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
+
+    by_family: dict[str, list[Any]] = {}
+    for spec in pack.episodes:
+        if spec.split == "null_control":
+            by_family.setdefault(spec.family, []).append(
+                R[spec.family].generate(
+                    dict(spec.params), spec.seed, split=spec.split,
+                    timeframe=spec.timeframe))
+    qspec = build_spec_for_pack(
+        cfg, timeframe=pack.timeframe,
+        episode_bars=int(BASE_PARAMS["episode_bars"]))
+    from rl_curriculum.null_pack_validation import validate_null_pack
+
+    return validate_null_pack(by_family, cfg=cfg, schema=schema, spec=qspec)
 
 
 def default_eval_config() -> EvalConfig:
@@ -202,21 +295,40 @@ def build_mock_commitment(
     trusted_issuer: Any = None,
     null_qualification_bindings: dict[str, dict[str, Any]]
     | None = None,
+    power_analysis_report: dict[str, Any] | None = None,
+    pack_validity_report: dict[str, Any] | None = None,
 ) -> SealedExamCommitment:
-    """独立评估方在考试开始前创建的密封承诺 v3(全量绑定)。
+    """独立评估方在考试开始前创建的密封承诺 v4(全量绑定)。
 
-    阶段 2.6.0c 工作包 B/D:
-    - 必须绑定候选运行时 manifest(candidate_runtime_manifest/hash,
-      沙箱内实际执行的 rl_candidate_runtime 逐文件内容哈希);
-    - null_qualification_bindings 必须是 build_null_qualification_
-      bindings(真实资格审查报告) 的输出——缺少任何 required 家族的
-      真实报告立即失败,不存在 {qualification_pass: true} 占位通道。
+    阶段 2.6.0c 工作包 B/D:候选运行时逐文件 manifest 绑定;真实
+    Null 资格报告绑定(bool-only 占位通道不存在)。
+    阶段 2.6.0d(任务书 A3/A4/A5/B2/B4/C2):
+    - 绑定 Null 资格规范哈希(nqs-:margin 只来自按 EvalConfig 精确
+      计算的往返摩擦;统计协议/聚合规则/功效目标/seed namespace);
+    - 绑定确定性功效分析(npa- 报告 hash + npac- 代码 hash + 非敏感
+      摘要;targets_met 必须为真);
+    - 绑定 pack 构建算法哈希(npb-)与实际 pack 的 pack-level
+      validity(npv- 报告 hash + pack_hash + 非敏感摘要;完整报告
+      由执行器对物化 pack 现算对账——隐藏 seed 不进公开承诺)。
     """
     import rl_curriculum.counterfactual as cf_module
     from rl_curriculum.generator_binding import generator_bindings
     from rl_curriculum.null_qualification import (
         NULL_BINDING_KEYS,
         qualification_code_hash,
+    )
+    from rl_curriculum.null_qualification_spec import (
+        build_spec_payload,
+        null_qualification_spec_hash,
+        verify_spec_payload,
+    )
+    from rl_curriculum.null_power_analysis import (
+        power_analysis_code_hash,
+        power_analysis_report_hash,
+    )
+    from rl_curriculum.null_pack_validation import (
+        pack_builder_code_hash,
+        pack_validity_report_hash,
     )
     from rl_curriculum.param_resolution import (
         resolved_parameter_semantics_hash,
@@ -260,6 +372,50 @@ def build_mock_commitment(
             raise ValueError(
                 f"Null 族 {fam!r} 的资格绑定不是 v3 结构(缺真实报告"
                 f"payload 的 bool-only 绑定被禁止):键 {sorted(bound)}")
+    # ---- 阶段 2.6.0d:A5 功效分析与 B2 pack-level validity 必须真实
+    if power_analysis_report is None:
+        raise ValueError(
+            "v4 承诺必须绑定确定性功效分析报告:先 run_power_analysis"
+            "(真实 family 报告的经验 cluster 分布)生成 targets_met "
+            "为真的报告再传入;无功效分析的 Null 资格不得进入考试")
+    if power_analysis_report.get("targets", {}).get("targets_met") \
+            is not True:
+        targets = power_analysis_report.get("targets")
+        raise ValueError(
+            f"功效分析未达标(targets_met 不为真):{targets}"
+            f"——不得降低标准掩盖功效不足")
+    if pack_validity_report is None:
+        raise ValueError(
+            "v4 承诺必须绑定实际 Null pack 的 pack-level validity 报告"
+            ":对物化 null episodes 运行 validate_null_pack(PACK_VALID)"
+            " 再传入;只做 family-level 资格而无 pack-level 验证的"
+            "考试不得开始")
+    if pack_validity_report.get("verdict") != "PACK_VALID":
+        raise ValueError(
+            f"实际 pack 未通过 pack-level validity("
+            f"{pack_validity_report.get('verdict')}):"
+            f"{pack_validity_report.get('reasons', [])[:2]}"
+            f"(pack 偶然漂移时必须重建 pack,不得用于正式考试)")
+    # ---- 资格规范(margin 只来自规范;与本次考试材料绑定)
+    null_episode_bars = 96
+    for ep_spec in pack.episodes:
+        if ep_spec.split == "null_control":
+            null_episode_bars = int(
+                (ep_spec.params or {}).get("episode_bars", 96))
+            break
+    nq_spec = build_spec_payload(
+        eval_config, timeframe=pack.timeframe,
+        episode_bars=null_episode_bars)
+    spec_problems = verify_spec_payload(nq_spec)
+    if spec_problems:
+        raise ValueError(f"qualification spec 自洽失败: {spec_problems}")
+    # pack_validity 报告必须对应本 pack(报告由 validate_null_pack 对
+    # 物化 episodes 完全确定;执行器将现算同一报告并对账 hash)
+    if pack_validity_report.get("verdict") != "PACK_VALID":  # 双保险
+        raise ValueError("pack_validity 报告 verdict 非 PACK_VALID")
+    pv_pack_hash = pack_validity_report.get("pack_hash")
+    if pv_pack_hash not in ("", None) and pv_pack_hash != pack.pack_hash():
+        raise ValueError("pack_validity 报告与本 pack 不一致(pack_hash)")
     # 工作包 B:绑定沙箱内实际执行的候选运行时(逐文件内容哈希)
     runtime_manifest = compute_runtime_manifest()
     return SealedExamCommitment(
@@ -275,6 +431,39 @@ def build_mock_commitment(
         sandbox_profile_hash=profile.profile_hash(),
         candidate_runtime_manifest=runtime_manifest,
         candidate_runtime_hash=runtime_tree_hash(runtime_manifest),
+        null_qualification_spec_hash=null_qualification_spec_hash(nq_spec),
+        null_power_analysis={
+            "report_hash": power_analysis_report_hash(
+                power_analysis_report),
+            "code_hash": power_analysis_code_hash(),
+            "public_summary": {
+                "margin": power_analysis_report.get("margin"),
+                "min_qualification_clusters": power_analysis_report.get(
+                    "min_qualification_clusters"),
+                "targets_met": True,
+                "max_false_invalid_at_zero": power_analysis_report.get(
+                    "targets", {}).get("max_false_invalid_at_zero"),
+                "max_false_qualified_at_2x_margin":
+                    power_analysis_report.get("targets", {}).get(
+                        "max_false_qualified_at_2x_margin"),
+                "min_rejection_power_at_1x_margin":
+                    power_analysis_report.get("targets", {}).get(
+                        "min_rejection_power_at_1x_margin"),
+            },
+        },
+        pack_builder_code_hash=pack_builder_code_hash(),
+        pack_validity={
+            "report_hash": pack_validity_report_hash(pack_validity_report),
+            "pack_hash": pack.pack_hash(),
+            "public_summary": {
+                "verdict": "PACK_VALID",
+                "per_family_clusters": {
+                    fam: fam_block["n_clusters"]
+                    for fam, fam_block in (
+                        pack_validity_report.get("per_family")
+                        or {}).items()},
+            },
+        },
         nuisance_equivalence_spec=(
             verdict_spec.nuisance_equivalence.canonical_payload()),
         anticheat_replication_spec={

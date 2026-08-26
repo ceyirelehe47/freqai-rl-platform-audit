@@ -45,9 +45,10 @@ from typing import Any
 
 import pandas as pd
 
-SEALED_EXAM_PROTOCOL = "sealed-exam-commitment-v3"
+SEALED_EXAM_PROTOCOL = "sealed-exam-commitment-v4"
 _DEPRECATED_PROTOCOLS = ("sealed-exam-commitment-v1",
-                         "sealed-exam-commitment-v2")
+                         "sealed-exam-commitment-v2",
+                         "sealed-exam-commitment-v3")
 
 
 class SealedExamError(RuntimeError):
@@ -89,6 +90,18 @@ class SealedExamCommitment:
     null_qualification_bindings: dict[str, dict[str, Any]] = field(
         default_factory=dict)
     null_qualification_code_hash: str = ""
+    #: Null 资格规范哈希(阶段 2.6.0d A3/A4:margin 只来自规范;统计
+    #: 协议/聚合规则/功效目标/seed namespace 经 nqs- 哈希绑定)
+    null_qualification_spec_hash: str = ""
+    #: 确定性功效分析绑定(阶段 2.6.0d A5:报告 hash + 代码 hash +
+    #: 非敏感摘要;完整报告见评估方 artifacts)
+    null_power_analysis: dict[str, Any] = field(default_factory=dict)
+    #: pack 构建算法哈希(阶段 2.6.0d B4:构建规则在候选出现前冻结)
+    pack_builder_code_hash: str = ""
+    #: 实际 Null pack 的 pack-level validity(阶段 2.6.0d B2/C3:
+    #: 只携带 hash 与非敏感摘要;执行器对物化 pack 现算并逐字段对账,
+    #: 失败 -> EXAM_INVALID)
+    pack_validity: dict[str, Any] = field(default_factory=dict)
     #: 受信训练签发方(工作包 G6)
     trusted_issuer: dict[str, Any] = field(default_factory=dict)
     #: 真实时间参数解析语义哈希(工作包 A)
@@ -135,6 +148,10 @@ class SealedExamCommitment:
             "anticheat_replication_spec": self.anticheat_replication_spec,
             "null_qualification_bindings": self.null_qualification_bindings,
             "null_qualification_code_hash": self.null_qualification_code_hash,
+            "null_qualification_spec_hash": self.null_qualification_spec_hash,
+            "null_power_analysis": self.null_power_analysis,
+            "pack_builder_code_hash": self.pack_builder_code_hash,
+            "pack_validity": self.pack_validity,
             "trusted_issuer": self.trusted_issuer,
             "resolved_parameter_semantics_hash": (
                 self.resolved_parameter_semantics_hash),
@@ -164,12 +181,15 @@ class SealedExamCommitment:
             if data.get("protocol_version") in _DEPRECATED_PROTOCOLS:
                 raise SealedExamError(
                     f"sealed manifest 协议版本 "
-                    f"{data.get('protocol_version')!r} 已弃用(v2 及更早)"
-                    f":v2 承诺缺少候选运行时内容绑定(candidate runtime "
-                    f"manifest/hash)与真实 Null 资格报告绑定,issuer "
-                    f"信任根曾可被 context 覆盖;不得被 v3 执行器自动"
-                    f"接受,必须以 {SEALED_EXAM_PROTOCOL!r} 重新创建承诺"
-                    f"(版本不兼容,阶段 2.6.0c 工作包 E)")
+                    f"{data.get('protocol_version')!r} 已弃用:v2 及更早"
+                    f"缺少候选运行时内容绑定与真实 Null 资格报告绑定,"
+                    f"issuer 信任根曾可被 context 覆盖;v3 缺少 Null "
+                    f"资格规范/功效分析/pack-level validity 绑定"
+                    f"(阶段 2.6.0d:margin 只能来自 qualification spec,"
+                    f"实际 pack 必须在候选运行前通过 pack-level "
+                    f"validity)——不得被 v4 执行器自动接受,必须以 "
+                    f"{SEALED_EXAM_PROTOCOL!r} 重新创建承诺"
+                    f"(版本不兼容;协议不兼容显式报错,不静默补默认值)")
             raise SealedExamError(
                 f"sealed manifest 协议版本 {data.get('protocol_version')!r} "
                 f"!= {SEALED_EXAM_PROTOCOL!r}")
@@ -178,10 +198,39 @@ class SealedExamCommitment:
         runtime_hash = str(data.get("candidate_runtime_hash") or "")
         if not runtime_manifest or not runtime_hash:
             raise SealedExamError(
-                "v3 承诺必须绑定候选运行时内容(candidate_runtime_"
+                "v4 承诺必须绑定候选运行时内容(candidate_runtime_"
                 "manifest/hash):沙箱内实际执行的 rl_candidate_runtime "
                 "每个文件必须被承诺哈希覆盖;缺少 runtime hash 的承诺"
                 "不得进入正式考试(阶段 2.6.0c 工作包 B/E)")
+        spec_hash = str(data.get("null_qualification_spec_hash") or "")
+        power = dict(data.get("null_power_analysis") or {})
+        pack_validity = dict(data.get("pack_validity") or {})
+        if not spec_hash.startswith("nqs-"):
+            raise SealedExamError(
+                "v4 承诺必须绑定 Null 资格规范哈希(null_qualification_"
+                "spec_hash, nqs-):经济 margin/统计协议/聚合规则/功效"
+                "目标只能来自 qualification spec(阶段 2.6.0d A3/A4;"
+                "生成器参数通道已禁止);缺字段的旧承诺不得静默补默认值")
+        if (not str(power.get("report_hash") or "").startswith("npa-")
+                or not str(power.get("code_hash") or "").startswith("npac-")):
+            raise SealedExamError(
+                "v4 承诺必须绑定确定性功效分析(null_power_analysis:"
+                "{report_hash npa-, code_hash npac-, public_summary}):"
+                "没有功效分析的 Null 资格不得进入正式考试"
+                "(阶段 2.6.0d A5)")
+        if (not str(pack_validity.get("report_hash") or "").startswith("npv-")
+                or not str(pack_validity.get("pack_hash") or "")):
+            raise SealedExamError(
+                "v4 承诺必须绑定实际 Null pack 的 pack-level validity"
+                "(pack_validity:{report_hash npv-, pack_hash, "
+                "public_summary};完整报告由执行器对物化 pack 现算对账,"
+                "隐藏 seed 不进公开承诺——阶段 2.6.0d B2/C3)")
+        if not str(data.get("pack_builder_code_hash") or "").startswith(
+                "npb-"):
+            raise SealedExamError(
+                "v4 承诺必须绑定 pack 构建算法哈希(pack_builder_code_"
+                "hash, npb-):构建规则必须在候选 checkpoint 出现前冻结"
+                "(阶段 2.6.0d B4)")
         c = SealedExamCommitment(
             pack_hash=data["pack_hash"],
             charter_hash=data["charter_hash"],
@@ -203,6 +252,10 @@ class SealedExamCommitment:
                 data.get("null_qualification_bindings") or {}),
             null_qualification_code_hash=data.get(
                 "null_qualification_code_hash", ""),
+            null_qualification_spec_hash=spec_hash,
+            null_power_analysis=power,
+            pack_builder_code_hash=str(data["pack_builder_code_hash"]),
+            pack_validity=pack_validity,
             trusted_issuer=dict(data.get("trusted_issuer") or {}),
             resolved_parameter_semantics_hash=data.get(
                 "resolved_parameter_semantics_hash", ""),
@@ -358,14 +411,40 @@ def verify_sealed_commitment(
           ar == commitment.anticheat_replication_spec,
           "反作弊复制门槛/seed 聚合规则与承诺不一致(多 seed 标准被改写)")
 
-    # 12. 严格 Null 资格绑定(D:重读真实报告逐项对账)
+    # 12. 严格 Null 资格绑定(2.6.0d:spec/power 双重绑定 + 重读真实
+    #     报告逐项对账;margin 只来自 qualification spec)
+    from rl_curriculum.null_qualification_spec import (
+        build_spec_payload as _build_nq_spec,
+        null_qualification_spec_hash as _nq_spec_hash,
+        verify_spec_payload as _verify_nq_spec,
+    )
+
+    episode_bars = 96
+    for ep_spec in getattr(pack, "episodes", None) or []:
+        if ep_spec.split == "null_control":
+            episode_bars = int(
+                (ep_spec.params or {}).get("episode_bars", 96))
+            break
+    nq_spec = _build_nq_spec(
+        eval_config, timeframe=getattr(pack, "timeframe", "15m"),
+        episode_bars=episode_bars)
+    spec_problems = _verify_nq_spec(nq_spec)
+    if spec_problems:
+        problems.extend(f"qualification spec 自洽失败: {spec_problems}")
+    check("null_qualification_spec_hash",
+          _nq_spec_hash(nq_spec) == commitment.null_qualification_spec_hash,
+          "Null 资格规范哈希不匹配:margin/统计协议/聚合规则/功效目标/"
+          "seed namespace 与承诺不一致(经济 margin 被改写)")
     null_report = verify_null_qualification_bindings(
         commitment.null_qualification_bindings,
         required_families=list(verdict_spec.required_null_families),
         generator_bindings=commitment.generator_bindings,
         observation_schema_hash=commitment.observation_schema_hash,
         eval_config_manifest=commitment.eval_config,
-        timeframe=getattr(pack, "timeframe", ""))
+        timeframe=getattr(pack, "timeframe", ""),
+        qualification_spec_hash=commitment.null_qualification_spec_hash,
+        power_analysis_ref=str(
+            commitment.null_power_analysis.get("report_hash") or ""))
     for name, ok in null_report["checks"].items():
         checks[name] = ok
     problems.extend(null_report["problems"])
@@ -374,6 +453,47 @@ def verify_sealed_commitment(
           actual_nqc == commitment.null_qualification_code_hash,
           f"Null 资格审查代码哈希不匹配:实际 {actual_nqc} 承诺 "
           f"{commitment.null_qualification_code_hash}(资格审查实现被替换)")
+
+    # 12b. 功效分析绑定(A5:代码 hash 与当前实现一致;目标达标声明)
+    from rl_curriculum.null_power_analysis import (
+        power_analysis_code_hash as _npa_code_hash,
+    )
+
+    npa_code = _npa_code_hash()
+    power_bound = commitment.null_power_analysis
+    power_ok = (
+        power_bound.get("code_hash") == npa_code
+        and (power_bound.get("public_summary") or {}).get("targets_met")
+        is True)
+    check("null_power_analysis_binding", power_ok,
+          f"功效分析绑定无效:承诺 code_hash {power_bound.get('code_hash')!r}"
+          f"/targets_met "
+          f"{(power_bound.get('public_summary') or {}).get('targets_met')!r}"
+          f" vs 当前代码 {npa_code}(功效未达标或分析实现被替换的 Null "
+          f"资格不得进入正式考试)")
+
+    # 12c. pack 构建算法与 pack-level validity 绑定(B2/B4:执行器在
+    #     候选评估前对物化 pack 现算 pack validity 并与承诺 hash 对账;
+    #     此处校验结构自洽与 pack_hash 一致)
+    from rl_curriculum.null_pack_validation import (
+        pack_builder_code_hash as _npb_hash,
+    )
+
+    check("pack_builder_code_hash",
+          commitment.pack_builder_code_hash == _npb_hash(),
+          f"pack 构建算法哈希不匹配:承诺 "
+          f"{commitment.pack_builder_code_hash} vs 当前 {_npb_hash()}"
+          f"(构建规则未冻结或被替换)")
+    pv = commitment.pack_validity
+    pv_ok = (
+        str(pv.get("pack_hash") or "") == commitment.pack_hash
+        and str(pv.get("report_hash") or "").startswith("npv-")
+        and (pv.get("public_summary") or {}).get("verdict")
+        == "PACK_VALID")
+    check("pack_validity_binding", pv_ok,
+          "pack-level validity 绑定无效:pack_hash 与承诺不一致/缺 "
+          "npv- 报告哈希/verdict 非 PACK_VALID(实际 pack 未通过 "
+          "pack-level 验证的考试不得开始;执行器将现算并逐字段对账)")
 
     # 13. 受信训练签发方(A:承诺 issuer payload 自洽校验——正式信任根
     #     唯一来源是承诺本身,任何字段不自洽直接 EXAM_INVALID)

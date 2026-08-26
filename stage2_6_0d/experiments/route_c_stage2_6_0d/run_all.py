@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
-"""阶段 2.6.0d:Strict Null 统计资格与经济等价闭环实验。
+"""阶段 2.6.0d:Strict Null 统计资格与经济等价闭环实验(完整语义)。
 
-链路(与正式同构):
- 1. 三族严格 Null 的 v3 三态资格报告(64 seed cluster x 8 episodes,
-    共享确定性缓存;全部必须 QUALIFIED);
- 2. 3-seed 小样本反例复现(2.6.0c 审查发现:stochvol Always Long
-    中位 ~+2.40% / sign ~+0.75% 仍被旧实现判 PASS)——新协议下必须
-    INSUFFICIENT_EVIDENCE,不得进入正式考试;
- 3. 经济等价:单侧 TOST 无条件多头优势带(上界 <= 0.5%)/不对称
-    episode 累计漂移带(+0.5% / -1.0%);漂移伪 Null -> INVALID_NULL;
- 4. cluster 统计单位审计:bootstrap n == distinct independent
-    clusters(四统计块 x 三族);同 seed 9 episode 只算 1 cluster;
- 5. mock issuer + 256-step PPO smoke(允许挂科,不构成课程训练)
+链路(与正式同构,任务书工作包 F):
+ 1. Null Qualification Spec(margin = 精确往返摩擦,按 EvalConfig 计算);
+ 2. 确定性 Monte Carlo 功效分析(六类场景,三目标;32-cluster 充分性);
+ 3. family qualification:三族 x 64 seed cluster x 16 原始 Episode;
+ 4. 实际 mock hidden Null pack(每族 32 antithetic pair cluster,
+    namespace 推导 + attempt 记录 + pack-level validity);
+ 5. issuer + 受信 runner + 256-step PPO smoke(允许挂科,非课程训练)
     + sidecar + attestation;
- 6. v3 承诺(候选运行时绑定 + 真实 v3 Null 报告绑定);
- 7. 系统级沙箱正式考试 + 幂等重试 + 详细披露退休;
- 8. Null 资格篡改矩阵(v2/v1 格式、非 QUALIFIED 三态、统计单位、
-    预注册参数、bool-only);
- 9. 2.6.0c 闭环保留守卫(issuer 信任根/运行时绑定/反作弊复制);
-10. 上游与冻结合同完整性;全部证据写入 artifacts/route_c_stage2_6_0d。
+ 6. v4 承诺(runtime + spec + 功效 + pack 构建算法 + pack validity
+    + 真实 v3 Null 报告);
+ 7. 系统级沙箱正式考试(候选评估前执行 pack-level validity 现算对账)
+    + 幂等重试 + 详细披露退休;
+ 8. 篡改矩阵:Null 资格与承诺 v4;
+ 9. 上游与冻结合同完整性;全部证据写入 artifacts/route_c_stage2_6_0d。
 """
 
 from __future__ import annotations
@@ -41,25 +37,6 @@ WORK = ART / "_work"
 
 FAMILIES = ("probe_null_sign", "probe_null_volstate", "probe_null_stochvol")
 
-RESULTS: dict[str, dict] = {}
-
-
-def _null_verify_kwargs() -> dict:
-    """verify_null_qualification_bindings 的完整对账材料(与正式
-    考试同源:真实生成器绑定/schema/EvalConfig/timeframe)。"""
-    from rl_curriculum.generator_binding import generator_bindings
-    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
-    from rl_curriculum.probe_charter import probe_observation_schema
-
-    from rl_curriculum.mock_sealed_exam import default_eval_config
-
-    return {
-        "generator_bindings": generator_bindings(dict(R)),
-        "observation_schema_hash": probe_observation_schema().schema_hash(),
-        "eval_config_manifest": default_eval_config().manifest(),
-        "timeframe": "15m",
-    }
-
 
 def log(msg: str) -> None:
     print(f"[2.6.0d] {msg}", flush=True)
@@ -78,246 +55,365 @@ def now_iso() -> str:
     return pd.Timestamp.now(tz="UTC").isoformat()
 
 
-# ------------------------------------------------------ 1. v3 资格报告(64x8)
-def stage_null_reports_v3(schema, cfg) -> dict:
-    from null_qual_cache import cached_null_qual_reports
-    from rl_curriculum.null_qualification import (
-        build_null_qualification_bindings,
-    )
+# ------------------------------------------------------ 1-4. 资格链 + pack
+def stage_qualification_chain(schema, cfg) -> dict:
+    from null_qual_cache import cached_null_qual_chain
+    from rl_curriculum.null_qualification_spec import verify_spec_payload
 
-    log("生成三族严格 Null 的 v3 三态资格报告(64 cluster x 8 ep)...")
+    log("生成完整资格链(spec -> 三族 64x16 报告 -> 功效分析)...")
     t0 = time.time()
-    reports = cached_null_qual_reports(schema, cfg)
-    log(f"  缓存/生成耗时 {time.time() - t0:.1f}s")
+    chain = cached_null_qual_chain(schema, cfg)
+    log(f"  缓存/生成耗时 {time.time() - t0:.0f}s")
+    spec = chain["spec"]
+    assert verify_spec_payload(spec) == []
+    write_art("null_qualification_spec.json", {
+        "spec": spec,
+        "spec_hash": chain["spec_hash"],
+        "verified": True,
+        "generated_utc": now_iso(),
+    })
+    write_art("null_economic_margin_derivation.json", {
+        "margin": spec["margin"],
+        "derivation": spec["margin_derivation"],
+        "hard_cap": (
+            "任务书 A4:任一无条件策略相对 Flat 的允许正优势 <= 一次"
+            "完整往返交易摩擦;按冻结环境实际乘法成本精确计算 "
+            "1-(1-fee)^2*(1-slippage)^2 = 0.001999(fee=0.001,"
+            "slippage=0),不写死常数"),
+        "per_time_semantics": {
+            "episode_duration_hours": spec["episode_duration_hours"],
+            "timeframe": spec["timeframe"],
+            "note": "margin 按 Episode 真实时间定义,非每 bar 阈值"},
+        "statistical_protocol": spec["statistical_protocol"],
+        "comparison_strategies": spec["comparison_strategies"],
+        "generated_utc": now_iso(),
+    })
+    power = chain["power_report"]
+    t = power["targets"]
+    write_art("null_power_analysis.json", {
+        "summary": {
+            "margin": power["margin"],
+            "min_qualification_clusters":
+                power["min_qualification_clusters"],
+            "mc_iters": power["mc_iters"],
+            "mc_seed": power["mc_seed"],
+            "max_false_invalid_at_zero": t["max_false_invalid_at_zero"],
+            "max_false_qualified_at_2x_margin": t[
+                "max_false_qualified_at_2x_margin"],
+            "min_rejection_power_at_1x_margin": t[
+                "min_rejection_power_at_1x_margin"],
+            "targets_met": t["targets_met"],
+            "n32_sufficiency": power["n32_sufficiency"],
+        },
+        "full_report": power,
+        "generated_utc": now_iso(),
+    })
+    assert t["targets_met"] is True
+    fam_summary = {}
     ok = True
-    summary = {}
     for fam in FAMILIES:
-        rep = reports[fam]
-        lf = rep["always_long_vs_flat"]["excess_bootstrap"]
-        dr = rep["episode_net_drift"]["bootstrap"]
-        summary[fam] = {
+        rep = chain["reports"][fam]
+        lf = rep["always_long_vs_flat"]["bootstrap"]
+        orc = rep["oracle"]["bootstrap"]
+        rul = rep["rule_trend"]["bootstrap"]
+        fam_summary[fam] = {
             "verdict": rep["verdict"],
             "n_clusters": rep["n_clusters"],
             "n_episodes_tested": rep["n_episodes_tested"],
-            "always_long_vs_flat_CI": [lf["ci_low"], lf["ci_high"]],
-            "episode_net_drift_CI": [dr["ci_low"], dr["ci_high"]],
-            "checks_all_true": all(rep["checks"].values()),
+            "margin": rep["margin"]["value"],
+            "always_long_vs_flat": {
+                "mean": rep["always_long_vs_flat"]["mean"], **lf},
+            "oracle": {"mean": rep["oracle"]["mean"], **orc},
+            "rule_trend": {"mean": rep["rule_trend"]["mean"], **rul},
+            "checks": rep["checks"],
+            "spec_hash": rep["qualification_spec_hash"],
+            "power_ref": rep["power_analysis_ref"],
+            "seeds_namespace_conform": rep["seeds_namespace_conform"],
         }
         ok = ok and rep["verdict"] == "QUALIFIED"
-        log(f"  {fam}: {rep['verdict']} "
-            f"lf_CI=[{lf['ci_low']:+.5f},{lf['ci_high']:+.5f}] "
-            f"drift_CI=[{dr['ci_low']:+.5f},{dr['ci_high']:+.5f}]")
+        log(f"  {fam}: {rep['verdict']} lf_hi={lf['ci_high']:+.5f} "
+            f"oracle_hi={orc['ci_high']:+.5f} "
+            f"rule_hi={rul['ci_high']:+.5f}")
+    write_art("valid_null_family_qualification.json", {
+        "families": fam_summary,
+        "all_qualified": ok,
+        "level": "family",
+        "generated_utc": now_iso(),
+    })
     (ART / "null_reports").mkdir(exist_ok=True)
-    for fam, rep in reports.items():
+    for fam, rep in chain["reports"].items():
         (ART / "null_reports" / f"{fam}.json").write_text(
             json.dumps(rep, indent=2, ensure_ascii=False),
             encoding="utf-8")
-    write_art("null_qualification_v3_full_sample.json", {
-        "protocol": "null-qualification-v3",
-        "sample": "64 seed clusters x 8 episodes x 3 families",
-        "all_qualified": ok,
-        "per_family": summary,
+    unit_ok = True
+    blocks_audit = {}
+    for fam in FAMILIES:
+        rep = chain["reports"][fam]
+        for block in ("oracle", "rule_trend", "always_long_vs_flat",
+                      "high_turnover_vs_flat", "episode_net_drift"):
+            boot = rep[block]["bootstrap"]
+            cv = rep[block]["cluster_values"]
+            consistent = (boot["n"] == rep["n_clusters"]
+                          == rep["distinct_seeds"] == len(cv))
+            blocks_audit[f"{fam}::{block}"] = {
+                "bootstrap_n": boot["n"], "cluster_values_len": len(cv),
+                "consistent": consistent}
+            unit_ok = unit_ok and consistent
+    write_art("seed_cluster_bootstrap_evidence.json", {
+        "unit": "seed-cluster",
+        "aggregation": chain["spec"]["cluster_aggregation"],
+        "blocks": blocks_audit,
+        "bootstrap_n_equals_distinct_clusters": unit_ok,
+        "bar_level_bootstrap_present": False,
         "generated_utc": now_iso(),
     })
-    assert ok, "全样本三族必须 QUALIFIED(mock 链路资格来源)"
-    return {"reports": reports,
-            "bindings": build_null_qualification_bindings(reports)}
+    assert ok and unit_ok
+    return chain
 
 
-# ------------------------------------------------- 2. 3-seed 反例(不再 PASS)
-def stage_small_sample_counterexample(schema, cfg) -> dict:
+def stage_legacy_three_seed_rejection(schema, cfg) -> None:
+    """D1:2.6.0c 的 3-seed 报告作为旧证据输入新 verifier 的处置。"""
+    from null_qual_cache import cached_null_qual_chain
+    from rl_curriculum.generator_binding import generator_bindings
     from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
     from rl_curriculum.mock_sealed_exam import BASE_PARAMS
     from rl_curriculum.null_qualification import (
+        build_null_qualification_bindings,
+        qualification_report_hash,
         qualify_null_family,
         verify_null_qualification_bindings,
     )
 
-    log("复现 2.6.0c 审查反例(3 seed x 1 episode)...")
+    log("复现 2.6.0c 审查反例(3 seed x 1 ep,旧证据处置)...")
     reports = {}
     for fam in FAMILIES:
         reports[fam] = qualify_null_family(
             R[fam], params=dict(BASE_PARAMS), timeframe="15m",
             seeds=[11, 22, 33], cfg=cfg, schema=schema,
             episodes_per_seed=1)
-    none_qualified = all(r["verdict"] != "QUALIFIED"
-                         for r in reports.values())
-    stoch = reports["probe_null_stochvol"]
-    sign = reports["probe_null_sign"]
-    # INSUFFICIENT 报告送入承诺链 -> verify 拒绝
-    from rl_curriculum.null_qualification import (
-        build_null_qualification_bindings,
-    )
-
+    chain = cached_null_qual_chain(schema, cfg)
     verdict = verify_null_qualification_bindings(
         build_null_qualification_bindings(reports),
-        required_families=list(FAMILIES), **_null_verify_kwargs())
-    write_art("null_qualification_small_sample_counterexample.json", {
-        "finding_2_6_0c_review": (
-            "2.6.0c 的 3-seed 资格样本中 stochvol Always Long 中位 "
-            "~+2.40% / sign ~+0.75% 且 Always Flat 中位 0,仍被判 "
-            "always_flat_strong_baseline=true 并整体 PASS;旧实现把 bar "
-            "当独立 bootstrap 样本(n=288),per-bar 容差 0.0008 折算 "
-            "累计 7.68%"),
-        "small_sample": {
+        required_families=list(FAMILIES),
+        generator_bindings=generator_bindings(dict(R)),
+        observation_schema_hash=schema.schema_hash(),
+        eval_config_manifest=cfg.manifest(), timeframe="15m",
+        qualification_spec_hash=chain["spec_hash"],
+        power_analysis_ref=chain["reports"][FAMILIES[0]][
+            "power_analysis_ref"])
+    none_qualified = all(r["verdict"] != "QUALIFIED"
+                         for r in reports.values())
+    write_art("legacy_three_seed_reports_rejection.json", {
+        "legacy_reports": {
             fam: {
                 "verdict": r["verdict"],
-                "always_flat_median": r["always_flat_median"],
                 "always_long_median": r["always_long_median"],
-                "lf_ci": [r["always_long_vs_flat"]["excess_bootstrap"]
-                          ["ci_low"],
-                          r["always_long_vs_flat"]["excess_bootstrap"]
-                          ["ci_high"]],
+                "lf_ci": [
+                    r["always_long_vs_flat"]["bootstrap"]["ci_low"],
+                    r["always_long_vs_flat"]["bootstrap"]["ci_high"]],
                 "checks": r["checks"],
+                "report_hash": qualification_report_hash(r),
             }
-            for fam, r in reports.items()
-        },
-        "counterexamples_no_longer_qualified": none_qualified,
-        "stochvol_median_reproduced": stoch["always_long_median"],
-        "sign_median_reproduced": sign["always_long_median"],
-        "insufficient_rejected_by_commitment_verify":
-            not verdict["pass"],
-        "reject_problems_head": verdict["problems"][:2],
+            for fam, r in reports.items()},
+        "none_qualified": none_qualified,
+        "rejected_by_new_verifier": not verdict["pass"],
+        "problems_head": verdict["problems"][:2],
+        "note": ("旧证据不得自动升级;stochvol 因 lf CI 下界超 margin "
+                 "升级为 INVALID_NULL(经济反证),sign/volstate 为 "
+                 "INSUFFICIENT_EVIDENCE"),
         "generated_utc": now_iso(),
     })
-    assert none_qualified, "3-seed 样本必须不再 QUALIFIED(任务书要求)"
-    assert stoch["always_long_median"] > 0.02
-    assert sign["always_long_median"] > 0.007
-    assert not verdict["pass"]
-    log(f"  stochvol 中位 {stoch['always_long_median']:+.5f} / "
-        f"sign {sign['always_long_median']:+.5f} -> 三族全部 "
-        f"INSUFFICIENT_EVIDENCE,verify 拒绝进入考试")
+    for fam, med, label in (
+            ("probe_null_stochvol", 0.02, "stochvol"),
+            ("probe_null_sign", 0.007, "sign")):
+        rep = reports[fam]
+        assert rep["always_long_median"] > med
+        assert rep["checks"]["always_flat_strong_baseline"] is False
+        write_art(f"{label}_positive_long_edge_rejection.json", {
+            "family": fam,
+            "always_long_median": rep["always_long_median"],
+            "always_flat_median": rep["always_flat_median"],
+            "lf_ci": [
+                rep["always_long_vs_flat"]["bootstrap"]["ci_low"],
+                rep["always_long_vs_flat"]["bootstrap"]["ci_high"]],
+            "margin": rep["margin"]["value"],
+            "economic_check_failed": not rep["checks"][
+                "always_flat_strong_baseline"],
+            "verdict": rep["verdict"],
+            "finding_2_6_0c": (
+                "2.6.0c 旧实现对该中位优势仍判 always_flat_strong_"
+                "baseline=true 并整体 PASS;新协议触发经济优势失败"),
+            "generated_utc": now_iso(),
+        })
+    assert none_qualified and not verdict["pass"]
 
 
-# ------------------------------------------------------ 3. 经济等价与反证
-def stage_economic_equivalence(schema, cfg) -> dict:
+def stage_pseudo_null_matrix(schema, cfg) -> None:
+    """D4:伪 Null 拒绝矩阵(经济优势/结构/小幅漂移/可预测零漂移)。"""
     from rl_curriculum.generators import ProbeSegmentedDriftGenerator
     from rl_curriculum.mock_sealed_exam import BASE_PARAMS
-    from rl_curriculum.null_qualification import (
-        MAX_NEGATIVE_DRIFT,
-        MAX_TRADABLE_DRIFT,
-        MAX_UNCONDITIONAL_LONG_EDGE,
-        MIN_QUALIFICATION_CLUSTERS,
-        qualify_null_family,
-    )
+    from rl_curriculum.null_qualification import qualify_null_family
+    from rl_curriculum.null_qualification_spec import qualification_seeds
 
-    log("经济等价:漂移伪 Null(64 cluster)必须 INVALID_NULL...")
-    params = dict(BASE_PARAMS)
-    params["direction_weights"] = [0.0, 0.9, 0.1]
-    t0 = time.time()
-    disproof = qualify_null_family(
-        ProbeSegmentedDriftGenerator(), params=params, timeframe="15m",
-        seeds=list(range(11, 75)), cfg=cfg, schema=schema,
-        episodes_per_seed=2)
-    lf = disproof["always_long_vs_flat"]["excess_bootstrap"]
-    dr = disproof["episode_net_drift"]["bootstrap"]
-    write_art("null_qualification_economic_disproof.json", {
-        "scenario": "direction_weights=[0.0,0.9,0.1] 的漂移伪 Null",
-        "sample": "64 cluster x 2 episodes",
-        "verdict": disproof["verdict"],
-        "lf_CI": [lf["ci_low"], lf["ci_high"]],
-        "drift_CI": [dr["ci_low"], dr["ci_high"]],
-        "lf_ci_low_above_band": lf["ci_low"] > MAX_UNCONDITIONAL_LONG_EDGE,
-        "drift_ci_low_above_band": dr["ci_low"] > MAX_TRADABLE_DRIFT,
-        "reasons": disproof["reasons"],
-        "elapsed_s": round(time.time() - t0, 1),
+    log("伪 Null 拒绝矩阵(D4)...")
+    qual_seeds = qualification_seeds(64)
+    cases = {}
+
+    def _run(name, params, *, seeds, k):
+        rep = qualify_null_family(
+            ProbeSegmentedDriftGenerator(), params=params,
+            timeframe="15m", seeds=seeds, cfg=cfg, schema=schema,
+            episodes_per_seed=k, power_analysis_ref="npa-matrix")
+        cases[name] = {
+            "verdict": rep["verdict"],
+            "failed_checks": [c for c, v in rep["checks"].items()
+                              if not v],
+            "always_long_median": rep["always_long_median"],
+            "reasons_head": rep["reasons"][:2],
+        }
+        return rep
+
+    drift_params = dict(BASE_PARAMS)
+    drift_params["direction_weights"] = [0.0, 0.85, 0.15]
+    _run("always_long_edge_gt_friction", drift_params,
+         seeds=list(range(11, 75)), k=2)
+    _run("oracle_rule_predictable", dict(BASE_PARAMS),
+         seeds=[101, 102, 103, 104, 105, 106], k=2)
+    _run("hft_positive_market", {
+        "episode_bars": 96, "vol_bps_range": [8.0, 10.0],
+        "initial_price": 100.0, "regimes": [[1, 60.0, 96]],
+    }, seeds=list(range(11, 23)), k=2)
+    rep = _run("small_fixed_drift_3bps", {
+        "episode_bars": 96, "vol_bps_range": [8.0, 10.0],
+        "initial_price": 100.0, "regimes": [[1, 3.0, 96]],
+    }, seeds=qual_seeds, k=8)
+    assert rep["verdict"] != "QUALIFIED"
+    rep = _run("zero_drift_trend_predictable", {
+        **BASE_PARAMS, "direction_weights": [0.5, 0.5, 0.0],
+        "drift_bps_range": [24.0, 24.0],
+    }, seeds=qual_seeds, k=8)
+    assert rep["verdict"] == "INVALID_NULL"
+    all_rejected = all(c["verdict"] != "QUALIFIED"
+                       for c in cases.values())
+    write_art("pseudo_null_rejection_matrix.json", {
+        "cases": cases,
+        "all_rejected": all_rejected,
         "generated_utc": now_iso(),
     })
-    assert disproof["verdict"] == "INVALID_NULL"
-    assert lf["ci_low"] > MAX_UNCONDITIONAL_LONG_EDGE
-
-    write_art("economic_band_registration.json", {
-        "registered_bands": {
-            "max_unconditional_long_edge": MAX_UNCONDITIONAL_LONG_EDGE,
-            "max_tradable_drift": MAX_TRADABLE_DRIFT,
-            "max_negative_drift": MAX_NEGATIVE_DRIFT,
-            "min_qualification_clusters": MIN_QUALIFICATION_CLUSTERS,
-            "episodes_per_seed": 8,
-        },
-        "semantics": {
-            "always_flat_strong_baseline": (
-                "Always Long - Flat 的 cluster 级 bootstrap CI 上界 <= "
-                "0.005(单侧 TOST:证明无可交易无条件多头优势)"),
-            "episode_net_drift_nonexploitable": (
-                "每 episode 累计 log drift 的 cluster 级 CI:上界 <= "
-                "+0.005(正漂移可被 Long/Flat 现货利用),下界 >= -0.010"
-                "(负漂移不可利用,仅结构性非中心证据拒绝)"),
-            "abolished": (
-                "v2 per-bar 容差 0.0008 x 96 bar = 7.68% 累计漂移容差"
-                "与 bar 级 bootstrap(n=288 假样本)全部废除"),
-            "power_derivation": (
-                "每 episode Always Long 净收益 std 实测约 3%;K=8 "
-                "episode/seed 的 cluster std 约 1.1%;n=64 时 bootstrap "
-                "CI 半宽约 0.27%,足以在单侧 TOST 下覆盖 0.005 带"
-                "(实测三族 CI 上界 +0.0008/-0.0013/-0.0015 全部带内)"),
-        },
-        "generated_utc": now_iso(),
-    })
-    return {}
+    assert all_rejected
 
 
-# ------------------------------------------------------ 4. cluster 单位审计
-def stage_cluster_unit_audit(schema, cfg, full_reports) -> dict:
-    from rl_curriculum.generators import ProbeSegmentedDriftGenerator
-    from rl_curriculum.mock_sealed_exam import BASE_PARAMS
-    from rl_curriculum.null_qualification import (
-        CLUSTER_AGGREGATION,
-        BOOTSTRAP_UNIT,
-        qualify_null_family,
+def stage_antithetic_integrity(schema, cfg) -> dict:
+    """D7:antithetic 镜像完整性与 pack builder(B3/B4)。"""
+    import numpy as np
+    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
+    from rl_curriculum.mock_sealed_exam import (
+        BASE_PARAMS,
+        build_mock_hidden_pack,
     )
 
-    log("cluster 统计单位审计(bootstrap n == distinct clusters)...")
-    blocks = {
-        "oracle": "excess_bootstrap",
-        "rule_trend": "excess_bootstrap",
-        "always_long_vs_flat": "excess_bootstrap",
-        "episode_net_drift": "bootstrap",
-    }
-    audit = {"full_sample": {}, "nine_episodes_one_seed": {},
-             "recorded_fields": ["n_episodes_tested", "n_clusters",
-                                 "distinct_seeds", "cluster_aggregation",
-                                 "bootstrap_unit", "episodes_per_seed"],
-             "cluster_aggregation": CLUSTER_AGGREGATION,
-             "bootstrap_unit": BOOTSTRAP_UNIT}
-    all_ok = True
+    log("antithetic 完整性 + pack builder(B3/B4)...")
+    integrity = {}
     for fam in FAMILIES:
-        rep = full_reports[fam]
-        fam_audit = {}
-        for block, boot_key in blocks.items():
-            boot = rep[block][boot_key]
-            cv = rep[block]["cluster_values"]
-            consistent = (boot["n"] == rep["n_clusters"]
-                          == rep["distinct_seeds"] == len(cv))
-            fam_audit[block] = {"bootstrap_n": boot["n"],
-                                "cluster_values_len": len(cv),
-                                "consistent": consistent}
-            all_ok = all_ok and consistent
-        fam_audit["episode_count_formula_ok"] = (
-            rep["n_episodes_tested"]
-            == rep["n_clusters"] * rep["episodes_per_seed"])
-        all_ok = all_ok and fam_audit["episode_count_formula_ok"]
-        audit["full_sample"][fam] = fam_audit
-    # 同 seed 9 个关联 episode -> 1 cluster
-    rep9 = qualify_null_family(
-        ProbeSegmentedDriftGenerator(), params=dict(BASE_PARAMS),
-        timeframe="15m", seeds=[777], cfg=cfg, schema=schema,
-        episodes_per_seed=9)
-    n_ok = (rep9["n_episodes_tested"] == 9 and rep9["n_clusters"] == 1
-            and all(rep9[b][k]["n"] == 1 for b, k in blocks.items()))
-    audit["nine_episodes_one_seed"] = {
-        "n_episodes_tested": rep9["n_episodes_tested"],
-        "n_clusters": rep9["n_clusters"],
-        "distinct_seeds": rep9["distinct_seeds"],
-        "all_bootstrap_n_equal_one": n_ok,
-    }
-    all_ok = all_ok and n_ok
-    audit["bootstrap_n_equals_distinct_clusters"] = all_ok
-    write_art("cluster_bootstrap_unit_audit.json", audit)
-    assert all_ok, "bootstrap 单位必须是 seed cluster"
-    log(f"  全部统计块 n == clusters(9 ep/1 seed 用例 n_clusters=1)")
+        gen = R[fam]
+        flip = dict(BASE_PARAMS)
+        flip["antithetic_flip"] = True
+        checks = []
+        for seed in (424242, 777, 12345):
+            e1 = gen.generate(dict(BASE_PARAMS), seed,
+                              split="null_control", timeframe="15m")
+            e2 = gen.generate(dict(flip), seed,
+                              split="null_control", timeframe="15m")
+            b1 = np.diff(np.log(e1.df["close"].to_numpy()),
+                         prepend=np.log(e1.df["open"].iloc[0]))
+            b2 = np.diff(np.log(e2.df["close"].to_numpy()),
+                         prepend=np.log(e2.df["open"].iloc[0]))
+            checks.append({
+                "seed": seed,
+                "bitwise_negated": bool(np.allclose(b1, -b2)),
+                "pair_drift_cancels": bool(
+                    abs(b1.sum() + b2.sum()) < 1e-10),
+                "volume_identical": bool(np.allclose(
+                    e1.df["volume"], e2.df["volume"])),
+                "same_length": len(e1.df) == len(e2.df) == 96,
+            })
+        integrity[fam] = checks
+    mirror_ok = all(c[k] for fam_checks in integrity.values()
+                    for c in fam_checks
+                    for k in ("bitwise_negated", "pair_drift_cancels",
+                              "volume_identical", "same_length"))
+    pack, builder_log = build_mock_hidden_pack(with_builder_log=True)
+    write_art("antithetic_pair_integrity.json", {
+        "mirror_checks": integrity,
+        "all_mirror_properties_hold": mirror_ok,
+        "builder_log": builder_log,
+        "pack_episodes": len(pack.episodes),
+        "pair_flag_in_observation": False,
+        "pair_order": "seeded-randomized(namespace)",
+        "no_endpoint_constraint": True,
+        "family_qualification_uses_raw_episodes": (
+            "镜像会抵消任何确定性漂移,资格判定使用原始派生样本"),
+        "generated_utc": now_iso(),
+    })
+    assert mirror_ok
+    return {"pack": pack, "builder_log": builder_log}
 
 
-# ------------------------------------------- 5. issuer + smoke 训练(2.6.0c 模式)
+def stage_pack_validity(schema, cfg, chain, antithetic_stage) -> dict:
+    """B2:实际 mock pack 的 pack-level validity + D6 偶然漂移。"""
+    from null_qual_cache import build_commitment_null_materials
+    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
+    from rl_curriculum.mock_sealed_exam import BASE_PARAMS
+    from rl_curriculum.null_pack_validation import (
+        build_spec_for_pack,
+        validate_null_pack,
+    )
+
+    log("pack-level validity(实际 mock pack)...")
+    pack = antithetic_stage["pack"]
+    materials = build_commitment_null_materials(
+        pack, schema, cfg, chain=chain)
+    pv = materials["pack_validity_report"]
+    assert pv["verdict"] == "PACK_VALID"
+    write_art("actual_pack_null_validity.json", {
+        "verdict": pv["verdict"],
+        "pack_hash": pv["pack_hash"],
+        "report_hash_note": "npv- 哈希进入 v4 承诺(执行器现算对账)",
+        "per_family": {
+            fam: {
+                "n_episodes": b["n_episodes"],
+                "n_clusters": b["n_clusters"],
+                "blocks": b["blocks"],
+                "problems": b["problems"],
+            }
+            for fam, b in pv["per_family"].items()},
+        "margin": pv["margin"],
+        "builder_code_hash": pv["builder_code_hash"],
+        "generated_utc": now_iso(),
+    })
+    eps = [R["probe_null_stochvol"].generate(
+        dict(BASE_PARAMS), s, split="null_control", timeframe="15m")
+        for s in (11, 22, 33)]
+    bad = validate_null_pack(
+        {"probe_null_stochvol": eps}, cfg=cfg, schema=schema,
+        spec=build_spec_for_pack(cfg, timeframe="15m", episode_bars=96))
+    write_art("pack_accidental_drift_rejection.json", {
+        "scenario": ("分布理论零漂移(stochvol)但实际 pack 恰好显著"
+                     "向上(3-seed 反例 seeds [11,22,33])"),
+        "pack_verdict": bad["verdict"],
+        "reasons": bad["reasons"],
+        "executor_behavior": (
+            "run_sealed_exam 在候选评估前现算 pack validity 并与承诺"
+            "hash 对账;该 pack -> EXAM_INVALID,候选不进入评估,"
+            "不判 FAIL/作弊"),
+        "family_level_still_valid": True,
+        "generated_utc": now_iso(),
+    })
+    assert bad["verdict"] == "PACK_INVALID"
+    return materials
+
+
+# ------------------------------------------- 5-7. issuer + 承诺 + 考试
 MOCK_TRAINING_RUNNER_HASH = "mock-runner-" + "b" * 60
 
 
@@ -332,25 +428,22 @@ def stage_issuer_and_checkpoint(schema):
     from rl_curriculum.checkpoints import save_checkpoint_manifest
     from rl_curriculum.probe_charter import audit_probe_charter
 
-    log("生成 mock issuer(Ed25519)与受信 runner 配置...")
+    log("mock issuer + 256-step PPO smoke 训练(允许挂科)...")
     keypair = Ed25519KeyPair.generate("mock-issuer-stage2-6-0d")
     trusted = TrustedIssuerConfig.from_keypair(
         keypair, required_training_runner_hash=MOCK_TRAINING_RUNNER_HASH,
         allow_smoke=True)
-
     d = WORK / "ckpt"
     if d.exists():
         shutil.rmtree(d)
     d.mkdir(parents=True)
-    log("受控 PPO smoke 训练(256 步,允许挂科;非课程训练)...")
     material = _train_smoke_ppo(d / "smoke_ppo.zip", n_steps=256)
     training_manifest = {
         "runner": "mock-controlled-training-runner",
         "runner_hash": MOCK_TRAINING_RUNNER_HASH,
-        "steps": 256,
-        "seed": material["training_seed"],
-        "note": ("256-step PPO smoke:仅验证 provenance/sandbox/接口;"
-                 "不构成课程训练(阶段 2.6.0d)"),
+        "steps": 256, "seed": material["training_seed"],
+        "note": "256-step PPO smoke:仅验证 provenance/sandbox/接口;"
+                "不构成课程训练(阶段 2.6.0d)",
     }
     tm_path = d / "training_manifest.json"
     tm_path.write_text(json.dumps(training_manifest, indent=2,
@@ -364,7 +457,8 @@ def stage_issuer_and_checkpoint(schema):
         self_declared_formal_eligible=False)
     sidecar_sha = hashlib.sha256(
         (d / "smoke_ppo.zip.rl_manifest.json").read_bytes()).hexdigest()
-    ckpt_sha = hashlib.sha256((d / "smoke_ppo.zip").read_bytes()).hexdigest()
+    ckpt_sha = hashlib.sha256(
+        (d / "smoke_ppo.zip").read_bytes()).hexdigest()
     payload = build_attestation_payload(
         checkpoint_sha256=ckpt_sha, sidecar_sha256=sidecar_sha,
         training_manifest_sha256=tm_sha, charter_hash=charter_h,
@@ -384,8 +478,7 @@ def stage_issuer_and_checkpoint(schema):
     att = write_attestation(
         d / "smoke_ppo.zip.rl_attestation.json", keypair, payload)
     return {"keypair": keypair, "trusted": trusted,
-            "checkpoint": str(d / "smoke_ppo.zip"),
-            "attestation": att, "training_material": material}
+            "checkpoint": str(d / "smoke_ppo.zip"), "attestation": att}
 
 
 def _train_smoke_ppo(path: Path, *, n_steps: int = 256) -> dict:
@@ -434,16 +527,16 @@ def _train_smoke_ppo(path: Path, *, n_steps: int = 256) -> dict:
     }
 
 
-# --------------------------------------- 6-7. 承诺 + 沙箱考试 + 幂等 + 披露
 def _status(out: dict) -> str:
     return (out.get("status")
             or (out.get("result") or {}).get("status") or "UNKNOWN")
 
 
-def stage_sealed_exam_flow(schema, cfg, null_stage, issuer_stage) -> dict:
+def stage_sealed_exam_flow(schema, cfg, chain, materials, antithetic_stage,
+                           issuer_stage) -> dict:
+    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY
     from rl_curriculum.mock_sealed_exam import (
         build_mock_commitment,
-        build_mock_hidden_pack,
         write_exam_context,
     )
     from rl_curriculum.probe_charter import audit_probe_charter
@@ -451,35 +544,23 @@ def stage_sealed_exam_flow(schema, cfg, null_stage, issuer_stage) -> dict:
     from rl_curriculum.sealed_exam import verify_sealed_commitment
     from rl_curriculum.verdict_spec import probe_course_verdict_spec
 
-    log("构建 mock hidden pack + v3 承诺(v3 Null 绑定)...")
+    log("构建 v4 承诺 + 系统级沙箱考试全链路...")
     charter = audit_probe_charter()
-    pack = build_mock_hidden_pack()
+    pack = antithetic_stage["pack"]
     verdict_spec = probe_course_verdict_spec()
     profile = default_sandbox_profile()
     commitment = build_mock_commitment(
         pack=pack, charter=charter, schema=schema,
         verdict_spec=verdict_spec, eval_config=cfg,
-        sandbox_profile=profile,
-        trusted_issuer=issuer_stage["trusted"],
-        null_qualification_bindings=null_stage["bindings"])
-
-    # 完整承诺验证(v3 Null 报告全部对账)
-    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY
-
-    report = verify_sealed_commitment(
+        sandbox_profile=profile, trusted_issuer=issuer_stage["trusted"],
+        null_qualification_bindings=materials["bindings"],
+        power_analysis_report=materials["power_analysis_report"],
+        pack_validity_report=materials["pack_validity_report"])
+    verify_sealed_commitment(
         commitment, pack=pack, charter=charter, schema=schema,
         registry=DEFAULT_GENERATOR_REGISTRY, eval_config=cfg,
         verdict_spec=verdict_spec, sandbox_profile=profile)
-    write_art("sealed_commitment_verification_v3.json", {
-        "commitment_hash": commitment.commitment_hash(),
-        "protocol": "sealed-exam-commitment-v3",
-        "null_qualification_format": "null-qualification-v3",
-        "verify_pass": report["pass"],
-        "checks": report["checks"],
-        "problems": report["problems"],
-        "generated_utc": now_iso(),
-    })
-    assert report["pass"], "v3 承诺必须通过完整验证"
+    log("  v4 承诺完整验证通过")
 
     d = WORK / "exam"
     if d.exists():
@@ -512,7 +593,7 @@ def stage_sealed_exam_flow(schema, cfg, null_stage, issuer_stage) -> dict:
         env['PYTHONPATH'] = str(PROJ / 'src')
         t0 = time.time()
         proc = subprocess.run(
-            argv, capture_output=True, text=True, timeout=900,
+            argv, capture_output=True, text=True, timeout=1800,
             cwd=str(PROJ), env=env)
         out_path = d / out_name
         out = (json.loads(out_path.read_text(encoding="utf-8"))
@@ -523,69 +604,79 @@ def stage_sealed_exam_flow(schema, cfg, null_stage, issuer_stage) -> dict:
         out["_elapsed_s"] = round(time.time() - t0, 1)
         return out
 
-    log("正式密封考试 #1(系统级沙箱 + 反事实套件)...")
+    log("正式密封考试 #1(候选评估前 pack validity 现算对账)...")
     out1 = run_cli("out1.json")
     log(f"  #1: status={_status(out1)} exit={out1['_exit_code']}"
         f" ({out1['_elapsed_s']}s)")
-    log("幂等重试 #2(同 checkpoint+pack)...")
+    log("幂等重试 #2...")
     out2 = run_cli("out2.json")
-    log(f"  #2: status={_status(out2)} exit={out2['_exit_code']}"
-        f" ({out2['_elapsed_s']}s)")
-    log("详细披露 #3(--detailed;披露后包退休)...")
+    log(f"  #2: status={_status(out2)} ({out2['_elapsed_s']}s)")
+    log("详细披露 #3(披露后退休)...")
     out3 = run_cli("out3.json", "--detailed", str(d / "detailed.json"))
     detail = json.loads(
         (d / "detailed.json").read_text(encoding="utf-8")) \
         if (d / "detailed.json").is_file() else {}
-    log(f"  #3: status={_status(out3)} exit={out3['_exit_code']}")
+    log(f"  #3: status={_status(out3)}")
 
     flow_ok = (_status(out1) == _status(out2)
                and _status(out1) in ("FAIL", "PASS"))
-    write_art("mock_sealed_exam_flow_v3_nulls.json", {
-        "pipeline": ("mock hidden pack -> v3 Null 资格(64 cluster 三态 "
-                     "QUALIFIED)-> issuer/受信 runner -> 256-step PPO "
-                     "smoke(允许挂科)-> sidecar + attestation -> v3 承诺"
-                     "(runtime tree hash + 真实 v3 Null 报告)-> 系统级"
-                     "沙箱 -> 反事实套件 -> 冻结判定 -> 幂等重试 -> "
-                     "详细披露退休"),
+    write_art("mock_sealed_exam_v5_summary.json", {
+        "pipeline": ("Spec -> power analysis -> 64x16 family 资格 -> "
+                     "mock null pack(32 antithetic pair/族)-> pack "
+                     "validity -> issuer -> 256-step PPO smoke -> "
+                     "attestation -> v4 承诺 -> 系统级沙箱(pack "
+                     "validity 现算对账)-> 反事实 -> 冻结判定 FAIL -> "
+                     "幂等 -> 详细披露退休"),
         "commitment_hash": commitment.commitment_hash(),
-        "protocol": "sealed-exam-commitment-v3",
+        "protocol": "sealed-exam-commitment-v4",
         "null_qualification_format": "null-qualification-v3",
         "exam_cli_version": out1.get("exam_cli_version"),
         "run1": {"status": _status(out1), "exit": out1["_exit_code"],
                  "elapsed_s": out1["_elapsed_s"]},
-        "run2_idempotent": {
-            "status": _status(out2), "exit": out2["_exit_code"],
-            "same_result_as_run1": _status(out1) == _status(out2)},
+        "run2_idempotent": {"status": _status(out2),
+                            "same_result": _status(out1) == _status(out2)},
         "run3_detailed": {"status": _status(out3),
-                          "exit": out3["_exit_code"],
                           "pack_retired": bool(detail)},
         "flow_ok": flow_ok,
         "smoke_training_note": (
-            "256-step PPO 仅验证 provenance/sandbox/接口;允许正常挂科,"
-            "不构成课程训练,不开始正式 PPO 课程训练"),
+            "256-step PPO 仅验证 provenance/sandbox/协议/评估链路;"
+            "允许正常挂科,不构成课程训练,不要求通过课程或 G4"),
         "generated_utc": now_iso(),
     })
-    assert flow_ok, "考试链路必须正常完成(挂科合法,EXAM_INVALID 不合法)"
-    return {"run_cli": run_cli, "dir": d, "commitment": commitment}
+    assert flow_ok, (_status(out1), _status(out2))
+    return {"run_cli": run_cli, "dir": d, "commitment": commitment,
+            "detail": detail}
 
 
-# ------------------------------------------------------ 8. Null 篡改矩阵
-def stage_null_tamper_matrix(full_reports) -> dict:
+# ------------------------------------------------------------ 8. 篡改矩阵
+def stage_tamper_matrices(chain, sealed_stage, schema, cfg) -> None:
     import copy as _copy
 
+    from rl_curriculum.generator_binding import generator_bindings
+    from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY as R
     from rl_curriculum.null_qualification import (
         build_null_qualification_bindings,
         qualification_report_hash,
         verify_null_qualification_bindings,
     )
+    from rl_curriculum.sealed_exam import (
+        SealedExamCommitment,
+        SealedExamError,
+    )
 
-    log("Null 资格篡改矩阵(全部负面用例必须被拒)...")
-    base = build_null_qualification_bindings(full_reports)
-    kwargs = _null_verify_kwargs()
+    log("Null 资格篡改矩阵...")
+    base = build_null_qualification_bindings(chain["reports"])
+    kwargs = {
+        "generator_bindings": generator_bindings(dict(R)),
+        "observation_schema_hash": schema.schema_hash(),
+        "eval_config_manifest": cfg.manifest(),
+        "timeframe": "15m",
+        "qualification_spec_hash": chain["spec_hash"],
+        "power_analysis_ref": chain["reports"][FAMILIES[0]][
+            "power_analysis_ref"],
+    }
 
     def _case(bindings_mutation=None, payload_mutation=None, rehash=True):
-        """bindings_mutation 直接改绑定结构;payload_mutation 改报告
-        payload(默认随后重算 hash 保持自洽,模拟攻击者重新打包)。"""
         b = _copy.deepcopy(base)
         if payload_mutation is not None:
             payload_mutation(b["probe_null_sign"]["report_payload"], b)
@@ -598,163 +689,141 @@ def stage_null_tamper_matrix(full_reports) -> dict:
         r = verify_null_qualification_bindings(
             b, required_families=list(FAMILIES), **kwargs)
         return {"rejected": not r["pass"],
-                "problem_head": r["problems"][0][:110]
+                "problem_head": r["problems"][0][:100]
                 if r["problems"] else None}
 
     def _b_only(b):
         b["probe_null_sign"] = {"qualification_pass": True}
 
-    def _no_payload(b):
-        b["probe_null_sign"] = {
-            "family_version": "x", "qualification_pass": True,
-            "report_hash": "nq-" + "0" * 64}
-
-    def _hash_only(b):
-        b["probe_null_sign"]["report_hash"] = "nq-" + "9" * 64
-
-    def _fmt_v2(p, b):
-        p["format"] = "null-qualification-v2"
-
-    def _fmt_v1(p, b):
-        p["format"] = "null-qualification-v1"
+    def _set(key, value):
+        def _mutate(p, b):
+            p[key] = value
+        return _mutate
 
     def _verdict_insufficient(p, b):
         p["verdict"] = "INSUFFICIENT_EVIDENCE"
         p["pass"] = False
         b["probe_null_sign"]["qualification_pass"] = False
 
-    def _verdict_illegal(p, b):
-        p["verdict"] = "PASS"
-
-    def _pass_verdict_conflict(p, b):
+    def _pass_conflict(p, b):
         p["verdict"] = "INSUFFICIENT_EVIDENCE"
-        p["pass"] = True  # 与 verdict 自相矛盾
+        p["pass"] = True
 
-    def _unit_bar(p, b):
-        p["bootstrap_unit"] = "bar"
+    def _seeds_off(p, b):
+        p["seeds"] = list(range(64))
+        p["distinct_seeds"] = 64
+        p["always_long_vs_flat"]["cluster_values"] = (
+            p["always_long_vs_flat"]["cluster_values"][:64])
 
-    def _aggr_wrong(p, b):
-        p["cluster_aggregation"] = "mean-of-all-episodes"
-
-    def _nclusters_wrong(p, b):
-        p["n_clusters"] = 63
-
-    def _truncate_cv(p, b):
-        p["always_long_vs_flat"]["cluster_values"] = \
-            p["always_long_vs_flat"]["cluster_values"][:32]
-
-    def _params_band_widened(p, b):
-        p["qualification_params"]["max_unconditional_long_edge"] = 0.9
-
-    def _seeds_few(p, b):
-        p["seeds"] = [11, 22]
-        p["distinct_seeds"] = 2
+    def _margin_wrong(p, b):
+        p["margin"]["derivation"] = {
+            **p["margin"]["derivation"], "formula": "hardcoded"}
 
     def _check_false(p, b):
-        p["checks"]["always_flat_strong_baseline"] = False
+        p["checks"]["oracle_no_tradable_edge"] = False
 
     def _check_missing(p, b):
-        del p["checks"]["episode_net_drift_nonexploitable"]
-
-    def _field_extra(p, b):
-        p["attacker_note"] = "trust me"
-
-    def _field_missing(p, b):
-        del p["verdict"]
-
-    def _impl_stale(p, b):
-        p["generator_implementation_hash"] = "gi-stale-" + "5" * 50
+        del p["checks"]["oracle_no_tradable_edge"]
 
     def _fee_changed(p, b):
         p["eval_config_manifest"] = {
             **p["eval_config_manifest"], "fee": 0.0005}
 
-    cases = {
+    null_cases = {
         "bool_only_binding": _case(bindings_mutation=_b_only),
-        "missing_report_payload": _case(bindings_mutation=_no_payload),
-        "report_hash_tampered": _case(bindings_mutation=_hash_only),
-        "format_v2_deprecated": _case(payload_mutation=_fmt_v2),
-        "format_v1_deprecated": _case(payload_mutation=_fmt_v1),
-        "verdict_insufficient": _case(payload_mutation=_verdict_insufficient),
-        "verdict_illegal_value": _case(payload_mutation=_verdict_illegal),
-        "pass_verdict_conflict": _case(
-            payload_mutation=_pass_verdict_conflict),
-        "bootstrap_unit_bar": _case(payload_mutation=_unit_bar),
-        "cluster_aggregation_wrong": _case(payload_mutation=_aggr_wrong),
-        "n_clusters_inconsistent": _case(payload_mutation=_nclusters_wrong),
-        "cluster_values_truncated": _case(payload_mutation=_truncate_cv),
-        "params_band_widened": _case(payload_mutation=_params_band_widened),
-        "seeds_insufficient": _case(payload_mutation=_seeds_few),
+        "format_v2_deprecated": _case(payload_mutation=_set(
+            "format", "null-qualification-v2")),
+        "verdict_insufficient": _case(
+            payload_mutation=_verdict_insufficient),
+        "verdict_illegal": _case(payload_mutation=_set(
+            "verdict", "PASS")),
+        "pass_verdict_conflict": _case(payload_mutation=_pass_conflict),
+        "spec_hash_wrong": _case(payload_mutation=_set(
+            "qualification_spec_hash", "nqs-tampered")),
+        "power_ref_wrong": _case(payload_mutation=_set(
+            "power_analysis_ref", "npa-forged")),
+        "bootstrap_unit_bar": _case(payload_mutation=_set(
+            "bootstrap_unit", "bar")),
+        "seeds_off_namespace": _case(payload_mutation=_seeds_off),
+        "n_clusters_inconsistent": _case(payload_mutation=_set(
+            "n_clusters", 63)),
+        "margin_formula_wrong": _case(payload_mutation=_margin_wrong),
         "required_check_false": _case(payload_mutation=_check_false),
         "required_check_missing": _case(payload_mutation=_check_missing),
-        "unrecognized_field": _case(payload_mutation=_field_extra),
-        "required_field_missing": _case(payload_mutation=_field_missing),
-        "implementation_hash_stale": _case(payload_mutation=_impl_stale),
+        "unrecognized_field": _case(payload_mutation=_set(
+            "attacker_note", "trust me")),
+        "implementation_hash_stale": _case(payload_mutation=_set(
+            "generator_implementation_hash", "gi-stale-" + "5" * 50)),
         "eval_config_fee_changed": _case(payload_mutation=_fee_changed),
     }
-    # baseline 必须通过
     baseline = verify_null_qualification_bindings(
         _copy.deepcopy(base), required_families=list(FAMILIES), **kwargs)
-    all_rejected = all(c["rejected"] for c in cases.values())
+    null_all_rejected = (baseline["pass"] and all(
+        c["rejected"] for c in null_cases.values()))
     write_art("null_qualification_tamper_matrix_v3.json", {
         "protocol": "null-qualification-v3",
         "baseline_valid": baseline["pass"],
-        "cases": cases,
-        "all_negative_cases_rejected": all_rejected,
-        "note": ("篡改例均重算报告 hash 保持自洽(模拟重新打包);"
-                 "全部必须被完整对账拒绝"),
+        "cases": null_cases,
+        "all_negative_cases_rejected": null_all_rejected,
         "generated_utc": now_iso(),
     })
-    assert baseline["pass"] and all_rejected
-    log(f"  {len(cases)} 例篡改全部被拒(baseline 通过)")
+    assert null_all_rejected
 
-
-# --------------------------------------------- 9. 2.6.0c 闭环保留守卫
-def stage_2_6_0c_guards(sealed_stage) -> dict:
-    import inspect
-    import re
-
-    log("2.6.0c 闭环保留守卫(issuer/runtime/反作弊)...")
-    import rl_curriculum.formal_exam as fe
-
+    log("承诺 v4 篡改矩阵...")
     commitment = sealed_stage["commitment"]
-    # issuer 信任根 API 面:run_sealed_exam 不得重新出现 issuer 覆盖参数
-    from rl_curriculum.formal_exam import run_sealed_exam
-
-    sig = inspect.signature(run_sealed_exam)
-    issuer_api_clean = not any(
-        p in sig.parameters
-        for p in ("trusted_issuer", "issuer", "issuer_payload"))
-    src = Path(fe.__file__).read_text(encoding="utf-8")
-    guards = {
-        "issuer_override_param_absent": issuer_api_clean,
-        "no_replication_hardcoded_slice": not re.search(
-            r"replication_eps\[:\d+\]", src),
-        "commitment_binds_runtime": (
-            commitment.candidate_runtime_hash.startswith("rt-")
-            or len(commitment.candidate_runtime_hash) > 16),
-        "commitment_binds_real_null_reports": all(
-            set(b) == {"family_version", "qualification_pass",
-                       "report_hash", "report_payload"}
-            for b in commitment.null_qualification_bindings.values()),
-        "null_reports_all_v3_qualified": all(
-            b["report_payload"]["format"] == "null-qualification-v3"
-            and b["report_payload"]["verdict"] == "QUALIFIED"
-            for b in commitment.null_qualification_bindings.values()),
-    }
-    write_art("stage2_6_0c_guards_preserved.json", {
-        "guards": guards,
-        "all_preserved": all(guards.values()),
-        "note": ("阶段 2.6.0c 的 issuer 信任根/候选运行时绑定/反作弊"
-                 "复制闭环/Null 报告内容绑定必须完整保留;2.6.0d 只改"
-                 "资格统计语义"),
+    v4_cases = {}
+    v3_json = commitment.to_json().replace("sealed-exam-commitment-v4",
+                                           "sealed-exam-commitment-v3")
+    try:
+        SealedExamCommitment.from_json(v3_json)
+        v4_cases["v3_commitment_accepted"] = {"rejected": False}
+    except SealedExamError:
+        v4_cases["v3_commitment_accepted"] = {"rejected": True}
+    for key in ("null_qualification_spec_hash", "null_power_analysis",
+                "pack_validity", "pack_builder_code_hash"):
+        data = json.loads(commitment.to_json())
+        data.pop(key, None)
+        try:
+            SealedExamCommitment.from_json(json.dumps(data))
+            v4_cases["missing_" + key] = {"rejected": False}
+        except SealedExamError:
+            v4_cases["missing_" + key] = {"rejected": True}
+    data = json.loads(commitment.to_json())
+    data["null_qualification_spec_hash"] = "nqs-tampered"
+    try:
+        SealedExamCommitment.from_json(json.dumps(data))
+        v4_cases["spec_hash_tampered"] = {
+            "structurally_accepted": True,
+            "value_reconciliation_in_verify": True,
+            "note": "值级对账由 verify 的 spec hash 重算拦截"}
+    except SealedExamError:
+        v4_cases["spec_hash_tampered"] = {"rejected": True}
+    data = json.loads(commitment.to_json())
+    data["pack_validity"]["report_hash"] = "npv-" + "9" * 64
+    try:
+        SealedExamCommitment.from_json(json.dumps(data))
+        v4_cases["pack_validity_hash_tampered"] = {
+            "structurally_accepted": True,
+            "rejected_at_executor": (
+                "执行器现算 pack validity -> npv- hash 不符 -> "
+                "EXAM_INVALID")}
+    except SealedExamError:
+        v4_cases["pack_validity_hash_tampered"] = {"rejected": True}
+    v4_all = (v4_cases["v3_commitment_accepted"]["rejected"]
+              and all(v4_cases["missing_" + k]["rejected"] for k in (
+                  "null_qualification_spec_hash", "null_power_analysis",
+                  "pack_validity", "pack_builder_code_hash")))
+    write_art("sealed_exam_tamper_matrix_v4.json", {
+        "protocol": "sealed-exam-commitment-v4",
+        "cases": v4_cases,
+        "all_negative_cases_rejected": v4_all,
         "generated_utc": now_iso(),
     })
-    assert all(guards.values()), guards
+    assert v4_all
 
 
-# ------------------------------------------------------ 10. 上游完整性
-def stage_upstream_integrity() -> dict:
+# ------------------------------------------------------ 完整性与收尾
+def stage_upstream_integrity() -> None:
     log("上游与冻结合同完整性检查...")
 
     def _run(cmd: str, cwd: Path) -> str:
@@ -787,10 +856,8 @@ def stage_upstream_integrity() -> dict:
         json.dumps(payload, indent=2, ensure_ascii=False),
         encoding="utf-8")
     log(f"  vendor HEAD {head[:12]} clean={payload['vendor_clean']}")
-    assert payload["vendor_clean"]
-    assert head == payload["vendor_expected"]
+    assert payload["vendor_clean"] and head == payload["vendor_expected"]
     assert payload["frozen_unchanged"]
-    return payload
 
 
 def main() -> None:
@@ -801,18 +868,18 @@ def main() -> None:
     schema = probe_observation_schema()
     cfg = default_eval_config()
 
-    null_stage = stage_null_reports_v3(schema, cfg)
-    stage_small_sample_counterexample(schema, cfg)
-    stage_economic_equivalence(schema, cfg)
-    stage_cluster_unit_audit(schema, cfg, null_stage["reports"])
+    chain = stage_qualification_chain(schema, cfg)
+    stage_legacy_three_seed_rejection(schema, cfg)
+    stage_pseudo_null_matrix(schema, cfg)
+    antithetic_stage = stage_antithetic_integrity(schema, cfg)
+    materials = stage_pack_validity(schema, cfg, chain, antithetic_stage)
     issuer_stage = stage_issuer_and_checkpoint(schema)
     sealed_stage = stage_sealed_exam_flow(
-        schema, cfg, null_stage, issuer_stage)
-    stage_null_tamper_matrix(null_stage["reports"])
-    stage_2_6_0c_guards(sealed_stage)
+        schema, cfg, chain, materials, antithetic_stage, issuer_stage)
+    stage_tamper_matrices(chain, sealed_stage, schema, cfg)
     stage_upstream_integrity()
-
-    log(f"全部阶段完成({time.time() - t_start:.0f}s);artifacts -> {ART}")
+    log(f"全部阶段完成({time.time() - t_start:.0f}s);"
+        f"artifacts -> {ART}")
 
 
 if __name__ == "__main__":

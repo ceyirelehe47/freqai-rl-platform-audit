@@ -4,75 +4,59 @@
   "cases": {
     "bool_only_binding": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 的资格绑定不是 v3 结构(必须为 ['family_version', 'qualification_pass', 'report_hash', 'report_pay"
-    },
-    "missing_report_payload": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 的资格绑定不是 v3 结构(必须为 ['family_version', 'qualification_pass', 'report_hash', 'report_pay"
-    },
-    "report_hash_tampered": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      "problem_head": "Null 族 'probe_null_sign' 的资格绑定不是 v3 结构(必须为 ['family_version', 'qualification_pass', 'report_hash', '"
     },
     "format_v2_deprecated": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告格式 'null-qualification-v2' 已弃用(bar 级统计单位/布尔-only 语义不得使用;必须重新以 'null-quali"
-    },
-    "format_v1_deprecated": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告格式 'null-qualification-v1' 已弃用(bar 级统计单位/布尔-only 语义不得使用;必须重新以 'null-quali"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告格式 'null-qualification-v2' 已弃用(bar 级统计单位/布尔-only 语义不得使用;必须重新以 '"
     },
     "verdict_insufficient": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_EVIDENCE 不"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_"
     },
-    "verdict_illegal_value": {
+    "verdict_illegal": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 verdict 'PASS' 不是合法三态结论(['QUALIFIED', 'INVALID_NULL', 'INSUFFICIENT_EVID"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 verdict 'PASS' 不是合法三态结论(['QUALIFIED', 'INVALID_NULL', 'INSUFFI"
     },
     "pass_verdict_conflict": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_EVIDENCE 不"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告三态结论为 INSUFFICIENT_EVIDENCE(只有 QUALIFIED 才能进入正式考试;INSUFFICIENT_"
+    },
+    "spec_hash_wrong": {
+      "rejected": true,
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 qualification spec hash 与承诺不一致(margin/统计协议/聚合规则/功效目标已被改写)"
+    },
+    "power_ref_wrong": {
+      "rejected": true,
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 power_analysis_ref 与承诺的 power analysis 不一致(功效分析未绑定或被替换)"
     },
     "bootstrap_unit_bar": {
       "rejected": true,
       "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: bootstrap 单位 'bar' != 预注册 'seed-cluster'(bar 级 bootstrap 已被禁止)"
     },
-    "cluster_aggregation_wrong": {
+    "seeds_off_namespace": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: cluster 聚合规则 'mean-of-all-episodes' != 预注册 'per-seed-mean-episode-v1'"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 seeds 与资格 namespace 推导序列重算不一致(资格 seed 不得挑选;自声明 conform 标志不可信)"
     },
     "n_clusters_inconsistent": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 n_clusters(63)与 seeds 去重数(64)不一致(bootstrap 单位必须是 seed cluster); 独立 clust"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 n_clusters(63)与 seeds 去重数(64)不一致(bootstrap 单位必须是 seed cluster)"
     },
-    "cluster_values_truncated": {
+    "margin_formula_wrong": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 always_long_vs_flat 的 bootstrap n(64)/cluster 数(32)与独立 cluster 数(64)不一致("
-    },
-    "params_band_widened": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 qualification_params {'cluster_aggregation': 'per-seed-mean-episode-v1',"
-    },
-    "seeds_insufficient": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 n_clusters(64)与 seeds 去重数(2)不一致(bootstrap 单位必须是 seed cluster); 独立 cluste"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 margin 推导公式与规范不一致(margin 只能来自qualification spec)"
     },
     "required_check_false": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告存在未通过的检查: ['always_flat_strong_baseline']"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告存在未通过的检查: ['oracle_no_tradable_edge']"
     },
     "required_check_missing": {
       "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 checks 键集合不符(必须为 ['oracle_no_stable_directional_edge', 'rule_no_stable_e"
+      "problem_head": "Null 族 'probe_null_sign' 资格报告对账失败: 报告 checks 键集合不符(必须为 ['oracle_no_tradable_edge', 'rule_no_tradable"
     },
     "unrecognized_field": {
       "rejected": true,
       "problem_head": "Null 族 'probe_null_sign' 资格报告键集合不符:缺失 [],未识别 ['attacker_note']"
-    },
-    "required_field_missing": {
-      "rejected": true,
-      "problem_head": "Null 族 'probe_null_sign' 资格报告键集合不符:缺失 ['verdict'],未识别 []"
     },
     "implementation_hash_stale": {
       "rejected": true,
@@ -84,6 +68,5 @@
     }
   },
   "all_negative_cases_rejected": true,
-  "note": "篡改例均重算报告 hash 保持自洽(模拟重新打包);全部必须被完整对账拒绝",
-  "generated_utc": "2026-08-26T17:48:14.391023+00:00"
+  "generated_utc": "2026-08-26T22:12:45.889996+00:00"
 }

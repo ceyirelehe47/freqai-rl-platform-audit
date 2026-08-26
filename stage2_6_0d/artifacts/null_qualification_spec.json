@@ -1,0 +1,66 @@
+{
+  "spec": {
+    "antithetic_pairing": {
+      "enabled": true,
+      "family_qualification_uses_raw_episodes": "family-level 资格使用原始派生 Episode(方差保留)——镜像会掩盖真漂移伪 Null,不得进入资格判定",
+      "mirror_relation": "returns_negated_bitwise",
+      "no_endpoint_constraint": "镜像在生成层施加,不在单个 Episode 内全局 demean/终点约束(无 Brownian bridge 类位置泄漏)",
+      "pair_cluster": "同 base seed 的 (orig, flip) 两 Episode 聚合为一个 pack cluster,只算一个独立样本",
+      "preserves": "absolute returns, volatility-state path, length, timeframe",
+      "scope": "pack-level only"
+    },
+    "bootstrap_unit": "seed-cluster",
+    "cluster_aggregation": "per-seed-mean-episode-v1",
+    "comparison_strategies": [
+      "oracle",
+      "observable_rule",
+      "always_long",
+      "high_turnover"
+    ],
+    "episode_duration_hours": 24.0,
+    "episodes_per_seed": 16,
+    "eval_config_manifest": {
+      "deterministic": true,
+      "fee": 0.001,
+      "initial_cash": 100.0,
+      "price_tick": 0.0,
+      "reward_scale": 1.0,
+      "slippage_bps": 0.0,
+      "window_size": 1
+    },
+    "format": "null-qualification-spec-v1",
+    "margin": 0.001998999999999973,
+    "margin_derivation": {
+      "fee": 0.001,
+      "formula": "1 - (1 - fee)^2 * (1 - slippage)^2",
+      "hard_cap_satisfied": true,
+      "price_tick": 0.0,
+      "semantics": "一次完整往返的乘法交易摩擦;无条件策略相对 Flat 的允许正优势上限(经济解释:无信息交易者的套利屏障——优势低于该摩擦时任何单次往返都无法稳定获利)",
+      "slippage_bps": 0.0
+    },
+    "min_pack_clusters_per_family": 32,
+    "min_qualification_clusters": 64,
+    "power_targets": {
+      "max_false_invalid_rate_at_zero_edge": 0.05,
+      "max_false_qualified_rate_at_2x_margin": 0.05,
+      "min_rejection_power_at_1x_margin": 0.8
+    },
+    "seed_namespaces": {
+      "family_qualification": "null-qualification-family-seeds-v1",
+      "pack_construction": "null-pack-construction-seeds-v1"
+    },
+    "statistical_protocol": {
+      "bootstrap_iters": 2000,
+      "bootstrap_seed": 20260826,
+      "bootstrap_stat": "mean",
+      "confidence_level": 0.95,
+      "decision_rule": "每个差值要求中心统计量 <= margin 且单侧置信上界(97.5%)<= margin;HighTurnover 容差为 0;不使用 p-value或 CI 包含零",
+      "method": "cluster-percentile-bootstrap-upper-bound",
+      "test_style": "non-inferiority-tost-single-sided"
+    },
+    "timeframe": "15m"
+  },
+  "spec_hash": "nqs-6a8807e296c53eeca67b980a53eab598f5063bcfd1225538e0a9a35e39ec4fd3",
+  "verified": true,
+  "generated_utc": "2026-08-26T22:09:49.408148+00:00"
+}

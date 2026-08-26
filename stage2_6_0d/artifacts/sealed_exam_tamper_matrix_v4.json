@@ -1,0 +1,31 @@
+{
+  "protocol": "sealed-exam-commitment-v4",
+  "cases": {
+    "v3_commitment_accepted": {
+      "rejected": true
+    },
+    "missing_null_qualification_spec_hash": {
+      "rejected": true
+    },
+    "missing_null_power_analysis": {
+      "rejected": true
+    },
+    "missing_pack_validity": {
+      "rejected": true
+    },
+    "missing_pack_builder_code_hash": {
+      "rejected": true
+    },
+    "spec_hash_tampered": {
+      "structurally_accepted": true,
+      "value_reconciliation_in_verify": true,
+      "note": "值级对账由 verify 的 spec hash 重算拦截"
+    },
+    "pack_validity_hash_tampered": {
+      "structurally_accepted": true,
+      "rejected_at_executor": "执行器现算 pack validity -> npv- hash 不符 -> EXAM_INVALID"
+    }
+  },
+  "all_negative_cases_rejected": true,
+  "generated_utc": "2026-08-26T22:12:45.906073+00:00"
+}

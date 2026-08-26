@@ -80,7 +80,7 @@ from rl_platform.fingerprint import dependency_versions
 from rl_platform.versions import spec_versions
 
 EXAM_INVALID_EXIT_CODE = 5
-EXAM_CLI_VERSION = "hidden-exam-cli-v4"
+EXAM_CLI_VERSION = "hidden-exam-cli-v5"
 #: 工作包 E:反作弊复制证据的多切割点(common_prefix 逐 seed 3 cut)
 COMMON_PREFIX_CUT_RATIOS = (0.25, 0.5, 0.75)
 
@@ -353,12 +353,54 @@ def run_sealed_exam(
         episodes = materialize_pack(
             pack, registry, retire_registry=retire_registry)
 
-        # 4. 密封承诺 v2 逐项验证(含沙箱 profile/Null 资格/issuer)
+        # 4. 密封承诺 v4 逐项验证(含沙箱 profile/Null 资格/issuer/
+        #    spec/power/pack 构建算法)
         sealed_checks = verify_sealed_commitment(
             commitment, pack=pack, charter=validate_charter(charter),
             schema=schema, registry=registry, eval_config=eval_config,
             verdict_spec=verdict_spec, sandbox_profile=sandbox_profile,
         )
+
+        # 4b. 实际 Null pack 的 pack-level validity(阶段 2.6.0d B2):
+        #     执行器对物化 pack 现算报告并与承诺 hash 逐字段对账;
+        #     偶然抽出明显正漂移的 pack -> EXAM_INVALID(候选未进入
+        #     评估,不得判 FAIL 或作弊)。
+        null_eps: dict[str, list] = {}
+        null_episode_bars = 96
+        for ep in episodes:
+            if ep.spec.split == "null_control":
+                null_eps.setdefault(ep.spec.family, []).append(ep)
+                null_episode_bars = int(
+                    (ep.spec.params or {}).get("episode_bars", 96))
+        if null_eps:
+            from rl_curriculum.null_pack_validation import (
+                build_spec_for_pack,
+                pack_validity_report_hash,
+                validate_null_pack,
+            )
+
+            pv_spec = build_spec_for_pack(
+                eval_config, timeframe=pack.timeframe,
+                episode_bars=null_episode_bars)
+            pv_report = validate_null_pack(
+                null_eps, cfg=eval_config, schema=schema, spec=pv_spec,
+                pack_hash=pack.pack_hash())
+            pv_hash = pack_validity_report_hash(pv_report)
+            if pv_hash != commitment.pack_validity.get("report_hash"):
+                raise SealedExamError(
+                    f"实际 pack 的 pack-level validity 报告哈希与承诺"
+                    f"不一致(EXAM_INVALID):现算 {pv_hash} vs 承诺 "
+                    f"{commitment.pack_validity.get('report_hash')}"
+                    f"(pack 与承诺时使用的 pack 不同或统计被替换)")
+            if pv_report["verdict"] != "PACK_VALID":
+                raise SealedExamError(
+                    "实际 pack 未通过 pack-level validity(EXAM_INVALID,"
+                    "候选未进入评估,不判 FAIL/作弊): "
+                    + "; ".join(pv_report["reasons"][:3]))
+        else:
+            raise SealedExamError(
+                "考试包不含 null_control Episode(EXAM_INVALID):严格 "
+                "Null pack 是正式考试的组成部分")
 
         # 5. checkpoint 正式资格(受信 attestation 驱动)
         from rl_curriculum.attestation import (
