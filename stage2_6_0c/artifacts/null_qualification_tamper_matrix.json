@@ -1,0 +1,99 @@
+{
+  "matrix": {
+    "baseline_valid": {
+      "pass": true
+    },
+    "bool_only_binding": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 的资格绑定不是 v2 结构(必须为 ['family_version', 'qualification_pass', 'report_hash', 'report_payload'];bool-only 绑定已被禁止)"
+      ]
+    },
+    "missing_report_payload": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 的资格绑定不是 v2 结构(必须为 ['family_version', 'qualification_pass', 'report_hash', 'report_payload'];bool-only 绑定已被禁止)"
+      ]
+    },
+    "report_hash_tampered": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "payload_fee_tampered": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "payload_family_wrong": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告对账失败: 报告 family 与绑定键不一致"
+      ]
+    },
+    "payload_version_wrong": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告对账失败: 报告 family_version 与当前生成器绑定不一致"
+      ]
+    },
+    "implementation_hash_stale": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "code_hash_stale": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "seeds_insufficient": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告对账失败: 报告 seed 数不足(去重 2 < 3)"
+      ]
+    },
+    "schema_mismatch": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "timeframe_mismatch": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告 hash 与绑定记录不一致(报告被篡改或未随材料重新生成)"
+      ]
+    },
+    "check_missing": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告对账失败: 报告 checks 键集合不符(必须为 ['oracle_no_stable_directional_edge', 'rule_no_stable_excess', 'always_flat_strong_baseline', 'high_frequency_loses_after_fees', 'multi_seed_coverage'];缺失或多余均拒绝)"
+      ]
+    },
+    "check_false": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告对账失败: 报告存在未通过的检查: ['oracle_no_stable_directional_edge']"
+      ]
+    },
+    "unrecognized_field": {
+      "rejected": true,
+      "problems": [
+        "Null 族 'probe_null_sign' 资格报告键集合不符:缺失 [],未识别 ['attacker_note']"
+      ]
+    },
+    "family_binding_missing": {
+      "rejected": true,
+      "problems": [
+        "承诺未绑定 Null 族 'probe_null_volstate' 的资格审查"
+      ]
+    }
+  },
+  "all_negative_cases_rejected": true,
+  "note": "v2 binding 重读报告 payload:重算 hash + family/version/实现/schema/fee/timeframe/seed/checks 全对账"
+}

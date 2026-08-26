@@ -1,0 +1,38 @@
+{
+  "protocol": "sealed-exam-commitment-v3",
+  "matrix": {
+    "v2_commitment": {
+      "rejected": true,
+      "error": "sealed manifest 协议版本 'sealed-exam-commitment-v2' 已弃用(v2 及更早):v2 承诺缺少候选运行时内容绑定(candidate runtime manifest/hash)与真实 Null 资"
+    },
+    "v1_commitment": {
+      "rejected": true,
+      "error": "sealed manifest 协议版本 'sealed-exam-commitment-v1' 已弃用(v2 及更早):v2 承诺缺少候选运行时内容绑定(candidate runtime manifest/hash)与真实 Null 资"
+    },
+    "missing_runtime_manifest": {
+      "rejected": true,
+      "error": "v3 承诺必须绑定候选运行时内容(candidate_runtime_manifest/hash):沙箱内实际执行的 rl_candidate_runtime 每个文件必须被承诺哈希覆盖;缺少 runtime hash 的承诺不得进入正式考"
+    },
+    "missing_runtime_hash": {
+      "rejected": true,
+      "error": "v3 承诺必须绑定候选运行时内容(candidate_runtime_manifest/hash):沙箱内实际执行的 rl_candidate_runtime 每个文件必须被承诺哈希覆盖;缺少 runtime hash 的承诺不得进入正式考"
+    },
+    "bool_only_null_binding": {
+      "rejected": true,
+      "error": "密封承诺校验失败(EXAM_INVALID): Null 族 'probe_null_sign' 的资格绑定不是 v2 结构(必须为 ['family_version', 'qualification_pass', 'report_hash"
+    },
+    "v2_context": {
+      "rejected": true,
+      "error": "考试上下文格式 'sealed-exam-context-v2' != 'sealed-exam-context-v3'(v2 及更早上下文不得进入 v4 执行器:issuer 信任根已收归sealed commitment,context"
+    },
+    "context_issuer_mismatch": {
+      "rejected": true,
+      "note": "run_sealed_exam(context_issuer_payload=...) 与承诺逐字段 canonical equality;不等 -> EXAM_INVALID"
+    },
+    "issuer_fingerprint_inconsistent": {
+      "rejected": true,
+      "note": "verify_sealed_commitment check #13 自洽校验(重算指纹)"
+    }
+  },
+  "all_rejected": true
+}

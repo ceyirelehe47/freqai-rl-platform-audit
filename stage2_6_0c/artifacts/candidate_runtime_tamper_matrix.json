@@ -1,0 +1,58 @@
+{
+  "baseline_tree_hash": "rt-538c6b347e2d7fa9751df77e02ff4784f072a39a814edf78e3ed0796242276f2",
+  "matrix": {
+    "baseline_unchanged": {
+      "manifest_built": true,
+      "tree_hash_changed": false,
+      "old_manifest_verification": "accepted",
+      "old_commitment_invalidated": false
+    },
+    "bootstrap_skip_landlock": {
+      "manifest_built": true,
+      "tree_hash_changed": true,
+      "old_manifest_verification": "rejected(staging 候选运行时与承诺不一致(已脱敏:fail closed,候选加载之前拦截):额外文件 [],缺失文件 [...)",
+      "old_commitment_invalidated": true
+    },
+    "worker_protocol_reset_token": {
+      "manifest_built": true,
+      "tree_hash_changed": true,
+      "old_manifest_verification": "rejected(staging 候选运行时与承诺不一致(已脱敏:fail closed,候选加载之前拦截):额外文件 [],缺失文件 [...)",
+      "old_commitment_invalidated": true
+    },
+    "guard_skip_sidecar_check": {
+      "manifest_built": true,
+      "tree_hash_changed": true,
+      "old_manifest_verification": "rejected(staging 候选运行时与承诺不一致(已脱敏:fail closed,候选加载之前拦截):额外文件 [],缺失文件 [...)",
+      "old_commitment_invalidated": true
+    },
+    "versions_tampered": {
+      "manifest_built": true,
+      "tree_hash_changed": true,
+      "old_manifest_verification": "rejected(staging 候选运行时与承诺不一致(已脱敏:fail closed,候选加载之前拦截):额外文件 [],缺失文件 [...)",
+      "old_commitment_invalidated": true
+    },
+    "extra_executable_helper": {
+      "manifest_built": true,
+      "tree_hash_changed": true,
+      "old_manifest_verification": "rejected(staging 候选运行时与承诺不一致(已脱敏:fail closed,候选加载之前拦截):额外文件 ['evil_he...)",
+      "old_commitment_invalidated": true
+    },
+    "missing_worker": {
+      "manifest_built": false,
+      "build_rejected": "候选运行时缺少必备文件 ['worker.py'](拒绝;manifest 必须覆盖全部安全关键文件)",
+      "old_commitment_invalidated": true
+    },
+    "missing_guard": {
+      "manifest_built": false,
+      "build_rejected": "候选运行时缺少必备文件 ['guard.py'](拒绝;manifest 必须覆盖全部安全关键文件)",
+      "old_commitment_invalidated": true
+    },
+    "symlink_replacement": {
+      "manifest_built": false,
+      "build_rejected": "候选运行时包含符号链接 'guard.py'(拒绝;manifest 只绑定真实文件内容)",
+      "old_commitment_invalidated": true
+    }
+  },
+  "all_tamper_invalidates": true,
+  "baseline_stable": true
+}

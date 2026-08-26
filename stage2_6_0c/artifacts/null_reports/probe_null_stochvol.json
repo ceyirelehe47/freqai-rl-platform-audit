@@ -1,0 +1,79 @@
+{
+  "format": "null-qualification-v2",
+  "family": "probe_null_stochvol",
+  "family_version": "probe-null-stochvol-v1",
+  "timeframe": "15m",
+  "seeds": [
+    11,
+    22,
+    33
+  ],
+  "episodes_per_seed": 1,
+  "n_episodes_tested": 3,
+  "distinct_seeds": 3,
+  "generator_implementation_hash": "gi-445435f3aac9511e2f6d55227a9a67c62d9ce5ce2f6c984b01d8af251da749ad",
+  "generator_manifest_hash": "87de1ff39bd3b590a60a3df9ed6270247d4159d2ae0e6164fbf93a22bef0dfe2",
+  "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+  "qualification_code_hash": "nqc-74876e07bee282bd4cde1ee8b49304f3043a402c82bc0d477433ebdba69cf76d",
+  "eval_config_manifest": {
+    "fee": 0.001,
+    "slippage_bps": 0.0,
+    "price_tick": 0.0,
+    "initial_cash": 100.0,
+    "reward_scale": 1.0,
+    "window_size": 1,
+    "deterministic": true
+  },
+  "qualification_params": {
+    "episodes_per_seed": 1,
+    "max_net_drift_per_bar": 0.0008,
+    "min_distinct_qualification_seeds": 3
+  },
+  "oracle": {
+    "net_returns": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "excess_median": 0.0,
+    "excess_bootstrap": {
+      "n": 3,
+      "stat": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.0
+    }
+  },
+  "rule_trend": {
+    "net_returns": [
+      -0.017083103808511968,
+      0.0022769442615244717,
+      0.012254652600894866
+    ],
+    "excess_median": 0.0022769442615244717,
+    "excess_bootstrap": {
+      "n": 3,
+      "stat": 0.0022769442615244717,
+      "ci_low": -0.017083103808511968,
+      "ci_high": 0.012254652600894866
+    }
+  },
+  "always_flat_median": 0.0,
+  "always_long_median": 0.02398753344204585,
+  "net_drift_per_bar_bootstrap": {
+    "n": 288,
+    "stat": 0.0002559806626234636,
+    "ci_low": -0.0001252217483050119,
+    "ci_high": 0.0006148518930061826
+  },
+  "max_net_drift_per_bar": 0.0008,
+  "high_turnover_median": -0.0684678650517142,
+  "checks": {
+    "oracle_no_stable_directional_edge": true,
+    "rule_no_stable_excess": true,
+    "always_flat_strong_baseline": true,
+    "high_frequency_loses_after_fees": true,
+    "multi_seed_coverage": true
+  },
+  "reasons": [],
+  "pass": true
+}

@@ -1,0 +1,79 @@
+{
+  "format": "null-qualification-v2",
+  "family": "probe_null_volstate",
+  "family_version": "probe-null-volstate-v2",
+  "timeframe": "15m",
+  "seeds": [
+    11,
+    22,
+    33
+  ],
+  "episodes_per_seed": 1,
+  "n_episodes_tested": 3,
+  "distinct_seeds": 3,
+  "generator_implementation_hash": "gi-2d39bfe0bcb8bc36869a594afd2f66d6306b4d660d954a1f1a7e950d5085543c",
+  "generator_manifest_hash": "dbad8ac3a4d6658ed7f3a122508ec0acd99878175e6c25f95bc6b1b458d8a238",
+  "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+  "qualification_code_hash": "nqc-74876e07bee282bd4cde1ee8b49304f3043a402c82bc0d477433ebdba69cf76d",
+  "eval_config_manifest": {
+    "fee": 0.001,
+    "slippage_bps": 0.0,
+    "price_tick": 0.0,
+    "initial_cash": 100.0,
+    "reward_scale": 1.0,
+    "window_size": 1,
+    "deterministic": true
+  },
+  "qualification_params": {
+    "episodes_per_seed": 1,
+    "max_net_drift_per_bar": 0.0008,
+    "min_distinct_qualification_seeds": 3
+  },
+  "oracle": {
+    "net_returns": [
+      -0.0112610595803736,
+      -0.028933934327221467,
+      -0.01861427429208784
+    ],
+    "excess_median": -0.01861427429208784,
+    "excess_bootstrap": {
+      "n": 3,
+      "stat": -0.01861427429208784,
+      "ci_low": -0.028933934327221467,
+      "ci_high": -0.0112610595803736
+    }
+  },
+  "rule_trend": {
+    "net_returns": [
+      -0.02457226952318703,
+      -0.017536024965627894,
+      -0.011927667074504433
+    ],
+    "excess_median": -0.017536024965627894,
+    "excess_bootstrap": {
+      "n": 3,
+      "stat": -0.017536024965627894,
+      "ci_low": -0.02457226952318703,
+      "ci_high": -0.011927667074504433
+    }
+  },
+  "always_flat_median": 0.0,
+  "always_long_median": -0.017956873482715685,
+  "net_drift_per_bar_bootstrap": {
+    "n": 288,
+    "stat": -0.0001460295180505574,
+    "ci_low": -0.0005493404412049361,
+    "ci_high": 0.0002570531743100838
+  },
+  "max_net_drift_per_bar": 0.0008,
+  "high_turnover_median": -0.08958963849980217,
+  "checks": {
+    "oracle_no_stable_directional_edge": true,
+    "rule_no_stable_excess": true,
+    "always_flat_strong_baseline": true,
+    "high_frequency_loses_after_fees": true,
+    "multi_seed_coverage": true
+  },
+  "reasons": [],
+  "pass": true
+}
