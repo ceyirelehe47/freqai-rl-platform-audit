@@ -1,0 +1,117 @@
+{
+  "raw_params": {
+    "duration_hours": 48,
+    "regime_duration_hours_range": [
+      1.0,
+      4.0
+    ],
+    "n_regimes_range": [
+      16,
+      32
+    ]
+  },
+  "timeframe": "15m",
+  "duration_resolution": {
+    "timeframe": "15m",
+    "source": "duration_hours",
+    "requested_real_hours": 48.0,
+    "rounding_rule": "ceil",
+    "resolved_bars": 192,
+    "resolved_real_hours": 48.0
+  },
+  "field_traces": {
+    "regime_duration_hours_range": {
+      "field": "regime_duration_hours_range",
+      "target_param": "regime_len_range",
+      "kind": "regime_duration_range",
+      "timeframe": "15m",
+      "rounding": "ceil",
+      "raw_value": [
+        1.0,
+        4.0
+      ],
+      "resolved_bars_range": [
+        4,
+        16
+      ],
+      "resolved_real_hours_range": [
+        1.0,
+        4.0
+      ]
+    }
+  },
+  "effective_params_subset": {
+    "episode_bars": 192,
+    "regime_len_range": [
+      4,
+      16
+    ]
+  },
+  "regime_lengths_actual": [
+    15,
+    12,
+    16,
+    9,
+    12,
+    8,
+    6,
+    9,
+    14,
+    12,
+    14,
+    13,
+    13,
+    4,
+    6,
+    12,
+    11,
+    6
+  ],
+  "regime_lengths_within_resolved_range": true,
+  "binding_registry": {
+    "decision_interval_minutes": {
+      "real_time_field": "decision_interval_minutes",
+      "target_param": "",
+      "kind": "decision_interval",
+      "rounding": "ceil",
+      "allow_range": false
+    },
+    "delayed_reward_phase_hours": {
+      "real_time_field": "delayed_reward_phase_hours",
+      "target_param": "delayed_reward_phase_bars",
+      "kind": "delayed_reward_phase",
+      "rounding": "ceil",
+      "allow_range": false
+    },
+    "drawdown_phase_hours": {
+      "real_time_field": "drawdown_phase_hours",
+      "target_param": "drawdown_phase_bars",
+      "kind": "drawdown_phase",
+      "rounding": "ceil",
+      "allow_range": false
+    },
+    "duration_hours": {
+      "real_time_field": "duration_hours",
+      "target_param": "episode_bars",
+      "kind": "episode_total",
+      "rounding": "ceil",
+      "allow_range": false
+    },
+    "feature_window_hours": {
+      "real_time_field": "feature_window_hours",
+      "target_param": "feature_window_bars",
+      "kind": "feature_window",
+      "rounding": "ceil",
+      "allow_range": false
+    },
+    "regime_duration_hours_range": {
+      "real_time_field": "regime_duration_hours_range",
+      "target_param": "regime_len_range",
+      "kind": "regime_duration_range",
+      "rounding": "ceil",
+      "allow_range": true
+    }
+  },
+  "resolved_parameter_semantics_hash": "rps-be5261d36d9d4686d8560e64c9109935c83ab255ae7f2bd0d6e0dcd364c1f32a",
+  "pass": true
+}

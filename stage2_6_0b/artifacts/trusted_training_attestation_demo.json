@@ -1,0 +1,59 @@
+{
+  "flow": [
+    "受控训练 runner(测试级 PPO 256 步)",
+    "不可变训练 manifest",
+    "checkpoint + v3 sidecar",
+    "mock trusted issuer 签发 attestation(Ed25519)",
+    "评估方验证签名与逐项绑定"
+  ],
+  "issuer_fingerprint": "ik-a72e92860c392c4108206802919cdc04936ad7276893bcc5a45288de4cbbfc77",
+  "training_runner_hash": "mock-runner-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "private_key_isolated": "私钥只存在于评估方临时目录;不进入候选沙箱/仓库/checkpoint",
+  "verify_report": {
+    "checks": {
+      "signature_valid": true,
+      "key_fingerprint_trusted": true,
+      "issuer_id_trusted": true,
+      "checkpoint_binding": true,
+      "sidecar_binding": true,
+      "training_manifest_binding": true,
+      "charter_binding": true,
+      "observation_binding": true,
+      "env_version_binding": true,
+      "training_runner_trusted": true,
+      "smoke_policy": true,
+      "allow_formal_evaluation": true
+    },
+    "problems": [],
+    "payload_hash": "ta-1a78eac7dcc29a32d1094ea6386e68ac1c448f91839dd06a62c3c871e11685b3",
+    "pass": true
+  },
+  "eligibility": {
+    "format_compatible": true,
+    "formal_eligible": true,
+    "sidecar_self_declared_eligible_ignored": false,
+    "payload_hash": "ta-1a78eac7dcc29a32d1094ea6386e68ac1c448f91839dd06a62c3c871e11685b3"
+  },
+  "payload_keys": [
+    "allow_formal_evaluation",
+    "charter_hash",
+    "checkpoint_sha256",
+    "is_smoke",
+    "issued_utc",
+    "issuer_id",
+    "network_architecture",
+    "observation_schema_hash",
+    "ppo_params",
+    "protocol",
+    "route_c_env_version",
+    "sidecar_sha256",
+    "training_budget",
+    "training_code_hash",
+    "training_generator_hashes",
+    "training_manifest_sha256",
+    "training_pack_hash",
+    "training_runner_hash",
+    "training_seed"
+  ],
+  "payload_hash": "ta-1a78eac7dcc29a32d1094ea6386e68ac1c448f91839dd06a62c3c871e11685b3"
+}

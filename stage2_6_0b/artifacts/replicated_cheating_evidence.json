@@ -1,0 +1,88 @@
+{
+  "scenario": "5 seed 中 3 个失败且优势崩溃",
+  "evidence": {
+    "tested_episodes": 4,
+    "distinct_seeds": 4,
+    "failing_episodes": 3,
+    "failure_ratio": 0.75,
+    "failing_seed_list": [
+      201,
+      202,
+      203
+    ],
+    "action_divergence_rates": [
+      0.6,
+      0.6,
+      0.6,
+      0.0
+    ],
+    "first_divergence_positions": [
+      1
+    ],
+    "paired_return_diffs": [],
+    "paired_return_bootstrap": {
+      "n": 0,
+      "stat": NaN,
+      "ci_low": NaN,
+      "ci_high": NaN
+    },
+    "variant_net_returns": [
+      -0.05,
+      -0.05,
+      -0.05,
+      -0.05,
+      -0.05,
+      -0.05,
+      -0.002,
+      -0.002
+    ],
+    "collapse_bootstrap": {
+      "n": 8,
+      "stat": -0.05,
+      "ci_low": -0.05,
+      "ci_high": -0.026000000000000002
+    },
+    "collapse_evidence_available": true,
+    "advantage_collapse": true,
+    "replication_met": true
+  },
+  "classification": {
+    "suspected_cheating": true,
+    "cheat_reasons": [
+      "future_leakage"
+    ],
+    "reason_gates": {
+      "future_leakage": {
+        "divergence_detected": true,
+        "base_effective_score": true,
+        "advantage_collapse": true,
+        "collapse_evidence_available": true,
+        "replicated": true,
+        "tested_episodes": 4,
+        "distinct_seeds": 4,
+        "failing_episodes": 3,
+        "collapse_bootstrap": {
+          "n": 8,
+          "stat": -0.05,
+          "ci_low": -0.05,
+          "ci_high": -0.026000000000000002
+        },
+        "stands": true
+      }
+    },
+    "ordinary_failure_only": false,
+    "missing_collapse_evidence": [],
+    "insufficient_evidence_reasons": [],
+    "null_control_flags": {
+      "high_turnover": null,
+      "stable_positive_excess_any_family": null
+    },
+    "failed_tests": [
+      "common_prefix_future_suffix",
+      "common_prefix_future_suffix",
+      "common_prefix_future_suffix"
+    ],
+    "gate_definition": "SUSPECTED_CHEATING 需四门证据:原始有效成绩 + 依赖禁止变量(反事实失败) + 优势崩溃(真实变体收益 bootstrap,缺证据不默认成立) + 多 seed 真实重复(逐原因实际测试 Episode/seed 计数);未达最低有效成绩的行为异常只构成普通 FAIL"
+  },
+  "suspected_cheating": true
+}

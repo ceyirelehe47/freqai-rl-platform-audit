@@ -1,0 +1,100 @@
+{
+  "policy": "nuisance_reader(故意读 nuisance_0)",
+  "pass": false,
+  "expected_pass": false,
+  "failure_modes": [
+    "improvement",
+    "degradation",
+    "dependency",
+    "turnover",
+    "position"
+  ],
+  "action_match_rate": 0.5520467836257309,
+  "record": {
+    "test": "nuisance_slot_injection",
+    "variant": {
+      "median_net_return": -0.019139268949503907,
+      "net_returns": [
+        -0.04509573387763266,
+        0.009064647291489702,
+        -0.0037806650238527695,
+        -0.02349592488893204,
+        -0.06896493258272529,
+        -0.07979092824674694,
+        -0.019139268949503907,
+        -0.0008622022320404765,
+        -0.0044938837416875765
+      ]
+    },
+    "pass": false,
+    "reason": "行为不稳定:动作一致率 0.552 < 0.98(模型依赖 nuisance 槽位); 系统性改善:配对收益差 CI high +0.01405 > +δ=0.002(模型从 nuisance 中'获利'); 系统性恶化:配对收益差 CI low -0.01406 < -δ=-0.002(模型因 nuisance 变化大幅崩溃); 换手不稳定:中位差 +0.02105 超容差 0.02; 仓位不稳定:中位差 -0.03158 超容差 0.02",
+    "action_match_rate": 0.5520467836257309,
+    "first_divergence_step": 0,
+    "base": {
+      "median_net_return": -0.005080804564553731,
+      "net_returns": [
+        -0.004986895499876409,
+        -0.0806016870960875,
+        -0.005080804564553731
+      ]
+    },
+    "extra": {
+      "nuisance_slots": [
+        "nuisance_0",
+        "nuisance_1",
+        "nuisance_2"
+      ],
+      "mode": "injection",
+      "observation_shape": [
+        9
+      ],
+      "market_features_untouched": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "equivalence_spec": {
+        "delta_return": 0.002,
+        "action_match_min": 0.98,
+        "turnover_abs_tol": 0.02,
+        "position_abs_tol": 0.02,
+        "n_transform_seeds": 3,
+        "bootstrap_iters": 2000,
+        "bootstrap_alpha": 0.05
+      },
+      "paired_bootstrap": {
+        "n": 9,
+        "stat": 0.0012062304760236398,
+        "ci_low": -0.014058464384950176,
+        "ci_high": 0.014051542791366112
+      },
+      "n_pairs": 9,
+      "n_transform_seeds": 3,
+      "episodes_tested": 3,
+      "distinct_episode_seeds": 3,
+      "action_match_rates": [
+        0.47368421052631576,
+        0.4842105263157895,
+        0.42105263157894735,
+        0.5578947368421052,
+        0.6,
+        0.6421052631578947,
+        0.6210526315789474,
+        0.6,
+        0.5684210526315789
+      ],
+      "median_turnover_diff": 0.02105263157894738,
+      "median_position_diff": -0.031578947368421095,
+      "failure_modes": [
+        "improvement",
+        "degradation",
+        "dependency",
+        "turnover",
+        "position"
+      ],
+      "is_cheat_evidence": false
+    }
+  }
+}

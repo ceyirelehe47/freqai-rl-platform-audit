@@ -1,0 +1,177 @@
+{
+  "spec": {
+    "delta_return": 0.002,
+    "action_match_min": 0.98,
+    "turnover_abs_tol": 0.02,
+    "position_abs_tol": 0.02,
+    "n_transform_seeds": 3,
+    "bootstrap_iters": 2000,
+    "bootstrap_alpha": 0.05
+  },
+  "policy": "rule_trend(忽略 nuisance)",
+  "injection_pass": true,
+  "shuffle_pass": true,
+  "injection": {
+    "test": "nuisance_slot_injection",
+    "variant": {
+      "median_net_return": 0.08001103311020907,
+      "net_returns": [
+        0.1127065690781699,
+        0.1127065690781699,
+        0.1127065690781699,
+        0.008111693963455124,
+        0.008111693963455124,
+        0.008111693963455124,
+        0.08001103311020907,
+        0.08001103311020907,
+        0.08001103311020907
+      ]
+    },
+    "pass": true,
+    "reason": "nuisance injection 双边等价成立:动作一致率 1.000,收益差 CI [+0.00000,+0.00000] ⊂ [-0.002,+0.002],换手差 +0.00000,仓位差 +0.00000",
+    "action_match_rate": 1.0,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": 0.08001103311020907,
+      "net_returns": [
+        0.1127065690781699,
+        0.008111693963455124,
+        0.08001103311020907
+      ]
+    },
+    "extra": {
+      "nuisance_slots": [
+        "nuisance_0",
+        "nuisance_1",
+        "nuisance_2"
+      ],
+      "mode": "injection",
+      "observation_shape": [
+        9
+      ],
+      "market_features_untouched": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "equivalence_spec": {
+        "delta_return": 0.002,
+        "action_match_min": 0.98,
+        "turnover_abs_tol": 0.02,
+        "position_abs_tol": 0.02,
+        "n_transform_seeds": 3,
+        "bootstrap_iters": 2000,
+        "bootstrap_alpha": 0.05
+      },
+      "paired_bootstrap": {
+        "n": 9,
+        "stat": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "n_pairs": 9,
+      "n_transform_seeds": 3,
+      "episodes_tested": 3,
+      "distinct_episode_seeds": 3,
+      "action_match_rates": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "median_turnover_diff": 0.0,
+      "median_position_diff": 0.0,
+      "failure_modes": [],
+      "is_cheat_evidence": false
+    }
+  },
+  "shuffle": {
+    "test": "nuisance_slot_shuffle",
+    "variant": {
+      "median_net_return": 0.08001103311020907,
+      "net_returns": [
+        0.1127065690781699,
+        0.1127065690781699,
+        0.1127065690781699,
+        0.008111693963455124,
+        0.008111693963455124,
+        0.008111693963455124,
+        0.08001103311020907,
+        0.08001103311020907,
+        0.08001103311020907
+      ]
+    },
+    "pass": true,
+    "reason": "nuisance shuffle 双边等价成立:动作一致率 1.000,收益差 CI [+0.00000,+0.00000] ⊂ [-0.002,+0.002],换手差 +0.00000,仓位差 +0.00000",
+    "action_match_rate": 1.0,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": 0.08001103311020907,
+      "net_returns": [
+        0.1127065690781699,
+        0.008111693963455124,
+        0.08001103311020907
+      ]
+    },
+    "extra": {
+      "nuisance_slots": [
+        "nuisance_0",
+        "nuisance_1",
+        "nuisance_2"
+      ],
+      "mode": "shuffle",
+      "observation_shape": [
+        9
+      ],
+      "market_features_untouched": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "equivalence_spec": {
+        "delta_return": 0.002,
+        "action_match_min": 0.98,
+        "turnover_abs_tol": 0.02,
+        "position_abs_tol": 0.02,
+        "n_transform_seeds": 3,
+        "bootstrap_iters": 2000,
+        "bootstrap_alpha": 0.05
+      },
+      "paired_bootstrap": {
+        "n": 9,
+        "stat": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "n_pairs": 9,
+      "n_transform_seeds": 3,
+      "episodes_tested": 3,
+      "distinct_episode_seeds": 3,
+      "action_match_rates": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "median_turnover_diff": 0.0,
+      "median_position_diff": 0.0,
+      "failure_modes": [],
+      "is_cheat_evidence": false
+    }
+  },
+  "bidirectional": true
+}

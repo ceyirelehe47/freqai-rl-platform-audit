@@ -1,0 +1,45 @@
+{
+  "matrix": {
+    "valid_mock_attestation": {
+      "rejected": false
+    },
+    "self_signed_attestation": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 签名验证失败(未受信密钥或载荷被改): InvalidSignature(); attestation 公钥指纹与受信 issuer 不符"
+    },
+    "checkpoint_replaced": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的 checkpoint SHA-256 与实际文件不符(checkpoint 被替换)"
+    },
+    "sidecar_modified": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的 sidecar hash 与实际不符(sidecar 被修改)"
+    },
+    "training_manifest_modified": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的训练 manifest hash 与实际不符(被修改)"
+    },
+    "charter_changed": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的章程 hash 与本次考试章程不符"
+    },
+    "schema_changed": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的 observation schema hash 与本次考试不符"
+    },
+    "smoke_disguised_as_formal": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): smoke 模型的 attestation 被用于正式评估(受信配置禁止)"
+    },
+    "training_runner_hash_mismatch": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): 训练 runner hash 与受信配置要求不符(未授权训练管道)"
+    },
+    "attestation_bound_to_other_checkpoint": {
+      "rejected": true,
+      "reason": "训练 attestation 验证失败(正式资格拒绝): attestation 绑定的 checkpoint SHA-256 与实际文件不符(checkpoint 被替换)"
+    }
+  },
+  "all_required_rejected": true,
+  "valid_passes": true
+}

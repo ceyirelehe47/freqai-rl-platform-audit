@@ -1,0 +1,34 @@
+{
+  "profile": {
+    "format": "candidate-sandbox-profile-v1",
+    "read_exec_dirs": [
+      "/home/cryptorl/miniforge3/envs/freqtrade-rl",
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/opt"
+    ],
+    "read_only_dirs": [
+      "/etc",
+      "/proc",
+      "/sys"
+    ],
+    "read_write_dirs": [
+      "/dev"
+    ],
+    "rlimits": {
+      "address_space_mb": 6144,
+      "cpu_seconds": 1800,
+      "file_size_mb": 64,
+      "nofile": 256,
+      "nproc": 512
+    },
+    "step_timeout_seconds": 60.0,
+    "greeting_timeout_seconds": 120.0,
+    "max_response_line_bytes": 4096
+  },
+  "profile_hash": "sp-e366f88833cd8f6ea1c6664558e4e6b7fddb2425c51110ad38a32e01a955788f",
+  "mechanism": "unshare user+mount+pid+proc+net namespaces;Landlock ABI>=4 deny-by-default;只读 bind mount 中性 checkpoint 路径;tmpfs scratch;rlimits;stdout 行长/超时"
+}

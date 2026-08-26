@@ -1,0 +1,118 @@
+{
+  "format": "null-qualification-v1",
+  "families": {
+    "probe_null_sign": {
+      "pass": true,
+      "checks": {
+        "oracle_no_stable_directional_edge": true,
+        "rule_no_stable_excess": true,
+        "always_flat_strong_baseline": true,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": true
+      },
+      "oracle_excess": {
+        "n": 8,
+        "stat": 0.0007740322106094544,
+        "ci_low": -0.009684968257163251,
+        "ci_high": 0.010743949384647955
+      },
+      "rule_excess": {
+        "n": 8,
+        "stat": -0.011119484757890374,
+        "ci_low": -0.041812064941931903,
+        "ci_high": 0.0010833438817507979
+      },
+      "net_drift_ci": {
+        "n": 768,
+        "stat": 4.0116878576208076e-05,
+        "ci_low": -0.00021449627076667942,
+        "ci_high": 0.0002818557894104026
+      },
+      "high_turnover_median": -0.0839218683152324,
+      "n_episodes": 8
+    },
+    "probe_null_volstate": {
+      "pass": true,
+      "checks": {
+        "oracle_no_stable_directional_edge": true,
+        "rule_no_stable_excess": true,
+        "always_flat_strong_baseline": true,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": true
+      },
+      "oracle_excess": {
+        "n": 8,
+        "stat": -0.010678357576539177,
+        "ci_low": -0.025625220792576564,
+        "ci_high": 0.005476764798355127
+      },
+      "rule_excess": {
+        "n": 8,
+        "stat": -0.01766750531244815,
+        "ci_low": -0.02457226952318703,
+        "ci_high": -0.0021529986040856874
+      },
+      "net_drift_ci": {
+        "n": 768,
+        "stat": -0.00013319634369722672,
+        "ci_low": -0.00037140594713277054,
+        "ci_high": 0.00011513889582457645
+      },
+      "high_turnover_median": -0.09459979604364499,
+      "n_episodes": 8
+    },
+    "probe_null_stochvol": {
+      "pass": true,
+      "checks": {
+        "oracle_no_stable_directional_edge": true,
+        "rule_no_stable_excess": true,
+        "always_flat_strong_baseline": true,
+        "high_frequency_loses_after_fees": true,
+        "multi_seed_coverage": true
+      },
+      "oracle_excess": {
+        "n": 8,
+        "stat": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "rule_excess": {
+        "n": 8,
+        "stat": -0.0034112690991326966,
+        "ci_low": -0.017083103808511968,
+        "ci_high": 0.012254652600894866
+      },
+      "net_drift_ci": {
+        "n": 768,
+        "stat": 0.0002465281529306351,
+        "ci_low": 2.2778176142100564e-05,
+        "ci_high": 0.0004779575744123582
+      },
+      "high_turnover_median": -0.07149097558869538,
+      "n_episodes": 8
+    }
+  },
+  "bindings": {
+    "probe_null_sign": {
+      "family_version": "probe-null-sign-v2",
+      "qualification_pass": true,
+      "report_hash": "nq-048e97538b3f256cc29567e6ae3e4cc1e4a819cc46b7a2dde5db353b597056bb"
+    },
+    "probe_null_stochvol": {
+      "family_version": "probe-null-stochvol-v1",
+      "qualification_pass": true,
+      "report_hash": "nq-8124cad94db4a3175158efbeef4b423815e55be36497a099bcf48bedb2fd302c"
+    },
+    "probe_null_volstate": {
+      "family_version": "probe-null-volstate-v2",
+      "qualification_pass": true,
+      "report_hash": "nq-eb45bf5cc204e104c300e70f28f6b44b7ae8513f703745e19ddd6993dda6aebe"
+    }
+  },
+  "drifting_pseudo_null_rejected": true,
+  "pseudo_null_reasons": [
+    "Oracle 在 Null 上保留稳定正超额(median=+0.20819, CI low=+0.17439):方向可预测性未切断",
+    "RuleTrend 在 Null 上保留稳定正超额(median=+0.18439):历史方向信息未切断",
+    "每 bar 平均对数收益 bootstrap CI [+0.001613, +0.002007] 超出 ±0.000800:Null 存在系统性净漂移(Always Flat 不再是强基线)"
+  ]
+}

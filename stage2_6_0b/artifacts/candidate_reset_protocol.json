@@ -1,0 +1,26 @@
+{
+  "reset_signature": "reset_episode(self)",
+  "reset_signature_params": [
+    "self"
+  ],
+  "worker_protocol": "candidate-worker-v2",
+  "wire_message": {
+    "op": "reset"
+  },
+  "wire_message_byte_exact": "{\"op\": \"reset\"}",
+  "banned_fields": [
+    "derived_seed",
+    "episode_id",
+    "seed",
+    "spec_hash",
+    "attempt_id",
+    "pack_hash",
+    "split",
+    "family",
+    "params",
+    "episode_length"
+  ],
+  "random_baseline_channel": "ObservableBaselinePolicy.episode_instance(episode_seed)(seed 只进入基线工厂;候选通道不可达)",
+  "sandboxed_candidate_reset_source": "    def reset_episode(self) -> None:\n        # 工作包 B:消息逐字节 {\"op\": \"reset\"}——无任何 Episode 身份 token\n        self._send({\"op\": \"reset\"})\n",
+  "pass": true
+}

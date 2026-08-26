@@ -1,0 +1,152 @@
+{
+  "protocol": "sealed-exam-commitment-v2",
+  "commitment": {
+    "protocol_version": "sealed-exam-commitment-v2",
+    "pack_hash": "p-9a101f314f398f3ac784ae5d95ae0bd375314d7b7140ea25c1ad7e985fc014ef",
+    "charter_hash": "c-486078090822cce09a6a2460885bf198259f0f8f32512d066d2ce6e7ebcfbe7e",
+    "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+    "spec_versions": {
+      "env_core_version": "RouteCEnvCore-v1.0.0",
+      "observation_spec_version": "ObservationSpec-v1",
+      "action_spec_version": "BinaryLongFlatAction-v1",
+      "reward_spec_version": "NetLogEquityReward-v1",
+      "execution_contract_version": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation_version": "TerminalLiquidation-v1"
+    },
+    "generator_bindings": {
+      "probe_null_block": {
+        "family_version": "probe-null-block-v2",
+        "implementation_hash": "gi-5422eb4f7417741df77ea5df09a46dc00e425fe28154f46ebf358feae8eae564",
+        "manifest_hash": "d7ddf15c8bbbf0e963faeb2b5ad8ae0f459a10234a9759944bd96799d6969954"
+      },
+      "probe_null_control": {
+        "family_version": "probe-C-v2",
+        "implementation_hash": "gi-bcd52d31147026d587a555da5db700639193f6016e812746e0346c4bbe65bc94",
+        "manifest_hash": "cd7bcc5d7ab51c8954e1fe379236ef13f3b5ee10bc96ef834fde87c01f3964ee"
+      },
+      "probe_null_sign": {
+        "family_version": "probe-null-sign-v2",
+        "implementation_hash": "gi-4a7492c05afcd77c605013db95a1bbcbb074f4606d4cc9c9b9f74b45db68f90c",
+        "manifest_hash": "46f7f736d9368d58ec6fa9f15f265b513e1e5ae143750625c92c001329d35d38"
+      },
+      "probe_null_stochvol": {
+        "family_version": "probe-null-stochvol-v1",
+        "implementation_hash": "gi-445435f3aac9511e2f6d55227a9a67c62d9ce5ce2f6c984b01d8af251da749ad",
+        "manifest_hash": "87de1ff39bd3b590a60a3df9ed6270247d4159d2ae0e6164fbf93a22bef0dfe2"
+      },
+      "probe_null_volstate": {
+        "family_version": "probe-null-volstate-v2",
+        "implementation_hash": "gi-2d39bfe0bcb8bc36869a594afd2f66d6306b4d660d954a1f1a7e950d5085543c",
+        "manifest_hash": "dbad8ac3a4d6658ed7f3a122508ec0acd99878175e6c25f95bc6b1b458d8a238"
+      },
+      "probe_segmented_drift": {
+        "family_version": "probe-A-v2",
+        "implementation_hash": "gi-b3d132f05aafb5b546033e46b51d490542ceaae087cf848e4cefee61ac0bff78",
+        "manifest_hash": "9dd3b8a7932d633bb4b6574fccb255cb68017a5be550b8a3fabd2733067c7cab"
+      },
+      "probe_smooth_latent_drift": {
+        "family_version": "probe-B-v2",
+        "implementation_hash": "gi-b48e2ac8390118af08a5d89de28e96baddddfa74a62bbef3ed5137b2681a2bba",
+        "manifest_hash": "1b8bc838fc5bad6500a3d593ab4c6dd7861494698c234e68e74b3b5b707d84d8"
+      }
+    },
+    "evaluator_code_hash": "e-c1066ac33bb1082a6a6983668977c99205b2b8be4a8b8b17576b13c9c608f3ea",
+    "counterfactual_code_hash": "m-47649a25291a42525d85a09c3cf50e4a241d262ca3c1cc445bb5ba6c9ddea514",
+    "verdict_spec_hash": "v-d69b9e75b88d50d0ba3cf3717963e10f1dc79bed548817a8853f2fbf5a136358",
+    "eval_config": {
+      "fee": 0.001,
+      "slippage_bps": 0.0,
+      "price_tick": 0.0,
+      "initial_cash": 100.0,
+      "reward_scale": 1.0,
+      "window_size": 1,
+      "deterministic": true
+    },
+    "sandbox_profile_hash": "sp-e366f88833cd8f6ea1c6664558e4e6b7fddb2425c51110ad38a32e01a955788f",
+    "nuisance_equivalence_spec": {
+      "delta_return": 0.002,
+      "action_match_min": 0.98,
+      "turnover_abs_tol": 0.02,
+      "position_abs_tol": 0.02,
+      "n_transform_seeds": 3,
+      "bootstrap_iters": 2000,
+      "bootstrap_alpha": 0.05
+    },
+    "anticheat_replication_spec": {
+      "min_distinct_cheat_seeds": 3,
+      "min_failing_cheat_episodes": 3,
+      "min_effective_net_return": 0.0,
+      "min_seed_pass_ratio_for_cheat": 0.5
+    },
+    "null_qualification_bindings": {
+      "probe_null_sign": {
+        "family_version": "probe-null-sign-v2",
+        "qualification_pass": true,
+        "report_hash": "nq-048e97538b3f256cc29567e6ae3e4cc1e4a819cc46b7a2dde5db353b597056bb"
+      },
+      "probe_null_stochvol": {
+        "family_version": "probe-null-stochvol-v1",
+        "qualification_pass": true,
+        "report_hash": "nq-8124cad94db4a3175158efbeef4b423815e55be36497a099bcf48bedb2fd302c"
+      },
+      "probe_null_volstate": {
+        "family_version": "probe-null-volstate-v2",
+        "qualification_pass": true,
+        "report_hash": "nq-eb45bf5cc204e104c300e70f28f6b44b7ae8513f703745e19ddd6993dda6aebe"
+      }
+    },
+    "null_qualification_code_hash": "nqc-8eec7475dbfe6d3a7089c7a2b8cfcc6dd53cd9a161e2cdcbd589c9b3f2d2cc29",
+    "trusted_issuer": {
+      "protocol": "training-attestation-v1",
+      "issuer_id": "mock-issuer-stage2-6-0b",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEATDAM7aSKYfw5ZS4oijxNTleKUVC87S5yIqnIXFDJ4so=\n-----END PUBLIC KEY-----\n",
+      "key_fingerprint": "ik-a72e92860c392c4108206802919cdc04936ad7276893bcc5a45288de4cbbfc77",
+      "required_training_runner_hash": "mock-runner-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "allow_smoke": false
+    },
+    "resolved_parameter_semantics_hash": "rps-be5261d36d9d4686d8560e64c9109935c83ab255ae7f2bd0d6e0dcd364c1f32a",
+    "checkpoint_requirements": {
+      "require_trusted_attestation": true,
+      "charter_hash": "c-486078090822cce09a6a2460885bf198259f0f8f32512d066d2ce6e7ebcfbe7e",
+      "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+      "checkpoint_sha256": "any-attested"
+    },
+    "attempt_policy": {
+      "idempotent_retry": true,
+      "max_attempts_per_checkpoint_pack": null
+    },
+    "notes": {
+      "mock": true,
+      "声明": "公开 mock 承诺 v2,验证密封基础设施用"
+    },
+    "created_utc": "2026-08-26T12:03:02.436325+00:00"
+  },
+  "commitment_hash": "sc-61da62ef6ba383f8536eff28aaa2c2cf81eb5e1eca2c264fd899c5491058cd4d",
+  "bindings_cover": {
+    "pack": true,
+    "charter": true,
+    "observation_schema": true,
+    "spec_versions": true,
+    "generator_implementations": [
+      "probe_null_block",
+      "probe_null_control",
+      "probe_null_sign",
+      "probe_null_stochvol",
+      "probe_null_volstate",
+      "probe_segmented_drift",
+      "probe_smooth_latent_drift"
+    ],
+    "evaluator_code_hash": true,
+    "counterfactual_code_hash": true,
+    "verdict_spec_hash": true,
+    "eval_config": true,
+    "sandbox_profile_hash": "sp-e366f88833cd8f6ea1c6664558e4e6b7fddb2425c51110ad38a32e01a955788f",
+    "nuisance_equivalence_spec": true,
+    "anticheat_replication_spec": true,
+    "null_qualification_bindings": true,
+    "null_qualification_code_hash": "nqc-8eec7475dbfe6d3a7089c7a2b8cfcc6dd53cd9a161e2cdcbd589c9b3f2d2cc29",
+    "trusted_issuer": true,
+    "resolved_parameter_semantics_hash": "rps-be5261d36d9d4686d8560e64c9109935c83ab255ae7f2bd0d6e0dcd364c1f32a",
+    "checkpoint_requirements": true
+  }
+}
