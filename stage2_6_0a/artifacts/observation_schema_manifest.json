@@ -1,0 +1,123 @@
+{
+  "schema": {
+    "format": "course-observation-schema-v1",
+    "schema_version": "probe-course-obs-v2",
+    "features": [
+      {
+        "name": "ret_1",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 1,
+        "nuisance": false,
+        "signal_group": "momentum",
+        "normalization": "identity"
+      },
+      {
+        "name": "ret_4",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 4,
+        "nuisance": false,
+        "signal_group": "trend",
+        "normalization": "identity"
+      },
+      {
+        "name": "ret_12",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 12,
+        "nuisance": false,
+        "signal_group": "momentum",
+        "normalization": "identity"
+      },
+      {
+        "name": "vol_24",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 24,
+        "nuisance": false,
+        "signal_group": "volatility",
+        "normalization": "identity"
+      },
+      {
+        "name": "ma_ratio",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 24,
+        "nuisance": false,
+        "signal_group": "trend",
+        "normalization": "identity"
+      },
+      {
+        "name": "nuisance_0",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 1,
+        "nuisance": true,
+        "signal_group": "nuisance",
+        "normalization": "identity"
+      },
+      {
+        "name": "nuisance_1",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 1,
+        "nuisance": true,
+        "signal_group": "nuisance",
+        "normalization": "identity"
+      },
+      {
+        "name": "nuisance_2",
+        "available_at": "close_of_bar_t",
+        "max_history_bars": 1,
+        "nuisance": true,
+        "signal_group": "nuisance",
+        "normalization": "identity"
+      }
+    ],
+    "window_size": 1,
+    "dtype": "float32",
+    "account_slots": [
+      "target_position"
+    ],
+    "includes_cost_context": false,
+    "normalization_method": "identity",
+    "normalization_pipeline_hash": "identity-v1",
+    "nuisance_fill": "independent_counter_hash_noise",
+    "nuisance_slot_count": 3,
+    "observation_dim": 9
+  },
+  "schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+  "sidecar_binding": {
+    "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+    "observation_feature_names": [
+      "ret_1",
+      "ret_4",
+      "ret_12",
+      "vol_24",
+      "ma_ratio",
+      "nuisance_0",
+      "nuisance_1",
+      "nuisance_2"
+    ],
+    "observation_dim": 9,
+    "observation_window_size": 1,
+    "observation_dtype": "float32",
+    "observation_normalization_pipeline_hash": "identity-v1"
+  },
+  "feature_index_map": {
+    "ret_1": 0,
+    "ret_4": 1,
+    "ret_12": 2,
+    "vol_24": 3,
+    "ma_ratio": 4,
+    "nuisance_0": 5,
+    "nuisance_1": 6,
+    "nuisance_2": 7
+  },
+  "account_slot_index": {
+    "target_position": 8
+  },
+  "hash_sensitivity": {
+    "base": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+    "feature_order_swapped": "o-a4d93ea0887aa7099bdc9cd41665160b613aee92cb80d7a4e3ebcf640c63d3a7",
+    "window_size_2": "o-e816c1d4dcd2f9c13df7a730ea9c2fee556a531dd1596879fdf21746cb8fefe6",
+    "dtype_float64": "o-d44db37030af66c6bcadbfa7b08165155538bf2c6b37161d1cc4f4114d5f0fdb",
+    "nuisance_2_slots": "o-d5f065006e04ae54fd6f4013f53adeceadc573cb30d46c88e94065a80e99ed74",
+    "pipeline_zscore": "o-f9dead74ee9eb6b935976272f71d1d82fd28c3afcf9e4570a2ddf0aa3a38dcc4"
+  },
+  "all_variant_hashes_differ": true
+}

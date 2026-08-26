@@ -1,0 +1,74 @@
+{
+  "signal_group": "trend",
+  "features": [
+    "ma_ratio",
+    "ret_4"
+  ],
+  "sb3_candidate": {
+    "test": "signal_ablation",
+    "variant": {
+      "median_net_return": -0.02182797853964613,
+      "net_returns": [
+        -0.02182797853964613,
+        -0.03890850806553969,
+        -0.015891272145957314
+      ]
+    },
+    "pass": false,
+    "reason": "消融 trend 组后中位优势未下降(-0.02183 -> -0.02183):模型未依赖课程声称的特征 -> FAIL(非作弊)",
+    "action_match_rate": null,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": -0.02182797853964613,
+      "net_returns": [
+        -0.02182797853964613,
+        -0.03890850806553969,
+        -0.015891272145957314
+      ]
+    },
+    "extra": {
+      "signal_group": "trend",
+      "features": [
+        "ret_4",
+        "ma_ratio"
+      ],
+      "mode": "fixed_value",
+      "median_advantage_drop": 0.0,
+      "is_cheat_evidence": false
+    }
+  },
+  "rule_baseline": {
+    "test": "signal_ablation",
+    "variant": {
+      "median_net_return": 0.0,
+      "net_returns": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "pass": true,
+    "reason": "消融 trend 组后中位优势下降(+0.08620 -> +0.00000)",
+    "action_match_rate": null,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": 0.0861979232497041,
+      "net_returns": [
+        0.18408277993358158,
+        0.07187292719913008,
+        0.0861979232497041
+      ]
+    },
+    "extra": {
+      "signal_group": "trend",
+      "features": [
+        "ret_4",
+        "ma_ratio"
+      ],
+      "mode": "fixed_value",
+      "median_advantage_drop": 0.0861979232497041,
+      "is_cheat_evidence": false
+    }
+  },
+  "note": "规则基线依赖 trend 组 -> 消融后优势下降(pass);未学习 PPO 不依赖 -> FAIL(课程声称的特征依赖对该 checkpoint 不成立;判定 FAIL,不是作弊)"
+}

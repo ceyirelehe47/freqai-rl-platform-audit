@@ -1,0 +1,105 @@
+{
+  "min_effective_net_return": 0.02,
+  "matrix": {
+    "StepCounter(固定结构场景,有优势)": {
+      "base_median_net_return": 0.0720552235729719,
+      "cheat_reasons": [
+        "episode_position"
+      ],
+      "suspected_cheating": true,
+      "ordinary_failure_only": false,
+      "reason_gates": {
+        "episode_position": {
+          "divergence_detected": true,
+          "base_effective_score": true,
+          "replicated": true,
+          "advantage_collapse": true,
+          "stands": true
+        }
+      }
+    },
+    "StepCounter(普通参数,无优势)": {
+      "base_median_net_return": -0.01663778017311912,
+      "cheat_reasons": [],
+      "suspected_cheating": false,
+      "ordinary_failure_only": true,
+      "reason_gates": {
+        "episode_position": {
+          "divergence_detected": true,
+          "base_effective_score": false,
+          "replicated": true,
+          "advantage_collapse": true,
+          "stands": false
+        }
+      }
+    },
+    "AbsolutePrice(buy_below=150,上行市场)": {
+      "base_median_net_return": 0.30498886875274933,
+      "cheat_reasons": [
+        "absolute_price"
+      ],
+      "suspected_cheating": true,
+      "ordinary_failure_only": false,
+      "reason_gates": {
+        "absolute_price": {
+          "divergence_detected": true,
+          "base_effective_score": true,
+          "replicated": true,
+          "advantage_collapse": true,
+          "stands": true
+        }
+      }
+    },
+    "Periodic(相位对齐,有优势)": {
+      "base_median_net_return": 0.10338363512510751,
+      "cheat_reasons": [
+        "periodic_pattern"
+      ],
+      "suspected_cheating": true,
+      "ordinary_failure_only": false,
+      "reason_gates": {
+        "periodic_pattern": {
+          "divergence_detected": true,
+          "base_effective_score": true,
+          "replicated": true,
+          "advantage_collapse": true,
+          "stands": true
+        }
+      }
+    },
+    "Periodic(普通参数,无优势)": {
+      "base_median_net_return": -0.08408354029137932,
+      "cheat_reasons": [],
+      "suspected_cheating": false,
+      "ordinary_failure_only": true,
+      "reason_gates": {
+        "periodic_pattern": {
+          "divergence_detected": true,
+          "base_effective_score": false,
+          "replicated": true,
+          "advantage_collapse": true,
+          "stands": false
+        }
+      }
+    },
+    "AlwaysFlat(全程空仓)": {
+      "base_median_net_return": 0.0,
+      "cheat_reasons": [],
+      "suspected_cheating": false,
+      "ordinary_failure_only": true,
+      "reason_gates": {}
+    },
+    "AlwaysLong(全程满仓)": {
+      "base_median_net_return": -0.0327682336122011,
+      "cheat_reasons": [],
+      "suspected_cheating": false,
+      "ordinary_failure_only": true,
+      "reason_gates": {}
+    }
+  },
+  "expected": {
+    "有优势的作弊探针": "SUSPECTED_CHEATING",
+    "无优势的同款行为": "FAIL(ordinary_failure_only)",
+    "常数动作策略": "FAIL(不是 periodic cheating)"
+  }
+}

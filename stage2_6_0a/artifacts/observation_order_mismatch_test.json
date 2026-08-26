@@ -1,0 +1,27 @@
+{
+  "base_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+  "same_total_dim_but_reordered": true,
+  "cases": [
+    {
+      "case": "同维特征换序",
+      "rejected": true,
+      "reason": "[同维特征换序] observation schema 语义不匹配 -> 有序特征名不同: ['ret_1', 'ret_4', 'ret_12', 'vol_24', 'ma_ratio', 'nuisance_0', 'nuisance_1', 'nuisance_2'] vs ['ret_4', 'ret_1',"
+    },
+    {
+      "case": "window=2",
+      "rejected": true,
+      "reason": "[window=2] observation schema 语义不匹配 -> observation 总维度不同: 9 vs 17; window_size 不同: 1 vs 2"
+    },
+    {
+      "case": "dtype=float64",
+      "rejected": true,
+      "reason": "[dtype=float64] observation schema 语义不匹配 -> dtype 不同: float32 vs float64"
+    },
+    {
+      "case": "账户槽位不同",
+      "rejected": true,
+      "reason": "[账户槽位不同] observation schema 语义不匹配 -> observation 总维度不同: 9 vs 10; 账户状态槽位不同: ['target_position'] vs ['position', 'cash']"
+    }
+  ],
+  "all_rejected": true
+}

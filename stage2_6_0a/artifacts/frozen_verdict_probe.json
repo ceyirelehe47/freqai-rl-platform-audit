@@ -1,0 +1,56 @@
+{
+  "verdict_spec_hash": "v-818f490c9504b6616aa42420b5c6f3d1922e3c4834f3b131df516d97699bb1b5",
+  "spec": {
+    "format": "course-verdict-spec-v1",
+    "version": "probe-course-verdict-mock-v1",
+    "min_effective_net_return": 0.0,
+    "min_seed_pass_ratio_for_cheat": 0.5,
+    "min_replication_episodes": 3,
+    "required_positive_splits": [
+      "dev_seed_holdout",
+      "param_extrapolation",
+      "family_holdout"
+    ],
+    "vs_always_flat_ci_low_min": 0.0,
+    "vs_rule_baseline_median_diff_min": 0.0,
+    "seed_pass_ratio_min": 0.6,
+    "median_turnover_max": 0.5,
+    "q10_min": null,
+    "median_max_drawdown_max": null,
+    "required_counterfactuals": [
+      "common_prefix_future_suffix",
+      "price_scale_invariance",
+      "initial_price_invariance",
+      "episode_length_invariance",
+      "time_shift_invariance",
+      "regime_order_randomization",
+      "nuisance_slot_injection",
+      "nuisance_slot_shuffle",
+      "signal_ablation",
+      "trend_direction_mirror",
+      "cost_monotonicity",
+      "null_control"
+    ],
+    "required_null_families": [
+      "probe_null_sign",
+      "probe_null_block",
+      "probe_null_volstate"
+    ],
+    "notes": "阶段 2.6.0a mock 探针课程阈值:仅用于验证判定基础设施,不是正式趋势课程及格线(2.6.2 校准后另行冻结)"
+  },
+  "scenarios": {
+    "仅 median>0(无反事实证据)": "FAIL",
+    "全 G4 硬门通过": "PASS",
+    "seed holdout 为负": "FAIL",
+    "作弊证据成立": "SUSPECTED_CHEATING",
+    "密封校验失败": "EXAM_INVALID"
+  },
+  "expected": {
+    "仅 median>0(无反事实证据)": "FAIL",
+    "全 G4 硬门通过": "PASS",
+    "seed holdout 为负": "FAIL",
+    "作弊证据成立": "SUSPECTED_CHEATING",
+    "密封校验失败": "EXAM_INVALID"
+  },
+  "matches_expectation": true
+}

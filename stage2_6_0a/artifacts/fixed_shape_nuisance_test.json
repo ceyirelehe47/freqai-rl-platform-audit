@@ -1,0 +1,82 @@
+{
+  "checkpoint": "test_ppo_fixed_dim(固定维度 SB3)",
+  "observation_shape": [
+    9
+  ],
+  "injection": {
+    "test": "nuisance_slot_injection",
+    "variant": {
+      "median_net_return": -0.04740192958923761,
+      "net_returns": [
+        -0.04740192958923761,
+        -0.055623054474264966,
+        -0.01559654354947071
+      ]
+    },
+    "pass": true,
+    "reason": "nuisance 槽位注入独立噪声未系统性提升成绩(中位差 -0.02557),observation shape 不变",
+    "action_match_rate": null,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": -0.02182797853964613,
+      "net_returns": [
+        -0.02182797853964613,
+        -0.03890850806553969,
+        -0.015891272145957314
+      ]
+    },
+    "extra": {
+      "nuisance_slots": [
+        "nuisance_0",
+        "nuisance_1",
+        "nuisance_2"
+      ],
+      "observation_shape": [
+        9
+      ],
+      "median_improvement": -0.02557395104959148
+    }
+  },
+  "shuffle": {
+    "test": "nuisance_slot_shuffle",
+    "variant": {
+      "median_net_return": -0.025187838739529456,
+      "net_returns": [
+        -0.03819358911367676,
+        -0.025187838739529456,
+        -0.017439786086317688
+      ]
+    },
+    "pass": true,
+    "reason": "nuisance 槽位置乱未系统性提升成绩(中位差 -0.00336),正式特征未被触碰",
+    "action_match_rate": null,
+    "first_divergence_step": null,
+    "base": {
+      "median_net_return": -0.02182797853964613,
+      "net_returns": [
+        -0.02182797853964613,
+        -0.03890850806553969,
+        -0.015891272145957314
+      ]
+    },
+    "extra": {
+      "nuisance_slots": [
+        "nuisance_0",
+        "nuisance_1",
+        "nuisance_2"
+      ],
+      "observation_shape": [
+        9
+      ],
+      "market_features_untouched": [
+        "ret_1",
+        "ret_4",
+        "ret_12",
+        "vol_24",
+        "ma_ratio"
+      ],
+      "median_improvement": -0.0033598601998833244
+    }
+  },
+  "shape_unchanged": true
+}

@@ -1,0 +1,104 @@
+{
+  "commitment": {
+    "protocol_version": "sealed-exam-commitment-v1",
+    "pack_hash": "p-7aa02f3b0cff7dc4ad672f55bb8ec80d73fc0cf37c6fca7c18f0d1e42c2ada31",
+    "charter_hash": "c-2ade551fc6c98e09e8f8f81942a18a615a9a4b3d7d29dc6b8bf80dc5ec9ac843",
+    "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+    "spec_versions": {
+      "env_core_version": "RouteCEnvCore-v1.0.0",
+      "observation_spec_version": "ObservationSpec-v1",
+      "action_spec_version": "BinaryLongFlatAction-v1",
+      "reward_spec_version": "NetLogEquityReward-v1",
+      "execution_contract_version": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation_version": "TerminalLiquidation-v1"
+    },
+    "generator_bindings": {
+      "probe_null_block": {
+        "family_version": "probe-null-block-v1",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      },
+      "probe_null_control": {
+        "family_version": "probe-C-v1",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      },
+      "probe_null_sign": {
+        "family_version": "probe-null-sign-v1",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      },
+      "probe_null_volstate": {
+        "family_version": "probe-null-volstate-v2",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      },
+      "probe_segmented_drift": {
+        "family_version": "probe-A-v1",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      },
+      "probe_smooth_latent_drift": {
+        "family_version": "probe-B-v1",
+        "code_hash": "m-eb62ffe6a7099ff056b4f5f60d1c8942321334be823bc5ce394afff3a4db7963"
+      }
+    },
+    "evaluator_code_hash": "e-ac8726d2c3c106ddd28b68a41bea4e0d8095fdde479a33699508b0ee05ab086b",
+    "counterfactual_code_hash": "m-4644a839c462262b0600c8c3849615d93c9222fdd241f7a544c134d31c7aa338",
+    "verdict_spec_hash": "v-818f490c9504b6616aa42420b5c6f3d1922e3c4834f3b131df516d97699bb1b5",
+    "eval_config": {
+      "fee": 0.001,
+      "slippage_bps": 0.0,
+      "price_tick": 0.0,
+      "initial_cash": 100.0,
+      "reward_scale": 1.0,
+      "window_size": 1,
+      "deterministic": true
+    },
+    "checkpoint_requirements": {
+      "formal_eligible": true,
+      "charter_hash": "c-2ade551fc6c98e09e8f8f81942a18a615a9a4b3d7d29dc6b8bf80dc5ec9ac843",
+      "observation_schema_hash": "o-4d9e7b4c3dae66db0592d1bf043cd4f985bca92900700eae8f7a8236682e94be",
+      "checkpoint_sha256": "any-formal-eligible"
+    },
+    "attempt_policy": {
+      "idempotent_retry": true,
+      "max_attempts_per_checkpoint_pack": 3
+    },
+    "notes": {
+      "mock": true,
+      "声明": "公开 mock 承诺,验证密封基础设施用"
+    }
+  },
+  "commitment_hash": "sc-4990414c3e19e4d8c2e90d70d3bb6ec0fc05b0511e38b3b185f6dff2dd72b9c9",
+  "created_utc": "2026-08-26T07:22:28.587257+00:00",
+  "verification": {
+    "commitment_hash": "sc-4990414c3e19e4d8c2e90d70d3bb6ec0fc05b0511e38b3b185f6dff2dd72b9c9",
+    "checks": {
+      "pack_hash": true,
+      "charter_hash": true,
+      "observation_schema_hash": true,
+      "spec_versions": true,
+      "generator_version::probe_null_block": true,
+      "generator_code::probe_null_block": true,
+      "generator_version::probe_null_sign": true,
+      "generator_code::probe_null_sign": true,
+      "generator_version::probe_null_volstate": true,
+      "generator_code::probe_null_volstate": true,
+      "generator_version::probe_segmented_drift": true,
+      "generator_code::probe_segmented_drift": true,
+      "generator_version::probe_smooth_latent_drift": true,
+      "generator_code::probe_smooth_latent_drift": true,
+      "evaluator_code_hash": true,
+      "counterfactual_code_hash": true,
+      "verdict_spec_hash": true,
+      "eval_config": true
+    },
+    "problems": [],
+    "pack_families": [
+      "probe_null_block",
+      "probe_null_sign",
+      "probe_null_volstate",
+      "probe_segmented_drift",
+      "probe_smooth_latent_drift"
+    ],
+    "pass": true
+  },
+  "mock": true,
+  "声明": "公开 mock 承诺:验证密封基础设施;正式隐藏承诺不进入公开仓库"
+}

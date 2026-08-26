@@ -1,0 +1,133 @@
+{
+  "checkpoint": "test_ppo_fixed_dim(固定 obs 维度 9;非正式训练)",
+  "observation_shape": [
+    9
+  ],
+  "n_episodes": 18,
+  "overall_median_net_return": -0.04166203481670888,
+  "counterfactuals": [
+    {
+      "test": "common_prefix_future_suffix",
+      "pass": true,
+      "reason": "共同前缀内动作与全部 observation 槽位(特征+账户)完全一致(因果)"
+    },
+    {
+      "test": "price_scale_invariance",
+      "pass": true,
+      "reason": "各价格尺度下动作一致(无绝对价格依赖)"
+    },
+    {
+      "test": "initial_price_invariance",
+      "pass": true,
+      "reason": "初始价格变化下动作一致(无初始价依赖)"
+    },
+    {
+      "test": "episode_length_invariance",
+      "pass": true,
+      "reason": "共同前缀动作与 observation 槽位一致(无固定终点倒计时依赖)"
+    },
+    {
+      "test": "time_shift_invariance",
+      "pass": true,
+      "reason": "时间平移下动作一致(无日历/时刻依赖)"
+    },
+    {
+      "test": "regime_order_randomization",
+      "pass": true,
+      "reason": "策略响应市场内容(重排后动作变化):根据市场观察行动"
+    },
+    {
+      "test": "nuisance_slot_injection",
+      "pass": false,
+      "reason": "nuisance 槽位注入系统性提升成绩(中位差 +0.00100):模型记忆噪声/过拟合迹象"
+    },
+    {
+      "test": "nuisance_slot_shuffle",
+      "pass": false,
+      "reason": "nuisance 槽位置乱系统性提升成绩(中位差 +0.02879)"
+    },
+    {
+      "test": "signal_ablation",
+      "pass": false,
+      "reason": "消融 trend 组后中位优势未下降(-0.06475 -> -0.06475):模型未依赖课程声称的特征 -> FAIL(非作弊)"
+    },
+    {
+      "test": "trend_direction_mirror",
+      "pass": false,
+      "reason": "方向捕获不稳定(原始中位 -0.00294,镜像中位 +0.00155):模型没有根据趋势方向行动"
+    },
+    {
+      "test": "cost_monotonicity",
+      "pass": true,
+      "reason": "净值随成本单调不增且换手未显著提高"
+    },
+    {
+      "test": "null_control",
+      "pass": true,
+      "reason": "3 个 Null 家族一致:无稳定正超额收益"
+    }
+  ],
+  "all_exams_executed": true,
+  "cheating": {
+    "suspected_cheating": false,
+    "cheat_reasons": [],
+    "reason_gates": {},
+    "ordinary_failure_only": true,
+    "null_control_flags": {
+      "high_turnover": true,
+      "stable_positive_excess_any_family": false
+    },
+    "failed_tests": [
+      "nuisance_slot_injection",
+      "nuisance_slot_shuffle",
+      "signal_ablation",
+      "trend_direction_mirror"
+    ],
+    "gate_definition": "SUSPECTED_CHEATING 需四门证据:原始有效成绩 + 依赖禁止变量(反事实失败) + 优势崩溃 + 多 Episode 重复;未达最低有效成绩的行为异常只构成普通 FAIL"
+  },
+  "verdict": {
+    "status": "FAIL",
+    "grade": "G0",
+    "hard_gates": {
+      "split_positive::dev_seed_holdout": false,
+      "split_positive::param_extrapolation": false,
+      "split_positive::family_holdout": false,
+      "vs_always_flat_bootstrap_ci_low_positive": false,
+      "vs_rule_baseline_median_diff": false,
+      "seed_pass_ratio": false,
+      "median_turnover_bounded": false,
+      "counterfactual::common_prefix_future_suffix": true,
+      "counterfactual::price_scale_invariance": true,
+      "counterfactual::initial_price_invariance": true,
+      "counterfactual::episode_length_invariance": true,
+      "counterfactual::time_shift_invariance": true,
+      "counterfactual::regime_order_randomization": true,
+      "counterfactual::nuisance_slot_injection": false,
+      "counterfactual::nuisance_slot_shuffle": false,
+      "counterfactual::signal_ablation": false,
+      "counterfactual::trend_direction_mirror": false,
+      "counterfactual::cost_monotonicity": true,
+      "counterfactual::null_control": true,
+      "null_control_multi_family": true,
+      "no_cheating_evidence": true
+    },
+    "integrity_errors": [],
+    "score_band": "band_losing",
+    "cheat_reasons": [],
+    "grade_info": {
+      "grade": "G0",
+      "gates": {
+        "train_positive": false,
+        "dev_seed_holdout_positive": false,
+        "param_extrapolation_positive": false,
+        "family_holdout_positive": false
+      },
+      "counterfactual_all_pass": false,
+      "cheating_detected": false,
+      "note": "G1 只是未见随机种子,不得单独称为真正泛化;G4 为课程毕业最低等级;G5 需 Warm/Cold 迁移协议(transfer.py)"
+    },
+    "recommendation": "do_not_proceed",
+    "verdict_spec_hash": "v-818f490c9504b6616aa42420b5c6f3d1922e3c4834f3b131df516d97699bb1b5"
+  },
+  "note": "本烟雾只证明固定维度 SB3 能真实执行全部 G4 考试并正确区分 FAIL/SUSPECTED_CHEATING/EXAM_INVALID;允许挂科,未为通过考试修改任何阈值"
+}

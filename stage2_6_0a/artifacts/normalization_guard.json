@@ -1,0 +1,19 @@
+{
+  "declared": {
+    "method": "identity",
+    "pipeline_hash": "identity-v1"
+  },
+  "cases": [
+    {
+      "case": "pipeline 哈希替换",
+      "rejected": true,
+      "reason": "[pipeline 哈希替换] observation schema 语义不匹配 -> 归一化 pipeline 哈希不同: identity-v1 vs zscore-fit-2026(scaler 被替换)"
+    },
+    {
+      "case": "sidecar pipeline 篡改",
+      "rejected": true,
+      "reason": "[tampered] checkpoint observation 绑定不匹配 -> 归一化 pipeline 不同: other-v2 vs identity-v1"
+    }
+  ],
+  "all_rejected": true
+}

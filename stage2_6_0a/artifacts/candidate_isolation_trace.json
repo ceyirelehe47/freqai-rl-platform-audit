@@ -1,0 +1,21 @@
+{
+  "act_received_shapes": [
+    [
+      9
+    ]
+  ],
+  "act_received_dtypes": [
+    "float32"
+  ],
+  "stack_scan_hidden_or_future_returns": [],
+  "reset_episode_seeds": [
+    3571874563512875009
+  ],
+  "formal_entry_guards": {
+    "FutureLeakProbe": "REJECTED(FormalPolicyRejected)",
+    "StepCounterCheaterProbe": "REJECTED(FormalPolicyRejected)",
+    "Oracle(独立接口)": "REJECTED(FormalPolicyRejected)",
+    "非策略对象": "REJECTED(FormalPolicyRejected)"
+  },
+  "note": "评估器自身帧持有 episode 属正常(它负责构造 observation);hidden/future_returns 对象不存在于正式评估路径;候选到隐藏数据的进程级隔离由子进程候选(candidate_worker)提供"
+}

@@ -1,0 +1,256 @@
+{
+  "formal_null_families": [
+    "probe_null_sign",
+    "probe_null_block",
+    "probe_null_volstate"
+  ],
+  "family_docs": {
+    "probe_null_sign": {
+      "preserves": "每根 bar 收益的绝对值序列(|r_t| 逐位不变,即波动聚集的幅度结构保留)与非高斯边际形状",
+      "destroys": "收益符号(方向):任何以历史方向预测未来方向的线性/非线性关系被切断",
+      "distribution_difference": "符号独立重采样;|r| 序列与源一致",
+      "limitations": "保留了幅度结构;若课程能力依赖'波动率本身'而非方向,该 Null 不构成检验;与块重排/Fourier 联合使用"
+    },
+    "probe_null_block": {
+      "preserves": "块内(默认 8 bars)局部收益结构:短程自相关与块内漂移段",
+      "destroys": "跨块可预测关系:块顺序随机重排后,块边界处的方向不可预测",
+      "distribution_difference": "块切分处若 n 不被块长整除,补零再截断使边际分布有微小差异",
+      "limitations": "块内残存局部趋势,极短周期策略可能仍有微弱优势;块长必须显著小于 regime 长度才有效"
+    },
+    "probe_null_volstate": {
+      "preserves": "每个时间槽的波动档位(|r| 滚动三分位 -> 波动聚集在档位分辨率下保留)与档内 |收益| 多重集合(|r| 边际分布不变)",
+      "destroys": "方向/漂移可预测性:档内置换打乱时序后叠加独立符号翻转,符号与隐藏标签、与历史方向独立(Oracle 优势被切断)",
+      "distribution_difference": "|r| 边际一致;带符号边际经符号随机化(对称化)",
+      "limitations": "档内相邻短程的 |r| 模式部分残存;三分位边界归档噪声;波动代理窗口(默认 12 bars)内的估计误差"
+    }
+  },
+  "results": {
+    "rule_trend": {
+      "pass": true,
+      "per_family": {
+        "probe_null_block": {
+          "n_episodes": 4,
+          "excess_median": 0.008864924534418228,
+          "excess_positive_ratio": 0.5,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.008864924534418228,
+            "ci_low": -0.008673796808532308,
+            "ci_high": 0.06893498516837093
+          },
+          "median_turnover": 0.09473684210526315,
+          "stable_positive_excess": false
+        },
+        "probe_null_sign": {
+          "n_episodes": 4,
+          "excess_median": -0.012934512856555336,
+          "excess_positive_ratio": 0.25,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.012934512856555336,
+            "ci_low": -0.026591572764533722,
+            "ci_high": 0.011048426695479119
+          },
+          "median_turnover": 0.15263157894736842,
+          "stable_positive_excess": false
+        },
+        "probe_null_volstate": {
+          "n_episodes": 4,
+          "excess_median": -0.02313253974194579,
+          "excess_positive_ratio": 0.25,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.02313253974194579,
+            "ci_low": -0.042045893838872805,
+            "ci_high": 0.007007410950472304
+          },
+          "median_turnover": 0.1842105263157895,
+          "stable_positive_excess": false
+        }
+      },
+      "high_turnover": false
+    },
+    "oracle_segmented": {
+      "pass": true,
+      "per_family": {
+        "probe_null_block": {
+          "n_episodes": 4,
+          "excess_median": 0.013771168864631145,
+          "excess_positive_ratio": 0.5,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.013771168864631145,
+            "ci_low": 0.0,
+            "ci_high": 0.047221397728497205
+          },
+          "median_turnover": 0.005263157894736842,
+          "stable_positive_excess": false
+        },
+        "probe_null_sign": {
+          "n_episodes": 4,
+          "excess_median": 0.0,
+          "excess_positive_ratio": 0.25,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.0,
+            "ci_low": -0.034026767631894494,
+            "ci_high": 0.034073853132766674
+          },
+          "median_turnover": 0.005263157894736842,
+          "stable_positive_excess": false
+        },
+        "probe_null_volstate": {
+          "n_episodes": 4,
+          "excess_median": 0.0,
+          "excess_positive_ratio": 0.25,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.0,
+            "ci_low": -0.004464544577430174,
+            "ci_high": 0.00571662523602523
+          },
+          "median_turnover": 0.005263157894736842,
+          "stable_positive_excess": false
+        }
+      },
+      "high_turnover": false
+    },
+    "null_overtrader": {
+      "pass": true,
+      "per_family": {
+        "probe_null_block": {
+          "n_episodes": 4,
+          "excess_median": -0.08825818308777855,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.08825818308777855,
+            "ci_low": -0.1687012713108368,
+            "ci_high": -0.06279157847225547
+          },
+          "median_turnover": 0.9894736842105263,
+          "stable_positive_excess": false
+        },
+        "probe_null_sign": {
+          "n_episodes": 4,
+          "excess_median": -0.08342573108344264,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.08342573108344264,
+            "ci_low": -0.10952498814242173,
+            "ci_high": -0.06784035252288068
+          },
+          "median_turnover": 0.9894736842105263,
+          "stable_positive_excess": false
+        },
+        "probe_null_volstate": {
+          "n_episodes": 4,
+          "excess_median": -0.096491048975267,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.096491048975267,
+            "ci_low": -0.10030760671008043,
+            "ci_high": -0.08787953341888055
+          },
+          "median_turnover": 0.9894736842105263,
+          "stable_positive_excess": false
+        }
+      },
+      "high_turnover": true
+    },
+    "always_flat": {
+      "pass": true,
+      "per_family": {
+        "probe_null_block": {
+          "n_episodes": 4,
+          "excess_median": 0.0,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0
+          },
+          "median_turnover": 0.0,
+          "stable_positive_excess": false
+        },
+        "probe_null_sign": {
+          "n_episodes": 4,
+          "excess_median": 0.0,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0
+          },
+          "median_turnover": 0.0,
+          "stable_positive_excess": false
+        },
+        "probe_null_volstate": {
+          "n_episodes": 4,
+          "excess_median": 0.0,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0
+          },
+          "median_turnover": 0.0,
+          "stable_positive_excess": false
+        }
+      },
+      "high_turnover": false
+    },
+    "random": {
+      "pass": true,
+      "per_family": {
+        "probe_null_block": {
+          "n_episodes": 4,
+          "excess_median": -0.033035648366218695,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.033035648366218695,
+            "ci_low": -0.1035877269391634,
+            "ci_high": -0.0014060842755238001
+          },
+          "median_turnover": 0.46842105263157896,
+          "stable_positive_excess": false
+        },
+        "probe_null_sign": {
+          "n_episodes": 4,
+          "excess_median": -0.05387813441248146,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.05387813441248146,
+            "ci_low": -0.07474184588897248,
+            "ci_high": -0.03606245370572869
+          },
+          "median_turnover": 0.5263157894736842,
+          "stable_positive_excess": false
+        },
+        "probe_null_volstate": {
+          "n_episodes": 4,
+          "excess_median": -0.05415640872263017,
+          "excess_positive_ratio": 0.0,
+          "excess_bootstrap": {
+            "n": 4,
+            "stat": -0.05415640872263017,
+            "ci_low": -0.09750928260019931,
+            "ci_high": -0.014785165859151128
+          },
+          "median_turnover": 0.48947368421052634,
+          "stable_positive_excess": false
+        }
+      },
+      "high_turnover": true
+    }
+  },
+  "cross_family_consistent": true,
+  "fourier_rejection_note": "Fourier 相位替身经验证保留线性自协方差:规则趋势基线在其上仍有稳定正超额(+3.97% 中位,CI low>0),不构成无信号 Null,按任务书对 surrogate 方法的验证要求否决,替换为probe_null_volstate(档内置换+符号随机化)"
+}
