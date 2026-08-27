@@ -1,0 +1,77 @@
+{
+  "protocol": "sealed-exam-commitment-v5",
+  "cases": {
+    "deprecated_sealed-exam-commitment-v3": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "deprecated_sealed-exam-commitment-v4": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "missing_null_qualification_spec_hash": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "missing_null_power_analysis": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "missing_pack_validity": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "missing_pack_builder_code_hash": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "missing_candidate_runtime_manifest": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "summary_targets_met_false": {
+      "layer": "from_json",
+      "rejected": true
+    },
+    "scenario_spec_hash_tampered": {
+      "layer": "verify",
+      "rejected": true
+    },
+    "summary_required_count_wrong": {
+      "layer": "verify",
+      "rejected": true
+    },
+    "spec_hash_tampered": {
+      "layer": "verify",
+      "rejected": true
+    },
+    "builder_manifest_hash_tampered": {
+      "layer": "verify",
+      "rejected": true
+    },
+    "power_report_hash_tampered": {
+      "layer": "verify",
+      "rejected": true
+    }
+  },
+  "structural_layer_cases": [
+    "deprecated_sealed-exam-commitment-v3",
+    "deprecated_sealed-exam-commitment-v4",
+    "missing_null_qualification_spec_hash",
+    "missing_null_power_analysis",
+    "missing_pack_validity",
+    "missing_pack_builder_code_hash",
+    "missing_candidate_runtime_manifest",
+    "summary_targets_met_false"
+  ],
+  "value_level_cases": [
+    "scenario_spec_hash_tampered",
+    "summary_required_count_wrong",
+    "spec_hash_tampered",
+    "builder_manifest_hash_tampered",
+    "power_report_hash_tampered"
+  ],
+  "all_negative_cases_rejected": true,
+  "note": "结构层缺字段/旧版本/摘要 targets_met=false 由 from_json 拒绝;前缀合法的值级篡改由 verify 逐项对账拒绝(spec/npa/npb/npss/摘要与重跑派生值)",
+  "generated_utc": "2026-08-27T08:44:55.011030+00:00"
+}

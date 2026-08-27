@@ -1,0 +1,81 @@
+{
+  "baseline_verdict": "PACK_VALID",
+  "cases": {
+    "extra_flip": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pack 存在重复 EpisodeSpec(1 个 canonical 条目出现多次;重复路径/重复 spec 均不合法)",
+        "probe_null_sign: seed(匿名序号内)Episode 数 3 != 2:每个 antithetic cluster 必须恰好一个 original + 一个 flip(缺一/多一/三条及以上均 PACK"
+      ]
+    },
+    "extra_original": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pack 存在重复 EpisodeSpec(1 个 canonical 条目出现多次;重复路径/重复 spec 均不合法)",
+        "probe_null_sign: seed(匿名序号内)Episode 数 3 != 2:每个 antithetic cluster 必须恰好一个 original + 一个 flip(缺一/多一/三条及以上均 PACK"
+      ]
+    },
+    "missing_flip": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: seed(匿名序号内)Episode 数 1 != 2:每个 antithetic cluster 必须恰好一个 original + 一个 flip(缺一/多一/三条及以上均 PACK"
+      ]
+    },
+    "duplicate_spec": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pack 存在重复 EpisodeSpec(1 个 canonical 条目出现多次;重复路径/重复 spec 均不合法)",
+        "probe_null_sign: seed(匿名序号内)Episode 数 3 != 2:每个 antithetic cluster 必须恰好一个 original + 一个 flip(缺一/多一/三条及以上均 PACK"
+      ]
+    },
+    "params_mismatch": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)参数一致性失败: pair 原始 params 除 flip 外不一致"
+      ]
+    },
+    "timeframe_mismatch": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)参数一致性失败: pair timeframe 不一致",
+        "probe_null_sign: pair(seed=1190858)参数一致性失败: pair resolved duration 不一致"
+      ]
+    },
+    "duration_mismatch": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)参数一致性失败: pair 原始 params 除 flip 外不一致",
+        "probe_null_sign: pair(seed=1190858)参数一致性失败: pair resolved duration 不一致"
+      ]
+    },
+    "path_not_mirror": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: 逐步 log return 非相反数(max |lr_o+lr_f| = 4.999e-04 > 1e-12)",
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: 逐步绝对收益不一致(max gap = 4.999e-04 > 1e-12)"
+      ]
+    },
+    "hidden_state_mismatch": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: 隐藏 volatility/regime 状态路径不一致(必须逐位一致)"
+      ]
+    },
+    "volume_mismatch": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: volume 路径不一致(必须逐位一致)"
+      ]
+    },
+    "nuisance_changed_by_flip": {
+      "verdict": "PACK_INVALID",
+      "reasons_head": [
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: nuisance 槽位 nuisance_0 因 antithetic_flip 改变(pair side 不得编码进 observa",
+        "probe_null_sign: pair(seed=1190858)镜像验证失败: [flip] 特征 nuisance_0 因果重算不一致(特征依赖未来行或重建非确定)"
+      ]
+    }
+  },
+  "all_rejected": true,
+  "pack_hash_correct_structure_wrong_note": "npv- 报告含 pack_hash 与结构判定;执行器对物化 pack 现算并逐字段对账,pack hash 一致但 pair 结构错误仍 PACK_INVALID-> EXAM_INVALID",
+  "generated_utc": "2026-08-27T08:42:54.618052+00:00"
+}

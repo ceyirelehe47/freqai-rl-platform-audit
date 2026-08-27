@@ -1,0 +1,27 @@
+{
+  "cases": {
+    "v4_commitment": {
+      "rejected": true
+    },
+    "v4_power_binding_shape": {
+      "rejected": true
+    },
+    "legacy_friction_spec": {
+      "rejected": true,
+      "problems_head": [
+        "spec format 'null-qualification-spec-v1' 已弃用(旧摩擦公式 1-(1-fee)^2*(1-slippage)^2 与冻结账本不一致;必须以",
+        "spec margin 0.001998999999999973 与冻结账本摩擦重算值 0.001998001998 不一致(margin 只能来自冻结账本公式)",
+        "spec margin 超过一次完整往返摩擦硬上限"
+      ]
+    },
+    "validator_only_npb": {
+      "legacy_hash": "npb-0b6a31b9375a626affb6...",
+      "differs_from_manifest_hash": true,
+      "rejected_at_verify": true,
+      "note": "只哈希 validator 文件的 npb- 与 builder manifest 哈希不一致,verify 12c 拒绝(EXAM_INVALID)",
+      "from_json_structural": "前缀合法(结构性);值级拒绝由 verify 12c 承载"
+    }
+  },
+  "all_rejected": true,
+  "generated_utc": "2026-08-27T08:44:54.365437+00:00"
+}

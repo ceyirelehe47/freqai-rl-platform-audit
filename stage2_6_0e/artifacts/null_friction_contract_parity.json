@@ -1,0 +1,71 @@
+{
+  "parity": {
+    "format": "null-friction-contract-v2",
+    "formula": "1 - [(1 - fee) / (1 + fee)] * [(1 - slippage) / (1 + slippage)]",
+    "units": "simple_return",
+    "admissibility_rule": "P >= tick 且 P*(1±s) >= tick(价格至少一个 tick;不可采纳组合的卖出有效价会被 floor_to_tick 取整为 0,执行合同本身fail-closed,不构成可交易市场配置)",
+    "n_admissible_slip_tick_price_combos": 133,
+    "n_combinations": 665,
+    "n_execution_paths": 2,
+    "n_round_trips": 1330,
+    "tick_zero_atol": 1e-12,
+    "problems": [],
+    "pass": true,
+    "example_fee_0p001_slip_0": 0.0019980019980019303,
+    "legacy_wrong_formula_value": 0.001998999999999973
+  },
+  "contract": {
+    "format": "null-friction-contract-v2",
+    "formula": "1 - [(1 - fee) / (1 + fee)] * [(1 - slippage) / (1 + slippage)]",
+    "units": "simple_return",
+    "code_hash": "nfc-96a5524971314c3d14d17ebe1ed16051ebb7fd282e8206bd264d56458e6ea61b",
+    "ledger_semantics": {
+      "buy": "qty = cash / (buy_exec_price * (1 + fee))",
+      "sell": "final_cash = qty * sell_exec_price * (1 - fee)",
+      "slippage": "buy P*(1+s) / sell P*(1-s)",
+      "tick": "buy ceil_to_tick / sell floor_to_tick(方向不利)",
+      "source_modules": [
+        "rl_platform.ledger",
+        "rl_platform.market_execution"
+      ]
+    },
+    "parity_grid": {
+      "prices": [
+        0.0001,
+        0.37,
+        1.0,
+        4.25,
+        100.0,
+        3600.5,
+        100000.0
+      ],
+      "ticks": [
+        0.0,
+        1e-05,
+        0.01,
+        0.1,
+        1.0,
+        25.0
+      ],
+      "fees": [
+        0.0,
+        0.0005,
+        0.001,
+        0.0025,
+        0.01
+      ],
+      "slippages": [
+        0.0,
+        0.0005,
+        0.001,
+        0.005
+      ]
+    }
+  },
+  "margin_values": {
+    "fee_0p001_slip_0": 0.0019980019980019303,
+    "legacy_wrong_formula": 0.001998999999999973,
+    "nominal_hardcoded": 0.002
+  },
+  "generated_utc": "2026-08-27T08:42:23.252532+00:00"
+}

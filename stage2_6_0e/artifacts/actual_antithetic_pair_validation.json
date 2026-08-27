@@ -1,0 +1,55 @@
+{
+  "per_family": {
+    "probe_null_sign": {
+      "n_pairs_expected": 32,
+      "n_pairs_verified": 32,
+      "n_pairs_mirror_ok": 32,
+      "every_pair_verified": true,
+      "mirror_tolerances": {
+        "step_log_return_antisymmetry": 1e-12,
+        "abs_return_gap": 1e-12,
+        "pair_cumulative_drift_cancellation": 1e-09,
+        "feature_recompute_atol": 1e-12
+      },
+      "seeds_with_problems": []
+    },
+    "probe_null_stochvol": {
+      "n_pairs_expected": 32,
+      "n_pairs_verified": 32,
+      "n_pairs_mirror_ok": 32,
+      "every_pair_verified": true,
+      "mirror_tolerances": {
+        "step_log_return_antisymmetry": 1e-12,
+        "abs_return_gap": 1e-12,
+        "pair_cumulative_drift_cancellation": 1e-09,
+        "feature_recompute_atol": 1e-12
+      },
+      "seeds_with_problems": []
+    },
+    "probe_null_volstate": {
+      "n_pairs_expected": 32,
+      "n_pairs_verified": 32,
+      "n_pairs_mirror_ok": 32,
+      "every_pair_verified": true,
+      "mirror_tolerances": {
+        "step_log_return_antisymmetry": 1e-12,
+        "abs_return_gap": 1e-12,
+        "pair_cumulative_drift_cancellation": 1e-09,
+        "feature_recompute_atol": 1e-12
+      },
+      "seeds_with_problems": []
+    }
+  },
+  "total_pairs": 96,
+  "all_pairs_mirror_ok": true,
+  "checks": [
+    "每 seed 恰好一个 original + 一个 flip(计数,非集合)",
+    "pair 参数除 antithetic_flip 外完全相同(family/version/timeframe/resolved duration/行数/实现指纹)",
+    "逐步 log return 互为相反数(预注册容差)",
+    "pair 累计 drift 精确抵消",
+    "volume 逐位一致;hidden volatility/regime 路径逐位一致",
+    "长度与时间戳间隔一致;特征可由价格因果重算",
+    "nuisance 槽位逐位一致(bitwise;flip 不改变 nuisance 派生)"
+  ],
+  "generated_utc": "2026-08-27T08:42:38.077526+00:00"
+}

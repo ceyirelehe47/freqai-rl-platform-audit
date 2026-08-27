@@ -1,0 +1,151 @@
+{
+  "spec": {
+    "antithetic_pairing": {
+      "enabled": true,
+      "family_qualification_uses_raw_episodes": "family-level 资格使用原始派生 Episode(方差保留)——镜像会掩盖真漂移伪 Null,不得进入资格判定",
+      "mirror_relation": "returns_negated_bitwise",
+      "no_endpoint_constraint": "镜像在生成层施加,不在单个 Episode 内全局 demean/终点约束(无 Brownian bridge 类位置泄漏)",
+      "nuisance_slot_policy": "antithetic_flip 不进入 nuisance counter-hash 派生(与 derive_seed 对称):同一 pair 的 nuisance 槽位逐位一致,候选无法经 nuisance 区分 pair side",
+      "pair_cluster": "同 base seed 的 (orig, flip) 两 Episode 聚合为一个 pack cluster,只算一个独立样本",
+      "preserves": "absolute returns, volatility-state path, length, timeframe",
+      "scope": "pack-level only"
+    },
+    "bootstrap_unit": "seed-cluster",
+    "cluster_aggregation": "per-seed-mean-episode-v1",
+    "cluster_candidate_ladder": [
+      32,
+      64,
+      96,
+      128
+    ],
+    "comparison_strategies": [
+      "oracle",
+      "observable_rule",
+      "always_long",
+      "high_turnover"
+    ],
+    "episode_duration_hours": 24.0,
+    "episodes_per_seed": 16,
+    "eval_config_manifest": {
+      "deterministic": true,
+      "fee": 0.001,
+      "initial_cash": 100.0,
+      "price_tick": 0.0,
+      "reward_scale": 1.0,
+      "slippage_bps": 0.0,
+      "window_size": 1
+    },
+    "format": "null-qualification-spec-v2",
+    "margin": 0.0019980019980019303,
+    "margin_derivation": {
+      "fee": 0.001,
+      "formula": "1 - [(1 - fee) / (1 + fee)] * [(1 - slippage) / (1 + slippage)]",
+      "friction_contract_format": "null-friction-contract-v2",
+      "friction_contract_hash": "nfc-96a5524971314c3d14d17ebe1ed16051ebb7fd282e8206bd264d56458e6ea61b",
+      "hard_cap_satisfied": true,
+      "ledger_semantics": {
+        "buy": "qty = cash / (buy_exec_price * (1 + fee))",
+        "sell": "final_cash = qty * sell_exec_price * (1 - fee)",
+        "slippage": "buy P*(1+s) / sell P*(1-s)",
+        "source_modules": [
+          "rl_platform.ledger",
+          "rl_platform.market_execution"
+        ],
+        "tick": "buy ceil_to_tick / sell floor_to_tick(方向不利)"
+      },
+      "price_tick": 0.0,
+      "semantics": "一次完整往返的真实乘法交易摩擦(冻结账本语义);无条件策略相对 Flat 的允许正优势上限(经济解释:无信息交易者的套利屏障——优势低于该摩擦时任何单次往返都无法稳定获利)",
+      "slippage_bps": 0.0,
+      "tick_treatment": "price_tick=0 精确 closed-form;tick>0 的方向不利取整只增摩擦,真实执行 parity 网格实证其为保守下界与 margin 硬上限(null_friction.friction_parity_problems)",
+      "units": "simple_return",
+      "units_note": "与 EpisodeResult.net_return 相同(final_cash/initial_cash - 1 的差值尺度;retention 即该比值)"
+    },
+    "min_pack_clusters_per_family": 32,
+    "min_qualification_clusters": 64,
+    "power_mc_config": {
+      "confidence_method": "wilson-score-95-two-sided-conservative",
+      "mc_iters": 1600,
+      "mc_seed": 20260827
+    },
+    "power_scenario_manifest": {
+      "blocks": {
+        "always_long_vs_flat": {
+          "scenarios": [
+            "valid_zero_edge",
+            "inside_half_tolerance",
+            "boundary_diagnostic",
+            "violation_plus_1x_margin",
+            "violation_plus_2x_margin"
+          ],
+          "tolerance": "qualification_margin"
+        },
+        "high_turnover_vs_flat": {
+          "scenarios": [
+            "valid_zero_edge",
+            "violation_plus_1x_margin",
+            "violation_plus_2x_margin"
+          ],
+          "tolerance": "zero"
+        },
+        "oracle": {
+          "scenarios": [
+            "valid_zero_edge",
+            "inside_half_tolerance",
+            "boundary_diagnostic",
+            "violation_plus_1x_margin",
+            "violation_plus_2x_margin"
+          ],
+          "tolerance": "qualification_margin"
+        },
+        "rule_trend": {
+          "scenarios": [
+            "valid_zero_edge",
+            "inside_half_tolerance",
+            "boundary_diagnostic",
+            "violation_plus_1x_margin",
+            "violation_plus_2x_margin"
+          ],
+          "tolerance": "qualification_margin"
+        }
+      },
+      "center_statistic": "mean",
+      "cluster_selection_rule": "对预注册阶梯(32/64/96/128)升序评估并选择同时满足以下两项的最小 n:(a)该 n 下全部功效硬目标(Wilson 保守置信界,非点估计);(b)该 n 的资格 namespace 前缀上三族全部四个比较块的经济等价检验通过(中心与单侧上界均压进容差且无反证)——只满足功效但实际前缀资格不充分(INSUFFICIENT_EVIDENCE)的档位不得选用。经验分布基座固定为 64-cluster 资格报告(确定性 namespace 前缀;n>64 的候选需先扩展生成对应报告,本阶段不可达)。选定值必须等于冻结的 MIN_QUALIFICATION_CLUSTERS,不得按某次实际资格结果临时重选 seed",
+      "target_edge_rule": "resample(empirical_centered_residuals) + target_absolute_edge;target 为绝对经济优势(经验分布先按 mean 中心化,不受原始经验均值污染)",
+      "violation_margin_multiples": {
+        "plus_1x": 1.0,
+        "plus_2x": 2.0
+      }
+    },
+    "power_scenario_manifest_hash": "npss-08d481415702b4702875b12a10f7352acc4ec42abff0c5e44bb6ff2d9b65f151",
+    "power_targets": {
+      "max_false_invalid_rate_at_zero_edge": 0.05,
+      "max_false_qualified_rate_at_2x_margin": 0.05,
+      "min_rejection_power_at_1x_margin": 0.8
+    },
+    "seed_namespaces": {
+      "family_qualification": "null-qualification-family-seeds-v1",
+      "pack_construction": "null-pack-construction-seeds-v1"
+    },
+    "statistical_protocol": {
+      "bootstrap_iters": 2000,
+      "bootstrap_seed": 20260826,
+      "bootstrap_stat": "mean",
+      "confidence_level": 0.95,
+      "decision_rule": "每个差值要求中心统计量 <= 容差 且 单侧置信上界(97.5%)<= 容差;HighTurnover 容差为 0;不使用 p-value 或 CI 包含零",
+      "method": "cluster-percentile-bootstrap-upper-bound",
+      "test_style": "non-inferiority-tost-single-sided"
+    },
+    "timeframe": "15m",
+    "tolerance_by_block": {
+      "always_long_vs_flat": "qualification_margin",
+      "high_turnover_vs_flat": "zero",
+      "oracle": "qualification_margin",
+      "rule_trend": "qualification_margin"
+    }
+  },
+  "spec_hash": "nqs-5ef2ca737489c6480cd6fdf4028a198c31951cb720399202ffc9b22451e8df03",
+  "verified": true,
+  "margin": 0.0019980019980019303,
+  "margin_note": "冻结账本精确摩擦 1-[(1-f)/(1+f)]*[(1-s)/(1+s)] = 0.002/1.001 = 0.001998001998...;旧公式 1-(1-f)^2*(1-s)^2 = 0.001999 已废除(工作包 A)",
+  "generated_utc": "2026-08-27T08:42:23.409700+00:00"
+}

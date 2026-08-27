@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "format": "null-pack-builder-manifest-v1",
+    "protocol": "null-pack-builder-protocol-v1",
+    "builder_function": {
+      "module": "rl_curriculum.mock_sealed_exam",
+      "qualname": "assemble_mock_hidden_pack",
+      "source_sha256": "0f2e1108c410cbdbcf1b0ad4cfe166425c060910b215e5b216f4b20f4016e016"
+    },
+    "seed_namespace_derivation": [
+      {
+        "module": "rl_curriculum.null_qualification_spec",
+        "qualname": "qualification_seeds",
+        "source_sha256": "a358d4fdcb849c3f97349d98830b506c2ab416799c640592d32ec96dae473f39"
+      },
+      {
+        "module": "rl_curriculum.null_qualification_spec",
+        "qualname": "pack_construction_seeds",
+        "source_sha256": "098fcdf72108ff0a674eaac0cf2806ed0714cf9b7462989ad0392ca6f051c23e"
+      }
+    ],
+    "pair_order_derivation": {
+      "module": "rl_curriculum.null_qualification_spec",
+      "qualname": "pack_order_seed",
+      "source_sha256": "8aeb3b7f2651e32fc12c580d7afc03ae200931367a4bc7ab414873ab9afdcf28"
+    },
+    "antithetic_pair_construction": "同 base seed 的 (flip, orig) 两条 EpisodeSpec;flip 仅在 params['antithetic_flip']=True;pair 顺序由 pair_order_seed seeded 随机化(绑定于 builder_function 源码)",
+    "attempt_loop": {
+      "module": "rl_curriculum.mock_sealed_exam",
+      "qualname": "build_mock_hidden_pack",
+      "source_sha256": "6435ad8646eda6dcf493673a1ee63b4939a8d80428e02c0b7d6726185d6c5bba"
+    },
+    "max_attempts": 8,
+    "anonymous_reject_log_generator": {
+      "module": "rl_curriculum.null_pack_validation",
+      "qualname": "pack_builder_attempt_log",
+      "source_sha256": "b4acc044f47161d73bf9c8d61f6b60d932736a656bf9e228e24cede79d38d737"
+    },
+    "pack_validator": {
+      "module": "rl_curriculum.null_pack_validation",
+      "qualname": "validate_null_pack",
+      "source_sha256": "60b16c6beea33c0be2bf6f201e5e0ba3fba7f339167e75ba6f855add5e82f952"
+    },
+    "params_spec": {
+      "base_params": {
+        "episode_bars": 96,
+        "drift_bps_range": [
+          18.0,
+          30.0
+        ],
+        "vol_bps_range": [
+          20.0,
+          32.0
+        ],
+        "initial_price": 100.0
+      },
+      "flip_flag_key": "antithetic_flip",
+      "episode_bars": 96
+    },
+    "pair_count_per_family": 32,
+    "families": [
+      "probe_null_sign",
+      "probe_null_volstate",
+      "probe_null_stochvol"
+    ],
+    "signature_policy": {
+      "forbidden_params": [
+        "candidate",
+        "checkpoint",
+        "model",
+        "policy"
+      ],
+      "enforced": true
+    }
+  },
+  "manifest_hash": "npb-397b55a93c2ad3d794f9d2b6e50f53a9a8b331c85e49ca53b1decfdb35d806a9",
+  "builder_log": {
+    "format": "null-pack-builder-attempt-log-v1",
+    "max_attempts": 8,
+    "attempts": [
+      {
+        "attempt": 0,
+        "verdict": "PACK_VALID",
+        "anonymous_reject_reasons": []
+      }
+    ]
+  },
+  "note": "npb- 绑定真实 builder(assemble/seed 推导/pair 顺序/attempt 循环/validator/参数规范/family 列表);正式私有builder 只公开 manifest hash 与非敏感摘要,评估环境对实际 builder 重算该 hash",
+  "generated_utc": "2026-08-27T08:42:38.076079+00:00"
+}

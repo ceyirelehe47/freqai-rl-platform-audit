@@ -1,0 +1,26 @@
+{
+  "pipeline": "冻结账本摩擦合同 parity -> Spec v2 -> 64x16 family 资格 -> 中心化四块 power v2(阶梯选 64)-> mock null pack(每族 32 antithetic pair;pair 完整性/镜像/nuisance 逐位验证;四块硬门)-> builder manifest -> issuer + 256-step PPO smoke -> attestation -> v5 承诺 -> 执行器重跑完整 power(npa- 对账;public summary 非信任源)-> pack validity 现算对账 -> 沙箱-> G4/Null/反作弊 -> FAIL -> 幂等 -> 详细披露退休",
+  "commitment_hash": "sc-78ffe426ade86447180c8d6b7a2ef5d35452bb0eeb3d88bd8c1d50a193fb87da",
+  "protocol": "sealed-exam-commitment-v5",
+  "null_qualification_format": "null-qualification-v4",
+  "power_analysis_format": "null-power-analysis-v2",
+  "pack_validity_format": "null-pack-validity-v2",
+  "exam_cli_version": "hidden-exam-cli-v6",
+  "run1": {
+    "status": "FAIL",
+    "exit": 0,
+    "elapsed_s": 50.6,
+    "power_reverify_checks_passed": true
+  },
+  "run2_idempotent": {
+    "status": "FAIL",
+    "same_result": true
+  },
+  "run3_detailed": {
+    "status": "FAIL",
+    "pack_retired": true
+  },
+  "flow_ok": true,
+  "smoke_training_note": "256-step PPO 仅验证 provenance/sandbox/协议/评估链路;允许正常挂科,不构成课程训练,不要求通过课程或 G4",
+  "generated_utc": "2026-08-27T08:44:54.000087+00:00"
+}

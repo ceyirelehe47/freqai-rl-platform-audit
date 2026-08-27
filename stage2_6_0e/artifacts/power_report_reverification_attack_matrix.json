@@ -1,0 +1,93 @@
+{
+  "baseline_valid": true,
+  "baseline_report_hash": "npa-1cdf2a58668e73b30710086b95735ead7ae5e299d3d87f7a6ad8318406d9b400",
+  "cases": {
+    "1_public_summary_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_public_summary_consistent"
+      ]
+    },
+    "2_forged_npa_string": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "3_missing_oracle_scenario": {
+      "rejected": true,
+      "failed_checks": [
+        "power_scenario_manifest"
+      ]
+    },
+    "4_missing_rule_scenario": {
+      "rejected": true,
+      "failed_checks": [
+        "power_scenario_manifest"
+      ]
+    },
+    "5_missing_hft_scenario": {
+      "rejected": true,
+      "failed_checks": [
+        "power_scenario_manifest"
+      ]
+    },
+    "6_target_edge_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "7_tolerance_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "8_mc_seed_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "9_cluster_count_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "10_confidence_method_tampered": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "11_report_hash_content_mismatch": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "12_power_code_changed_stale": {
+      "rejected": true,
+      "failed_checks": [
+        "power_code_hash"
+      ]
+    },
+    "13_family_cluster_values_changed": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    },
+    "14_legacy_v1_power_report": {
+      "rejected": true,
+      "failed_checks": [
+        "power_report_hash"
+      ]
+    }
+  },
+  "all_attacks_rejected": true,
+  "trust_model": "public summary 不是信任源:执行器从承诺绑定的完整报告 payload 重建 spec,用当前代码确定性重跑完整 power analysis,重算 npa- 哈希并对账,重派生 targets_met 并核验场景清单/MC 配置/比例置信界;可信缓存键覆盖 spec/family/power code/generator/EvalConfig/timeframe/duration/MC/scenario,命中后仍验证内容哈希",
+  "generated_utc": "2026-08-27T08:44:54.343705+00:00"
+}
