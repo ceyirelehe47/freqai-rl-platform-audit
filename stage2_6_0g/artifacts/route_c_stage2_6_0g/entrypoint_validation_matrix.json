@@ -1,0 +1,60 @@
+{
+  "format": "entrypoint-validation-matrix-v1",
+  "scenarios": {
+    "正常函数入口": {
+      "accepted": true
+    },
+    "module 拼写错误": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): entrypoint module 'builder_missing' 的源文件不"
+    },
+    "module 路径逃逸": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): entrypoint module '../builder_x' 的源文件不存在于"
+    },
+    "qualname 不存在": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): qualname 'build_pack_typo' 在 builder_x.py"
+    },
+    "qualname 指向字符串变量": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): qualname 'BUILD_PACK' 在 builder_x.py 中不是真"
+    },
+    "qualname 只在注释中": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): qualname 'build_pack' 在 builder_x.py 中不是真"
+    },
+    "qualname 指向类构造器": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): 入口类型 'class' 不在预注册允许范围 ('function', 'stat"
+    },
+    "协程函数": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): 入口类型 'async_function' 不在预注册允许范围 ('functio"
+    },
+    "签名含 candidate": {
+      "accepted": false,
+      "error_prefix": "builder 函数 'build_pack' 的签名包含禁止参数 ['candidate'](pack 构建不得依赖任何候选/checkpoint/model/policy)"
+    },
+    "签名含 checkpoint": {
+      "accepted": false,
+      "error_prefix": "builder 函数 'build_pack' 的签名包含禁止参数 ['checkpoint'](pack 构建不得依赖任何候选/checkpoint/model/policy)"
+    },
+    "签名含 model": {
+      "accepted": false,
+      "error_prefix": "builder 函数 'build_pack' 的签名包含禁止参数 ['model'](pack 构建不得依赖任何候选/checkpoint/model/policy)"
+    },
+    "签名含 policy": {
+      "accepted": false,
+      "error_prefix": "builder 函数 'build_pack' 的签名包含禁止参数 ['policy'](pack 构建不得依赖任何候选/checkpoint/model/policy)"
+    },
+    "无 request 参数": {
+      "accepted": false,
+      "error_prefix": "PrivateBuilderIdentityProvider(private-builder): build 入口 builder_x.build_pack 不接受冻结构建请求参数"
+    }
+  },
+  "accepted_that_must_be_rejected": [],
+  "covered_by": "tests/route_c_stage2_6_0g/test_entrypoint_validation.py",
+  "verdict": "PASS",
+  "generated_utc": "2026-08-27T20:21:54.496000+00:00"
+}
