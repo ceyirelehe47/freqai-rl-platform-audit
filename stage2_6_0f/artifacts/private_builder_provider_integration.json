@@ -1,0 +1,21 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "scenarios": {
+    "private_A_commitment_A_provider_A": {
+      "expected": "formal verification PASS",
+      "covered_by": [
+        "test_private_builder_formal_integration.py::test_private_a_with_provider_a_passes",
+        "test_private_builder_formal_integration.py::test_run_sealed_exam_full_pipeline_with_private_provider"
+      ],
+      "npb_provider_a": "npb-b87f1a96395929bc69dfa27b5d7997607c0b62877bb00d8dc549ebd34eee99b7"
+    },
+    "provider_missing": {
+      "expected": "EXAM_INVALID",
+      "covered_by": [
+        "test_private_builder_formal_integration.py::test_missing_provider_rejected",
+        "test_protocol_v6_upgrade.py::test_cli_requires_builder_provider"
+      ]
+    }
+  },
+  "note": "私有 builder 源码位于评估方临时/私有目录,不进入 Candidate runtime;公开承诺只携带 npb- 哈希与非敏感摘要"
+}

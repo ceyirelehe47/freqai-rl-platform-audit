@@ -1,0 +1,47 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "protocol": "sealed-exam-commitment-v6",
+  "tamper_scenarios": {
+    "npb_篡改(承诺builder被替换)": {
+      "verdict": "EXAM_INVALID;沙箱未启动",
+      "test": "test_v7_integrity_gates_before_checkpoint_load"
+    },
+    "ndc_篡改(duration合同被改写)": {
+      "verdict": "EXAM_INVALID;沙箱未启动",
+      "test": "test_v7_duration_tamper_rejected_before_checkpoint"
+    },
+    "power_report_篡改": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_v6_power_tamper_between_commitment_and_run(2.6.0e)"
+    },
+    "pack_篡改": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_v6_pack_tamper_between_commitment_and_run(2.6.0e)"
+    },
+    "provider_B替换": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_run_sealed_exam_private_provider_mismatch"
+    },
+    "私有builder源码被修改": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_private_a_modified_old_commitment_rejected"
+    },
+    "mixed_duration_pack": {
+      "verdict": "EXAM_INVALID;沙箱未启动",
+      "test": "test_s12_rejection_before_checkpoint_load"
+    }
+  },
+  "gate_order": [
+    "1 加载 commitment/pack/Provider",
+    "2 退休检查",
+    "3 派生全局 duration contract",
+    "4 重算实际 builder identity",
+    "5 验证 sealed commitment v6(npb 对账先于 power 重跑)",
+    "6 重跑完整 power-analysis-v2",
+    "7 物化 pack",
+    "8 重算 null-pack-validity-v3",
+    "9 attestation/checkpoint 验证",
+    "10 启动 Candidate 系统沙箱",
+    "11 执行 G4/Null/反作弊考试"
+  ]
+}

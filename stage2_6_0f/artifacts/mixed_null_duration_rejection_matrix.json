@@ -1,0 +1,54 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "scenarios": {
+    "1_三族全部96": {
+      "verdict": "PASS(唯一合同)",
+      "test": "test_s1_all_families_96_passes"
+    },
+    "2_sign96_volstate192_stochvol48": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s2_cross_family_mixed_rejected"
+    },
+    "3_同族部分pair_96_部分192": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s3_partial_pairs_in_family_rejected"
+    },
+    "4_pair内一致不同pair不一致": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s4_pairs_consistent_but_across_pairs_differ_rejected"
+    },
+    "5_raw不同resolved相同": {
+      "verdict": "允许",
+      "test": "test_s5_equivalent_raw_declarations_allowed"
+    },
+    "6_pack合同与family_report不同": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s6_pack_vs_family_report_duration_mismatch_rejected"
+    },
+    "7_pack合同与power_spec不同": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s7_pack_vs_power_spec_duration_mismatch_rejected"
+    },
+    "8_pack合同与pack_validity_report不同": {
+      "verdict": "EXAM_INVALID(npv hash 不一致)",
+      "test": "test_s8_pack_vs_pack_validity_report_duration_mismatch_rejected"
+    },
+    "9_缺duration字段": {
+      "verdict": "EXAM_INVALID",
+      "test": "test_s9_missing_duration_rejected"
+    },
+    "10_Episode顺序改变": {
+      "verdict": "推导结果不变",
+      "test": "test_s10_episode_order_irrelevant"
+    },
+    "11_首96末96中间192": {
+      "verdict": "EXAM_INVALID(全局收集捕获)",
+      "test": "test_s11_first96_last96_middle192_bypass_fails"
+    },
+    "12_拒绝先于checkpoint加载": {
+      "verdict": "是(沙箱从未启动)",
+      "test": "test_s12_rejection_before_checkpoint_load"
+    }
+  },
+  "rejection_class": "EXAM_INVALID(考试材料无效;不判候选 FAIL/作弊)"
+}

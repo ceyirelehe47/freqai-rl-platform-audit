@@ -1,0 +1,42 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "stage": "2.6.0f",
+  "provider_semantics": {
+    "role": "评估方可信主机输入;在评估环境中重新计算 builder canonical manifest 与 npb- 哈希,不读取任何自报值",
+    "forbidden_trust_sources": [
+      "candidate checkpoint",
+      "sidecar",
+      "考试 pack",
+      "考试 context",
+      "候选命令行参数"
+    ],
+    "not_in_candidate_sandbox": true,
+    "formal_apis_requiring_provider": [
+      "run_sealed_exam(builder_provider)",
+      "verify_sealed_commitment(builder_identity)",
+      "validate_null_pack(builder_identity)",
+      "pack_validity 重算(builder_identity)"
+    ],
+    "missing_provider_behavior": "EXAM_INVALID(fail closed;无 mock fallback)"
+  },
+  "manifest_format": "null-pack-builder-manifest-v2",
+  "builder_protocol": "null-pack-builder-protocol-v2",
+  "duration_contract_format": "null-duration-contract-v1",
+  "identity_fields": [
+    "manifest(canonical payload)",
+    "manifest_hash(npb-)",
+    "builder_protocol",
+    "public_digest(非敏感摘要)"
+  ],
+  "tree_rules": [
+    "相对路径排序稳定(posix)",
+    "每个文件内容 sha256",
+    "entrypoint 模块与 qualname 显式声明",
+    "资源文件进入 hash",
+    "拒绝 symlink",
+    "拒绝缺失文件(空树失败)",
+    "额外文件不能被静默忽略",
+    "路径必须位于受信 root 内",
+    "不扫描候选可写目录"
+  ]
+}

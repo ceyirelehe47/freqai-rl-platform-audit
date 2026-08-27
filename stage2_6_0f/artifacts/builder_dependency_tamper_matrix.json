@@ -1,0 +1,58 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "matrix": {
+    "assemble 函数": {
+      "npb_changes": true,
+      "covered_by": "test_modifying_builder_package_file_changes_npb"
+    },
+    "attempt loop / 选择链 helper": {
+      "npb_changes": true,
+      "covered_by": "test_modifying_intermediate_helper_changes_npb"
+    },
+    "_validate_pack_ephemeral 链路(中间验证 helper)": {
+      "npb_changes": true,
+      "covered_by": [
+        "test_modifying_intermediate_helper_changes_npb",
+        "test_modifying_mock_builder_intermediate_helper_invalidates_commitment"
+      ]
+    },
+    "build_spec_for_pack / validator(_verify_pair_*)": {
+      "npb_changes": true,
+      "covered_by": [
+        "test_modifying_intermediate_helper_changes_npb",
+        "test_modifying_validator_changes_npb(2.6.0e)"
+      ]
+    },
+    "seed derivation(salt 常量值)": {
+      "npb_changes": true,
+      "covered_by": "test_tamper_matrix_changes_npb(seed 推导 salt)"
+    },
+    "pair order / attempt max / BASE_PARAMS / family 列表": {
+      "npb_changes": true,
+      "covered_by": [
+        "test_builder_manifest_semantic_fields_change_npb",
+        "test_manifest_binds_params_and_family_list"
+      ]
+    },
+    "资源文件(params.json)": {
+      "npb_changes": true,
+      "covered_by": "test_resource_file_changes_npb"
+    },
+    "新增/删除 package 文件": {
+      "npb_changes": true,
+      "covered_by": "test_adding_or_removing_package_file_changes_npb"
+    },
+    "symlink 替换": {
+      "npb_rejected": true,
+      "covered_by": [
+        "test_symlink_in_builder_package_rejected",
+        "test_symlink_rejected(2.6.0f provider)"
+      ]
+    },
+    "私有 builder 内任意安全相关辅助模块": {
+      "npb_changes": true,
+      "covered_by": "test_tamper_matrix_changes_npb"
+    }
+  },
+  "formal_effect": "修改任一项 -> 旧承诺 npb- 对账失败 -> EXAM_INVALID"
+}

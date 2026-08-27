@@ -1,0 +1,29 @@
+{
+  "generated_utc": "2026-08-27T17:17:37Z",
+  "rejected_materials": {
+    "sealed-exam-commitment-v5 及更早": {
+      "reason": "v5 builder manifest 只绑定手工函数清单(v1 格式)、formal verifier 无参调用默认 mock builder hash、duration 从首个/末个 Episode 推导且无全局合同",
+      "behavior": "from_json 显式拒绝,不自动迁移",
+      "test": "test_v5_commitment_rejected"
+    },
+    "null-pack-builder-manifest-v1": {
+      "behavior": "canonical_builder_manifest_hash 拒绝 v1 格式",
+      "test": "test_legacy_v1_builder_manifest_material_rejected"
+    },
+    "null-pack-validity-v2 及更早": {
+      "behavior": "build_mock_commitment/validate 层拒绝",
+      "test": "test_v2_pack_validity_report_rejected_by_builder"
+    },
+    "缺 duration contract 的承诺": {
+      "behavior": "from_json 拒绝(v6 必填)",
+      "test": "test_commitment_missing_duration_contract_rejected"
+    },
+    "缺 Builder Provider 的正式调用": {
+      "behavior": "CLI exit 2;run_sealed_exam EXAM_INVALID",
+      "test": [
+        "test_cli_requires_builder_provider",
+        "test_missing_provider_rejected"
+      ]
+    }
+  }
+}
