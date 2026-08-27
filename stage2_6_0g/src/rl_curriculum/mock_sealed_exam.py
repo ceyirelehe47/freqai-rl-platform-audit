@@ -184,6 +184,8 @@ def build_mock_hidden_pack(*, name: str = "mock_hidden_probe_pack",
     from rl_curriculum.builder_identity import MockBuilderIdentityProvider
 
     identity = MockBuilderIdentityProvider().builder_identity()
+    from rl_curriculum.builder_provenance import ATTEMPT_LOG_FORMAT
+
     attempts: list[dict[str, Any]] = []
     for attempt in range(MAX_PACK_ATTEMPTS):
         pack = assemble_mock_hidden_pack(
@@ -193,42 +195,55 @@ def build_mock_hidden_pack(*, name: str = "mock_hidden_probe_pack",
             pack, cfg, schema, builder_identity=identity)
         reject = [] if report["pass"] else report["reasons"][:3]
         attempts.append({
-            "attempt": attempt, "verdict": report["verdict"],
+            "attempt": attempt,
+            "verdict": "accept" if report["pass"] else "reject",
             "reject_reasons": reject,
         })
         if report["pass"]:
-            return pack, pack_builder_attempt_log(attempts)
+            # 规范化 attempt log(D4:builder-attempt-log-v1——
+            # attempt 序号/最大 attempt/每次结果/匿名拒绝原因/最终
+            # 选中的 attempt/输出 pack hash,不再只记录条目数量)
+            return pack, {
+                "format": ATTEMPT_LOG_FORMAT,
+                "max_attempts": int(MAX_PACK_ATTEMPTS),
+                "attempts": attempts,
+                "selected_attempt": attempt,
+                "output_pack_hash": pack.pack_hash(),
+            }
     raise RuntimeError(
         f"mock null pack 构建在 {MAX_PACK_ATTEMPTS} 次尝试内未通过 "
         f"pack-level validity(不应发生;请检查生成器/参数)")
 
 
 def mock_build_pack(request):
-    """builder-runner-protocol-v1 的 mock build 入口(阶段 2.6.0g A2)。
+    """builder-runner-protocol-v2 的 mock build 入口(公开组装器)。
 
-    统一适配形态 ``build_pack(frozen_build_request) -> build_result``。
-    两种重放形态:
-
-    - 请求携带 ``mock_pack_payload``(mock builder 是公开验证基础设施
-      的"组装器",其冻结构建输入就是 pack 的公开规范):按载荷确定性
-      重建 ExamPack(ExamPack.from_json 完全确定,pack_hash 由证明层
-      对账)——覆盖公开 mock 流程中由评估方组装的合成 pack(混合
-      train/dev/null episodes 的测试 pack 等);
-    - 无载荷:重跑完整的构建 attempt 循环(build_mock_hidden_pack 的
-      with_builder_log 路径,attempt 选择链与构建期完全一致)。
+    统一适配形态 ``build_pack(frozen_build_request) -> build_result``
+    (精确单 request 位置参数,C1)。mock_payload_assembly 模式的请求
+    携带 ``mock_pack_payload``(mock builder 是公开验证基础设施的
+    "组装器",其冻结构建输入就是 pack 的公开规范):按载荷确定性
+    重建 ExamPack(ExamPack.from_json 完全确定,pack_hash 由证明层
+    对账)。返回 builder-build-result-v2(组装模式的规范化 attempt
+    log:max_attempts=0,无 attempt 条目——重组装不重跑构建循环,
+    这是诚实记录而不是缺失)。
 
     本函数签名是单 request 位置参数(协议合同),不含
     candidate/checkpoint/model/policy(签名政策)。
     """
     import json as _json
 
-    from rl_curriculum.builder_provenance import BUILD_REQUEST_FORMAT
+    from rl_curriculum.builder_provenance import (
+        ATTEMPT_LOG_FORMAT,
+        BUILD_REQUEST_FORMAT,
+        BUILD_RESULT_FORMAT,
+        BUILDER_RUNNER_PROTOCOL,
+    )
 
     if not isinstance(request, dict) or request.get(
             "format") != BUILD_REQUEST_FORMAT:
         return {
-            "format": "builder-build-result-v1",
-            "runner_protocol": "builder-runner-protocol-v1",
+            "format": BUILD_RESULT_FORMAT,
+            "runner_protocol": BUILDER_RUNNER_PROTOCOL,
             "status": "failed",
             "pack": None,
             "attempt_log": [],
@@ -242,8 +257,8 @@ def mock_build_pack(request):
             pack = ExamPack.from_json(_json.dumps(payload))
         except Exception as exc:  # noqa: BLE001 - 载荷不可解析即 failed
             return {
-                "format": "builder-build-result-v1",
-                "runner_protocol": "builder-runner-protocol-v1",
+                "format": BUILD_RESULT_FORMAT,
+                "runner_protocol": BUILDER_RUNNER_PROTOCOL,
                 "status": "failed",
                 "pack": None,
                 "attempt_log": [],
@@ -251,11 +266,18 @@ def mock_build_pack(request):
                          f"{type(exc).__name__}: {exc}",
             }
         return {
-            "format": "builder-build-result-v1",
-            "runner_protocol": "builder-runner-protocol-v1",
+            "format": BUILD_RESULT_FORMAT,
+            "runner_protocol": BUILDER_RUNNER_PROTOCOL,
             "status": "ok",
-            "pack": pack,
-            "attempt_log": [],
+            "pack": _json.loads(pack.to_json()),
+            "attempt_log": {
+                "format": ATTEMPT_LOG_FORMAT,
+                "max_attempts": 0,
+                "attempts": [],
+                "selected_attempt": None,
+                "output_pack_hash": pack.pack_hash(),
+            },
+            "error": None,
         }
     try:
         pack, log = build_mock_hidden_pack(
@@ -267,19 +289,20 @@ def mock_build_pack(request):
             with_builder_log=True)
     except Exception as exc:  # noqa: BLE001 - 构建异常即 failed
         return {
-            "format": "builder-build-result-v1",
-            "runner_protocol": "builder-runner-protocol-v1",
+            "format": BUILD_RESULT_FORMAT,
+            "runner_protocol": BUILDER_RUNNER_PROTOCOL,
             "status": "failed",
             "pack": None,
             "attempt_log": [],
             "error": f"mock builder 构建失败: {type(exc).__name__}: {exc}",
         }
     return {
-        "format": "builder-build-result-v1",
-        "runner_protocol": "builder-runner-protocol-v1",
+        "format": BUILD_RESULT_FORMAT,
+        "runner_protocol": BUILDER_RUNNER_PROTOCOL,
         "status": "ok",
-        "pack": pack,
-        "attempt_log": list(log),
+        "pack": _json.loads(pack.to_json()),
+        "attempt_log": dict(log),
+        "error": None,
     }
 
 
@@ -423,6 +446,7 @@ def build_mock_commitment(
     power_analysis_report: dict[str, Any] | None = None,
     pack_validity_report: dict[str, Any] | None = None,
     builder_provider: Any = None,
+    evidence_path: str | None = None,
 ) -> SealedExamCommitment:
     """独立评估方在考试开始前创建的密封承诺 v6(全量绑定)。
 
@@ -573,9 +597,10 @@ def build_mock_commitment(
         pack, required_families=list(FORMAL_NULL_FAMILIES))
     duration_contract_hash = null_duration_contract_hash(
         duration_contract)
-    # ---- 冻结构建请求(阶段 2.6.0g P1:承诺绑定 builder 重放的冻结
-    #      输入;请求由评估方代码从 identity+pack+合同统一派生,
-    #      不含候选字段,验证端重放时输入不可被替换)
+    # ---- 冻结构建请求(阶段 2.6.0g:承诺绑定 builder 重放的冻结
+    #      输入;v2 精确字段白名单 + mode 绑定;请求由评估方代码从
+    #      identity+pack+合同统一派生,不含候选字段,验证端重放时
+    #      输入不可被替换)
     from rl_curriculum.builder_provenance import (
         frozen_build_request_hash,
     )
@@ -584,6 +609,17 @@ def build_mock_commitment(
         pack, duration_contract)
     builder_build_request_hash = frozen_build_request_hash(
         builder_build_request)
+    # ---- Builder Run Evidence + precommit 双重运行(阶段 2.6.0g
+    #      收尾 E2:承诺创建前在两个全新独立运行中执行同一 Builder,
+    #      三组 hash(pack/attempt log/runtime lock)必须完全一致;
+    #      不一致 -> Builder 不确定,不得创建承诺。完整 evidence 由
+    #      调用方写入评估方私有目录,公开承诺只携带摘要)
+    from rl_curriculum.builder_evidence import (
+        precommit_builder_runs,
+    )
+
+    builder_evidence, _runs = precommit_builder_runs(
+        builder_provider, builder_build_request)
     # pack validity 报告的 duration contract 必须与本 pack 派生的全局
     # 合同一致(构建期与执行器同源对账)
     if pack_validity_report.get("duration_contract_hash") not in (
@@ -609,6 +645,12 @@ def build_mock_commitment(
         raise ValueError("pack_validity 报告与本 pack 不一致(pack_hash)")
     # 工作包 B:绑定沙箱内实际执行的候选运行时(逐文件内容哈希)
     runtime_manifest = compute_runtime_manifest()
+    if evidence_path is not None:
+        from rl_curriculum.builder_evidence import (
+            write_builder_run_evidence,
+        )
+
+        write_builder_run_evidence(evidence_path, builder_evidence)
     return SealedExamCommitment(
         pack_hash=pack.pack_hash(),
         charter_hash=charter_hash(charter),
@@ -666,6 +708,10 @@ def build_mock_commitment(
         null_duration_contract_hash=duration_contract_hash,
         builder_build_request=dict(builder_build_request),
         builder_build_request_hash=builder_build_request_hash,
+        builder_run_evidence={
+            k: v for k, v in builder_evidence.items()
+            if k != "detail"
+        },
         nuisance_equivalence_spec=(
             verdict_spec.nuisance_equivalence.canonical_payload()),
         anticheat_replication_spec={

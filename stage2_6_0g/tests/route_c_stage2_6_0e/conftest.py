@@ -100,7 +100,7 @@ def pack_validity_report(mock_pack, mock_pack_materialized, schema, cfg):
 
 @pytest.fixture(scope="session")
 def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
-                    pack_validity_report):
+                    pack_validity_report, tmp_path_factory):
     """mock 密封考试环境(v5 承诺:runtime + spec/power/manifest 绑定)。"""
     from null_qual_cache import build_commitment_null_materials
     from rl_curriculum.attestation import (
@@ -122,8 +122,11 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
     verdict_spec = probe_course_verdict_spec()
     materials = build_commitment_null_materials(
         mock_pack, schema, cfg, chain=null_qual_chain)
+    ev_dir = tmp_path_factory.mktemp("mock-evidence-0e")
+    ev_path = ev_dir / "builder_evidence.json"
     commitment = build_mock_commitment(
         builder_provider=MockBuilderIdentityProvider(),
+        evidence_path=str(ev_path),
         pack=mock_pack, charter=charter, schema=schema,
         verdict_spec=verdict_spec, eval_config=cfg,
         sandbox_profile=default_sandbox_profile(),
@@ -146,4 +149,8 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
         "power_report": null_qual_chain["power_report"],
         "pack_validity_report": pack_validity_report,
         "profile": default_sandbox_profile(),
+        "evidence_path": str(ev_path),
+        "evidence": __import__(
+            "rl_curriculum.builder_evidence",
+            fromlist=["x"]).load_builder_run_evidence(ev_path),
     }

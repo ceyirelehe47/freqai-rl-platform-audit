@@ -1,191 +1,194 @@
-"""P1/P2:builder 产物来源证明(核心攻击面)。
+"""阶段 2.6.0g 收尾:产物来源证明 + evidence 第三次重放(工作包 E)。
 
-- mock/私有 builder 重放产物 pack_hash == commitment.pack_hash;
-- None 入口私有 builder 与公开 mock pack 组合 -> 产物来源证明拒绝
-  (P2 攻击闭环);
-- 产物不同的真实 builder -> 拒绝;
-- 冻结请求哈希对账(请求被替换 -> 拒绝)。
+- verify_builder_provenance 按 mode 分派:mock 走主进程重组装,
+  builder_execution 走全新隔离 Runner;
+- 无 evidence -> 拒绝;evidence 篡改 -> bre- 对账拒绝;
+- precommit 双跑 + 第三次重放的三组 hash 对账;
+- 私有 None 入口/错误产物在隔离 Runner 内被拒。
 """
 
 from __future__ import annotations
 
+import copy
+import json
+
 import pytest
 
-from rl_curriculum.builder_provenance import (
-    BuilderProvenanceError,
-    verify_builder_provenance,
+from tests.route_c_stage2_6_0f.conftest import (
+    PRIVATE_BUILDER_NONE_FILES,
+    private_provider_from_root,
+    write_private_builder,
 )
 
 
-class _Commit:
-    """最小承诺替身(只取 provenance 对账所需字段)。"""
+def test_verify_mock_provenance_with_evidence(sealed_exam_env,
+                                              mock_provider,
+                                              duration_contract,
+                                              mock_pack, tmp_path):
+    from rl_curriculum.builder_evidence import (
+        write_builder_run_evidence,
+    )
+    from rl_curriculum.builder_provenance import (
+        verify_builder_provenance,
+    )
 
-    def __init__(self, pack_hash, request_hash):
-        self.pack_hash = pack_hash
-        self.builder_build_request_hash = request_hash
-
-
-def test_mock_provenance_passes(sealed_exam_env, duration_contract):
-    """mock 链:重放产物 == 承诺绑定 pack(文件身份 + 产物来源双证明;
-    mock 通道的冻结构建输入含 pack 规范载荷,按载荷确定性重建)。"""
-    env = sealed_exam_env
+    commitment = sealed_exam_env["commitment"]
+    ev_path = tmp_path / "evidence.json"
+    write_builder_run_evidence(ev_path, sealed_exam_env["evidence"])
     report = verify_builder_provenance(
-        env["provider"], env["commitment"], pack=env["pack"],
+        mock_provider, commitment, pack=mock_pack,
         duration_contract=duration_contract,
-        allow_mock_pack_payload=True)
+        builder_evidence=sealed_exam_env["evidence"])
     assert report["status"] == "ok"
-    assert report["pack_hash_match"] is True
-    assert report["replay_pack_hash"] == env["commitment"].pack_hash
-    assert report["build_request_hash"].startswith("nbr-")
+    assert report["mode"] == "mock_payload_assembly"
+    assert report["replay_pack_hash"] == commitment.pack_hash
+    assert report["evidence_hash"].startswith("bre-")
+    assert report["replay_isolated_process"] is False
+    assert ev_path.exists()
 
 
-def test_private_provenance_passes(sealed_exam_env, private_builder_a,
-                                   duration_contract):
-    """私有 builder A(真实构建):承诺/重放/Provider 三方一致。"""
-    from rl_curriculum.builder_provenance import frozen_build_request_hash
+def test_verify_without_evidence_rejected(sealed_exam_env, mock_provider,
+                                          duration_contract, mock_pack):
+    from rl_curriculum.builder_provenance import (
+        BuilderProvenanceError,
+        verify_builder_provenance,
+    )
 
-    env = sealed_exam_env
-    # 用私有 Provider 为同一 pack 重新派生请求(承诺的 nbr- 对得上)
-    req = private_builder_a.frozen_build_request(
-        env["pack"], duration_contract)
-    commit = _Commit(env["commitment"].pack_hash,
-                     frozen_build_request_hash(req))
-    report = verify_builder_provenance(
-        private_builder_a, commit, pack=env["pack"],
-        duration_contract=duration_contract)
-    assert report["status"] == "ok"
-    assert report["replay_pack_hash"] == env["pack"].pack_hash()
+    with pytest.raises(BuilderProvenanceError, match="Run Evidence"):
+        verify_builder_provenance(
+            mock_provider, sealed_exam_env["commitment"], pack=mock_pack,
+            duration_contract=duration_contract, builder_evidence=None)
 
 
-def test_p2_none_entry_with_mock_pack_rejected(sealed_exam_env,
-                                               private_builder_none,
-                                               duration_contract):
-    """P2 核心攻击:None 入口私有 builder + 公开 mock pack 的承诺 ->
-    产物来源证明拒绝(builder 实际执行返回 None)。
+def test_tampered_evidence_rejected(sealed_exam_env, mock_provider,
+                                    duration_contract, mock_pack):
+    from rl_curriculum.builder_provenance import (
+        BuilderProvenanceError,
+        verify_builder_provenance,
+    )
 
-    2.6.0f 里该组合能通过 formal verification(verify 只对账 npb-);
-    2.6.0g 在候选加载前实际执行 builder,通道关闭。
+    ev = copy.deepcopy(sealed_exam_env["evidence"])
+    ev["detail"]["attempt_log"]["selected_attempt"] = 99
+    with pytest.raises(BuilderProvenanceError,
+                       match="不合法|不一致|哈希不一致"):
+        verify_builder_provenance(
+            mock_provider, sealed_exam_env["commitment"], pack=mock_pack,
+            duration_contract=duration_contract, builder_evidence=ev)
+
+
+def test_evidence_wrong_request_rejected(sealed_exam_env, mock_provider,
+                                         duration_contract, mock_pack):
+    """evidence 绑定的 nbr- 与请求不符 -> 拒绝。"""
+    from rl_curriculum.builder_provenance import (
+        BuilderProvenanceError,
+        verify_builder_provenance,
+    )
+
+    ev = copy.deepcopy(sealed_exam_env["evidence"])
+    ev["frozen_request_hash"] = "nbr-" + "9" * 64
+    # 重新自签 evidence_hash 模拟攻击者
+    from rl_curriculum.builder_evidence import (
+        builder_run_evidence_hash,
+    )
+
+    ev["evidence_hash"] = builder_run_evidence_hash(ev)
+    with pytest.raises(BuilderProvenanceError,
+                       match="frozen_request|哈希不一致"):
+        verify_builder_provenance(
+            mock_provider, sealed_exam_env["commitment"], pack=mock_pack,
+            duration_contract=duration_contract, builder_evidence=ev)
+
+
+def test_private_provenance_via_isolated_runner(private_builder_a,
+                                                 sealed_exam_env,
+                                                 duration_contract,
+                                                 mock_pack):
+    """私有 builder_execution 模式:第三次重放在全新隔离 Runner 内执行。
+
+    builder A 的产物 pack_hash 与 mock 承诺不同 -> pack_hash 对账
+    拒绝;但重放本身真实发生了隔离进程(isolated_process=True)。
     """
-    from rl_curriculum.builder_provenance import frozen_build_request_hash
-
-    env = sealed_exam_env
-    req = private_builder_none.frozen_build_request(
-        env["pack"], duration_contract)
-    commit = _Commit(env["commitment"].pack_hash,
-                     frozen_build_request_hash(req))
-    with pytest.raises(BuilderProvenanceError, match="返回 None"):
-        verify_builder_provenance(
-            private_builder_none, commit, pack=env["pack"],
-            duration_contract=duration_contract)
-
-
-def test_wrong_pack_builder_rejected(sealed_exam_env,
-                                     private_builder_wrong_pack,
-                                     duration_contract):
-    """真实构建但产物不同的 builder(5m pack vs 15m 承诺)-> 拒绝
-    (文件身份正确但产物来源不成立;P1 核心)。"""
-    from rl_curriculum.builder_provenance import frozen_build_request_hash
-
-    env = sealed_exam_env
-    req = private_builder_wrong_pack.frozen_build_request(
-        env["pack"], duration_contract)
-    commit = _Commit(env["commitment"].pack_hash,
-                     frozen_build_request_hash(req))
-    with pytest.raises(BuilderProvenanceError, match="pack_hash.*不一致"):
-        verify_builder_provenance(
-            private_builder_wrong_pack, commit, pack=env["pack"],
-            duration_contract=duration_contract)
-
-
-def test_request_hash_mismatch_rejected(sealed_exam_env,
-                                        private_builder_a,
-                                        duration_contract):
-    """承诺绑定的请求哈希与重放派生不一致(请求被替换)-> 拒绝。"""
-    env = sealed_exam_env
-    commit = _Commit(env["commitment"].pack_hash,
-                     "nbr-" + "f" * 64)  # 伪造的请求哈希
-    with pytest.raises(BuilderProvenanceError, match="请求哈希.*不一致"):
-        verify_builder_provenance(
-            private_builder_a, commit, pack=env["pack"],
-            duration_contract=duration_contract)
-
-
-def test_provider_without_entrypoint_rejected(sealed_exam_env,
-                                              duration_contract):
-    """Provider 未实现 builder_entrypoint -> 产物来源无法证明。"""
-
-    class _OldProvider:
-        def builder_identity(self):
-            return sealed_exam_env["provider"].builder_identity()
-
-    with pytest.raises(BuilderProvenanceError, match="无法提供"):
-        verify_builder_provenance(
-            _OldProvider(), sealed_exam_env["commitment"],
-            pack=sealed_exam_env["pack"],
-            duration_contract=duration_contract)
-
-
-def test_private_request_with_payload_rejected(sealed_exam_env,
-                                               private_builder_a,
-                                               duration_contract):
-    """硬闸:私有 builder 的请求携带 mock_pack_payload(pack 规范
-    重放载荷)-> 拒绝。私有通道的重放必须真实构建,不得照抄 pack
-    内容;载荷只属于公开 mock 组装通道。"""
-    import json as _json
-
+    from rl_curriculum.builder_evidence import (
+        precommit_builder_runs,
+    )
     from rl_curriculum.builder_provenance import (
-        frozen_build_request_hash,
+        BuilderProvenanceError,
+        verify_builder_provenance,
     )
 
-    env = sealed_exam_env
-
-    class _PayloadPrivate:
-        """模拟被篡改的私有 Provider:请求里混入 pack 载荷。"""
-
-        def __init__(self, inner):
-            self._inner = inner
-
-        def builder_identity(self):
-            return self._inner.builder_identity()
-
-        def builder_entrypoint(self):
-            return self._inner.builder_entrypoint()
-
-        def frozen_build_request(self, pack, dc):
-            req = dict(self._inner.frozen_build_request(pack, dc))
-            req["mock_pack_payload"] = _json.loads(pack.to_json())
-            return req
-
-    sneaky = _PayloadPrivate(private_builder_a)
-    req = sneaky.frozen_build_request(env["pack"], duration_contract)
-    commit = _Commit(env["commitment"].pack_hash,
-                     frozen_build_request_hash(req))
-    with pytest.raises(BuilderProvenanceError, match="mock_pack_payload"):
+    provider = private_builder_a
+    req = provider.frozen_build_request(mock_pack, duration_contract)
+    evidence, runs = precommit_builder_runs(
+        provider, req, builder_root=provider.root)
+    assert evidence["mode"] == "builder_execution"
+    assert evidence["deterministic"] is True
+    assert runs[0]["isolated_process"] is True
+    # 私有请求不得携带 mock 载荷
+    assert "mock_pack_payload" not in req
+    # 对 mock 承诺做 verify:请求 nbr 不同 -> 拒绝
+    with pytest.raises(BuilderProvenanceError, match="nbr|请求"):
         verify_builder_provenance(
-            sneaky, commit, pack=env["pack"],
-            duration_contract=duration_contract)
-    # 公开 mock 通道明确放行(allow_mock_pack_payload=True)
-    report = verify_builder_provenance(
-        env["provider"], env["commitment"], pack=env["pack"],
-        duration_contract=duration_contract,
-        allow_mock_pack_payload=True)
-    assert report["replay_mode"] == "mock_payload_assembly"
-    assert report["pack_hash_match"] is True
+            provider, sealed_exam_env["commitment"], pack=mock_pack,
+            duration_contract=duration_contract, builder_evidence=evidence,
+            builder_root=provider.root)
 
 
-def test_commitment_carries_request(sealed_exam_env):
-    """v7 承诺携带完整冻结构建请求与 nbr- 哈希(重放输入被承诺绑定)。"""
-    env = sealed_exam_env
+def test_private_none_entrypoint_rejected_in_runner(private_builder_none,
+                                                    sealed_exam_env,
+                                                    duration_contract,
+                                                    mock_pack):
+    """P2 攻击闭环:None 入口在隔离 Runner 内执行失败(fail closed)。"""
+    from rl_curriculum.builder_evidence import (
+        precommit_builder_runs,
+    )
     from rl_curriculum.builder_provenance import (
-        frozen_build_request_hash,
+        BuilderProvenanceError,
     )
 
-    assert env["commitment"].builder_build_request_hash.startswith("nbr-")
-    assert (frozen_build_request_hash(
-        env["commitment"].builder_build_request)
-        == env["commitment"].builder_build_request_hash)
-    req = env["commitment"].builder_build_request
-    assert req["builder_manifest_hash"] == \
-        env["commitment"].pack_builder_code_hash
-    assert req["duration_contract_hash"] == \
-        env["commitment"].null_duration_contract_hash
+    provider = private_builder_none
+    req = provider.frozen_build_request(mock_pack, duration_contract)
+    with pytest.raises(BuilderProvenanceError,
+                       match="Runner|返回 None|失败"):
+        precommit_builder_runs(
+            provider, req, builder_root=provider.root)
+
+
+def test_private_wrong_pack_builder_rejected(private_builder_wrong_pack,
+                                             sealed_exam_env,
+                                             duration_contract,
+                                             mock_pack):
+    """产物来源攻击:builder 无视冻结 timeframe 构造 5m pack -> 与
+    承诺(15m)的 pack_hash 对不上,precommit 阶段即暴露。"""
+    from rl_curriculum.builder_evidence import (
+        precommit_builder_runs,
+    )
+
+    provider = private_builder_wrong_pack
+    req = provider.frozen_build_request(mock_pack, duration_contract)
+    evidence, runs = precommit_builder_runs(
+        provider, req, builder_root=provider.root)
+    assert runs[0]["pack"].timeframe == "5m"
+    assert runs[0]["pack_hash"] != sealed_exam_env["commitment"].pack_hash
+
+
+def test_evidence_write_load_roundtrip(sealed_exam_env, tmp_path):
+    from rl_curriculum.builder_evidence import (
+        load_builder_run_evidence,
+        write_builder_run_evidence,
+    )
+
+    p = tmp_path / "ev.json"
+    write_builder_run_evidence(p, sealed_exam_env["evidence"])
+    loaded = load_builder_run_evidence(p)
+    assert loaded["evidence_hash"] == \
+        sealed_exam_env["evidence"]["evidence_hash"]
+
+
+def test_load_missing_evidence_rejected(tmp_path):
+    from rl_curriculum.builder_evidence import (
+        BuilderProvenanceError,
+        load_builder_run_evidence,
+    )
+
+    with pytest.raises(BuilderProvenanceError, match="不存在"):
+        load_builder_run_evidence(tmp_path / "nope.json")

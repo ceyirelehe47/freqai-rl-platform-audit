@@ -22,7 +22,7 @@ from rl_curriculum.sealed_exam import (
 
 
 def test_commitment_protocol_is_v3_with_v2_deprecated():
-    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v7"
+    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v8"
     assert "sealed-exam-commitment-v2" in _DEPRECATED_PROTOCOLS
     assert "sealed-exam-commitment-v1" in _DEPRECATED_PROTOCOLS
 
@@ -60,7 +60,7 @@ def test_cli_version_constants_unified():
     import rl_curriculum.formal_exam as fe
     import rl_curriculum.hidden_exam_cli as cli
 
-    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v8"
+    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v9"
     assert cli.CLI_VERSION == fe.EXAM_CLI_VERSION
 
 

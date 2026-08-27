@@ -50,6 +50,7 @@ def _build_flow(tmp_path: Path, env, checkpoint, *, with_issuer_copy=True):
         "commitment": str(tmp_path / "commitment.json"),
         "checkpoint": checkpoint,
         "ctx": str(tmp_path / "ctx.json"),
+        "evidence": env["evidence_path"],
     }
 
 
@@ -64,6 +65,7 @@ def _run_cli(paths, out_name, *extra) -> int:
         "--context", paths["ctx"],
         "--out", str(tmp / out_name),
         "--builder-provider", "mock",
+        "--builder-evidence", paths["evidence"],
         "--retire-registry", str(tmp / "ret.json"),
         "--attempt-registry", str(tmp / "attempts.json"),
         *extra,
@@ -80,7 +82,7 @@ def test_mock_sealed_exam_v6_full_pipeline(tmp_path, sealed_exam_env,
     rc = _run_cli(paths, "out1.json")
     out1 = json.loads((tmp_path / "out1.json").read_text(encoding="utf-8"))
     assert rc == 0, out1.get("sealed_verification", {}).get("problems")
-    assert out1["exam_cli_version"] == "hidden-exam-cli-v8"
+    assert out1["exam_cli_version"] == "hidden-exam-cli-v9"
     status = out1["result"]["status"]
     assert status == "FAIL"  # smoke 模型正常挂科(不是 EXAM_INVALID)
     # 执行器重跑验证的 power 检查全部通过(完整重跑,非 summary 信任)

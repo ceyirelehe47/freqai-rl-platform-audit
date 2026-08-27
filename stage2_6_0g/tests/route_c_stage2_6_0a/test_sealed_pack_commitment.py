@@ -213,8 +213,9 @@ def test_v1_commitment_rejected_by_v2_executor():
         "episodes_per_family": {},
     }
     _br = {
-        "format": "builder-build-request-v1",
-        "runner_protocol": "builder-runner-protocol-v1",
+        "format": "builder-build-request-v2",
+        "runner_protocol": "builder-runner-protocol-v2",
+        "mode": "builder_execution",
         "builder_protocol": "null-pack-builder-protocol-v3",
         "builder_manifest_hash": "npb-" + "0" * 64,
         "pack_name": "x",
@@ -256,6 +257,12 @@ def test_v1_commitment_rejected_by_v2_executor():
         null_duration_contract_hash=_ndc_hash(_dc),
         builder_build_request=_br,
         builder_build_request_hash=_nbr_hash(_br),
+        builder_run_evidence={
+            "evidence_hash": "bre-" + "0" * 64,
+            "mode": "builder_execution",
+            "output_pack_hash": "p-x",
+            "deterministic": True,
+        },
         pack_validity={
             "report_hash": "npv-" + "0" * 64,
             "pack_hash": "p-x",

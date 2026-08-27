@@ -203,6 +203,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="private Provider 的私有 builder package 根目录"
                          "(--builder-provider private 时必填;不得位于"
                          "候选可写目录)")
+    ap.add_argument("--builder-evidence", default=None,
+                    help="完整 Builder Run Evidence 文件路径(评估方"
+                         "私有目录;v8 承诺只携带 bre- 摘要,执行器读取"
+                         "完整 evidence、重算哈希并逐项验证——正式模式"
+                         "必填)")
     # 考试条件覆盖参数:正式模式提供即拒绝(密封条件不可改写)
     ap.add_argument("--fee", type=float, default=None)
     ap.add_argument("--slippage", dest="slippage_bps", type=float, default=None)
@@ -290,8 +295,17 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "[hidden_exam_cli] 正式模式必须提供 --builder-provider "
             "{mock|private}:Builder 身份是评估方可信主机输入,执行器对"
-            "缺失 Provider fail closed(EXAM_INVALID),不存在默认 mock "
+            "缺失/无效 Provider fail closed(EXAM_INVALID),不存在默认 mock "
             "builder fallback",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.builder_evidence:
+        print(
+            "[hidden_exam_cli] 正式模式必须提供 --builder-evidence"
+            "(完整 Builder Run Evidence 文件,评估方私有目录):v8 承诺"
+            "只携带 bre- 摘要,执行器必须读取完整 evidence、重算哈希并"
+            "逐项验证(没有 Run Evidence 的材料不得进入正式考试)",
             file=sys.stderr,
         )
         return 2
@@ -321,6 +335,9 @@ def main(argv: list[str] | None = None) -> int:
         # 阶段 2.6.0f 工作包 A:评估方 Builder Identity Provider(显式
         # 传入;执行器对缺失/无效 Provider fail closed)
         builder_provider=builder_provider,
+        # 阶段 2.6.0g 收尾:完整 Builder Run Evidence(评估方私有
+        # 目录;执行器重算 bre- 并做考试期第三次重放对账)
+        builder_evidence_path=str(Path(args.builder_evidence).resolve()),
         detailed_path=args.detailed,
     )
     status = out.get("result", {}).get("status") or out.get("status")

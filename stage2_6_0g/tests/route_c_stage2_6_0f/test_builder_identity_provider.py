@@ -163,7 +163,7 @@ def test_provider_manifest_hash_matches_commitment(sealed_exam_env):
     identity = mock_builder_identity()
     assert env["commitment"].pack_builder_code_hash == identity.manifest_hash
     assert identity.manifest_hash.startswith("npb-")
-    assert identity.format == "null-pack-builder-manifest-v3"
+    assert identity.format == "null-pack-builder-manifest-v4"
     assert identity.builder_protocol == "null-pack-builder-protocol-v3"
 
 

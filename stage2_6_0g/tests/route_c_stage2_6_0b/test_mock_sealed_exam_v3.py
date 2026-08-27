@@ -48,6 +48,7 @@ def mock_exam_workspace(tmp_path_factory, sealed_exam_env,
         "pack": pack_path,
         "context": ctx_path,
         "commitment": manifest_path,
+        "evidence": Path(sealed_exam_env["evidence_path"]),
         "checkpoint": ck_dst,
         "retire": ws / "retired.json",
         "attempts": ws / "attempts.json",
@@ -73,6 +74,7 @@ def _run_cli(env):
          "--context", str(env["context"]),
          "--out", str(env["out"]),
          "--builder-provider", "mock",
+         "--builder-evidence", str(env["evidence"]),
          "--retire-registry", str(env["retire"]),
          "--attempt-registry", str(env["attempts"])],
         capture_output=True, text=True, timeout=3600, env=_cli_env())
@@ -84,7 +86,7 @@ def test_mock_sealed_exam_v3_full_pipeline(mock_exam_workspace):
     assert proc.returncode in (0,), proc.stderr[-3000:]
     out = json.loads(env["out"].read_text(encoding="utf-8"))
     assert out["mode"] == "sealed"
-    assert out["exam_cli_version"] == "hidden-exam-cli-v8"
+    assert out["exam_cli_version"] == "hidden-exam-cli-v9"
     status = out["result"]["status"]
     # 测试级 PPO 允许 FAIL,但必须是四态之一且来自冻结判定器
     assert status in ("PASS", "FAIL", "SUSPECTED_CHEATING")
@@ -128,6 +130,7 @@ def test_tampered_pack_is_exam_invalid(mock_exam_workspace, tmp_path):
          "--context", str(env["context"]),
          "--out", str(out_path),
          "--builder-provider", "mock",
+         "--builder-evidence", str(env["evidence"]),
          "--retire-registry", str(tmp_path / "r.json"),
          "--attempt-registry", str(tmp_path / "a.json")],
         capture_output=True, text=True, timeout=600, env=_cli_env())
@@ -163,6 +166,7 @@ def test_tampered_eval_config_is_exam_invalid(mock_exam_workspace, tmp_path,
          "--context", str(ctx2),
          "--out", str(out_path),
          "--builder-provider", "mock",
+         "--builder-evidence", str(env["evidence"]),
          "--retire-registry", str(tmp_path / "r.json"),
          "--attempt-registry", str(tmp_path / "a.json")],
         capture_output=True, text=True, timeout=600, env=_cli_env())
@@ -188,6 +192,7 @@ def test_tampered_checkpoint_is_exam_invalid(mock_exam_workspace, tmp_path):
          "--context", str(env["context"]),
          "--out", str(out_path),
          "--builder-provider", "mock",
+         "--builder-evidence", str(env["evidence"]),
          "--retire-registry", str(tmp_path / "r.json"),
          "--attempt-registry", str(tmp_path / "a.json")],
         capture_output=True, text=True, timeout=600, env=_cli_env())
@@ -211,6 +216,7 @@ def test_missing_attestation_is_exam_invalid(mock_exam_workspace, tmp_path):
          "--context", str(env["context"]),
          "--out", str(out_path),
          "--builder-provider", "mock",
+         "--builder-evidence", str(env["evidence"]),
          "--retire-registry", str(tmp_path / "r.json"),
          "--attempt-registry", str(tmp_path / "a.json")],
         capture_output=True, text=True, timeout=600, env=_cli_env())

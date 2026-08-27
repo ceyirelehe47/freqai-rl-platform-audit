@@ -22,7 +22,7 @@ def test_sealed_protocol_is_v6_and_v5_deprecated():
         SEALED_EXAM_PROTOCOL,
     )
 
-    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v7"
+    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v8"
     for old in ("sealed-exam-commitment-v1", "sealed-exam-commitment-v2",
                 "sealed-exam-commitment-v3", "sealed-exam-commitment-v4",
                 "sealed-exam-commitment-v5"):
@@ -33,7 +33,7 @@ def test_cli_is_v7():
     import rl_curriculum.formal_exam as fe
     import rl_curriculum.hidden_exam_cli as cli
 
-    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v8"
+    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v9"
     assert cli.CLI_VERSION == fe.EXAM_CLI_VERSION
 
 
@@ -44,10 +44,11 @@ def test_builder_manifest_is_v2_and_v1_deprecated():
     )
 
     # 阶段 2.6.0g:manifest v3 为当前(v2 纯字符串入口声明已弃用)
-    assert BUILDER_MANIFEST_FORMAT == "null-pack-builder-manifest-v3"
+    assert BUILDER_MANIFEST_FORMAT == "null-pack-builder-manifest-v4"
     assert _DEPRECATED_BUILDER_MANIFEST_FORMATS == (
         "null-pack-builder-manifest-v1",
-        "null-pack-builder-manifest-v2")
+        "null-pack-builder-manifest-v2",
+        "null-pack-builder-manifest-v3")
 
 
 def test_pack_validity_is_v3_and_v2_deprecated():

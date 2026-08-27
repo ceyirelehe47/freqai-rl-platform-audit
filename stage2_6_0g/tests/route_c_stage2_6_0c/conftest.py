@@ -259,7 +259,7 @@ def null_qual_bindings(null_qual_chain):
 
 @pytest.fixture(scope="session")
 def sealed_exam_env(null_qual_chain, schema, cfg, mock_trusted_issuer,
-                    sandbox_profile):
+                    sandbox_profile, tmp_path_factory):
     """mock 密封考试环境:pack + commitment v4(含 runtime manifest 与
     完整 Null 资格链绑定)。"""
     from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY
@@ -280,8 +280,11 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_trusted_issuer,
     verdict_spec = probe_course_verdict_spec()
     materials = build_commitment_null_materials(
         pack, schema, cfg, chain=null_qual_chain)
+    _ev_path = tmp_path_factory.mktemp(
+        "ev-0c") / "builder_evidence.json"
     commitment = build_mock_commitment(
         builder_provider=MockBuilderIdentityProvider(),
+        evidence_path=str(_ev_path),
         pack=pack, charter=charter, schema=schema,
         verdict_spec=verdict_spec, eval_config=cfg,
         sandbox_profile=sandbox_profile,
@@ -297,6 +300,7 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_trusted_issuer,
         "verdict_spec": verdict_spec,
         "registry": DEFAULT_GENERATOR_REGISTRY,
         "commitment": commitment,
+        "evidence_path": str(_ev_path),
         "profile": sandbox_profile,
         "trusted_issuer": mock_trusted_issuer,
         "null_qual_reports": null_qual_reports,

@@ -1,0 +1,24 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "precommit_double_run": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_full_private_pipeline.py::test_precommit_double_run_isolated_and_deterministic",
+    "exit_code": 0,
+    "summary": "1 passed in 11.07s",
+    "passed": true
+  },
+  "exam_third_replay": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_full_private_pipeline.py::test_full_pipeline_exam_replay_and_normal_fail",
+    "exit_code": 0,
+    "summary": "1 passed in 57.48s",
+    "passed": true
+  },
+  "deterministic_double_run_generic": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_deterministic_double_run",
+    "exit_code": 0,
+    "summary": "1 passed in 9.22s",
+    "passed": true
+  },
+  "requirement": "run1 == run2(pack/attempt log/runtime lock 三组 hash);exam replay == run1 == run2 == commitment",
+  "generated_utc": "2026-08-27T23:40:42Z"
+}

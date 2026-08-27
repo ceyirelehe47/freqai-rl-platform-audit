@@ -24,7 +24,7 @@ def test_sealed_protocol_is_v5_and_v4_deprecated():
         SEALED_EXAM_PROTOCOL,
     )
 
-    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v7"
+    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v8"
     for old in ("sealed-exam-commitment-v1", "sealed-exam-commitment-v2",
                 "sealed-exam-commitment-v3", "sealed-exam-commitment-v4",
                 "sealed-exam-commitment-v5"):
@@ -35,7 +35,7 @@ def test_cli_is_v7():
     import rl_curriculum.formal_exam as fe
     import rl_curriculum.hidden_exam_cli as cli
 
-    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v8"
+    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v9"
     assert cli.CLI_VERSION == fe.EXAM_CLI_VERSION
 
 

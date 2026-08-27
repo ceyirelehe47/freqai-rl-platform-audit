@@ -89,7 +89,7 @@ def test_v1_commitment_rejected_with_explicit_version_error():
         SealedExamError,
     )
 
-    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v7"
+    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v8"
     assert "sealed-exam-commitment-v1" in _DEPRECATED_PROTOCOLS
     assert "sealed-exam-commitment-v2" in _DEPRECATED_PROTOCOLS
     assert "sealed-exam-commitment-v3" in _DEPRECATED_PROTOCOLS

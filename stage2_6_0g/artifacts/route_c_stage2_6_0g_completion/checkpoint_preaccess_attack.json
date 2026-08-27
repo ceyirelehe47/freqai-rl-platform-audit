@@ -1,0 +1,24 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "attack": "sys.argv/os.environ/cwd/文件系统扫描 checkpoint",
+  "result": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_env_argv_scan_attack_builder_rejected tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_checkpoint_sentinel_never_opened",
+    "exit_code": 0,
+    "summary": "2 passed in 9.79s",
+    "passed": true
+  },
+  "audit_hook": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_access_guard.py",
+    "exit_code": 0,
+    "summary": "6 passed in 0.37s",
+    "passed": true
+  },
+  "formal_stage_audit": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_formal_provenance_integration.py::test_provenance_failure_never_touches_candidate",
+    "exit_code": 0,
+    "summary": "1 passed in 11.71s",
+    "passed": true
+  },
+  "generated_utc": "2026-08-27T23:41:58Z"
+}

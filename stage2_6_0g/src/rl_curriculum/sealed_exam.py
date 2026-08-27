@@ -45,13 +45,14 @@ from typing import Any
 
 import pandas as pd
 
-SEALED_EXAM_PROTOCOL = "sealed-exam-commitment-v7"
+SEALED_EXAM_PROTOCOL = "sealed-exam-commitment-v8"
 _DEPRECATED_PROTOCOLS = ("sealed-exam-commitment-v1",
                          "sealed-exam-commitment-v2",
                          "sealed-exam-commitment-v3",
                          "sealed-exam-commitment-v4",
                          "sealed-exam-commitment-v5",
-                         "sealed-exam-commitment-v6")
+                         "sealed-exam-commitment-v6",
+                         "sealed-exam-commitment-v7")
 
 
 class SealedExamError(RuntimeError):
@@ -110,11 +111,14 @@ class SealedExamCommitment:
     #: 的唯一规范化时长合同;公开 duration/timeframe 不属于隐藏 seed)
     null_duration_contract: dict[str, Any] = field(default_factory=dict)
     null_duration_contract_hash: str = ""
-    #: builder 冻结构建请求(阶段 2.6.0g P1:builder 重放的冻结输入;
-    #: 请求由评估方代码从 identity+pack+duration contract 派生,
-    #: 黑名单禁止任何候选字段;执行器重放时输入不可被替换)
+    #: builder 冻结构建请求(阶段 2.6.0g:builder 重放的冻结输入;
+    #: v2 精确字段白名单 + mode 绑定;执行器重放时输入不可被替换)
     builder_build_request: dict[str, Any] = field(default_factory=dict)
     builder_build_request_hash: str = ""
+    #: Builder Run Evidence 公开摘要(阶段 2.6.0g 收尾:bre- 哈希 +
+    #: 非敏感核心字段;完整 evidence 保存在评估方私有目录,执行器
+    #: 读取、重算 hash 并逐项验证——不能只信任 deterministic 布尔值)
+    builder_run_evidence: dict[str, Any] = field(default_factory=dict)
     #: 受信训练签发方(工作包 G6)
     trusted_issuer: dict[str, Any] = field(default_factory=dict)
     #: 真实时间参数解析语义哈希(工作包 A)
@@ -169,6 +173,7 @@ class SealedExamCommitment:
             "null_duration_contract_hash": self.null_duration_contract_hash,
             "builder_build_request": self.builder_build_request,
             "builder_build_request_hash": self.builder_build_request_hash,
+            "builder_run_evidence": self.builder_run_evidence,
             "trusted_issuer": self.trusted_issuer,
             "resolved_parameter_semantics_hash": (
                 self.resolved_parameter_semantics_hash),
@@ -217,9 +222,18 @@ class SealedExamCommitment:
                     f"verification),entrypoint/attempt-loop 只接受字符串"
                     f"声明无真实存在性验证,禁止参数规则只是 manifest 自我"
                     f"声明,CLI 与承诺创建端 Provider 配置解析不同源,"
-                    f"外部依赖为手工少数包清单(阶段 2.6.0g)——不得被 "
-                    f"v7 执行器自动接受,必须以 {SEALED_EXAM_PROTOCOL!r} "
-                    f"重新创建承诺(版本不兼容显式报错,不静默补默认值)")
+                    f"外部依赖为手工少数包清单(阶段 2.6.0g)——v7 的 "
+                    f"私有 Builder 仍在主评估进程内受控 import 并直接"
+                    f"调用(无隔离 Runner、无 staging TOCTOU 防护、无"
+                    f"资源限制),build 入口签名显式放行 *args,冻结构建"
+                    f"请求用候选字段黑名单而非精确字段白名单,mock 与 "
+                    f"private 通道只靠 isinstance 区分,attempt log 无"
+                    f"规范化合同,不存在 Builder Run Evidence、precommit "
+                    f"双重运行与考试期第三次重放对账,运行时依赖只有 "
+                    f"AST 静态闭包与配置自报(阶段 2.6.0g 收尾)——"
+                    f"不得被 v8 执行器自动接受,必须以 "
+                    f"{SEALED_EXAM_PROTOCOL!r} 重新创建承诺(版本不兼容"
+                    f"显式报错,不静默补默认值)")
             raise SealedExamError(
                 f"sealed manifest 协议版本 {data.get('protocol_version')!r} "
                 f"!= {SEALED_EXAM_PROTOCOL!r}")
@@ -228,7 +242,7 @@ class SealedExamCommitment:
         runtime_hash = str(data.get("candidate_runtime_hash") or "")
         if not runtime_manifest or not runtime_hash:
             raise SealedExamError(
-                "v7 承诺必须绑定候选运行时内容(candidate_runtime_"
+                "v8 承诺必须绑定候选运行时内容(candidate_runtime_"
                 "manifest/hash):沙箱内实际执行的 rl_candidate_runtime "
                 "每个文件必须被承诺哈希覆盖;缺少 runtime hash 的承诺"
                 "不得进入正式考试(阶段 2.6.0c 工作包 B/E)")
@@ -238,7 +252,7 @@ class SealedExamCommitment:
         if not duration_contract_hash.startswith("ndc-") or (
                 not duration_contract):
             raise SealedExamError(
-                "v7 承诺必须绑定全局 strict Null duration contract"
+                "v8 承诺必须绑定全局 strict Null duration contract"
                 "(null_duration_contract payload + null_duration_"
                 "contract_hash, ndc-):所有 required strict Null family "
                 "的 resolved duration 必须唯一并进入承诺;缺全局合同"
@@ -263,7 +277,7 @@ class SealedExamCommitment:
         pack_validity = dict(data.get("pack_validity") or {})
         if not spec_hash.startswith("nqs-"):
             raise SealedExamError(
-                "v7 承诺必须绑定 Null 资格规范哈希(null_qualification_"
+                "v8 承诺必须绑定 Null 资格规范哈希(null_qualification_"
                 "spec_hash, nqs-):经济 margin/统计协议/分块容差/场景"
                 "清单/cluster 阶梯只能来自 qualification spec(阶段"
                 "2.6.0e A3/B;生成器参数通道已禁止);缺字段的旧承诺不得"
@@ -278,7 +292,7 @@ class SealedExamCommitment:
                     (power.get("public_summary") or {}).get(
                         "required_scenario_count"), int)):
             raise SealedExamError(
-                "v7 承诺必须绑定完整功效分析(null_power_analysis:"
+                "v8 承诺必须绑定完整功效分析(null_power_analysis:"
                 "{report_hash npa-, code_hash npac-, scenario_spec_hash "
                 "npss-, public_summary{targets_met, required_scenario_"
                 "count}}):public summary 不是信任源——执行器将用当前"
@@ -287,14 +301,14 @@ class SealedExamCommitment:
         if (not str(pack_validity.get("report_hash") or "").startswith("npv-")
                 or not str(pack_validity.get("pack_hash") or "")):
             raise SealedExamError(
-                "v7 承诺必须绑定实际 Null pack 的 pack-level validity"
+                "v8 承诺必须绑定实际 Null pack 的 pack-level validity"
                 "(pack_validity:{report_hash npv-, pack_hash, "
                 "public_summary};完整报告由执行器对物化 pack 现算对账,"
                 "隐藏 seed 不进公开承诺——阶段 2.6.0d B2/C3)")
         if not str(data.get("pack_builder_code_hash") or "").startswith(
                 "npb-"):
             raise SealedExamError(
-                "v7 承诺必须绑定 pack 构建算法 manifest 哈希(pack_"
+                "v8 承诺必须绑定 pack 构建算法 manifest 哈希(pack_"
                 "builder_code_hash, npb-):必须绑定真实 builder"
                 "(builder package tree + 显式外部依赖 manifest,覆盖"
                 "assemble/attempt 选择链/seed 推导/pair 顺序/validator"
@@ -306,11 +320,11 @@ class SealedExamCommitment:
             data.get("builder_build_request_hash") or "")
         if not build_request_hash.startswith("nbr-") or not build_request:
             raise SealedExamError(
-                "v7 承诺必须绑定 builder 冻结构建请求(builder_build_"
+                "v8 承诺必须绑定 builder 冻结构建请求(builder_build_"
                 "request payload + builder_build_request_hash, nbr-):"
                 "产物来源证明在冻结输入下实际执行 builder 并比对 "
                 "pack hash,重放输入必须被承诺绑定且不可被替换;缺请求"
-                "的旧材料不得静默通过(阶段 2.6.0g P1)")
+                "的旧材料不得静默通过(阶段 2.6.0g)")
         from rl_curriculum.builder_provenance import (
             BuilderProvenanceError,
             check_frozen_build_request,
@@ -327,6 +341,33 @@ class SealedExamCommitment:
             raise SealedExamError(
                 "承诺 builder_build_request payload 与其 nbr- 哈希不一致"
                 "(构建请求被改写;EXAM_INVALID)")
+        run_evidence = dict(data.get("builder_run_evidence") or {})
+        if not str(run_evidence.get("evidence_hash") or "").startswith(
+                "bre-"):
+            raise SealedExamError(
+                "v8 承诺必须绑定 Builder Run Evidence 摘要(builder_run_"
+                "evidence:{evidence_hash bre-, mode, output_pack_hash, "
+                "deterministic, runs, runner_code_hash, sandbox_profile_"
+                "hash, runtime_lock_hash, attempt_log_hash}):完整 "
+                "evidence 保存在评估方私有目录,执行器读取、重算 hash "
+                "并逐项验证——没有 Run Evidence 的材料不得进入正式"
+                "考试(阶段 2.6.0g 收尾 E4)")
+        if str(run_evidence.get("output_pack_hash") or "") != str(
+                data.get("pack_hash") or ""):
+            raise SealedExamError(
+                "builder_run_evidence 的 output_pack_hash 与承诺 "
+                "pack_hash 不一致(evidence 与承诺不对应;EXAM_INVALID)")
+        if str(run_evidence.get("mode") or "") != str(
+                build_request.get("mode") or ""):
+            raise SealedExamError(
+                "builder_run_evidence 的 mode 与冻结构建请求的 mode "
+                "不一致(通道身份不自洽;EXAM_INVALID)")
+        if run_evidence.get("deterministic") is not True:
+            raise SealedExamError(
+                "builder_run_evidence.deterministic 必须为 True"
+                "(precommit 双重运行未证明一致的 Builder 不得创建承诺)"
+                "；只有 deterministic=true 布尔值而没有 runs 证据的"
+                "材料同样被拒绝(执行器将读取完整 evidence 逐项验证)")
         c = SealedExamCommitment(
             pack_hash=data["pack_hash"],
             charter_hash=data["charter_hash"],
@@ -356,6 +397,7 @@ class SealedExamCommitment:
             null_duration_contract_hash=duration_contract_hash,
             builder_build_request=build_request,
             builder_build_request_hash=build_request_hash,
+            builder_run_evidence=run_evidence,
             trusted_issuer=dict(data.get("trusted_issuer") or {}),
             resolved_parameter_semantics_hash=data.get(
                 "resolved_parameter_semantics_hash", ""),
@@ -621,25 +663,25 @@ def verify_sealed_commitment(
           "npv- 报告哈希/verdict 非 PACK_VALID(实际 pack 未通过 "
           "pack-level 验证的考试不得开始;执行器将现算并逐字段对账)")
 
-    # 12d. builder 冻结构建请求绑定(阶段 2.6.0g P1:承诺的 nbr- 必须
+    # 12d. builder 冻结构建请求绑定(阶段 2.6.0g:承诺的 nbr- 必须
     #      与评估方从 identity+pack+duration contract 重新派生的请求
-    #      一致,请求不得含任何候选字段;builder 实际执行的产物来源
-    #      证明由 formal D1 步骤 4b 在候选加载前完成——本检查是重放
-    #      输入的静态对账,先于 power 重跑)。mock 通道的请求携带
-    #      pack 规范重放载荷(mock builder 是公开组装器):重算时跟随
-    #      承诺的载荷标志,载荷内容从 pack 现算——注入与 pack 不符的
-    #      载荷会因 nbr 对账失败被拒;私有通道携带载荷由 4b 的闸拒绝。
+    #      一致;v2 精确字段白名单 + mode 绑定——mock 与 private 是
+    #      承诺中明确绑定的两种不同通道,重算请求的 mode 跟随承诺;
+    #      注入与 pack 不符的载荷或 mode 与载荷不自洽都会因 nbr 对账
+    #      失败被拒;私有通道携带载荷由 4b 的 D2 硬闸拒绝)。
     from rl_curriculum.builder_provenance import (
         BuilderProvenanceError,
         build_frozen_build_request,
         frozen_build_request_hash as _nbr_recompute,
     )
 
-    include_payload = "mock_pack_payload" in (
-        commitment.builder_build_request or {})
+    committed_mode = str((commitment.builder_build_request or {}).get(
+        "mode") or "")
+    include_payload = committed_mode == "mock_payload_assembly"
     try:
         recomputed_request = build_frozen_build_request(
             identity, pack=pack, duration_contract=duration_contract,
+            mode=committed_mode,
             include_mock_pack_payload=include_payload)
         recomputed_request_hash = _nbr_recompute(recomputed_request)
     except BuilderProvenanceError as exc:
@@ -654,7 +696,35 @@ def verify_sealed_commitment(
           f"{commitment.builder_build_request_hash} vs Provider 重新派生 "
           f"{recomputed_request_hash}(builder 重放的冻结输入被替换或"
           f"承诺未绑定本 builder 的构建请求;产物来源证明的前提不成立"
-          f" -> EXAM_INVALID;阶段 2.6.0g P1)")
+          f" -> EXAM_INVALID;阶段 2.6.0g)")
+
+    # 12e. Builder Run Evidence 摘要与 Provider identity 的静态对账
+    #     (阶段 2.6.0g 收尾 E4:bre- 摘要必须与 npb-/tree hash 一致;
+    #      完整 evidence 的读取、bre- 重算与考试期第三次重放由 formal
+    #      D1 步骤 4b 在候选加载前完成——本检查是摘要静态对账)。
+    ev = commitment.builder_run_evidence
+    ev_ok = (
+        str(ev.get("evidence_hash") or "").startswith("bre-")
+        and str(ev.get("builder_manifest_hash") or "")
+        == identity.manifest_hash
+        and str(ev.get("staged_tree_hash") or "") == identity.tree_hash
+        and str(ev.get("frozen_request_hash") or "")
+        == commitment.builder_build_request_hash
+        and str(ev.get("output_pack_hash") or "") == commitment.pack_hash
+        and ev.get("deterministic") is True
+        and ev.get("run_status") == "ok"
+        and str(ev.get("mode") or "") == committed_mode)
+    check("builder_run_evidence_binding", ev_ok,
+          f"Builder Run Evidence 摘要与承诺/Provider 不一致"
+          f"(evidence_hash={ev.get('evidence_hash')!r}, mode="
+          f"{ev.get('mode')!r} vs {committed_mode!r}, npb/staged_tree/"
+          f"nbr/pack 任一失配):没有一致 Run Evidence 的材料不得进入"
+          f"正式考试(EXAM_INVALID;阶段 2.6.0g 收尾 E4)")
+    identity_run_mode_ok = identity.run_mode == committed_mode
+    check("builder_run_mode_matches_commitment", identity_run_mode_ok,
+          f"Provider identity 的 run_mode({identity.run_mode!r})与承诺"
+          f"请求 mode({committed_mode!r})不一致(runtime mode 与 "
+          f"commitment 一致性;EXAM_INVALID)")
 
     # 12c. 完整 power report 重跑验证(阶段 2.6.0e 工作包 C:public
     #      summary 不再是信任源——执行器用当前代码确定性重跑完整

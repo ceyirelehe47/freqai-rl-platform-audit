@@ -1,15 +1,15 @@
 """阶段 2.6.0g 测试夹具:Builder 产物来源证明与私有 EntryPoint 验证闭环。
 
 - A1:entrypoint/attempt-loop 真实存在性验证(AST + 受控 import);
-- A2:builder-runner-protocol-v1 统一调用协议(冻结构建请求/规范化
+- A2:builder-runner-protocol-v2 统一调用协议(冻结构建请求/规范化
   结果/None 失败);
 - P1/P2:产物来源证明(重放产物 pack_hash == commitment.pack_hash;
   私有入口返回 None 不得与公开 mock pack 组合通过);
 - P5:统一 Provider 配置解析(CLI 与承诺创建端同源);
 - P6:builder 链实际 import 的静态闭包(gymnasium 等第三方覆盖);
 - P7:mock 构建辅助函数的隐式 Provider fallback 已删除;
-- sealed-exam-commitment-v7 / null-pack-builder-manifest-v3 /
-  hidden-exam-cli-v8 全链路。
+- sealed-exam-commitment-v8 / null-pack-builder-manifest-v4 /
+  hidden-exam-cli-v9 全链路。
 """
 
 from __future__ import annotations
@@ -117,11 +117,14 @@ def pack_validity_report(mock_pack, schema, cfg, duration_contract,
 
 @pytest.fixture(scope="session")
 def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
-                    pack_validity_report, mock_provider):
-    """mock 密封考试环境(v7 承诺:nbr- 冻结请求绑定)。"""
+                    pack_validity_report, mock_provider, tmp_path_factory):
+    """mock 密封考试环境(v8 承诺:nbr- 冻结请求 + bre- evidence 绑定)。"""
     from rl_curriculum.attestation import (
         Ed25519KeyPair,
         TrustedIssuerConfig,
+    )
+    from rl_curriculum.builder_evidence import (
+        load_builder_run_evidence,
     )
     from rl_curriculum.generators import DEFAULT_GENERATOR_REGISTRY
     from rl_curriculum.mock_sealed_exam import build_mock_commitment
@@ -141,6 +144,8 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
     verdict_spec = probe_course_verdict_spec()
     bindings = build_null_qualification_bindings(
         null_qual_chain["reports"])
+    ev_dir = tmp_path_factory.mktemp("mock-evidence")
+    ev_path = ev_dir / "builder_evidence.json"
     commitment = build_mock_commitment(
         pack=mock_pack, charter=charter, schema=schema,
         verdict_spec=verdict_spec, eval_config=cfg,
@@ -149,7 +154,9 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
         null_qualification_bindings=bindings,
         power_analysis_report=null_qual_chain["power_report"],
         pack_validity_report=pack_validity_report,
-        builder_provider=mock_provider)
+        builder_provider=mock_provider,
+        evidence_path=str(ev_path))
+    evidence = load_builder_run_evidence(ev_path)
     return {
         "pack": mock_pack,
         "charter": charter,
@@ -165,6 +172,8 @@ def sealed_exam_env(null_qual_chain, schema, cfg, mock_pack,
         "pack_validity_report": pack_validity_report,
         "profile": default_sandbox_profile(),
         "provider": mock_provider,
+        "evidence": evidence,
+        "evidence_path": str(ev_path),
     }
 
 
@@ -204,8 +213,8 @@ def private_builder_wrong_pack(tmp_path):
     """
     files = dict(PRIVATE_BUILDER_A_FILES)
     files["builder_a.py"] = files["builder_a.py"].replace(
-        "timeframe=str(request.get('timeframe')",
-        "timeframe=str('5m' or request.get('timeframe')")
+        "    timeframe = str(request['timeframe'])\n",
+        "    timeframe = '5m'\n")
     root = write_private_builder(
         tmp_path / "g_private_builder_wrong", files,
         label="private-builder-wrong")

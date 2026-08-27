@@ -60,7 +60,7 @@ def test_sealed_protocol_is_v4_and_v3_deprecated():
         SEALED_EXAM_PROTOCOL,
     )
 
-    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v7"
+    assert SEALED_EXAM_PROTOCOL == "sealed-exam-commitment-v8"
     assert "sealed-exam-commitment-v4" in _DEPRECATED_PROTOCOLS
     assert "sealed-exam-commitment-v3" in _DEPRECATED_PROTOCOLS
 
@@ -69,7 +69,7 @@ def test_cli_version_is_v7():
     import rl_curriculum.formal_exam as fe
     import rl_curriculum.hidden_exam_cli as cli
 
-    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v8"
+    assert fe.EXAM_CLI_VERSION == "hidden-exam-cli-v9"
     assert cli.CLI_VERSION == fe.EXAM_CLI_VERSION
 
 
@@ -82,11 +82,11 @@ def test_v3_commitment_rejected_by_v4_executor(sealed_exam_env):
     )
 
     v4_json = sealed_exam_env["commitment"].to_json().replace(
-        "sealed-exam-commitment-v7", "sealed-exam-commitment-v4")
+        "sealed-exam-commitment-v8", "sealed-exam-commitment-v4")
     with pytest.raises(SealedExamError, match="已弃用|v4 的"):
         SealedExamCommitment.from_json(v4_json)
     v3_json = sealed_exam_env["commitment"].to_json().replace(
-        "sealed-exam-commitment-v7", "sealed-exam-commitment-v3")
+        "sealed-exam-commitment-v8", "sealed-exam-commitment-v3")
     with pytest.raises(SealedExamError, match="已弃用"):
         SealedExamCommitment.from_json(v3_json)
 

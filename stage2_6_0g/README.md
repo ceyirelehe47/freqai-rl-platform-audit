@@ -1,94 +1,74 @@
-# 阶段 2.6.0g:Builder 产物来源证明与私有 EntryPoint 验证闭环
+# 阶段 2.6.0g:Builder 产物来源证明与私有 EntryPoint 验证闭环(最终收尾)
 
-- 基线提交:`2a07811cfa847c3ba02deb7ac67224634314a43b`(阶段 2.6.0f)
-- 判定:PASS(全量回归 1169 passed / 1 failed(待复验,见报告);等待独立审查,不自动进入 2.6.1)
-- 完整报告:[report/route_c_stage2_6_0g_builder_provenance.md](report/route_c_stage2_6_0g_builder_provenance.md)
+- 基线提交:`9d79a5994b06a54e949680a1e2bd0dcf22553b77`(提前提交的中间版本)/ 初始基线 `2a07811c`
+- 判定:**PASS**(全量回归 **1246 passed / 0 failed / 0 skipped / 0 xfailed**;独立验收 ACCEPT;等待独立审查,不自动进入 2.6.1)
+- 最终报告:[report/route_c_stage2_6_0g_builder_runner_isolation_completion.md](report/route_c_stage2_6_0g_builder_runner_isolation_completion.md)
+- 中间版报告(提前提交,历史保留):[report/route_c_stage2_6_0g_builder_provenance.md](report/route_c_stage2_6_0g_builder_provenance.md)
 
-## 本阶段修复的七个问题
+## 收尾轮完成的工作(工作包 A-I)
 
-1. **P1 产物来源证明**:Builder Identity 只证明评估环境中存在一组
-   被哈希的文件(npb-),没有证明这组文件中的 Builder 实际生成了
-   commitment.pack_hash 绑定的 pack。本阶段建立
-   `builder_provenance`:在冻结输入下实际执行 builder 入口,重放
-   产物 pack_hash 必须等于 commitment.pack_hash(formal D1 步骤
-   4b,候选 checkpoint 加载与沙箱启动之前)。双通道:私有通道请求
-   永不携带 pack 内容,重放必须真实构建;公开 mock 组装通道请求
-   携带 pack 规范载荷(确定性重组装),硬闸保证私有请求携带载荷
-   一律拒绝。
-2. **P2 None 入口组合攻击**:私有 builder 入口返回 None,仍能与
-   公开 mock pack 组合通过 formal verification(2.6.0f 的 verify
-   只对账 npb-,从不执行 builder)。通道已关闭:4b 实际执行,
-   None/异常/不可解析一律 EXAM_INVALID(沙箱 spy 断言验证)。
-3. **P3 EntryPoint 真实验证**:Private Provider 构造期用 AST 静态
-   解析 + 受控 import 双重验证 module 源文件位于受信 root 内、
-   qualname 是真实的函数定义(不是注释/字符串/赋值/不存在符号)、
-   入口类型属于预注册允许范围(function/staticfunction/
-   classfunction)。
-4. **P4 禁止参数动态强制**:candidate/checkpoint/model/policy 参数
-   规则不再只是 manifest 自我声明,私有侧构造期 inspect.signature
-   动态强制。
-5. **P5 统一 Provider 配置解析**:`load_builder_provider_config` /
-   `private_provider_from_config` 单一字段清单,CLI 与承诺创建端
-   同源;pair_count_per_family / max_attempts /
-   external_dependencies 不再被 CLI 遗漏;未知字段拒绝。
-6. **P6 完整依赖闭包**:外部依赖 manifest 从手工少数包升级为 AST
-   import 闭包(rl_curriculum + rl_platform + builder root 全部
-   .py),gymnasium 等实际进入 builder 验证链的第三方依赖自此被
-   版本身份绑定。
-7. **P7 删除隐式 fallback**:build_mock_commitment 与
-   _validate_pack_ephemeral 的内部隐式 Mock Provider fallback 源码
-   级删除,公开 mock 流程必须显式传入 Provider。
+- **A 遗留失败关闭**:test_modifying_builder_package_file_changes_npb
+  单项复跑 1 passed;0e/0f/0g 三目录复跑 176 + 73 passed;报告纪律
+  只保留 PASS/FAIL(无 CONDITIONAL PASS)。
+- **B 隔离 Builder Runner**:新最小运行时 `rl_builder_runtime`
+  (unshare user+mount+pid+proc+net + Landlock deny-by-default +
+  rlimits + staging 只读 bind + tmpfs scratch;与 Candidate 沙箱
+  **不同挂载集**:无 checkpoint/sidecar/model 挂载)。主评估进程对
+  私有 Builder 只做哈希/AST 静态检查/启动 Runner/收发规范化消息
+  ——零私有代码执行。staging TOCTOU 五态攻击(哈希后改源码/复制后
+  替换/删除/新增 helper/源码 A 执行 B)全部启动前对账拒绝。
+- **C EntryPoint 精确合同**:`build_pack(request)` 恰好一个位置参数;
+  第二位置参数/可选参数/`*args`/`**kwargs`/keyword-only/候选别名
+  参数名全部拒绝(AST 静态 + Runner 运行时双重强制)。独立
+  attempt-loop entrypoint 废除(attempt 循环由规范化 attempt log
+  运行证据证明)。
+- **D Request/Result 精确协议**:mode 驱动白名单
+  (builder_execution / mock_payload_assembly,Provider 派生 + manifest
+  绑定,不再靠 isinstance);未知字段/路径值/候选字段/伪造 format 或
+  protocol 一律拒绝;attempt log 规范化合同
+  (builder-attempt-log-v1,nal- 哈希绑定)。
+- **E Builder Run Evidence**:builder-run-evidence-v1 绑定
+  npb-/pcf-/rtb-/brp-/staged-tree/nbr-/nrl-/nap-/nal-/np- 哈希链;
+  precommit 双跑(BuilderUncertain fail closed)+ 考试期第三次重放
+  三组 hash 对账;公开承诺只带 bre- 摘要,执行器读取完整 evidence
+  重算逐项验证(detail 篡改同样被拒)。
+- **F Identity 自洽重算**:canonical hash/protocol/tree digest/
+  file_count/entrypoint 报告 source_sha256/run_mode 深层自洽
+  (完全自签攻击全部拒绝)。
+- **G 运行时依赖锁**:Runner 内 sys.modules 审计 → distribution
+  映射 → 版本 + RECORD 哈希;静态 AST 闭包降级为预检;动态
+  importlib/函数级/条件 import 全覆盖;`<missing:...>` 拒绝;每次
+  Runner 运行后立即对账。
+- **H Checkpoint 前访问守卫**:主进程 audit hook(4b 期间
+  checkpoint/sidecar/attestation 零 open,违规 EXAM_INVALID)+ Runner
+  内访问审计;inspect.stack 与 argv/env/fs 扫描两个主动攻击 Builder
+  全部失败;哨兵文件验证。
+- **I 完整 Private 正式链路**:自包含测试私有 Builder(pair_count=40
+  / max_attempts=5/train+dev+null 全 split),双跑 evidence → 承诺
+  v8 → 第三次重放 → duration/power/pack validity 全对账 → 受信
+  attestation + Candidate 沙箱 → 256 步 PPO smoke 正常 FAIL。
 
-## 协议版本
+## 协议升级
 
-| 常量 | 2.6.0f | 2.6.0g |
-|------|--------|--------|
-| sealed-exam-commitment | v6 | **v7**(新增 builder_build_request + nbr-) |
-| hidden-exam-cli | v7 | **v8** |
-| null-pack-builder-manifest | v2 | **v3**(新增 entrypoints_validated) |
-| null-pack-builder-protocol | v2 | **v3** |
-| builder-runner(新增) | — | **v1**(request/result 格式) |
-| null-pack-validity | v3 | 不变 |
+sealed-exam-commitment v7→**v8**(builder_run_evidence 绑定,v7 显式
+拒绝)/ null-pack-builder-manifest v3→**v4**(run_mode;静态验证语义)/
+builder-runner-protocol v1→**v2** / build-request v1→**v2** /
+build-result v1→**v2** / builder-run-evidence **v1(新增)** /
+hidden-exam-cli v8→**v9**(--builder-evidence 必填)。语义未变的协议
+(duration-contract-v1/friction-v2/qualification-spec-v2/power-v2/
+qualification-v4/checkpoint-manifest-v3/attestation-v1/candidate-
+runtime-v1/context-v3)不升级。
 
-## 新增/修改核心文件
+## 回归
 
-- 新增 `src/rl_curriculum/builder_provenance.py`(Runner 协议 +
-  冻结构建请求 + 产物来源证明);
-- `src/rl_curriculum/builder_identity.py`(A1 验证链 + import 闭包
-  + 统一配置解析 + manifest v3 + Provider 协议扩展);
-- `src/rl_curriculum/sealed_exam.py`(v7 承诺 + verify 12d);
-- `src/rl_curriculum/formal_exam.py`(D1 步骤 4b + CLI v8 +
-  provenance 报告输出);
-- `src/rl_curriculum/hidden_exam_cli.py`(统一配置解析);
-- `src/rl_curriculum/mock_sealed_exam.py`(mock_build_pack 入口 +
-  删隐式 fallback)。
-
-## 目录结构
-
-- `src/` 完整源码快照(rl_curriculum / rl_platform /
-  rl_candidate_runtime);
-- `tests/` 2.6.0g 新测试(71 项)+ 被引用 conftest + 本阶段更新的
-  旧测试文件;
-- `artifacts/route_c_stage2_6_0g/` 证据文件(攻击矩阵/重放证明/
-  配置审计/依赖闭包/篡改矩阵/回归汇总);
-- `logs/regression_2_6_0g_raw.log` 全量回归原始日志;
-- `experiments/route_c_stage2_6_0g/generate_artifacts_2_6_0g.py`
-  artifacts 生成脚本。
+12 目录逐目录执行:**38+74+78+81+182+169+159+83+57+112+64+149 =
+1246 passed / 0 failed / 0 skipped / 0 xfailed**。证据:
+artifacts/route_c_stage2_6_0g_completion/(19 项)+ logs/regression_raw.log。
 
 ## 冻结确认
 
-六项交易合同(RouteCEnvCore-v1.0.0 / ObservationSpec-v1 /
-BinaryLongFlatAction-v1 / NetLogEquityReward-v1 /
-MarketOpenCausalExecution-v1 / TerminalLiquidation-v1)、
-LongFlatLedger、fee/slippage/tick rounding、reward、terminal
-liquidation、动作含义、Observation、Freqtrade 上游
-(52bc96f4480b1a0da6a9b455bd00b17fbb6786a5,clean)均未修改。
-模型路线不变(SB3 PPO / 普通 MLP / 单资产现货 / Long-Flat)。
-未开始正式课程 PPO 训练。
-
-## 公开材料边界
-
-本目录不含:私有 builder 真实源码与 master seed、隐藏 Episode
-seed、issuer 私钥、模型二进制、真实行情、数据库或任何凭证。
-测试中的私有 builder 是合成资产;attestation 相关代码仅含 PEM
-加载的库调用(历来公开)。
+Route C 六项冻结合同、LongFlatLedger、fee/slippage/tick rounding、
+reward、terminal liquidation、Long-Flat 动作、Observation、Freqtrade
+上游(52bc96f4480b1a0da6a9b455bd00b17fbb6786a5,clean)均未修改;
+模型路线保持 SB3 PPO/普通 MLP/单资产现货/Long-Flat;未开始 2.6.1
+与正式课程训练。

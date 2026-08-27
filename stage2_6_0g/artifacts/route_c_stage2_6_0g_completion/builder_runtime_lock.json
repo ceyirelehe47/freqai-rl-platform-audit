@@ -1,0 +1,12 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "builder-runtime-lock-v1(Runner 派生:sys.modules 快照差集 -> distribution 映射 -> 版本 + RECORD 哈希)",
+  "static_precheck_semantics": "AST 闭包只是预检/allowlist 候选;实际 lock 由 Runner 重新派生;<missing:...> 一律 fail closed",
+  "matrix": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_dependency_closure.py",
+    "exit_code": 0,
+    "summary": "9 passed in 9.55s",
+    "passed": true
+  },
+  "generated_utc": "2026-08-27T23:40:53Z"
+}

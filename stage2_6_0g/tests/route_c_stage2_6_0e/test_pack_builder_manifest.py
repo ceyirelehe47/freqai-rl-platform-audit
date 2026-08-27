@@ -30,11 +30,13 @@ def _mock_identity():
 def test_manifest_binds_full_package_tree_not_function_list():
     """v2:manifest 覆盖 builder package tree(不再手工挑选函数清单)。"""
     m = _mock_identity().manifest
-    assert m["format"] == "null-pack-builder-manifest-v3"
+    assert m["format"] == "null-pack-builder-manifest-v4"
     tree = m["package_tree"]
     assert tree["entrypoint_module"] == "rl_curriculum.mock_sealed_exam"
     assert tree["entrypoint_qualname"] == "mock_build_pack"
-    assert tree["attempt_loop_qualname"] == "build_mock_hidden_pack"
+    # v4:独立 attempt-loop 声明已废除(C2:attempt 循环由 build 入口
+    # 内部的规范化 attempt log 运行证据证明)
+    assert "attempt_loop_qualname" not in tree
     assert tree["file_count"] == len(tree["files"]) >= 1
     paths = [f["path"] for f in tree["files"]]
     # 实际 attempt 选择链的中间依赖全部进入 tree

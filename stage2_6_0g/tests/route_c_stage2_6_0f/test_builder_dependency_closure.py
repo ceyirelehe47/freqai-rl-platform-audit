@@ -55,8 +55,8 @@ def test_tamper_matrix_changes_npb(tmp_path):
         "assemble 函数": ("builder_a.py", "def build_pack(request):",
                           "def build_pack_altered(request):"),
         "attempt 选择链 helper": ("pack_selection.py",
-                                   "validate_pack_ephemeral",
-                                   "validate_pack_ephemeral_v2"),
+                                   "pack_passes_structure_check",
+                                   "pack_passes_structure_check_v2"),
         "seed 推导 salt": ("helpers.py", "PACK_CONSTRUCTION_SALT",
                             "PACK_CONSTRUCTION_SALT_V2"),
         "资源文件": ("params.json", '"episode_bars": 96',
@@ -192,7 +192,8 @@ def test_modifying_mock_builder_intermediate_helper_invalidates_commitment(
     tampered_identity = TamperedProvider().builder_identity()
     assert tampered_identity.manifest_hash != (
         env["commitment"].pack_builder_code_hash)
-    with pytest.raises(SealedExamError, match="manifest|构建算法"):
+    with pytest.raises(SealedExamError,
+                       match="manifest|构建算法|tree_hash|不自洽"):
         from rl_curriculum.sealed_exam import verify_sealed_commitment
 
         verify_sealed_commitment(

@@ -1,0 +1,20 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "attacks": {
+    "stale_sys_modules_in_runner": "隔离进程内无主进程缓存可污染;Runner 对陈旧同名模块先弹出",
+    "main_process_no_import": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_entrypoint_validation.py::test_private_provider_construct_no_import tests/route_c_stage2_6_0g/test_entrypoint_validation.py::test_validate_does_not_import_private_module",
+      "exit_code": 0,
+      "summary": "2 passed in 0.58s",
+      "passed": true
+    },
+    "staging_tocou": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py -k toctou or replace or removed or new_helper or source_a",
+      "exit_code": 0,
+      "summary": "4 passed, 6 deselected in 9.71s",
+      "passed": true
+    }
+  },
+  "generated_utc": "2026-08-27T23:42:09Z"
+}

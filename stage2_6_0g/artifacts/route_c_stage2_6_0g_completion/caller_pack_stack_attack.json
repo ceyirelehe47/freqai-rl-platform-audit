@@ -1,0 +1,13 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "attack": "inspect.stack() 搜索调用方局部变量 pack",
+  "result": {
+    "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_inspect_stack_attack_builder_cannot_get_pack",
+    "exit_code": 0,
+    "summary": "1 passed in 9.42s",
+    "passed": true
+  },
+  "defense": "隔离 Runner 进程内调用方局部只有规范化 request;外部 pack 不存在于 Builder 进程任何栈帧",
+  "generated_utc": "2026-08-27T23:41:34Z"
+}

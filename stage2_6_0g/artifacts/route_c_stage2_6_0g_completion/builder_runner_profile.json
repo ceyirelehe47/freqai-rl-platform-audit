@@ -1,0 +1,69 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "profile_payload": {
+    "format": "builder-runner-profile-v1",
+    "rlimits": {
+      "address_space_mb": 4096,
+      "cpu_seconds": 900,
+      "file_size_mb": 64,
+      "nofile": 256,
+      "nproc": 128
+    },
+    "run_timeout_seconds": 900.0,
+    "response_max_bytes": 33554432,
+    "output_cap_bytes": 33619968,
+    "env_whitelist": [
+      "PATH",
+      "PYTHONPATH",
+      "LANG",
+      "LC_ALL",
+      "TZ",
+      "PYTHONHASHSEED",
+      "PYTHONDONTWRITEBYTECODE",
+      "HOME",
+      "TMPDIR",
+      "OMP_NUM_THREADS",
+      "MKL_NUM_THREADS",
+      "OPENBLAS_NUM_THREADS"
+    ],
+    "fixed_env": {
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "PYTHONHASHSEED": "0",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "profile_hash": "brp-78f8f1a60900df5e511029c106a894de5bacbe8a93f0b844262e2236f5e045e0",
+  "worker_protocol": "builder-runner-worker-v1",
+  "runtime_package_version": "rl-builder-runtime-1",
+  "runtime_tree_hash": "rtb-f70d5608f2ad5303049ced9f92930bd4444c03e20a73077f4b1ed07b8ce63313",
+  "runtime_files": [
+    "__init__.py",
+    "bootstrap.py",
+    "runner.py"
+  ],
+  "env_semantics": {
+    "fixed": [
+      "LANG/LC_ALL=C.UTF-8",
+      "TZ=UTC",
+      "PYTHONHASHSEED=0",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "OMP/MKL/OPENBLAS_NUM_THREADS=1",
+      "HOME/TMPDIR=scratch(tmpfs)"
+    ],
+    "namespaces": [
+      "user(map-root-user)",
+      "mount",
+      "pid",
+      "mount-proc",
+      "net(仅 down lo)"
+    ],
+    "landlock": "deny-by-default;staging 只读 + env/系统目录只读执行 + scratch tmpfs + /dev;无 checkpoint/sidecar/model 挂载(与 Candidate 沙箱不同挂载集)"
+  },
+  "generated_utc": "2026-08-27T23:38:32Z"
+}

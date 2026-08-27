@@ -1,0 +1,31 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "attacks": {
+    "dynamic_importlib_new_package": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_runtime_dependency_lock.py::test_dynamic_import_unregistered_dependency_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 10.04s",
+      "passed": true
+    },
+    "function_level_import_audited": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_runtime_dependency_lock.py::test_function_level_import_audited",
+      "exit_code": 0,
+      "summary": "1 passed in 9.72s",
+      "passed": true
+    },
+    "conditional_import": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_runtime_dependency_lock.py::test_conditional_import_inside_builder",
+      "exit_code": 0,
+      "summary": "1 passed in 9.37s",
+      "passed": true
+    },
+    "missing_package_placeholder": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_runtime_dependency_lock.py::test_missing_package_placeholder_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 0.37s",
+      "passed": true
+    }
+  },
+  "generated_utc": "2026-08-27T23:41:24Z"
+}

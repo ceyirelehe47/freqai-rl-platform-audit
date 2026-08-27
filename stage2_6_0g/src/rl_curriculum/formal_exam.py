@@ -89,7 +89,7 @@ from rl_platform.fingerprint import dependency_versions
 from rl_platform.versions import spec_versions
 
 EXAM_INVALID_EXIT_CODE = 5
-EXAM_CLI_VERSION = "hidden-exam-cli-v8"
+EXAM_CLI_VERSION = "hidden-exam-cli-v9"
 #: 工作包 E:反作弊复制证据的多切割点(common_prefix 逐 seed 3 cut)
 COMMON_PREFIX_CUT_RATIOS = (0.25, 0.5, 0.75)
 
@@ -314,11 +314,13 @@ def run_sealed_exam(
     sandbox_profile: Any = None,
     context_issuer_payload: dict[str, Any] | None = None,
     builder_provider: Any = None,
+    builder_evidence_path: str | None = None,
     detailed_path: str | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """执行一次密封考试(v7:沙箱强制 + attestation 强制 + 信任根
+    """执行一次密封考试(v8:沙箱强制 + attestation 强制 + 信任根
     只来自承诺 + Builder Identity Provider 强制 + 全局 Null duration
-    contract);返回 (输出 JSON, 退出码)。
+    contract + 隔离 Builder Runner 与 Builder Run Evidence);返回
+    (输出 JSON, 退出码)。
 
     工作包 C1:没有 use_subprocess 参数——正式候选永远在系统级沙箱内
     执行;进程内执行只允许 public dev test(输出 formal_conclusion=
@@ -336,19 +338,26 @@ def run_sealed_exam(
     Provider 就自动使用 mock builder"的 fallback;公开 mock 流程必须
     显式传入 MockBuilderIdentityProvider。
 
-    正式执行顺序(阶段 2.6.0g D1;全部 integrity gate 先于候选
+    阶段 2.6.0g 收尾:builder_evidence_path 指向评估方私有目录中的
+    完整 Builder Run Evidence(builder-run-evidence-v1)——公开承诺
+    只携带 bre- 摘要,执行器读取完整 evidence、重算哈希并逐项验证,
+    再做考试期第三次重放(全新隔离 Runner)对账;私有 Builder 的
+    import 与执行只发生在隔离 Runner 进程(主评估进程零私有代码)。
+
+    正式执行顺序(阶段 2.6.0g 收尾 D1;全部 integrity gate 先于候选
     checkpoint 加载与沙箱启动):
      1. 加载 commitment、pack 与评估方 Provider;
      2. 验证 pack 未退休;
      3. 从全部 strict Null specs 派生全局 duration contract;
-     4. 重算实际(私有)builder identity(含 entrypoint 真实存在性
-        验证);
-    4b. builder 产物来源证明:在冻结输入下实际执行 builder 入口
-        (builder-runner-protocol-v1),重放产物 pack_hash 必须等于
-        commitment.pack_hash;返回 None/异常/无法解析的 pack 一律
-        EXAM_INVALID(私有入口返回 None 不得与公开 mock pack 组合
-        通过;阶段 2.6.0g P1/P2);
-     5. 验证 sealed commitment v7(含 npb-/nbr- 对账);
+     4. 重算实际(私有)builder identity(AST 静态验证;主进程零
+        私有代码执行);
+    4b. builder 产物来源证明:读取完整 Builder Run Evidence 重算
+        bre- 逐项验证,并在全新隔离 Runner 中第三次重放同一冻结构建
+        请求——三组 hash(pack/attempt log/runtime lock)必须与
+        precommit run1 == run2 == 本次完全一致,重放产物 pack_hash
+        必须等于 commitment.pack_hash;builder 阶段访问守卫(audit
+        hook)同步证明 checkpoint/sidecar/attestation 从未被 open;
+     5. 验证 sealed commitment v8(含 npb-/nbr-/evidence 摘要对账);
      6. 重跑完整 power-analysis-v2(verify 内,候选加载前);
      7. 物化 pack;
      8. 重算 null-pack-validity-v3(含 builder/duration 对账);
@@ -429,35 +438,68 @@ def run_sealed_exam(
                 f"Builder Identity Provider 派生失败(EXAM_INVALID): "
                 f"{type(exc).__name__}") from exc
 
-        # 4b. builder 产物来源证明(阶段 2.6.0g P1/P2:在冻结输入下
-        #     实际执行 builder——重放冻结构建请求,产物 pack_hash 必须
-        #     等于 commitment.pack_hash;入口返回 None/异常/无法解析的
-        #     pack 一律 EXAM_INVALID。npb- 只证明文件身份,本步骤证明
-        #     "这组文件中的 builder 实际生成了承诺绑定的 pack";发生在
+        # 4b. builder 产物来源证明 + Builder Run Evidence 第三次重放
+        #     (阶段 2.6.0g 收尾:私有 Builder 只在隔离 Runner 进程内
+        #     执行——主评估进程零私有代码;执行器读取完整 evidence
+        #     (评估方私有目录)、重算 bre- 逐项验证,再在全新 Runner
+        #     中第三次重放冻结构建请求:三组 hash 必须与 precommit
+        #     run1 == run2 == 本次完全一致,pack_hash == 承诺;
+        #     实际运行时 import 锁与静态闭包预检对账。全部发生在
         #     verify/power 重跑之前、候选 checkpoint 加载与沙箱启动
-        #     之前,候选未进入评估不判 FAIL/作弊)。
-        #     mock_pack_payload(公开 mock 组装器的 pack 规范重放载荷)
-        #     只允许公开 mock 通道;私有 builder 的请求携带载荷即拒绝
-        #     (私有重放必须真实构建)。
-        from rl_curriculum.builder_identity import (
-            MockBuilderIdentityProvider,
+        #     之前,候选未进入评估不判 FAIL/作弊。
+        #     builder 阶段访问守卫(H):audit hook 证明 checkpoint/
+        #     sidecar/attestation 在 builder integrity 阶段从未 open。)
+        from rl_curriculum.access_guard import BuilderStageAccessGuard
+        from rl_curriculum.builder_evidence import (
+            load_builder_run_evidence,
         )
         from rl_curriculum.builder_provenance import (
             BuilderProvenanceError,
             verify_builder_provenance,
         )
 
+        if not builder_evidence_path:
+            raise SealedExamError(
+                "正式考试必须提供 Builder Run Evidence 文件"
+                "(--builder-evidence;评估方私有目录):v8 承诺只携带 "
+                "bre- 摘要,执行器必须读取完整 evidence、重算哈希并"
+                "逐项验证——没有完整 evidence 的材料不得进入正式考试"
+                "(EXAM_INVALID)")
         try:
-            builder_provenance_report = verify_builder_provenance(
-                builder_provider, commitment, pack=pack,
-                duration_contract=duration_contract,
-                allow_mock_pack_payload=isinstance(
-                    builder_provider, MockBuilderIdentityProvider))
+            builder_evidence_doc = load_builder_run_evidence(
+                builder_evidence_path)
         except BuilderProvenanceError as exc:
             raise SealedExamError(
-                f"builder 产物来源证明失败(EXAM_INVALID): {exc}") from exc
+                f"Builder Run Evidence 读取/自洽失败(EXAM_INVALID): "
+                f"{exc}") from exc
+        guard_paths = [
+            checkpoint_path,
+            str(Path(checkpoint_path).with_name(
+                Path(checkpoint_path).name + ".rl_manifest.json")),
+            str(Path(checkpoint_path).with_name(
+                Path(checkpoint_path).name + ".rl_attestation.json")),
+        ]
+        builder_stage_access_audit: dict[str, Any] = {}
+        with BuilderStageAccessGuard(guard_paths) as _guard:
+            try:
+                builder_provenance_report = verify_builder_provenance(
+                    builder_provider, commitment, pack=pack,
+                    duration_contract=duration_contract,
+                    builder_evidence=builder_evidence_doc,
+                    builder_root=getattr(builder_provider, "root", None))
+            except BuilderProvenanceError as exc:
+                raise SealedExamError(
+                    f"builder 产物来源证明失败(EXAM_INVALID): {exc}"
+                    ) from exc
+            builder_stage_access_audit = _guard.audit_result()
+        if builder_stage_access_audit.get("violations"):
+            raise SealedExamError(
+                f"builder 阶段访问守卫发现候选材料被触碰"
+                f"(EXAM_INVALID):{builder_stage_access_audit}"
+                f"[violations]——builder integrity 阶段不得 open "
+                f"checkpoint/sidecar/attestation(工作包 H;fail closed)")
 
-        # 5-6. 密封承诺 v7 逐项验证(含沙箱 profile/Null 资格/npb-/
+        # 5-6. 密封承诺 v8 逐项验证(含沙箱 profile/Null 资格/npb-/
         #      nbr- 对账/完整 power 重跑/issuer/spec;duration contract
         #      全链路对账;全部发生在候选 checkpoint 加载之前)
         sealed_checks = verify_sealed_commitment(
@@ -610,6 +652,7 @@ def run_sealed_exam(
                 "mode": "sealed",
                 "sealed_verification": _redact_sealed_checks(sealed_checks),
                 "builder_provenance": builder_provenance_report,
+                "builder_stage_access_audit": builder_stage_access_audit,
                 "attempt": {
                     "attempt_id": previous["attempt_id"],
                     "idempotent_retry_of": previous["attempt_id"],
@@ -690,6 +733,7 @@ def run_sealed_exam(
             "mode": "sealed",
             "sealed_verification": _redact_sealed_checks(sealed_checks),
             "builder_provenance": builder_provenance_report,
+            "builder_stage_access_audit": builder_stage_access_audit,
             "attempt": {"attempt_id": attempt["attempt_id"]},
             "result": minimal_hidden_output(
                 attempt_id=attempt["attempt_id"],

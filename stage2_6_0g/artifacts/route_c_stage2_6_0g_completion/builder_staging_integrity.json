@@ -1,0 +1,38 @@
+{
+  "stage": "2.6.0g 收尾(builder runner 隔离/运行证据/全量复验闭环)",
+  "format": "route-c-stage2-6-0g-completion-artifacts-v1",
+  "attacks": {
+    "identity_hash_then_modify_source": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_identity_hash_then_modify_source_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 9.11s",
+      "passed": true
+    },
+    "staging_replaced_after_copy": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_staging_replaced_after_copy_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 9.06s",
+      "passed": true
+    },
+    "staging_file_removed": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_staging_file_removed_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 8.99s",
+      "passed": true
+    },
+    "new_helper_after_identity": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_new_helper_after_identity_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 9.28s",
+      "passed": true
+    },
+    "source_a_execution_b": {
+      "command": "pytest tests/route_c_stage2_6_0g/test_builder_runner_isolation.py::test_source_a_execution_b_rejected",
+      "exit_code": 0,
+      "summary": "1 passed in 9.01s",
+      "passed": true
+    }
+  },
+  "verification": "staging 复制后对实际执行副本重算 tree manifest,与 npb- 绑定的 package_tree 逐字节对账;不一致fail closed,Runner 永不启动",
+  "generated_utc": "2026-08-27T23:39:20Z"
+}

@@ -303,6 +303,7 @@ def sealed_exam_env(tmp_path, attested_checkpoint, sandbox_profile,
         pack, schema, eval_config)
     commitment = build_mock_commitment(
         builder_provider=MockBuilderIdentityProvider(),
+        evidence_path=str(tmp_path / "builder_evidence.json"),
         pack=pack, charter=charter, schema=schema,
         verdict_spec=probe_course_verdict_spec(),
         eval_config=eval_config,
@@ -334,6 +335,7 @@ def run_cli(env_dir, out_name, *extra):
         "--context", str(tmp / "ctx.json"),
         "--out", str(tmp / out_name),
         "--builder-provider", "mock",
+        "--builder-evidence", str(tmp / "builder_evidence.json"),
         "--retire-registry", str(tmp / "ret.json"),
         "--attempt-registry", str(tmp / "attempts.json"),
         *extra,

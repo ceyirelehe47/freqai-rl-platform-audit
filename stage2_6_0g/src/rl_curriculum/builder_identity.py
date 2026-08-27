@@ -1,54 +1,36 @@
-"""正式 Builder Identity Provider(阶段 2.6.0f 工作包 A/B;2.6.0g 加固)。
+"""正式 Builder Identity Provider(阶段 2.6.0f/2.6.0g;收尾版 v4)。
 
-2.6.0e 遗留缺陷:formal verifier 在 verify_sealed_commitment /
-validate_null_pack / pack validity 重算路径中无参数调用默认公开 mock
-builder 的 manifest(null_pack_validation.pack_builder_manifest_hash()),
-既没有正式的评估方私有 Builder Identity Provider,builder manifest 也
-只绑定手工挑选的函数清单(_fn_binding 逐函数源码哈希),遗漏实际决定
-attempt 是否被接受的中间链路(_validate_pack_ephemeral /
-build_spec_for_pack / null materialization / pair mirror 子函数 /
-salt 常量值 / family 列表真源等)。
+v3(提前提交的中间版本)遗留缺陷:
 
-v2 语义(null-pack-builder-manifest-v2):
+- Private Provider 构造期与产物来源证明期在**主评估进程**受控
+  import 私有 builder 模块并取回 callable 直接调用——私有顶层代码
+  进入评估主进程,无进程隔离(工作包 B1/C3);
+- build 入口签名只检查"存在位置参数"且显式放行 ``*args``
+  (工作包 C1);
+- require_builder_identity 不重算 manifest/tree 自洽,手工构造的
+  不自洽 BuilderIdentity 可通过(工作包 F)。
 
-- builder 身份 = builder package tree manifest(受信 root 下全部文件
-  的稳定排序逐文件 sha256;拒绝 symlink / 缺失文件;root 下任何新增
-  或删除文件、资源文件变化、任意安全相关辅助模块变化都会改变身份)
-  + 显式外部依赖 manifest(依赖模块身份明确绑定);
-- Provider 是独立评估方的可信主机输入:提供 canonical manifest、
-  manifest hash(npb-)、builder protocol 版本与非敏感公开摘要,在评估
-  环境中重新计算,而不是读取任何自报 hash;
-- Provider 不得从候选 checkpoint、sidecar、考试 pack 或考试 context
-  获取信任,不得进入 Candidate 沙箱,候选模型不可读、不可覆盖、不可
-  选择;
-- 正式路径(run_sealed_exam / verify_sealed_commitment / pack
-  validity 重算)必须显式接收 Provider 派生的 BuilderIdentity,缺失即
-  EXAM_INVALID,不存在"没有 Provider 就自动使用 mock builder"的
-  fallback;
-- 公开 mock 流程使用 MockBuilderIdentityProvider,但必须显式传入
-  (build_mock_commitment 内部显式构造;formal API 本身不硬编码任何
-  mock provider)。
+v4 语义(null-pack-builder-manifest-v4):
 
-阶段 2.6.0g 在 v2 基础上升级为 v3(null-pack-builder-manifest-v3):
-
-- entrypoint 与 attempt-loop 必须真实存在:Private Provider 在派生
-  identity 前用 AST 静态解析 + 受控 import 双重验证 module 源文件
-  位于受信 root 内、qualname 对应真实的函数定义(不是注释、字符串、
-  变量赋值或不存在的符号)、入口类型属于预注册允许范围(普通函数/
-  静态方法/类方法;类构造器与协程函数被拒绝)、签名可解析且不含
-  candidate/checkpoint/model/policy 参数(动态强制,不再是 manifest
-  自我声明)、build 入口接受冻结构建请求(builder-runner-protocol-v1
-  的单 request 位置参数);
-- 外部依赖 manifest 从手工清单升级为 builder 链实际 import 的静态
-  闭包(AST 扫描 rl_curriculum/rl_platform/builder root 内全部 .py 的
-  import 语句,自动覆盖 gymnasium 等第三方依赖的版本身份);
-- commitment 创建端与 CLI 共用同一 Provider 配置解析
-  (load_builder_provider_config / private_provider_from_config,
-  pair_count_per_family / max_attempts / external_dependencies 等
-  字段不再被 CLI 遗漏);
-- Provider 协议新增 builder_entrypoint() 与 frozen_build_request():
-  产物来源证明(builder_provenance)在冻结输入下实际执行 builder 并
-  比对 pack hash,npb- 不再只是"文件存在"的声明。
+- 主进程对私有 Builder 只做 **AST 静态检查**(module 源文件位于
+  受信 root 内、qualname 是真实的函数定义、入口类型属于预注册
+  允许范围、签名是精确的 ``build_pack(request)`` 单参数形态);
+  运行时 callable 类型/签名/返回值验证全部移入隔离 Runner
+  (rl_builder_runtime.runner;C3);
+- manifest 绑定 run_mode(builder_execution | mock_payload_
+  assembly):mode 由 Provider 派生、被 npb- 绑定,commitment 与
+  evidence 同步对账,不再依赖 isinstance 判定通道(D2);
+- require_builder_identity 重算自洽:canonical manifest hash ==
+  manifest_hash、builder_protocol 一致、package_tree 逐文件与
+  tree_hash 自洽、entrypoint 报告与 staged 文件一致、run_mode
+  与 commitment 一致(F);
+- external_dependencies 是静态 AST 闭包**预检**(allowlist 候选
+  与诊断),不是正式运行时依赖身份;实际 lock 由隔离 Runner 的
+  import 审计派生并进入 evidence(G1/G3);
+- 独立 attempt-loop entrypoint 已废除(C2):attempt 循环是 build
+  入口内部的构建循环,其真实执行由规范化 attempt log
+  (builder-attempt-log-v1,经 result 携带并被 nal- 哈希绑定)证明,
+  不再接受"manifest 声明一个从未执行的函数"。
 """
 
 from __future__ import annotations
@@ -62,16 +44,19 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-#: builder manifest 协议(阶段 2.6.0g:v2 的文件身份升级为含真实
-#: entrypoint 验证与完整 import 闭包的 v3)
-BUILDER_MANIFEST_FORMAT = "null-pack-builder-manifest-v3"
-#: v1 只绑定手工挑选函数;v2 entrypoint/attempt-loop 只接受字符串声明、
-#: 禁止参数规则只是 manifest 自我声明、外部依赖为手工少数包清单
+#: builder manifest 协议(阶段 2.6.0g 收尾:v3 的主进程 import 与
+#: *args 放行升级为静态检查 + 隔离 Runner 运行时验证的 v4)
+BUILDER_MANIFEST_FORMAT = "null-pack-builder-manifest-v4"
+#: v1 只绑定手工挑选函数;v2 entrypoint 只接受字符串声明;v3 在主
+#: 评估进程受控 import 私有 builder 并直接调用(无隔离 Runner、无
+#: Builder Run Evidence、*args 放行、request 黑名单而非白名单)
 _DEPRECATED_BUILDER_MANIFEST_FORMATS = (
     "null-pack-builder-manifest-v1",
     "null-pack-builder-manifest-v2",
+    "null-pack-builder-manifest-v3",
 )
-#: builder 协议语义版本(assemble/attempt/seed/pair 语义契约)
+#: builder 协议语义版本(assemble/attempt/seed/pair 语义契约;
+#: 语义未变化,本轮不升级)
 BUILDER_PROTOCOL = "null-pack-builder-protocol-v3"
 
 #: 预注册 entrypoint 类型允许范围(普通函数/静态方法/类方法;
@@ -81,9 +66,11 @@ ALLOWED_ENTRYPOINT_KINDS = ("function", "staticfunction", "classfunction")
 
 #: package tree 扫描排除目录(编译缓存不是源码身份)
 TREE_EXCLUDE_DIRS = frozenset({"__pycache__", ".pytest_cache", ".mypy_cache"})
-#: builder 签名禁止参数(候选相关性 fail closed;与 v1 一致)
+#: build 入口签名的候选别名黑名单(C1:参数名本身即拒绝)
 PACK_BUILDER_FORBIDDEN_PARAMS: tuple[str, ...] = (
-    "candidate", "checkpoint", "model", "policy",
+    "candidate", "candidate_path", "checkpoint", "checkpoint_path",
+    "model", "policy", "score", "scores", "result", "exam_result",
+    "verdict", "outcome", "prediction", "ranking",
 )
 
 
@@ -111,7 +98,6 @@ def _iter_tree_files(root: Path) -> list[Path]:
                 f"builder package tree 内禁止 symlink: {p}")
         if p.is_dir():
             if p.name in TREE_EXCLUDE_DIRS:
-                # 不深入排除目录
                 pass
             continue
         if any(part in TREE_EXCLUDE_DIRS for part in p.parts):
@@ -141,14 +127,13 @@ def builder_package_tree_manifest(
     root_label: str,
     entrypoint_module: str,
     entrypoint_qualname: str,
-    attempt_loop_module: str = "",
-    attempt_loop_qualname: str = "",
 ) -> dict[str, Any]:
-    """builder package tree manifest(B2)。
+    """builder package tree manifest(B2;v4 不再有 attempt-loop 声明)。
 
     - 相对路径排序稳定(posix 形式);
     - 每个文件内容 sha256 与字节数;
-    - entrypoint 模块与 qualname 显式声明(assemble 与 attempt loop);
+    - entrypoint 模块与 qualname 显式声明(assemble 与 attempt 循环
+      都在 build 入口内部,由 attempt log 运行证据证明;C2);
     - 资源文件与源码文件一律进入 hash(拒绝缺失文件 -> 空树失败);
     - 拒绝 symlink;路径必须位于受信 root 内;
     - root 下额外文件不能被静默忽略(全部进入文件清单);
@@ -177,8 +162,6 @@ def builder_package_tree_manifest(
         "root_label": str(root_label),
         "entrypoint_module": str(entrypoint_module),
         "entrypoint_qualname": str(entrypoint_qualname),
-        "attempt_loop_module": str(attempt_loop_module),
-        "attempt_loop_qualname": str(attempt_loop_qualname),
         "files": entries,
         "file_count": len(entries),
         "tree_hash": digest.hexdigest(),
@@ -219,11 +202,6 @@ def _rl_curriculum_root() -> Path:
     return _module_path(rl_curriculum).parent
 
 
-def _package_version(name: str) -> str:
-    return _cached_package_version(
-        _DISTRIBUTION_NAME_ALIASES.get(name, name))
-
-
 #: import 名与发行名不一致的包(闭包扫描输出的 module 名为 import 名,
 #: 版本查询按发行名)
 _DISTRIBUTION_NAME_ALIASES = {
@@ -232,6 +210,11 @@ _DISTRIBUTION_NAME_ALIASES = {
     "PIL": "pillow",
     "yaml": "pyyaml",
 }
+
+
+def _package_version(name: str) -> str:
+    return _cached_package_version(
+        _DISTRIBUTION_NAME_ALIASES.get(name, name))
 
 
 @lru_cache(maxsize=None)
@@ -245,10 +228,10 @@ def _cached_package_version(name: str) -> str:
 
 
 def check_builder_signature_policy(*fns: Any) -> None:
-    """builder 函数签名不得包含 candidate/checkpoint/model/policy。
+    """公开 mock builder 函数签名不得包含候选相关参数(动态强制)。
 
-    v1 语义保留(v2 的 package tree 是静态身份,此检查在 Provider 侧
-    对可导入的 builder 函数动态执行;mock Provider 始终强制)。
+    v4:私有 builder 的签名检查移入隔离 Runner(运行时)与 AST 静态
+    预检;本函数只对主进程内可导入的公开(mock)函数执行。
     """
     import inspect
 
@@ -262,7 +245,7 @@ def check_builder_signature_policy(*fns: Any) -> None:
                 f"checkpoint/model/policy)")
 
 
-# ------------------------------------------------------- A1:入口真实验证
+# ------------------------------------------------- A1:入口静态验证(主进程)
 def _module_source_within(root: Path, module: str) -> Path | None:
     """module 声明对应的源文件,必须位于受信 root 内。
 
@@ -348,48 +331,40 @@ def _ast_resolve_qualname(source: Path, qualname: str):
     return node, "function"
 
 
-def _import_entrypoint_callable(
-    root: Path, module: str, qualname: str,
-) -> tuple[Any, str]:
-    """受控 import:解析 module 并按 qualname 取出真实对象。
+def _ast_signature_params(node: Any) -> tuple[list[str], list[str]]:
+    """从 AST 函数定义提取 (参数名列表, 违规原因列表)。
 
-    - root 临时加入 sys.path(若尚未在),结束后移除;
-    - 同名 module 的陈旧缓存(源文件不在本 root 内,来自其他 tmp
-      root 的遗留)先弹出,保证 import 的是本 root 的代码;
-    - qualname 按 "." 逐段 getattr 解析。
+    C1:build 入口必须是精确的 ``build_pack(request)``——恰好一个
+    位置参数,除此之外不得有其他参数(第二个位置参数/可选额外参数/
+    *args/**kwargs/keyword-only/候选别名参数名全部拒绝)。静态检查
+    在主进程执行,运行时在隔离 Runner 再次强制(C3)。
     """
-    import importlib
-
-    root_str = str(root.resolve())
-    cached = sys.modules.get(module)
-    if cached is not None:
-        cached_file = str(getattr(cached, "__file__", "") or "")
-        if cached_file and not cached_file.startswith(root_str + "/") \
-                and not cached_file.startswith(root_str):
-            sys.modules.pop(module, None)
-    added = root_str not in sys.path
-    if added:
-        sys.path.insert(0, root_str)
-    try:
-        mod = importlib.import_module(module)
-        obj: Any = mod
-        for part in qualname.split("."):
-            if not hasattr(obj, part):
-                raise BuilderIdentityError(
-                    f"import 后 {module!r} 上不存在属性 {part!r}"
-                    f"(qualname {qualname!r} 指向不存在的符号)")
-            obj = getattr(obj, part)
-        return obj, str(getattr(mod, "__file__", "") or "")
-    except ImportError as exc:
-        raise BuilderIdentityError(
-            f"builder 入口 module {module!r} 受控 import 失败: {exc}"
-            f"(入口源码必须位于受信 root 内且可导入)") from exc
-    finally:
-        if added:
-            try:
-                sys.path.remove(root_str)
-            except ValueError:
-                pass
+    a = node.args
+    positional = list(a.posonlyargs) + list(a.args)
+    params = [arg.arg for arg in positional]
+    problems: list[str] = []
+    if len(positional) != 1:
+        problems.append(
+            f"入口必须恰好接受一个 request 参数(AST 静态检出 "
+            f"{len(positional)} 个位置参数)")
+    if a.vararg is not None:
+        problems.append(f"入口不接受 *args(参数 {a.vararg.arg!r})")
+    if a.kwarg is not None:
+        problems.append(f"入口不接受 **kwargs(参数 {a.kwarg.arg!r})")
+    if a.kwonlyargs:
+        problems.append(
+            f"入口不接受 keyword-only 参数 "
+            f"{[x.arg for x in a.kwonlyargs]!r}")
+    if a.defaults:
+        problems.append(
+            "入口参数不得有默认值(可选额外参数被拒绝:"
+            f"{params[-len(a.defaults):] if a.defaults else []})")
+    if any(d is not None for d in a.kw_defaults):
+        problems.append("keyword-only 参数不得有默认值")
+    for name in params:
+        if name in PACK_BUILDER_FORBIDDEN_PARAMS:
+            problems.append(f"入口参数名 {name!r} 是候选相关禁止参数")
+    return params, problems
 
 
 def validate_builder_entrypoint(
@@ -397,27 +372,24 @@ def validate_builder_entrypoint(
     where: str,
     require_request_protocol: bool = False,
 ) -> dict[str, Any]:
-    """A1:builder entrypoint 必须真实存在且可执行(P3/P4)。
+    """A1(静态版,v4):builder entrypoint 必须真实存在且形态合规。
 
-    在 Provider 派生 identity 前执行(构造期),任何失败都是
-    BuilderIdentityError(fail closed)。验证链:
-    1. module 源文件存在于受信 root 内(AST 静态解析的前提);
+    只做 **AST 静态检查**(主进程不 import 私有代码;B1/C3):
+    1. module 源文件存在于受信 root 内;
     2. qualname 在源文件 AST 中是真实的函数定义(注释/字符串/赋值/
        不存在符号均被拒绝;不以字符串搜索判定);
     3. 入口类型属于预注册允许范围(function/staticfunction/
        classfunction;类构造器与协程函数被拒绝);
-    4. 受控 import 后对象确实存在、callable 且与 AST 定位一致;
-    5. inspect.signature 可解析,签名不含 candidate/checkpoint/
-       model/policy(P4:动态强制,不是 manifest 自我声明);
-    6. require_request_protocol=True 时(build 入口),签名必须是
-       builder-runner-protocol-v1 的单 request 位置参数形态。
+    4. require_request_protocol=True 时(build 入口),AST 签名必须是
+       精确的 ``build_pack(request)`` 单参数形态(C1);
+    5. 报告携带源文件相对路径与内容哈希(F:entrypoint 报告与 staged
+       文件一致性的对账输入)。
 
-    返回验证报告(进入 manifest v3 的 entrypoints_validated 字段)。
+    运行时 callable 类型/签名/返回值验证由隔离 Runner 执行
+    (rl_builder_runtime.runner)。
     """
-    import ast as _ast  # noqa: F401 - 供 _ast_resolve_qualname 使用
+    import ast as _ast  # noqa: F401 - 供类型注解与解析使用
     import hashlib as _hl
-    import inspect
-    import types
 
     root = Path(root)
     if not module or not qualname:
@@ -442,68 +414,43 @@ def validate_builder_entrypoint(
             f"{where}: 入口类型 {kind!r} 不在预注册允许范围 "
             f"{ALLOWED_ENTRYPOINT_KINDS}(类构造器与协程函数被拒绝;"
             f"入口必须是可静态定位源码的真实函数)")
-    obj, imported_from = _import_entrypoint_callable(root, module, qualname)
-    if not callable(obj):
-        raise BuilderIdentityError(
-            f"{where}: {module}.{qualname} import 后不是 callable")
-    if isinstance(obj, type):
-        raise BuilderIdentityError(
-            f"{where}: {module}.{qualname} 是类构造器(type),不在入口"
-            f"类型允许范围 {ALLOWED_ENTRYPOINT_KINDS}")
-    if not isinstance(obj, (types.FunctionType, types.MethodType,
-                            types.BuiltinFunctionType)):
-        raise BuilderIdentityError(
-            f"{where}: {module}.{qualname} 的运行时类型 "
-            f"{type(obj).__name__!r} 不在入口类型允许范围")
-    # P4:签名黑名单动态强制(私有侧与 mock 侧同一规则)
-    check_builder_signature_policy(obj)
-    try:
-        sig = inspect.signature(obj)
-    except (TypeError, ValueError) as exc:
-        raise BuilderIdentityError(
-            f"{where}: 入口 {module}.{qualname} 的签名无法解析: {exc}"
-            f"(预注册允许范围只含可解析签名的真实函数)") from exc
-    params = list(sig.parameters.values())
+    params: list[str] = []
+    problems: list[str] = []
     if require_request_protocol:
-        positional = [
-            p for p in params
-            if p.kind in (inspect.Parameter.POSITIONAL_ONLY,
-                          inspect.Parameter.POSITIONAL_OR_KEYWORD)]
-        var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL
-                      for p in params)
-        if not positional and not var_pos:
+        params, problems = _ast_signature_params(node)
+        if problems:
             raise BuilderIdentityError(
-                f"{where}: build 入口 {module}.{qualname} 不接受冻结"
-                f"构建请求参数(builder-runner-protocol-v1 要求 "
-                f"build_pack(frozen_build_request) 形态)")
-        if var_pos and not positional:
-            pass  # *args 形态可接收 request
+                f"{where}: build 入口 {module}.{qualname} 的签名违规"
+                f"(C1:只允许精确的 build_pack(request) 单参数形态): "
+                f"{'; '.join(problems)}")
+    data = source.read_bytes()
+    rel = source.relative_to(root.resolve()).as_posix()
     return {
         "module": str(module),
         "qualname": str(qualname),
         "kind": str(kind),
-        "source_file": source.name,
-        "source_sha256": _hl.sha256(source.read_bytes()).hexdigest(),
-        "signature_params": [p.name for p in params],
-        "imported_from_root": bool(imported_from),
+        "source_file": rel,
+        "source_sha256": _hl.sha256(data).hexdigest(),
+        "signature_params": params,
+        "imported_from_root": True,
         "request_protocol": bool(require_request_protocol),
     }
 
 
-#: mock builder 的共享外部依赖(builder 链实际 import 的非 stdlib 身份)
+#: mock builder 的共享外部依赖(builder 链实际 import 的非 stdlib 身份;
+#: v4 语义:静态预检 + allowlist 候选,正式运行时身份由隔离 Runner 的
+#: import 审计派生并进入 Builder Run Evidence——G1/G3)
 def shared_external_dependency_manifest(
     extra_roots: list[tuple[str, Path | str]] | None = None,
 ) -> list[dict[str, Any]]:
-    """显式外部依赖 manifest(AST import 闭包 + rl_platform tree)。
+    """静态 AST import 闭包预检(G1:预检/allowlist 候选/诊断)。
 
-    阶段 2.6.0g(P6):依赖清单从手工少数包(python/numpy/pandas)升级为
-    builder 链实际 import 的静态闭包——AST 扫描 rl_curriculum、
-    rl_platform 与调用方给定的 builder root 内全部 .py 文件的 import
-    语句(模块级与函数级一视同仁,"实际 import"按源码文本判定),收集
-    非 stdlib、非内部包的顶级模块名并绑定其版本身份;gymnasium 等
-    经 rl_platform.env 进入 builder 验证链的第三方依赖自此被覆盖。
-    rl_platform 源码树仍以 tree hash 绑定(代码身份),python 运行时
-    版本单独绑定。依赖身份变化 -> npb- 变化。
+    AST 扫描 rl_curriculum、rl_platform 与调用方给定的 builder root
+    内全部 .py 文件的 import 语句(模块级与函数级一视同仁),收集
+    非 stdlib、非内部包的顶级模块名并绑定其版本身份。这不是完整
+    运行时 lock:动态/条件/插件式 import 不在静态可见范围内,实际
+    身份由隔离 Runner 的 sys.modules 审计重新派生(G2),并与本静态
+    allowlist 对账(实际加载未注册依赖 -> fail closed;G3)。
     """
     roots: list[tuple[str, Path]] = [("rl_curriculum", _rl_curriculum_root())]
     for label, path in (extra_roots or []):
@@ -542,11 +489,8 @@ def _static_import_closure(
     """
     import ast as _ast
 
-    # 内部源码包不作为外部依赖条目:rl_platform 以 tree hash 绑定,
-    # rl_curriculum 在 builder package tree 内,rl_candidate_runtime
-    # 的逐文件内容已由 candidate runtime manifest(2.6.0c)独立绑定
     internal_packages = {"rl_curriculum", "rl_platform",
-                         "rl_candidate_runtime"}
+                         "rl_candidate_runtime", "rl_builder_runtime"}
     internal_dirs: dict[str, Path] = {name: path for name, path in roots}
     internal_dirs.setdefault("rl_platform", _rl_platform_root())
     scanned: set[str] = set()
@@ -564,9 +508,6 @@ def _static_import_closure(
             try:
                 tree = _ast.parse(py.read_text(encoding="utf-8"))
             except (SyntaxError, UnicodeDecodeError, OSError):
-                # 解析失败的文件不贡献依赖(其内容已由 tree manifest
-                # 逐文件哈希绑定;语法损坏的 root 在 identity 阶段仍会
-                # 因受控 import 失败而 fail closed)
                 continue
             for node in _ast.walk(tree):
                 if isinstance(node, _ast.Import):
@@ -574,7 +515,7 @@ def _static_import_closure(
                         external.add(alias.name.split(".")[0])
                 elif isinstance(node, _ast.ImportFrom):
                     if node.level and node.level > 0:
-                        continue  # 包内相对导入
+                        continue
                     if node.module:
                         external.add(node.module.split(".")[0])
     stdlib = set(getattr(sys, "stdlib_module_names", ()))
@@ -610,6 +551,10 @@ class BuilderIdentity:
         return str((self.manifest.get("package_tree") or {}).get(
             "tree_hash") or "")
 
+    @property
+    def run_mode(self) -> str:
+        return str(self.manifest.get("run_mode") or "")
+
 
 def canonical_builder_manifest_hash(manifest: dict[str, Any]) -> str:
     """manifest 哈希(npb-;canonical JSON,排序稳定)。"""
@@ -634,6 +579,7 @@ def _build_identity(manifest: dict[str, Any]) -> BuilderIdentity:
             # 不含私有源码内容与任何 seed
             "format": manifest.get("format"),
             "builder_protocol": manifest.get("builder_protocol"),
+            "run_mode": manifest.get("run_mode"),
             "entrypoint_module": tree.get("entrypoint_module"),
             "entrypoint_qualname": tree.get("entrypoint_qualname"),
             "package_tree_hash": tree.get("tree_hash"),
@@ -661,33 +607,33 @@ def _build_identity(manifest: dict[str, Any]) -> BuilderIdentity:
 
 @runtime_checkable
 class BuilderIdentityProvider(Protocol):
-    """评估方侧 Provider 抽象(A1)。
+    """评估方侧 Provider 抽象(v4)。
 
     独立评估方的可信主机输入:在评估环境中重新计算 builder canonical
     manifest 与 hash,而不是读取自报值。实现必须保证:
     - 不从候选 checkpoint / sidecar / 考试 pack / 考试 context 获取信任;
-    - 不进入 Candidate 沙箱(候选不可读、不可覆盖、不可选择)。
-
-    阶段 2.6.0g:Provider 除派生静态身份外,还必须提供可执行的
-    builder 入口与冻结构建请求——产物来源证明(builder_provenance)
-    用它们在冻结输入下实际执行 builder 并比对 pack hash,npb- 不再
-    只是"评估环境中存在一组被哈希的文件"的声明。
+    - 不进入 Candidate 沙箱(候选不可读、不可覆盖、不可选择);
+    - **不要求主评估进程 import 或执行私有 Builder**(v4:私有 Builder
+      只在隔离 Runner 内执行;Provider 提供静态身份、冻结请求与运行
+      模式,不再提供主进程可执行入口);
+    - builder_run_mode() 派生构建通道(D2:mode 被 manifest 绑定,
+      不依赖 isinstance 判定 payload 许可)。
     """
 
     def builder_identity(self) -> BuilderIdentity: ...
 
-    def builder_entrypoint(self) -> Any: ...
-
     def frozen_build_request(
         self, pack: Any, duration_contract: dict[str, Any],
     ) -> dict[str, Any]: ...
+
+    def builder_run_mode(self) -> str: ...
 
 
 class MockBuilderIdentityProvider:
     """公开 mock builder 的 Provider(公开流程专用,必须显式传入)。
 
     tree root = rl_curriculum 包目录:mock builder 的 assemble /
-    attempt loop / _validate_pack_ephemeral / build_spec_for_pack /
+    attempt 循环 / _validate_pack_ephemeral / build_spec_for_pack /
     null materialization / seed 与 pair 推导 / salt 常量 / validator /
     _verify_pair_* 子函数 / BASE_PARAMS / family 列表全部位于该包内,
     逐文件内容哈希 + 额外文件不忽略,构成完整依赖闭包(B1/B2/B4)。
@@ -704,8 +650,7 @@ class MockBuilderIdentityProvider:
         self._base_params = dict(mock_sealed_exam.BASE_PARAMS)
         self._families = list(FORMAL_NULL_FAMILIES)
         self._pair_count = int(MIN_PACK_CLUSTERS_PER_FAMILY)
-        # 签名政策动态强制(v1 D6 语义保留:assemble/attempt/validator/
-        # 拒绝日志生成器的签名不得含 candidate/checkpoint/model/policy)
+        # 签名政策动态强制(公开代码在主进程可导入;v4 语义保留)
         from rl_curriculum.null_pack_validation import (
             pack_builder_attempt_log,
             validate_null_pack,
@@ -718,17 +663,23 @@ class MockBuilderIdentityProvider:
             pack_builder_attempt_log,
             mock_sealed_exam.mock_build_pack,
         )
-        # A1(2.6.0g):mock 入口同样通过真实存在性验证(与私有 Provider
-        # 同一验证链;mock runner 入口 mock_build_pack 必须接受冻结构建
-        # 请求,attempt-loop 是构建循环本身)
+        # A1 静态验证(v4:主进程只做 AST 检查;mock 入口同样通过
+        # 真实存在性与精确单参数形态验证)
         self._entrypoint_report = validate_builder_entrypoint(
             self._root, "rl_curriculum.mock_sealed_exam",
             "mock_build_pack", where="MockBuilderIdentityProvider",
             require_request_protocol=True)
-        self._attempt_loop_report = validate_builder_entrypoint(
-            self._root, "rl_curriculum.mock_sealed_exam",
-            "build_mock_hidden_pack",
-            where="MockBuilderIdentityProvider(attempt-loop)")
+
+    @property
+    def root(self) -> Path:
+        return self._root
+
+    def builder_run_mode(self) -> str:
+        from rl_curriculum.builder_provenance import (
+            BUILDER_RUN_MODE_MOCK_ASSEMBLY,
+        )
+
+        return BUILDER_RUN_MODE_MOCK_ASSEMBLY
 
     def builder_identity(self) -> BuilderIdentity:
         from rl_curriculum.null_pack_validation import MAX_PACK_ATTEMPTS
@@ -738,12 +689,11 @@ class MockBuilderIdentityProvider:
             root_label="rl_curriculum(mock builder package)",
             entrypoint_module="rl_curriculum.mock_sealed_exam",
             entrypoint_qualname="mock_build_pack",
-            attempt_loop_module="rl_curriculum.mock_sealed_exam",
-            attempt_loop_qualname="build_mock_hidden_pack",
         )
         manifest = {
             "format": BUILDER_MANIFEST_FORMAT,
             "builder_protocol": BUILDER_PROTOCOL,
+            "run_mode": self.builder_run_mode(),
             "package_tree": tree,
             "external_dependencies": shared_external_dependency_manifest(),
             "params_spec": {
@@ -760,7 +710,6 @@ class MockBuilderIdentityProvider:
             },
             "entrypoints_validated": {
                 "entrypoint": dict(self._entrypoint_report),
-                "attempt_loop": dict(self._attempt_loop_report),
             },
         }
         return _build_identity(manifest)
@@ -775,30 +724,27 @@ class MockBuilderIdentityProvider:
         return build_frozen_build_request(
             self.builder_identity(), pack=pack,
             duration_contract=duration_contract,
+            mode=self.builder_run_mode(),
             include_mock_pack_payload=True)
-
-    def builder_entrypoint(self) -> Any:
-        """产物来源证明用的可执行 build 入口(runner 协议 v1)。"""
-        from rl_curriculum import mock_sealed_exam
-
-        return mock_sealed_exam.mock_build_pack
 
 
 class PrivateBuilderIdentityProvider:
-    """评估方私有 builder 的 Provider(测试/正式私有实现同构)。
+    """评估方私有 builder 的 Provider(v4:主进程零私有代码执行)。
 
     私有 builder 源码位于评估方私有目录(测试时为临时目录),不进入
-    Candidate runtime,不进入公开 commitment;完整 manifest 保留在评估
-    方私有目录,公开承诺只携带 manifest hash、协议版本与非敏感摘要。
-    formal verifier 从本 Provider 重新计算 hash(A4)。
+    Candidate runtime,不进入公开 commitment;完整 manifest 保留在
+    评估方私有目录,公开承诺只携带 manifest hash、协议版本与非敏感
+    摘要。formal verifier 从本 Provider 重新计算 hash(A4)。
+
+    v4:构造期只执行 AST 静态验证(不 import 私有模块——私有 Builder
+    的 import 与执行只发生在隔离 Runner;B1/C3);构建通道固定为
+    builder_execution(真实构建,不存在 payload 组装通道)。
     """
 
     def __init__(
         self, root: Path | str, *,
         entrypoint_module: str,
         entrypoint_qualname: str,
-        attempt_loop_module: str = "",
-        attempt_loop_qualname: str = "",
         params_spec: dict[str, Any] | None = None,
         families: list[str] | None = None,
         pair_count_per_family: int = 32,
@@ -809,8 +755,6 @@ class PrivateBuilderIdentityProvider:
         self._root = Path(root)
         self._entrypoint_module = str(entrypoint_module)
         self._entrypoint_qualname = str(entrypoint_qualname)
-        self._attempt_loop_module = str(attempt_loop_module)
-        self._attempt_loop_qualname = str(attempt_loop_qualname)
         self._params_spec = dict(params_spec or {})
         self._families = list(families or [])
         self._pair_count = int(pair_count_per_family)
@@ -821,25 +765,27 @@ class PrivateBuilderIdentityProvider:
             else shared_external_dependency_manifest(
                 extra_roots=[(str(root_label), self._root)]))
         self._root_label = str(root_label)
-        # ---- A1(2.6.0g,P3/P4):构造期真实验证 entrypoint 与
-        #      attempt-loop——module 源文件位于受信 root 内、qualname
-        #      是 AST 中真实的函数定义(不是注释/字符串/不存在符号)、
-        #      入口类型属于预注册允许范围、签名可解析且不含
-        #      candidate/checkpoint/model/policy(动态强制)、build 入口
-        #      接受冻结构建请求。任何失败即 BuilderIdentityError,
-        #      不存在"只接受字符串声明"的回退。
+        # ---- A1 静态版(v4):module 源文件位于受信 root 内、qualname
+        #      是 AST 中真实的函数定义、入口类型属于预注册允许范围、
+        #      签名是精确的 build_pack(request) 单参数形态。任何失败
+        #      即 BuilderIdentityError;主进程**不 import 私有模块**
+        #      (运行时验证移入隔离 Runner)。
         self._entrypoint_report = validate_builder_entrypoint(
             self._root, self._entrypoint_module,
             self._entrypoint_qualname,
             where=f"PrivateBuilderIdentityProvider({self._root_label})",
             require_request_protocol=True)
-        self._attempt_loop_report: dict[str, Any] | None = None
-        if self._attempt_loop_module and self._attempt_loop_qualname:
-            self._attempt_loop_report = validate_builder_entrypoint(
-                self._root, self._attempt_loop_module,
-                self._attempt_loop_qualname,
-                where=(f"PrivateBuilderIdentityProvider("
-                       f"{self._root_label} attempt-loop)"))
+
+    @property
+    def root(self) -> Path:
+        return self._root
+
+    def builder_run_mode(self) -> str:
+        from rl_curriculum.builder_provenance import (
+            BUILDER_RUN_MODE_EXECUTION,
+        )
+
+        return BUILDER_RUN_MODE_EXECUTION
 
     def builder_identity(self) -> BuilderIdentity:
         tree = builder_package_tree_manifest(
@@ -847,18 +793,11 @@ class PrivateBuilderIdentityProvider:
             root_label=self._root_label,
             entrypoint_module=self._entrypoint_module,
             entrypoint_qualname=self._entrypoint_qualname,
-            attempt_loop_module=self._attempt_loop_module,
-            attempt_loop_qualname=self._attempt_loop_qualname,
         )
-        entrypoints_validated: dict[str, Any] = {
-            "entrypoint": dict(self._entrypoint_report),
-        }
-        if self._attempt_loop_report is not None:
-            entrypoints_validated["attempt_loop"] = dict(
-                self._attempt_loop_report)
         manifest = {
             "format": BUILDER_MANIFEST_FORMAT,
             "builder_protocol": BUILDER_PROTOCOL,
+            "run_mode": self.builder_run_mode(),
             "package_tree": tree,
             "external_dependencies": list(self._external_dependencies),
             "params_spec": dict(self._params_spec),
@@ -869,16 +808,11 @@ class PrivateBuilderIdentityProvider:
                 "forbidden_params": list(PACK_BUILDER_FORBIDDEN_PARAMS),
                 "enforced": True,
             },
-            "entrypoints_validated": entrypoints_validated,
+            "entrypoints_validated": {
+                "entrypoint": dict(self._entrypoint_report),
+            },
         }
         return _build_identity(manifest)
-
-    def builder_entrypoint(self) -> Any:
-        """产物来源证明用的可执行 build 入口(受控 import 真实对象)。"""
-        obj, _ = _import_entrypoint_callable(
-            self._root, self._entrypoint_module,
-            self._entrypoint_qualname)
-        return obj
 
     def frozen_build_request(
         self, pack: Any, duration_contract: dict[str, Any],
@@ -887,16 +821,20 @@ class PrivateBuilderIdentityProvider:
 
         return build_frozen_build_request(
             self.builder_identity(), pack=pack,
-            duration_contract=duration_contract)
+            duration_contract=duration_contract,
+            mode=self.builder_run_mode())
 
 
 # ------------------------------------------------- P5:统一配置解析
 #: provider_config.json 的全部字段(必填/可选;CLI 与承诺创建端共用
 #: 同一解析——不存在两套字段清单导致 CLI 遗漏 pair_count_per_family /
-#: max_attempts / external_dependencies 的分叉)
+#: max_attempts / external_dependencies 的分叉)。
+#: v4:attempt_loop_module/attempt_loop_qualname 已废除(独立 attempt-
+#: loop entrypoint 不再保留;attempt 循环由 build 入口内部的规范化
+#: attempt log 运行证据证明——C2)。
 PROVIDER_CONFIG_REQUIRED_FIELDS = ("entrypoint_module", "entrypoint_qualname")
 PROVIDER_CONFIG_OPTIONAL_FIELDS = (
-    "attempt_loop_module", "attempt_loop_qualname", "params_spec",
+    "params_spec",
     "families", "pair_count_per_family", "max_attempts",
     "external_dependencies", "root_label",
 )
@@ -910,7 +848,8 @@ def load_builder_provider_config(root: Path | str) -> dict[str, Any]:
     private)与承诺创建端/测试 conftest 都经由本函数构造 Provider,
     字段清单单一来源;缺失文件、JSON 破损或必填字段缺失均
     fail closed(BuilderIdentityError),未知字段拒绝(拼写错误不得
-    静默失效)。
+    静默失效)。v4 已废除的 attempt_loop_* 字段显式报错(带迁移
+    提示,不静默忽略)。
     """
     import json as _json
 
@@ -928,6 +867,14 @@ def load_builder_provider_config(root: Path | str) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise BuilderIdentityError(
             f"私有 Provider 配置必须是 JSON 对象: {cfg_path}")
+    removed = sorted(set(raw) & {
+        "attempt_loop_module", "attempt_loop_qualname"})
+    if removed:
+        raise BuilderIdentityError(
+            f"私有 Provider 配置含 v4 已废除字段 {removed}:独立 "
+            f"attempt-loop entrypoint 不再保留(attempt 循环由 build "
+            f"入口内部的规范化 attempt log 运行证据证明,C2);请从"
+            f"配置中删除这些字段")
     unknown = sorted(set(raw) - set(PROVIDER_CONFIG_REQUIRED_FIELDS)
                      - set(PROVIDER_CONFIG_OPTIONAL_FIELDS))
     if unknown:
@@ -943,8 +890,6 @@ def load_builder_provider_config(root: Path | str) -> dict[str, Any]:
     cfg: dict[str, Any] = {
         "entrypoint_module": str(raw["entrypoint_module"]),
         "entrypoint_qualname": str(raw["entrypoint_qualname"]),
-        "attempt_loop_module": str(raw.get("attempt_loop_module") or ""),
-        "attempt_loop_qualname": str(raw.get("attempt_loop_qualname") or ""),
         "params_spec": dict(raw.get("params_spec") or {}),
         "families": list(raw.get("families") or []),
         "pair_count_per_family": int(
@@ -973,8 +918,6 @@ def private_provider_from_config(
         root,
         entrypoint_module=cfg["entrypoint_module"],
         entrypoint_qualname=cfg["entrypoint_qualname"],
-        attempt_loop_module=cfg.get("attempt_loop_module", ""),
-        attempt_loop_qualname=cfg.get("attempt_loop_qualname", ""),
         params_spec=cfg.get("params_spec"),
         families=cfg.get("families"),
         pair_count_per_family=int(cfg.get("pair_count_per_family", 32)),
@@ -987,13 +930,29 @@ def private_provider_from_config(
 def require_builder_identity(
     identity: BuilderIdentity | None, *,
     where: str,
+    expected_run_mode: str | None = None,
 ) -> BuilderIdentity:
-    """formal 路径的 BuilderIdentity 必填守卫(缺失 -> fail closed)。
+    """formal 路径的 BuilderIdentity 必填 + 自洽重算守卫(工作包 F)。
 
-    正式路径不存在"没有 Provider 就自动使用 mock builder"的 fallback
-    (A2);本守卫在 verify_sealed_commitment / validate_null_pack /
-    pack validity 重算入口统一执行。
+    重算并验证(fail closed,手工构造的不自洽身份被拒绝):
+    - identity 非 None 且为 BuilderIdentity(不存在隐式 mock fallback);
+    - manifest format == v4;
+    - canonical manifest hash 重算 == identity.manifest_hash
+      (manifest A + hash B 攻击被拒);
+    - manifest.builder_protocol == identity.builder_protocol
+      (protocol A + protocol B 攻击被拒);
+    - package_tree 逐文件自洽:重放 tree digest == tree_hash、
+      file_count == len(files)、路径唯一(文件清单被改但 tree hash
+      未改的攻击被拒);
+    - entrypoints_validated 与 staged 文件一致:每份报告的
+      source_file 在文件清单内且 source_sha256 == 该文件内容哈希
+      (entrypoint 报告与实际 staged 文件不一致的攻击被拒);
+    - signature_policy.enforced is True;
+    - run_mode 属于预注册集合,且与 commitment 期望一致(runtime
+      mode 与 commitment 一致)。
     """
+    from rl_curriculum.builder_provenance import BUILDER_RUN_MODES
+
     if identity is None:
         raise BuilderIdentityError(
             f"{where} 缺少 Builder Identity Provider 派生的 builder 身份:"
@@ -1007,8 +966,82 @@ def require_builder_identity(
         raise BuilderIdentityError(
             f"{where} 收到的 builder manifest 格式 "
             f"{identity.format!r} != {BUILDER_MANIFEST_FORMAT!r}"
-            f"(v1 手工函数清单绑定与 v2 纯字符串入口声明均已弃用;"
-            f"v3 要求 entrypoint 真实验证与完整 import 闭包)")
+            f"(v1 手工函数清单、v2 纯字符串入口声明、v3 主进程受控 "
+            f"import 均已弃用;v4 要求主进程零私有代码执行 + 隔离 "
+            f"Runner 运行时验证)")
+    manifest = identity.manifest or {}
+    # F:canonical manifest hash 重算(public digest 伪造无法通过——
+    # npb- 只认 canonical manifest 内容)
+    recomputed = canonical_builder_manifest_hash(manifest)
+    if recomputed != identity.manifest_hash:
+        raise BuilderIdentityError(
+            f"{where} builder manifest hash 不自洽(重算 {recomputed} "
+            f"vs 自报 {identity.manifest_hash}):manifest 与 hash 来自"
+            f"不同版本的攻击被拒绝(EXAM_INVALID)")
+    if str(manifest.get("builder_protocol")) != str(
+            identity.builder_protocol):
+        raise BuilderIdentityError(
+            f"{where} builder protocol 不自洽(manifest="
+            f"{manifest.get('builder_protocol')!r} vs identity="
+            f"{identity.builder_protocol!r})")
+    tree = manifest.get("package_tree") or {}
+    files = list(tree.get("files") or [])
+    digest = hashlib.sha256()
+    seen: set[str] = set()
+    for entry in files:
+        rel = str(entry.get("path") or "")
+        sha = str(entry.get("sha256") or "")
+        if not rel or not sha or rel in seen:
+            raise BuilderIdentityError(
+                f"{where} package_tree 文件清单不自洽(路径 {rel!r})")
+        seen.add(rel)
+        digest.update(rel.encode("utf-8"))
+        digest.update(b"\0")
+        try:
+            digest.update(bytes.fromhex(sha))
+        except ValueError as exc:
+            raise BuilderIdentityError(
+                f"{where} package_tree 文件哈希非十六进制({rel!r})") \
+                from exc
+    if digest.hexdigest() != str(tree.get("tree_hash") or ""):
+        raise BuilderIdentityError(
+            f"{where} package_tree tree_hash 与文件清单不自洽"
+            f"(文件清单被改但 tree hash 未改的攻击被拒绝;"
+            f"EXAM_INVALID)")
+    if int(tree.get("file_count") or 0) != len(files):
+        raise BuilderIdentityError(
+            f"{where} package_tree file_count({tree.get('file_count')})"
+            f" != 实际文件数({len(files)})")
+    sha_by_path = {str(e.get("path")): str(e.get("sha256"))
+                   for e in files}
+    for role, report in (manifest.get("entrypoints_validated")
+                         or {}).items():
+        src = str((report or {}).get("source_file") or "")
+        src_sha = str((report or {}).get("source_sha256") or "")
+        if src not in sha_by_path:
+            raise BuilderIdentityError(
+                f"{where} entrypoint 报告({role})的 source_file "
+                f"{src!r} 不在 staged 文件清单内(报告与实际 staged "
+                f"文件不一致的攻击被拒绝;EXAM_INVALID)")
+        if src_sha and sha_by_path[src] != src_sha:
+            raise BuilderIdentityError(
+                f"{where} entrypoint 报告({role})的 source_sha256 与 "
+                f"staged 文件 {src!r} 内容不一致(EXAM_INVALID)")
+    policy = manifest.get("signature_policy") or {}
+    if policy.get("enforced") is not True:
+        raise BuilderIdentityError(
+            f"{where} builder manifest 的 signature_policy.enforced "
+            f"必须为 True")
+    run_mode = str(manifest.get("run_mode") or "")
+    if run_mode not in BUILDER_RUN_MODES:
+        raise BuilderIdentityError(
+            f"{where} builder manifest 的 run_mode {run_mode!r} 不在"
+            f"预注册范围 {BUILDER_RUN_MODES}(EXAM_INVALID)")
+    if expected_run_mode is not None and run_mode != expected_run_mode:
+        raise BuilderIdentityError(
+            f"{where} builder run_mode({run_mode!r})与 commitment 绑定"
+            f"的运行模式({expected_run_mode!r})不一致(runtime mode "
+            f"与 commitment 一致性被拒绝;EXAM_INVALID)")
     return identity
 
 
@@ -1020,19 +1053,26 @@ def provider_runtime_isolation_report(
     候选运行时(rl_candidate_runtime)与 builder package tree 是不相交
     的目录;Provider 不进入 Candidate 沙箱(候选不可读/不可覆盖/不可
     选择 builder 身份)。此报告仅作审计证据,不参与信任判定。
+    v4 补充:Builder Runner(rl_builder_runtime)与 Candidate Runner
+    (rl_candidate_runtime)同样是不相交的最小运行时。
     """
+    import rl_builder_runtime
     import rl_candidate_runtime
 
     runtime_root = _module_path(rl_candidate_runtime).parent
+    builder_runtime_root = _module_path(rl_builder_runtime).parent
     tree_root_label = str((identity.manifest.get("package_tree") or {})
                           .get("root_label"))
     return {
         "builder_root_label": tree_root_label,
         "candidate_runtime_root": str(runtime_root),
+        "builder_runtime_root": str(builder_runtime_root),
         "disjoint": True,
         "note": (
             "Builder Identity Provider 是评估方可信主机输入;identity "
             "只经评估方代码进入 formal verifier,不传入 Candidate "
-            "sandbox,checkpoint/sidecar/context/pack 均无 provider 字段"
+            "sandbox,checkpoint/sidecar/context/pack 均无 provider 字段;"
+            "私有 Builder 只在隔离 Builder Runner(rl_builder_runtime,"
+            "与 rl_candidate_runtime 不同的最小运行时与挂载集合)内执行"
         ),
     }
