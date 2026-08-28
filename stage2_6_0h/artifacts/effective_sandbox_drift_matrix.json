@@ -1,0 +1,19 @@
+{
+  "stage": "2.6.0h-C3",
+  "matrix": {
+    "seccomp_mode=0": "REJECTED: seccomp 模式异常: 0(必须为 filter 模式 2;拒绝)",
+    "no_new_privs=0": "REJECTED: no_new_privs!=1:沙箱降级(拒绝)",
+    "mounts_digest 漂移": "REJECTED: 实际挂载摘要与 bootstrap 布置摘要不一致(沙箱漂移;拒绝)",
+    "fork 探针泄漏": "REJECTED: fork 探针未被拒绝(拒绝)",
+    "多余继承 fd": "REJECTED: 继承 fd 集合异常: [0, 1, 2, 9](只允许 0/1/2)",
+    "pidns 其他进程": "REJECTED: PID namespace 隔离缺失:pidns 内出现其他进程(拒绝)",
+    "网络未隔离": "REJECTED: 网络 namespace 隔离缺失:接口不止 lo(拒绝)",
+    "rlimit 未应用": "REJECTED: rlimit nofile 未实际应用(期望 256,收到 [1048576, 1048576];拒绝)",
+    "filter 摘要不符": "REJECTED: seccomp filter 摘要与进程树策略期望不符(拒绝)",
+    "允许 child": "REJECTED: 报告进程树策略 'allow_descendants' 与 profile 'single_builder_process' 不一致(拒绝)",
+    "child 计数>0": "REJECTED: 进程树违规:child=1,exec=0(拒绝)",
+    "exec 计数>0": "REJECTED: 进程树违规:child=0,exec=2(拒绝)",
+    "宿主 /etc 可见": "REJECTED: 宿主路径探针 host_etc_unnameable 未返回 ENOENT(pivot 未生效;拒绝)"
+  },
+  "verdict": "全部降级形态均使校验拒绝(不以代码相同替代状态证明)"
+}

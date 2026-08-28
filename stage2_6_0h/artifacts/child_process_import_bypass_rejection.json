@@ -1,0 +1,16 @@
+{
+  "stage": "2.6.0h-A3 PoC",
+  "poc": "Builder 父进程 -> subprocess 子 Python -> 子进程 import 未注册第三方(pytest) -> 确定性输出",
+  "demo_run_hashes": [
+    "p-d54d694244481beb2135ad7bced1362475541941ca088ec905dd008b9dd149a1",
+    "p-d54d694244481beb2135ad7bced1362475541941ca088ec905dd008b9dd149a1",
+    "p-d54d694244481beb2135ad7bced1362475541941ca088ec905dd008b9dd149a1"
+  ],
+  "demo_output_consistent": true,
+  "demo_child_version_output": "9.1.1",
+  "v1_lock_blindspot_proof": true,
+  "v2_child_count_exposed": true,
+  "normal_profile_rejected": true,
+  "normal_profile_message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)",
+  "verdict": "修复前(演示 profile)v1 锁漏检子进程 import;修复后seccomp 拒绝子进程创建,构建失败被拒"
+}

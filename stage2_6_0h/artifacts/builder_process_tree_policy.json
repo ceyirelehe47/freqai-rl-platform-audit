@@ -1,0 +1,49 @@
+{
+  "stage": "2.6.0h-D1",
+  "policy": {
+    "format": "builder-seccomp-policy-v1",
+    "arch": "x86_64",
+    "default_action": "allow",
+    "deny_eperm": [
+      "bpf",
+      "execve",
+      "execveat",
+      "fork",
+      "mount",
+      "perf_event_open",
+      "process_vm_readv",
+      "process_vm_writev",
+      "ptrace",
+      "setns",
+      "umount2",
+      "unshare",
+      "vfork"
+    ],
+    "clone3_action": "ENOSYS",
+    "clone": {
+      "require_any_flag": [
+        "CLONE_THREAD"
+      ],
+      "missing_flag_action": "EPERM"
+    },
+    "thread_creation": "allowed_clone_thread_only",
+    "child_process_policy": "single_builder_process"
+  },
+  "filter_digest": "scp-d3e1689b94af18456aba75d2488eaf3ff8fe0f694b58059ef8cb9d7e92597ee0",
+  "run_process_tree_policy": "single_builder_process",
+  "child_process_count": 0,
+  "child_process_attempts": 0,
+  "exec_count": 0,
+  "probes": {
+    "fork_denied": {
+      "result": "ERRNO1"
+    },
+    "exec_denied": {
+      "result": "ERRNO1"
+    }
+  },
+  "seccomp_mode": 2,
+  "no_new_privs": 1,
+  "thread_rule": "clone 仅允许 CLONE_THREAD(线程例外进入策略)",
+  "verdict": "single_builder_process 成立(0 子进程/0 exec)"
+}

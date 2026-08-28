@@ -1,0 +1,42 @@
+{
+  "stage": "2.6.0h-G",
+  "guard_audit": {
+    "format": "builder-stage-access-audit-v2",
+    "guarded": [
+      "model.zip"
+    ],
+    "violations": [],
+    "open_event_count": 1,
+    "spawn_event_count": 0,
+    "covered_events": [
+      "ctypes.dlopen",
+      "open",
+      "os.exec",
+      "os.fork",
+      "os.listdir",
+      "os.posix_spawn",
+      "os.scandir",
+      "os.spawn",
+      "os.system",
+      "subprocess.Popen"
+    ],
+    "stat_coverage": "namespace_unnameable(pivot_root;CPython 3.11 对 os.stat/os.access/os.readlink 无审计事件,stat 级不可利用由 Runner 沙箱的宿主路径 ENOENT 探针证明)",
+    "guard_active": false
+  },
+  "runner_probes": {
+    "host_etc_unnameable": {
+      "path": "/etc/hostname",
+      "result": "ENOENT"
+    },
+    "host_sys_unnameable": {
+      "path": "/sys",
+      "result": "ENOENT"
+    },
+    "host_home_unnameable": {
+      "path": "/home/cryptorl/.ssh",
+      "result": "ENOENT"
+    }
+  },
+  "formal_window": "4b(Builder 证明阶段)guard 覆盖 open/listdir/scandir/subprocess/system/dlopen;非 Builder Runner 子进程违规= Candidate 沙箱未启动证明",
+  "verdict": "checkpoint 未 open/stat/access(CPython 3.11 无 stat 审计事件,由 pivot 不可命名 + 探针 ENOENT 证明)"
+}

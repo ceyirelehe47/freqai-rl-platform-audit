@@ -1,0 +1,38 @@
+{
+  "stage": "2.6.0h-B1/B2",
+  "private_dev_nodes": [
+    "null",
+    "zero",
+    "urandom",
+    "random",
+    "full"
+  ],
+  "dev_shm": "独立 tmpfs(每次运行全新挂载)",
+  "dev_shm_listing": [],
+  "host_paths_unnameable": {
+    "host_etc_unnameable": {
+      "path": "/etc/hostname",
+      "result": "ENOENT"
+    },
+    "host_sys_unnameable": {
+      "path": "/sys",
+      "result": "ENOENT"
+    },
+    "host_home_unnameable": {
+      "path": "/home/cryptorl/.ssh",
+      "result": "ENOENT"
+    }
+  },
+  "proc_minimal_files": [
+    "/proc/self/status",
+    "/proc/self/maps",
+    "/proc/self/mountinfo",
+    "/proc/self/net/dev"
+  ],
+  "mounts_digest": "ecb253e032e3b837d9d69f69b42a386a533f2dcda69a31e7ed98459a3cd53b79",
+  "mount_ns": {
+    "pivot_root_applied": true,
+    "root_fstype": "tmpfs"
+  },
+  "verdict": "宿主 /dev(/dev/shm)//etc//sys/临时目录不可见或不可命名"
+}

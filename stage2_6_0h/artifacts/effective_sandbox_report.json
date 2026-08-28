@@ -1,0 +1,193 @@
+{
+  "stage": "2.6.0h-C1/C2",
+  "esb": "esb-c482bebc82688af929a018e880fdea8797218509b0d440fda2290fac48d79743",
+  "double_run_consistent": true,
+  "report": {
+    "format": "builder-effective-sandbox-report-v1",
+    "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+    "landlock": {
+      "abi": 4,
+      "handled_rights": 65535,
+      "grants_hash": "grt-59425a06340f66c739dc33befdb4889fbb4026e140bd6e209681d02414355dda"
+    },
+    "mounts_digest": "ecb253e032e3b837d9d69f69b42a386a533f2dcda69a31e7ed98459a3cd53b79",
+    "bootstrap_mountopts_digest": "ecb253e032e3b837d9d69f69b42a386a533f2dcda69a31e7ed98459a3cd53b79",
+    "no_new_privs": 1,
+    "seccomp_mode": 2,
+    "seccomp_filters": 2,
+    "seccomp_filter_hash": "scp-d3e1689b94af18456aba75d2488eaf3ff8fe0f694b58059ef8cb9d7e92597ee0",
+    "seccomp_policy": {
+      "format": "builder-seccomp-policy-v1",
+      "arch": "x86_64",
+      "default_action": "allow",
+      "deny_eperm": [
+        "bpf",
+        "execve",
+        "execveat",
+        "fork",
+        "mount",
+        "perf_event_open",
+        "process_vm_readv",
+        "process_vm_writev",
+        "ptrace",
+        "setns",
+        "umount2",
+        "unshare",
+        "vfork"
+      ],
+      "clone3_action": "ENOSYS",
+      "clone": {
+        "require_any_flag": [
+          "CLONE_THREAD"
+        ],
+        "missing_flag_action": "EPERM"
+      },
+      "thread_creation": "allowed_clone_thread_only",
+      "child_process_policy": "single_builder_process"
+    },
+    "namespaces": {
+      "user": {
+        "inside_userns_root_uid": 0
+      },
+      "mount": {
+        "pivot_root_applied": true,
+        "root_fstype": "tmpfs"
+      },
+      "pid": {
+        "self_pid_in_namespace": 1,
+        "pids_in_namespace": [
+          1
+        ]
+      },
+      "net": {
+        "interfaces": [
+          "lo"
+        ]
+      }
+    },
+    "rlimits": {
+      "cpu_seconds": [
+        900,
+        900
+      ],
+      "address_space_bytes": [
+        4294967296,
+        4294967296
+      ],
+      "file_size_bytes": [
+        67108864,
+        67108864
+      ],
+      "nofile": [
+        256,
+        256
+      ],
+      "nproc": [
+        128,
+        128
+      ]
+    },
+    "inherited_fds": [
+      0,
+      1,
+      2
+    ],
+    "process_tree_policy": "single_builder_process",
+    "child_process_count": 0,
+    "exec_count": 0,
+    "private_dev_nodes": [
+      "null",
+      "zero",
+      "urandom",
+      "random",
+      "full"
+    ],
+    "proc_minimal_files": [
+      "/proc/self/status",
+      "/proc/self/maps",
+      "/proc/self/mountinfo",
+      "/proc/self/net/dev"
+    ],
+    "probes": {
+      "fork_denied": {
+        "result": "ERRNO1"
+      },
+      "exec_denied": {
+        "result": "ERRNO1"
+      },
+      "host_etc_unnameable": {
+        "path": "/etc/hostname",
+        "result": "ENOENT"
+      },
+      "host_sys_unnameable": {
+        "path": "/sys",
+        "result": "ENOENT"
+      },
+      "host_home_unnameable": {
+        "path": "/home/cryptorl/.ssh",
+        "result": "ENOENT"
+      },
+      "dev_shm_private": {
+        "listing": []
+      }
+    },
+    "detail": {
+      "landlock_grants": [
+        {
+          "path": "/home/cryptorl/miniforge3/envs/freqtrade-rl",
+          "rights": 13
+        },
+        {
+          "path": "/usr",
+          "rights": 13
+        },
+        {
+          "path": "<WORKDIR>/runtime",
+          "rights": 12
+        },
+        {
+          "path": "<WORKDIR>/builder_pkg",
+          "rights": 12
+        },
+        {
+          "path": "/proc/self/status",
+          "rights": 4
+        },
+        {
+          "path": "/proc/self/maps",
+          "rights": 4
+        },
+        {
+          "path": "/proc/self/mountinfo",
+          "rights": 4
+        },
+        {
+          "path": "/proc/self/net/dev",
+          "rights": 4
+        },
+        {
+          "path": "<WORKDIR>/scratch",
+          "rights": 65534
+        },
+        {
+          "path": "/dev",
+          "rights": 65534
+        },
+        {
+          "path": "/tmp",
+          "rights": 65534
+        },
+        {
+          "path": "/proc",
+          "rights": 8
+        },
+        {
+          "path": "/proc/self/fd",
+          "rights": 8
+        }
+      ]
+    },
+    "child_process_attempts": 0
+  },
+  "verdict": "实际生效状态报告(内核/namespace/seccomp/mount/rlimit/fd/探针)由真实 Runner 运行产生并进入 evidence"
+}
