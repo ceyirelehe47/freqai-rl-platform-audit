@@ -1,0 +1,92 @@
+{
+  "worker_side_probes": {
+    "fork_denied": {
+      "result": "ERRNO1"
+    },
+    "exec_denied": {
+      "result": "ERRNO1"
+    },
+    "clone_thread_denied": {
+      "result": "ERRNO1"
+    },
+    "host_usr": {
+      "result": "ENOENT"
+    },
+    "host_home": {
+      "result": "ENOENT"
+    },
+    "host_etc_hostname": {
+      "result": "ENOENT"
+    },
+    "host_sys": {
+      "result": "ENOENT"
+    },
+    "host_oldroot_usr": {
+      "result": "ENOENT"
+    },
+    "proc_self_status": {
+      "result": "ENOENT"
+    },
+    "proc_listing_empty": {
+      "result": true
+    }
+  },
+  "proc": {
+    "mounted": false,
+    "self_status": "ENOENT",
+    "listing_empty": true
+  },
+  "dev": {
+    "nodes": [
+      "full",
+      "null",
+      "random",
+      "shm",
+      "urandom",
+      "zero"
+    ],
+    "urandom_regular_file": true,
+    "deterministic_entropy_sha256_prefix": "db269cb2af385821"
+  },
+  "hostname": "builder-worker",
+  "host_side_reference": {
+    "/etc/hostname": "HOST_EXISTS",
+    "/usr": "HOST_EXISTS",
+    "/home": "HOST_EXISTS",
+    "/sys": "HOST_EXISTS",
+    "/proc/self/status": "HOST_EXISTS",
+    "/etc/beacon-not-exist": "ENOENT",
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python3.11": "HOST_EXISTS",
+    "/home/cryptorl/.bashrc": "HOST_EXISTS"
+  },
+  "environment_identity": {
+    "environ": {
+      "HOME": "/scratch",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PATH": "/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONHOME": "/",
+      "PYTHONPATH": "/runtime",
+      "RL_BUILDER_PROCESS_TREE": "single_builder_process",
+      "RL_SB_HOSTNAME": "builder-worker",
+      "RL_SB_LANDLOCK_ABI": "4",
+      "RL_SB_LANDLOCK_GRANTS": "[{\"path\":\"/\",\"rights\":13},{\"path\":\"/scratch\",\"rights\":65534},{\"path\":\"/dev\",\"rights\":65534},{\"path\":\"/tmp\",\"rights\":65534}]",
+      "RL_SB_LANDLOCK_HANDLED": "65535",
+      "RL_SB_MOUNTOPTS": "3344e5f3720f02f7f43c0fd730c2e335a29764a366c97c9fef429d8703c4f0a4",
+      "TMPDIR": "/scratch",
+      "TZ": "UTC"
+    },
+    "uname_release": "6.18.33.2-microsoft-standard-WSL2",
+    "uname_machine": "x86_64",
+    "cpu_count": 12,
+    "affinity_count": 12,
+    "cwd": "/scratch"
+  },
+  "note": "Worker 内全部 ENOENT(pivot 后不可命名);HOST_EXISTS 表示宿主确有该路径(对照)"
+}

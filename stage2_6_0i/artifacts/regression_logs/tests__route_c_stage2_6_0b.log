@@ -1,0 +1,63 @@
+........................................................................ [ 45%]
+........................................................................ [ 90%]
+...............                                                          [100%]
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_0b/test_duration_hours_materializes_rows.py::test_date_axis_spacing_matches_timeframe[15m-48.0-192]
+tests/route_c_stage2_6_0b/test_duration_hours_materializes_rows.py::test_date_axis_spacing_matches_timeframe[5m-48.0-576]
+tests/route_c_stage2_6_0b/test_duration_hours_materializes_rows.py::test_date_axis_spacing_matches_timeframe[1h-48.0-48]
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_0b/test_duration_hours_materializes_rows.py:39: UserWarning: The 'unit' keyword is only used when the Timedelta input is an integer or float, not object. To specify the storage unit of the output use `td.as_unit(unit)`
+    assert pd.Timedelta(deltas[0]) == pd.Timedelta(minutes=minutes, unit="m")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 50 durations =============================
+114.11s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_tampered_eval_config_is_exam_invalid
+40.79s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_mock_sealed_exam_v3_full_pipeline
+19.62s call     tests/route_c_stage2_6_0b/test_counterfactual_actual_replication_count.py::test_run_counterfactual_suite_returns_actual_replication_counts
+15.73s call     tests/route_c_stage2_6_0b/test_sandbox_profile_binding.py::test_v1_commitment_rejected_with_explicit_version_error
+12.44s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_idempotent_retry_returns_same_attempt
+12.10s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_missing_attestation_is_exam_invalid
+11.99s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_tampered_checkpoint_is_exam_invalid
+11.32s setup    tests/route_c_stage2_6_0b/test_counterfactual_actual_replication_count.py::test_run_counterfactual_suite_returns_actual_replication_counts
+4.72s call     tests/route_c_stage2_6_0b/test_mock_sealed_exam_v3.py::test_tampered_pack_is_exam_invalid
+3.56s call     tests/route_c_stage2_6_0b/test_formal_cli_has_no_inprocess_bypass.py::test_dev_mode_marks_formal_conclusion_false
+3.42s call     tests/route_c_stage2_6_0b/test_invalid_null_rejected.py::test_predictable_pseudo_null_rejected
+3.02s call     tests/route_c_stage2_6_0b/test_sandbox_output_protocol_limit.py::test_sandboxed_candidate_happy_path
+1.76s call     tests/route_c_stage2_6_0b/test_invalid_null_rejected.py::test_drifting_pseudo_null_rejected
+0.77s call     tests/route_c_stage2_6_0b/test_sandbox_resource_limits.py::test_memory_limit_enforced
+0.51s call     tests/route_c_stage2_6_0b/test_sandbox_output_protocol_limit.py::test_response_timeout_fails_closed
+0.47s call     tests/route_c_stage2_6_0b/test_formal_cli_has_no_inprocess_bypass.py::test_sealed_mode_without_manifest_exits_2
+0.44s call     tests/route_c_stage2_6_0b/test_formal_cli_has_no_inprocess_bypass.py::test_no_subprocess_flag_is_rejected_by_argparse
+0.25s call     tests/route_c_stage2_6_0b/test_sandbox_profile_binding.py::test_commitment_rejects_profile_mismatch
+0.24s call     tests/route_c_stage2_6_0b/test_sandbox_resource_limits.py::test_file_size_limit_enforced
+0.22s call     tests/route_c_stage2_6_0b/test_sandbox_resource_limits.py::test_rlimits_applied_inside_sandbox
+0.20s call     tests/route_c_stage2_6_0b/test_sandbox_resource_limits.py::test_nproc_limit_blocks_subprocess_explosion
+0.19s call     tests/route_c_stage2_6_0b/test_sandbox_resource_limits.py::test_custom_profile_rlimits
+0.17s call     tests/route_c_stage2_6_0b/test_sandbox_readonly_checkpoint.py::test_checkpoint_append_truncate_remove_chmod_denied
+0.17s call     tests/route_c_stage2_6_0b/test_sandbox_readonly_checkpoint.py::test_checkpoint_sha_unchanged_after_sandbox_run
+0.16s call     tests/route_c_stage2_6_0b/test_sandbox_network_denial.py::test_netns_has_no_external_routes
+0.15s call     tests/route_c_stage2_6_0b/test_sandbox_readonly_checkpoint.py::test_checkpoint_write_via_mountinfo_denied
+0.11s call     tests/route_c_stage2_6_0b/test_sandbox_profile_binding.py::test_commitment_requires_profile
+0.10s call     tests/route_c_stage2_6_0b/test_invalid_null_rejected.py::test_implementation_change_invalidates_qualification
+0.09s call     tests/route_c_stage2_6_0b/test_generator_actual_implementation_hash.py::test_verify_rejects_tampered_implementation
+0.09s call     tests/route_c_stage2_6_0b/test_single_seed_failure_not_cheating.py::test_two_seeds_failing_still_not_cheating_with_min_three
+0.09s call     tests/route_c_stage2_6_0b/test_single_seed_failure_not_cheating.py::test_single_seed_failure_not_cheating
+0.09s call     tests/route_c_stage2_6_0b/test_sandbox_network_denial.py::test_loopback_connect_denied
+0.09s call     tests/route_c_stage2_6_0b/test_single_seed_failure_not_cheating.py::test_diagnostic_insufficient_evidence_not_cheating
+0.09s call     tests/route_c_stage2_6_0b/test_sandbox_filesystem_denial.py::test_scratch_writable_but_not_others
+0.09s call     tests/route_c_stage2_6_0b/test_single_seed_failure_not_cheating.py::test_no_effective_score_not_cheating
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_parent_proc_denial.py::test_worker_env_is_scrubbed
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_hidden_pack_denial.py::test_hidden_pack_content_unreadable
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_parent_proc_denial.py::test_parent_cmdline_and_environ_unreachable
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_parent_proc_denial.py::test_inherited_fds_beyond_stdio_closed
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_network_denial.py::test_external_connect_denied
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_network_denial.py::test_dns_resolution_fails
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_parent_proc_denial.py::test_proc_shows_only_sandbox_processes
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_hidden_pack_denial.py::test_mountinfo_does_not_leak_eval_paths
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_filesystem_denial.py::test_eval_workspace_sentinel_unreadable
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_hidden_pack_denial.py::test_attempt_registry_and_eval_logs_denied
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_filesystem_denial.py::test_real_tmp_other_files_denied
+0.08s call     tests/route_c_stage2_6_0b/test_nuisance_bidirectional_equivalence.py::test_rule_trend_ignoring_nuisance_passes_both_modes
+0.08s call     tests/route_c_stage2_6_0b/test_sandbox_filesystem_denial.py::test_project_root_not_listable
+0.07s call     tests/route_c_stage2_6_0b/test_counterfactual_actual_replication_count.py::test_pack_total_not_used_as_replication
+0.07s call     tests/route_c_stage2_6_0b/test_counterfactual_actual_replication_count.py::test_replication_counts_come_from_actual_records
+159 passed, 3 warnings in 262.46s (0:04:22)

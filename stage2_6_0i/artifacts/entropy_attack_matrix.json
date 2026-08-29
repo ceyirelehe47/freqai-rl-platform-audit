@@ -1,0 +1,30 @@
+{
+  "os_urandom": {
+    "run_ok": true,
+    "deterministic_across_processes": true,
+    "getrandom": "ERRNO1",
+    "dev_urandom_deterministic": true
+  },
+  "secrets": {
+    "run_ok": true,
+    "deterministic_across_processes": true,
+    "getrandom": "ERRNO1",
+    "dev_urandom_deterministic": true
+  },
+  "systemrandom": {
+    "run_ok": true,
+    "deterministic_across_processes": true,
+    "getrandom": "ERRNO1",
+    "dev_urandom_deterministic": true
+  },
+  "numpy_unseeded": {
+    "run_ok": true,
+    "deterministic_across_processes": true,
+    "getrandom": "ERRNO1",
+    "dev_urandom_deterministic": true
+  },
+  "getrandom_raw": {
+    "rejected": true,
+    "error": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 RuntimeError(脱敏);已脱敏)"
+  }
+}
