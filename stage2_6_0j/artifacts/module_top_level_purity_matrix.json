@@ -1,0 +1,55 @@
+{
+  "matrix": {
+    "time": {
+      "ok": true,
+      "problems": []
+    },
+    "random": {
+      "ok": false,
+      "problems": [
+        "顶层 import 'random' 不在正式 allowlist(纯模块=['abc', 'cmath', 'collections', 'collections.abc', 'dataclasses', 'datetime', 'decimal', 'enum', 'fractions', 'functools', 'hashlib', 'itertools', 'json', 'math', 'numbers', 'operator', 're', 'statistics', 'string', 'time', 'typing', 'unicodedata'])"
+      ]
+    },
+    "os": {
+      "ok": false,
+      "problems": [
+        "顶层 import 'os' 属于禁止模块"
+      ]
+    },
+    "ctypes": {
+      "ok": false,
+      "problems": [
+        "顶层 import 'ctypes' 属于禁止模块"
+      ]
+    },
+    "numpy": {
+      "ok": false,
+      "problems": [
+        "顶层 import 'numpy' 属于禁止模块"
+      ]
+    },
+    "top_call": {
+      "ok": false,
+      "problems": [
+        "模块顶层: 赋值右侧必须是字面量(收到 Call;顶层构造调用被拒绝)"
+      ]
+    },
+    "top_stat": {
+      "ok": false,
+      "problems": [
+        "顶层 import 'os' 属于禁止模块",
+        "模块顶层: 赋值右侧必须是字面量(收到 Attribute;顶层构造调用被拒绝)"
+      ]
+    },
+    "literal_ok": {
+      "ok": true,
+      "problems": []
+    },
+    "def_ok": {
+      "ok": true,
+      "problems": []
+    }
+  },
+  "ast_rule": "import-allowlist|def/class|literal-assign|docstring(类体同规则)",
+  "runtime_layer": "toplevel 阶段 audit hook 危险事件违规(import 机制合法足迹除外)"
+}

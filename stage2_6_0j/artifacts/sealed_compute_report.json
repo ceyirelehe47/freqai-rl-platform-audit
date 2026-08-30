@@ -1,0 +1,745 @@
+{
+  "format": "sealed-compute-report-v2",
+  "pidns_self_pid": 1,
+  "uts_hostname": "builder-worker",
+  "netns_interfaces": [
+    "lo"
+  ],
+  "root_readonly": true,
+  "scratch_initial_listing": [],
+  "proc": {
+    "mounted": false,
+    "self_status": "ENOENT",
+    "listing_empty": true
+  },
+  "dev": {
+    "nodes": [
+      "full",
+      "null",
+      "random",
+      "shm",
+      "urandom",
+      "zero"
+    ],
+    "urandom_regular_file": true,
+    "deterministic_entropy_sha256_prefix": "db269cb2af385821"
+  },
+  "clock": {
+    "vdso": {
+      "vdso": "replaced-with-frozen-stub",
+      "mode": "frozen-stub",
+      "frozen_epoch": 0,
+      "stubs": {
+        "__vdso_clock_getres": 3856,
+        "__vdso_clock_gettime": 2928,
+        "__vdso_getcpu": 3968,
+        "__vdso_gettimeofday": 2144,
+        "__vdso_time": 2880
+      },
+      "stub_sha256": "275969b96e8b2556c1ae27fe14334c1aa4d569c273fb75be47f16e562370e1c0",
+      "original_vdso_sha256": "e8be083a61867cd6690506abfe20a6bfa232bdd46c5caa2093acb05a24b3e29c"
+    },
+    "pr_set_tsc_rc": 0,
+    "raw_syscall": {
+      "clock_gettime": "ERRNO1",
+      "time": "ERRNO1",
+      "gettimeofday": "ERRNO1",
+      "clock_gettime64": "ERRNO1"
+    },
+    "behavior": {
+      "time_time": 0.0,
+      "time_monotonic": 0.0,
+      "time_perf_counter": 0.0,
+      "datetime_now_year": 1970,
+      "datetime_utcnow_year": 1970
+    }
+  },
+  "entropy": {
+    "getrandom": "ERRNO1",
+    "dev_urandom_deterministic": true
+  },
+  "seccomp": {
+    "installed": true,
+    "filter_hash": "scp-cfe7b727be67d99b2790692e1f3060f3be8ff9affa3add86d085b13d0c1ee6b7",
+    "policy": {
+      "format": "builder-seccomp-policy-v2",
+      "arch_check": {
+        "field": "seccomp_data.arch",
+        "expect": "AUDIT_ARCH_X86_64",
+        "mismatch_action": "EPERM(fail closed)"
+      },
+      "x32_check": {
+        "mask": "0x40000000(__X32_SYSCALL_BIT)",
+        "set_action": "EPERM(fail closed)"
+      },
+      "default_action": "allow",
+      "deny_eperm": [
+        "adjtimex",
+        "bpf",
+        "clock_adjtime",
+        "clock_gettime",
+        "clock_gettime64",
+        "clock_nanosleep",
+        "clock_settime",
+        "execve",
+        "execveat",
+        "fork",
+        "getrandom",
+        "getrusage",
+        "gettimeofday",
+        "mount",
+        "nanosleep",
+        "perf_event_open",
+        "process_vm_readv",
+        "process_vm_writev",
+        "ptrace",
+        "setns",
+        "time",
+        "times",
+        "umount2",
+        "unshare",
+        "vfork"
+      ],
+      "clone3_action": "ENOSYS",
+      "clone_action": "EPERM",
+      "thread_policy": "threads_forbidden_clone_denied",
+      "child_process_policy": "single_builder_process"
+    }
+  },
+  "thread_policy": "threads_forbidden_clone_denied",
+  "process_tree_policy": "single_builder_process",
+  "environment": {
+    "environ": {
+      "HOME": "/scratch",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PATH": "/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONHOME": "/",
+      "PYTHONPATH": "/runtime",
+      "RL_BUILDER_DEP_PROFILE": "formal",
+      "RL_BUILDER_PROCESS_TREE": "single_builder_process",
+      "RL_SB_HOSTNAME": "builder-worker",
+      "RL_SB_LANDLOCK_ABI": "4",
+      "RL_SB_LANDLOCK_GRANTS": "[{\"path\":\"/\",\"rights\":13},{\"path\":\"/scratch\",\"rights\":65534},{\"path\":\"/dev\",\"rights\":65534},{\"path\":\"/tmp\",\"rights\":65534}]",
+      "RL_SB_LANDLOCK_HANDLED": "65535",
+      "RL_SB_MOUNTOPTS": "3344e5f3720f02f7f43c0fd730c2e335a29764a366c97c9fef429d8703c4f0a4",
+      "TMPDIR": "/scratch",
+      "TZ": "UTC"
+    },
+    "uname_release": "6.18.33.2-microsoft-standard-WSL2",
+    "uname_machine": "x86_64",
+    "cpu_count": 12,
+    "affinity_count": 12,
+    "cwd": "/scratch"
+  },
+  "probes": {
+    "fork_denied": {
+      "result": "ERRNO1"
+    },
+    "exec_denied": {
+      "result": "ERRNO1"
+    },
+    "clone_thread_denied": {
+      "result": "ERRNO1"
+    },
+    "host_usr": {
+      "result": "ENOENT"
+    },
+    "host_home": {
+      "result": "ENOENT"
+    },
+    "host_etc_hostname": {
+      "result": "ENOENT"
+    },
+    "host_sys": {
+      "result": "ENOENT"
+    },
+    "host_oldroot_usr": {
+      "result": "ENOENT"
+    },
+    "proc_self_status": {
+      "result": "ENOENT"
+    },
+    "proc_listing_empty": {
+      "result": true
+    }
+  },
+  "mounts_digest": "3344e5f3720f02f7f43c0fd730c2e335a29764a366c97c9fef429d8703c4f0a4",
+  "sealed_compute": {
+    "phase_plan": "prepare->seal->compute",
+    "dependency_policy": {
+      "format": "builder-dependency-policy-v1",
+      "profile": "formal",
+      "pure_modules": [
+        "abc",
+        "collections",
+        "collections.abc",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "enum",
+        "fractions",
+        "functools",
+        "itertools",
+        "json",
+        "numbers",
+        "operator",
+        "re",
+        "statistics",
+        "string",
+        "time",
+        "typing"
+      ],
+      "native_modules": [
+        "_datetime",
+        "_decimal",
+        "_hashlib",
+        "_json",
+        "_md5",
+        "_random",
+        "_sha256",
+        "_sha512",
+        "_sre",
+        "_statistics",
+        "cmath",
+        "hashlib",
+        "math",
+        "unicodedata"
+      ],
+      "native_policy": "Seal 前预加载;文件进入 bundle native closure;无地址/加载/随机 API",
+      "forbidden_modules": [
+        "antigravity",
+        "builtins",
+        "cffi",
+        "code",
+        "codeop",
+        "compileall",
+        "ctypes",
+        "importlib",
+        "marshal",
+        "mmap",
+        "multiprocessing",
+        "numba",
+        "numpy",
+        "os",
+        "pathlib",
+        "pickle",
+        "resource",
+        "runpy",
+        "shelve",
+        "signal",
+        "socket",
+        "subprocess",
+        "sys",
+        "torch",
+        "webbrowser"
+      ],
+      "third_party_native": "rejected",
+      "numpy_formal_eligible": false,
+      "formal_eligible": true
+    },
+    "top_level_purity": {
+      "module_count": 3,
+      "all_ok": true,
+      "digest": "pur-f487ea2acf4ed20c606db72fe428cb1d577dad5082c0999bdde30f94603592bd",
+      "profile": "formal"
+    },
+    "preloaded_modules": [
+      "_datetime",
+      "_decimal",
+      "_hashlib",
+      "_json",
+      "_md5",
+      "_random",
+      "_sha256",
+      "_sha512",
+      "_sre",
+      "_statistics",
+      "abc",
+      "cmath",
+      "collections",
+      "collections.abc",
+      "dataclasses",
+      "datetime",
+      "decimal",
+      "enum",
+      "fractions",
+      "functools",
+      "hashlib",
+      "itertools",
+      "json",
+      "math",
+      "numbers",
+      "operator",
+      "re",
+      "statistics",
+      "string",
+      "time",
+      "typing",
+      "unicodedata"
+    ],
+    "final_seccomp": {
+      "policy": {
+        "format": "builder-seccomp-final-policy-v3",
+        "arch_check": {
+          "field": "seccomp_data.arch",
+          "expect": "AUDIT_ARCH_X86_64",
+          "mismatch_action": "EPERM(fail closed)"
+        },
+        "x32_check": {
+          "mask": "0x40000000(__X32_SYSCALL_BIT)",
+          "set_action": "EPERM(fail closed)"
+        },
+        "default_action": "EPERM",
+        "allowlist": {
+          "brk": {
+            "nr": 12,
+            "arg_policy": null
+          },
+          "close": {
+            "nr": 3,
+            "arg_policy": null
+          },
+          "exit": {
+            "nr": 60,
+            "arg_policy": null
+          },
+          "exit_group": {
+            "nr": 231,
+            "arg_policy": null
+          },
+          "futex": {
+            "nr": 202,
+            "arg_policy": null
+          },
+          "getpid": {
+            "nr": 39,
+            "arg_policy": null
+          },
+          "gettid": {
+            "nr": 186,
+            "arg_policy": null
+          },
+          "madvise": {
+            "nr": 28,
+            "arg_policy": null
+          },
+          "mmap": {
+            "nr": 9,
+            "arg_policy": {
+              "arg": 2,
+              "rule": "no-prot-exec",
+              "why": "禁止新增可执行映射"
+            }
+          },
+          "mprotect": {
+            "nr": 10,
+            "arg_policy": {
+              "arg": 2,
+              "rule": "no-prot-exec",
+              "why": "禁止 W->X(可写页不可获得执行权限)"
+            }
+          },
+          "mremap": {
+            "nr": 25,
+            "arg_policy": null
+          },
+          "munmap": {
+            "nr": 11,
+            "arg_policy": null
+          },
+          "read": {
+            "nr": 0,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "fd-in",
+              "fds": [
+                88
+              ],
+              "why": "仅允许读 RESULT_ACK_FD(final 后第二阶段确认;Supervisor 在 final 行之前不写入任何字节,Build在 Compute 内读只会阻塞至超时自毁,无输入可泄漏)"
+            }
+          },
+          "restart_syscall": {
+            "nr": 219,
+            "arg_policy": null
+          },
+          "rt_sigaction": {
+            "nr": 13,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "signal-not-in",
+              "signals": [
+                4,
+                7,
+                8,
+                11,
+                31
+              ],
+              "why": "禁止接管崩溃信号(含 PR_TSC_SIGSEGV 路径)"
+            }
+          },
+          "rt_sigprocmask": {
+            "nr": 14,
+            "arg_policy": null
+          },
+          "rt_sigreturn": {
+            "nr": 15,
+            "arg_policy": null
+          },
+          "sched_yield": {
+            "nr": 24,
+            "arg_policy": null
+          },
+          "write": {
+            "nr": 1,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "fd-in",
+              "fds": [
+                1,
+                2,
+                87
+              ],
+              "why": "fd1/2 已重定向 /dev/null(Builder 写即丢弃);RESULT_FD 是 Runner 唯一输出通道,Compute 段任何早写被 Supervisor 记 protocol violation"
+            }
+          }
+        },
+        "deny_families": {
+          "process_thread": "fork/vfork/clone/clone3/execve/execveat(default deny,未列入 allowlist)",
+          "state_control": "prctl/seccomp/arch_prctl/personality/ptrace/process_vm_*/setns/unshare",
+          "time": "clock_gettime/time/gettimeofday/times/getrusage/nanosleep 族/timer 族/adjtimex",
+          "entropy": "getrandom",
+          "kernel_state": "sysinfo/getcpu/sched_getaffinity/uname/perf_event_open/bpf",
+          "file_metadata": "open/openat/creat/pread64/write(参数外fd)/read(参数外fd)/getdents64/lseek/stat/lstat/newfstatat/statx/statfs/fstatfs/access/faccessat/readlink/xattr 族/mount/umount2",
+          "exec_memory": "mmap/mprotect/pkey_mprotect(PROT_EXEC)/memfd_create/userfaultfd",
+          "network": "socket/connect/bind/accept/send/recv 族"
+        },
+        "measured_by": "strace 实测 CPython3.11 纯计算段(brk/mmap/munmap/mremap/write)并补充运行时安全网(信号/锁/调度/退出);未实测调用项均为无返回信息机制类 syscall",
+        "thread_policy": "threads_forbidden_clone_denied",
+        "child_process_policy": "single_builder_process"
+      },
+      "filter_digest": "scf-b36c8213023057b99bc984978c15915503c3fcdab791f50871f204fd38679dc9",
+      "default_action": "EPERM",
+      "arg_limits": [
+        "write.fd-in(1,2,RESULT_FD)",
+        "mmap/mprotect.no-prot-exec",
+        "rt_sigaction.signal-not-in(SIGILL,SIGBUS,SIGFPE,SIGSEGV,SIGSYS)"
+      ]
+    },
+    "compute_forbidden_events": [
+      "import",
+      "open",
+      "os.listdir",
+      "os.scandir",
+      "os.system",
+      "subprocess.Popen",
+      "ctypes.dlopen",
+      "ctypes.dlsym",
+      "os.fork",
+      "os.exec",
+      "os.posix_spawn",
+      "os.spawn",
+      "exec",
+      "compile",
+      "builtins.input",
+      "os.putenv",
+      "os.unsetenv"
+    ],
+    "result_fd": 87,
+    "tsc": {
+      "pr_set_tsc_rc": 0,
+      "prctl_denied_in_compute": "final-filter-eperm"
+    }
+  },
+  "runtime_bundle": {
+    "manifest_digest": "rbm-9e6673fc281080ac62a24cb6669ac396f8982c6d00d25717a5184a6146ad66e8",
+    "file_count": 35177,
+    "syslib_sonames": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libXau.so.6",
+      "libXdmcp.so.6",
+      "libbsd.so.0",
+      "libbz2.so.1.0",
+      "libc.so.6",
+      "libcrypt.so.2",
+      "libcrypto.so.3",
+      "libdl.so.2",
+      "libexpat.so.1",
+      "libffi.so.8",
+      "libgcc_s.so.1",
+      "libgomp.so.1",
+      "libicudata.so.78",
+      "libicui18n.so.78",
+      "libicuio.so.78",
+      "libicutu.so.78",
+      "libicuuc.so.78",
+      "liblzma.so.5",
+      "libm.so.6",
+      "libmd.so.0",
+      "libncurses.so.6",
+      "libncursesw.so.6",
+      "libnsl.so.3",
+      "libpanelw.so.6",
+      "libpthread.so.0",
+      "libpython3.11.so.1.0",
+      "libreadline.so.8",
+      "librt.so.1",
+      "libsqlite3.so.0",
+      "libssl.so.3",
+      "libstdc++.so.6",
+      "libtcl8.6.so",
+      "libtinfo.so.6",
+      "libtinfow.so.6",
+      "libtk8.6.so",
+      "libutil.so.1",
+      "libuuid.so.1",
+      "libxcb.so.1",
+      "libz.so.1",
+      "libzstd.so.1"
+    ],
+    "hostname": "builder-worker"
+  },
+  "supervisor": {
+    "seccomp_mode": 2,
+    "no_new_privs": 1,
+    "worker_pidns_pid": 1,
+    "thread_count": 1,
+    "task_comms": [
+      "python3.11"
+    ],
+    "child_process_count": 0,
+    "native_libraries": [
+      {
+        "path": "/lib/libbz2.so.1.0.8",
+        "sha256": "89167cfb36a81306dcf8f439436f46dda12f0bbf4877b9f87abfd079bf765c46",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/libcrypto.so.3",
+        "sha256": "39c96a593a54be07175f4ab0710306bc17cda0f763a86c3f87f4ce710f40bedb",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/libffi.so.8.4.0",
+        "sha256": "50cb4c4820a57bc2993393e4ae3367ce361f3334cfbc98fe7dae41bda7a5f796",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/liblzma.so.5",
+        "sha256": "491c01c02da5a22f5825a7c05a561e175aa70c203d5e462dfe90b5040dbdaf50",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/libz.so.1.3.2",
+        "sha256": "3c6fd78e248a60e45081bcc77031204a7cb64a88ff2e27fc786ef12ae7e91fca",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_bisect.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "21911eff9c9f80a33e678af8a12cbd8cfd0878acfacd21de3e5c5b2cc2342672",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_blake2.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "10a6e5a79d7ab8c0186558e1bf3b6d8213492e88580307c431fd36fdb03f9b11",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_bz2.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "4a2b2a1af0533772837c2a960d9a19fd8ccf5ae8dec95d4b5adf2f5e7f1bdfee",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_csv.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "36284ea5d599833b4706fc8e2578e669ec276ac5c2f9b9b12462a6502c684fea",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_ctypes.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "fb39f8cc53dbeaafc377eb2d43e20d5890685655f0d47c38f8f7c49a52a5f0da",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_datetime.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "7e67a0d73524671f78a2f66002fc2c7e5a8cd16c70dad41d75fdd33e20e2d21b",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_decimal.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "19ed683278a1e0df8d2893f6f879695364fd8302dbbc483641fc1c430b662b16",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_hashlib.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "00109430e54ae2fb8a88df95219ecdc19f4ff0a0ddde947291fe4a96189f8ee6",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_json.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "a988dd54c046b1f3b42ecc05f7553b354b815c0d368df815ec50b955461c7d09",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_lzma.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "302a464e17e86a29e59ffd75fca01e4232f9cc4820ec73af789bd8a52da0ac4c",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_md5.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "ef1006b8a5c1c94783173b55eab1dbfbd31751b6f796d36e0d49fba4488c15a7",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_opcode.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "182de487a1c9b00a4b31c5a2e6e421a438914cb972d0ea32fd2f4a24fd2d450d",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_random.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "7057a1772a11aa46947e1fd7f129989c7364bc013a02311e7f2d9db72ca2079a",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_sha256.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "cec3f5a47afc97d319ee3cf2cd206ad7475ad2fb92e87042a33ace3c2c5518a2",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_sha512.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "26a01fd70a90690921f6b0b046f786cdeefc26241828e97f873ccf5504e3a77b",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_socket.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "dbd035766e44ce24516d8d56ea0138918ee82f771b2fa2aebbe3beb8f4af895a",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_statistics.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "342fdfd287edd653993651e166a9775acdb1d4d7fd3b04834837e594176bcdb2",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_struct.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "a12a90a14fe7e41e03a6440740f974b7c39eceb21b9382e75b704023eb636d97",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/_typing.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "fad1de612f770338e88512a95bcc0bf6ad1b18df60576f4557a0a5258a0bb1c9",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/array.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "d946103cdee9179bde5a7d8138b8c5bafc8bdd0a9a9ab15e348603f9ad6532bd",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/binascii.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "82a91bb6ab4259217a447623565d6bfdf3b3bc91e3ae36a36bb9e0c2e51ca64c",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/cmath.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "3c40c6b36fe55424af917a8bc0817aba767d2568dd4128d745716ef03d2b3624",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/math.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "bc6564c5ecb5fc7363fe917cd76aec5148af2cab7a8c29e7e79e2b6e2a4e97ec",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/select.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "c380876c3fe57f9ee4cf02ed9e9c49ea69efe0f236e037c68a05960f701a7273",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/unicodedata.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "e1b3dbc035af7e865f297c8f56bdd803ae700975b647afe7252f7906288449d2",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/python3.11/lib-dynload/zlib.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "fdb1fc620120a252f95c888f649d7e615a229fc7e1f8f23808dc205a6effb59d",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/x86_64-linux-gnu/libc.so.6",
+        "sha256": "8db37cf3f2169f59a0f07ef1fea308c35656668c64c8ff294e1860f4121eb161",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/x86_64-linux-gnu/libdl.so.2",
+        "sha256": "292d5f5af2e7360b3e18c56591a4960115373ecf40627660f9149b6c68a33f80",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/x86_64-linux-gnu/libm.so.6",
+        "sha256": "e9c4b28d340e415b8137480ec442662f981e1399386c5931dae0e886e3639e91",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/x86_64-linux-gnu/libpthread.so.0",
+        "sha256": "a27ffa9bf233d61a5f02ddb0cf770dd6579021afc1aa8aec0fb58ee4a965281a",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib/x86_64-linux-gnu/libutil.so.1",
+        "sha256": "0f3f158a3bddc74152a56ae8d2be659485f90dd9abbca92d25961f973672d2f5",
+        "origin": "runtime-bundle"
+      },
+      {
+        "path": "/lib64/ld-linux-x86-64.so.2",
+        "sha256": "cd4df4f3c7b83673d61189bf2eaebd33ca4f2853ab9772b8a25e025ef99b1e81",
+        "origin": "runtime-bundle"
+      }
+    ],
+    "compute_after": {
+      "thread_count": 1,
+      "child_process_count": 0,
+      "seccomp_mode": 2,
+      "seccomp_filter_count": 3,
+      "no_new_privs": 1,
+      "exec_mapping_count": 38,
+      "exec_mapping_growth": 0,
+      "thread_growth": 0
+    },
+    "seal_state": {
+      "mdwe": {
+        "supported": true,
+        "enabled": true,
+        "mode": "PR_SET_MDWE_REFUSE_EXEC_GAIN"
+      },
+      "fd_isolation": {
+        "stdin": "closed",
+        "stdout": "redirected-devnull",
+        "stderr": "redirected-devnull",
+        "result_fd": 87,
+        "result_ack_fd": 88,
+        "result_channel": "runner-only-write-after-build",
+        "closed_fds": [
+          3
+        ]
+      },
+      "final_filter": {
+        "installed": true,
+        "filter_hash": "scf-b36c8213023057b99bc984978c15915503c3fcdab791f50871f204fd38679dc9",
+        "default_action": "EPERM"
+      },
+      "sealed": true
+    },
+    "bundle_verification": {
+      "verified_files": 35177,
+      "verified_symlinks": 1171,
+      "digest": "rbm-9e6673fc281080ac62a24cb6669ac396f8982c6d00d25717a5184a6146ad66e8"
+    }
+  }
+}

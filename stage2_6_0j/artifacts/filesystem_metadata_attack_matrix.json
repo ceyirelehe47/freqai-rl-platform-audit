@@ -1,0 +1,46 @@
+{
+  "attacks": {
+    "os_stat_ino": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)"
+    },
+    "os_stat_dev_nlink": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)"
+    },
+    "os_stat_mtime": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)"
+    },
+    "raw_statx": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "raw_statfs": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "statvfs": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)"
+    },
+    "xattr": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "directory_order": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 PermissionError(脱敏);已脱敏)"
+    }
+  },
+  "verdict": "全部被拒(final filter:open/stat/statfs/xattr/getdents 家族 default deny)",
+  "bundle_manifest_note": "bundle manifest 保持内容寻址(path/size/mode/sha256);inode/mtime 等未承诺元数据不进入 manifest 摘要,Compute 阶段读取通道被拒"
+}

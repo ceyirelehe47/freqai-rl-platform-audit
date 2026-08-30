@@ -1,0 +1,31 @@
+{
+  "attacks": {
+    "mmap_rwx": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "mprotect_wx": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym; ctypes.dlsym;已脱敏)"
+    },
+    "memfd_exec": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "pkey_mprotect": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "mmap_fixed_rwx": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    }
+  },
+  "mdwe": "PR_SET_MDWE_REFUSE_EXEC_GAIN 内核原生启用(>=6.14;本机 6.18.33.2-microsoft-standard-WSL2)",
+  "verdict": "全部被拒(final filter 参数过滤 + MDWE 双保险)"
+}

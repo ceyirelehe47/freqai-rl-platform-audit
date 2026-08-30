@@ -1,0 +1,35 @@
+{
+  "attacks": {
+    "ctypes_cdll_file": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen:libm.so.6;已脱敏)"
+    },
+    "ctypes_cdll_none_sysinfo": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+    },
+    "cffi": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='import',error=builder module import 失败: No module named 'cffi';已脱敏)"
+    },
+    "mmap_module": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='import',error=builder module import 失败: No module named 'mmap';已脱敏)"
+    },
+    "extensionfileloader": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='import',error=builder module import 失败: dynamic module does not define module export function (PyInit_e);已脱敏)"
+    },
+    "fnptr_preexisting": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='execution',error=builder 执行抛出 MemoryError(脱敏);已脱敏)"
+    }
+  },
+  "verdict": "全部被拒"
+}

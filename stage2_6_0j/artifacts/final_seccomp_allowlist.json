@@ -1,0 +1,213 @@
+{
+  "format": "sealed-compute-syscall-allowlist-v1",
+  "policy": {
+    "format": "builder-seccomp-final-policy-v3",
+    "arch_check": {
+      "field": "seccomp_data.arch",
+      "expect": "AUDIT_ARCH_X86_64",
+      "mismatch_action": "EPERM(fail closed)"
+    },
+    "x32_check": {
+      "mask": "0x40000000(__X32_SYSCALL_BIT)",
+      "set_action": "EPERM(fail closed)"
+    },
+    "default_action": "EPERM",
+    "allowlist": {
+      "brk": {
+        "nr": 12,
+        "arg_policy": null
+      },
+      "close": {
+        "nr": 3,
+        "arg_policy": null
+      },
+      "exit": {
+        "nr": 60,
+        "arg_policy": null
+      },
+      "exit_group": {
+        "nr": 231,
+        "arg_policy": null
+      },
+      "futex": {
+        "nr": 202,
+        "arg_policy": null
+      },
+      "getpid": {
+        "nr": 39,
+        "arg_policy": null
+      },
+      "gettid": {
+        "nr": 186,
+        "arg_policy": null
+      },
+      "madvise": {
+        "nr": 28,
+        "arg_policy": null
+      },
+      "mmap": {
+        "nr": 9,
+        "arg_policy": {
+          "arg": 2,
+          "rule": "no-prot-exec",
+          "why": "禁止新增可执行映射"
+        }
+      },
+      "mprotect": {
+        "nr": 10,
+        "arg_policy": {
+          "arg": 2,
+          "rule": "no-prot-exec",
+          "why": "禁止 W->X(可写页不可获得执行权限)"
+        }
+      },
+      "mremap": {
+        "nr": 25,
+        "arg_policy": null
+      },
+      "munmap": {
+        "nr": 11,
+        "arg_policy": null
+      },
+      "read": {
+        "nr": 0,
+        "arg_policy": {
+          "arg": 0,
+          "rule": "fd-in",
+          "fds": [
+            88
+          ],
+          "why": "仅允许读 RESULT_ACK_FD(final 后第二阶段确认;Supervisor 在 final 行之前不写入任何字节,Build在 Compute 内读只会阻塞至超时自毁,无输入可泄漏)"
+        }
+      },
+      "restart_syscall": {
+        "nr": 219,
+        "arg_policy": null
+      },
+      "rt_sigaction": {
+        "nr": 13,
+        "arg_policy": {
+          "arg": 0,
+          "rule": "signal-not-in",
+          "signals": [
+            4,
+            7,
+            8,
+            11,
+            31
+          ],
+          "why": "禁止接管崩溃信号(含 PR_TSC_SIGSEGV 路径)"
+        }
+      },
+      "rt_sigprocmask": {
+        "nr": 14,
+        "arg_policy": null
+      },
+      "rt_sigreturn": {
+        "nr": 15,
+        "arg_policy": null
+      },
+      "sched_yield": {
+        "nr": 24,
+        "arg_policy": null
+      },
+      "write": {
+        "nr": 1,
+        "arg_policy": {
+          "arg": 0,
+          "rule": "fd-in",
+          "fds": [
+            1,
+            2,
+            87
+          ],
+          "why": "fd1/2 已重定向 /dev/null(Builder 写即丢弃);RESULT_FD 是 Runner 唯一输出通道,Compute 段任何早写被 Supervisor 记 protocol violation"
+        }
+      }
+    },
+    "deny_families": {
+      "process_thread": "fork/vfork/clone/clone3/execve/execveat(default deny,未列入 allowlist)",
+      "state_control": "prctl/seccomp/arch_prctl/personality/ptrace/process_vm_*/setns/unshare",
+      "time": "clock_gettime/time/gettimeofday/times/getrusage/nanosleep 族/timer 族/adjtimex",
+      "entropy": "getrandom",
+      "kernel_state": "sysinfo/getcpu/sched_getaffinity/uname/perf_event_open/bpf",
+      "file_metadata": "open/openat/creat/pread64/write(参数外fd)/read(参数外fd)/getdents64/lseek/stat/lstat/newfstatat/statx/statfs/fstatfs/access/faccessat/readlink/xattr 族/mount/umount2",
+      "exec_memory": "mmap/mprotect/pkey_mprotect(PROT_EXEC)/memfd_create/userfaultfd",
+      "network": "socket/connect/bind/accept/send/recv 族"
+    },
+    "measured_by": "strace 实测 CPython3.11 纯计算段(brk/mmap/munmap/mremap/write)并补充运行时安全网(信号/锁/调度/退出);未实测调用项均为无返回信息机制类 syscall",
+    "thread_policy": "threads_forbidden_clone_denied",
+    "child_process_policy": "single_builder_process"
+  },
+  "dependency_policy": {
+    "format": "builder-dependency-policy-v1",
+    "profile": "formal",
+    "pure_modules": [
+      "abc",
+      "collections",
+      "collections.abc",
+      "dataclasses",
+      "datetime",
+      "decimal",
+      "enum",
+      "fractions",
+      "functools",
+      "itertools",
+      "json",
+      "numbers",
+      "operator",
+      "re",
+      "statistics",
+      "string",
+      "time",
+      "typing"
+    ],
+    "native_modules": [
+      "_datetime",
+      "_decimal",
+      "_hashlib",
+      "_json",
+      "_md5",
+      "_random",
+      "_sha256",
+      "_sha512",
+      "_sre",
+      "_statistics",
+      "cmath",
+      "hashlib",
+      "math",
+      "unicodedata"
+    ],
+    "native_policy": "Seal 前预加载;文件进入 bundle native closure;无地址/加载/随机 API",
+    "forbidden_modules": [
+      "antigravity",
+      "builtins",
+      "cffi",
+      "code",
+      "codeop",
+      "compileall",
+      "ctypes",
+      "importlib",
+      "marshal",
+      "mmap",
+      "multiprocessing",
+      "numba",
+      "numpy",
+      "os",
+      "pathlib",
+      "pickle",
+      "resource",
+      "runpy",
+      "shelve",
+      "signal",
+      "socket",
+      "subprocess",
+      "sys",
+      "torch",
+      "webbrowser"
+    ],
+    "third_party_native": "rejected",
+    "numpy_formal_eligible": false,
+    "formal_eligible": true
+  }
+}

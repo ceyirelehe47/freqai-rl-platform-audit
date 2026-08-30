@@ -1,0 +1,46 @@
+{
+  "attacks": {
+    "import_math": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:math;已脱敏)"
+    },
+    "dunder_import": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:math;已脱敏)"
+    },
+    "importlib": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:importlib;已脱敏)"
+    },
+    "eval": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):compile:1+1; exec;已脱敏)"
+    },
+    "exec": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):compile:v = 2; exec;已脱敏)"
+    },
+    "compile": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):compile:x=1;已脱敏)"
+    },
+    "sys_modules_tamper": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:sys;已脱敏)"
+    },
+    "meta_path_hook": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:sys; import:importlib.abc; import:importlib.util; import:types;已脱敏)"
+    }
+  },
+  "mechanism": "final filter 拒 open/openat(动态 import 需要文件读)+audit hook compute 违规清单",
+  "verdict": "全部被拒"
+}

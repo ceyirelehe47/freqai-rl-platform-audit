@@ -1,0 +1,68 @@
+........................................................................ [ 97%]
+..                                                                       [100%]
+=============================== warnings summary ===============================
+tests/freqai_rl_stage2_5_1/test_full_fingerprint.py: 6 warnings
+tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py: 30 warnings
+tests/freqai_rl_stage2_5_1/test_route_c_slippage_live_strategy.py: 8 warnings
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+    feather.write_feather(df, handles.handle, **kwargs)
+
+tests/freqai_rl_stage2_5_1/test_full_fingerprint.py: 9 warnings
+tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py: 29 warnings
+tests/freqai_rl_stage2_5_1/test_route_c_slippage_live_strategy.py: 6 warnings
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:178: FutureWarning: pyarrow.feather.read_table is deprecated as of 24.0.0. Use pyarrow.ipc.open_file() / RecordBatchFileReader instead. Feather V2 is the Arrow IPC file format.
+    pa_table = feather.read_table(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 50 durations =============================
+10.73s call     tests/freqai_rl_stage2_5_1/test_ppo_budget.py::test_run_ppo_fit_budget_enforced
+5.17s call     tests/freqai_rl_stage2_5_1/test_conv_width_guard.py::test_route_c_model_init_guard_conv_width_1
+0.94s call     tests/freqai_rl_stage2_5_1/test_route_c_slippage_live_strategy.py::test_route_c_slippage_parity_end_to_end
+0.28s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_run_experiment_manifest_fields
+0.15s call     tests/freqai_rl_stage2_5_1/test_ppo_budget.py::test_run_ppo_fit_tensorboard_log
+0.11s call     tests/freqai_rl_stage2_5_1/test_ppo_budget.py::test_ppo_evidence_artifact
+0.08s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_covers_first_party_code
+0.06s call     tests/freqai_rl_stage2_5_1/test_conv_width_guard.py::test_render_config_guard_conv_width_1
+0.05s call     tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_entry_unfilled_no_duplicate_and_flat_enters
+0.05s call     tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_resync_trace_evidence
+0.03s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_full_history_backfill_keeps_real_position
+0.03s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_data_scope_hash_ignores_rows_after_eval_end
+0.02s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_data_scope_hash_changes_on_training_row_edit
+0.02s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_classify_inconsistent_extra_file
+0.02s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_classify_complete
+0.02s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_data_scope_hash_covers_training_and_prewarm
+0.02s call     tests/freqai_rl_stage2_5_1/test_conv_width_guard.py::test_guard_evidence
+0.01s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_classify_inconsistent_row_count
+0.01s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_enforce_none_and_complete_pass
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_do_predict_invalid_latest_row
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_do_predict_invalid_latest_row
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_model_reload_resyncs_from_trade
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_entry_filled_no_duplicate
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_exit_unfilled_no_duplicate
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_exit_unfilled_no_duplicate
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_live_full_history_trace_evidence
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_history_backfill_does_not_mutate_model_state
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_exit_completed_no_duplicate
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_model_reload_resyncs_from_trade
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_history_backfill_does_not_mutate_model_state
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_flat_initial_position
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_full_history_backfill_keeps_real_position
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_next_heartbeat_reads_trade_table
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_next_heartbeat_reads_trade_table
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_entry_filled_no_duplicate
+0.01s call     tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_exit_completed_no_duplicate
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_full_history_inference.py::test_live_full_history_trace_evidence
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_entry_unfilled_no_duplicate_and_flat_enters
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_resync_trace_evidence
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_trade_table_is_source_of_truth
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_changes_on_file_edit[experiments/freqai_rl_stage2_5_1/run_experiment.py]
+0.01s setup    tests/freqai_rl_stage2_5_1/test_live_trade_state_resync.py::test_strategy_slippage_from_config
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_changes_on_file_edit[experiments/freqai_rl_stage2_5_1/configs/config_stage251.template.json]
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_stable_regardless_of_mtime
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_changes_on_file_edit[src/rl_platform/env.py]
+0.01s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_repair_quarantines_whole_dir
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_changes_on_file_edit[user_data/strategies/RouteCStrategy.py]
+0.01s call     tests/freqai_rl_stage2_5_1/test_full_fingerprint.py::test_code_tree_hash_changes_on_file_edit[user_data/freqaimodels/RouteCModel.py]
+0.01s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_classify_partial_windows_1_and_3
+0.01s call     tests/freqai_rl_stage2_5_1/test_partial_cache_guard.py::test_partial_cache_guard_evidence
+74 passed, 88 warnings in 45.23s

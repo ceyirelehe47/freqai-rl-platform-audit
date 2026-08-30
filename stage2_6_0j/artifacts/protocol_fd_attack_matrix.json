@@ -1,0 +1,35 @@
+{
+  "attacks": {
+    "read_stdin": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:os;已脱敏)"
+    },
+    "write_fd1": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:os;已脱敏)"
+    },
+    "write_fd2": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:os;已脱敏)"
+    },
+    "print": {
+      "blocked": false,
+      "run": "SUCCEEDED-LEAK"
+    },
+    "result_fd_injection": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Builder Runner 响应缺失或协议不符(已脱敏;stderr 尾部: '')"
+    }
+  },
+  "fd_layout": {
+    "stdin": "closed(EBADF) after ACK",
+    "fd1_fd2": "/dev/null(写入无害不可见)",
+    "result_fd": "87(runner-only,build 后写)",
+    "result_ack_fd": "88(final 后二次实测同步)"
+  },
+  "verdict": "读/注入通道全部不可利用(注入行破坏单行 final 帧协议 -> fail closed);fd1/2 写入无害"
+}

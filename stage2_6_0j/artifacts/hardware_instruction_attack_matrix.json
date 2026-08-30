@@ -1,0 +1,75 @@
+{
+  "host_capability_probe": {
+    "cpuid": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x6100800",
+      "note": "宿主真实执行成功(非生产环境)"
+    },
+    "rdtsc": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x7f15835e",
+      "note": "宿主真实执行成功(非生产环境)"
+    },
+    "rdtscp": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x7f1730be",
+      "note": "宿主真实执行成功(非生产环境)"
+    },
+    "rdrand": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x-38f36dde",
+      "note": "宿主真实执行成功(非生产环境)"
+    },
+    "rdseed": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x-3fccb24e",
+      "note": "宿主真实执行成功(非生产环境)"
+    },
+    "rdpid": {
+      "cpu_feature": "present",
+      "attack_executed_on_host": true,
+      "value_sample": "0x6",
+      "note": "宿主真实执行成功(非生产环境)"
+    }
+  },
+  "sandbox_attacks": {
+    "rdrand": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    },
+    "rdseed": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    },
+    "rdpid": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    },
+    "cpuid": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    },
+    "rdtsc": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    },
+    "rdtscp": {
+      "blocked": true,
+      "exception": "BuilderRunnerError",
+      "message": "Compute 后无响应(Worker 死于 sealed compute 边界或崩溃;fd1/2 已是 /dev/null,无诊断字节可读;fail closed)"
+    }
+  },
+  "blocking_mechanism": "final filter 拒绝一切 PROT_EXEC 映射(机器码页无法构造);RDTSC/RDTSCP 另由PR_SET_TSC_SIGSEGV + prctl 不可重开阻断",
+  "verdict_note": "CPU 特性存在性与生产阻断分别记录;CPUID 位被 hypervisor 隐藏但 RDRAND 指令真实可执行的场景已按真实执行记录",
+  "verdict": "全部攻击在生产环境失败(无 exec 映射能力)"
+}

@@ -1,0 +1,307 @@
+{
+  "format": "builder-runner-profile-v4",
+  "rlimits": {
+    "address_space_mb": 4096,
+    "cpu_seconds": 900,
+    "file_size_mb": 64,
+    "nofile": 256,
+    "nproc": 128
+  },
+  "run_timeout_seconds": 900.0,
+  "response_max_bytes": 33554432,
+  "output_cap_bytes": 33619968,
+  "seccomp": {
+    "install": true,
+    "policy": {
+      "format": "builder-seccomp-policy-v2",
+      "arch_check": {
+        "field": "seccomp_data.arch",
+        "expect": "AUDIT_ARCH_X86_64",
+        "mismatch_action": "EPERM(fail closed)"
+      },
+      "x32_check": {
+        "mask": "0x40000000(__X32_SYSCALL_BIT)",
+        "set_action": "EPERM(fail closed)"
+      },
+      "default_action": "allow",
+      "deny_eperm": [
+        "adjtimex",
+        "bpf",
+        "clock_adjtime",
+        "clock_gettime",
+        "clock_gettime64",
+        "clock_nanosleep",
+        "clock_settime",
+        "execve",
+        "execveat",
+        "fork",
+        "getrandom",
+        "getrusage",
+        "gettimeofday",
+        "mount",
+        "nanosleep",
+        "perf_event_open",
+        "process_vm_readv",
+        "process_vm_writev",
+        "ptrace",
+        "setns",
+        "time",
+        "times",
+        "umount2",
+        "unshare",
+        "vfork"
+      ],
+      "clone3_action": "ENOSYS",
+      "clone_action": "EPERM",
+      "thread_policy": "threads_forbidden_clone_denied",
+      "child_process_policy": "single_builder_process"
+    },
+    "filter_digest": "scp-cfe7b727be67d99b2790692e1f3060f3be8ff9affa3add86d085b13d0c1ee6b7"
+  },
+  "sealed_compute": {
+    "phase_plan": "prepare->seal->compute",
+    "final_filter": {
+      "policy": {
+        "format": "builder-seccomp-final-policy-v3",
+        "arch_check": {
+          "field": "seccomp_data.arch",
+          "expect": "AUDIT_ARCH_X86_64",
+          "mismatch_action": "EPERM(fail closed)"
+        },
+        "x32_check": {
+          "mask": "0x40000000(__X32_SYSCALL_BIT)",
+          "set_action": "EPERM(fail closed)"
+        },
+        "default_action": "EPERM",
+        "allowlist": {
+          "brk": {
+            "nr": 12,
+            "arg_policy": null
+          },
+          "close": {
+            "nr": 3,
+            "arg_policy": null
+          },
+          "exit": {
+            "nr": 60,
+            "arg_policy": null
+          },
+          "exit_group": {
+            "nr": 231,
+            "arg_policy": null
+          },
+          "futex": {
+            "nr": 202,
+            "arg_policy": null
+          },
+          "getpid": {
+            "nr": 39,
+            "arg_policy": null
+          },
+          "gettid": {
+            "nr": 186,
+            "arg_policy": null
+          },
+          "madvise": {
+            "nr": 28,
+            "arg_policy": null
+          },
+          "mmap": {
+            "nr": 9,
+            "arg_policy": {
+              "arg": 2,
+              "rule": "no-prot-exec",
+              "why": "禁止新增可执行映射"
+            }
+          },
+          "mprotect": {
+            "nr": 10,
+            "arg_policy": {
+              "arg": 2,
+              "rule": "no-prot-exec",
+              "why": "禁止 W->X(可写页不可获得执行权限)"
+            }
+          },
+          "mremap": {
+            "nr": 25,
+            "arg_policy": null
+          },
+          "munmap": {
+            "nr": 11,
+            "arg_policy": null
+          },
+          "read": {
+            "nr": 0,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "fd-in",
+              "fds": [
+                88
+              ],
+              "why": "仅允许读 RESULT_ACK_FD(final 后第二阶段确认;Supervisor 在 final 行之前不写入任何字节,Build在 Compute 内读只会阻塞至超时自毁,无输入可泄漏)"
+            }
+          },
+          "restart_syscall": {
+            "nr": 219,
+            "arg_policy": null
+          },
+          "rt_sigaction": {
+            "nr": 13,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "signal-not-in",
+              "signals": [
+                4,
+                7,
+                8,
+                11,
+                31
+              ],
+              "why": "禁止接管崩溃信号(含 PR_TSC_SIGSEGV 路径)"
+            }
+          },
+          "rt_sigprocmask": {
+            "nr": 14,
+            "arg_policy": null
+          },
+          "rt_sigreturn": {
+            "nr": 15,
+            "arg_policy": null
+          },
+          "sched_yield": {
+            "nr": 24,
+            "arg_policy": null
+          },
+          "write": {
+            "nr": 1,
+            "arg_policy": {
+              "arg": 0,
+              "rule": "fd-in",
+              "fds": [
+                1,
+                2,
+                87
+              ],
+              "why": "fd1/2 已重定向 /dev/null(Builder 写即丢弃);RESULT_FD 是 Runner 唯一输出通道,Compute 段任何早写被 Supervisor 记 protocol violation"
+            }
+          }
+        },
+        "deny_families": {
+          "process_thread": "fork/vfork/clone/clone3/execve/execveat(default deny,未列入 allowlist)",
+          "state_control": "prctl/seccomp/arch_prctl/personality/ptrace/process_vm_*/setns/unshare",
+          "time": "clock_gettime/time/gettimeofday/times/getrusage/nanosleep 族/timer 族/adjtimex",
+          "entropy": "getrandom",
+          "kernel_state": "sysinfo/getcpu/sched_getaffinity/uname/perf_event_open/bpf",
+          "file_metadata": "open/openat/creat/pread64/write(参数外fd)/read(参数外fd)/getdents64/lseek/stat/lstat/newfstatat/statx/statfs/fstatfs/access/faccessat/readlink/xattr 族/mount/umount2",
+          "exec_memory": "mmap/mprotect/pkey_mprotect(PROT_EXEC)/memfd_create/userfaultfd",
+          "network": "socket/connect/bind/accept/send/recv 族"
+        },
+        "measured_by": "strace 实测 CPython3.11 纯计算段(brk/mmap/munmap/mremap/write)并补充运行时安全网(信号/锁/调度/退出);未实测调用项均为无返回信息机制类 syscall",
+        "thread_policy": "threads_forbidden_clone_denied",
+        "child_process_policy": "single_builder_process"
+      },
+      "filter_digest": "scf-b36c8213023057b99bc984978c15915503c3fcdab791f50871f204fd38679dc9",
+      "default_action": "EPERM",
+      "install_before_build": true
+    },
+    "mdwe": "PR_SET_MDWE_REFUSE_EXEC_GAIN(kernel>=6.14;else final-filter-no-exec)",
+    "fd_isolation": {
+      "stdin": "closed-after-ack",
+      "stdout_stderr": "devnull",
+      "result_fd": 87,
+      "result_channel": "runner-only-write-after-build"
+    },
+    "top_level_purity": "ast-allowlist+runtime-audit",
+    "dependency_policy": "formal",
+    "compute_forbidden_events": [
+      "import",
+      "open",
+      "os.listdir",
+      "os.scandir",
+      "os.system",
+      "subprocess.Popen",
+      "ctypes.dlopen",
+      "ctypes.dlsym",
+      "os.fork",
+      "os.exec",
+      "os.posix_spawn",
+      "os.spawn",
+      "exec",
+      "compile",
+      "builtins.input"
+    ],
+    "precommit_double_run": true,
+    "third_replay_in_exam": true
+  },
+  "process_tree_policy": "single_builder_process",
+  "thread_policy": "threads_forbidden_clone_denied",
+  "runtime_bundle": {
+    "manifest_format": "builder-runtime-bundle-manifest-v1",
+    "content_addressed": true,
+    "hardlink_assembly": true,
+    "excludes": {
+      "dirs": [
+        "__pycache__"
+      ],
+      "suffixes": [
+        ".pyc",
+        ".pyo"
+      ]
+    },
+    "mounted_verify_before_exec": true,
+    "post_run_verify": true,
+    "deterministic_entropy_seed_sha256": "b070fcba178a1d9d4c58cfb575a59e0dfb543d56dff893bc5dc7e6eb7d09d0b0"
+  },
+  "filesystem_view": {
+    "pivot_root_bundle_rootfs": true,
+    "private_dev_nodes": [
+      "null",
+      "zero",
+      "full"
+    ],
+    "dev_random_urandom": "deterministic-committed-file",
+    "private_dev_shm_tmpfs": true,
+    "host_usr_visible": false,
+    "host_conda_visible": false,
+    "proc_mounted": false,
+    "root_readonly": true,
+    "fresh_scratch_tmpfs": true,
+    "uts_hostname": "builder-worker"
+  },
+  "deterministic_input_report": "sealed-compute-report-v2",
+  "env_whitelist": [
+    "PATH",
+    "PYTHONPATH",
+    "PYTHONHOME",
+    "LANG",
+    "LC_ALL",
+    "TZ",
+    "PYTHONHASHSEED",
+    "PYTHONDONTWRITEBYTECODE",
+    "HOME",
+    "TMPDIR",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "RL_BUILDER_PROCESS_TREE",
+    "RL_BUILDER_DEP_PROFILE",
+    "RL_SB_LANDLOCK_ABI",
+    "RL_SB_LANDLOCK_HANDLED",
+    "RL_SB_LANDLOCK_GRANTS",
+    "RL_SB_MOUNTOPTS",
+    "RL_SB_HOSTNAME"
+  ],
+  "fixed_env": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TZ": "UTC",
+    "PYTHONHASHSEED": "0",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONHOME": "/",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  }
+}

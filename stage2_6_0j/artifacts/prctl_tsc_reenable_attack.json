@@ -1,0 +1,9 @@
+{
+  "attack": "PR_SET_TSC/PR_TSC_ENABLE -> RDTSC -> pack",
+  "expect": "prctl 在 Compute 阶段被 final filter 拒(EPERM)",
+  "real_run": {
+    "blocked": true,
+    "exception": "BuilderRunnerError",
+    "message": "Builder Runner 构建失败(stage='compute-violations',error=Compute 阶段违规(import/open/exec/compile/native 通道):import:ctypes; ctypes.dlopen; ctypes.dlsym;已脱敏)"
+  }
+}
