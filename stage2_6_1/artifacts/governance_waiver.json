@@ -1,0 +1,14 @@
+{
+  "format": "stage2_6_1-governance-waiver-v1",
+  "stage": "stage2_6_1",
+  "recorded_utc": "2026-08-30T12:00:00+00:00",
+  "decision": "用户已明确决定:不再继续投入时间进行 2.6.0j 的防御性 Builder 沙箱 / syscall / native instruction 等独立安全攻击审计。",
+  "scope_of_waiver": [
+    "不重新打开 TSC / RDRAND / seccomp / W^X / 文件元数据等安全审计工作包",
+    "不为本阶段增加新的 defensive sandbox 攻击测试",
+    "不把任务重新路由回 2.6.0j",
+    "除非 2.6.1 的正常功能兼容性确实被现有实现阻塞,否则不修改该安全基础设施"
+  ],
+  "baseline_position": "2.6.0j(commit cd585f4acff6170a2b592d11418066b0c0714b02)作为当前工程基线使用;其 Agent 自身报告为 PASS;本阶段不负责进一步独立确认该安全结论",
+  "impact_on_this_stage": "无——本阶段为课程 R&D/Qualification,与 Builder 沙箱安全面无交集;六项 Route C 冻结合同经 frozen_contract_integrity.json 确认未修改"
+}
