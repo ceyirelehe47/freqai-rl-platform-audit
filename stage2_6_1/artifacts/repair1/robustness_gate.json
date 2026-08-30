@@ -1,0 +1,186 @@
+{
+  "format": "cur261-robustness-gate-v1",
+  "kappa": 1.5,
+  "main_namespace": "calibration",
+  "holdout_namespace": "calibration_holdout",
+  "families": {
+    "c1_opportunity": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": false,
+          "d3_positive": true,
+          "ref_beats_required": true
+        },
+        "holdout": {
+          "ordering_ok": false,
+          "d3_positive": true,
+          "ref_beats_required": true
+        }
+      },
+      "pooled_episode_metric_mean": {
+        "D0": 0.276043017278107,
+        "D1": 0.11964165340338562,
+        "D2": 0.06385297731007726,
+        "D3": 0.04501804299615219
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.07153101052635137,
+        "D1": 0.03277997047165422,
+        "D2": 0.023029158231589388,
+        "D3": 0.018361249786207002
+      },
+      "n_episodes_per_rung": {
+        "D0": 40,
+        "D1": 40,
+        "D2": 40,
+        "D3": 40
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.10595917371955463,
+          "gap_holdout": 0.20684355402988816,
+          "se_pooled": 0.0786842546577364,
+          "kappa_times_se": 0.1180263819866046,
+          "ok": false
+        },
+        "D1-D2": {
+          "gap_main": 0.11449073654652536,
+          "gap_holdout": -0.004811486258010367,
+          "se_pooled": 0.04006081118722016,
+          "kappa_times_se": 0.06009121678083024,
+          "ok": false
+        },
+        "D2-D3": {
+          "gap_main": -0.005742357963087273,
+          "gap_holdout": 0.04531032848903914,
+          "se_pooled": 0.029452973068385947,
+          "kappa_times_se": 0.04417945960257892,
+          "ok": false
+        }
+      },
+      "d3_mean": 0.04501804299615219,
+      "d3_se": 0.018361249786207002,
+      "d3_mean_ge_kappa_se": true,
+      "pass": false
+    },
+    "c2_context": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": false,
+          "d3_positive": true,
+          "ref_beats_required": true
+        },
+        "holdout": {
+          "ordering_ok": false,
+          "d3_positive": false,
+          "ref_beats_required": false
+        }
+      },
+      "pooled_episode_metric_mean": {
+        "D0": 0.010999111870849143,
+        "D1": 0.0041856249023112056,
+        "D2": 0.010444264105761667,
+        "D3": 0.0024531692266972884
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.002883894129479322,
+        "D1": 0.0036876453059785353,
+        "D2": 0.003307590099758093,
+        "D3": 0.002488090868441847
+      },
+      "n_episodes_per_rung": {
+        "D0": 40,
+        "D1": 40,
+        "D2": 40,
+        "D3": 40
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.00588765224200209,
+          "gap_holdout": 0.007739321695073786,
+          "se_pooled": 0.004681407187240907,
+          "kappa_times_se": 0.007022110780861361,
+          "ok": false
+        },
+        "D1-D2": {
+          "gap_main": -0.0038111764002276855,
+          "gap_holdout": -0.008706102006673239,
+          "se_pooled": 0.004953673401701335,
+          "kappa_times_se": 0.007430510102552003,
+          "ok": false
+        },
+        "D2-D3": {
+          "gap_main": 0.008425876352907254,
+          "gap_holdout": 0.007556313405221504,
+          "se_pooled": 0.004138930832671821,
+          "kappa_times_se": 0.006208396249007732,
+          "ok": true
+        }
+      },
+      "d3_mean": 0.0024531692266972884,
+      "d3_se": 0.002488090868441847,
+      "d3_mean_ge_kappa_se": false,
+      "pass": false
+    },
+    "c3_cost": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true
+        }
+      },
+      "pooled_episode_metric_mean": {
+        "D0": 0.03535183483672386,
+        "D1": 0.02608609194135252,
+        "D2": 0.017263041650826278,
+        "D3": 0.005746689815464373
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.008892724762436518,
+        "D1": 0.007276094542361164,
+        "D2": 0.005376205088833898,
+        "D3": 0.002383885476743782
+      },
+      "n_episodes_per_rung": {
+        "D0": 40,
+        "D1": 40,
+        "D2": 40,
+        "D3": 40
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.0070632117388243765,
+          "gap_holdout": 0.01146827405191831,
+          "se_pooled": 0.011490087270766464,
+          "kappa_times_se": 0.017235130906149698,
+          "ok": false
+        },
+        "D1-D2": {
+          "gap_main": 0.011124373394994929,
+          "gap_holdout": 0.006521727186057549,
+          "se_pooled": 0.009046829994345059,
+          "kappa_times_se": 0.013570244991517589,
+          "ok": false
+        },
+        "D2-D3": {
+          "gap_main": 0.009329120071877871,
+          "gap_holdout": 0.013703583598845935,
+          "se_pooled": 0.005881028066880265,
+          "kappa_times_se": 0.008821542100320398,
+          "ok": true
+        }
+      },
+      "d3_mean": 0.005746689815464373,
+      "d3_se": 0.002383885476743782,
+      "d3_mean_ge_kappa_se": true,
+      "pass": false
+    }
+  },
+  "pass": false
+}

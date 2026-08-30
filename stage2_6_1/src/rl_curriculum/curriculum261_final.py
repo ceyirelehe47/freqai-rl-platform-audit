@@ -21,11 +21,14 @@ from rl_curriculum.curriculum261_pairs import (
     generate_pair,
 )
 from rl_curriculum.curriculum261_plan import load_locked_plan, plan_digest
+from rl_curriculum.curriculum261_production_obs import (
+    production_observation_identity,
+)
 from rl_curriculum.curriculum261_qualification import (
     check_fresh_seed_validity,
-    check_htf_resample_equivalence,
     check_latent_isolation,
     check_observation_causality,
+    check_production_feature_equivalence,
     check_reference_causality,
     check_reproducibility,
     rung_report,
@@ -93,11 +96,27 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     plan, digest = load_locked_plan(plan_dir)
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    # 0) 冻结合同 + vendor 完整性
+    # 0) 冻结合同 + vendor 完整性 + production observation identity +
+    #    plan code_identity 复核(repair R1:防止旧 plan 目录配新代码
+    #    静默混跑)
     frozen = _frozen_contract_integrity()
     upstream = _upstream_integrity(vendor_dir)
     upstream_ok = (upstream["sha"] == plan["vendor_pin"]
                    and upstream["clean"])
+    prod_ident = production_observation_identity()
+    prod_ok = (prod_ident["schema_hash"]
+               == plan["production_observation_identity"]["schema_hash"]
+               and prod_ident["strategy_file_sha256"]
+               == plan["production_observation_identity"][
+                   "strategy_file_sha256"]
+               and prod_ident["feature_engineering_standard_sha256"]
+               == plan["production_observation_identity"][
+                   "feature_engineering_standard_sha256"])
+    from rl_curriculum.curriculum261_plan import _code_identity
+    current_ids = _code_identity()
+    code_ok = all(
+        plan["code_identity"].get(k) == v for k, v in current_ids.items()) \
+        and set(plan["code_identity"]) == set(current_ids)
 
     # 1) 120 pairs(qualification namespace,锁定参数)
     thresholds = {f: plan["families"][f]["reference_thresholds"]
@@ -135,13 +154,16 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
         }
 
     # 2) 因果矩阵 / 复现 / 新 seed / latent isolation
-    causality: dict[str, Any] = {"observation_causality": [], "htf": [],
+    #    repair R1:旧 htf resample 检查替换为 production observation
+    #    identity 检查(episode 特征与真实 RouteCStrategy 路径逐位对拍)
+    causality: dict[str, Any] = {"observation_causality": [],
+                                 "production_feature_equivalence": [],
                                  "reference_causality": []}
     for family in CURRICULUM261_FAMILIES:
         causality["observation_causality"].append(
             check_observation_causality(family, "D2", 0))
-        causality["htf"].append(
-            check_htf_resample_equivalence(family, "D2", 0))
+        causality["production_feature_equivalence"].append(
+            check_production_feature_equivalence(family, "D2", 0))
         causality["reference_causality"].append(
             check_reference_causality(
                 family, rung_params[family]["D2"], thresholds[family]))
@@ -153,7 +175,8 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
 
     causality_pass = (
         all(c["pass"] for c in causality["observation_causality"])
-        and all(c["pass"] for c in causality["htf"])
+        and all(c["pass"]
+                for c in causality["production_feature_equivalence"])
         and all(c["pass"] for c in causality["reference_causality"]))
     repro_pass = all(r["pass"] for r in repro)
 
@@ -162,6 +185,8 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     checks = {
         "frozen_contracts_unchanged": frozen["pass"],
         "vendor_pin_unchanged_and_clean": bool(upstream_ok),
+        "production_observation_identity": bool(prod_ok),
+        "plan_code_identity_matches_tree": bool(code_ok),
         "pair_integrity_all": all(
             family_reports[f]["pair_integrity_pass_ratio"]
             >= th["pair_integrity_pass_ratio"]
@@ -187,7 +212,7 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     }
     overall_pass = all(checks.values())
     result = {
-        "format": "cur261-qualification-result-v1",
+        "format": "cur261-qualification-result-v2",
         "stage": "stage2_6_1",
         "plan_digest": digest,
         "started_utc": started,
@@ -199,6 +224,7 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
             for f in CURRICULUM261_FAMILIES),
         "frozen_contract_integrity": frozen,
         "upstream_integrity": upstream,
+        "production_observation_identity": prod_ident,
         "checks": checks,
         "families": family_reports,
         "causality_matrix": causality,
@@ -222,6 +248,9 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     # 拆分 artifacts(等价证据)
     (out_dir / "frozen_contract_integrity.json").write_text(
         json.dumps(frozen, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "production_observation_identity.json").write_text(
+        json.dumps(prod_ident, indent=2, ensure_ascii=False),
+        encoding="utf-8")
     (out_dir / "upstream_integrity.json").write_text(
         json.dumps(upstream, indent=2, ensure_ascii=False), encoding="utf-8")
     (out_dir / "pair_integrity_summary.json").write_text(

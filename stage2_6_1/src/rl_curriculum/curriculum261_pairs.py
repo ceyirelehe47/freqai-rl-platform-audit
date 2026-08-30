@@ -130,7 +130,13 @@ def generate_pair(
 
 # ------------------------------------------------------------ 完整性验证
 def _nuisance_checks(a: GeneratedEpisode, b: GeneratedEpisode) -> dict[str, Any]:
-    """nuisance 相似:长度/初始价/volume+nuisance 逐位一致/vol_24 容差。"""
+    """nuisance 相似:长度/初始价/volume 逐位一致/%-vol-24 容差。
+
+    repair R1:自制 nuisance 槽位(nuis_*)已随 curriculum-only observation
+    一并移除(production 特征集不含 nuisance 列);pair 的 nuisance
+    相似性仍由共享随机流(volume/wick)+ 生产特征 %-vol-24 的中位数
+    比值容差约束。
+    """
     checks: dict[str, Any] = {}
     checks["same_length"] = len(a.df) == len(b.df)
     checks["same_initial_price"] = bool(
@@ -138,31 +144,35 @@ def _nuisance_checks(a: GeneratedEpisode, b: GeneratedEpisode) -> dict[str, Any]
     checks["volume_identical"] = bool(
         np.array_equal(a.df["volume"].to_numpy(),
                        b.df["volume"].to_numpy()))
-    # vol_24 中位数:滚动局部 std,对 A 的漂移不敏感 -> 应接近一致
-    va = float(np.median(a.df["vol_24"].to_numpy(dtype=np.float64)))
-    vb = float(np.median(b.df["vol_24"].to_numpy(dtype=np.float64)))
+    # %-vol-24 中位数:滚动局部 std,对 A 的漂移不敏感 -> 应接近一致
+    va = float(np.median(a.df["%-vol-24"].to_numpy(dtype=np.float64)))
+    vb = float(np.median(b.df["%-vol-24"].to_numpy(dtype=np.float64)))
     ratio = (va / vb) if vb > 0 else float("inf")
     checks["vol24_median_A"] = va
     checks["vol24_median_B"] = vb
     checks["vol24_ratio_in_range"] = bool(
         NUISANCE_VOL24_RATIO_RANGE[0] <= ratio <= NUISANCE_VOL24_RATIO_RANGE[1])
     checks["vol24_ratio"] = ratio
-    nuisance_cols = ["nuis_0", "nuis_1", "nuis_2"]
-    checks["nuisance_slots_identical"] = bool(all(
-        np.array_equal(a.df[c].to_numpy(), b.df[c].to_numpy())
-        for c in nuisance_cols))
     return checks
 
 
 def _c1_construction_check(a: GeneratedEpisode,
                            b: GeneratedEpisode) -> dict[str, Any]:
-    """C1 构造审计:A 的 opp/neg 段有真实漂移;B 的 regime 漂移恒 0。"""
+    """C1 构造审计:A 的 opp/neg 段有真实漂移;B 的 regime 漂移恒 0。
+
+    repair R1 水平合同:含 t=0 的第一段不挂漂移(可交易区间 [1, n)
+    之外),其 drift 值为 0——判定用"方向一致 + 存在挂载"而非
+    "全部严格为正"(否则第一段为 opp/neg 的 episode 会被误判失败,
+    qualification 实测 integrity 崩至 37.5%,attempt1 已存档)。
+    """
     ha, hb = a.hidden, b.hidden
     states_a = ha["seg_state"].to_numpy()
     drift_a = ha["regime_drift_bps"].to_numpy()
     drift_b = hb["regime_drift_bps"].to_numpy()
-    opp_drift_pos = bool(np.all(drift_a[states_a == 2] > 0))
-    neg_drift_neg = bool(np.all(drift_a[states_a == 0] < 0))
+    opp_vals = drift_a[states_a == 2]
+    neg_vals = drift_a[states_a == 0]
+    opp_drift_pos = bool(np.all(opp_vals >= 0) and np.any(opp_vals > 0))
+    neg_drift_neg = bool(np.all(neg_vals <= 0) and np.any(neg_vals < 0))
     b_drift_zero = bool(np.all(np.abs(drift_b) < 1e-9))
     shared_seg = bool(np.array_equal(
         ha["seg_index"].to_numpy(), hb["seg_index"].to_numpy())
@@ -312,7 +322,7 @@ def compute_pair_integrity(record: PairRecord) -> dict[str, Any]:
     nuisance_ok = all(
         nuisance[k] for k in
         ("same_length", "same_initial_price", "volume_identical",
-         "vol24_ratio_in_range", "nuisance_slots_identical"))
+         "vol24_ratio_in_range"))
     causal_ok = construction.get("causal_diff_ok", False)
     shared_ok = all(v for k, v in construction.items()
                     if k.startswith("shared_"))

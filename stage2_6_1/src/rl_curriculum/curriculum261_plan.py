@@ -13,23 +13,29 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-PLAN_FORMAT = "cur261-qualification-plan-v1"
+PLAN_FORMAT = "cur261-qualification-plan-v2"
 
 #: 阶段 2.6.1 的课程代码身份(逐模块内容哈希;进入 plan)
 PLAN_CODE_MODULES = (
     "curriculum261_api.py",
+    "curriculum261_production_obs.py",
     "curriculum261_c1.py",
     "curriculum261_c2.py",
     "curriculum261_c3.py",
     "curriculum261_pairs.py",
     "curriculum261_qualification.py",
     "curriculum261_plan.py",
+    "curriculum261_final.py",
     "curriculum261_smoke.py",
+    "curriculum261_cli.py",
 )
 
 
 def _code_identity() -> dict[str, str]:
     import rl_curriculum
+    from rl_curriculum.curriculum261_production_obs import (
+        route_c_strategy_identity,
+    )
 
     root = Path(rl_curriculum.__file__).parent
     out: dict[str, str] = {}
@@ -37,21 +43,41 @@ def _code_identity() -> dict[str, str]:
         f = root / name
         out[name] = hashlib.sha256(
             f.read_bytes()).hexdigest() if f.is_file() else "MISSING"
+    # repair R1:production observation 的特征构造代码本体
+    # (user_data/strategies/RouteCStrategy.py)不在 rl_curriculum 树内,
+    # 必须单独进入 code identity(final 运行时复算比对)
+    ident = route_c_strategy_identity()
+    out["RouteCStrategy.py"] = ident["strategy_file_sha256"]
+    out["RouteCStrategy.feature_engineering_standard"] = ident[
+        "feature_engineering_standard_sha256"]
     return out
 
 
 def build_plan(*, baseline_commit: str, vendor_pin: str,
                frozen_contracts: dict[str, str],
-               pairs_per_rung: int = 10) -> dict[str, Any]:
-    """构造 qualification plan(锁定内容;不含任何运行结果)。"""
+               pairs_per_rung: int = 10,
+               calibration_evidence: dict[str, Any] | None = None,
+               robustness_gate: dict[str, Any] | None = None,
+               ) -> dict[str, Any]:
+    """构造 qualification plan(锁定内容)。
+
+    repair R1:calibration_evidence / robustness_gate 为 lock 前双语料
+    校准与稳健性门槛的**结果快照**(在 lock 前完成;锁定后不得修改)。
+    gate FAIL 时仍可 lock(结果如实记录,由 final qualification 与
+    独立审查裁决),但绝不允许 lock 后再改任何参数。
+    """
     from rl_curriculum.curriculum261_api import (
         CURRICULUM261_EPISODE_BARS,
+        CURRICULUM261_INITIAL_PRICE,
         CURRICULUM261_MAX_ATTEMPTS,
         CURRICULUM261_TIMEFRAME,
         curriculum261_eval_config,
-        curriculum261_observation_schema,
     )
     from rl_curriculum.curriculum261_pairs import family_specs
+    from rl_curriculum.curriculum261_production_obs import (
+        production_observation_identity,
+        production_observation_schema,
+    )
 
     specs = family_specs()
     families: dict[str, Any] = {}
@@ -62,9 +88,9 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
             "rung_params": spec.rung_params,
             "reference_thresholds": dict(spec.reference_defaults),
         }
-    schema = curriculum261_observation_schema()
+    schema = production_observation_schema()
     cfg = curriculum261_eval_config()
-    return {
+    plan = {
         "format": PLAN_FORMAT,
         "stage": "stage2_6_1",
         "created_utc": datetime.now(timezone.utc).isoformat(
@@ -75,10 +101,11 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
         "episode_contract": {
             "timeframe": CURRICULUM261_TIMEFRAME,
             "episode_bars": CURRICULUM261_EPISODE_BARS,
-            "initial_price": 100.0,
+            "initial_price": CURRICULUM261_INITIAL_PRICE,
         },
         "observation_schema": schema.canonical_payload(),
         "observation_schema_hash": schema.schema_hash(),
+        "production_observation_identity": production_observation_identity(),
         "eval_config": cfg.manifest(),
         "families": families,
         "pair_plan": {
@@ -93,8 +120,8 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
             "selection": "第一个通过结构性校验的候选(绝不按 PnL 挑选)",
         },
         "seed_schedule": {
-            "namespaces": ["calibration", "qualification", "fresh_holdout",
-                           "training"],
+            "namespaces": ["calibration", "calibration_holdout",
+                           "qualification", "fresh_holdout", "training"],
             "derivation": "sha256([stage, namespace, family, rung, pair, "
                           "attempt])[:8];pair A/B 共享同一 seed",
             "corpus_enumeration": "qualification: family x rung x pair 0..9",
@@ -123,6 +150,11 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
         },
         "code_identity": _code_identity(),
     }
+    if calibration_evidence is not None:
+        plan["calibration_evidence"] = calibration_evidence
+    if robustness_gate is not None:
+        plan["robustness_gate"] = robustness_gate
+    return plan
 
 
 def plan_digest(plan: dict[str, Any]) -> str:

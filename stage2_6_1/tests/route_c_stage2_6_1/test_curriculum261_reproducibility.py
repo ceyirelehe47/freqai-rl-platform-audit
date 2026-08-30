@@ -9,7 +9,6 @@ from rl_curriculum.curriculum261_api import (
     CURRICULUM261_EPISODE_BARS,
     CURRICULUM261_TIMEFRAME,
     curriculum261_eval_config,
-    curriculum261_observation_schema,
     derive261_seed,
 )
 from rl_curriculum.curriculum261_pairs import generate_pair, family_specs
@@ -102,11 +101,14 @@ class TestFrozenContracts:
         assert cfg.window_size == 1
 
     def test_schema_frozen(self):
-        schema = curriculum261_observation_schema()
-        assert schema.observation_dim == 12
+        from rl_curriculum.curriculum261_production_obs import (
+            production_observation_schema,
+        )
+        schema = production_observation_schema()
+        assert schema.observation_dim == 9
         assert schema.window_size == 1
         assert schema.dtype == "float32"
-        assert schema.nuisance_slot_count == 3
+        assert schema.nuisance_slot_count == 0
 
 
 class TestEpisodeContract:
@@ -123,7 +125,10 @@ class TestEpisodeContract:
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_observation_columns_match_schema(self, family):
-        schema = curriculum261_observation_schema()
+        from rl_curriculum.curriculum261_production_obs import (
+            production_observation_schema,
+        )
+        schema = production_observation_schema()
         rec = generate_pair(family, "D0", 0, namespace="calibration")
         feats = select_features_strict(
             rec.episodes["A"].df, schema)

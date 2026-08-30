@@ -18,7 +18,7 @@ DEFAULT_ART = Path.home() / "projects" / "crypto_rl" / "artifacts" / \
 VENDOR = Path.home() / "projects" / "crypto_rl" / "vendor" / "freqtrade"
 
 #: 基线 commit(阶段任务书确认的 2.6.0j HEAD)
-BASELINE_COMMIT = "cd585f4acff6170a2b592d11418066b0c0714b02"
+BASELINE_COMMIT = "c6e37afe0e1845bc2c02bb79ae5cacab1125dbc1"
 VENDOR_PIN = "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5"
 
 
@@ -34,19 +34,30 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     if args.command == "calibrate":
-        from rl_curriculum.curriculum261_qualification import run_calibration
-        summary = run_calibration(pairs_per_rung=args.pairs, out_dir=out)
-        ok = all(
-            summary["families"][f]["ordering_ok"]
-            and summary["families"][f]["d3_metric_positive"]
-            and summary["families"][f]["reference_beats_required_all_rungs"]
-            for f in summary["families"])
+        # repair R1:主 calibration + 独立 holdout + robustness gate
+        from rl_curriculum.curriculum261_qualification import (
+            calibration_robustness_gate,
+            run_calibration,
+            run_calibration_holdout,
+        )
+        main_summary = run_calibration(
+            pairs_per_rung=args.pairs, out_dir=out)
+        holdout_summary = run_calibration_holdout(
+            pairs_per_rung=args.pairs, out_dir=out)
+        gate = calibration_robustness_gate(main_summary, holdout_summary)
+        (out / "robustness_gate.json").write_text(
+            json.dumps(gate, indent=2, ensure_ascii=False, default=float),
+            encoding="utf-8")
         print(json.dumps({
-            "command": "calibrate", "all_families_ok": ok,
-            "ladders": {f: summary["families"][f]["difficulty_metric_ladder"]
-                        for f in summary["families"]}},
+            "command": "calibrate",
+            "robustness_gate_pass": gate["pass"],
+            "families_gate": {f: gate["families"][f]["pass"]
+                              for f in gate["families"]},
+            "ladders": {f: main_summary["families"][f][
+                "difficulty_metric_ladder"]
+                for f in main_summary["families"]}},
             indent=2, ensure_ascii=False))
-        return 0 if ok else 1
+        return 0 if gate["pass"] else 1
 
     if args.command == "lock-plan":
         from rl_curriculum.curriculum261_plan import build_plan, lock_plan
@@ -58,9 +69,28 @@ def main() -> int:
             "execution": "MarketOpenCausalExecution-v1",
             "terminal_liquidation": "TerminalLiquidation-v1",
         }
+        calibration_evidence = None
+        robustness_gate = None
+        gate_path = out / "robustness_gate.json"
+        main_path = out / "calibration_summary.json"
+        hold_path = out / "calibration_holdout_summary.json"
+        if gate_path.is_file():
+            robustness_gate = json.loads(
+                gate_path.read_text(encoding="utf-8"))
+            calibration_evidence = {
+                "calibration_summary": json.loads(
+                    main_path.read_text(encoding="utf-8"))
+                if main_path.is_file() else None,
+                "calibration_holdout_summary": json.loads(
+                    hold_path.read_text(encoding="utf-8"))
+                if hold_path.is_file() else None,
+            }
+            # evidence 内的 ladder 摘要(完整 JSON 过大时保留结构)
         plan = build_plan(baseline_commit=args.baseline,
                           vendor_pin=VENDOR_PIN, frozen_contracts=frozen,
-                          pairs_per_rung=args.pairs)
+                          pairs_per_rung=args.pairs,
+                          calibration_evidence=calibration_evidence,
+                          robustness_gate=robustness_gate)
         digest = lock_plan(plan, out)
         print(json.dumps({"command": "lock-plan", "digest": digest,
                           "out": str(out)}, ensure_ascii=False))

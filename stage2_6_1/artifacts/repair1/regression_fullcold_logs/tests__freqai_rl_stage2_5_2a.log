@@ -1,0 +1,61 @@
+........................................................................ [ 88%]
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py: 13 warnings
+tests/freqai_rl_stage2_5_2a/test_market_order_freqtrade_parity.py: 16 warnings
+tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py: 4 warnings
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:77: FutureWarning: pyarrow.feather.write_feather is deprecated as of 24.0.0. Use pyarrow.ipc.new_file() / RecordBatchFileWriter instead. Feather V2 is the Arrow IPC file format.
+    feather.write_feather(df, handles.handle, **kwargs)
+
+tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py: 33 warnings
+tests/freqai_rl_stage2_5_2a/test_market_order_freqtrade_parity.py: 12 warnings
+tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py: 3 warnings
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pandas/io/feather_format.py:178: FutureWarning: pyarrow.feather.read_table is deprecated as of 24.0.0. Use pyarrow.ipc.open_file() / RecordBatchFileReader instead. Feather V2 is the Arrow IPC file format.
+    pa_table = feather.read_table(
+
+tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_first_heartbeat_full_chain
+tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_process_recreate_loads_model
+tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_inconsistent_fail_closed_full_chain
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 50 durations =============================
+6.15s setup    tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_first_heartbeat_full_chain
+3.88s call     tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_inconsistent_fail_closed_full_chain
+3.42s call     tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_process_recreate_loads_model
+2.24s call     tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_first_heartbeat_full_chain
+1.85s call     tests/freqai_rl_stage2_5_2a/test_amount_epsilon_consistency.py::test_epsilon_single_source_everywhere[0.001]
+1.67s call     tests/freqai_rl_stage2_5_2a/test_market_order_freqtrade_parity.py::test_market_order_zero_slippage_parity
+0.76s call     tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_lifecycle_to_fill_and_recovery
+0.74s teardown tests/freqai_rl_stage2_5_2a/test_real_freqai_start_live_chain.py::test_no_api_keys_and_fake_only_exchange
+0.05s call     tests/freqai_rl_stage2_5_2a/test_terminal_reward_telescoping.py::test_telescoping_random_prices_and_actions
+0.03s call     tests/freqai_rl_stage2_5_2a/test_terminal_liquidation_cost.py::test_no_free_ride_at_random_horizon
+0.03s call     tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_normal_success_path
+0.02s call     tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_manifest_modified_after_write_detected
+0.02s call     tests/freqai_rl_stage2_5_2a/test_amount_epsilon_consistency.py::test_epsilon_single_source_everywhere[1e-08]
+0.02s call     tests/freqai_rl_stage2_5_2a/test_future_high_low_invariance.py::test_invariance_evidence_file
+0.02s call     tests/freqai_rl_stage2_5_2a/test_amount_epsilon_consistency.py::test_epsilon_single_source_everywhere[1e-12]
+0.02s call     tests/freqai_rl_stage2_5_2a/test_amount_epsilon_consistency.py::test_boundary_exposure_state_changes_with_epsilon
+0.02s call     tests/freqai_rl_stage2_5_2a/test_amount_epsilon_consistency.py::test_default_epsilon_unchanged
+0.02s call     tests/freqai_rl_stage2_5_2a/test_market_execution_causality.py::test_scripted_targets_zero_slippage_depends_only_on_open
+0.02s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_build_manifest_exception_is_fatal
+0.01s call     tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_manifest_write_failure_is_fatal
+0.01s call     tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_self_check_inconsistent_is_fatal
+0.01s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_quarantined_cache_not_reused_next_run
+0.01s call     tests/freqai_rl_stage2_5_2a/test_partial_fill_base_fee.py::test_consistent_with_upstream_recalc_for_closed_orders
+0.01s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_normal_success_path
+0.01s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_self_check_inconsistent_is_fatal
+0.01s call     tests/freqai_rl_stage2_5_2a/test_market_execution_causality.py::test_rounding_never_improves_price
+0.01s call     tests/freqai_rl_stage2_5_2a/test_terminal_liquidation_cost.py::test_terminal_equity_monotone_in_slippage
+0.01s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_manifest_write_failure_is_fatal
+0.01s setup    tests/freqai_rl_stage2_5_2a/test_cache_manifest_failure_is_fatal.py::test_manifest_modified_after_write_detected
+0.01s call     tests/freqai_rl_stage2_5_2a/test_future_high_low_invariance.py::test_high_low_invariance[0.0-0.01-shuffled]
+0.01s call     tests/freqai_rl_stage2_5_2a/test_simulated_slippage_monotonicity.py::test_monotonicity_evidence
+0.01s call     tests/freqai_rl_stage2_5_2a/test_future_high_low_invariance.py::test_legacy_mode_is_high_low_sensitive
+0.01s call     tests/freqai_rl_stage2_5_2a/test_future_high_low_invariance.py::test_high_low_invariance[5.0-0.0-shuffled]
+0.01s call     tests/freqai_rl_stage2_5_2a/test_simulated_slippage_monotonicity.py::test_slippage_formula_and_monotone_cost
+0.01s call     tests/freqai_rl_stage2_5_2a/test_future_high_low_invariance.py::test_high_low_invariance[5.0-0.01-shuffled]
+
+(15 durations < 0.005s hidden.  Use -vv to show these durations.)
+81 passed, 84 warnings in 23.57s

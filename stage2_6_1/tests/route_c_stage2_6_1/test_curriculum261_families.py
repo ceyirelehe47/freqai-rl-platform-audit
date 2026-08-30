@@ -7,14 +7,16 @@ import pytest
 
 from rl_curriculum.curriculum261_api import (
     curriculum261_eval_config,
-    curriculum261_observation_schema,
 )
 from rl_curriculum.curriculum261_pairs import family_specs, generate_pair
 from rl_curriculum.curriculum261_qualification import evaluate_pair_corpus
 from rl_curriculum.evaluator import run_policy_episode
 from rl_curriculum.policies import AlwaysFlatPolicy, AlwaysLongPolicy
 
-SCHEMA = curriculum261_observation_schema()
+from rl_curriculum.curriculum261_production_obs import (
+    production_observation_schema,
+)
+SCHEMA = production_observation_schema()
 CFG = curriculum261_eval_config()
 
 

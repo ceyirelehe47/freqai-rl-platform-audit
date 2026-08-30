@@ -18,8 +18,10 @@ import numpy as np
 from rl_curriculum.curriculum261_api import (
     CURRICULUM261_TIMEFRAME,
     curriculum261_eval_config,
-    curriculum261_observation_schema,
     derive261_seed,
+)
+from rl_curriculum.curriculum261_production_obs import (
+    production_observation_schema,
 )
 from rl_curriculum.curriculum261_pairs import family_specs
 from rl_curriculum.evaluator import select_features_strict
@@ -35,7 +37,7 @@ def run_ppo_smoke(out_dir: Path | None = None) -> dict[str, Any]:
     """用 qualified C1 D1 生成器(training seed)执行 256-step PPO smoke。"""
     from stable_baselines3 import PPO
 
-    schema = curriculum261_observation_schema()
+    schema = production_observation_schema()
     cfg = curriculum261_eval_config()
     spec = family_specs()["c1_opportunity"]
     rung_params = dict(spec.rung_params["D1"])

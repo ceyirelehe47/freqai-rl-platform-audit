@@ -1,19 +1,24 @@
-"""阶段 2.6.1 工作包 B:C1/C2/C3 课程生成器公共框架。
+"""阶段 2.6.1 工作包 B + repair R1:C1/C2/C3 课程生成器公共框架。
 
 三个课程 family(C1 机会识别 / C2 上下文门控 / C3 成本敏感择时)共用:
-- 统一 observation schema(单一 15m 时间尺度上的因果滚动特征,
-  其中 htf_* 是由 15m 价格路径经因果窗口聚合得到的 1h/4h 尺度上下文
-  特征——等价于"只用截至 t 已完成的 HTF bar"的 resample 口径,
-  逐前缀可重建,经 generator_api 的前缀重算校验强制);
-- 统一 episode 合同(288 bars @ 15m = 72h,统一 initial_price);
-- 确定性 seed 派生(namespace 隔离:calibration / qualification /
-  fresh_holdout / training,训练 namespace 本阶段仅用于 PPO smoke,
-  2.6.2 起才作正式训练 seed,qualification corpus 不得复用);
+- production observation(repair R1 起):episode 的 policy observation
+  特征一律由真实生产 RouteCStrategy.feature_engineering_standard
+  构造(8 个生产特征列,见 curriculum261_production_obs),课程不再
+  维护自制 observation schema;生成器只负责生成 world/OHLCV 与
+  latent sidecar;前缀可重建仍由 generator_api 的前缀重算校验强制;
+- 统一 episode 合同(288 bars @ 15m = 72h,统一 initial_price=1.0:
+  raw_* 生产特征 = 价格水平,必须落在冻结环境 observation_space
+  Box(-10, 10) 内);
+- 确定性 seed 派生(namespace 隔离:calibration / calibration_holdout /
+  qualification / fresh_holdout / training;qualification corpus 与
+  全部校准语料隔离,训练 namespace 本阶段仅用于 PPO smoke,
+  2.6.2 起才作正式训练 seed);
 - max_attempts=5 / first_pass 的结构化尝试策略(拒绝原因只能是
   结构性合同,绝不基于 PnL/难度表现挑选候选);
 - pair 变体(pair_variant)不进入 seed 派生(沿 antithetic_flip 的
-  先例):pair A/B 共享同一收益噪声流 / OHLCV wick 噪声 / nuisance
-  槽位 / 事件时间表,只在因果映射上不同。
+  先例):pair A/B 共享同一收益噪声流 / OHLCV wick 噪声 / 事件
+  时间表,只在因果映射上不同(旧版共享的 nuisance 槽位已随自制
+  schema 一并移除——production 特征集不含 nuisance 列)。
 
 冻结边界:本模块不修改 Route C 六项冻结合同;所有 PnL 一律经
 rl_platform.env.AlignedLongFlatEnv(market_open_causal)计算。
@@ -29,6 +34,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from rl_curriculum.curriculum261_production_obs import (
+    PRODUCTION_FEATURE_COLUMNS,
+    attach_production_features,
+)
 from rl_curriculum.evaluator import EvalConfig
 from rl_curriculum.generator_api import (
     BaseMarketGenerator,
@@ -36,7 +45,6 @@ from rl_curriculum.generator_api import (
     GeneratorError,
     PRICE_COLUMNS,
 )
-from rl_curriculum.observation_schema import FeatureSpec, ObservationSchema
 
 # ---------------------------------------------------------------- 常量合同
 CURRICULUM261_STAGE_ID = "stage2_6_1"
@@ -44,7 +52,10 @@ CURRICULUM261_TIMEFRAME = "15m"
 #: 统一 episode 长度:288 bars x 15m = 72h(pair A/B 与全部 family/rung 相同,
 #: 作为 pair nuisance 合同的一部分)
 CURRICULUM261_EPISODE_BARS = 288
-CURRICULUM261_INITIAL_PRICE = 100.0
+#: 统一初始价格(repair R1):生产特征含 raw_* = 价格水平,冻结环境
+#: observation_space = Box(-10, 10) 要求价格水平为 O(1);episode 内
+#: 水平方差(全部成对抵消构造)远小于该界限。
+CURRICULUM261_INITIAL_PRICE = 1.0
 
 #: 尝试策略(沿用 2.6.0h/2.6.0i 的 first_pass/max_attempts 语义)
 CURRICULUM261_MAX_ATTEMPTS = 5
@@ -59,38 +70,12 @@ CURRICULUM261_PAIR_VARIANTS = ("A", "B")
 CURRICULUM261_RUNGS = ("D0", "D1", "D2", "D3")
 CURRICULUM261_FAMILIES = ("c1_opportunity", "c2_context", "c3_cost")
 
-#: seed namespace(calibration 与 qualification 必须隔离;training 本阶段
-#: 仅 PPO smoke 使用且不得与 qualification corpus 重合)
+#: seed namespace(calibration 与 qualification 必须隔离;repair R1 起
+#: calibration_holdout 用于 lock 前的稳健性交叉验证,同样不得与
+#: qualification 重合;training 本阶段仅 PPO smoke 使用)
 CURRICULUM261_SEED_NAMESPACES = (
-    "calibration", "qualification", "fresh_holdout", "training")
-
-#: 统一冻结 observation schema(8 市场特征 + 3 nuisance 槽位)
-#: htf_1h_mom = log(close_t / close_{t-24})(6 个已完成 1h bar 的动量)
-#: htf_4h_mom = log(close_t / close_{t-96})(24h 尺度动量,96 根 15m bar)
-#: 两者在整点对齐时与 pandas resample("1h"/"4h").last() 后取
-#: log-return 完全等价;非对齐时为因果窗口聚合(只用 <= t 的数据)。
-CURRICULUM261_MARKET_FEATURES: tuple[tuple[str, str, int], ...] = (
-    ("ret_1", "local_momentum", 1),
-    ("ret_2", "local_momentum", 2),
-    ("ret_4", "local_momentum", 4),
-    ("vol_24", "local_volatility", 24),
-    ("ma_dev_24", "local_trend", 24),
-    ("htf_1h_mom", "htf_context", 24),
-    ("htf_4h_mom", "htf_context", 96),
-    ("htf_4h_ma_dev", "htf_context", 96),
-)
-CURRICULUM261_NUISANCE_SLOTS = ("nuis_0", "nuis_1", "nuis_2")
-CURRICULUM261_FEATURE_COLUMNS = tuple(
-    [f[0] for f in CURRICULUM261_MARKET_FEATURES]
-    + list(CURRICULUM261_NUISANCE_SLOTS))
-CURRICULUM261_SCHEMA_VERSION = "curriculum261-obs-v1"
-
-#: 价格水平回拉(OU pull,每 bar 对偏离初始价的 log 偏移施加 theta 比例
-#: 回拉):抑制 banner/脉冲随机游走造成的跨 episode 价格水平方差,
-#: 使 Always Long 的净收益收敛到 -摩擦(不依赖单 episode 抽签)。
-#: theta=0.006(bar^-1):平稳水平 sigma ~ vol/sqrt(2*theta) ~ 270bps,
-#: 回拉漂移 <= ~1.6bps/bar,远小于往返摩擦 20bps(不可搭乘)。
-CURRICULUM261_LEVEL_PULL_THETA = 0.006
+    "calibration", "calibration_holdout", "qualification",
+    "fresh_holdout", "training")
 
 
 #: 噪声配对间隔范围(bar):镜像元素放在 U[lo,hi] 根 bar 之后——
@@ -107,6 +92,12 @@ def paired_noise(rng: np.random.Generator, n: int,
     每对净和恒为 0 -> 噪声对价格水平的贡献按对抵消(水平偏移不超过
     单个 |g|),Always Long 的期末净值不受噪声路径漂移污染;镜像间隔
     >= 8 bar 保证短窗口(ret_1/ret_4)内不存在系统性反转规律。
+
+    repair R1 水平合同:配对从 t=1 开始(bar 0 恒无噪声)——环境在
+    open[t+1] 成交,任何策略可捕获的收益区间是 [1, n);若噪声对落在
+    t=0,其镜像落在可交易区间内而首元素不在,Always Long 会吃掉
+    未抵消的一半(实测可达百 bps 级水平残差)。全部配对完整落在
+    [1, n) 内 -> sum(returns[1:]) 恒为 0,Always Long 恒 = -摩擦。
 
     scale(可选,逐 bar 噪声尺度,如时变波动率):**配对内两个元素
     使用同一尺度(取首元素的 scale)**——否则跨体制边界的配对不
@@ -129,7 +120,7 @@ def paired_noise(rng: np.random.Generator, n: int,
     if mutate_from is not None and mutate_salt is not None:
         mut_rng = np.random.default_rng(
             (int(mutate_salt) << 32) ^ int(mutate_from))
-    t = 0
+    t = 1  # 水平合同:配对从 t=1 起,bar 0 恒无噪声
     while t < n:
         stream = rng
         if mut_rng is not None and t >= int(mutate_from):
@@ -150,41 +141,6 @@ def paired_noise(rng: np.random.Generator, n: int,
     return col
 
 
-def apply_level_pull(returns: np.ndarray, theta: float =
-                     CURRICULUM261_LEVEL_PULL_THETA) -> np.ndarray:
-    """对对数收益序列施加向初始价格水平的 OU 回拉(因果,逐 bar)。"""
-    out = np.asarray(returns, dtype=np.float64).copy()
-    level = 0.0
-    for i in range(len(out)):
-        out[i] -= theta * level
-        level += out[i]
-    return out
-
-
-def curriculum261_observation_schema() -> ObservationSchema:
-    """阶段 2.6.1 统一 observation schema(冻结实例,schema hash 进计划)。"""
-    feats = tuple(
-        FeatureSpec(
-            name=name, available_at="close_of_bar_t",
-            max_history_bars=hist, signal_group=group,
-        )
-        for name, group, hist in CURRICULUM261_MARKET_FEATURES
-    ) + tuple(
-        FeatureSpec(
-            name=s, available_at="close_of_bar_t", max_history_bars=1,
-            nuisance=True, signal_group="nuisance",
-        )
-        for s in CURRICULUM261_NUISANCE_SLOTS
-    )
-    return ObservationSchema(
-        schema_version=CURRICULUM261_SCHEMA_VERSION,
-        features=feats,
-        window_size=1,
-        dtype="float32",
-        includes_cost_context=False,
-    )
-
-
 def curriculum261_eval_config() -> EvalConfig:
     """与冻结账本一致的评估配置(fee=0.001、无滑点、无 tick、100 现金)。"""
     return EvalConfig(
@@ -192,26 +148,6 @@ def curriculum261_eval_config() -> EvalConfig:
         initial_cash=100.0, reward_scale=1.0, window_size=1,
         deterministic=True,
     )
-
-
-def attach_curriculum261_features(df: pd.DataFrame) -> pd.DataFrame:
-    """统一市场特征(因果滚动、无 NaN、价格尺度不变、前缀可重建)。"""
-    log_close = np.log(df["close"].to_numpy(dtype=np.float64))
-    lc = pd.Series(log_close)
-    out = df.copy()
-    out["ret_1"] = lc.diff(1).fillna(0.0)
-    out["ret_2"] = lc.diff(2).fillna(0.0)
-    out["ret_4"] = lc.diff(4).fillna(0.0)
-    out["vol_24"] = lc.diff(1).rolling(24, min_periods=1).std().fillna(0.0)
-    out["ma_dev_24"] = (
-        df["close"] / df["close"].rolling(24, min_periods=1).mean() - 1.0
-    )
-    out["htf_1h_mom"] = lc.diff(24).fillna(0.0)
-    out["htf_4h_mom"] = lc.diff(96).fillna(0.0)
-    out["htf_4h_ma_dev"] = (
-        df["close"] / df["close"].rolling(96, min_periods=1).mean() - 1.0
-    )
-    return out
 
 
 # ---------------------------------------------------------------- seed 派生
@@ -266,15 +202,17 @@ def episode_content_hash(episode: GeneratedEpisode) -> str:
 class Curriculum261Base(BaseMarketGenerator):
     """C1/C2/C3 公共生成器基类。
 
-    - 统一特征列(11 列 = 8 市场 + 3 nuisance);
-    - pair_variant 与 antithetic_flip 一样不进入 seed 派生与 nuisance
-      counter-hash:pair A/B 共享收益噪声 / wick / nuisance / 事件表,
+    - 统一特征列 = 生产 8 特征(repair R1:_attach_features 直接调用
+      真实 RouteCStrategy.feature_engineering_standard,课程不再有
+      自制特征;nuisance 槽位随自制 schema 一并移除);
+    - pair_variant 与 antithetic_flip 一样不进入 seed 派生与
+      nuisance counter-hash:pair A/B 共享收益噪声 / wick / 事件表,
       仅在 _generate 内部按 variant 改变因果映射;
     - episode_bars 固定 288(声明即物化,由 generate() 校验)。
     """
 
-    feature_columns = list(CURRICULUM261_FEATURE_COLUMNS)
-    nuisance_slot_names = CURRICULUM261_NUISANCE_SLOTS
+    feature_columns = list(PRODUCTION_FEATURE_COLUMNS)
+    nuisance_slot_names: tuple[str, ...] = ()
 
     #: 不进入 seed 派生的参数键(pair 共享流 + 未来变异因果测试专用)
     _SEED_EXCLUDED_KEYS = (CURRICULUM261_PAIR_VARIANT_KEY, "antithetic_flip",
@@ -292,7 +230,8 @@ class Curriculum261Base(BaseMarketGenerator):
         )
 
     def _attach_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        return attach_curriculum261_features(df)
+        """生产特征构造(repair R1):真实 RouteCStrategy 路径。"""
+        return attach_production_features(df)
 
     def _attach_nuisance_slots(
         self, df: pd.DataFrame, params: dict[str, Any], seed: int,

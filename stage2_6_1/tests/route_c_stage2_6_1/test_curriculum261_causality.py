@@ -5,17 +5,17 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from rl_curriculum.curriculum261_api import (
-    curriculum261_observation_schema,
-)
 from rl_curriculum.curriculum261_pairs import (
     family_specs,
     generate_pair,
 )
+from rl_curriculum.curriculum261_production_obs import (
+    production_observation_schema,
+)
 from rl_curriculum.curriculum261_qualification import (
-    check_htf_resample_equivalence,
     check_latent_isolation,
     check_observation_causality,
+    check_production_feature_equivalence,
     check_reference_causality,
 )
 
@@ -30,10 +30,12 @@ class TestObservationCausality:
         assert result["pass"], result
 
 
-class TestHtfCausality:
+class TestProductionFeatureEquivalence:
     @pytest.mark.parametrize("family", FAMILIES)
-    def test_htf_features_equal_causal_resample(self, family):
-        result = check_htf_resample_equivalence(family, "D2", 0)
+    def test_features_equal_real_strategy_rebuild(self, family):
+        # repair R1:episode 特征必须与真实 RouteCStrategy 路径的独立
+        # 重算逐位一致(替代旧 htf resample 检查)
+        result = check_production_feature_equivalence(family, "D2", 0)
         assert result["pass"], result
 
     def test_features_are_prefix_recomputable(self):
@@ -50,7 +52,8 @@ class TestHtfCausality:
             prefix = ep.df.iloc[:cut][
                 ["date", "open", "high", "low", "close", "volume"]].copy()
             rebuilt = spec.generator._attach_features(prefix)  # noqa: SLF001
-            for col in ("ret_1", "htf_1h_mom", "htf_4h_mom", "vol_24"):
+            for col in ("%-ret-1", "%-ret-4", "%-vol-24",
+                        "%-price-ma-ratio", "%-raw_close"):
                 a = ep.df[col].iloc[:cut].to_numpy(dtype=np.float64)
                 b = rebuilt[col].to_numpy(dtype=np.float64)
                 assert np.array_equal(a, b), (family, col)
@@ -91,7 +94,6 @@ class TestPairIntegrity:
         assert n["same_length"]
         assert n["same_initial_price"]
         assert n["volume_identical"]
-        assert n["nuisance_slots_identical"]
         assert n["vol24_ratio_in_range"]
 
     @pytest.mark.parametrize("family", FAMILIES)

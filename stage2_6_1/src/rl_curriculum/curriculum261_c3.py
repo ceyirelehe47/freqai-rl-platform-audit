@@ -5,8 +5,8 @@ C3 教的能力:**有预测 edge 不代表应该交易;只有扣除真实 Route 
 
 世界模型:
 - 信号事件(泊松 + 最小间隔):强度 s(三档混合:strong/marginal/weak)、
-  方向 d=+-1 等概率;注入 2 bar 可见脉冲 d x s x k(策略通过 ret_2
-  可读到的"信号强度"——强度可见性与收益耦合完全解耦);
+  方向 d=+-1 等概率;注入单 bar 可见脉冲 d x s x k(策略通过生产
+  特征 %-ret-1 读到"信号强度"——强度可见性与收益耦合完全解耦);
 - 收益注入(variant A):事件后 H bar 内每 bar 追加 drift = d x alpha x s,
   单次事件的总毛 edge G(s) = alpha x s x H(对数单位);
 - 摩擦 F 只取自 null_friction.ledger_round_trip_retention(冻结账本
@@ -55,9 +55,13 @@ FRICTION = 1.0 - ledger_round_trip_retention(fee=0.001, slippage=0.0)
 FRICTION_BPS = FRICTION * 1e4
 
 #: 脉冲可见度常数:每单位强度 s 的单 bar 脉冲幅值(bps)。
-#: k=160:强档脉冲 248-296bps(~14-sigma @ vol 18bps),参考阈值 ~4-sigma,
-#: 噪声假触发率 ~0;同时控制脉冲流的价格水平方差(配合事件配对)。
-C3_PULSE_K_BPS = 160.0
+#: repair R1:k=160 时参考阈值(k x s* ~ 53-75bps)与 payoff bar 的
+#: 读数(alpha x s,67-125bps)重叠——参考被 payoff bar 假触发拖入
+#: 无信号 bar(实测压制 ref 净收益)。k=600 使阈值读数(200-280bps)
+#: 与最大 payoff bar 读数 + 4-sigma(<= 197bps)完全分离,同时
+#: weak(90-180bps)/distractor(144-198bps)仍低于阈值、strong
+#: (900-1140bps)显著高于阈值——强度排序在观察上保持单调。
+C3_PULSE_K_BPS = 600.0
 
 #: 事件配对合同:每个事件(信号或 distractor)在 gap U[C3_PAIR_GAP]
 #: 根 bar 后跟一个**同强度、反方向**的镜像事件(gap >= 4 保证在
@@ -67,42 +71,52 @@ C3_PULSE_K_BPS = 160.0
 #: 的净收益方差被结构性抑制。
 C3_PAIR_GAP = (4, 6)
 
-#: C3 专用价格水平回拉(抑制残余水平方差;0.02/bar 的回拉漂移
-#: <= ~3.2bps/bar,远小于摩擦)
+#: [已废弃 repair R1]OU 回拉已移除(事件配对 + 噪声配对抵消水平);
+#: 常量保留仅为历史对照,不参与生成。
 C3_LEVEL_PULL_THETA = 0.02
 
 #: 强度档(全 rung 固定;难度只来自 mixture 与 distractor 率)
-#: strong: G_eff = 79-94bps(4.0-4.7F);marginal: 9-24bps(跨在成本线
-#: 与参考阈值两侧);weak: 2.5-6bps(纯亚成本纹理)
+#: strong: G_eff = 70-126bps(3.5-6.3F);marginal: 19-41bps(跨在成本线
+#: 与参考阈值两侧,rung 间被 s* 渐次切成两半);weak: 8-16bps
+#: (纯亚成本纹理,专喂 cost-ignorant)。
+#: repair R1:上一轮 D2/D3 inversion 的根因是相邻 rung 的结构差
+#: (alpha 差 3bps + mixture 差 5%)小于跨语料抽样方差;本轮 bins 与
+#: mixture 重设计使 D2/D3 的期望差来自三重结构差(alpha 差 7bps、
+#: strong 占比差 14 个百分点、distractor 率差 2 个百分点),并在
+#: calibration robustness gate 中以双语料 gap-vs-SE 检验。
 C3_STRENGTH_BINS: dict[str, tuple[float, float]] = {
-    "strong": (1.55, 1.85), "marginal": (0.18, 0.48), "weak": (0.16, 0.24),
+    "strong": (1.50, 1.90), "marginal": (0.35, 0.75), "weak": (0.15, 0.30),
 }
-#: distractor 脉冲强度(51-72bps:高于 cost-ignorant 阈值、低于参考阈值)
+#: distractor 脉冲强度(38-53bps:高于 cost-ignorant 阈值 0.22、
+#: 低于全部 rung 的参考阈值 s* >= 0.33)
 C3_DISTRACTOR_S_RANGE = (0.24, 0.33)
 
-#: C3 rung 参数(候选;最终值由 calibration 固定并进入 plan)。
+#: C3 rung 参数(repair R1 候选;最终值由 calibration 固定并进入 plan)。
 #: 收益注入为单 bar(H=1):事件后 1 根 bar 内注入 d x alpha x s。
-#: cue_rate 为"事件对"的每 bar 到达率(对内 gap 另行采样)。
+#: cue_rate 为"事件对"的每 bar 到达率(对内 gap 另行采样);
+#: 事件密度随 rung 上升(方差缩减补偿,保证 D3 的 population edge
+#: 不被抽样噪声淹没)。
 C3_RUNG_PARAMS: dict[str, dict[str, Any]] = {
-    "D0": {"alpha_bps": 64.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.090, "mixture": [0.60, 0.25, 0.15],
+    "D0": {"alpha_bps": 66.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.100, "mixture": [0.60, 0.25, 0.15],
            "distractor_rate": 0.015},
-    "D1": {"alpha_bps": 62.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.095, "mixture": [0.42, 0.33, 0.25],
+    "D1": {"alpha_bps": 60.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.110, "mixture": [0.46, 0.31, 0.23],
            "distractor_rate": 0.025},
-    "D2": {"alpha_bps": 57.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.100, "mixture": [0.32, 0.36, 0.32],
-           "distractor_rate": 0.035},
-    "D3": {"alpha_bps": 54.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.105, "mixture": [0.27, 0.38, 0.35],
-           "distractor_rate": 0.045},
+    "D2": {"alpha_bps": 54.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.120, "mixture": [0.34, 0.35, 0.31],
+           "distractor_rate": 0.040},
+    "D3": {"alpha_bps": 47.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.130, "mixture": [0.20, 0.38, 0.42],
+           "distractor_rate": 0.060},
 }
 #: variant B:收益注入常数(与强度无关),可捕获毛 edge = 0.3 x F(亚成本)
 C3_B_PAYOFF_FRACTION = 0.3
 
 #: 参考策略安全边际(阈值推导:G(s*) = m x F);cost-ignorant 的
-#: "任意可见信号"阈值(s=0.30 -> 48bps ~ 2.7-sigma,追一切可见信号)
-C3_REFERENCE_DEFAULTS = {"margin": 1.15, "any_signal_s": 0.22}
+#: "任意可见信号"阈值(s=0.22 -> 35bps ~ 2-sigma:噪声假触发 ~2%/bar
+#: 使其在 288 bar 上稳定亏损摩擦,受罚结构清晰)
+C3_REFERENCE_DEFAULTS = {"margin": 1.10, "any_signal_s": 0.22}
 
 
 def c3_capture_per_s(rung_params: dict[str, Any]) -> float:
@@ -126,7 +140,7 @@ class C3CostAwareGenerator(Curriculum261Base):
     """C3 生成器:脉冲可见 x 收益耦合世界 + 亚成本解耦 variant。"""
 
     family = FAMILY_C3
-    family_version = "cur261-c3-v1"
+    family_version = "cur261-c3-v2"
     hidden_columns = [
         "sig_strength", "sig_dir", "sig_gross_bps", "above_cost",
         "distractor_flag", "payoff_active", "payoff_dir", "payoff_gross_bps",
@@ -164,14 +178,14 @@ class C3CostAwareGenerator(Curriculum261Base):
                 gap = int(rng.integers(C3_PAIR_GAP[0], C3_PAIR_GAP[1] + 1))
                 _emit(t, s, d, False)
                 _emit(min(t + gap, n - 1), s, -d, False)
-                t += gap + 6
+                t += gap + 4
             elif roll < cue_rate + dis_rate:
                 s = float(rng.uniform(*C3_DISTRACTOR_S_RANGE))
                 d = 1 if rng.random() < 0.5 else -1
                 gap = int(rng.integers(C3_PAIR_GAP[0], C3_PAIR_GAP[1] + 1))
                 _emit(t, s, d, True)
                 _emit(min(t + gap, n - 1), s, -d, True)
-                t += gap + 6
+                t += gap + 4
             else:
                 t += 1
 
@@ -282,7 +296,8 @@ class C3ReferencePolicy(ObservableBaselinePolicy):
     """C3 因果观察参考(成本敏感):只有估计毛 edge 超过冻结摩擦才做多。
 
     阈值从公开课程参数推导:s* = margin x F / (alpha x H),
-    对应观察阈值 ret_1 > k x s*(脉冲单 bar 全幅)。
+    对应观察阈值 %-ret-1 > k x s*(脉冲单 bar 全幅,log 脉冲
+    与 pct 特征的差为 O(r^2) ~ 4.5e-6 @ 300bps,可忽略)。
     成本常数取自 null_friction(冻结账本),不是课程专用成本模型。
     """
 
@@ -297,7 +312,7 @@ class C3ReferencePolicy(ObservableBaselinePolicy):
 
     def act(self, observation: np.ndarray) -> int:
         thr = self.strength_thr * C3_PULSE_K_BPS * 1e-4
-        return int(self.read(observation, "ret_1") > thr)
+        return int(self.read(observation, "%-ret-1") > thr)
 
 
 class C3CostIgnorantPolicy(ObservableBaselinePolicy):
@@ -314,7 +329,7 @@ class C3CostIgnorantPolicy(ObservableBaselinePolicy):
 
     def act(self, observation: np.ndarray) -> int:
         thr = self.any_signal_s * C3_PULSE_K_BPS * 1e-4
-        return int(self.read(observation, "ret_1") > thr)
+        return int(self.read(observation, "%-ret-1") > thr)
 
 
 class C3OraclePolicy(OraclePolicy):

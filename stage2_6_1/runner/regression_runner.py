@@ -111,6 +111,10 @@ RULES = [
     # 仍走承诺链全目录的保守规则)
     ("src/rl_curriculum/curriculum261_",
      ["tests/route_c_stage2_6_1"]),
+    # 2.6.1 repair:生产特征构造本体变更 -> 课程 qualification 测试
+    # + 策略行为测试(2.5.2a)
+    ("user_data/strategies/RouteCStrategy.py",
+     ["tests/route_c_stage2_6_1", "tests/freqai_rl_stage2_5_2a"]),
 ]
 #: 证据/承诺/CLI 链(改动影响全部承诺通道目录)
 COMMITMENT_CHAIN = ["tests/route_c_stage2_6_0" + s for s in
@@ -156,7 +160,15 @@ def _now() -> str:
 def _tree_manifest() -> dict[str, str]:
     """src/tests 的内容清单(path -> sha256;排除 __pycache__/缓存)。"""
     out: dict[str, str] = {}
-    for base in (SRC, ROOT / "tests"):
+    bases = [SRC, ROOT / "tests"]
+    # 2.6.1 repair:RouteCStrategy(生产 observation 特征构造本体)
+    # 进入 manifest——它的变更直接影响课程 qualification 的
+    # production observation identity,affected 模式必须可见
+    strategy = ROOT / "user_data" / "strategies" / "RouteCStrategy.py"
+    if strategy.is_file():
+        out[strategy.relative_to(ROOT).as_posix()] = hashlib.sha256(
+            strategy.read_bytes()).hexdigest()
+    for base in bases:
         for p in sorted(base.rglob("*")):
             if not p.is_file() or "__pycache__" in p.parts:
                 continue
