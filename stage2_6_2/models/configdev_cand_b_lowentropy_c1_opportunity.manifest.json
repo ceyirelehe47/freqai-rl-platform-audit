@@ -1,0 +1,55 @@
+{
+  "config": {
+    "activation_fn": "Tanh",
+    "batch_size": 287,
+    "clip_range": 0.2,
+    "device": "cpu",
+    "ent_coef": 0.003,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "learning_rate": 0.0001,
+    "max_grad_norm": 0.5,
+    "n_epochs": 10,
+    "n_steps": 574,
+    "net_arch": [
+      128,
+      128
+    ],
+    "notes": "低熵+低学习率变体(更保守的策略更新)",
+    "policy": "MlpPolicy",
+    "vf_coef": 0.5
+  },
+  "config_digest": "pc-4bf4771b4af0a21df83e3688b981d68493d4be7891147d469fe6dbd06f6bf102",
+  "config_name": "cand_b_lowentropy",
+  "device": "cpu",
+  "format": "ppo262-model-manifest-v1",
+  "model_file": "configdev_cand_b_lowentropy_c1_opportunity.zip",
+  "model_seed": 26201,
+  "model_sha256": "06b66bb2aafde1deeaaf2dd437f8677173c8629a121b835330708c100bfebccf",
+  "observation_identity": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "feature_columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+    "observation_dim": 9,
+    "observation_spec_version": "ObservationSpec-v1",
+    "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+    "schema_version": "route-c-production-obs-v1",
+    "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "strategy_path": "/home/cryptorl/projects/crypto_rl/user_data/strategies/RouteCStrategy.py",
+    "window_size": 1
+  },
+  "order_name": "staged",
+  "run_label": "configdev/cand_b_lowentropy/c1_opportunity",
+  "saved_utc": "2026-08-31T05:42:59Z",
+  "sb3_version": "2.9.0",
+  "torch_version": "2.13.0+cu130"
+}

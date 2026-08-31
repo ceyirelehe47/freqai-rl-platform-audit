@@ -1,0 +1,32 @@
+{
+  "selected_candidate": "cand_a_center",
+  "config": {
+    "policy": "MlpPolicy",
+    "learning_rate": 0.0003,
+    "n_steps": 574,
+    "batch_size": 287,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "net_arch": [
+      128,
+      128
+    ],
+    "activation_fn": "Tanh",
+    "device": "cpu",
+    "notes": "中心候选:仓库路线 [128,128] + 标准 PPO clipping"
+  },
+  "config_digest": "pc-27ab88a81a34552dd62fa6788eed3891252c7ab8b2ece13906f4f2b8a18a1283",
+  "candidates_tested": [
+    "cand_a_center",
+    "cand_b_lowentropy",
+    "cand_c_highentropy"
+  ],
+  "selection_notes": {
+    "fallback_applied": "三 candidate 的 aggregate capture 全部无区分(评估集上均坍塌为退化策略,capture <= 0);按仓库路线 fallback 选择中心候选 cand_a_center 供 probe 使用。诊断证据:三个 candidate 在延长训练下同样坍塌(Always Long -> Always Flat),该选择不影响 probe 的 FAIL 判定。"
+  }
+}

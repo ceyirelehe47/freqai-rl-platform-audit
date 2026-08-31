@@ -1,0 +1,50 @@
+{
+  "format": "ppo262-core-experiment-plan-v1",
+  "status": "NOT_EXECUTED",
+  "reason": "三族 per-family probe 全部 FAIL(core capture 分别 -0.026 / 0.0 / -8.36,行为 gap 全 0);§10 明确『如果候选都不能在 development corpus 上显示基础学习:不要继续烧 core experiment 预算』,§13 明确『如果任何 family 独立 probe 完全无法学习:停止』。core 3 seeds x staged/mixed (6 x 183,680 steps)与 sealed final evaluation 均未执行,final namespace ppo_final_eval_262 从未生成(lock 从未写入,exposure marker 不存在)。",
+  "preregistered_design": {
+    "model_seeds": [
+      26201,
+      26202,
+      26203
+    ],
+    "episodes_per_run": 640,
+    "steps_per_run": 183680,
+    "bank_layout": {
+      "c1_opportunity": {
+        "D0": 32,
+        "D1": 48,
+        "D2": 64,
+        "D3": 16
+      },
+      "c2_context": {
+        "D0": 24,
+        "D1": 72,
+        "D2": 96,
+        "D3": 48
+      },
+      "c3_cost": {
+        "D0": 24,
+        "D1": 72,
+        "D2": 96,
+        "D3": 48
+      }
+    },
+    "orders": [
+      "staged(C1->C2->C3, rung 内 D0->D3)",
+      "mixed(同 multiset 确定性 shuffle)"
+    ],
+    "checkpoints_episodes": [
+      0,
+      160,
+      400,
+      640
+    ],
+    "final_eval": "3 families x 4 rungs x 10 pairs x A/B(plan 锁定后才可生成;本轮从未解锁)"
+  },
+  "probe_results": {
+    "c1_opportunity": false,
+    "c2_context": false,
+    "c3_cost": false
+  }
+}

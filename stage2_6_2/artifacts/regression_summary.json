@@ -1,0 +1,28 @@
+{
+  "format": "ppo262-regression-summary-v1",
+  "stage": "stage2_6_2",
+  "iteration": "s262_r0",
+  "checks": {
+    "input_lock": true,
+    "seed_namespace_integrity": true,
+    "ppo_smoke": true,
+    "stage261_readonly": true,
+    "probes_all_pass": false,
+    "core_executed": false,
+    "final_executed_once": false,
+    "final_namespace_untouched": true
+  },
+  "probes": {
+    "c1_opportunity": false,
+    "c2_context": false,
+    "c3_cost": false
+  },
+  "stage_verdict": "FAIL",
+  "fail_reason": "三族 per-family probe 全部无法学习(§13):C1/C2/C3 的 PPO 策略全部坍塌到退化策略(Always Flat;C1 中途经历 Always Long),core capture 分别 -0.026 / 0.0 / -8.36,intended behavior gap 全部 0.0。延长诊断(C1 4 倍预算)证明非预算不足。按 §10/§13 停止:core 与 sealed final evaluation 未执行,final seed namespace 从未生成。",
+  "key_learnings": [
+    "PPO+MLP 在 causal-unscaled 生产观察(特征尺度失衡:raw_* ~1.0 vs ret/vol ~3e-3)下,从随机初始化无法发现对 pmr/wick/信号强度的选择性响应",
+    "学习轨迹健康(换手 128->0,摩擦规避学会)但止步于退化策略:paired-noise 水平抵消使 Always Long=-摩擦、Always Flat=0 成为强局部最优,selective 行为的 advantage 信号不足以逃离",
+    "C3 曾出现短暂正收益探索期(reward +0.088 @ep80,靠 D0 strong 事件)但无法稳定保持,最终坍塌",
+    "production MinMaxScaler domain gap(G5)从『口径差异』升级为『可学习性差异』:同一任务在 unscaled 合同下 PPO 不可学"
+  ]
+}

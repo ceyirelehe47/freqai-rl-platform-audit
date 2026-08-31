@@ -1,0 +1,92 @@
+{
+  "format": "ppo262-config-development-plan-v1",
+  "stage": "stage2_6_2",
+  "iteration": "s262_r0",
+  "candidates": {
+    "cand_a_center": {
+      "policy": "MlpPolicy",
+      "learning_rate": 0.0003,
+      "n_steps": 574,
+      "batch_size": 287,
+      "n_epochs": 10,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "net_arch": [
+        128,
+        128
+      ],
+      "activation_fn": "Tanh",
+      "device": "cpu",
+      "notes": "中心候选:仓库路线 [128,128] + 标准 PPO clipping"
+    },
+    "cand_b_lowentropy": {
+      "policy": "MlpPolicy",
+      "learning_rate": 0.0001,
+      "n_steps": 574,
+      "batch_size": 287,
+      "n_epochs": 10,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.003,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "net_arch": [
+        128,
+        128
+      ],
+      "activation_fn": "Tanh",
+      "device": "cpu",
+      "notes": "低熵+低学习率变体(更保守的策略更新)"
+    },
+    "cand_c_highentropy": {
+      "policy": "MlpPolicy",
+      "learning_rate": 0.0003,
+      "n_steps": 574,
+      "batch_size": 287,
+      "n_epochs": 10,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.02,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5,
+      "net_arch": [
+        128,
+        128
+      ],
+      "activation_fn": "Tanh",
+      "device": "cpu",
+      "notes": "高熵探索变体(更强的 exploration 压力)"
+    }
+  },
+  "budget_per_candidate_steps": 60270,
+  "corpus": {
+    "namespace": "ppo_config_dev_262",
+    "scope": [
+      "c1_opportunity/D1",
+      "c2_context/D1",
+      "c3_cost/D1"
+    ],
+    "train_episodes_per_family": 70,
+    "eval_pairs_per_family": 4,
+    "train_pair_base": 0,
+    "eval_pair_base": 100
+  },
+  "selection_rule": {
+    "primary_metric": "mean_normalized_reference_gap_capture_c1c2c3",
+    "eval_namespace": "ppo_config_dev_262",
+    "eval_scope": "C1/C2/C3 各 D1,独立 4-pair 评估集",
+    "tie_break": [
+      "更高 aggregate capture 胜出",
+      "并列(capture 差 < 0.02)时选三族 capture 方差更小者",
+      "仍并列时选行为熵未坍塌(评估期 action 多样性 > 0)者"
+    ],
+    "all_fail_semantics": "若全部 candidate 在 development corpus 上无基础学习信号(aggregate capture <= 0 且无任何 family capture > 0.05),Stage 2.6.2 = FAIL,不烧 core 预算"
+  },
+  "created_utc": "2026-08-31T05:41:45Z"
+}

@@ -1,0 +1,55 @@
+{
+  "config": {
+    "activation_fn": "Tanh",
+    "batch_size": 287,
+    "clip_range": 0.2,
+    "device": "cpu",
+    "ent_coef": 0.01,
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "learning_rate": 0.0003,
+    "max_grad_norm": 0.5,
+    "n_epochs": 10,
+    "n_steps": 574,
+    "net_arch": [
+      128,
+      128
+    ],
+    "notes": "中心候选:仓库路线 [128,128] + 标准 PPO clipping",
+    "policy": "MlpPolicy",
+    "vf_coef": 0.5
+  },
+  "config_digest": "pc-27ab88a81a34552dd62fa6788eed3891252c7ab8b2ece13906f4f2b8a18a1283",
+  "config_name": "cand_a_center",
+  "device": "cpu",
+  "format": "ppo262-model-manifest-v1",
+  "model_file": "probe_c2.zip",
+  "model_seed": 26201,
+  "model_sha256": "eb8d096342d532e2d897952d31af6feec3ac445bb5145ff1c95d3f30ed60dba7",
+  "observation_identity": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "feature_columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+    "observation_dim": 9,
+    "observation_spec_version": "ObservationSpec-v1",
+    "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+    "schema_version": "route-c-production-obs-v1",
+    "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "strategy_path": "/home/cryptorl/projects/crypto_rl/user_data/strategies/RouteCStrategy.py",
+    "window_size": 1
+  },
+  "order_name": "staged(probe)",
+  "run_label": "probe/c2_context",
+  "saved_utc": "2026-08-31T06:13:22Z",
+  "sb3_version": "2.9.0",
+  "torch_version": "2.13.0+cu130"
+}

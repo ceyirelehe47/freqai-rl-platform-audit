@@ -1,0 +1,104 @@
+{
+  "format": "ppo262-extended-diagnostic-v1",
+  "purpose": "probe FAIL 后的支持性诊断:C1-only 用 core 全预算(640 eps = 183,680 steps = 4 倍 probe 预算)仍坍塌到退化策略,证明失败不是 probe 预算不足所致",
+  "config": "cand_a_center",
+  "model_seed": 26201,
+  "episodes": 640,
+  "steps": 183680,
+  "train_pass": true,
+  "trajectory": [
+    {
+      "env_step": 287,
+      "episode_index": 0,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": -0.06335585823768614,
+      "long_fraction": 0.445993031358885,
+      "position_changes": 128
+    },
+    {
+      "env_step": 6027,
+      "episode_index": 20,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": -0.13334115045180456,
+      "long_fraction": 0.3588850174216028,
+      "position_changes": 120
+    },
+    {
+      "env_step": 17507,
+      "episode_index": 60,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": -0.0004407076562707045,
+      "long_fraction": 0.003484320557491289,
+      "position_changes": 2
+    },
+    {
+      "env_step": 34727,
+      "episode_index": 120,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.003670018996292649,
+      "long_fraction": 0.003484320557491289,
+      "position_changes": 2
+    },
+    {
+      "env_step": 69167,
+      "episode_index": 240,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.0,
+      "long_fraction": 0.0,
+      "position_changes": 0
+    },
+    {
+      "env_step": 103607,
+      "episode_index": 360,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.0,
+      "long_fraction": 0.0,
+      "position_changes": 0
+    },
+    {
+      "env_step": 138047,
+      "episode_index": 480,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.0,
+      "long_fraction": 0.0,
+      "position_changes": 0
+    },
+    {
+      "env_step": 172487,
+      "episode_index": 600,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.0,
+      "long_fraction": 0.0,
+      "position_changes": 0
+    },
+    {
+      "env_step": 183680,
+      "episode_index": 639,
+      "episode_key": "",
+      "steps": 287,
+      "episode_reward_raw": 0.0,
+      "long_fraction": 0.0,
+      "position_changes": 0
+    }
+  ],
+  "eval_mean_net_return": 0.0,
+  "eval_behavior": {
+    "long_rate_on_positive": 0.0,
+    "n_positive": 2304,
+    "long_rate_on_neutral": 0.0,
+    "n_neutral": 4608,
+    "long_rate_on_negative": 0.0,
+    "n_negative": 2272,
+    "selectivity_gap": 0.0
+  },
+  "finding": "训练轨迹:随机高换手(reward -0.11, ch 128)-> 降换手-> 短暂 Always Long(long 1.00, reward -0.002 = 精确摩擦)-> 翻转 Always Flat(ep60 起 long 0.00, ch 0, reward 0.0000)并完全死锁至 ep639;评估 long_rate 三类机会全 0,selectivity_gap = 0。PPO 无法跨越到 selective 策略。",
+  "conclusion": "C1 在 4 倍 probe 预算下同样坍塌:非预算不足,是该输入合同下 PPO+MLP 的系统性不可学(当前预注册 config 空间内)。"
+}
