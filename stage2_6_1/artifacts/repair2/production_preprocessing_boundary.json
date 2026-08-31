@@ -1,0 +1,17 @@
+{
+  "format": "cur261-preprocessing-boundary-v1",
+  "boundary_name": "real RouteCStrategy feature semantics + frozen Route C observation layout + causal unscaled curriculum feature values",
+  "components": {
+    "feature_semantics": "真实 RouteCStrategy.feature_engineering_standard(生产源码调用,非课程重实现)",
+    "observation_layout": "ObservationSpec-v1:window=1 滑窗 + 仓位槽 + Box(-10,10)(仅冻结 layout,不冻结数值缩放)",
+    "feature_values": "causal unscaled(单 episode 全序列无未来信息;不经 VarianceThreshold/MinMaxScaler)"
+  },
+  "explicitly_not_equivalent_to": "完整 FreqAI production preprocessing:生产训练在 env 之外对 train_features 施加 feature_pipeline = VarianceThreshold(0) + MinMaxScaler((-1,1))(fit 于训练窗,episode 间重拟合),课程不包含该步骤",
+  "reason": "ObservationSpec-v1 冻结 env layout;FreqAI scaler 是env 外的训练数据预处理(fit 于 train_features,含未来信息的全窗统计若在单 episode 课程内复刻会引入 lookahead——与课程因果合同冲突)",
+  "registered_domain_gap": {
+    "gap": "FreqAI scaler / production preprocessing transfer",
+    "verification_stage": "后续 transfer / G5 阶段验证",
+    "not_this_stage": true
+  },
+  "future_contract": "若 2.6.2 使用课程 adapter,必须使用与本边界完全相同的 adapter(production_observation_identity 绑定)"
+}

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-PLAN_FORMAT = "cur261-qualification-plan-v2"
+PLAN_FORMAT = "cur261-qualification-plan-v3"
 
 #: 阶段 2.6.1 的课程代码身份(逐模块内容哈希;进入 plan)
 PLAN_CODE_MODULES = (
@@ -58,13 +58,15 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
                pairs_per_rung: int = 10,
                calibration_evidence: dict[str, Any] | None = None,
                robustness_gate: dict[str, Any] | None = None,
+               gate_artifact_digest: str | None = None,
                ) -> dict[str, Any]:
     """构造 qualification plan(锁定内容)。
 
-    repair R1:calibration_evidence / robustness_gate 为 lock 前双语料
-    校准与稳健性门槛的**结果快照**(在 lock 前完成;锁定后不得修改)。
-    gate FAIL 时仍可 lock(结果如实记录,由 final qualification 与
-    独立审查裁决),但绝不允许 lock 后再改任何参数。
+    repair R2 Layer B(硬合同):robustness_gate 必须非 None 且
+    robustness_gate["pass"] is True,否则 RuntimeError——gate FAIL
+    禁止生成可执行 qualification plan,不存在"gate FAIL 仍可 lock,
+    由 final 裁决"的语义。calibration_evidence 为 lock 前双语料
+    校准结果快照(锁定后不得修改)。
     """
     from rl_curriculum.curriculum261_api import (
         CURRICULUM261_EPISODE_BARS,
@@ -75,10 +77,18 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
     )
     from rl_curriculum.curriculum261_pairs import family_specs
     from rl_curriculum.curriculum261_production_obs import (
+        curriculum_preprocessing_boundary,
         production_observation_identity,
         production_observation_schema,
+        production_runtime_config_identity,
     )
 
+    if robustness_gate is None or robustness_gate.get("pass") is not True:
+        raise RuntimeError(
+            "robustness gate 未通过(或缺失),禁止锁定 qualification "
+            "plan——repair R2 硬合同:Calibration -> Holdout -> Gate "
+            "PASS 才允许 Lock -> Final Qualification;gate FAIL 必须"
+            "回到设计,本轮 calibration qualification = FAIL 并停止")
     specs = family_specs()
     families: dict[str, Any] = {}
     for family, spec in specs.items():
@@ -106,6 +116,9 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
         "observation_schema": schema.canonical_payload(),
         "observation_schema_hash": schema.schema_hash(),
         "production_observation_identity": production_observation_identity(),
+        "production_runtime_config_identity": (
+            production_runtime_config_identity()),
+        "preprocessing_boundary": curriculum_preprocessing_boundary(),
         "eval_config": cfg.manifest(),
         "families": families,
         "pair_plan": {
@@ -119,15 +132,25 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
             "max_attempts": CURRICULUM261_MAX_ATTEMPTS,
             "selection": "第一个通过结构性校验的候选(绝不按 PnL 挑选)",
         },
+        "iteration": "r2",
+        "qualification_namespace": "qualification_r2",
         "seed_schedule": {
-            "namespaces": ["calibration", "calibration_holdout",
-                           "qualification", "fresh_holdout", "training"],
+            "iteration_id": "r2",
+            "namespaces": ["calibration_r2", "calibration_holdout_r2",
+                           "qualification_r2", "fresh_holdout_r2",
+                           "training_r2", "stress_r2"],
             "derivation": "sha256([stage, namespace, family, rung, pair, "
-                          "attempt])[:8];pair A/B 共享同一 seed",
-            "corpus_enumeration": "qualification: family x rung x pair 0..9",
-            "training_note": "training namespace 本阶段仅用于 PPO plumbing "
-                             "smoke;2.6.2 起为正式训练 seed,与 "
-                             "qualification corpus 不相交",
+                          "attempt])[:8];pair A/B 共享同一 seed;"
+                          "R2 namespace 与 R0/R1 派生流不相交"
+                          "(seed_namespace_integrity 验证)",
+            "corpus_enumeration": "qualification_r2: family x rung x "
+                                  "pair 0..9(从未在 lock 前生成)",
+            "qualification_lock_guard": "qualification_r2 seed 在 "
+                                        "qualification_plan.json 存在前"
+                                        "对任何代码路径不可访问",
+            "training_note": "training_r2 namespace 本阶段仅用于 PPO "
+                             "plumbing smoke;2.6.2 起为正式训练 seed,"
+                             "与 qualification corpus 不相交",
         },
         "difficulty_metric": {
             "formula": "M_rung = mean(ref_net) - max(0, mean(always_long_"
@@ -150,10 +173,9 @@ def build_plan(*, baseline_commit: str, vendor_pin: str,
         },
         "code_identity": _code_identity(),
     }
-    if calibration_evidence is not None:
-        plan["calibration_evidence"] = calibration_evidence
-    if robustness_gate is not None:
-        plan["robustness_gate"] = robustness_gate
+    plan["calibration_evidence"] = calibration_evidence
+    plan["robustness_gate"] = robustness_gate
+    plan["robustness_gate_artifact_digest"] = gate_artifact_digest
     return plan
 
 

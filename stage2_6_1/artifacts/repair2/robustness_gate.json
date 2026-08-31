@@ -1,0 +1,341 @@
+{
+  "format": "cur261-robustness-gate-v2",
+  "iteration": "r2",
+  "kappa": 1.5,
+  "contract": [
+    "1 ordering",
+    "2 d3_positive",
+    "3 ref_beats_required",
+    "4 integrity_unity(corpus x2 + stress)",
+    "5 gap_ge_kappa_se",
+    "6 d3_ge_kappa_se",
+    "7 c2_local_cue+observability(c2)",
+    "8 attempts_distribution"
+  ],
+  "main_namespace": "calibration_r2",
+  "holdout_namespace": "calibration_holdout_r2",
+  "c2_local_cue_independence": {
+    "format": "cur261-c2-local-cue-independence-v1",
+    "n_pairs": 160,
+    "per_quadrant": {
+      "s-1_w-1": {
+        "n": 2092,
+        "mean_bps": 1.8024192573499587,
+        "std_bps": 153.05223599406534,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -181.58,
+          -148.46,
+          -1.43,
+          152.1,
+          186.67
+        ]
+      },
+      "s-1_w+1": {
+        "n": 2018,
+        "mean_bps": 1.4299797161922931,
+        "std_bps": 153.3106552514038,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -180.3,
+          -148.88,
+          3.47,
+          152.47,
+          185.89
+        ]
+      },
+      "s+1_w-1": {
+        "n": 2050,
+        "mean_bps": 1.3641696262918024,
+        "std_bps": 152.43594117208718,
+        "positive_rate": 0.4995121951219512,
+        "quantiles_bps": [
+          -182.53,
+          -149.01,
+          -29.44,
+          151.13,
+          183.57
+        ]
+      },
+      "s+1_w+1": {
+        "n": 2138,
+        "mean_bps": 0.5691740105874074,
+        "std_bps": 152.86101983869258,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -184.08,
+          -149.11,
+          4.02,
+          150.86,
+          185.45
+        ]
+      }
+    },
+    "per_rung_pair_counts": {
+      "D0": {
+        "n_pairs": 40
+      },
+      "D1": {
+        "n_pairs": 40
+      },
+      "D2": {
+        "n_pairs": 40
+      },
+      "D3": {
+        "n_pairs": 40
+      }
+    },
+    "checks": {
+      "mean_gap_within_3se": true,
+      "std_ratio_in_range": true,
+      "sign_balance_gap": true,
+      "cue_rate_ratio_in_range": true
+    },
+    "max_mean_gap_bps": 1.2332452467625512,
+    "pooled_se_bps": 3.358153680638676,
+    "pass": true
+  },
+  "c2_context_observability": {
+    "format": "cur261-c2-context-observability-v1",
+    "discriminator": {
+      "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+      "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+      "observation_only": true,
+      "latent_used_as": "evaluation label only"
+    },
+    "per_rung_accuracy": {
+      "D0": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D1": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D2": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D3": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      }
+    },
+    "direction": {
+      "n_bars": 46080,
+      "accuracy": 1.0,
+      "margin": 1.0,
+      "se": 9.316945247906964e-06,
+      "kappa_times_se": 1.3975417871860447e-05,
+      "margin_ge_kappa_se": true
+    },
+    "width": {
+      "n_bars": 46080,
+      "accuracy": 1.0,
+      "margin": 1.0,
+      "se": 9.316945247906964e-06,
+      "kappa_times_se": 1.3975417871860447e-05,
+      "margin_ge_kappa_se": true
+    },
+    "pass": true
+  },
+  "families": {
+    "c1_opportunity": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": null,
+      "pooled_episode_metric_mean": {
+        "D0": 0.20176820504406426,
+        "D1": 0.11220864273516966,
+        "D2": 0.07581453310297533,
+        "D3": 0.015735232780524938
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.027507673660024663,
+        "D1": 0.018086643865178692,
+        "D2": 0.01414941472086943,
+        "D3": 0.007209297779522583
+      },
+      "n_episodes_per_rung": {
+        "D0": 80,
+        "D1": 80,
+        "D2": 80,
+        "D3": 80
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.08588272964304147,
+          "gap_holdout": 0.09323639497474767,
+          "se_pooled": 0.03292109956383931,
+          "kappa_times_se": 0.04938164934575896,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.03659309640789178,
+          "gap_holdout": 0.03619512285649687,
+          "se_pooled": 0.022963724071869585,
+          "kappa_times_se": 0.03444558610780438,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.06254361855006564,
+          "gap_holdout": 0.05761498209483514,
+          "se_pooled": 0.015880173532332252,
+          "kappa_times_se": 0.023820260298498378,
+          "ok": true
+        }
+      },
+      "d3_mean": 0.015735232780524938,
+      "d3_se": 0.007209297779522583,
+      "d3_mean_ge_kappa_se": true,
+      "pass": true
+    },
+    "c2_context": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": {
+        "local_cue_independence": true,
+        "context_observability": true
+      },
+      "pooled_episode_metric_mean": {
+        "D0": 0.03122184229887868,
+        "D1": 0.023022101200340782,
+        "D2": 0.012635976635566357,
+        "D3": 0.007321211694850426
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.001235320660264536,
+        "D1": 0.0009912712865297343,
+        "D2": 0.0007772404026296675,
+        "D3": 0.0008420865590026774
+      },
+      "n_episodes_per_rung": {
+        "D0": 80,
+        "D1": 80,
+        "D2": 80,
+        "D3": 80
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.011346262030433554,
+          "gap_holdout": 0.005053220166642235,
+          "se_pooled": 0.0015838673862336847,
+          "kappa_times_se": 0.002375801079350527,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.0073896109282094394,
+          "gap_holdout": 0.013382638201339414,
+          "se_pooled": 0.0012596513037258534,
+          "kappa_times_se": 0.0018894769555887802,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.004148371203073155,
+          "gap_holdout": 0.006481158678358707,
+          "se_pooled": 0.0011459548055368053,
+          "kappa_times_se": 0.001718932208305208,
+          "ok": true
+        }
+      },
+      "d3_mean": 0.007321211694850426,
+      "d3_se": 0.0008420865590026774,
+      "d3_mean_ge_kappa_se": true,
+      "pass": true
+    },
+    "c3_cost": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": null,
+      "pooled_episode_metric_mean": {
+        "D0": 0.05135829597750009,
+        "D1": 0.032516544294280615,
+        "D2": 0.018148997417005215,
+        "D3": 0.005117776391474408
+      },
+      "pooled_episode_metric_se": {
+        "D0": 0.008870136366607816,
+        "D1": 0.006601665148674892,
+        "D2": 0.004456069658583725,
+        "D3": 0.0019993547791177257
+      },
+      "n_episodes_per_rung": {
+        "D0": 80,
+        "D1": 80,
+        "D2": 80,
+        "D3": 80
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.018734621734194302,
+          "gap_holdout": 0.018948881632244643,
+          "se_pooled": 0.01105718327140539,
+          "kappa_times_se": 0.016585774907108084,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.0161663062607424,
+          "gap_holdout": 0.012568787493808402,
+          "se_pooled": 0.007964831419269285,
+          "kappa_times_se": 0.011947247128903927,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.013963907851829742,
+          "gap_holdout": 0.012098534199231875,
+          "se_pooled": 0.004884053269051369,
+          "kappa_times_se": 0.0073260799035770536,
+          "ok": true
+        }
+      },
+      "d3_mean": 0.005117776391474408,
+      "d3_se": 0.0019993547791177257,
+      "d3_mean_ge_kappa_se": true,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "seed_namespace_integrity_pass": true
+}

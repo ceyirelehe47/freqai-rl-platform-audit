@@ -83,11 +83,9 @@ conftest importer 映射:0c→[0h,0i,0j];0f→[0g,0h,0i,0j];
 - quick 模式默认目录与"无变更"默认目标改为 `tests/route_c_stage2_6_1`。
 - artifacts 输出目录:`artifacts/route_c_stage2_6_1`。
 
-## 2.6.1 Repair R1 追加(2026-08-30)
+## 阶段 2.6.1 Repair R2 更新(2026-08-31)
 
-- `user_data/strategies/RouteCStrategy.py` 进入 `_tree_manifest` 与 RULES:
-  变更 → `tests/route_c_stage2_6_1` + `tests/freqai_rl_stage2_5_2a`
-  (生产 observation 特征构造本体,直接影响课程 qualification 的
-  production observation identity 与策略行为);
-- `src/rl_curriculum/curriculum261_*`(含新增 `curriculum261_production_obs.py`)
-  → `tests/route_c_stage2_6_1`(87 项,含 17 项 production obs 守卫)。
+- 测试目录 `tests/route_c_stage2_6_1` 扩至 106 项(87 项更新 + 19 项新增 R2 协议测试 `test_curriculum261_r2_protocol.py`:gate 三层 enforcement / R2 seed 隔离 / qualification_r2 lock 前封闭 / accepted ⇒ final integrity / exposure 一次性 / production runtime config identity / preprocessing boundary / C2 双诊断)。
+- 规则不变:`src/rl_curriculum/curriculum261_*.py` -> `tests/route_c_stage2_6_1`;R2 未改动 `RouteCStrategy.py` 与 `rl_platform` 冻结核心。
+- R2 正式 artifacts 目录:`artifacts/route_c_stage2_6_1_repair2`(calibration/holdout/stress/C2 诊断/namespace integrity/gate/plan/final/smoke/exposure)。
+- C2 v9 生成器含实例级 wick 纹理计划(`_wick_plan`,`_generate -> _build_ohlcv` 同一调用栈内传递,读取即清空)——生成器实例仍为进程内共享单例,串行 generate 合同由 `generate_pair_with_attempts` 保证。

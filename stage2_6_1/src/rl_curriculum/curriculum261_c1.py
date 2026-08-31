@@ -60,18 +60,26 @@ FAMILY_C1 = "c1_opportunity"
 #: 强度(58->24bps/bar);ma_sigma_mult 校准在 4.0(阈值 =
 #: 4 x 26 x sqrt(25/72) ≈ 61bps,pmr 稳态读数 667/483/345/276bps =
 #: 阈值的 11/8/5.7/4.5 倍,触发稳定性递减即难度阶梯)。
+#: repair R2:相邻 rung 的漂移差拉开为 14/12/9 bps(R1 的 42->30 差
+#: 12 但 D1/D2 的 qualification 度量仅差 0.7%,calibration/holdout 排序
+#: 不稳);段长统一缩短到 [24, 40](更多独立机会段,压低跨语料方差)。
+#: repair R2 v3(第二轮 calibration 反馈):段长**固定 24**(len_range
+#: [24,24])——v2 的 [20,26] 收窄实验证明段长方差是每集净值方差的
+#: 主源之一且过短段破坏 D1 ordering;固定段长完全消除该方差项
+#: (策略为 MLP window=1 无记忆,固定段周期不可利用),drift 相邻差
+#: 18/8/13 保持结构梯度。state_weights 的 opp 权重 0.36。
 C1_RUNG_PARAMS: dict[str, dict[str, Any]] = {
-    "D0": {"opp_drift_bps": 58.0, "neg_drift_bps": 45.0, "vol_bps": 26.0,
-           "seg_len_range": [28, 48], "state_weights": [0.32, 0.30, 0.38],
+    "D0": {"opp_drift_bps": 60.0, "neg_drift_bps": 46.0, "vol_bps": 26.0,
+           "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36],
            "distractor_rate": 0.000},
-    "D1": {"opp_drift_bps": 42.0, "neg_drift_bps": 34.0, "vol_bps": 26.0,
-           "seg_len_range": [26, 44], "state_weights": [0.36, 0.30, 0.34],
+    "D1": {"opp_drift_bps": 42.0, "neg_drift_bps": 33.0, "vol_bps": 26.0,
+           "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36],
            "distractor_rate": 0.000},
-    "D2": {"opp_drift_bps": 30.0, "neg_drift_bps": 24.0, "vol_bps": 26.0,
-           "seg_len_range": [24, 40], "state_weights": [0.33, 0.30, 0.37],
+    "D2": {"opp_drift_bps": 34.0, "neg_drift_bps": 27.0, "vol_bps": 26.0,
+           "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36],
            "distractor_rate": 0.000},
-    "D3": {"opp_drift_bps": 24.0, "neg_drift_bps": 19.0, "vol_bps": 26.0,
-           "seg_len_range": [22, 36], "state_weights": [0.34, 0.30, 0.36],
+    "D3": {"opp_drift_bps": 21.0, "neg_drift_bps": 16.0, "vol_bps": 26.0,
+           "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36],
            "distractor_rate": 0.000},
 }
 
@@ -83,6 +91,7 @@ C1_REFERENCE_DEFAULTS = {"ma_sigma_mult": 1.0}
 C1_REJECT_VOCAB = (
     "too_few_opp_segments", "too_few_flat_segments", "opp_segment_too_short",
     "flat_segment_too_short", "missing_neg_segments",
+    "no_mounted_opportunity", "no_mounted_neg",
 )
 
 #: 结构性最低要求(与难度无关的合同)
@@ -90,13 +99,19 @@ C1_MIN_OPP_SEGMENTS = 1
 C1_MIN_FLAT_SEGMENTS = 2
 C1_MIN_OPP_LEN = 12
 C1_MIN_FLAT_LEN = 10
+#: repair R2:实际挂载(进入可交易区间 [1, n) 且 drift 真实非零)的
+#: 机会/负机会 bar 数下限——R1 的 pair integrity 0.90 根因是首段
+#: (为水平归零不挂载)承担了全部 opp 标签,latent 有机会而实际无
+#: 机会;统一合同要求"标签有机会"必须蕴含"收益机制有机会"。
+C1_MIN_MOUNTED_OPP_BARS = 12
+C1_MIN_MOUNTED_NEG_BARS = 8
 
 
 class C1OpportunityGenerator(Curriculum261Base):
     """C1 生成器:分段机会世界 + 假机会孪生 variant。"""
 
     family = FAMILY_C1
-    family_version = "cur261-c1-v2"
+    family_version = "cur261-c1-v5"
     hidden_columns = [
         "seg_state", "regime_drift_bps", "bars_to_seg_end", "seg_index",
     ]
@@ -113,20 +128,33 @@ class C1OpportunityGenerator(Curriculum261Base):
         weights = np.asarray(params["state_weights"], dtype=float)
         dis_rate = float(params.get("distractor_rate", 0.0))
 
-        states, to_end = draw_segment_chain(
-            n, states=(0, 1, 2), weights=weights,
-            len_range=(int(lo_len), int(hi_len)), rng=rng)
+        # repair R2 v5:固定段模式 [neut, opp, neut, neg] x 3
+        # (段长 24,共 12 段 = 288 bar)——n_opp_bars / n_neg_bars
+        # 逐集恒定(各 72 bar),消除 v4 中主导度量的段数抽样方差
+        # (oracle D1/D2 重合的根因);首段 neut 天然满足水平合同的
+        # 首段不挂载。weights/draw_segment_chain 参数保留在 rung
+        # 参数中仅为 schema 兼容,不再参与生成。
+        seg_len = int(lo_len)
+        if seg_len != int(hi_len) or n != seg_len * 12:
+            raise GeneratorError(
+                f"C1 v5 段表合同:段长必须固定且 12 段 = episode_bars"
+                f"(seg_len={seg_len}, n={n})")
+        pattern = [1, 2, 1, 0]  # neut, opp, neut, neg
+        states = np.tile(np.repeat(np.array(pattern), seg_len),
+                         n // (seg_len * 4))
+        to_end = np.empty(n, dtype=int)
+        for i in range(n):
+            to_end[i] = seg_len - 1 - (i % seg_len)
         # 0=neg, 1=neut, 2=opp;neg 漂移按总量精确平衡(净漂移恒 0)
         # repair R1 水平合同:含 t=0 的第一段不挂漂移(环境可交易区间
         # 是 [1, n),t=0 的漂移无法被任何策略捕获却计入水平);平衡只在
         # 挂载段([1, n))内成立 -> sum(drift[1:]) 恒为 0。
-        # 只把连续的第一段标出(到第一个状态变化为止)
-        first_seg_state = int(states[0])
-        first_end = n
-        for i in range(n):
-            if int(states[i]) != first_seg_state:
-                first_end = i
-                break
+        # repair R2 结构修复:第一段直接**强制改写为 neut**——R1 把首段
+        # 漂移清零但保留 opp/neg 标签,当全部机会段恰好落在首段时,
+        # latent 有机会而收益机制无机会(final integrity 0.90 的根因)。
+        # 首段恒为 neut 后,任何 opp/neg 段必然在挂载区内,标签与收益
+        # 机制一致;首段自身 drift=0(neut 天然不挂),水平合同不变。
+        first_end = seg_len  # 固定模式首段即 neut(挂载区 [1, n))
         first_seg_mask = np.zeros(n, dtype=bool)
         first_seg_mask[:first_end] = True
         mount = ~first_seg_mask
@@ -185,23 +213,41 @@ class C1OpportunityGenerator(Curriculum261Base):
     # ------------------------------------------------ 结构性校验(词表内)
     @staticmethod
     def structural_validator(episode) -> list[str]:
-        issues: list[str] = []
-        h = episode.hidden
-        states = h["seg_state"].to_numpy()
-        opp_lens = _segment_lengths(states, 2)
-        flat_lens = (_segment_lengths(states, 0)
-                     + _segment_lengths(states, 1))
-        if len(opp_lens) < C1_MIN_OPP_SEGMENTS:
-            issues.append("too_few_opp_segments")
-        if len(_segment_lengths(states, 0)) < 1:
-            issues.append("missing_neg_segments")
-        if len(flat_lens) < C1_MIN_FLAT_SEGMENTS:
-            issues.append("too_few_flat_segments")
-        if opp_lens and min(opp_lens) < C1_MIN_OPP_LEN:
-            issues.append("opp_segment_too_short")
-        if flat_lens and min(flat_lens) < C1_MIN_FLAT_LEN:
-            issues.append("flat_segment_too_short")
-        return [i for i in issues if i in C1_REJECT_VOCAB]
+        return c1_structural_issues(episode)
+
+
+def c1_structural_issues(episode) -> list[str]:
+    """C1 结构性拒绝原因(生成时可知;generator validator 与 pair
+    统一合同共用同一函数——acceptance 与 final 的判定源唯一)。"""
+    issues: list[str] = []
+    h = episode.hidden
+    states = h["seg_state"].to_numpy()
+    opp_lens = _segment_lengths(states, 2)
+    flat_lens = (_segment_lengths(states, 0)
+                 + _segment_lengths(states, 1))
+    if len(opp_lens) < C1_MIN_OPP_SEGMENTS:
+        issues.append("too_few_opp_segments")
+    if len(_segment_lengths(states, 0)) < 1:
+        issues.append("missing_neg_segments")
+    if len(flat_lens) < C1_MIN_FLAT_SEGMENTS:
+        issues.append("too_few_flat_segments")
+    if opp_lens and min(opp_lens) < C1_MIN_OPP_LEN:
+        issues.append("opp_segment_too_short")
+    if flat_lens and min(flat_lens) < C1_MIN_FLAT_LEN:
+        issues.append("flat_segment_too_short")
+    # repair R2:实际挂载的机会/负机会 bar 数——只对 variant A 生效
+    # (B 是假机会孪生,drift 恒 0 是其合同;首段强制 neut 后 A 的
+    # 标签机会必然伴随收益机制机会,此检查是统一合同的生成时闸门)
+    variant = str(episode.spec.params.get("pair_variant", "A"))
+    if variant == "A":
+        drift_bps = h["regime_drift_bps"].to_numpy()
+        if int(np.count_nonzero(
+                drift_bps > 0)) < C1_MIN_MOUNTED_OPP_BARS:
+            issues.append("no_mounted_opportunity")
+        if int(np.count_nonzero(
+                drift_bps < 0)) < C1_MIN_MOUNTED_NEG_BARS:
+            issues.append("no_mounted_neg")
+    return [i for i in issues if i in C1_REJECT_VOCAB]
 
 
 def _segment_lengths(states: np.ndarray, state: int) -> list[int]:
@@ -249,14 +295,15 @@ def c1_reference_threshold(rung_params: dict[str, Any],
     """k-sigma 门限闭式解析(repair R1,production 口径,已校正)。
 
     %-price-ma-ratio = close/MA24 - 1 ≈ (close - MA24)/MA24。
-    i.i.d. 噪声(sigma = vol)下 close - MA24 = sum_j w_j r_{t-j},
-    w_0 = 23/24,w_j = -(24-j)/24(j=1..23) -> sum w^2 = 4853/576
-    = 8.425 -> pmr 噪声 sigma = vol x 2.902。
-    (repair R1 初版误用 sqrt(25/72)=0.589,阈值仅 0.82-sigma,
-    噪声触发率 ~21%/bar,产生大量 1-bar 假持仓段。)
+    i.i.d. 噪声(sigma = vol)下 close - MA24 = sum_i w_i r_{t-i},
+    w_i = (23-i)/24(i=0..23,全部为正:close-MA = (1/24)sum_{j=1}^{23}
+    sum_{i<j} r_{t-i} 的展开系数) -> sum w^2 = 4324/576 = 7.507
+    -> pmr 噪声 sigma = vol x 2.740。
+    (repair R1 初版误用 sqrt(25/72)=0.589 与带负号的 4853/576=2.902;
+    repair R2 修正为全正权重闭式 2.740。)
     """
     vol = float(rung_params["vol_bps"]) * 1e-4
-    return float(ma_sigma_mult * vol * np.sqrt(4853.0 / 576.0))
+    return float(ma_sigma_mult * vol * np.sqrt(4324.0 / 576.0))
 
 
 class C1ShortcutPolicy(ObservableBaselinePolicy):

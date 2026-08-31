@@ -96,18 +96,22 @@ C3_DISTRACTOR_S_RANGE = (0.24, 0.33)
 #: cue_rate 为"事件对"的每 bar 到达率(对内 gap 另行采样);
 #: 事件密度随 rung 上升(方差缩减补偿,保证 D3 的 population edge
 #: 不被抽样噪声淹没)。
+#: repair R2 轻量加固:R1 final qualification ladder 已单调良好
+#: (3.24>2.03>1.31>0.69),但 calibration robustness gate 的 D0-D1/
+#: D1-D2 gap-vs-SE 边缘不足——相邻 alpha 差拉开为 8/8/8 bps,
+#: 事件密度整体 +20%(独立事件更多 -> corpus SE 下降)。
 C3_RUNG_PARAMS: dict[str, dict[str, Any]] = {
-    "D0": {"alpha_bps": 66.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.100, "mixture": [0.60, 0.25, 0.15],
+    "D0": {"alpha_bps": 70.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.200, "mixture": [0.60, 0.25, 0.15],
            "distractor_rate": 0.015},
-    "D1": {"alpha_bps": 60.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.110, "mixture": [0.46, 0.31, 0.23],
+    "D1": {"alpha_bps": 62.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.210, "mixture": [0.46, 0.32, 0.22],
            "distractor_rate": 0.025},
     "D2": {"alpha_bps": 54.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.120, "mixture": [0.34, 0.35, 0.31],
+           "cue_rate": 0.220, "mixture": [0.34, 0.35, 0.31],
            "distractor_rate": 0.040},
-    "D3": {"alpha_bps": 47.0, "payoff_bars": 1, "vol_bps": 18.0,
-           "cue_rate": 0.130, "mixture": [0.20, 0.38, 0.42],
+    "D3": {"alpha_bps": 46.0, "payoff_bars": 1, "vol_bps": 18.0,
+           "cue_rate": 0.230, "mixture": [0.14, 0.36, 0.50],
            "distractor_rate": 0.060},
 }
 #: variant B:收益注入常数(与强度无关),可捕获毛 edge = 0.3 x F(亚成本)
@@ -140,7 +144,7 @@ class C3CostAwareGenerator(Curriculum261Base):
     """C3 生成器:脉冲可见 x 收益耦合世界 + 亚成本解耦 variant。"""
 
     family = FAMILY_C3
-    family_version = "cur261-c3-v2"
+    family_version = "cur261-c3-v4"
     hidden_columns = [
         "sig_strength", "sig_dir", "sig_gross_bps", "above_cost",
         "distractor_flag", "payoff_active", "payoff_dir", "payoff_gross_bps",
@@ -261,37 +265,43 @@ class C3CostAwareGenerator(Curriculum261Base):
     # ------------------------------------------------ 结构性校验(词表内)
     @staticmethod
     def structural_validator(episode) -> list[str]:
-        issues: list[str] = []
-        h = episode.hidden
-        variant = str(episode.spec.params.get("pair_variant", "A"))
-        is_signal = (h["sig_dir"].to_numpy() != 0) & \
-                    (h["distractor_flag"].to_numpy() == 0)
-        n_signals = int(is_signal.sum())
-        if n_signals < C3_MIN_SIGNALS:
-            issues.append("too_few_signals")
-        dirs = h["sig_dir"].to_numpy()[is_signal]
-        if not (np.any(dirs > 0) and np.any(dirs < 0)):
-            issues.append("missing_signal_directions")
-        above = h["above_cost"].to_numpy()
-        n_above = int(np.count_nonzero(above))
-        n_below = n_signals - n_above
-        if variant == "A":
-            if n_above < C3_MIN_ABOVE_COST:
-                issues.append("too_few_above_cost_signals")
-            if n_below < C3_MIN_BELOW_COST:
-                issues.append("too_few_below_cost_signals")
-        else:
-            # variant B:全部信号必须亚成本(收益解耦合同)
-            if n_above != 0:
-                issues.append("too_few_above_cost_signals")
-            if n_below < C3_MIN_BELOW_COST:
-                issues.append("too_few_below_cost_signals")
-        if int(h["distractor_flag"].sum()) < C3_MIN_DISTRACTORS:
-            issues.append("too_few_distractors")
-        return [i for i in issues if i in C3_REJECT_VOCAB]
+        return c3_structural_issues(episode)
+
+    
+def c3_structural_issues(episode) -> list[str]:
+    """C3 结构性拒绝原因(生成时可知;generator validator 与
+    pair 统一合同共用同一函数——acceptance 与 final 的判定源唯一)。"""
+    issues: list[str] = []
+    h = episode.hidden
+    variant = str(episode.spec.params.get("pair_variant", "A"))
+    is_signal = (h["sig_dir"].to_numpy() != 0) & \
+                (h["distractor_flag"].to_numpy() == 0)
+    n_signals = int(is_signal.sum())
+    if n_signals < C3_MIN_SIGNALS:
+        issues.append("too_few_signals")
+    dirs = h["sig_dir"].to_numpy()[is_signal]
+    if not (np.any(dirs > 0) and np.any(dirs < 0)):
+        issues.append("missing_signal_directions")
+    above = h["above_cost"].to_numpy()
+    n_above = int(np.count_nonzero(above))
+    n_below = n_signals - n_above
+    if variant == "A":
+        if n_above < C3_MIN_ABOVE_COST:
+            issues.append("too_few_above_cost_signals")
+        if n_below < C3_MIN_BELOW_COST:
+            issues.append("too_few_below_cost_signals")
+    else:
+        # variant B:全部信号必须亚成本(收益解耦合同)
+        if n_above != 0:
+            issues.append("too_few_above_cost_signals")
+        if n_below < C3_MIN_BELOW_COST:
+            issues.append("too_few_below_cost_signals")
+    if int(h["distractor_flag"].sum()) < C3_MIN_DISTRACTORS:
+        issues.append("too_few_distractors")
+    return [i for i in issues if i in C3_REJECT_VOCAB]
 
 
-# ---------------------------------------------------------------- 策略层
+# ------------------------------------------------ 策略层
 class C3ReferencePolicy(ObservableBaselinePolicy):
     """C3 因果观察参考(成本敏感):只有估计毛 edge 超过冻结摩擦才做多。
 

@@ -26,7 +26,8 @@ class TestObservationCausality:
     @pytest.mark.parametrize("family", FAMILIES)
     def test_future_noise_mutation_keeps_prefix_observation(
             self, family):
-        result = check_observation_causality(family, "D2", 0)
+        result = check_observation_causality(
+            family, "D2", 0, namespace="calibration_r2")
         assert result["pass"], result
 
 
@@ -35,7 +36,8 @@ class TestProductionFeatureEquivalence:
     def test_features_equal_real_strategy_rebuild(self, family):
         # repair R1:episode 特征必须与真实 RouteCStrategy 路径的独立
         # 重算逐位一致(替代旧 htf resample 检查)
-        result = check_production_feature_equivalence(family, "D2", 0)
+        result = check_production_feature_equivalence(
+            family, "D2", 0, namespace="calibration_r2")
         assert result["pass"], result
 
     def test_features_are_prefix_recomputable(self):
@@ -71,7 +73,7 @@ class TestReferenceCausality:
 
 class TestLatentIsolation:
     def test_sidecar_never_enters_observation(self):
-        records = [generate_pair(f, "D1", 0, namespace="calibration")
+        records = [generate_pair(f, "D1", 0, namespace="calibration_r2")
                    for f in FAMILIES]
         result = check_latent_isolation(records)
         assert result["pass"], result
@@ -83,13 +85,13 @@ class TestPairIntegrity:
     @pytest.mark.parametrize("family", FAMILIES)
     def test_pairs_pass_integrity(self, family):
         for rung in ("D0", "D3"):
-            rec = generate_pair(family, rung, 0, namespace="calibration")
+            rec = generate_pair(family, rung, 0, namespace="calibration_r2")
             assert rec.integrity_ok, (
                 family, rung, rec.integrity)
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_pair_shares_nuisance_tables(self, family):
-        rec = generate_pair(family, "D2", 1, namespace="calibration")
+        rec = generate_pair(family, "D2", 1, namespace="calibration_r2")
         n = rec.integrity["nuisance"]
         assert n["same_length"]
         assert n["same_initial_price"]
@@ -98,7 +100,7 @@ class TestPairIntegrity:
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_pair_is_not_two_random_episodes(self, family):
-        rec = generate_pair(family, "D1", 0, namespace="calibration")
+        rec = generate_pair(family, "D1", 0, namespace="calibration_r2")
         c = rec.integrity["construction"]
         shared = [k for k in c if k.startswith("shared_")]
         assert shared and all(c[k] for k in shared), c

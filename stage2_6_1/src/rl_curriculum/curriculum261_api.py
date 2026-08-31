@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -70,12 +71,94 @@ CURRICULUM261_PAIR_VARIANTS = ("A", "B")
 CURRICULUM261_RUNGS = ("D0", "D1", "D2", "D3")
 CURRICULUM261_FAMILIES = ("c1_opportunity", "c2_context", "c3_cost")
 
-#: seed namespace(calibration 与 qualification 必须隔离;repair R1 起
-#: calibration_holdout 用于 lock 前的稳健性交叉验证,同样不得与
-#: qualification 重合;training 本阶段仅 PPO smoke 使用)
+#: repair R2 迭代身份:R0/R1 的 qualification corpus 已被观察过,
+#: 本轮全部正式语料换用带 _r2 后缀的全新 namespace(seed payload 含
+#: namespace 字符串,天然与 R0/R1 派生流不相交;由
+#: seed_namespace_integrity artifact 显式验证)。
+CURRICULUM261_ITERATION_ID = "r2"
+CURRICULUM261_R2_NAMESPACES = (
+    "calibration_r2", "calibration_holdout_r2", "qualification_r2",
+    "fresh_holdout_r2", "training_r2", "stress_r2")
+
+#: 旧(R0/R1)namespace 仅保留给历史 artifacts 的诊断复算;R2 正式
+#: 流程(calibration/holdout/stress/qualification/smoke)一律使用
+#: _r2 namespace;qualification 旧 namespace 的 corpus 已暴露,
+#: 不得再用于任何参数选择。
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
-    "fresh_holdout", "training")
+    "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES
+
+#: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
+#: qualification_r2 seed(final qualification corpus 在 lock 前对
+#: 任何代码路径不可访问)。默认指向 repair R2 artifacts 目录,
+#: 测试可用环境变量 CURRICULUM261_R2_LOCK_MARKER 覆盖。
+_REPAIR2_ARTIFACTS = Path(__file__).resolve().parents[2] / "artifacts" / (
+    "route_c_stage2_6_1_repair2")
+#: final qualification 一次性暴露 marker(exposure):final runner 开始
+#: 访问 qualification_r2 corpus 前写入;存在即视为本轮迭代已暴露,
+#: 任何重跑(无论上次结果如何)都被拒绝——继续必须换新迭代身份。
+CURRICULUM261_EXPOSURE_MARKER_NAME = "qualification_exposure_r2.json"
+
+
+def _r2_marker_path(env_key: str, filename: str) -> Path:
+    import os
+
+    env_val = os.environ.get(env_key)
+    if env_val:
+        return Path(env_val) / filename
+    return _REPAIR2_ARTIFACTS / filename
+
+
+def qualification_r2_lock_marker() -> Path:
+    """qualification_r2 解锁 marker 路径(plan JSON 本身)。"""
+    import os
+
+    env_val = os.environ.get("CURRICULUM261_R2_LOCK_DIR")
+    if env_val:
+        return Path(env_val) / "qualification_plan.json"
+    return _REPAIR2_ARTIFACTS / "qualification_plan.json"
+
+
+def qualification_r2_unlocked() -> bool:
+    """qualification_r2 是否已解锁(锁定 plan 文件存在)。"""
+    return qualification_r2_lock_marker().is_file()
+
+
+def qualification_r2_exposure_marker() -> Path:
+    """final qualification exposure marker 路径。"""
+    import os
+
+    env_val = os.environ.get("CURRICULUM261_R2_LOCK_DIR")
+    if env_val:
+        return Path(env_val) / CURRICULUM261_EXPOSURE_MARKER_NAME
+    return _REPAIR2_ARTIFACTS / CURRICULUM261_EXPOSURE_MARKER_NAME
+
+
+def write_qualification_r2_exposure(plan_digest: str,
+                                    status: str = "running") -> None:
+    """写入/更新 exposure marker(一旦写入,本轮迭代永久结束)。"""
+    from datetime import datetime, timezone
+
+    path = qualification_r2_exposure_marker()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "iteration": CURRICULUM261_ITERATION_ID,
+        "plan_digest": plan_digest,
+        "status": status,
+        "written_utc": datetime.now(timezone.utc).isoformat(
+            timespec="seconds"),
+        "contract": "R2 final qualification 一旦开始执行即视为语料暴露;"
+                    "无论结果如何,同一 qualification corpus 不得再次执行"
+                    "(下一次必须 R2.1/R3 + 全新 seed space)。",
+    }
+    path.write_text(
+        __import__("json").dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8")
+
+
+def qualification_r2_exposed() -> bool:
+    """exposure marker 是否已存在(本轮迭代是否已消耗)。"""
+    return qualification_r2_exposure_marker().is_file()
 
 
 #: 噪声配对间隔范围(bar):镜像元素放在 U[lo,hi] 根 bar 之后——
@@ -167,6 +250,44 @@ def derive261_seed(
             f"seed namespace {namespace!r} 不在 "
             f"{CURRICULUM261_SEED_NAMESPACES}(calibration/qualification "
             f"必须隔离;training 本阶段只允许 PPO smoke)")
+    if namespace == "qualification_r2" and not qualification_r2_unlocked():
+        raise GeneratorError(
+            "qualification_r2 seed 在 qualification plan 锁定前不可访问"
+            "(final qualification corpus lock 前对任何代码路径封闭;"
+            "校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / "
+            "stress_r2 namespace)")
+    return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
+
+
+def _derive261_seed_raw(
+    namespace: str, family: str, rung: str, pair_index: int, attempt: int,
+) -> int:
+    """seed 派生的纯哈希核心(无 qualification_r2 守卫)。
+
+    仅用于 seed_namespace_integrity 的碰撞枚举——只计算 seed 整数值,
+    不生成任何 episode(qualification corpus 的暴露以生成为准);
+    corpus 生成一律走 derive261_seed(带 lock 守卫)。
+    """
+    if namespace not in CURRICULUM261_SEED_NAMESPACES:
+        raise GeneratorError(
+            f"seed namespace {namespace!r} 不在 "
+            f"{CURRICULUM261_SEED_NAMESPACES}")
+    return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
+
+
+def _derive261_seed_raw(
+    namespace: str, family: str, rung: str, pair_index: int, attempt: int,
+) -> int:
+    """seed 派生的纯哈希核心(无 qualification_r2 守卫)。
+
+    仅用于 seed_namespace_integrity 的碰撞枚举——只计算 seed 整数值,
+    不生成任何 episode(qualification corpus 的暴露以生成为准);
+    corpus 生成一律走 derive261_seed(带 lock 守卫)。
+    """
+    if namespace not in CURRICULUM261_SEED_NAMESPACES:
+        raise GeneratorError(
+            f"seed namespace {namespace!r} 不在 "
+            f"{CURRICULUM261_SEED_NAMESPACES}")
     payload = json.dumps(
         [CURRICULUM261_STAGE_ID, namespace, family, rung,
          int(pair_index), int(attempt)],
@@ -365,8 +486,11 @@ def generate_pair_with_attempts(
 ) -> tuple[dict[str, GeneratedEpisode], EpisodeAttemptLog]:
     """first_pass 尝试策略的确定性 pair 生成(A/B 同 seed 同 attempt)。
 
-    structural_validator(episode) -> list[str]:结构性拒绝原因
-    (必须来自预注册词表;绝不允许读取评估/PnL 结果)。
+    structural_validator(episodes) -> list[str]:pair 级结构性拒绝
+    原因(A/B 两端 episode + pair 统一合同;必须来自预注册词表,
+    绝不允许读取评估/PnL 结果)。repair R2:acceptance 判定与 final
+    pair integrity 共用同一合同源(见 pairs.pair_structural_contract),
+    accepted => final integrity=true 由同函数确定性保证。
     A/B 在同一 attempt 下使用同一 seed(共享随机流),只有因果映射不同。
     """
     log = EpisodeAttemptLog(
@@ -381,20 +505,18 @@ def generate_pair_with_attempts(
         seed = derive261_seed(namespace, family, rung, pair_index, attempt)
         reasons: list[str] = []
         episodes: dict[str, GeneratedEpisode] = {}
-        for side in CURRICULUM261_PAIR_VARIANTS:
-            try:
-                episode = generator.generate(
+        try:
+            for side in CURRICULUM261_PAIR_VARIANTS:
+                episodes[side] = generator.generate(
                     params[side], seed,
                     split=(f"curriculum261_{namespace}"),
                     timeframe=CURRICULUM261_TIMEFRAME)
-                side_issues = list(structural_validator(episode))
-            except GeneratorError as exc:
-                side_issues = [f"generator_contract:{str(exc)[:200]}"]
-            if side_issues:
-                reasons.extend(f"{side}:{r}" for r in side_issues)
-            else:
-                episodes[side] = episode
-        if len(episodes) == len(CURRICULUM261_PAIR_VARIANTS) and not reasons:
+            pair_issues = list(structural_validator(episodes))
+        except GeneratorError as exc:
+            pair_issues = [f"generator_contract:{str(exc)[:200]}"]
+        if pair_issues:
+            reasons.extend(pair_issues)
+        else:
             log.attempts.append(AttemptRecord(attempt, True))
             log.selected_attempt = attempt
             log.episode_hashes = {

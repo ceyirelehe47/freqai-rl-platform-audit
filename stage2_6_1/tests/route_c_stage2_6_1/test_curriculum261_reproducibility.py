@@ -24,8 +24,8 @@ FAMILIES = ("c1_opportunity", "c2_context", "c3_cost")
 class TestReproducibility:
     @pytest.mark.parametrize("family", FAMILIES)
     def test_same_seed_same_episode(self, family):
-        rec1 = generate_pair(family, "D1", 0, namespace="calibration")
-        rec2 = generate_pair(family, "D1", 0, namespace="calibration")
+        rec1 = generate_pair(family, "D1", 0, namespace="calibration_r2")
+        rec2 = generate_pair(family, "D1", 0, namespace="calibration_r2")
         for side in ("A", "B"):
             assert rec1.episodes[side].df.equals(rec2.episodes[side].df)
             assert rec1.episodes[side].hidden.equals(
@@ -35,8 +35,8 @@ class TestReproducibility:
 
     @pytest.mark.parametrize("family", FAMILIES)
     def test_different_seed_different_episode(self, family):
-        rec1 = generate_pair(family, "D1", 0, namespace="calibration")
-        rec2 = generate_pair(family, "D1", 1, namespace="calibration")
+        rec1 = generate_pair(family, "D1", 0, namespace="calibration_r2")
+        rec2 = generate_pair(family, "D1", 1, namespace="calibration_r2")
         assert not rec1.episodes["A"].df.equals(rec2.episodes["A"].df)
 
     @pytest.mark.parametrize("family,rung",
@@ -114,7 +114,7 @@ class TestFrozenContracts:
 class TestEpisodeContract:
     @pytest.mark.parametrize("family", FAMILIES)
     def test_episode_length_and_timeframe(self, family):
-        rec = generate_pair(family, "D2", 0, namespace="calibration")
+        rec = generate_pair(family, "D2", 0, namespace="calibration_r2")
         for side in ("A", "B"):
             ep = rec.episodes[side]
             assert len(ep.df) == CURRICULUM261_EPISODE_BARS
@@ -129,7 +129,7 @@ class TestEpisodeContract:
             production_observation_schema,
         )
         schema = production_observation_schema()
-        rec = generate_pair(family, "D0", 0, namespace="calibration")
+        rec = generate_pair(family, "D0", 0, namespace="calibration_r2")
         feats = select_features_strict(
             rec.episodes["A"].df, schema)
         assert list(feats.columns) == list(schema.feature_names)

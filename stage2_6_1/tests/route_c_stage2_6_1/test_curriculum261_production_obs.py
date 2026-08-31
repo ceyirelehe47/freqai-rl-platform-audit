@@ -119,7 +119,8 @@ class TestProductionFeaturePath:
     @pytest.mark.parametrize("family", ["c1_opportunity", "c2_context",
                                         "c3_cost"])
     def test_feature_equivalence_check_passes(self, family):
-        result = check_production_feature_equivalence(family, "D2", 0)
+        result = check_production_feature_equivalence(
+            family, "D2", 0, namespace="calibration_r2")
         assert result["pass"], result
         assert result["observation_from_frozen_env"]
         assert result["observation_in_space"]

@@ -92,13 +92,39 @@ def _upstream_integrity(vendor_dir: Path) -> dict[str, Any]:
 
 def run_final_qualification(plan_dir: Path, out_dir: Path,
                             vendor_dir: Path) -> dict[str, Any]:
-    """执行一次性 final qualification(120 pairs)并写出全部 artifacts。"""
+    """执行一次性 final qualification(120 pairs)并写出全部 artifacts。
+
+    repair R2 三重 fail-closed 入口合同:
+    - exposure marker 已存在 -> RuntimeError(同一 qualification
+      corpus 只能执行一次;FAIL 也是暴露,重跑必须换迭代身份 R2.1/R3);
+    - plan.robustness_gate.pass != true -> RuntimeError(Layer C:
+      手工构造的 plan 也拦,在生成任何 qualification pair 之前);
+    - 执行开始即写 exposure marker(plan digest 绑定)。
+    """
+    from rl_curriculum.curriculum261_api import (
+        qualification_r2_exposed,
+        write_qualification_r2_exposure,
+    )
+
+    if qualification_r2_exposed():
+        raise RuntimeError(
+            "R2 final qualification 已执行过(exposure marker 存在)——"
+            "同一 qualification corpus 不得再次执行;继续必须使用新"
+            "迭代身份(R2.1/R3)与全新 seed space")
     plan, digest = load_locked_plan(plan_dir)
+    gate_state = (plan.get("robustness_gate") or {}).get("pass")
+    if gate_state is not True:
+        raise RuntimeError(
+            "qualification plan 的 robustness_gate.pass != true——"
+            "final qualification fail closed(repair R2 Layer C;"
+            "在生成第一个 qualification pair 之前终止)")
+    write_qualification_r2_exposure(digest, status="running")
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     # 0) 冻结合同 + vendor 完整性 + production observation identity +
     #    plan code_identity 复核(repair R1:防止旧 plan 目录配新代码
-    #    静默混跑)
+    #    静默混跑)+ runtime config / preprocessing boundary 身份复核
+    #    (repair R2)
     frozen = _frozen_contract_integrity()
     upstream = _upstream_integrity(vendor_dir)
     upstream_ok = (upstream["sha"] == plan["vendor_pin"]
@@ -117,6 +143,15 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     code_ok = all(
         plan["code_identity"].get(k) == v for k, v in current_ids.items()) \
         and set(plan["code_identity"]) == set(current_ids)
+    from rl_curriculum.curriculum261_production_obs import (
+        curriculum_preprocessing_boundary,
+        production_runtime_config_identity,
+    )
+
+    runtime_ok = (production_runtime_config_identity()
+                  == plan["production_runtime_config_identity"])
+    boundary_ok = (curriculum_preprocessing_boundary()
+                   == plan["preprocessing_boundary"])
 
     # 1) 120 pairs(qualification namespace,锁定参数)
     thresholds = {f: plan["families"][f]["reference_thresholds"]
@@ -132,7 +167,7 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
         for rung in ("D0", "D1", "D2", "D3"):
             for idx in range(n_pairs):
                 records.append(generate_pair(
-                    family, rung, idx, namespace="qualification"))
+                    family, rung, idx, namespace="qualification_r2"))
         all_records_by_family[family] = records
         family_reports[family] = rung_report(
             records, family, rung_params[family], thresholds)
@@ -167,7 +202,15 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
         causality["reference_causality"].append(
             check_reference_causality(
                 family, rung_params[family]["D2"], thresholds[family]))
-    repro = [check_reproducibility(f, r, 0, "qualification")
+    from rl_curriculum.curriculum261_qualification import (
+        check_c2_context_observability,
+        check_c2_local_cue_independence,
+    )
+
+    c2_records = all_records_by_family["c2_context"]
+    c2_local_cue = check_c2_local_cue_independence(c2_records)
+    c2_observability = check_c2_context_observability(c2_records)
+    repro = [check_reproducibility(f, r, 0, "qualification_r2")
              for f in CURRICULUM261_FAMILIES for r in ("D1", "D3")]
     latent = check_latent_isolation(
         [r for recs in all_records_by_family.values() for r in recs])
@@ -183,10 +226,16 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     # 3) 判定(全部依据锁定阈值)
     th = plan["verdict_thresholds"]
     checks = {
+        "robustness_gate_passed_before_lock": bool(
+            (plan.get("robustness_gate") or {}).get("pass") is True),
+        "c2_local_cue_independence": bool(c2_local_cue["pass"]),
+        "c2_context_observability": bool(c2_observability["pass"]),
         "frozen_contracts_unchanged": frozen["pass"],
         "vendor_pin_unchanged_and_clean": bool(upstream_ok),
         "production_observation_identity": bool(prod_ok),
         "plan_code_identity_matches_tree": bool(code_ok),
+        "production_runtime_config_identity": bool(runtime_ok),
+        "preprocessing_boundary_identity": bool(boundary_ok),
         "pair_integrity_all": all(
             family_reports[f]["pair_integrity_pass_ratio"]
             >= th["pair_integrity_pass_ratio"]
@@ -212,19 +261,23 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     }
     overall_pass = all(checks.values())
     result = {
-        "format": "cur261-qualification-result-v2",
+        "format": "cur261-qualification-result-v3",
+        "iteration": "r2",
         "stage": "stage2_6_1",
         "plan_digest": digest,
         "started_utc": started,
         "finished_utc": datetime.now(timezone.utc).isoformat(
             timespec="seconds"),
-        "seed_namespace": "qualification",
+        "seed_namespace": "qualification_r2",
         "n_pairs_total": sum(
             pair_records_summary[f]["n_pairs"]
             for f in CURRICULUM261_FAMILIES),
         "frozen_contract_integrity": frozen,
         "upstream_integrity": upstream,
         "production_observation_identity": prod_ident,
+        "production_runtime_config_identity": (
+            production_runtime_config_identity()),
+        "preprocessing_boundary": curriculum_preprocessing_boundary(),
         "checks": checks,
         "families": family_reports,
         "causality_matrix": causality,
@@ -232,10 +285,23 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
         "latent_isolation": latent,
         "fresh_seed": fresh,
         "pair_attempt_summary": pair_records_summary,
+        "c2_local_cue_independence": c2_local_cue,
+        "c2_context_observability": c2_observability,
         "verdict": "PASS" if overall_pass else "FAIL",
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "c2_local_cue_context_independence.json").write_text(
+        json.dumps(c2_local_cue, indent=2, ensure_ascii=False,
+                   default=float), encoding="utf-8")
+    (out_dir / "c2_context_observability.json").write_text(
+        json.dumps(c2_observability, indent=2, ensure_ascii=False,
+                   default=float), encoding="utf-8")
+    from rl_curriculum.curriculum261_api import (
+        write_qualification_r2_exposure as _write_exposure,
+    )
+
+    _write_exposure(digest, status="completed")
     (out_dir / "qualification_result.json").write_text(
         json.dumps(result, indent=2, ensure_ascii=False, default=float),
         encoding="utf-8")
@@ -251,6 +317,12 @@ def run_final_qualification(plan_dir: Path, out_dir: Path,
     (out_dir / "production_observation_identity.json").write_text(
         json.dumps(prod_ident, indent=2, ensure_ascii=False),
         encoding="utf-8")
+    (out_dir / "production_runtime_config.json").write_text(
+        json.dumps(production_runtime_config_identity(), indent=2,
+                   ensure_ascii=False), encoding="utf-8")
+    (out_dir / "production_preprocessing_boundary.json").write_text(
+        json.dumps(curriculum_preprocessing_boundary(), indent=2,
+                   ensure_ascii=False), encoding="utf-8")
     (out_dir / "upstream_integrity.json").write_text(
         json.dumps(upstream, indent=2, ensure_ascii=False), encoding="utf-8")
     (out_dir / "pair_integrity_summary.json").write_text(

@@ -40,6 +40,7 @@ from rl_curriculum.curriculum261_api import (
     curriculum261_eval_config,
     derive261_seed,
     episode_content_hash,
+    qualification_r2_unlocked,
 )
 from rl_curriculum.curriculum261_c1 import (
     C1OraclePolicy,
@@ -100,14 +101,14 @@ def build_policy_set(family: str, rung_params: dict[str, Any],
             c1_reference_threshold(rung_params, thresholds["ma_sigma_mult"]))
     elif family == "c2_context":
         cue = float(thresholds["cue_thr"])
-        pmr = float(thresholds["pmr_thr"])
-        vt = float(thresholds["vol_thr"])
+        dir_thr = float(thresholds["wick_dir_thr"])
+        width_thr = float(thresholds["wick_width_thr"])
         policies["c2_local_only"] = C2LocalOnlyPolicy(cue)
-        policies["c2_single_context_pmr"] = C2SingleContextPolicy(
-            cue, pmr, "%-price-ma-ratio")
-        policies["c2_single_context_vol"] = C2SingleContextPolicy(
-            cue, vt, "%-vol-24")
-        policies["reference"] = C2ReferencePolicy(cue, pmr, vt)
+        policies["c2_single_context_wick_dir"] = C2SingleContextPolicy(
+            cue, dir_thr, "wick_dir")
+        policies["c2_single_context_wick_width"] = C2SingleContextPolicy(
+            cue, width_thr, "wick_width")
+        policies["reference"] = C2ReferencePolicy(cue, dir_thr, width_thr)
     elif family == "c3_cost":
         policies["c3_cost_ignorant"] = C3CostIgnorantPolicy(
             float(thresholds["any_signal_s"]))
@@ -200,9 +201,13 @@ def rung_report(records: list[PairRecord], family: str,
 
 
 # ------------------------------------------------------------- 因果矩阵
-def check_observation_causality(family: str, rung: str,
-                                pair_index: int) -> dict[str, Any]:
-    """未来噪声变异:变异起点前的 observation 必须逐位不变。"""
+def check_observation_causality(family: str, rung: str, pair_index: int,
+                                namespace: str = "qualification_r2",
+                                ) -> dict[str, Any]:
+    """未来噪声变异:变异起点前的 observation 必须逐位不变。
+
+    namespace 参数化:final 走 qualification_r2(lock 后放行);
+    lock 前的守卫/诊断测试可传 calibration_r2。"""
     spec = family_specs()[family]
     rung_params = dict(spec.rung_params[rung])
     rung_params["cur261_rung"] = rung
@@ -213,13 +218,13 @@ def check_observation_causality(family: str, rung: str,
     base_params = gen.base_params(rung_params, "A")
     cut = 150
     ep_base = gen.generate(base_params, derive261_seed(
-        "qualification", family, rung, pair_index, 0),
+        namespace, family, rung, pair_index, 0),
         split="curriculum261_causality", timeframe=CURRICULUM261_TIMEFRAME)
     mut_params = dict(base_params)
     mut_params["noise_mutate_from"] = cut
     mut_params["noise_mutate_salt"] = 20260830
     ep_mut = gen.generate(mut_params, derive261_seed(
-        "qualification", family, rung, pair_index, 0),
+        namespace, family, rung, pair_index, 0),
         split="curriculum261_causality", timeframe=CURRICULUM261_TIMEFRAME)
     obs_cols = list(SCHEMA.feature_names)
     a = ep_base.df[obs_cols].to_numpy(dtype=np.float64)[:cut]
@@ -240,7 +245,9 @@ def check_observation_causality(family: str, rung: str,
 
 
 def check_production_feature_equivalence(family: str, rung: str,
-                                         pair_index: int) -> dict[str, Any]:
+                                         pair_index: int,
+                                         namespace: str = "qualification_r2",
+                                         ) -> dict[str, Any]:
     """production observation identity:episode 的 8 个特征列必须与
     真实 RouteCStrategy.feature_engineering_standard 的独立重算逐位
     一致;observation 数组必须由冻结 AlignedLongFlatEnv 构造且落在
@@ -256,7 +263,7 @@ def check_production_feature_equivalence(family: str, rung: str,
     rung_params["cur261_rung"] = rung
     ep = spec.generator.generate(
         spec.generator.base_params(rung_params, "A"),
-        derive261_seed("qualification", family, rung, pair_index, 0),
+        derive261_seed(namespace, family, rung, pair_index, 0),
         split="curriculum261_causality", timeframe=CURRICULUM261_TIMEFRAME)
     try:
         assert_production_observation_binding(
@@ -390,7 +397,7 @@ def check_fresh_seed_validity(n_checks: int = 10) -> dict[str, Any]:
         pair_index = 500 + i
         try:
             rec = generate_pair(family, rung, pair_index,
-                                namespace="fresh_holdout")
+                                namespace="fresh_holdout_r2")
             ok = rec.integrity_ok
         except Exception as exc:  # noqa: BLE001
             results.append({"family": family, "rung": rung,
@@ -405,12 +412,324 @@ def check_fresh_seed_validity(n_checks: int = 10) -> dict[str, Any]:
     }
 
 
+# ------------------------------------------------- C2 诊断(repair R2)
+def check_c2_local_cue_independence(records: list[PairRecord],
+                                    ) -> dict[str, Any]:
+    """§13.A local cue context independence:cue bar 的 %-ret-1 读数
+    分布在四个上下文象限 (s=±1 x w=±1) 必须匹配。
+
+    判定(预注册,与结果无关):
+    - 每象限的 cue bar 样本 mean 差 <= 3 x pooled SE(抽样容差);
+    - std 比值(任意两象限)∈ [0.8, 1.25];
+    - 正号率(sign balance)差 <= 0.10;
+    - cue event rate(每 bar cue 概率)比值 ∈ [0.75, 1.35]。
+    v9 构造上 cue 读数 = pulse + 独立噪声,与 s/w 无耦合——统计差异
+    只能来自抽样;任何系统性泄漏(如漂移载体时代的读数平移)都会
+    在 mean/quantiles 上暴露。
+    """
+    from rl_curriculum.curriculum261_c2 import (
+        c2_structural_issues,
+    )
+
+    quad_samples: dict[tuple[int, int], list[float]] = {}
+    quad_rates: dict[tuple[int, int], list[float]] = {}
+    per_rung: dict[str, Any] = {}
+    for rec in records:
+        rung = rec.rung
+        h = rec.episodes["A"].hidden
+        df = rec.episodes["A"].df
+        r1 = df["%-ret-1"].to_numpy(dtype=np.float64)
+        cue = h["cue_dir"].to_numpy()
+        s = h["wick_dir_state"].to_numpy()
+        w = h["wick_width_state"].to_numpy()
+        n_bars = len(r1)
+        for ss in (1, -1):
+            for ww in (1, -1):
+                key = (ss, ww)
+                sel = (cue != 0) & (s == ss) & (w == ww)
+                vals = r1[sel]
+                quad_samples.setdefault(key, []).extend(
+                    float(v) for v in vals)
+                quad_rates.setdefault(key, []).append(
+                    float(sel.sum()) / n_bars)
+        # 每 rung 分位数记录(证据)
+        row = {"rung": rung, "n_cues": int(np.count_nonzero(cue))}
+        per_rung.setdefault(rung, {"n_pairs": 0})
+        per_rung[rung]["n_pairs"] += 1
+    stats: dict[str, Any] = {}
+    for key, vals in sorted(quad_samples.items()):
+        arr = np.asarray(vals, dtype=np.float64)
+        stats[f"s{key[0]:+d}_w{key[1]:+d}"] = {
+            "n": int(arr.size),
+            "mean_bps": float(arr.mean() * 1e4) if arr.size else None,
+            "std_bps": float(arr.std(ddof=1) * 1e4) if arr.size > 1 else None,
+            "positive_rate": float((arr > 0).mean()) if arr.size else None,
+            "quantiles_bps": (np.percentile(arr, [5, 25, 50, 75, 95])
+                              * 1e4).round(2).tolist() if arr.size else None,
+        }
+    means = {k: np.asarray(v, dtype=np.float64)
+             for k, v in quad_samples.items()}
+    n_min = min(v.size for v in means.values())
+    checks: dict[str, bool] = {}
+    if n_min >= 5:
+        keys = sorted(means)
+        mean_vals = {k: float(means[k].mean()) for k in keys}
+        std_vals = {k: float(means[k].std(ddof=1)) for k in keys}
+        pooled_se = float(np.sqrt(np.mean(
+            [std_vals[k] ** 2 / means[k].size for k in keys])))
+        max_mean_gap = max(
+            abs(mean_vals[a] - mean_vals[b])
+            for i, a in enumerate(keys) for b in keys[i + 1:])
+        checks["mean_gap_within_3se"] = bool(
+            max_mean_gap <= 3.0 * pooled_se)
+        max_std_ratio = max(
+            max(std_vals[a], std_vals[b]) / max(min(std_vals[a],
+                                                    std_vals[b]), 1e-12)
+            for i, a in enumerate(keys) for b in keys[i + 1:])
+        checks["std_ratio_in_range"] = bool(0.8 <= max_std_ratio <= 1.25)
+        pos_rates = {k: float((means[k] > 0).mean()) for k in keys}
+        max_pos_gap = max(
+            abs(pos_rates[a] - pos_rates[b])
+            for i, a in enumerate(keys) for b in keys[i + 1:])
+        checks["sign_balance_gap"] = bool(max_pos_gap <= 0.10)
+        rate_means = {k: float(np.mean(quad_rates[k]))
+                      for k in quad_rates}
+        max_rate_ratio = max(
+            max(rate_means[a], rate_means[b]) / max(min(rate_means[a],
+                                                        rate_means[b]), 1e-12)
+            for i, a in enumerate(sorted(rate_means))
+            for b in sorted(rate_means)[i + 1:])
+        checks["cue_rate_ratio_in_range"] = bool(
+            0.75 <= max_rate_ratio <= 1.35)
+    else:
+        for k in ("mean_gap_within_3se", "std_ratio_in_range",
+                  "sign_balance_gap", "cue_rate_ratio_in_range"):
+            checks[k] = False
+    return {
+        "format": "cur261-c2-local-cue-independence-v1",
+        "n_pairs": len(records),
+        "per_quadrant": stats,
+        "per_rung_pair_counts": per_rung,
+        "checks": checks,
+        "max_mean_gap_bps": float(max_mean_gap * 1e4) if n_min >= 5 else None,
+        "pooled_se_bps": float(pooled_se * 1e4) if n_min >= 5 else None,
+        "pass": bool(all(checks.values())),
+    }
+
+
+def check_c2_context_observability(records: list[PairRecord],
+                                   kappa: float = 1.5,
+                                   ) -> dict[str, Any]:
+    """§13.B context observability:冻结 production observation 的
+    observation-only 判定器(阈值化 wick 特征)辨认上下文的 margin。
+
+    判定器只读 observation 行的生产特征槽位(与 latent 隔离);
+    latent 真值仅作评估 label。两个上下文各自报告:
+    - direction:sign(raw_high+raw_low-raw_open-raw_close) vs s;
+    - width:(raw_high-raw_low)-|raw_close-raw_open| > 0.0120 vs w。
+    margin = 2 x accuracy - 1(逐 bar 二项),要求
+    margin >= kappa x SE_binomial(SE = 2*sqrt(p(1-p)/n))。
+    """
+    from rl_curriculum.curriculum261_c2 import (
+        wick_score_of,
+        wick_width_of,
+    )
+
+    n_dir = {"n": 0, "correct": 0}
+    n_wid = {"n": 0, "correct": 0}
+    per_rung: dict[str, dict[str, float]] = {}
+    obs_cols = list(SCHEMA.feature_names)
+    for rec in records:
+        h = rec.episodes["A"].hidden
+        df = rec.episodes["A"].df
+        feats = df[obs_cols].to_numpy(dtype=np.float64)
+        s = h["wick_dir_state"].to_numpy()
+        w = h["wick_width_state"].to_numpy()
+        scores = np.array([wick_score_of(o) for o in feats])
+        spans = np.array([wick_width_of(o) for o in feats])
+        d_ok = np.sign(scores) == np.sign(s)
+        w_ok = (spans > 0.0120) == (w > 0)
+        n_dir["n"] += int(d_ok.size)
+        n_dir["correct"] += int(d_ok.sum())
+        n_wid["n"] += int(w_ok.size)
+        n_wid["correct"] += int(w_ok.sum())
+        rd = per_rung.setdefault(rec.rung, {"dir_acc": [], "width_acc": []})
+        rd["dir_acc"].append(float(d_ok.mean()))
+        rd["width_acc"].append(float(w_ok.mean()))
+    out_rung = {r: {"dir_accuracy": float(np.mean(v["dir_acc"])),
+                    "width_accuracy": float(np.mean(v["width_acc"]))}
+                for r, v in per_rung.items()}
+
+    def _margin(n: int, correct: int) -> dict[str, Any]:
+        acc = correct / max(n, 1)
+        p = min(max(acc, 1e-6), 1 - 1e-6)
+        se = 2.0 * float(np.sqrt(p * (1 - p) / n)) if n else float("inf")
+        margin = 2.0 * acc - 1.0
+        return {"n_bars": n, "accuracy": acc, "margin": margin,
+                "se": se, "kappa_times_se": kappa * se,
+                "margin_ge_kappa_se": bool(margin >= kappa * se)}
+
+    direction = _margin(n_dir["n"], n_dir["correct"])
+    width = _margin(n_wid["n"], n_wid["correct"])
+    return {
+        "format": "cur261-c2-context-observability-v1",
+        "discriminator": {
+            "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+            "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+            "observation_only": True,
+            "latent_used_as": "evaluation label only",
+        },
+        "per_rung_accuracy": out_rung,
+        "direction": direction,
+        "width": width,
+        "pass": bool(direction["margin_ge_kappa_se"]
+                     and width["margin_ge_kappa_se"]),
+    }
+
+
+# ------------------------------------------------- C2 诊断 runner
+def run_c2_diagnostics(pairs_per_rung: int = 10,
+                       out_dir: Path | None = None,
+                       ) -> dict[str, Any]:
+    """在 calibration_r2 + calibration_holdout_r2 两语料的 C2 pairs 上
+    运行 local-cue independence 与 context observability 双诊断。
+
+    records 重新生成(同 namespace+seed 确定性复现 calibration 语料,
+    不引入新 seed space);诊断进入 robustness gate 的 C2 条件。
+    """
+    records: list[PairRecord] = []
+    for ns in ("calibration_r2", "calibration_holdout_r2"):
+        for rung in CURRICULUM261_RUNGS:
+            for idx in range(pairs_per_rung):
+                records.append(generate_pair(
+                    "c2_context", rung, idx, namespace=ns))
+    lc = check_c2_local_cue_independence(records)
+    ob = check_c2_context_observability(records)
+    out = {"local_cue_independence": lc, "context_observability": ob}
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "c2_local_cue_context_independence.json").write_text(
+            json.dumps(lc, indent=2, ensure_ascii=False, default=float),
+            encoding="utf-8")
+        (out_dir / "c2_context_observability.json").write_text(
+            json.dumps(ob, indent=2, ensure_ascii=False, default=float),
+            encoding="utf-8")
+    return out
+
+
+# ------------------------------------------------- stress 与 namespace 完整性
+def run_generator_stress(pairs_per_rung: int = 12,
+                         namespace: str = "stress_r2",
+                         out_dir: Path | None = None,
+                         ) -> dict[str, Any]:
+    """§11 pre-qualification generator stress:family x rung x 多 seed
+    大量生成,accepted pair 的 final structural integrity 必须 PASS。
+
+    统一合同下 accepted => integrity=1.0 是同函数确定性的推论;
+    stress 提供经验证据(低概率退化如 shared 表断裂 / 构造漂移)。
+    禁止使用 qualification_r2 seed。"""
+    families_out: dict[str, Any] = {}
+    for family in CURRICULUM261_FAMILIES:
+        records = []
+        for rung in CURRICULUM261_RUNGS:
+            for idx in range(pairs_per_rung):
+                records.append(generate_pair(
+                    family, rung, idx, namespace=namespace))
+        stats = attempt_statistics(records)
+        n_ok = sum(1 for r in records if r.integrity_ok)
+        families_out[family] = {
+            "namespace": namespace,
+            "pairs_per_rung": pairs_per_rung,
+            "n_pairs": len(records),
+            "n_integrity_ok": n_ok,
+            "integrity_pass_ratio": n_ok / len(records),
+            "accepted_implies_integrity": bool(n_ok == len(records)),
+            "attempt_stats": stats,
+        }
+    overall = {
+        "format": "cur261-generator-stress-v1",
+        "namespace": namespace,
+        "families": families_out,
+        "pass": bool(all(
+            v["accepted_implies_integrity"] for v in families_out.values())),
+    }
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for family in CURRICULUM261_FAMILIES:
+            (out_dir / f"{family}_structural_stress.json").write_text(
+                json.dumps(families_out[family], indent=2,
+                           ensure_ascii=False, default=float),
+                encoding="utf-8")
+        (out_dir / "generator_stress_summary.json").write_text(
+            json.dumps(overall, indent=2, ensure_ascii=False,
+                       default=float), encoding="utf-8")
+    return overall
+
+
+def seed_namespace_integrity_report() -> dict[str, Any]:
+    """§6 seed namespace integrity:R0/R1/R2 全部 namespace 的派生 seed
+    无碰撞;R2 qualification seed 在 lock 前从未被派生。
+
+    枚举旧 5 namespace 与新 6 namespace x 3 family x 4 rung x
+    pair 0..29 x attempt 0..4(共 11 x 3 x 4 x 30 x 5 = 19800 个)
+    + fresh 的 500..509。断言:
+    - R2 qualification_r2 与其它任何 namespace 无交集;
+    - R2 各 namespace 两两无交集(派生字符串不同 -> 值不同,显式验证);
+    - calibration_r2 / calibration_holdout_r2 / stress_r2 与
+      qualification_r2 无交集(约束 calibration code path 不触测试集)。
+    qualification_r2 的枚举走 _derive261_seed_raw(纯哈希值,不生成
+    episode——corpus 暴露以生成为准,守卫保持对生成路径生效)。
+    """
+    from rl_curriculum.curriculum261_api import _derive261_seed_raw
+    r2_namespaces = ("calibration_r2", "calibration_holdout_r2",
+                     "qualification_r2", "fresh_holdout_r2",
+                     "training_r2", "stress_r2")
+    old_namespaces = ("calibration", "calibration_holdout",
+                      "qualification", "fresh_holdout", "training")
+    pairs = list(range(30)) + list(range(500, 510))
+    seen: dict[str, set[int]] = {}
+    for ns in r2_namespaces + old_namespaces:
+        vals = set()
+        for fam in CURRICULUM261_FAMILIES:
+            for rung in CURRICULUM261_RUNGS:
+                for p in pairs:
+                    for att in range(5):
+                        vals.add(_derive261_seed_raw(ns, fam, rung, p, att))
+        seen[ns] = vals
+    collisions = []
+    keys = sorted(seen)
+    for i, a in enumerate(keys):
+        for b in keys[i + 1:]:
+            inter = seen[a] & seen[b]
+            if inter:
+                collisions.append(f"{a}∩{b}={len(inter)}")
+    r2q_vs_others = sorted(
+        seen["qualification_r2"] & set().union(
+            *[seen[k] for k in keys if k != "qualification_r2"]))
+    return {
+        "format": "cur261-seed-namespace-integrity-v1",
+        "iteration": "r2",
+        "namespaces_checked": list(r2_namespaces + old_namespaces),
+        "seeds_per_namespace": 3 * 4 * len(pairs) * 5,
+        "pairwise_collisions": collisions,
+        "qualification_r2_overlap_with_any": len(r2q_vs_others),
+        "calibration_vs_qualification_r2_disjoint": bool(
+            not (seen["calibration_r2"] & seen["qualification_r2"])
+            and not (seen["calibration_holdout_r2"]
+                     & seen["qualification_r2"])
+            and not (seen["stress_r2"] & seen["qualification_r2"])),
+        "qualification_r2_locked_before_use": bool(
+            not qualification_r2_unlocked()),
+        "pass": bool(not collisions and not r2q_vs_others),
+    }
+
+
 # ------------------------------------------------------------- 运行器
 def run_calibration(pairs_per_rung: int = 10,
                     out_dir: Path | None = None) -> dict[str, Any]:
-    """WP-G(repair R1):主 calibration 语料(委托 run_calibration_corpus)。"""
+    """repair R2:主 calibration 语料(calibration_r2 全新 seed space)。"""
     return run_calibration_corpus(
-        "calibration", pairs_per_rung=pairs_per_rung, out_dir=out_dir,
+        "calibration_r2", pairs_per_rung=pairs_per_rung, out_dir=out_dir,
         prefix="calibration")
 
 
@@ -455,10 +774,10 @@ def run_calibration_corpus(namespace: str, pairs_per_rung: int = 10,
 
 def run_calibration_holdout(pairs_per_rung: int = 10,
                             out_dir: Path | None = None) -> dict[str, Any]:
-    """repair R1:独立 calibration_holdout 语料(与主 calibration、
-    qualification 的 seed 均隔离),用于 lock 前稳健性交叉验证。"""
+    """repair R2:独立 calibration_holdout_r2 语料(与主 calibration_r2、
+    qualification_r2 的 seed 均隔离),用于 lock 前稳健性交叉验证。"""
     return run_calibration_corpus(
-        "calibration_holdout", pairs_per_rung=pairs_per_rung,
+        "calibration_holdout_r2", pairs_per_rung=pairs_per_rung,
         out_dir=out_dir, prefix="calibration_holdout")
 
 
@@ -482,17 +801,24 @@ def _episode_metric_values(rung_eval: dict[str, Any]) -> list[float]:
 def calibration_robustness_gate(
     main: dict[str, Any], holdout: dict[str, Any],
     kappa: float = ROBUSTNESS_KAPPA,
+    stress: dict[str, Any] | None = None,
+    c2_diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """repair R1 核心:lock 前的双语料稳健性门槛。
+    """repair R2 硬合同:lock 前的双语料稳健性门槛(真正的 Gate)。
 
-    对每个 family:
-    - 主 calibration 语料与 holdout 语料各自 ordering_ok 且 D3 为正
-      且 reference 在全部 rung 上压过必胜基线;
-    - 相邻 rung 难度间隔 gap_k = M_k - M_{k+1} 在两个语料上都 > 0;
-    - gap_k >= kappa x SE(gap_k):SE 由两个语料合并的 per-episode
-      度量样本估计(Var(M_k) + Var(M_{k+1}) / n 的样本版本);
-    - D3 度量 >= kappa x SE(M_D3)。
-    全部通过才允许 lock plan(否则必须回到设计,不得进入 qualification)。
+    每个 family 必须在 calibration_r2 AND calibration_holdout_r2
+    同时满足全部八条:
+    1. D0 > D1 > D2 > D3(ordering_ok);
+    2. D3 > 0;
+    3. reference 在全部 rung 压过必胜基线;
+    4. accepted pair integrity = 1.0(统一合同 + stress 实证);
+    5. 相邻 rung gap >= kappa x SE(双语料合并 per-episode 样本);
+    6. D3 >= kappa x SE;
+    7. C2 额外通过 local-cue independence 与 context observability;
+    8. attempt 分布合理(mean < max,无全部靠多 attempt 硬凑的 rung)。
+    任一 family FAIL -> gate.pass = false -> 禁止 lock plan
+    (Layer A/B/C 三层强制,CLI 非零退出 / plan 拒生成 / final fail
+    closed)。
     """
     families_out: dict[str, Any] = {}
     for family in CURRICULUM261_FAMILIES:
@@ -508,14 +834,43 @@ def calibration_robustness_gate(
                 "d3_positive": fm["d3_metric_positive"],
                 "ref_beats_required": fm[
                     "reference_beats_required_all_rungs"],
+                "integrity_unity": bool(
+                    fm["pair_integrity_pass_rate"] == 1.0),
             },
             "holdout": {
                 "ordering_ok": fh["ordering_ok"],
                 "d3_positive": fh["d3_metric_positive"],
                 "ref_beats_required": fh[
                     "reference_beats_required_all_rungs"],
+                "integrity_unity": bool(
+                    fh["pair_integrity_pass_rate"] == 1.0),
             },
         }
+        # 条件 4(stress 实证)+ 条件 8(attempts 分布)
+        stress_ok = True
+        if stress is not None:
+            fam_stress = stress.get("families", {}).get(family)
+            stress_ok = bool(
+                fam_stress is not None
+                and fam_stress["accepted_implies_integrity"])
+        attempts_ok = True
+        for rep in (fm, fh):
+            stats = rep.get("attempt_stats", {})
+            attempts_ok = attempts_ok and bool(
+                stats.get("n_pairs", 0) > 0
+                and stats.get("mean_attempts", 9.0)
+                < stats.get("max_attempts", 5)
+                and stats.get("max_attempts_used", 0) <= 5)
+        # 条件 7(C2 双诊断,仅 c2_context)
+        c2_flags: dict[str, bool] | None = None
+        if family == "c2_context":
+            c2_flags = {
+                "local_cue_independence": bool(c2_diagnostics is not None
+                and c2_diagnostics["local_cue_independence"]["pass"]),
+                "context_observability": bool(
+                    c2_diagnostics is not None
+                    and c2_diagnostics["context_observability"]["pass"]),
+            }
         # 合并两语料的 per-episode 度量样本(每 rung 2 x 20 个)
         samples = {r: (
             _episode_metric_values(fm["by_rung"][r])
@@ -547,9 +902,13 @@ def calibration_robustness_gate(
         d3_se_ok = bool(means["D3"] >= kappa * ses["D3"])
         family_pass = bool(
             all(all(fc.values()) for fc in per_corpus_flags.values())
-            and gaps_ok and d3_se_ok)
+            and gaps_ok and d3_se_ok and stress_ok and attempts_ok
+            and (c2_flags is None or all(c2_flags.values())))
         families_out[family] = {
             "per_corpus_flags": per_corpus_flags,
+            "stress_accepted_implies_integrity": bool(stress_ok),
+            "attempts_distribution_ok": bool(attempts_ok),
+            "c2_diagnostics": c2_flags,
             "pooled_episode_metric_mean": means,
             "pooled_episode_metric_se": ses,
             "n_episodes_per_rung": n_ep,
@@ -560,11 +919,24 @@ def calibration_robustness_gate(
         }
     overall = bool(all(v["pass"] for v in families_out.values()))
     return {
-        "format": "cur261-robustness-gate-v1",
+        "format": "cur261-robustness-gate-v2",
+        "iteration": "r2",
         "kappa": float(kappa),
-        "main_namespace": main.get("seed_namespace", "calibration"),
+        "contract": [
+            "1 ordering", "2 d3_positive", "3 ref_beats_required",
+            "4 integrity_unity(corpus x2 + stress)", "5 gap_ge_kappa_se",
+            "6 d3_ge_kappa_se", "7 c2_local_cue+observability(c2)",
+            "8 attempts_distribution",
+        ],
+        "main_namespace": main.get("seed_namespace", "calibration_r2"),
         "holdout_namespace": holdout.get(
-            "seed_namespace", "calibration_holdout"),
+            "seed_namespace", "calibration_holdout_r2"),
+        "c2_local_cue_independence": (
+            c2_diagnostics["local_cue_independence"]
+            if c2_diagnostics else None),
+        "c2_context_observability": (
+            c2_diagnostics["context_observability"]
+            if c2_diagnostics else None),
         "families": families_out,
         "pass": overall,
     }

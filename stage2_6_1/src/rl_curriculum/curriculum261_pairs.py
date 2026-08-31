@@ -115,7 +115,7 @@ def generate_pair(
         spec.generator, rung_params,
         namespace=namespace, family=family, rung=rung,
         pair_index=pair_index,
-        structural_validator=type(spec.generator).structural_validator,
+        structural_validator=pair_acceptance_contract(family),
     )
     problems = check_attempt_log(log)
     if problems:
@@ -189,59 +189,63 @@ def _c1_construction_check(a: GeneratedEpisode,
 
 def _c2_construction_check(a: GeneratedEpisode,
                            b: GeneratedEpisode) -> dict[str, Any]:
-    """C2 构造审计:A 的收益注入符号由 G1(方向)决定;B 由波动率体制决定。
+    """C2 构造审计(v9):A 的收益注入符号由 wick 方向纹理(s)决定;
+    B 由 wick 幅值体制(w)决定。
 
     判定:对每个 cue t,注入窗口内的 payoff_dir 与
-    sign(gate[t]) x sign(cue[t]) 逐点一致;共享 banner/体制/cue 表。
+    sign(gate[t]) x sign(cue[t]) 逐点一致;共享 cue/s/w 表。
     """
     ha, hb = a.hidden, b.hidden
     cue = ha["cue_dir"].to_numpy()
-    g1a = ha["gate_g1"].to_numpy()
-    vsa = ha["vol_state"].to_numpy()
+    sa = ha["wick_dir_state"].to_numpy()
+    wa = ha["wick_width_state"].to_numpy()
     payoff_dir_a = ha["payoff_dir"].to_numpy()
     active_a = ha["payoff_active"].to_numpy()
     payoff_dir_b = hb["payoff_dir"].to_numpy()
-    g1b = hb["gate_g1"].to_numpy()
-    vsb = hb["vol_state"].to_numpy()
+    active_b = hb["payoff_active"].to_numpy()
+    sb = hb["wick_dir_state"].to_numpy()
+    wb = hb["wick_width_state"].to_numpy()
     H = int(a.spec.params["payoff_bars"])
     n = len(cue)
 
-    def _binding_ok(gate: np.ndarray, payoff_dir: np.ndarray) -> bool:
+    def _binding_ok(gate: np.ndarray, payoff_dir: np.ndarray,
+                    active: np.ndarray) -> bool:
         for t in range(n):
             if cue[t] == 0:
                 continue
             end = min(t + 1 + H, n)
             window = slice(t + 1, end)
-            if not np.any(active_a[window]):
+            if not np.any(active[window]):
                 continue
             expect = np.sign(gate[t]) * np.sign(cue[t])
-            mask = active_a[window].astype(bool)
+            mask = active[window].astype(bool)
             got = payoff_dir[window][mask]
             if not np.all(got == expect):
                 return False
         return True
 
-    a_gate_is_g1 = bool(np.all(ha["active_gate_is_g1"].to_numpy() == 1))
-    b_gate_is_g2 = bool(np.all(hb["active_gate_is_g1"].to_numpy() == 0))
+    a_gate_is_dir = bool(np.all(ha["active_gate_is_dir"].to_numpy() == 1))
+    b_gate_is_width = bool(np.all(hb["active_gate_is_dir"].to_numpy() == 0))
     shared_tables = bool(
         np.array_equal(cue, hb["cue_dir"].to_numpy())
-        and np.array_equal(g1a, g1b) and np.array_equal(vsa, vsb))
+        and np.array_equal(sa, sb) and np.array_equal(wa, wb))
     return {
-        "A_gate_is_g1": a_gate_is_g1,
-        "B_gate_is_vol_regime": b_gate_is_g2,
-        "A_payoff_bound_to_g1": bool(_binding_ok(g1a, payoff_dir_a)),
-        "B_payoff_bound_to_vol": bool(_binding_ok(vsb, payoff_dir_b)),
-        "A_payoff_not_bound_to_vol": bool(
-            not _binding_ok(vsa, payoff_dir_a)),
-        "B_payoff_not_bound_to_g1": bool(
-            not _binding_ok(g1b, payoff_dir_b)),
-        "shared_cue_banner_vol_table": shared_tables,
+        "A_gate_is_wick_dir": a_gate_is_dir,
+        "B_gate_is_wick_width": b_gate_is_width,
+        "A_payoff_bound_to_dir": bool(_binding_ok(sa, payoff_dir_a, active_a)),
+        "B_payoff_bound_to_width": bool(
+            _binding_ok(wb, payoff_dir_b, active_b)),
+        "A_payoff_not_bound_to_width": bool(
+            not _binding_ok(wa, payoff_dir_a, active_a)),
+        "B_payoff_not_bound_to_dir": bool(
+            not _binding_ok(sb, payoff_dir_b, active_b)),
+        "shared_cue_dir_width_table": shared_tables,
         "causal_diff_ok": bool(
-            a_gate_is_g1 and b_gate_is_g2
-            and _binding_ok(g1a, payoff_dir_a)
-            and _binding_ok(vsb, payoff_dir_b)
-            and not _binding_ok(vsa, payoff_dir_a)
-            and not _binding_ok(g1b, payoff_dir_b)
+            a_gate_is_dir and b_gate_is_width
+            and _binding_ok(sa, payoff_dir_a, active_a)
+            and _binding_ok(wb, payoff_dir_b, active_b)
+            and not _binding_ok(wa, payoff_dir_a, active_a)
+            and not _binding_ok(sb, payoff_dir_b, active_b)
             and shared_tables),
     }
 
@@ -306,6 +310,73 @@ def family_specs() -> dict[str, FamilySpec]:
             )
         }
     return _FAMILY_SPECS
+
+
+def pair_structural_contract(
+        a: GeneratedEpisode, b: GeneratedEpisode, family: str) -> list[str]:
+    """唯一的 pair 结构接受合同(repair R2 核心协议修复)。
+
+    acceptance(attempt 循环)与 final(compute_pair_integrity)共用
+    同一判定源:本函数检查的 nuisance / construction / shared 三组
+    条件与 compute_pair_integrity 的 "pass" 判定**调用同一批底层
+    函数**——确定性生成器下同一输入必然得出同一结论,因此
+
+        accepted pair => final_structural_integrity == true
+
+    是逻辑保证(不是概率上的"通常成立")。R1 的 first_pass=1.0 而
+    final integrity=0.90 的两套判定不一致问题由此消除。
+    另叠加 family 生成时结构检查(c1/c2/c3_structural_issues,
+    同为生成时可知条件,acceptance 严格更严,不影响蕴含方向)。
+    """
+    spec = family_specs()[family]
+    issues: list[str] = []
+    nuisance = _nuisance_checks(a, b)
+    for k in ("same_length", "same_initial_price", "volume_identical",
+              "vol24_ratio_in_range"):
+        if not nuisance[k]:
+            issues.append(f"nuisance_{k}")
+    construction = spec.construction_check(a, b)
+    if not construction.get("causal_diff_ok", False):
+        issues.append("construction_causal_diff")
+    for k, v in construction.items():
+        if k.startswith("shared_") and not v:
+            issues.append(f"construction_{k}")
+    from rl_curriculum.curriculum261_c1 import c1_structural_issues
+    from rl_curriculum.curriculum261_c2 import c2_structural_issues
+    from rl_curriculum.curriculum261_c3 import c3_structural_issues
+    issues += list(c1_structural_issues(a)) if family == "c1_opportunity" \
+        else list(c2_structural_issues(a)) if family == "c2_context" \
+        else list(c3_structural_issues(a))
+    return issues
+
+
+#: 预注册的 pair 拒绝原因词表(结构性;不含任何 PnL 语义)
+PAIR_REJECT_VOCAB = (
+    "nuisance_same_length", "nuisance_same_initial_price",
+    "nuisance_volume_identical", "nuisance_vol24_ratio_in_range",
+    "construction_causal_diff", "construction_shared_cue_banner_vol_table",
+    "construction_shared_segment_table", "construction_shared_event_table",
+    "construction_shared_cue_dir_width_table",
+    "generation_structural",
+)
+
+
+def pair_acceptance_contract(family: str):
+    """attempt 循环的 validator 入口:episode 级快速预检(A/B 各一)
+    + pair 级统一合同;输出原因带侧标记,全部在词表内。"""
+    spec_of = family_specs()
+
+    def contract(episodes: dict) -> list[str]:
+        issues: list[str] = []
+        gen = spec_of[family].generator
+        for side in ("A", "B"):
+            issues += [f"{side}:{r}" for r in
+                       type(gen).structural_validator(episodes[side])]
+        issues += [f"pair:{r}" for r in pair_structural_contract(
+            episodes["A"], episodes["B"], family)]
+        return issues
+
+    return contract
 
 
 def compute_pair_integrity(record: PairRecord) -> dict[str, Any]:

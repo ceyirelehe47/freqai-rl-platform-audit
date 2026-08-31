@@ -42,7 +42,7 @@ def run_ppo_smoke(out_dir: Path | None = None) -> dict[str, Any]:
     spec = family_specs()["c1_opportunity"]
     rung_params = dict(spec.rung_params["D1"])
     rung_params["cur261_rung"] = "D1"
-    seed = derive261_seed("training", "c1_opportunity", "D1", 0, 0)
+    seed = derive261_seed("training_r2", "c1_opportunity", "D1", 0, 0)
     episode = spec.generator.generate(
         spec.generator.base_params(rung_params, "A"), seed,
         split="curriculum261_training", timeframe=CURRICULUM261_TIMEFRAME)
@@ -77,7 +77,7 @@ def run_ppo_smoke(out_dir: Path | None = None) -> dict[str, Any]:
         "steps": SMOKE_STEPS,
         "batch_size": SMOKE_BATCH,
         "seed": SMOKE_SEED,
-        "seed_namespace": "training",
+        "seed_namespace": "training_r2",
         "episode_family": "c1_opportunity",
         "episode_rung": "D1",
         "observation_dim": int(schema.observation_dim),

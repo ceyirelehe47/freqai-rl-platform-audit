@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import inspect
 from pathlib import Path
 from typing import Any
@@ -207,6 +208,105 @@ def production_observation_identity() -> dict[str, Any]:
         "window_size": 1,
     })
     return identity
+
+
+#: 最新正式 Route C / FreqAI runtime config(身份绑定对象;
+#: 阶段 2.5.2a 收官 run 的 config,当前正式 Route C 训练口径)
+PRODUCTION_RUNTIME_CONFIG_REL = (
+    "experiments/freqai_rl_stage2_5_2a/runtime/"
+    "config_stage252a-rc-e9b373b3c9_smoke-reload.json")
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def production_runtime_config_identity() -> dict[str, object]:
+    """§18 真实 runtime configuration 身份:从实际 config 文件与
+    vendor 源码读取(不假设),逐项记录正式 PPO 训练路径的
+    feature/preprocessing 事实。"""
+    root = _project_root()
+    cfg_path = root / PRODUCTION_RUNTIME_CONFIG_REL
+    if not cfg_path.is_file():
+        raise RuntimeError(f"正式 config 不存在: {cfg_path}")
+    cfg_bytes = cfg_path.read_bytes()
+    cfg = json.loads(cfg_bytes.decode("utf-8"))
+    fa = cfg.get("freqai", {})
+    fp = fa.get("feature_parameters", {})
+    rl = fa.get("rl_config", {})
+    vendor = root / "vendor" / "freqtrade"
+    pipeline_src = (vendor / "freqtrade" / "freqai" / "freqai_interface.py")
+    rl_model_src = (vendor / "freqtrade" / "freqai" / "RL" /
+                    "BaseReinforcementLearningModel.py")
+    guards_src = root / "src" / "rl_platform" / "guards.py"
+    return {
+        "format": "cur261-production-runtime-config-v1",
+        "config_path": str(cfg_path.relative_to(root)),
+        "config_sha256": hashlib.sha256(cfg_bytes).hexdigest(),
+        "drop_ohlc_from_features": bool(
+            rl.get("drop_ohlc_from_features", False)),
+        "add_state_info": bool(rl.get("add_state_info", False)),
+        "model_type": str(rl.get("model_type", "")),
+        "policy_type": str(rl.get("policy_type", "")),
+        "principal_component_analysis": bool(
+            fp.get("principal_component_analysis", False)),
+        "use_SVM_to_remove_outliers": bool(
+            fp.get("use_SVM_to_remove_outliers", False)),
+        "DI_threshold": fp.get("DI_threshold", 0),
+        "default_feature_pipeline": [
+            "ds.VarianceThreshold(threshold=0)",
+            "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))",
+        ],
+        "conv_width_supported": 1,
+        "define_data_pipeline_sha256": hashlib.sha256(
+            pipeline_src.read_bytes()).hexdigest(),
+        "rl_model_train_path_sha256": hashlib.sha256(
+            rl_model_src.read_bytes()).hexdigest(),
+        "rl_platform_guards_sha256": hashlib.sha256(
+            guards_src.read_bytes()).hexdigest(),
+        "rl_train_path_summary": (
+            "OHLCV -> RouteCStrategy.feature_engineering_standard(8 列) "
+            "-> feature_pipeline.fit_transform(train_features)("
+            "VarianceThreshold(0)+MinMaxScaler((-1,1)),fit 于训练窗) "
+            "-> AlignedLongFlatEnv(df=scaled, window=CONV_WIDTH=1) "
+            "-> observation=[特征行, 仓位槽](dim=9)"),
+    }
+
+
+def curriculum_preprocessing_boundary() -> dict[str, object]:
+    """§19 R2 冻结的课程预处理边界声明(正式命名 + domain gap 登记)。"""
+    return {
+        "format": "cur261-preprocessing-boundary-v1",
+        "boundary_name": (
+            "real RouteCStrategy feature semantics + frozen Route C "
+            "observation layout + causal unscaled curriculum feature "
+            "values"),
+        "components": {
+            "feature_semantics": "真实 "
+            "RouteCStrategy.feature_engineering_standard(生产源码调用,"
+            "非课程重实现)",
+            "observation_layout": "ObservationSpec-v1:window=1 滑窗 + "
+            "仓位槽 + Box(-10,10)(仅冻结 layout,不冻结数值缩放)",
+            "feature_values": "causal unscaled(单 episode 全序列无未来"
+            "信息;不经 VarianceThreshold/MinMaxScaler)",
+        },
+        "explicitly_not_equivalent_to": (
+            "完整 FreqAI production preprocessing:生产训练在 env 之外"
+            "对 train_features 施加 feature_pipeline = "
+            "VarianceThreshold(0) + MinMaxScaler((-1,1))(fit 于训练"
+            "窗,episode 间重拟合),课程不包含该步骤"),
+        "reason": "ObservationSpec-v1 冻结 env layout;FreqAI scaler 是"
+        "env 外的训练数据预处理(fit 于 train_features,含未来信息的"
+        "全窗统计若在单 episode 课程内复刻会引入 lookahead——与课程"
+        "因果合同冲突)",
+        "registered_domain_gap": {
+            "gap": "FreqAI scaler / production preprocessing transfer",
+            "verification_stage": "后续 transfer / G5 阶段验证",
+            "not_this_stage": True,
+        },
+        "future_contract": "若 2.6.2 使用课程 adapter,必须使用与本边界"
+        "完全相同的 adapter(production_observation_identity 绑定)",
+    }
 
 
 def assert_production_observation_binding(

@@ -100,6 +100,14 @@ class TestDifficultyMetric:
             assert rep["by_rung"][rung]["oracle_positive"]
 
 
+
+
+def _gate_pass() -> dict:
+    """repair R2:build_plan 的 Layer B 要求 gate PASS 才允许构造
+    plan(测试用最小合法 gate)。"""
+    return {"format": "cur261-robustness-gate-v2", "pass": True,
+            "families": {}}
+
 class TestPlanLock:
     def test_build_lock_load_roundtrip(self, tmp_path):
         from rl_curriculum.curriculum261_plan import (
@@ -108,7 +116,8 @@ class TestPlanLock:
         plan = build_plan(baseline_commit="cd585f4" + "0" * 32,
                           vendor_pin="52bc96f" + "0" * 34,
                           frozen_contracts={"env_core":
-                                            "RouteCEnvCore-v1.0.0"})
+                                            "RouteCEnvCore-v1.0.0"},
+                          robustness_gate=_gate_pass())
         digest = lock_plan(plan, tmp_path)
         assert digest.startswith("qp-")
         loaded, recorded = load_locked_plan(tmp_path)
@@ -120,7 +129,8 @@ class TestPlanLock:
             build_plan, lock_plan, load_locked_plan)
 
         plan = build_plan(baseline_commit="a" * 40, vendor_pin="b" * 40,
-                          frozen_contracts={})
+                          frozen_contracts={},
+                          robustness_gate=_gate_pass())
         lock_plan(plan, tmp_path)
         # 篡改阈值
         plan["verdict_thresholds"]["fresh_seed_valid_ratio_min"] = 0.5
@@ -133,7 +143,8 @@ class TestPlanLock:
         from rl_curriculum.curriculum261_plan import build_plan
 
         plan = build_plan(baseline_commit="a" * 40, vendor_pin="b" * 40,
-                          frozen_contracts={})
+                          frozen_contracts={},
+                          robustness_gate=_gate_pass())
         ids = plan["code_identity"]
         assert "curriculum261_api.py" in ids
         assert all(v and v != "MISSING" for v in ids.values())
@@ -147,6 +158,6 @@ class TestPpoSmoke:
         assert result["pass"]
         assert result["steps"] == 256
         assert result["rewards_finite"]
-        assert result["seed_namespace"] == "training"
+        assert result["seed_namespace"] == "training_r2"
         # smoke 结果不含任何课程选择语义
         assert "不参与课程参数选择" in result["note"]
