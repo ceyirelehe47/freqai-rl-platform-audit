@@ -1,0 +1,66 @@
+{
+  "format": "ppo262-repair2-bc-plan-v1",
+  "spec": {
+    "train_per_family_slot": {
+      "rungs": [
+        "D0",
+        "D1"
+      ],
+      "pairs_per_rung": 2,
+      "pair_base_rule": "slot*32"
+    },
+    "eval_per_family_slot": {
+      "rungs": [
+        "D0",
+        "D1",
+        "D2"
+      ],
+      "pairs_per_fr": 4,
+      "pair_base_rule": "256 + slot*32"
+    },
+    "episodes_per_bank": 8,
+    "bc_epochs": 30,
+    "bc_lr": 0.0003,
+    "class_weighted": true,
+    "finetune_cycles": 12,
+    "steps_finetune": 27552,
+    "episodes_total": 96,
+    "checkpoint_episodes": [
+      0,
+      8,
+      16,
+      24,
+      48,
+      96
+    ],
+    "checkpoint_tags": [
+      "after_bc_before_ppo",
+      "ep8",
+      "ep16",
+      "ep24",
+      "ep48",
+      "ep96"
+    ]
+  },
+  "seeds": [
+    28601,
+    28602,
+    28603
+  ],
+  "checkpoint_tags": [
+    "after_bc_before_ppo",
+    "ep8",
+    "ep16",
+    "ep24",
+    "ep48",
+    "ep96"
+  ],
+  "arm_selection_rule": "按 A unscaled -> B fixed -> C train_fitted 顺序取第一个 supervised learned 的 arm(基于 supervised 诊断结果,规则预注册;全部 arm 未学会则该族不执行 BC)",
+  "selected_arms": {
+    "c1_opportunity": "unscaled",
+    "c2_context": "fixed_precommitted",
+    "c3_cost": "unscaled"
+  },
+  "label_source": "causal observation reference policy(逐族逐 rung;不读 latent oracle/future/episode id/hidden metadata)",
+  "plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+}

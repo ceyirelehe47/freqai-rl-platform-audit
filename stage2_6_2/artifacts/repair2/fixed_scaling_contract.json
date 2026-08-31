@@ -1,0 +1,44 @@
+{
+  "format": "ppo262-repair2-fixed-scaling-contract-v1",
+  "arm": "B_fixed_precommitted",
+  "feature_names": [
+    "%-ret-1",
+    "%-ret-4",
+    "%-vol-24",
+    "%-price-ma-ratio",
+    "%-raw_open",
+    "%-raw_high",
+    "%-raw_low",
+    "%-raw_close",
+    "position"
+  ],
+  "center": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "scale": [
+    0.01,
+    0.1,
+    0.01,
+    0.01,
+    0.1,
+    0.1,
+    0.1,
+    0.1,
+    1.0
+  ],
+  "source_artifact": "repair1/feature_scale_profile.json(s262_r0 official corpus config_dev_train)",
+  "source_artifact_sha256": "9d627476929a86e2ac1f15217ad09419b38eeec4edb8453aa1ddd94c622dc4aa",
+  "rule": "scale_i = 10^round(log10(std_i of repair1/feature_scale_profile.json:config_dev_train per_feature));center=0;position=identity;来源 artifact sha256 记录于 fixed_scaling_contract",
+  "no_r2_data_access": "常数推导只读取 R1 历史 artifact(已提交于 af871ee);不读取任何 diag262r2 train/eval bank(此时尚未生成);不在每 episode 拟合;不根据结果调整",
+  "constructor_signature": "ObsAdapter.fixed(center, scale, *, source)——不接受 X_train",
+  "locked_before_any_r2_bank": true,
+  "pass": true
+}

@@ -1,0 +1,54 @@
+{
+  "format": "ppo262-repair2-scratch-ppo-plan-v1",
+  "spec": {
+    "train_per_family_slot": {
+      "rungs": [
+        "D0",
+        "D1"
+      ],
+      "pairs_per_rung": 4,
+      "pair_base_rule": "slot*32"
+    },
+    "eval_per_family": {
+      "rungs": [
+        "D0",
+        "D1",
+        "D2"
+      ],
+      "pairs_per_fr": 4,
+      "pair_base": 256
+    },
+    "episodes_per_bank": 16,
+    "cycles": 18,
+    "steps_per_seed": 82656,
+    "episodes_total": 288,
+    "checkpoint_episodes": [
+      0,
+      16,
+      32,
+      80,
+      144,
+      288
+    ]
+  },
+  "arms": [
+    "A_unscaled",
+    "B_fixed_precommitted",
+    "C_train_fitted"
+  ],
+  "seeds": [
+    28501,
+    28502,
+    28503
+  ],
+  "checkpoint_tags": [
+    "ep0",
+    "ep16",
+    "ep32",
+    "ep80",
+    "ep144",
+    "ep288"
+  ],
+  "pairing_contract": "同 family/seed 三 arms 共享同一 train_bank 对象/同 seed 初始权重/同 config/同 steps/同 eval bank/同 checkpoint schedule;唯一差异 = observation preprocessing",
+  "plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+}

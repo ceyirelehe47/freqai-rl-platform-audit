@@ -1,0 +1,41 @@
+{
+  "format": "ppo262-repair2-supervised-control-plan-v1",
+  "spec": {
+    "train": {
+      "namespace": "diag262r2_1_supervised_train",
+      "rungs": [
+        "D0",
+        "D1",
+        "D2"
+      ],
+      "pairs_per_fr": 6,
+      "pair_base": 0
+    },
+    "eval": {
+      "namespace": "diag262r2_1_supervised_eval",
+      "rungs": [
+        "D0",
+        "D1",
+        "D2"
+      ],
+      "pairs_per_fr": 6,
+      "pair_base": 256
+    }
+  },
+  "controls": [
+    "U",
+    "W",
+    "B"
+  ],
+  "seeds": [
+    28401,
+    28402,
+    28403
+  ],
+  "models": [
+    "LogisticRegression(U)",
+    "MLP [128,128] Tanh Adam lr=3e-4 20ep"
+  ],
+  "label_source": "causal observation reference policy(逐族逐 rung 正确 reference;不读 latent/future/meta)",
+  "plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+}

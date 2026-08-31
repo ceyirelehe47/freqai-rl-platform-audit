@@ -1,0 +1,96 @@
+{
+  "format": "ppo262-repair2-historical-binding-v1",
+  "iterations": {
+    "s262_r0": {
+      "status": "official experiment FAIL",
+      "commit": "7481b39b3d141a21b845a111b9f48e036c5f98f5",
+      "artifacts_root_files": [
+        "core_experiment_plan.json",
+        "curriculum_input_identity.json",
+        "extended_diagnostic_c1.json",
+        "input_lock.json",
+        "model_manifest.json",
+        "ppo_config_development_plan.json",
+        "ppo_config_development_result.json",
+        "ppo_smoke.json",
+        "preprocessing_boundary.json",
+        "probe_results_c1_opportunity.json",
+        "probe_results_c2_context.json",
+        "probe_results_c3_cost.json",
+        "regression_summary.json",
+        "route_c_integrity.json",
+        "seed_namespace_integrity.json",
+        "selected_ppo_config.json",
+        "upstream_integrity.json"
+      ]
+    },
+    "s262_diag_r1": {
+      "agent_claim": "Repair R1 Diagnostics: PASS / Branch D",
+      "independent_review": {
+        "verdict": "FAIL",
+        "branch": "F / INCONCLUSIVE",
+        "findings": [
+          "mixed-family evaluator 以 bank[0].family 的 reference 评估整个 bank(C2/C3 capture 无效)",
+          "BC 计划锁定 3 seeds,实际只执行 1 个",
+          "Arm B 实际读取 train-bank 标准差(coarse_train_fitted),不是 data-independent fixed scaling",
+          "预注册的 probability checkpoints 实际为空",
+          "gradient probe 用行为模仿式 -log_prob(action),不是 PPO clipped surrogate gradient",
+          "C2 supervised MLP 无 2.4% Long label 的类别不平衡控制",
+          "diagnostics PASS validator 大量只检查文件存在,没有语义验证"
+        ]
+      },
+      "binding": "独立审查结论为准:FAIL / Branch F;R1 报告与 artifacts 原样保留作为诚实的诊断失败历史",
+      "commit": "af871ee9c9e449c541dfdb5c8412d4c69f85c55e",
+      "artifact_files": [
+        "baseline_integrity.json",
+        "bc_warmstart_results.json",
+        "config_metric_repair.json",
+        "diagnostic_decision.json",
+        "diagnostic_namespace_integrity.json",
+        "diagnostic_plan.json",
+        "diagnostic_plan_digest.txt",
+        "episode_attribution.json",
+        "feature_activation_profile.json",
+        "feature_scale_profile.json",
+        "official_gate_repair.json",
+        "paired_initialization_integrity.json",
+        "paired_manifest_integrity.json",
+        "ppo_overfit_plan.json",
+        "ppo_overfit_results.json",
+        "preprocessing_ablation_plan.json",
+        "preprocessing_ablation_results.json",
+        "regression_summary.json",
+        "supervised_probe_plan.json",
+        "supervised_probe_results.json",
+        "update_metric_binding.json"
+      ],
+      "artifact_sha256": {
+        "baseline_integrity.json": "d00af3048a82f1639a1cd12195f56eefed06923ce980944bbdc77c6a6841042c",
+        "bc_warmstart_results.json": "003647821091831d0521df2c20851dba3eb3159ab2bff4d84d392ffdb51176f4",
+        "config_metric_repair.json": "24374c931a19a5edcc9629ac0dc1aa6277038f5e816799814c7b6defb27869b3",
+        "diagnostic_decision.json": "44291fc26958dc4a488984aa9d6e0d741c369a3e55e4fccec159d7bcd3f3613b",
+        "diagnostic_namespace_integrity.json": "15efff3b8a7d65dab4e8792baa7324db54531ad8c608ee50fd91cfc4706e9f73",
+        "diagnostic_plan.json": "ba46c7d9da23bb13db888a75b8d27eb08b0cb985f64806bbe45a4a193f76f864",
+        "diagnostic_plan_digest.txt": "7b71d57ae340de9a55d651404d57a62e3574dc2dde21811bfe4edbdb8e556bf8",
+        "episode_attribution.json": "73e94a476b0a0d8606bc5e4cc16c65c1d6298061e9066652a89ee20b4aac97fb",
+        "feature_activation_profile.json": "7178b0da5798f5457fa7f5f69138b62f1bd12cfbc7f6aa84257f5a0e0f69c8a0",
+        "feature_scale_profile.json": "9d627476929a86e2ac1f15217ad09419b38eeec4edb8453aa1ddd94c622dc4aa",
+        "official_gate_repair.json": "bbe90fed7ed9e9823b00d55cf4a16f816e2d1039910debe8bed7e0529a53aaf5",
+        "paired_initialization_integrity.json": "86c5cce622c7e282062d754a9c0fe71cce0897bc23f45a45abc069d024f78e77",
+        "paired_manifest_integrity.json": "8ad736aa9d86d0c8d714960904bbc23732839d5d94e3adf59b1113640aab2801",
+        "ppo_overfit_plan.json": "7d808a877f037c9ad014ce1b869ee04262599a1006e2abcf47009627ed33a7cd",
+        "ppo_overfit_results.json": "d8b0204ba772feaa5290cc6096862dad7dd8a4a7d4f870cd6c73b982b71bcf43",
+        "preprocessing_ablation_plan.json": "ad802644092409b954a4173faca39ddd8f25459a2999175098e20df1eb56c804",
+        "preprocessing_ablation_results.json": "892779aae7dc5fb5c6671b54247a6727311faefaedf898750fd87f6b0a313f0f",
+        "regression_summary.json": "8f811eac2ef7c1ca8297c0a46c6050e9e5f944d367ed9486fd270b5e8332002a",
+        "supervised_probe_plan.json": "135cc0e4ae3573650d13361772d58a898278a87bc97c46756a6ef0fdf2a5e055",
+        "supervised_probe_results.json": "cac6cc521f2c5188dc98f978b599ae4f1dcce99422d1a7fe417dabea548a3351",
+        "update_metric_binding.json": "d1908ba769d7ceb1a782a394bb113e16b23ae82a4036b756a0f16d65d7795207"
+      }
+    },
+    "s262_diag_r2": {
+      "status": "当前诊断 iteration(本目录)"
+    }
+  },
+  "pass": true
+}

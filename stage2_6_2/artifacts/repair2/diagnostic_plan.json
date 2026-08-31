@@ -1,0 +1,320 @@
+{
+  "format": "ppo262-repair2-diagnostic-plan-v1",
+  "diagnostic_iteration": "s262_diag_r2_1",
+  "supersedes": {
+    "s262_diag_r2_lock_dp-0551c1a1": "gradient-verify clipping 单调检查浮点容差缺陷;在任何正式 bank 生成前发现,repair2 清空重锁,零证据",
+    "s262_diag_r2_lock_dp-0a0c2e2c": "_checkpoint_diagnostics 缺 evaluate_family_cells 导入,首个 scratch run 的 checkpoint 评估即 NameError 崩溃(scratch/BC 零模型证据);按任务书 §13 迭代结束,重启为 s262_diag_r2_1 + 新 namespace/seed 空间;该锁下生成过的 supervised 证据随迭代作废并重新执行"
+  },
+  "baseline_git_sha": "af871ee9c9e449c541dfdb5c8412d4c69f85c55e",
+  "s262_r0_fail_commit": "7481b39b3d141a21b845a111b9f48e036c5f98f5",
+  "s262_diag_r1_fail_commit": "af871ee9c9e449c541dfdb5c8412d4c69f85c55e",
+  "r261_r2_pass_sha": "1927faa647d34e4f45ed9c46d100f500081560b8",
+  "r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+  "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "namespaces": [
+    "diag262r2_1_integrity",
+    "diag262r2_1_supervised_train",
+    "diag262r2_1_supervised_eval",
+    "diag262r2_1_scratch_c1_train",
+    "diag262r2_1_scratch_c1_eval",
+    "diag262r2_1_scratch_c2_train",
+    "diag262r2_1_scratch_c2_eval",
+    "diag262r2_1_scratch_c3_train",
+    "diag262r2_1_scratch_c3_eval",
+    "diag262r2_1_bc_c1_train",
+    "diag262r2_1_bc_c1_eval",
+    "diag262r2_1_bc_c2_train",
+    "diag262r2_1_bc_c2_eval",
+    "diag262r2_1_bc_c3_train",
+    "diag262r2_1_bc_c3_eval",
+    "diag262r2_1_smoke"
+  ],
+  "model_seeds": {
+    "supervised": [
+      28401,
+      28402,
+      28403
+    ],
+    "scratch": [
+      28501,
+      28502,
+      28503
+    ],
+    "bc": [
+      28601,
+      28602,
+      28603
+    ]
+  },
+  "prob_rng_seed": 262311,
+  "pair_isolation": {
+    "seed_slot_stride": 32,
+    "eval_pair_base": 256,
+    "bc_eval_pair_base_rule": "256 + slot*32"
+  },
+  "ppo_config_source": "cand_a_center(s262_r0 中心候选,诊断对照配置;非有效 official 选择)",
+  "bank_spec": {
+    "supervised": {
+      "train": {
+        "namespace": "diag262r2_1_supervised_train",
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 6,
+        "pair_base": 0
+      },
+      "eval": {
+        "namespace": "diag262r2_1_supervised_eval",
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 6,
+        "pair_base": 256
+      }
+    },
+    "scratch": {
+      "train_per_family_slot": {
+        "rungs": [
+          "D0",
+          "D1"
+        ],
+        "pairs_per_rung": 4,
+        "pair_base_rule": "slot*32"
+      },
+      "eval_per_family": {
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 4,
+        "pair_base": 256
+      },
+      "episodes_per_bank": 16,
+      "cycles": 18,
+      "steps_per_seed": 82656,
+      "episodes_total": 288,
+      "checkpoint_episodes": [
+        0,
+        16,
+        32,
+        80,
+        144,
+        288
+      ]
+    },
+    "bc": {
+      "train_per_family_slot": {
+        "rungs": [
+          "D0",
+          "D1"
+        ],
+        "pairs_per_rung": 2,
+        "pair_base_rule": "slot*32"
+      },
+      "eval_per_family_slot": {
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 4,
+        "pair_base_rule": "256 + slot*32"
+      },
+      "episodes_per_bank": 8,
+      "bc_epochs": 30,
+      "bc_lr": 0.0003,
+      "class_weighted": true,
+      "finetune_cycles": 12,
+      "steps_finetune": 27552,
+      "episodes_total": 96,
+      "checkpoint_episodes": [
+        0,
+        8,
+        16,
+        24,
+        48,
+        96
+      ],
+      "checkpoint_tags": [
+        "after_bc_before_ppo",
+        "ep8",
+        "ep16",
+        "ep24",
+        "ep48",
+        "ep96"
+      ]
+    }
+  },
+  "arms": {
+    "A_unscaled": {
+      "adapter": "identity(bitwise = s262_r0/R2 observation)"
+    },
+    "B_fixed_precommitted": {
+      "rule": "scale_i = 10^round(log10(std_i of repair1/feature_scale_profile.json:config_dev_train per_feature));center=0;position=identity;来源 artifact sha256 记录于 fixed_scaling_contract",
+      "constants": {
+        "feature_names": [
+          "%-ret-1",
+          "%-ret-4",
+          "%-vol-24",
+          "%-price-ma-ratio",
+          "%-raw_open",
+          "%-raw_high",
+          "%-raw_low",
+          "%-raw_close",
+          "position"
+        ],
+        "center": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          0.01,
+          0.1,
+          0.01,
+          0.01,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          1.0
+        ],
+        "source_artifact": "repair1/feature_scale_profile.json(s262_r0 official corpus config_dev_train)",
+        "source_artifact_sha256": "9d627476929a86e2ac1f15217ad09419b38eeec4edb8453aa1ddd94c622dc4aa",
+        "rule": "scale_i = 10^round(log10(std_i of repair1/feature_scale_profile.json:config_dev_train per_feature));center=0;position=identity;来源 artifact sha256 记录于 fixed_scaling_contract",
+        "no_r2_data_access": "常数推导只读取 R1 历史 artifact(已提交于 af871ee);不读取任何 diag262r2 train/eval bank(此时尚未生成);不在每 episode 拟合;不根据结果调整"
+      },
+      "constructor_contract": "ObsAdapter.fixed(center, scale) 构造器不接受任何训练数据;常数在本计划锁定时冻结(先于任何 diag262r2 bank 生成)"
+    },
+    "C_train_bank_fitted_frozen": {
+      "rule": "per family/seed train bank mean/std z-score;fit 后冻结应用于该 family/seed 的训练与评估;position slot identity;eval 不参与 fit"
+    },
+    "legacy_r1_arm_b_reclassified": "s262_diag_r1 的 Arm B(10^round(log10(std_trainbank)) 读 diag 训练 bank)重新命名为 coarse_train_fitted,仅历史对照,不得再称为 fixed scaling"
+  },
+  "supervised_controls": {
+    "controls": [
+      "U(unweighted,历史对照)",
+      "W(class-weighted CE,权重只来自 train labels)",
+      "B(balanced minibatches,不改 eval 分布)"
+    ],
+    "seeds": [
+      28401,
+      28402,
+      28403
+    ],
+    "models": [
+      "LogisticRegression(control U)",
+      "MLP [128,128] Tanh Adam lr=3e-4 20ep(全控制)"
+    ],
+    "c2_note": "C2 判 Branch E 需要 W 与 B 类平衡对照在全部 arms 上都失败;单一 unweighted seed 不得认定 C2 representation 不可学"
+  },
+  "branch_thresholds": {
+    "recovery_eval_capture": 0.0,
+    "recovery_probability_gap": 0.05,
+    "recovery_det_behavior_gap": 0.02,
+    "recovery_min_seeds": 2,
+    "supervised_balanced_accuracy": 0.6,
+    "supervised_behavior_gap_proxy": 0.2,
+    "supervised_min_seeds": 2,
+    "bc_retained_max_drop": 0.15,
+    "bc_retained_min_final_bal_acc": 0.55,
+    "bc_learned_min_bal_acc": 0.55,
+    "bc_min_seeds": 2
+  },
+  "interpretation_rules": {
+    "ppo_recovered_arm_family": "同族 >= 2/3 seeds:family eval capture > 0(该族 valid reference gap)且该族 probability gap > 0.05 且该族 deterministic behavior gap > 0.02",
+    "supervised_learned": "held-out balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20(>= 2/3 supervised seeds;C2 判 E 需要 W/B 类平衡对照也失败)",
+    "bc_arm_selection": "按 A unscaled -> B fixed -> C train_fitted 顺序取第一个 supervised learned 的 arm(基于 supervised 诊断结果,规则预注册;全部 arm 未学会则该族不执行 BC)",
+    "bc_retained": "fine-tune 后 held-out balanced accuracy 相对 BC 结束值绝对下降 <= 0.15 且仍 >= 0.55",
+    "bc_destroyed": "BC 结束 held-out >= 0.55(学会)且 fine-tune 后下降 > 0.15 或低于 0.55",
+    "family_branches": {
+      "A": "Arm A(unscaled)scratch PPO 该族恢复(>=2/3 seeds)",
+      "B": "Arm A 不满足,Arm B 或 C 该族恢复(>=2/3 seeds)",
+      "C": "scratch 全不满足;supervised/BC 可学;fine-tune 保留(>=2/3 seeds)",
+      "D": "scratch 全不满足;BC held-out 可学;fine-tune 摧毁(>=2/3 seeds)",
+      "E": "linear 与 class-balanced MLP 在所有 arms 上都学不会 reference action",
+      "F": "证据分裂/冲突/不充分(checkpoint 缺失、denominator 无效、evaluator 语义不确定、未执行全部计划)"
+    }
+  },
+  "evaluator_identity": {
+    "module": "ppo262_r2_evaluator",
+    "contract": [
+      "evaluate_single_family_bank 拒绝 mixed bank",
+      "evaluate_mixed_family_bank 显式 family × rung 分组",
+      "每 cell 记录 reference identity(threshold 解析值)",
+      "denominator R<=B -> invalid_reference_gap,capture=None",
+      "probability 评估禁止 first-N 切片(全族分层)"
+    ]
+  },
+  "gradient_instrumentation_identity": {
+    "module": "ppo262_r2_train.DiagnosedPPO2",
+    "contract": [
+      "train() 为 SB3 2.9.0 PPO.train() 忠实副本",
+      "真实 loss.backward() 后、clip/step 前记录 .grad",
+      "pre/post clipping norm 都记录",
+      "首个 minibatch 张量克隆保存供单 minibatch 等价测试",
+      "记录绑定 {update_index, minibatch_index}"
+    ]
+  },
+  "checkpoint_schedule": {
+    "scratch_tags_per_run": [
+      "ep0",
+      "ep16",
+      "ep32",
+      "ep80",
+      "ep144",
+      "ep288"
+    ],
+    "bc_tags_per_run": [
+      "after_bc_before_ppo",
+      "ep8",
+      "ep16",
+      "ep24",
+      "ep48",
+      "ep96"
+    ],
+    "persistence": "policy state dict 落盘(.pt)+ policy/actor/critic/optimizer 哈希;可重新加载评估;缺失即 FAIL"
+  },
+  "code_identity_r2": {
+    "ppo262_r2_cli.py": "acb3c7816b4f46102d4636ecf357f7473ef6055f2e8840567148e820fb9d75de",
+    "ppo262_r2_evaluator.py": "ba26b74e192f957fff381e8c494e352866b9cdd6ecb95eaab1ab292e123eb4b4",
+    "ppo262_r2_namespaces.py": "f2e78ff10a5f9ec024000e77ea8560a87fe43086f04b3ae7f52aec4c1abc3313",
+    "ppo262_r2_supervised.py": "516dde62f7206eb32fc507b18d3a5ce2b6cbfde61d5e0d9d3fdf4573509a65da",
+    "ppo262_r2_train.py": "b72a55e2cdc423a3af09747a380921fc69b51d3705c60f13d45ea3e842aa17e8"
+  },
+  "route_c_identity": {
+    "rl_platform_tree_hash": "rp-8a61cd612e4543d5c76fa2c7d2a31538a6408195019622eaf38c8470724ca5b3",
+    "route_c_frozen_versions": {
+      "env_core": "RouteCEnvCore-v1.0.0",
+      "observation_spec": "ObservationSpec-v1",
+      "action_spec": "BinaryLongFlatAction-v1",
+      "reward_spec": "NetLogEquityReward-v1",
+      "execution": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation": "TerminalLiquidation-v1"
+    },
+    "r2_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "input_lock_pass": true,
+    "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+    "vendor_clean": true
+  },
+  "forbidden": [
+    "修改 2.6.1 R2 observation contract / qualification artifacts",
+    "把 scaled arm 升级为正式合同(仅 diagnostic evidence)",
+    "触碰 ppo_final_eval_262 / qualification_r2",
+    "声称 scaled diagnostic 通过 Stage 2.6.2",
+    "根据结果改 Arm B 常数 / 增删 seed / 改预算 / 改 checkpoint / 改 branch 阈值 / 改 family evaluator"
+  ],
+  "locked_utc": "2026-08-31T14:02:37Z",
+  "plan_digest_self": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+}

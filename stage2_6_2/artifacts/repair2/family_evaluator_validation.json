@@ -1,0 +1,189 @@
+{
+  "format": "ppo262-repair2-family-evaluator-validation-v1",
+  "plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60",
+  "namespace": "diag262r2_1_integrity(非训练语料)",
+  "family_episode_counts": {
+    "c1_opportunity": 8,
+    "c2_context": 8,
+    "c3_cost": 8
+  },
+  "mixed_vs_single_family_cells_identical": true,
+  "reference_identity_per_family": {
+    "c1_opportunity": {
+      "D0": "C1ReferencePolicy",
+      "D1": "C1ReferencePolicy"
+    },
+    "c2_context": {
+      "D0": "C2ReferencePolicy",
+      "D1": "C2ReferencePolicy"
+    },
+    "c3_cost": {
+      "D0": "C3ReferencePolicy",
+      "D1": "C3ReferencePolicy"
+    }
+  },
+  "reference_identity_matches_contract": true,
+  "required_baselines_per_family": {
+    "c1_opportunity": [
+      "always_flat",
+      "always_long"
+    ],
+    "c2_context": [
+      "always_flat",
+      "always_long",
+      "c2_local_only"
+    ],
+    "c3_cost": [
+      "always_flat",
+      "always_long",
+      "c3_cost_ignorant"
+    ]
+  },
+  "expected_required_baselines": {
+    "c1_opportunity": [
+      "always_flat",
+      "always_long"
+    ],
+    "c2_context": [
+      "always_flat",
+      "always_long",
+      "c2_local_only"
+    ],
+    "c3_cost": [
+      "always_flat",
+      "always_long",
+      "c3_cost_ignorant"
+    ]
+  },
+  "bank0_shortcut_detection": {
+    "replica": "以 C1 policy set 评估整个 mixed bank(R1 错误路径复现)",
+    "per_cell_divergence": {
+      "c1_opportunity/D0": {
+        "buggy_bank0_reference_mean": 0.20092667706401354,
+        "correct_reference_mean": 0.20092667706401354,
+        "divergent": false
+      },
+      "c1_opportunity/D1": {
+        "buggy_bank0_reference_mean": 0.08752334155716429,
+        "correct_reference_mean": 0.08752334155716429,
+        "divergent": false
+      },
+      "c2_context/D0": {
+        "buggy_bank0_reference_mean": -0.19563463090125205,
+        "correct_reference_mean": 0.0343463750688503,
+        "divergent": true
+      },
+      "c2_context/D1": {
+        "buggy_bank0_reference_mean": -0.21681833421094424,
+        "correct_reference_mean": 0.02192119030318751,
+        "divergent": true
+      },
+      "c3_cost/D0": {
+        "buggy_bank0_reference_mean": -0.4026063660402921,
+        "correct_reference_mean": 0.03311071890484049,
+        "divergent": true
+      },
+      "c3_cost/D1": {
+        "buggy_bank0_reference_mean": -0.30557844392882993,
+        "correct_reference_mean": 0.03595086309792436,
+        "divergent": true
+      }
+    },
+    "bug_would_be_detected": true
+  },
+  "single_family_evaluator_rejects_mixed_bank": true,
+  "reference_gap_validity": {
+    "c1_opportunity/D0": {
+      "denominator": 0.20092667706401354,
+      "status": "ok",
+      "valid": true
+    },
+    "c1_opportunity/D1": {
+      "denominator": 0.08752334155716429,
+      "status": "ok",
+      "valid": true
+    },
+    "c2_context/D0": {
+      "denominator": 0.0343463750688503,
+      "status": "ok",
+      "valid": true
+    },
+    "c2_context/D1": {
+      "denominator": 0.02192119030318751,
+      "status": "ok",
+      "valid": true
+    },
+    "c3_cost/D0": {
+      "denominator": 0.0033422801889711473,
+      "status": "ok",
+      "valid": true
+    },
+    "c3_cost/D1": {
+      "denominator": 0.006260073810115979,
+      "status": "ok",
+      "valid": true
+    }
+  },
+  "probability_stratification_contract": "scratch/bc 命令对每族 eval bank 全量运行 probability_metrics_on_bank(无 [:N] 切片);每族类样本计数在 policy_probability_dynamics.json 验证非零",
+  "identity_matrix": {
+    "c1_opportunity/D0": {
+      "reference_class": "C1ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long"
+      ],
+      "episode_manifest_sha256": "742e949507e48f141a86ea13b59156ea85a3d2970e09ed557936a8b036a15a4d"
+    },
+    "c1_opportunity/D1": {
+      "reference_class": "C1ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long"
+      ],
+      "episode_manifest_sha256": "dad5d00b83c5e1b3907032e766fdacca8cdaaac764bad40647503588265ee1dc"
+    },
+    "c2_context/D0": {
+      "reference_class": "C2ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long",
+        "c2_local_only"
+      ],
+      "episode_manifest_sha256": "3cce0366119fbcd80d05fa5ee6c5f786018d4697cd1cd33f835725023d9c41db"
+    },
+    "c2_context/D1": {
+      "reference_class": "C2ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long",
+        "c2_local_only"
+      ],
+      "episode_manifest_sha256": "4ca158e31469ef1c24139d9491e9c7ec1605df7d72df3653393248cf703253f5"
+    },
+    "c3_cost/D0": {
+      "reference_class": "C3ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long",
+        "c3_cost_ignorant"
+      ],
+      "episode_manifest_sha256": "c25e6b09b68cff4bcc0948706f5ec9d3f1854c23cab33a9e5a5e691a2453bfd8"
+    },
+    "c3_cost/D1": {
+      "reference_class": "C3ReferencePolicy",
+      "reference_class_matches_family_contract": true,
+      "required_baselines": [
+        "always_flat",
+        "always_long",
+        "c3_cost_ignorant"
+      ],
+      "episode_manifest_sha256": "e91945d16a66a5946deee2f9f5bdd4e071641604e5474daecde88aab56173f66"
+    }
+  },
+  "pass": true
+}

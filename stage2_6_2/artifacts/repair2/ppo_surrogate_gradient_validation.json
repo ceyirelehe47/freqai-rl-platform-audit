@@ -1,0 +1,62 @@
+{
+  "format": "ppo262-repair2-surrogate-gradient-validation-v1",
+  "plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60",
+  "method": "真实 train() 中捕获首个 minibatch 的张量与 pre-update 权重;同 seed 重建模型后按 SB3 2.9.0 语义(per-minibatch advantage 归一化 / ratio / clipped surrogate / entropy / vf 系数)手工重建 loss 并 backward,数值对比插桩记录",
+  "captured_minibatch_identity": {
+    "update_index": 1,
+    "minibatch_index": 1,
+    "n_samples": 287
+  },
+  "numbers": {
+    "instrumented": {
+      "policy_loss": 3.3229070606211053e-09,
+      "value_loss": 0.01909547671675682,
+      "entropy_loss": -0.6931464672088623,
+      "total_loss": 0.00261627696454525,
+      "actor_total_grad_norm": 0.2101770043373108,
+      "critic_total_grad_norm": 0.2464648187160492,
+      "pre_clip_total_grad_norm": 0.32391244173049927,
+      "post_clip_total_grad_norm": 0.32391247153282166
+    },
+    "manual_reference": {
+      "policy_loss": 3.3229070606211053e-09,
+      "value_loss": 0.01909547671675682,
+      "entropy_loss": -0.6931464672088623,
+      "total_loss": 0.00261627696454525,
+      "actor_grad_norm": 0.2101770043373108,
+      "critic_grad_norm": 0.2464648187160492
+    }
+  },
+  "checks": {
+    "policy_loss_close": true,
+    "value_loss_close": true,
+    "entropy_loss_close": true,
+    "total_loss_close": true,
+    "actor_grad_norm_close": true,
+    "critic_grad_norm_close": true,
+    "first_layer_per_input_close": true,
+    "pre_clip_norm_recorded": true,
+    "post_clip_norm_recorded": true,
+    "clipping_semantics_ok": true,
+    "update_minibatch_identity_present": true,
+    "n_minibatch_records_matches_budget": true
+  },
+  "run_audit": {
+    "cycles": 2,
+    "total_timesteps": 2296,
+    "env_audit": {
+      "episodes_consumed": 8,
+      "steps_taken": 2296,
+      "exhausted_cycles": 2,
+      "unique_episodes_started": 4,
+      "first_pass_order_ok": false,
+      "duplicate_episode_completions": 4,
+      "exposure_counts": {
+        "c1_opportunity/D0": 8
+      }
+    },
+    "audit_problems": [],
+    "pass": true
+  },
+  "pass": true
+}

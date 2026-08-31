@@ -97,3 +97,49 @@ Stage 状态不变:**FAIL**。本轮为诊断轮(`s262_diag_r1`),判定
   `report/route_c_stage2_6_2_repair1_diagnostics.md`;新增 47 项测试
   (合计 96 全绿)。r0 证据零覆盖;official final namespace
   未解锁/未生成/未暴露。
+
+---
+
+## Stage 2.6.2 Repair R2 — Family-aware 评估、三 Seed BC 与真实 PPO 梯度诊断闭环(2026-08-31)
+
+Stage 状态不变:**FAIL**。本轮为诊断轮,最终 iteration `s262_diag_r2_1`
+(计划锁 `dp-ee6f8dc1…`;前两锁 `dp-0551c1a1`/`dp-0a0c2e2c` 因锁后
+harness 缺陷按 §13 废弃,详见主报告 §0),判定
+**Repair R2 Diagnostics: PASS**(语义 validator 60 项检查零问题)。
+
+R1 被独立审查判 FAIL / Branch F 的七项缺陷全部修复并有测试锚定:
+mixed-family evaluator 改为显式 family × rung 分组(单族入口拒绝
+mixed bank;每 cell 记录 reference identity 与 threshold 解析值;
+R <= B 的 cell 标记 invalid_reference_gap 并从 branch 排除);
+BC 三 seed × 三族全部真实执行(critic 不动 / actor 导入哈希验证 /
+held-out pair 双隔离);Arm B 常数改为 precommitted(只来自 R1 历史
+artifact 的机械规则,构造器无数据入参,锁先于任何 r2 bank 生成),
+旧 Arm B 更名 coarse_train_fitted;216 个 probability checkpoints
+真实落盘(哈希可重算、可重新加载评估,含 after_bc_before_ppo);
+梯度插桩改为 SB3 2.9.0 PPO.train() 忠实副本(真实 clipped surrogate,
+backward 后/step 前捕获,单 minibatch 手工复算数值等价);C2 类别
+不平衡三对照(U/W/B,权重只来自 train labels);判定按 family 独立、
+跨族证据拼接被拒。
+
+**Family branches**:C1 = **B**(unscaled 坍塌 -0.019/0/0,scaled
+0.76-1.51 且概率分离真实)、C2 = **A**(unscaled scratch 即恢复
+2/3,capture ≈ 11-12 伴门控概率分离 0.15-0.29)、C3 = **D**(BC
+克隆 0.87-0.92 被 fine-tune 摧毁至 0.43-0.62,3/3;scratch 无 arm
+恢复——巨大 capture 来自 0.002-0.008 的窄 reference-gap,概率/行为
+判据正确排除)。
+
+**监督结论**:C2(Long 率 2.16%)在 unscaled 下连 W/B 类平衡对照都
+学不会,在 fixed/fitted 下三 seed 全学会(W/B bal 0.71-0.94)——
+C2 可学性 blocker 是 scaling 而非 representation 不可学,Branch E
+被否定。
+
+**推荐路线**:任一 family = B → **Stage 2.6.1 Repair R3**(重新冻结
+preprocessing 并重新 qualification,不得直接 official 2.6.2);C3=D
+的证据在其后指向 PPO Optimization Repair。
+
+产物:`artifacts/repair2/`(33 文件)、`models/repair2/`(36 run ×
+216 checkpoints,.pt + 哈希)、主报告
+`report/route_c_stage2_6_2_repair2_diagnostics.md`、新增 9 个测试
+文件(53 项;stage2_6_2 全套 149 项全绿;affected 2.6.1 106 项与
+Route C 代表 276 项全绿)。r0/R1 证据零覆盖(哈希重算验证);
+official final namespace 未解锁/未生成/未暴露。

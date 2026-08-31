@@ -1,0 +1,64 @@
+{
+  "format": "ppo262-repair2-baseline-integrity-v1",
+  "iteration": "s262_diag_r2",
+  "r2_start_git_sha": "af871ee9c9e449c541dfdb5c8412d4c69f85c55e",
+  "s262_diag_r1_fail_commit": "af871ee9c9e449c541dfdb5c8412d4c69f85c55e",
+  "s262_r0_fail_commit": "7481b39b3d141a21b845a111b9f48e036c5f98f5",
+  "r261_r2_pass_sha": "1927faa647d34e4f45ed9c46d100f500081560b8",
+  "vendor_sha_expected": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "vendor_pinned": true,
+  "r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+  "route_c": {
+    "rl_platform_tree_hash": "rp-8a61cd612e4543d5c76fa2c7d2a31538a6408195019622eaf38c8470724ca5b3",
+    "route_c_frozen_versions": {
+      "env_core": "RouteCEnvCore-v1.0.0",
+      "observation_spec": "ObservationSpec-v1",
+      "action_spec": "BinaryLongFlatAction-v1",
+      "reward_spec": "NetLogEquityReward-v1",
+      "execution": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation": "TerminalLiquidation-v1"
+    },
+    "r2_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "input_lock_pass": true,
+    "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+    "vendor_clean": true
+  },
+  "code_identity_r2_at_start": {
+    "ppo262_r2_cli.py": "acb3c7816b4f46102d4636ecf357f7473ef6055f2e8840567148e820fb9d75de",
+    "ppo262_r2_evaluator.py": "ba26b74e192f957fff381e8c494e352866b9cdd6ecb95eaab1ab292e123eb4b4",
+    "ppo262_r2_namespaces.py": "f2e78ff10a5f9ec024000e77ea8560a87fe43086f04b3ae7f52aec4c1abc3313",
+    "ppo262_r2_supervised.py": "516dde62f7206eb32fc507b18d3a5ce2b6cbfde61d5e0d9d3fdf4573509a65da",
+    "ppo262_r2_train.py": "b72a55e2cdc423a3af09747a380921fc69b51d3705c60f13d45ea3e842aa17e8"
+  },
+  "historical_s262_r0_artifacts_present": [
+    "core_experiment_plan.json",
+    "curriculum_input_identity.json",
+    "extended_diagnostic_c1.json",
+    "input_lock.json",
+    "model_manifest.json",
+    "ppo_config_development_plan.json",
+    "ppo_config_development_result.json",
+    "ppo_smoke.json",
+    "preprocessing_boundary.json",
+    "probe_results_c1_opportunity.json",
+    "probe_results_c2_context.json",
+    "probe_results_c3_cost.json",
+    "regression_summary.json",
+    "route_c_integrity.json",
+    "seed_namespace_integrity.json",
+    "selected_ppo_config.json",
+    "upstream_integrity.json"
+  ],
+  "historical_s262_r0_report_present": true,
+  "historical_r1_report_present": true,
+  "preservation_contract": "s262_r0 与 s262_diag_r1 的 artifacts/models/report 一律只读(历史证据不得覆盖/删除/重写);R2 全部输出写 repair2/;不修改旧 artifact 让旧报告变正确",
+  "stage261_readonly": {
+    "generators": "frozen(R2 code_identity 绑定,input lock)",
+    "family_versions": "frozen",
+    "rung_params_source": "locked R2 qualification plan",
+    "qualification_artifacts": "read-only",
+    "r2_exposure_marker": "untouched"
+  },
+  "written_utc": "2026-08-31T14:02:35Z",
+  "pass": true
+}
