@@ -1,0 +1,1406 @@
+{
+  "format": "ppo262-repair1-supervised-probe-v1",
+  "diagnostic_iteration": "s262_diag_r1",
+  "diagnostic_only": true,
+  "plan_digest": "dp-eb37187b2b81b8bc37f15d896ea5d6e322d080e0dc124259859c666ae8f2733e",
+  "split_contract": "pair 级 train/eval 隔离(train/eval 为不同 namespace 不同 pair;同 pair 数据不跨集)",
+  "label_source": "causal observation reference policy(不读 latent oracle / future / episode id)",
+  "input": "policy-visible observation(8 生产特征 + position slot,reference 自身轨迹)",
+  "results": {
+    "c1_opportunity": {
+      "n_train": 20664,
+      "n_eval": 20664,
+      "n_train_pairs": 36,
+      "n_eval_pairs": 36,
+      "class_balance_train": {
+        "long": 0.24767711962833913
+      },
+      "unscaled": {
+        "adapter": {
+          "kind": "identity",
+          "source": "unscaled(与 s262_r0/R2 逐位一致)",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.8961465417686406,
+            "accuracy": 0.9226190476190477,
+            "precision_per_class": {
+              "0": 0.9485431272914389,
+              "1": 0.8438538205980066
+            },
+            "recall_per_class": {
+              "0": 0.948604142544706,
+              "1": 0.8436889409925752
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.24762872628726287,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.7922930835372812
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.8938388036365856,
+            "accuracy": 0.9216511807975223,
+            "precision_per_class": {
+              "0": 0.9481400857929445,
+              "1": 0.8396432111000991
+            },
+            "recall_per_class": {
+              "0": 0.9482007939556921,
+              "1": 0.8394768133174791
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.24414440572977159,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.7876776072731713
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.7523228803716608,
+            "precision_per_class": {
+              "0": 0.7523228803716608,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.7558072009291521,
+            "precision_per_class": {
+              "0": 0.7558072009291521,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 3054,
+                "mean_predicted_p_long": 0.19378173727964215,
+                "empirical_long_rate": 0.06221349050425671
+              },
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 17610,
+                "mean_predicted_p_long": 0.21962391911058654,
+                "empirical_long_rate": 0.27575241340147644
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "fixed_causal": {
+        "adapter": {
+          "kind": "fixed",
+          "source": "plan-locked Arm B constants",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.01,
+            0.1,
+            0.01,
+            0.01,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.9318897636013923,
+            "accuracy": 0.9545102593883081,
+            "precision_per_class": {
+              "0": 0.9633295267098084,
+              "1": 0.9261525907792738
+            },
+            "recall_per_class": {
+              "0": 0.976714267335649,
+              "1": 0.8870652598671356
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.23722415795586527,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.8637795272027846
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.9289425491395413,
+            "accuracy": 0.9539295392953929,
+            "precision_per_class": {
+              "0": 0.9618921642731166,
+              "1": 0.9275271512113618
+            },
+            "recall_per_class": {
+              "0": 0.9777820463567678,
+              "1": 0.8801030519223147
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.23170731707317074,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.8578850982790825
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.7523228803716608,
+            "precision_per_class": {
+              "0": 0.7523228803716608,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.7558072009291521,
+            "precision_per_class": {
+              "0": 0.7558072009291521,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 14831,
+                "mean_predicted_p_long": 0.16371805340756973,
+                "empirical_long_rate": 0.0051244015912615465
+              },
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 4604,
+                "mean_predicted_p_long": 0.2342806763196126,
+                "empirical_long_rate": 0.8171155516941789
+              },
+              {
+                "bin": [
+                  0.30000000000000004,
+                  0.4
+                ],
+                "n": 1216,
+                "mean_predicted_p_long": 0.33651039543512623,
+                "empirical_long_rate": 0.9827302631578947
+              },
+              {
+                "bin": [
+                  0.4,
+                  0.5
+                ],
+                "n": 13,
+                "mean_predicted_p_long": 0.4073466727366814,
+                "empirical_long_rate": 1.0
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "train_fitted": {
+        "adapter": {
+          "kind": "fitted",
+          "source": "diag supervised train bank mean/std",
+          "center": [
+            1.7017476081402087e-05,
+            0.00015290099072510244,
+            0.0035652342910046913,
+            0.0009166869038549803,
+            1.0282136986866461,
+            1.0315978849581449,
+            1.0248470353932515,
+            1.028221537591619,
+            0.0
+          ],
+          "scale": [
+            0.004289380940937197,
+            0.011564411952310559,
+            0.0013003042673585218,
+            0.023941094485623406,
+            0.04675014548649899,
+            0.04704042616598996,
+            0.04642415556345514,
+            0.04674583891504718,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.9335827312175236,
+            "accuracy": 0.955381339527681,
+            "precision_per_class": {
+              "0": 0.9643719039756129,
+              "1": 0.9265961773078487
+            },
+            "recall_per_class": {
+              "0": 0.9767785925640036,
+              "1": 0.8903868698710434
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.23799845141308557,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.867165462435047
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.9308694242702062,
+            "accuracy": 0.9545102593883081,
+            "precision_per_class": {
+              "0": 0.9632622143668729,
+              "1": 0.9257569473247615
+            },
+            "recall_per_class": {
+              "0": 0.9770777308234089,
+              "1": 0.8846611177170036
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.23335269066976383,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.8617388485404125
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.8296513738526468,
+            "accuracy": 0.8579655439411537,
+            "precision_per_class": {
+              "0": 0.922365865094782,
+              "1": 0.6903225806451613
+            },
+            "recall_per_class": {
+              "0": 0.8857583944423003,
+              "1": 0.7735443532629933
+            },
+            "class_balance": {
+              "0": 0.7523228803716608,
+              "1": 0.24767711962833913
+            },
+            "predicted_long_rate": 0.27753581107239644,
+            "true_long_rate": 0.24767711962833913,
+            "behavior_gap_proxy": 0.6593027477052936
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.8210258933219681,
+            "accuracy": 0.8514324428958575,
+            "precision_per_class": {
+              "0": 0.9195532967767821,
+              "1": 0.673029772329247
+            },
+            "recall_per_class": {
+              "0": 0.8804584453835318,
+              "1": 0.7615933412604042
+            },
+            "class_balance": {
+              "0": 0.7558072009291521,
+              "1": 0.24419279907084784
+            },
+            "predicted_long_rate": 0.27632597754548976,
+            "true_long_rate": 0.24419279907084784,
+            "behavior_gap_proxy": 0.642051786643936
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.0,
+                  0.1
+                ],
+                "n": 277,
+                "mean_predicted_p_long": 0.08902689872396982,
+                "empirical_long_rate": 0.0
+              },
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 3858,
+                "mean_predicted_p_long": 0.15855068913112966,
+                "empirical_long_rate": 0.0
+              },
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 5851,
+                "mean_predicted_p_long": 0.24851384253669775,
+                "empirical_long_rate": 0.0011963766877456845
+              },
+              {
+                "bin": [
+                  0.30000000000000004,
+                  0.4
+                ],
+                "n": 3245,
+                "mean_predicted_p_long": 0.34534612346687377,
+                "empirical_long_rate": 0.14021571648690292
+              },
+              {
+                "bin": [
+                  0.4,
+                  0.5
+                ],
+                "n": 1723,
+                "mean_predicted_p_long": 0.4447121978567149,
+                "empirical_long_rate": 0.4300638421358096
+              },
+              {
+                "bin": [
+                  0.5,
+                  0.6000000000000001
+                ],
+                "n": 1062,
+                "mean_predicted_p_long": 0.5480942694144061,
+                "empirical_long_rate": 0.4698681732580038
+              },
+              {
+                "bin": [
+                  0.6000000000000001,
+                  0.7000000000000001
+                ],
+                "n": 1183,
+                "mean_predicted_p_long": 0.6526756275032701,
+                "empirical_long_rate": 0.4361792054099746
+              },
+              {
+                "bin": [
+                  0.7000000000000001,
+                  0.8
+                ],
+                "n": 1612,
+                "mean_predicted_p_long": 0.7511651282274989,
+                "empirical_long_rate": 0.6457816377171216
+              },
+              {
+                "bin": [
+                  0.8,
+                  0.9
+                ],
+                "n": 1612,
+                "mean_predicted_p_long": 0.8487585533049798,
+                "empirical_long_rate": 0.9590570719602978
+              },
+              {
+                "bin": [
+                  0.9,
+                  1.0
+                ],
+                "n": 241,
+                "mean_predicted_p_long": 0.9115539022501079,
+                "empirical_long_rate": 1.0
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": true,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      }
+    },
+    "c2_context": {
+      "n_train": 20664,
+      "n_eval": 20664,
+      "n_train_pairs": 36,
+      "n_eval_pairs": 36,
+      "class_balance_train": {
+        "long": 0.023906310491676346
+      },
+      "unscaled": {
+        "adapter": {
+          "kind": "identity",
+          "source": "unscaled(与 s262_r0/R2 逐位一致)",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9760936895083236,
+            "precision_per_class": {
+              "0": 0.9760936895083236,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9772551296941541,
+            "precision_per_class": {
+              "0": 0.9772551296941541,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": 0.0
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9760936895083236,
+            "precision_per_class": {
+              "0": 0.9760936895083236,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9772551296941541,
+            "precision_per_class": {
+              "0": 0.9772551296941541,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 20664,
+                "mean_predicted_p_long": 0.1383279627509937,
+                "empirical_long_rate": 0.022744870305845915
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "fixed_causal": {
+        "adapter": {
+          "kind": "fixed",
+          "source": "plan-locked Arm B constants",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.01,
+            0.1,
+            0.01,
+            0.01,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.7641658253027405,
+            "accuracy": 0.9867886178861789,
+            "precision_per_class": {
+              "0": 0.9886056676980501,
+              "1": 0.8646864686468647
+            },
+            "recall_per_class": {
+              "0": 0.9979672781358453,
+              "1": 0.5303643724696356
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.014663182346109175,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.5283316506054809
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.7335225967687895,
+            "accuracy": 0.9868854045683314,
+            "precision_per_class": {
+              "0": 0.9877588992802233,
+              "1": 0.9128630705394191
+            },
+            "recall_per_class": {
+              "0": 0.9989600871546004,
+              "1": 0.46808510638297873
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.011662795199380566,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": 0.4670451935375791
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9760936895083236,
+            "precision_per_class": {
+              "0": 0.9760936895083236,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9772551296941541,
+            "precision_per_class": {
+              "0": 0.9772551296941541,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.0,
+                  0.1
+                ],
+                "n": 20664,
+                "mean_predicted_p_long": 0.044173857102518886,
+                "empirical_long_rate": 0.022744870305845915
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "train_fitted": {
+        "adapter": {
+          "kind": "fitted",
+          "source": "diag supervised train bank mean/std",
+          "center": [
+            2.656610274560781e-05,
+            7.660363875611605e-05,
+            0.0068886003113938395,
+            5.897498506151328e-05,
+            0.999847381914765,
+            1.0094695722715272,
+            0.9903977610058347,
+            0.9998469843600916,
+            0.0
+          ],
+          "scale": [
+            0.007344811985436023,
+            0.012081812938622056,
+            0.0021903047642416033,
+            0.009340053322696662,
+            0.010177296941685312,
+            0.012011047789581288,
+            0.011871422898993348,
+            0.0101773740695908,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.9414896457038251,
+            "accuracy": 0.9956445993031359,
+            "precision_per_class": {
+              "0": 0.9971773794196296,
+              "1": 0.9297872340425531
+            },
+            "recall_per_class": {
+              "0": 0.9983639067922657,
+              "1": 0.8846153846153846
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.022744870305845915,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.8829792914076503
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.9065059349838482,
+            "accuracy": 0.9939508323654666,
+            "precision_per_class": {
+              "0": 0.9957022180506842,
+              "1": 0.9097387173396675
+            },
+            "recall_per_class": {
+              "0": 0.9981182529464198,
+              "1": 0.8148936170212766
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.02037359659310879,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": 0.8130118699676964
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5018755557518181,
+            "accuracy": 0.9759001161440186,
+            "precision_per_class": {
+              "0": 0.9761812548412083,
+              "1": 0.25
+            },
+            "recall_per_class": {
+              "0": 0.9997025285076847,
+              "1": 0.004048582995951417
+            },
+            "class_balance": {
+              "0": 0.9760936895083236,
+              "1": 0.023906310491676346
+            },
+            "predicted_long_rate": 0.00038714672861014324,
+            "true_long_rate": 0.023906310491676346,
+            "behavior_gap_proxy": 0.0037511115036360974
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.499801921362781,
+            "accuracy": 0.9768679829655439,
+            "precision_per_class": {
+              "0": 0.9772463206816422,
+              "1": 0.0
+            },
+            "recall_per_class": {
+              "0": 0.999603842725562,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9772551296941541,
+              "1": 0.022744870305845915
+            },
+            "predicted_long_rate": 0.00038714672861014324,
+            "true_long_rate": 0.022744870305845915,
+            "behavior_gap_proxy": -0.00039615727443795186
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 10744,
+                "mean_predicted_p_long": 0.2708490836036711,
+                "empirical_long_rate": 0.0
+              },
+              {
+                "bin": [
+                  0.30000000000000004,
+                  0.4
+                ],
+                "n": 8532,
+                "mean_predicted_p_long": 0.3362929017693014,
+                "empirical_long_rate": 0.014416315049226441
+              },
+              {
+                "bin": [
+                  0.4,
+                  0.5
+                ],
+                "n": 1380,
+                "mean_predicted_p_long": 0.42444112680960394,
+                "empirical_long_rate": 0.2514492753623188
+              },
+              {
+                "bin": [
+                  0.5,
+                  0.6000000000000001
+                ],
+                "n": 8,
+                "mean_predicted_p_long": 0.5108058750629425,
+                "empirical_long_rate": 0.0
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      }
+    },
+    "c3_cost": {
+      "n_train": 20664,
+      "n_eval": 20664,
+      "n_train_pairs": 36,
+      "n_eval_pairs": 36,
+      "class_balance_train": {
+        "long": 0.05144212156407278
+      },
+      "unscaled": {
+        "adapter": {
+          "kind": "identity",
+          "source": "unscaled(与 s262_r0/R2 逐位一致)",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.7897460018814675,
+            "accuracy": 0.9783681765389083,
+            "precision_per_class": {
+              "0": 0.9777035115722267,
+              "1": 1.0
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.5794920037629351
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.02981029810298103,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.5794920037629351
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.7862559241706162,
+            "accuracy": 0.9781746031746031,
+            "precision_per_class": {
+              "0": 0.9775174476570289,
+              "1": 1.0
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.5725118483412323
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.029229578010065815,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.5725118483412323
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9485578784359272,
+            "precision_per_class": {
+              "0": 0.9485578784359272,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9489450251645374,
+            "precision_per_class": {
+              "0": 0.9489450251645374,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 20664,
+                "mean_predicted_p_long": 0.141142194754611,
+                "empirical_long_rate": 0.05105497483546264
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "fixed_causal": {
+        "adapter": {
+          "kind": "fixed",
+          "source": "plan-locked Arm B constants",
+          "center": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.01,
+            0.1,
+            0.01,
+            0.01,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.9840697503146378,
+            "accuracy": 0.9976287262872628,
+            "precision_per_class": {
+              "0": 0.9983178713426445,
+              "1": 0.9847036328871893
+            },
+            "recall_per_class": {
+              "0": 0.9991837151165757,
+              "1": 0.9689557855126999
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.05061943476577623,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.9681395006292756
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.9792128771511486,
+            "accuracy": 0.9971447928765002,
+            "precision_per_class": {
+              "0": 0.997810144632308,
+              "1": 0.9844357976653697
+            },
+            "recall_per_class": {
+              "0": 0.9991840481411597,
+              "1": 0.9592417061611375
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.04974835462640341,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.9584257543022972
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9485578784359272,
+            "precision_per_class": {
+              "0": 0.9485578784359272,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.5,
+            "accuracy": 0.9489450251645374,
+            "precision_per_class": {
+              "0": 0.9489450251645374,
+              "1": null
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.0
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.0,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.0
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.0,
+                  0.1
+                ],
+                "n": 19569,
+                "mean_predicted_p_long": 0.05468668801140527,
+                "empirical_long_rate": 0.02779906995758598
+              },
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 1026,
+                "mean_predicted_p_long": 0.12578338314189083,
+                "empirical_long_rate": 0.43079922027290446
+              },
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 69,
+                "mean_predicted_p_long": 0.21794575711955194,
+                "empirical_long_rate": 1.0
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": false,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      },
+      "train_fitted": {
+        "adapter": {
+          "kind": "fitted",
+          "source": "diag supervised train bank mean/std",
+          "center": [
+            0.00034595934543049666,
+            0.0014745030260806997,
+            0.022449524118310377,
+            0.0004983537480782262,
+            0.9999591400497098,
+            1.0066348267066538,
+            0.9933039961664704,
+            0.9999597996582922,
+            0.0
+          ],
+          "scale": [
+            0.026338107944082485,
+            0.054690486288383494,
+            0.013473055835413039,
+            0.0415947366935321,
+            0.043783779436810874,
+            0.04386444897041132,
+            0.04314060406443902,
+            0.04378379800437951,
+            1.0
+          ]
+        },
+        "linear": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.9822393005751671,
+            "accuracy": 0.9975319396051103,
+            "precision_per_class": {
+              "0": 0.9981145536078272,
+              "1": 0.9865384615384616
+            },
+            "recall_per_class": {
+              "0": 0.9992857507270038,
+              "1": 0.9651928504233303
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.05032907471931862,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.964478601150334
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.9764712692377691,
+            "accuracy": 0.9970480061943476,
+            "precision_per_class": {
+              "0": 0.9975058536088771,
+              "1": 0.9882121807465619
+            },
+            "recall_per_class": {
+              "0": 0.9993880361058698,
+              "1": 0.9535545023696682
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.04926442121564073,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.952942538475538
+          }
+        },
+        "mlp": {
+          "train": {
+            "n": 20664,
+            "balanced_accuracy": 0.7944241618405727,
+            "accuracy": 0.9788037166085947,
+            "precision_per_class": {
+              "0": 0.9781903478564655,
+              "1": 0.9984051036682615
+            },
+            "recall_per_class": {
+              "0": 0.999948982194786,
+              "1": 0.5888993414863594
+            },
+            "class_balance": {
+              "0": 0.9485578784359272,
+              "1": 0.05144212156407278
+            },
+            "predicted_long_rate": 0.030342624854819977,
+            "true_long_rate": 0.05144212156407278,
+            "behavior_gap_proxy": 0.5888483236811454
+          },
+          "eval": {
+            "n": 20664,
+            "balanced_accuracy": 0.7886255924170615,
+            "accuracy": 0.9784165698799845,
+            "precision_per_class": {
+              "0": 0.9777611568187484,
+              "1": 1.0
+            },
+            "recall_per_class": {
+              "0": 1.0,
+              "1": 0.5772511848341232
+            },
+            "class_balance": {
+              "0": 0.9489450251645374,
+              "1": 0.05105497483546264
+            },
+            "predicted_long_rate": 0.029471544715447155,
+            "true_long_rate": 0.05105497483546264,
+            "behavior_gap_proxy": 0.5772511848341232
+          },
+          "eval_calibration": {
+            "bins": [
+              {
+                "bin": [
+                  0.1,
+                  0.2
+                ],
+                "n": 93,
+                "mean_predicted_p_long": 0.1932323956361381,
+                "empirical_long_rate": 0.0
+              },
+              {
+                "bin": [
+                  0.2,
+                  0.30000000000000004
+                ],
+                "n": 14324,
+                "mean_predicted_p_long": 0.2652857457385137,
+                "empirical_long_rate": 0.0
+              },
+              {
+                "bin": [
+                  0.30000000000000004,
+                  0.4
+                ],
+                "n": 4127,
+                "mean_predicted_p_long": 0.3449468344760513,
+                "empirical_long_rate": 0.03901138841773685
+              },
+              {
+                "bin": [
+                  0.4,
+                  0.5
+                ],
+                "n": 1511,
+                "mean_predicted_p_long": 0.43514921391428424,
+                "empirical_long_rate": 0.1886168100595632
+              },
+              {
+                "bin": [
+                  0.5,
+                  0.6000000000000001
+                ],
+                "n": 9,
+                "mean_predicted_p_long": 0.5477241542604234,
+                "empirical_long_rate": 1.0
+              },
+              {
+                "bin": [
+                  0.6000000000000001,
+                  0.7000000000000001
+                ],
+                "n": 600,
+                "mean_predicted_p_long": 0.6407971294720968,
+                "empirical_long_rate": 1.0
+              }
+            ]
+          }
+        },
+        "mlp_learned_rule": {
+          "learned": true,
+          "rule": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20"
+        }
+      }
+    }
+  }
+}

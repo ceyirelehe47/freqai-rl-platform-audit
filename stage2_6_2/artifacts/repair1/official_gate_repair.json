@@ -1,0 +1,34 @@
+{
+  "format": "ppo262-repair1-official-gate-repair-v1",
+  "config_gate": {
+    "all_fail_scores": "official workflow STOP(无 selected config;probe/core/dev-eval/final-lock 全部拒绝)",
+    "verified_in_sandbox": {
+      "rescored_all_finite": true,
+      "r0_null_scores_reproduced": true,
+      "all_fail_detected": true,
+      "reselect_returned_nonzero": true,
+      "reselect_no_selected_config": true,
+      "reselect_result_all_fail": true,
+      "gate_closed_after_all_fail": true
+    }
+  },
+  "probe_gate": {
+    "requires": "三族 probe_results 全部存在、schema 完整(D0-D3 cells + 非空 episode_curve + env_audit)且 pass=true",
+    "forgery_resistance": "手工伪造 artifact 缺真实运行痕迹字段即拒绝(_load_probe_result 校验)"
+  },
+  "final_gate": {
+    "requires": [
+      "input lock PASS",
+      "config gate PASS(selected 非空且非 all_fail)",
+      "probe gate PASS(三族)",
+      "6 个 core training_run_summary 全部 pass",
+      "模型/manifest 哈希完整"
+    ]
+  },
+  "diagnostic_workflow_separation": {
+    "diagnose_*_commands": "独立 CLI 族,写 repair1/ 目录",
+    "cannot_produce_official_pass": true,
+    "cannot_consume_final_namespace": "derive262_diag_seed 白名单不含 ppo_final_eval_262;诊断计划锁不含 final seed schedule"
+  },
+  "pass": true
+}

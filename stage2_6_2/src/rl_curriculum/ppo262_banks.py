@@ -131,16 +131,21 @@ class LoadedEpisode:
 def generate262_pair(
     family: str, rung: str, pair_index: int, *, namespace: str,
     locked_rung_params: dict[str, Any],
+    derive_seed_fn=None,
 ) -> dict[str, GeneratedEpisode]:
     """2.6.2 的确定性 pair 生成(2.6.1 attempt 语义 + 262 seed 派生)。
 
     - rung 参数必须来自锁定 R2 plan 的 families.{family}.rung_params;
     - 结构拒绝沿用 pair_structural_contract(2.6.1 唯一合同源);
     - 与 2.6.1 generate_pair 的唯一差异:seed = derive262_seed(...)
-      (2.6.1 派生函数的 namespace 列表属冻结合同,不可扩充)。
+      (2.6.1 派生函数的 namespace 列表属冻结合同,不可扩充);
+    - derive_seed_fn(repair1 诊断):诊断语料走
+      derive262_diag_seed(s262_diag_r1 流);缺省 official 流。
     """
     if rung not in CURRICULUM261_RUNGS:
         raise GeneratorError(f"未知 rung {rung!r}")
+    if derive_seed_fn is None:
+        derive_seed_fn = derive262_seed
     params_src = dict(locked_rung_params[rung])
     params_src["cur261_rung"] = rung
     spec = family_specs()[family]
@@ -150,7 +155,7 @@ def generate262_pair(
     }
     issues_all: list[list[str]] = []
     for attempt in range(5):
-        seed = derive262_seed(namespace, family, rung, pair_index, attempt)
+        seed = derive_seed_fn(namespace, family, rung, pair_index, attempt)
         episodes: dict[str, GeneratedEpisode] = {}
         try:
             for side in PPO262_SIDES:
@@ -172,9 +177,12 @@ def generate262_pair(
 
 def generate262_bank(
     keys: list[EpisodeKey], *, locked_plan_rung_params: dict[str, Any],
-    progress: bool = False,
+    progress: bool = False, derive_seed_fn=None,
 ) -> list[LoadedEpisode]:
-    """按 key 列表生成 episode bank(pair A/B 一次生成两份)。"""
+    """按 key 列表生成 episode bank(pair A/B 一次生成两份)。
+
+    derive_seed_fn:诊断语料传 derive262_diag_seed;缺省 official 流。
+    """
     pair_cache: dict[tuple, dict[str, GeneratedEpisode]] = {}
     out: list[LoadedEpisode] = []
     pair_keys = {}
@@ -185,7 +193,8 @@ def generate262_bank(
             pair_keys.items()):
         pair_cache[sk] = generate262_pair(
             family, rung, pair_index, namespace=namespace,
-            locked_rung_params=locked_plan_rung_params[family])
+            locked_rung_params=locked_plan_rung_params[family],
+            derive_seed_fn=derive_seed_fn)
         if progress and (i + 1) % 50 == 0:
             print(f"  generated {i + 1}/{len(pair_keys)} pairs", flush=True)
     for k in keys:

@@ -89,6 +89,29 @@ class CurriculumMultiEpisodeEnv(gym.Env):
             execution_mode="market_open_causal",
         )
 
+    # ------------------------------------------------------------ 审计辅助
+    def _attribution(self) -> dict[str, Any]:
+        """当前 episode 的完整 attribution(Repair C)。
+
+        只进入 info / 日志 / callback,绝不进入 observation、reward
+        或 policy 输入;terminal step 与普通 step 同样携带,保证
+        callback 学习曲线可逐 episode 重建(manifest episode -> family
+        -> rung -> A/B -> reward / long fraction / position changes /
+        cost)。
+        """
+        loaded = self.bank[self.current_index]
+        k = loaded.key
+        return {
+            "episode_index": self.current_index,
+            "manifest_index": self.current_index,
+            "episode_key": k.canonical(),
+            "namespace": k.namespace,
+            "family": k.family,
+            "rung": k.rung,
+            "pair_index": int(k.pair_index),
+            "variant": k.variant,
+        }
+
     # ------------------------------------------------------------ gym API
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
@@ -105,8 +128,7 @@ class CurriculumMultiEpisodeEnv(gym.Env):
         self._cursor += 1
         obs, info = self._inner.reset(seed=seed)
         info = dict(info)
-        info["episode_index"] = self.current_index
-        info["episode_key"] = loaded.key.canonical()
+        info.update(self._attribution())
         info["env_episodes_started"] = self.current_index + 1
         return obs, info
 
@@ -121,15 +143,21 @@ class CurriculumMultiEpisodeEnv(gym.Env):
         self._episode_done = bool(terminated or truncated)
         self.steps_taken += 1
         info = dict(info)
-        info["episode_index"] = self.current_index
+        # Repair C:attribution 每个 step 携带(尤其 terminal step——
+        # s262_r0 只有 reset info 有 episode_key,terminal info 丢失,
+        # 导致 callback 学习曲线 episode_key="" 且无法归因 family/rung)
+        info.update(self._attribution())
         if terminated or truncated:
             self.episodes_consumed += 1
             loaded = self.bank[self.current_index]
             self.episode_trace.append({
                 "episode_index": self.current_index,
+                "manifest_index": self.current_index,
                 "key": loaded.key.canonical(),
+                "namespace": loaded.key.namespace,
                 "family": loaded.key.family,
                 "rung": loaded.key.rung,
+                "pair_index": int(loaded.key.pair_index),
                 "variant": loaded.key.variant,
                 "episode_reward": float(
                     info.get("episode_reward_raw", np.nan)),

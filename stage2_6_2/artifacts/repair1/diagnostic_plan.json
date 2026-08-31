@@ -1,0 +1,286 @@
+{
+  "format": "ppo262-repair1-diagnostic-plan-v1",
+  "diagnostic_iteration": "s262_diag_r1",
+  "baseline_git_sha": "7481b39b3d141a21b845a111b9f48e036c5f98f5",
+  "r2_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+  "s262_r0_fail_commit": "7481b39b3d141a21b845a111b9f48e036c5f98f5",
+  "namespaces": [
+    "diag262r1_feature_profile",
+    "diag262r1_supervised_train",
+    "diag262r1_supervised_eval",
+    "diag262r1_overfit_c1",
+    "diag262r1_overfit_c2",
+    "diag262r1_overfit_c3",
+    "diag262r1_preprocess_train",
+    "diag262r1_preprocess_eval",
+    "diag262r1_bc_train",
+    "diag262r1_bc_eval",
+    "diag262r1_smoke"
+  ],
+  "model_seeds": {
+    "overfit": [
+      27101,
+      27102,
+      27103
+    ],
+    "ablation": [
+      27201,
+      27202,
+      27203
+    ],
+    "bc": [
+      27301,
+      27302,
+      27303
+    ]
+  },
+  "prob_rng_seed": 262099,
+  "ppo_config_source": "s262_r0 selected(cand_a_center,回退产物,仅作为诊断对照配置;非有效 official 选择)",
+  "bank_spec": {
+    "supervised": {
+      "train": {
+        "namespace": "diag262r1_supervised_train",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 12,
+        "pair_base": 0
+      },
+      "eval": {
+        "namespace": "diag262r1_supervised_eval",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 12,
+        "pair_base": 0
+      }
+    },
+    "overfit": {
+      "train_per_seed_slot": {
+        "namespace": "diag262r1_overfit_{fam_short}",
+        "families": "{single}",
+        "rungs": [
+          "D0"
+        ],
+        "pairs": 8
+      },
+      "dev": {
+        "pair_base_offset": 256,
+        "pairs": 8
+      },
+      "episodes_per_bank": 16,
+      "cycles": 16,
+      "steps_per_seed": 73472,
+      "checkpoint_episodes": [
+        0,
+        12,
+        25,
+        64,
+        128,
+        256
+      ]
+    },
+    "preprocess": {
+      "train_per_seed_slot": {
+        "namespace": "diag262r1_preprocess_train",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1"
+        ],
+        "pairs_per_fr": 4
+      },
+      "eval": {
+        "namespace": "diag262r1_preprocess_eval",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 4,
+        "pair_base": 0
+      },
+      "episodes_per_bank": 48,
+      "cycles": 6,
+      "steps_per_seed": 82656,
+      "checkpoint_episodes": [
+        0,
+        14,
+        29,
+        72,
+        144,
+        288
+      ]
+    },
+    "bc": {
+      "train": {
+        "namespace": "diag262r1_bc_train",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1"
+        ],
+        "pairs_per_fr": 4,
+        "pair_base": 0
+      },
+      "eval": {
+        "namespace": "diag262r1_bc_eval",
+        "families": [
+          "c1_opportunity",
+          "c2_context",
+          "c3_cost"
+        ],
+        "rungs": [
+          "D0",
+          "D1",
+          "D2"
+        ],
+        "pairs_per_fr": 4,
+        "pair_base": 0
+      },
+      "bc_epochs": 20,
+      "bc_lr": 0.0003,
+      "finetune_cycles": 3,
+      "steps_finetune": 41328,
+      "checkpoint_episodes": [
+        0,
+        72,
+        144
+      ]
+    }
+  },
+  "arms": {
+    "A_current_unscaled": {
+      "adapter": "identity(bitwise = s262_r0/R2 observation)",
+      "must_verify": "Arm A 训练 env 输出与 official unscaled 逐位一致"
+    },
+    "B_fixed_causal_scaling": {
+      "rule": "10^round(log10(std_trainbank));center=0;position=identity",
+      "constants": {
+        "center": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          0.01,
+          0.1,
+          0.01,
+          0.01,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          1.0
+        ]
+      },
+      "fit_source": "diag262r1_preprocess_train 全部 3 seed 槽位 bank 特征(训练语料,非 eval)"
+    },
+    "C_train_bank_fitted_frozen": {
+      "rule": "per-seed train bank mean/std z-score;fit 后冻结应用于该 seed 的训练与评估;position slot identity;dev/eval 不参与 fit"
+    }
+  },
+  "budgets": {
+    "overfit_steps_per_family_seed": 73472,
+    "ablation_steps_per_arm_seed": 82656,
+    "bc_epochs": 20,
+    "bc_finetune_steps": 41328
+  },
+  "metrics": [
+    "capture(train/dev)",
+    "deterministic behavior gap",
+    "probability behavior(P(Long) per latent label)",
+    "stochastic behavior(fixed RNG)",
+    "value/advantage distribution",
+    "gradient probe(actor/critic/first-layer per-column)",
+    "cost decomposition(fees/liquidation/trades)"
+  ],
+  "interpretation_rules": {
+    "supervised_learned": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20",
+    "ppo_recovered_arm": "训练 bank capture > 0.05 且 probability separation gap > 0.05 且 deterministic behavior gap > 0.02(3 seeds 中 >= 2 seeds 满足)",
+    "overfit_nondegenerate": "family x seed: 训练 bank D0 capture > 0.05 且该族 probability gap > 0.05;3 seeds 中 >= 2 满足则该族可过拟合",
+    "bc_retained": "PPO fine-tune 后 held-out reference match rate 相对 BC 结束值绝对下降 <= 0.15,且 fine-tune 后 match rate 仍 >= 0.55",
+    "branch_decision": {
+      "A": "unscaled scratch PPO 满足 ppo_recovered_arm(Arm A)",
+      "B": "A 不满足,但 Arm B 或 C 满足 ppo_recovered_arm",
+      "C": "supervised 学会 + scratch PPO 全不满足 + BC 能学且 fine-tune 保留",
+      "D": "supervised 学会 + scratch 全不满足 + BC 能学但 fine-tune 摧毁",
+      "E": "scaled(全部 arm)supervised 也学不会",
+      "F": "证据互相矛盾或不充分"
+    }
+  },
+  "code_identity_diag": {
+    "ppo262_banks.py": "31ed7e9c5766d12fb6a0d74c5f3f14da6ef9a864aa766f8191674117576b1f98",
+    "ppo262_cli.py": "f157d7d58f6c463d20dbabd4fa9e760adda7665a79c10856ed57b076a3560938",
+    "ppo262_config.py": "acbb52bfed27eb8128ce623340adfee13f6f8e7ecb19762db4694285e2bc9dbf",
+    "ppo262_diag_metrics.py": "043744e0afd8fae409a268681d919b24fb5fff1f9d385170373ed012b2ecfae1",
+    "ppo262_diag_namespaces.py": "9de3065bdb9100e3a6f55322515be7de9d758b01c5e9b4d87f619d0cf1924a58",
+    "ppo262_diag_train.py": "b3fea67229a2f4a461e63cc6b30b3c3a626f5bfdc9782e9cef59f367bc1bb2e4",
+    "ppo262_diagnose_cli.py": "e9d107dc52e3aaa2121d4373981b045b0fcb6ff10e6e5bdd15447a49b588fd73",
+    "ppo262_env.py": "8ecc5b93ca1e9f29f0f3839006070daf18f6e39b1b4a3660efecf05210976bf8",
+    "ppo262_final.py": "b2ccabfb335b2dd1123d4b100e4b6e3440e99dbef604ab9f10ff4f904c9e580c",
+    "ppo262_input_lock.py": "81eb595a8eb6f54c1c642ab969aa25134f98d4ef4473543c96a59835719683f2",
+    "ppo262_metrics.py": "764c87cc0b5039eb407fdbc025d5d7a2e83f868b0c219b47446ce4bbf604c35a",
+    "ppo262_namespaces.py": "a88482bb0d4bd41c414eb4cb42e34f544b3dbf272a0434a838ba8a7e60fa7ea3",
+    "ppo262_smoke.py": "ee38833133d0133e2d8d6f46559e0eabeb768a496a72d8aae811ce4814b0ef7f",
+    "ppo262_train.py": "ba5b6f4462e8d2948881b46b946f37f7b3338fe3c42e3f0949f91eb2f0f892c5"
+  },
+  "route_c_identity": {
+    "rl_platform_tree_hash": "rp-8a61cd612e4543d5c76fa2c7d2a31538a6408195019622eaf38c8470724ca5b3",
+    "route_c_frozen_versions": {
+      "env_core": "RouteCEnvCore-v1.0.0",
+      "observation_spec": "ObservationSpec-v1",
+      "action_spec": "BinaryLongFlatAction-v1",
+      "reward_spec": "NetLogEquityReward-v1",
+      "execution": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation": "TerminalLiquidation-v1"
+    },
+    "r2_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "input_lock_pass": true,
+    "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+    "vendor_clean": true
+  },
+  "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "forbidden": [
+    "修改 2.6.1 R2 observation contract / qualification artifacts",
+    "把 scaled arm 升级为正式合同(仅 diagnostic evidence)",
+    "触碰 ppo_final_eval_262 / qualification_r2",
+    "声称 scaled diagnostic 通过 Stage 2.6.2",
+    "根据结果改 scaling 常数 / 增删 seed / 改预算或判定规则"
+  ],
+  "locked_utc": "2026-08-31T09:11:16Z",
+  "plan_digest_self": "dp-eb37187b2b81b8bc37f15d896ea5d6e322d080e0dc124259859c666ae8f2733e"
+}

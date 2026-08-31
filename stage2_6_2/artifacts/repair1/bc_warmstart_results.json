@@ -1,0 +1,417 @@
+{
+  "format": "ppo262-repair1-bc-warmstart-v1",
+  "diagnostic_iteration": "s262_diag_r1",
+  "diagnostic_only": true,
+  "plan_digest": "dp-eb37187b2b81b8bc37f15d896ea5d6e322d080e0dc124259859c666ae8f2733e",
+  "executed": true,
+  "bc_arm": "train_fitted",
+  "supervised_learned_arms": {
+    "train_fitted": [
+      "c1_opportunity",
+      "c3_cost"
+    ]
+  },
+  "n_train_obs": 13776,
+  "n_heldout_obs": 20664,
+  "train_dev_pair_isolation": "bc_train/bc_eval 独立 namespace + 独立 pair 区间",
+  "critic_access": "critic 不读取 latent;BC 只训练 actor 参数",
+  "per_seed": {
+    "seed27301": {
+      "actor_state_sha256_before_bc": "ef84cfe7b9f281740224bdf88d379c070534891cf017ad598247255ea361c4eb",
+      "actor_state_sha256_after_bc": "9ddea671e5d272a178395b410c115663b6b4259063d45347faecd0cb27186a92",
+      "actor_import_verified": true,
+      "bc_training": {
+        "epochs": 20,
+        "lr": 0.0003,
+        "final_train_match_rate": 0.7910133600234985,
+        "history": [
+          {
+            "epoch": 1,
+            "loss": 0.6931707859039307,
+            "match_rate": 0.6053280830383301
+          },
+          {
+            "epoch": 2,
+            "loss": 0.6905951499938965,
+            "match_rate": 0.768873393535614
+          },
+          {
+            "epoch": 3,
+            "loss": 0.6880360841751099,
+            "match_rate": 0.7749709486961365
+          },
+          {
+            "epoch": 4,
+            "loss": 0.6854510307312012,
+            "match_rate": 0.7766405344009399
+          },
+          {
+            "epoch": 5,
+            "loss": 0.6828078627586365,
+            "match_rate": 0.7792537808418274
+          },
+          {
+            "epoch": 6,
+            "loss": 0.6800852417945862,
+            "match_rate": 0.780778169631958
+          },
+          {
+            "epoch": 7,
+            "loss": 0.6772716045379639,
+            "match_rate": 0.7821573615074158
+          },
+          {
+            "epoch": 8,
+            "loss": 0.6743605136871338,
+            "match_rate": 0.783318817615509
+          },
+          {
+            "epoch": 9,
+            "loss": 0.671349287033081,
+            "match_rate": 0.7845528721809387
+          },
+          {
+            "epoch": 10,
+            "loss": 0.6682378649711609,
+            "match_rate": 0.7854965329170227
+          },
+          {
+            "epoch": 11,
+            "loss": 0.66502845287323,
+            "match_rate": 0.7862223982810974
+          },
+          {
+            "epoch": 12,
+            "loss": 0.6617249250411987,
+            "match_rate": 0.7865853905677795
+          },
+          {
+            "epoch": 13,
+            "loss": 0.6583326458930969,
+            "match_rate": 0.7870935201644897
+          },
+          {
+            "epoch": 14,
+            "loss": 0.6548577547073364,
+            "match_rate": 0.7878193855285645
+          },
+          {
+            "epoch": 15,
+            "loss": 0.6513074040412903,
+            "match_rate": 0.7883275151252747
+          },
+          {
+            "epoch": 16,
+            "loss": 0.6476896405220032,
+            "match_rate": 0.7886179089546204
+          },
+          {
+            "epoch": 17,
+            "loss": 0.6440130472183228,
+            "match_rate": 0.7889082431793213
+          },
+          {
+            "epoch": 18,
+            "loss": 0.6402871012687683,
+            "match_rate": 0.7897793054580688
+          },
+          {
+            "epoch": 19,
+            "loss": 0.6365215182304382,
+            "match_rate": 0.7902148962020874
+          },
+          {
+            "epoch": 20,
+            "loss": 0.632726788520813,
+            "match_rate": 0.7910133600234985
+          }
+        ]
+      },
+      "behavior_match_after_bc": {
+        "train": {
+          "n": 13776,
+          "balanced_accuracy": 0.801507088626632,
+          "accuracy": 0.7914488966318235,
+          "precision_per_class": {
+            "0": 0.9717616319967842,
+            "1": 0.32235294117647056
+          },
+          "recall_per_class": {
+            "0": 0.7886152340564345,
+            "1": 0.8143989431968296
+          },
+          "class_balance": {
+            "0": 0.8900987224157956,
+            "1": 0.10990127758420441
+          },
+          "predicted_long_rate": 0.2776567944250871,
+          "true_long_rate": 0.10990127758420441,
+          "behavior_gap_proxy": 0.6030141772532641
+        },
+        "heldout": {
+          "n": 20664,
+          "balanced_accuracy": 0.803500589073133,
+          "accuracy": 0.7875048393341076,
+          "precision_per_class": {
+            "0": 0.9736434108527132,
+            "1": 0.31377594784697205
+          },
+          "recall_per_class": {
+            "0": 0.7831273042723921,
+            "1": 0.8238738738738739
+          },
+          "class_balance": {
+            "0": 0.8925667828106852,
+            "1": 0.10743321718931476
+          },
+          "predicted_long_rate": 0.2820847851335656,
+          "true_long_rate": 0.10743321718931476,
+          "behavior_gap_proxy": 0.607001178146266
+        }
+      },
+      "behavior_match_after_ppo_finetune": {
+        "train": {
+          "n": 13776,
+          "balanced_accuracy": 0.4820805306079268,
+          "accuracy": 0.7149390243902439,
+          "precision_per_class": {
+            "0": 0.8856296844637734,
+            "1": 0.09363422027618727
+          },
+          "recall_per_class": {
+            "0": 0.7805415103572011,
+            "1": 0.18361955085865259
+          },
+          "class_balance": {
+            "0": 0.8900987224157956,
+            "1": 0.10990127758420441
+          },
+          "predicted_long_rate": 0.2155197444831591,
+          "true_long_rate": 0.10990127758420441,
+          "behavior_gap_proxy": -0.03583893878414632
+        },
+        "heldout": {
+          "n": 20664,
+          "balanced_accuracy": 0.48095462085377505,
+          "accuracy": 0.7340785907859079,
+          "precision_per_class": {
+            "0": 0.8880431525322146,
+            "1": 0.08846443830108067
+          },
+          "recall_per_class": {
+            "0": 0.8033506831489915,
+            "1": 0.15855855855855855
+          },
+          "class_balance": {
+            "0": 0.8925667828106852,
+            "1": 0.10743321718931476
+          },
+          "predicted_long_rate": 0.19255710414247,
+          "true_long_rate": 0.10743321718931476,
+          "behavior_gap_proxy": -0.0380907582924499
+        }
+      },
+      "heldout_balanced_accuracy_drop": 0.322545968219358,
+      "bc_retained_rule": {
+        "retained": false,
+        "rule": "PPO fine-tune 后 held-out reference match rate 相对 BC 结束值绝对下降 <= 0.15,且 fine-tune 后 match rate 仍 >= 0.55"
+      },
+      "finetune_run_audit": {
+        "cycles": 3,
+        "total_timesteps": 41328,
+        "env_audit": {
+          "episodes_consumed": 144,
+          "steps_taken": 41328,
+          "exhausted_cycles": 3,
+          "unique_episodes_started": 48,
+          "first_pass_order_ok": false,
+          "duplicate_episode_completions": 96,
+          "exposure_counts": {
+            "c1_opportunity/D0": 24,
+            "c1_opportunity/D1": 24,
+            "c2_context/D0": 24,
+            "c2_context/D1": 24,
+            "c3_cost/D0": 24,
+            "c3_cost/D1": 24
+          }
+        },
+        "audit_problems": [],
+        "pass": true
+      },
+      "probability_after_finetune": {
+        "c1_probability_gap": -0.005049407760349435,
+        "c1_det_gap": -0.0011574074074074073
+      },
+      "update_records_summary": {
+        "n_updates": 72,
+        "final_approx_kl": 0.005163799971342087,
+        "final_entropy_loss": -0.09447585046291351
+      },
+      "capture_after_finetune": {
+        "capture_table": {
+          "c1_opportunity/D0": {
+            "ppo_mean": -1.1350612280067174e-05,
+            "reference_mean": 0.2138699677151036,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": 0.2138699677151036,
+            "capture": -5.307249260535418e-05
+          },
+          "c1_opportunity/D1": {
+            "ppo_mean": 0.0027830262696537378,
+            "reference_mean": 0.1121841734883168,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": 0.1121841734883168,
+            "capture": 0.02480765497589168
+          },
+          "c1_opportunity/D2": {
+            "ppo_mean": 0.0,
+            "reference_mean": 0.08105362396114626,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": 0.08105362396114626,
+            "capture": 0.0
+          },
+          "c2_context/D0": {
+            "ppo_mean": 0.0941274226751137,
+            "reference_mean": -0.2059272877999478,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": -0.2059272877999478,
+            "capture": -0.4570905763910011
+          },
+          "c2_context/D1": {
+            "ppo_mean": 0.04798403022768011,
+            "reference_mean": -0.19450111996379368,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": -0.19450111996379368,
+            "capture": -0.24670310503411147
+          },
+          "c2_context/D2": {
+            "ppo_mean": 0.07678487975890652,
+            "reference_mean": -0.1980579768125592,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": -0.1980579768125592,
+            "capture": -0.3876889029901342
+          },
+          "c3_cost/D0": {
+            "ppo_mean": 0.706561665462298,
+            "reference_mean": -0.4002385356067091,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.001998001998001833
+            },
+            "denominator": -0.4002385356067091,
+            "capture": -1.7653514157282315
+          },
+          "c3_cost/D1": {
+            "ppo_mean": 0.6798041750722336,
+            "reference_mean": -0.20072645555651758,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.0019980019980018193
+            },
+            "denominator": -0.20072645555651758,
+            "capture": -3.3867193698382443
+          },
+          "c3_cost/D2": {
+            "ppo_mean": 0.7497613390915407,
+            "reference_mean": -0.34503923644010726,
+            "baseline_mean": 0.0,
+            "best_baseline": "always_flat",
+            "baseline_means": {
+              "always_flat": 0.0,
+              "always_long": -0.001998001998001833
+            },
+            "denominator": -0.34503923644010726,
+            "capture": -2.172974142961524
+          }
+        },
+        "rows_summary": {
+          "mean_net_return": 0.26197724310501624,
+          "n_trades_total": 968
+        },
+        "behavior": {
+          "c1_opportunity": {
+            "long_rate_on_positive": 0.003472222222222222,
+            "n_positive": 1728,
+            "long_rate_on_neutral": 0.005208333333333333,
+            "n_neutral": 3456,
+            "long_rate_on_negative": 0.0,
+            "n_negative": 1704,
+            "selectivity_gap": -0.001736111111111111
+          },
+          "c2_context": {
+            "per_variant": {
+              "A": {
+                "long_rate_aligned": 0.16987179487179488,
+                "n_aligned": 312,
+                "long_rate_anti_aligned": 0.11538461538461539,
+                "n_anti_aligned": 312,
+                "gating_gap": 0.05448717948717949
+              },
+              "B": {
+                "long_rate_aligned": 0.1794871794871795,
+                "n_aligned": 312,
+                "long_rate_anti_aligned": 0.09294871794871795,
+                "n_anti_aligned": 312,
+                "gating_gap": 0.08653846153846154
+              }
+            },
+            "long_rate_aligned": 0.17467948717948717,
+            "long_rate_anti_aligned": 0.10416666666666667,
+            "gating_gap": 0.0705128205128205,
+            "n_aligned": 624,
+            "n_anti_aligned": 624
+          },
+          "c3_cost": {
+            "long_rate_above_cost": 0.6219512195121951,
+            "n_above_cost": 328,
+            "long_rate_below_cost": 0.5671428571428572,
+            "n_below_cost": 700,
+            "cost_selectivity_gap": 0.05480836236933795,
+            "position_changes_per_100_steps": 8.275261324041812,
+            "transaction_cost_paid": 77.80263189003716,
+            "n_trades_total": 570
+          }
+        }
+      }
+    }
+  },
+  "interpretation": {
+    "bc_learned_and_retained": "representation 有效;主要 blocker = scratch exploration/初始化",
+    "bc_learned_but_finetune_destroys": "PPO update/value/advantage 或成本局部最优摧毁选择性",
+    "bc_cannot_learn": "representation/label boundary/preprocess 问题"
+  }
+}

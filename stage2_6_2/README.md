@@ -69,3 +69,31 @@ regression_fullcold_summary`
 WSL `CryptoRL-Ubuntu-24.04`,conda `freqtrade-rl`,项目 `~/projects/crypto_rl`,
 vendor `52bc96f4480b1a0da6a9b455bd00b17fbb6786a5`。SB3 2.9.0 / torch
 2.13.0+cu130 / gymnasium 1.3.0。
+
+---
+
+## Stage 2.6.2 Repair R1 — PPO 可学习性诊断与实验基础设施闭环(2026-08-31)
+
+Stage 状态不变:**FAIL**。本轮为诊断轮(`s262_diag_r1`),判定
+**Repair R1 Diagnostics: PASS**,机械落入决策树 **Branch D**。
+
+- **Harness 修复**:config-development null-score bug(独立
+  `config_dev_D1_capture` 指标 + all-fail 无 fallback + official 选择为空)、
+  config/probe/final 三层硬门禁 fail closed(伪造 artifact 无法绕过)、
+  episode attribution 完整化(terminal info 携带 identity/cost)、PPO
+  rollout/update 诊断正确绑定(SB3 2.9.0 时序根因实测修正,含 grad_norm
+  捕获)。
+- **诊断证据**:raw:ret/vol 尺度比实测 82.9 倍,随机初始化第一层贡献占比
+  raw 98.7%;unscaled 小尺度特征列梯度低 40–7000 倍(scaling 解除);
+  unscaled MLP 监督全坍塌而 fitted MLP 学会 C1/C3(泛化);
+  D0 重复暴露下 unscaled PPO C3 2/3、C1 1/3 seeds 可学;
+  A/B/C 严格配对 ablation:Arm A 全坍塌,Arm C 下 C1 eval core capture
+  0.16/0.44/0.60(3/3 恢复)但 C2/C3 大亏;BC warm-start 能学
+  (held-out 0.80)而 PPO fine-tune 摧毁(0.48)。
+- **下一步**:PPO optimization repair(不进 2.6.3);scaled 预处理若升级为
+  正式合同必须先走 2.6.1 R3(Arm B/C 仅 diagnostic evidence)。
+- 产物:`artifacts/repair1/`(21 文件,含诊断计划锁
+  `dp-eb37187b…`);主报告
+  `report/route_c_stage2_6_2_repair1_diagnostics.md`;新增 47 项测试
+  (合计 96 全绿)。r0 证据零覆盖;official final namespace
+  未解锁/未生成/未暴露。

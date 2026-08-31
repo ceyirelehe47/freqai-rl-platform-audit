@@ -1,0 +1,55 @@
+{
+  "format": "ppo262-repair1-preprocessing-ablation-plan-v1",
+  "arms": [
+    "A_unscaled(=s262_r0 逐位)",
+    "B_fixed_causal(plan 常数)",
+    "C_train_fitted(冻结 z-score)"
+  ],
+  "seeds": [
+    27201,
+    27202,
+    27203
+  ],
+  "budget": {
+    "train_per_seed_slot": {
+      "namespace": "diag262r1_preprocess_train",
+      "families": [
+        "c1_opportunity",
+        "c2_context",
+        "c3_cost"
+      ],
+      "rungs": [
+        "D0",
+        "D1"
+      ],
+      "pairs_per_fr": 4
+    },
+    "eval": {
+      "namespace": "diag262r1_preprocess_eval",
+      "families": [
+        "c1_opportunity",
+        "c2_context",
+        "c3_cost"
+      ],
+      "rungs": [
+        "D0",
+        "D1",
+        "D2"
+      ],
+      "pairs_per_fr": 4,
+      "pair_base": 0
+    },
+    "episodes_per_bank": 48,
+    "cycles": 6,
+    "steps_per_seed": 82656,
+    "checkpoint_episodes": [
+      0,
+      14,
+      29,
+      72,
+      144,
+      288
+    ]
+  },
+  "plan_digest": "dp-eb37187b2b81b8bc37f15d896ea5d6e322d080e0dc124259859c666ae8f2733e"
+}

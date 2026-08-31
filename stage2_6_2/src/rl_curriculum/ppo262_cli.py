@@ -78,6 +78,164 @@ def _locked_reference_thresholds() -> dict[str, Any]:
             for fam, fp in plan["families"].items()}
 
 
+# ================================================================ R1 门禁
+#: config-development candidate score 的存放键(Repair A 方案 B:
+#: 与指标函数同名,报告与 result artifact 按此引用)
+CONFIG_DEV_METRIC_KEY = "config_dev_D1_capture"
+
+
+def select_config_from_scores(scores: dict[str, float | None],
+                              family_scores: dict[str, dict[str, Any]] | None
+                              = None,
+                              ) -> tuple[str | None, dict[str, Any], bool]:
+    """config-development 选择(Repair A/B:无 fallback,fail closed)。
+
+    - scores 必须全部为有限数值(config_dev_D1_capture 已保证非 null);
+      任何 None 视为配置错误,raise;
+    - 有效选择:主指标最高者胜;并列(差 < 0.02)取三族分数方差小者;
+    - all-fail(全部 <= 0 且无任何 family 分数 > 0.05)时返回
+      selected=None——official selected config 不得生成,
+      上层命令必须 fail closed;
+    - s262_r0 的 fallback 选择中心候选语义已废除:all candidates FAIL
+      => official workflow STOP(诊断工作流是独立命令)。
+    """
+    import numpy as np
+
+    for name, s in scores.items():
+        if s is None or not np.isfinite(float(s)):
+            raise ValueError(
+                f"candidate {name} 的 score 为 {s!r}:config_dev_D1_capture "
+                f"必须产出有限数值(输入不足应在指标层 raise,而非 null)")
+    valid_any_family = False
+    if family_scores:
+        for per in family_scores.values():
+            if any(v is not None and float(v) > 0.05 for v in per.values()):
+                valid_any_family = True
+    all_fail = (all(float(s) <= 0.0 for s in scores.values())
+                and not valid_any_family) or not scores
+    notes: dict[str, Any] = {
+        "selection_rule": "config_dev_D1_capture 最高者;"
+                          "并列(<0.02)取三族方差小者;无 fallback",
+        "fallback_semantics": "removed in repair1:all candidates FAIL => "
+                              "official workflow STOP",
+    }
+    if all_fail:
+        notes["all_fail"] = (
+            "全部 candidate 在 development corpus 上无基础学习信号"
+            "(config_dev_D1_capture <= 0 且无任何 family D1 capture > 0.05)"
+            ";official config selection 为空,probe/core/final 均 fail "
+            "closed;如需继续仅可走独立 diagnostic workflow")
+        return None, notes, True
+    best = max(scores, key=scores.get)
+    near = [n for n, s in scores.items()
+            if abs(float(s) - float(scores[best])) < 0.02]
+    if len(near) > 1 and family_scores:
+        def _std(name: str) -> float:
+            per = [v for v in family_scores[name].values()
+                   if v is not None]
+            return float(np.std(per)) if per else -9.0
+        best = min(near, key=_std)
+        notes["tie_break"] = f"并列候选 {sorted(near)} 取方差小者"
+    return best, notes, False
+
+
+#: probe result artifact 必须包含的字段(伪造检查:手工写的
+#: {"pass": true} 空文件缺这些字段即拒绝)
+_PROBE_RESULT_REQUIRED_FIELDS = (
+    "format", "family", "namespace", "config", "model_seed",
+    "budget_episodes", "budget_steps", "env_audit", "train_pass",
+    "capture_table", "core_capture", "behavior", "behavior_gap",
+    "gate_core_capture_gt_0.10", "gate_behavior_gap_gt_0.10",
+    "pass", "episode_curve",
+)
+
+
+def _load_probe_result(family: str) -> dict[str, Any] | None:
+    """读取并校验一个 family 的 official probe artifact。
+
+    返回 None 表示 artifact 不存在;校验失败 raise(fail closed,
+    而非把损坏文件当作 FAIL 或 PASS)。手工伪造的 artifact 缺少
+    真实运行痕迹字段(env_audit / capture_table D0-D3 cells /
+    非空 episode_curve)时被拒绝——gate 不接受无证据的 pass。
+    """
+    p = _art() / f"probe_results_{family}.json"
+    if not p.is_file():
+        return None
+    d = json.loads(p.read_text(encoding="utf-8"))
+    missing = [k for k in _PROBE_RESULT_REQUIRED_FIELDS if k not in d]
+    if missing:
+        raise ValueError(
+            f"probe artifact {p.name} 缺少必需字段 {missing}"
+            f"(伪造或不完整的 artifact 不能作为 gate 依据)")
+    if d["format"] != "ppo262-probe-result-v1":
+        raise ValueError(f"probe artifact {p.name} format 不识别")
+    # 证据完整性:capture_table 必须覆盖 D0-D3 四个 rung cells
+    for rung in ("D0", "D1", "D2", "D3"):
+        if f"{family}/{rung}" not in d["capture_table"]:
+            raise ValueError(
+                f"probe artifact {p.name} 的 capture_table 缺 "
+                f"{family}/{rung} cell(证据不完整)")
+    if not d["episode_curve"]:
+        raise ValueError(
+            f"probe artifact {p.name} 的 episode_curve 为空"
+            f"(无训练证据)")
+    audit = d["env_audit"]
+    for key in ("steps_taken", "episodes_consumed", "first_pass_order_ok",
+                "exposure_counts"):
+        if key not in audit:
+            raise ValueError(
+                f"probe artifact {p.name} 的 env_audit 缺 {key}")
+    # 一致性:pass=True 必须与 gate 字段/训练审计一致
+    if d["pass"] and not (d["train_pass"]
+                          and d["gate_core_capture_gt_0.10"]
+                          and d["gate_behavior_gap_gt_0.10"]
+                          and audit["first_pass_order_ok"]):
+        raise ValueError(
+            f"probe artifact {p.name} 内部矛盾:pass=True 但 gate/审计"
+            f"字段不成立(伪造痕迹)")
+    return d
+
+
+def official_config_gate() -> tuple[bool, dict[str, Any]]:
+    """Config Gate:selected config 必须来自有效(非 all-fail)选择。"""
+    p = _art() / "selected_ppo_config.json"
+    if not p.is_file():
+        return False, {"ok": False, "reason": f"缺少 {p.name}"}
+    d = json.loads(p.read_text(encoding="utf-8"))
+    if not d.get("selected_candidate"):
+        return False, {"ok": False, "reason": "selected_candidate 为空"
+                                            "(config development all-fail)"}
+    if d.get("all_fail"):
+        return False, {"ok": False, "reason": "selected config 标记 all_fail"}
+    return True, {"ok": True, "selected_candidate": d["selected_candidate"]}
+
+
+def official_probe_gate() -> tuple[bool, dict[str, Any]]:
+    """Probe Gate:三族 official probe 全部 PASS 才放行 core/final。"""
+    detail: dict[str, Any] = {"probes": {}}
+    for family in CURRICULUM261_FAMILIES:
+        try:
+            d = _load_probe_result(family)
+        except ValueError as exc:
+            return False, {"ok": False, "reason": str(exc), "probes": detail}
+        detail["probes"][family] = (
+            {"pass": bool(d["pass"]),
+             "core_capture": d["core_capture"],
+             "behavior_gap": d["behavior_gap"]}
+            if d is not None else None)
+        if d is None:
+            return False, {"ok": False,
+                           "reason": f"缺少 probe artifact: {family}",
+                           "probes": detail}
+        if not d["pass"]:
+            return False, {"ok": False,
+                           "reason": f"probe FAIL: {family} "
+                                     f"(core={d['core_capture']}, "
+                                     f"gap={d['behavior_gap']})",
+                           "probes": detail}
+    return True, {"ok": True, "probes": detail}
+
+
 # ================================================================ 子命令
 def cmd_input_lock(args) -> int:
     from rl_curriculum.ppo262_input_lock import run_input_lock
@@ -176,8 +334,8 @@ def cmd_config_dev(args) -> int:
         model_manifest_base, save_model_with_manifest, train_run,
     )
     from rl_curriculum.ppo262_metrics import (
-        aggregate_capture, build_261_policy_set, capture_table,
-        evaluate_policy_on_bank, family_core_capture, load_sb3_policy,
+        build_261_policy_set, capture_table, config_dev_d1_capture,
+        evaluate_policy_on_bank, load_sb3_policy,
     )
 
     rung_params = _locked_rung_params()
@@ -250,63 +408,62 @@ def cmd_config_dev(args) -> int:
                 "pass": run["pass"],
                 "fps": run["fps"],
             }
-        cand_result["family_core_captures"] = {
-            fam: family_core_capture(fam_tables[fam], fam)
+        cand_result["family_d1_captures"] = {
+            fam: fam_tables[fam][f"{fam}/D1"]["capture"]
             for fam in PPO262_CONFIG_DEV_FAMILIES}
-        cand_result["aggregate_capture"] = aggregate_capture(fam_tables)
+        # Repair A 方案 B:独立 D1-only 指标(不调用 family_core_capture
+        # ——其 D0/D1/D2 输入要求与 D1-only 评估集不兼容,s262_r0 的
+        # null-score fallback 根因);输入不足在指标层 raise
+        cand_result[CONFIG_DEV_METRIC_KEY] = config_dev_d1_capture(
+            fam_tables, PPO262_CONFIG_DEV_FAMILIES)
         cand_result["capture_tables"] = fam_tables
         results["candidates"][cand_name] = cand_result
 
-    # 选择(锁定规则:主指标 aggregate capture;并列取方差小者;
-    # 全部无 capture 区分时 fallback 中心候选——不影响 probe FAIL
-    # 判定,只决定 probe 用哪份超参数跑,选择理由完整记录)
+    # 选择(Repair A/B:无 fallback;all-fail => selected=None + 退出非零,
+    # official probe/core/final 全部 fail closed;继续实验只能走
+    # 独立 diagnostic workflow)
     scores = {
-        name: res["aggregate_capture"]
+        name: res[CONFIG_DEV_METRIC_KEY]
         for name, res in results["candidates"].items()}
     results["candidate_scores"] = scores
-    valid = {n: s for n, s in scores.items() if s is not None}
-    selection_notes: dict[str, Any] = {}
-    if valid:
-        best = max(valid, key=valid.get)
-        near = [n for n, s in valid.items()
-                if abs(s - valid[best]) < 0.02]
-        if len(near) > 1:
-            import numpy as np
-            best = min(
-                near, key=lambda n: float(np.std([
-                    v for v in results["candidates"][n][
-                        "family_core_captures"].values()
-                    if v is not None])) if any(
-                    v is not None for v in results["candidates"][n][
-                        "family_core_captures"].values()) else -9)
-        results["selected_candidate"] = best
-    else:
-        results["selected_candidate"] = "cand_a_center"
-        selection_notes["fallback_applied"] = (
-            "三 candidate 的 aggregate capture 全部无区分(评估集上"
-            "均坍塌为退化策略,capture <= 0);按仓库路线 fallback 选择"
-            "中心候选 cand_a_center 供 probe 使用。诊断证据:三个"
-            "candidate 在延长训练下同样坍塌(Always Long -> Always "
-            "Flat),该选择不影响 probe 的 FAIL 判定。")
+    selected, selection_notes, all_fail = select_config_from_scores(
+        scores,
+        {name: res["family_d1_captures"]
+         for name, res in results["candidates"].items()})
+    results["selected_candidate"] = selected
     results["selection_notes"] = selection_notes
-    results["all_fail"] = all(
-        (s is None or s <= 0) for s in scores.values()) or not scores
+    results["all_fail"] = all_fail
     _write_json(_art() / "ppo_config_development_result.json", results)
-    sel = results["selected_candidate"]
+    if selected is None:
+        # all-fail:official selected config 不得生成;旧文件(若有)
+        # 必须移除以防 stale artifact 绕过 config gate
+        for stale in ("selected_ppo_config.json",
+                      "selected_ppo_config_digest.txt"):
+            sp = _art() / stale
+            if sp.is_file():
+                sp.unlink()
+        print(json.dumps({
+            "selected": None, "scores": scores,
+            "all_fail": True,
+            "gate": "official config gate CLOSED:probe/core/final "
+                    "拒绝执行;诊断工作流请使用 diagnose-* 命令"},
+            ensure_ascii=False))
+        return 2
     from rl_curriculum.ppo262_config import candidate_digest
     _write_json(_art() / "selected_ppo_config.json", {
-        "selected_candidate": sel,
-        "config": PPO262_CANDIDATES[sel] if sel else None,
-        "config_digest": candidate_digest(sel) if sel else None,
+        "selected_candidate": selected,
+        "config": PPO262_CANDIDATES[selected],
+        "config_digest": candidate_digest(selected),
         "candidates_tested": sorted(PPO262_CANDIDATES),
+        "selection_notes": selection_notes,
+        "all_fail": False,
     })
-    if sel:
-        (_art() / "selected_ppo_config_digest.txt").write_text(
-            candidate_digest(sel) + "\n", encoding="utf-8")
+    (_art() / "selected_ppo_config_digest.txt").write_text(
+        candidate_digest(selected) + "\n", encoding="utf-8")
     print(json.dumps({
-        "selected": sel, "scores": scores,
-        "all_fail": results["all_fail"]}, ensure_ascii=False))
-    return 0 if sel else 2
+        "selected": selected, "scores": scores,
+        "all_fail": False}, ensure_ascii=False))
+    return 0
 
 
 _MODEL_HOLDER: dict[str, Any] = {}
@@ -325,11 +482,15 @@ def cmd_probe(args) -> int:
     )
 
     family = args.family
+    # Config Gate(Repair B):config development all-fail 后
+    # official probe 拒绝执行(fail closed)
+    cfg_ok, cfg_info = official_config_gate()
+    if not cfg_ok:
+        print(f"Config Gate 拒绝 probe: {cfg_info['reason']}",
+              file=sys.stderr)
+        return 2
     sel = json.loads((_art() / "selected_ppo_config.json").read_text(
         encoding="utf-8"))
-    if not sel.get("selected_candidate"):
-        print("错误:config dev 未选出 candidate", file=sys.stderr)
-        return 2
     cand_name = sel["selected_candidate"]
     cfg = sel["config"]
 
@@ -448,6 +609,18 @@ def cmd_core(args) -> int:
     order = args.order  # staged | mixed
     if order not in ("staged", "mixed"):
         print("order 必须是 staged|mixed", file=sys.stderr)
+        return 2
+    # Probe Gate(Repair B):config gate + 三族 official probe 全 PASS,
+    # 否则 core 拒绝执行(fail closed)
+    cfg_ok, cfg_info = official_config_gate()
+    if not cfg_ok:
+        print(f"Config Gate 拒绝 core: {cfg_info['reason']}",
+              file=sys.stderr)
+        return 2
+    probe_ok, probe_info = official_probe_gate()
+    if not probe_ok:
+        print(f"Probe Gate 拒绝 core: {probe_info['reason']}",
+              file=sys.stderr)
         return 2
     sel = json.loads((_art() / "selected_ppo_config.json").read_text(
         encoding="utf-8"))
@@ -590,6 +763,12 @@ def cmd_dev_eval(args) -> int:
         aggregate_capture, behavior_metrics, capture_table,
         family_core_capture,
     )
+    # Probe Gate(Repair B):core 模型只有在 probe 全 PASS 时才存在
+    probe_ok, probe_info = official_probe_gate()
+    if not probe_ok:
+        print(f"Probe Gate 拒绝 dev-eval: {probe_info['reason']}",
+              file=sys.stderr)
+        return 2
     rung_params = _locked_rung_params()
     bank = generate262_bank(
         _dev_eval_bank_keys(), locked_plan_rung_params=rung_params,
@@ -649,6 +828,28 @@ def cmd_final_lock(args) -> int:
         print(f"输入锁失败,禁止锁 final plan: {il['problems']}",
               file=sys.stderr)
         return 2
+    # Final Gate(Repair B):config gate + probe gate + core runs 全 PASS
+    cfg_ok, cfg_info = official_config_gate()
+    if not cfg_ok:
+        print(f"Config Gate 拒绝 final-lock: {cfg_info['reason']}",
+              file=sys.stderr)
+        return 2
+    probe_ok, probe_info = official_probe_gate()
+    if not probe_ok:
+        print(f"Probe Gate 拒绝 final-lock: {probe_info['reason']}",
+              file=sys.stderr)
+        return 2
+    for rep in (1, 2, 3):
+        for order in ("staged", "mixed"):
+            rp = _art() / f"training_run_summary_rep{rep}_{order}.json"
+            if not rp.is_file():
+                print(f"Final Gate 拒绝:缺少 core run 摘要 {rp.name}",
+                      file=sys.stderr)
+                return 2
+            if not json.loads(rp.read_text(encoding="utf-8")).get("pass"):
+                print(f"Final Gate 拒绝:core run {order}_rep{rep} 未通过",
+                      file=sys.stderr)
+                return 2
     sel = json.loads((_art() / "selected_ppo_config.json").read_text(
         encoding="utf-8"))
     # 训练 manifest hash + final model hash(必须已存在)
@@ -1108,40 +1309,49 @@ def cmd_summarize(args) -> int:
 def cmd_config_dev_select(args) -> int:
     """从已有 config dev result 重新执行选择(不重训练)。
 
-    第一轮选择规则的 tie-break 未覆盖"全部 capture 无区分"的实测
-    情形;本命令应用补充 fallback 并把理由写入 result。
+    Repair A/B:与 cmd_config_dev 同一选择函数(单一来源);
+    s262_r0 时代的 fallback 语义已废除——all candidates FAIL 时
+    selected=None、不写 selected_ppo_config.json、返回非零。
     """
     rp = _art() / "ppo_config_development_result.json"
     results = json.loads(rp.read_text(encoding="utf-8"))
     scores = results.get("candidate_scores", {})
-    valid = {n: s for n, s in scores.items() if s is not None}
-    notes: dict[str, Any] = {}
-    if valid:
-        best = max(valid, key=valid.get)
-        near = [n for n, s in valid.items() if abs(s - valid[best]) < 0.02]
-        if len(near) > 1:
-            import numpy as np
-            best = min(
-                near, key=lambda n: float(np.std([
-                    v for v in results["candidates"][n][
-                        "family_core_captures"].values()
-                    if v is not None])) if any(
-                    v is not None for v in results["candidates"][n][
-                        "family_core_captures"].values()) else -9)
-        selected = best
-    else:
-        selected = "cand_a_center"
-        notes["fallback_applied"] = (
-            "三 candidate 的 aggregate capture 全部无区分(评估集上均"
-            "坍塌为退化策略,capture <= 0);按仓库路线 fallback 选择中心"
-            "候选 cand_a_center 供 probe 使用。诊断证据:三个 candidate "
-            "在延长训练下同样坍塌(Always Long -> Always Flat),该选择"
-            "不影响 probe 的 FAIL 判定。")
+    family_scores = {
+        name: res.get("family_d1_captures", {})
+        for name, res in results.get("candidates", {}).items()}
+    # 兼容读取旧版(r0)result:没有 D1 指标键时从 capture_tables 重算,
+    # 保证重新选择不再依赖 null 的 aggregate_capture
+    if scores and any(s is None for s in scores.values()):
+        from rl_curriculum.ppo262_metrics import config_dev_d1_capture
+        for name, res in results["candidates"].items():
+            tables = res.get("capture_tables", {})
+            fam_scores: dict[str, Any] = {}
+            merged: dict[str, dict[str, Any]] = {}
+            for fam, t in tables.items():
+                merged.update(t)
+                fam_scores[fam] = t.get(f"{fam}/D1", {}).get("capture")
+            res["family_d1_captures"] = fam_scores
+            res[CONFIG_DEV_METRIC_KEY] = config_dev_d1_capture(
+                merged, sorted(tables))
+            family_scores[name] = fam_scores
+        scores = {name: res[CONFIG_DEV_METRIC_KEY]
+                  for name, res in results["candidates"].items()}
+        results["candidate_scores"] = scores
+    selected, notes, all_fail = select_config_from_scores(
+        scores, family_scores)
     results["selected_candidate"] = selected
     results["selection_notes"] = notes
-    results["all_fail"] = all(
-        (s is None or s <= 0) for s in scores.values()) or not scores
+    results["all_fail"] = all_fail
     _write_json(rp, results)
+    if selected is None:
+        for stale in ("selected_ppo_config.json",
+                      "selected_ppo_config_digest.txt"):
+            sp = _art() / stale
+            if sp.is_file():
+                sp.unlink()
+        print(json.dumps({"selected": None, "all_fail": True,
+                          "notes": notes}, ensure_ascii=False))
+        return 2
     from rl_curriculum.ppo262_config import candidate_digest
     _write_json(_art() / "selected_ppo_config.json", {
         "selected_candidate": selected,
@@ -1149,10 +1359,11 @@ def cmd_config_dev_select(args) -> int:
         "config_digest": candidate_digest(selected),
         "candidates_tested": sorted(PPO262_CANDIDATES),
         "selection_notes": notes,
+        "all_fail": False,
     })
     (_art() / "selected_ppo_config_digest.txt").write_text(
         candidate_digest(selected) + "\n", encoding="utf-8")
-    print(json.dumps({"selected": selected, "all_fail": results["all_fail"],
+    print(json.dumps({"selected": selected, "all_fail": False,
                       "notes": notes}, ensure_ascii=False))
     return 0
 
@@ -1178,6 +1389,21 @@ def main(argv=None) -> int:
     sub.add_parser("final-lock").set_defaults(func=cmd_final_lock)
     sub.add_parser("final-run").set_defaults(func=cmd_final_run)
     sub.add_parser("summarize").set_defaults(func=cmd_summarize)
+
+    # ---- diagnostic workflow(Repair R1:独立命令族,写 repair1/ 目录;
+    # 不生成 official PASS / 不写 official final plan / 不消费
+    # ppo_final_eval_262)
+    def _diag(cmd_name: str):
+        def _run(args, _cmd=cmd_name):
+            from rl_curriculum import ppo262_diagnose_cli as dcli
+            return dcli.main([_cmd])
+        return _run
+
+    for name in ("namespace-integrity", "baseline-integrity",
+                 "repair-verify", "feature-scale", "plan-lock",
+                 "supervised", "overfit", "preprocessing", "bc-warmstart",
+                 "decision", "summary", "attribution-smoke"):
+        sub.add_parser(f"diagnose-{name}").set_defaults(func=_diag(name))
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -223,6 +223,51 @@ def family_core_capture(table: dict[str, dict[str, Any]],
     return float(sum(parts))
 
 
+# ------------------------------------------------- config dev 专用指标(R1)
+#: config-development 的候选评分指标名(Repair A 方案 B,独立于
+#: family_core_capture:config-dev 评估集只含 D1 cells,与 D0/D1/D2
+#: 加权公式的输入要求不兼容——s262_r0 的 null-score fallback 根因)
+CONFIG_DEV_D1_METRIC_NAME = "config_dev_D1_capture"
+
+
+def config_dev_d1_capture(
+    table: dict[str, dict[str, Any]],
+    families: tuple[str, ...] | list[str],
+) -> float:
+    """config-development 专用 D1-only capture(Repair A 方案 B)。
+
+    - 只读 {family}/D1 cells 的 capture,取三族均值;
+    - 不得调用 family_core_capture(D0/D1/D2 公式):评估 scope 与指标
+      定义必须一致;
+    - 输入不足(缺 cell / capture=None)时 raise ValueError,
+      绝不返回 None——candidate score 必须是有限可比数值,
+      all-fail gate 依据真实数值工作,不允许静默降级或 fallback。
+    """
+    vals: list[float] = []
+    missing: list[str] = []
+    for fam in families:
+        cell = table.get(f"{fam}/D1")
+        if cell is None:
+            missing.append(f"{fam}/D1 cell 缺失(评估集与 D1-only 指标不匹配)")
+            continue
+        cap = cell["capture"]
+        if cap is None:
+            missing.append(
+                f"{fam}/D1 capture 为 None(denominator=0:reference 与 "
+                f"best baseline 净收益相同,该评估集无区分度)")
+            continue
+        vals.append(float(cap))
+    if missing:
+        raise ValueError(
+            f"{CONFIG_DEV_D1_METRIC_NAME} 输入不足,fail closed: "
+            + "; ".join(missing))
+    result = float(np.mean(vals))
+    if not np.isfinite(result):
+        raise ValueError(
+            f"{CONFIG_DEV_D1_METRIC_NAME} 计算结果非有限值: {result}")
+    return result
+
+
 def aggregate_capture(table: dict[str, dict[str, Any]]) -> float | None:
     fams = []
     for fam in PPO262_REQUIRED_BASELINES:

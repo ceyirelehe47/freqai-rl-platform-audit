@@ -52,6 +52,7 @@ class TeachingCurveCallback:
                 inner_self._ep_positions: list[int] = []
                 inner_self._ep_changes = 0
                 inner_self._ep_rewards = 0.0
+                inner_self._ep_fees = 0.0
                 inner_self._ep_steps = 0
 
             def _on_step(inner_self) -> bool:
@@ -62,6 +63,7 @@ class TeachingCurveCallback:
                     inner_self._ep_rewards += float(info.get(
                         "reward_raw", info.get("episode_reward_raw", 0.0)))
                     inner_self._ep_steps += 1
+                    inner_self._ep_fees += float(info.get("fee_paid", 0.0))
                     inner_self._ep_positions.append(
                         int(info.get("new_target_position", 0)))
                     if (len(inner_self._ep_positions) > 1
@@ -69,44 +71,52 @@ class TeachingCurveCallback:
                             != inner_self._ep_positions[-2]):
                         inner_self._ep_changes += 1
                     if info.get("terminated", False):
+                        liq = info.get("terminal_liquidation") or {}
                         row = {
                             "env_step": inner_self.num_timesteps,
                             "episode_index": info["episode_index"],
+                            "manifest_index": info.get(
+                                "manifest_index", info["episode_index"]),
                             "episode_key": info.get("episode_key", ""),
+                            "namespace": info.get("namespace"),
+                            "family": info.get("family"),
+                            "rung": info.get("rung"),
+                            "pair_index": info.get("pair_index"),
+                            "variant": info.get("variant"),
                             "steps": inner_self._ep_steps,
                             "episode_reward_raw": inner_self._ep_rewards,
                             "long_fraction": float(np.mean(
                                 inner_self._ep_positions)),
                             "position_changes": inner_self._ep_changes,
+                            "cost_fees_paid": inner_self._ep_fees,
+                            "terminal_liquidation_fee": float(
+                                liq.get("fee_paid", 0.0)),
                         }
+                        if not row["episode_key"]:
+                            raise RuntimeError(
+                                "terminal step 丢失 episode attribution"
+                                "(Repair C 合同被破坏:info 必须携带 "
+                                "episode_key/family/rung 等字段)")
                         inner_self.episode_rows.append(row)
                         inner_self._ep_positions = []
                         inner_self._ep_changes = 0
                         inner_self._ep_rewards = 0.0
                         inner_self._ep_steps = 0
+                        inner_self._ep_fees = 0.0
                         if on_episode_done is not None:
                             on_episode_done(
                                 env.episodes_consumed, inner_self.model)
                 return True
 
             def _on_rollout_end(inner_self) -> None:
-                # SB3 标准 PPO 诊断(train 阶段写入 logger;rollout 结束
-                # 时读取最近值)。避免手工重算引入的语义漂移。
-                log_vals = getattr(
-                    inner_self.model.logger, "name_to_value", {}) or {}
-                row = {"env_step": int(inner_self.num_timesteps)}
-                for src, dst in (
-                        ("train/entropy_loss", "entropy_loss"),
-                        ("train/approx_kl", "approx_kl"),
-                        ("train/clip_fraction", "clip_fraction"),
-                        ("train/value_loss", "value_loss"),
-                        ("train/policy_gradient_loss", "policy_loss"),
-                        ("train/explained_variance", "explained_variance"),
-                        ("train/loss", "loss"),
-                        ("train/grad_norm", "grad_norm")):
-                    if src in log_vals:
-                        row[dst] = float(log_vals[src])
-                inner_self.rollout_rows.append(row)
+                # Repair D:不再在此处读取 train/* logger 值——SB3 2.9.0
+                # 的时序是 collect_rollouts(on_rollout_end)先于 train(),
+                # 且 train() 末尾 dump 清空 name_to_value,这里读到的
+                # 只能是空 dict 或滞后一轮的值(s262_r0 根因之一)。
+                # rollout/update 绑定的 train/* 记录改由 DiagnosedPPO
+                # 在 train() 内捕获(update_records,含 rollout_index/
+                # update_index/env_step 绑定与 missing_metrics 显式声明)。
+                return None
 
         self.impl = _Impl()
 
@@ -198,7 +208,11 @@ def train_run(
                 checkpoints[tag] = checkpoint_saver(n_done, model)
 
     curve = TeachingCurveCallback(env, on_episode_done=_save_checkpoint)
-    model = build_ppo(config, model_seed, env)
+    from rl_curriculum.ppo262_diag_train import build_diagnosed_ppo
+    # Repair D:DiagnosedPPO 与原生 PPO 同参构造(不消耗额外随机数,
+    # 同 seed 初始权重逐位一致),train() 内捕获本 update 的 train/*
+    # 指标并绑定 rollout/update index
+    model = build_diagnosed_ppo(config, model_seed, env)
 
     # 初始 checkpoint(0 个 episode 完成:构造后、任何更新前)
     _save_checkpoint(0, model)
@@ -244,7 +258,11 @@ def train_run(
         "audit_problems": problems,
         "pass": not problems,
         "episode_curve": curve.impl.episode_rows,
-        "rollout_curve": curve.impl.rollout_rows,
+        # Repair D:rollout 曲线 = DiagnosedPPO 的 update 记录
+        # (每条绑定 update_index/rollout_index/env_step;
+        # 缺失 metric 显式在 missing_metrics)
+        "rollout_curve": model.diag_update_records,
+        "rollout_buffer_stats": model.diag_rollout_records,
         "checkpoints": {k: v for k, v in checkpoints.items()},
         "model": model,  # 训练后模型(调用方保存;不进 JSON)
     }

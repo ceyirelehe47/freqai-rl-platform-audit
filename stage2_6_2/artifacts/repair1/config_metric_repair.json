@@ -1,0 +1,61 @@
+{
+  "format": "ppo262-repair1-config-metric-repair-v1",
+  "metric": "config_dev_D1_capture(方案 B:独立 D1-only 指标,不调用 family_core_capture)",
+  "r0_scores_null": {
+    "cand_a_center": null,
+    "cand_b_lowentropy": null,
+    "cand_c_highentropy": null
+  },
+  "rescored": {
+    "cand_a_center": -3.2393770266912782,
+    "cand_b_lowentropy": -3.2393770266912782,
+    "cand_c_highentropy": -3.2393770266912782
+  },
+  "rescored_detail": {
+    "cand_a_center": {
+      "family_d1_captures": {
+        "c1_opportunity": 0.0,
+        "c2_context": 0.0,
+        "c3_cost": -9.718131080073835
+      },
+      "config_dev_D1_capture": -3.2393770266912782
+    },
+    "cand_b_lowentropy": {
+      "family_d1_captures": {
+        "c1_opportunity": 0.0,
+        "c2_context": 0.0,
+        "c3_cost": -9.718131080073835
+      },
+      "config_dev_D1_capture": -3.2393770266912782
+    },
+    "cand_c_highentropy": {
+      "family_d1_captures": {
+        "c1_opportunity": 0.0,
+        "c2_context": 0.0,
+        "c3_cost": -9.718131080073835
+      },
+      "config_dev_D1_capture": -3.2393770266912782
+    }
+  },
+  "selection": {
+    "selected": null,
+    "all_fail": true,
+    "notes": {
+      "selection_rule": "config_dev_D1_capture 最高者;并列(<0.02)取三族方差小者;无 fallback",
+      "fallback_semantics": "removed in repair1:all candidates FAIL => official workflow STOP",
+      "all_fail": "全部 candidate 在 development corpus 上无基础学习信号(config_dev_D1_capture <= 0 且无任何 family D1 capture > 0.05);official config selection 为空,probe/core/final 均 fail closed;如需继续仅可走独立 diagnostic workflow"
+    }
+  },
+  "checks": {
+    "rescored_all_finite": true,
+    "r0_null_scores_reproduced": true,
+    "all_fail_detected": true,
+    "reselect_returned_nonzero": true,
+    "reselect_no_selected_config": true,
+    "reselect_result_all_fail": true,
+    "gate_closed_after_all_fail": true
+  },
+  "sandbox_reselect_returncode": 2,
+  "pass": true,
+  "r0_original_untouched": "repair-verify 只读 ppo_config_development_result.json;重选在临时 sandbox artifacts 目录执行"
+}

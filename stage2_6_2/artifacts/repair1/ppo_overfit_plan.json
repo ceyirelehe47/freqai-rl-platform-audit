@@ -1,0 +1,39 @@
+{
+  "format": "ppo262-repair1-ppo-overfit-plan-v1",
+  "tests": {
+    "A": "C1 D0 small bank 重复暴露 16 cycles",
+    "B": "C2 D0 small bank",
+    "C": "C3 D0 small bank"
+  },
+  "seeds": [
+    27101,
+    27102,
+    27103
+  ],
+  "budget": {
+    "train_per_seed_slot": {
+      "namespace": "diag262r1_overfit_{fam_short}",
+      "families": "{single}",
+      "rungs": [
+        "D0"
+      ],
+      "pairs": 8
+    },
+    "dev": {
+      "pair_base_offset": 256,
+      "pairs": 8
+    },
+    "episodes_per_bank": 16,
+    "cycles": 16,
+    "steps_per_seed": 73472,
+    "checkpoint_episodes": [
+      0,
+      12,
+      25,
+      64,
+      128,
+      256
+    ]
+  },
+  "plan_digest": "dp-eb37187b2b81b8bc37f15d896ea5d6e322d080e0dc124259859c666ae8f2733e"
+}

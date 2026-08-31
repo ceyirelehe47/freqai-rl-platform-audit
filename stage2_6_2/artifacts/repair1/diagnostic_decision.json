@@ -1,0 +1,129 @@
+{
+  "format": "ppo262-repair1-diagnostic-decision-v1",
+  "diagnostic_iteration": "s262_diag_r1",
+  "rules_applied": {
+    "supervised_learned": "family x arm 的 held-out(eval bank)balanced_accuracy >= 0.60 且 behavior_gap_proxy >= 0.20",
+    "ppo_recovered_arm": "训练 bank capture > 0.05 且 probability separation gap > 0.05 且 deterministic behavior gap > 0.02(3 seeds 中 >= 2 seeds 满足)",
+    "overfit_nondegenerate": "family x seed: 训练 bank D0 capture > 0.05 且该族 probability gap > 0.05;3 seeds 中 >= 2 满足则该族可过拟合",
+    "bc_retained": "PPO fine-tune 后 held-out reference match rate 相对 BC 结束值绝对下降 <= 0.15,且 fine-tune 后 match rate 仍 >= 0.55",
+    "branch_decision": {
+      "A": "unscaled scratch PPO 满足 ppo_recovered_arm(Arm A)",
+      "B": "A 不满足,但 Arm B 或 C 满足 ppo_recovered_arm",
+      "C": "supervised 学会 + scratch PPO 全不满足 + BC 能学且 fine-tune 保留",
+      "D": "supervised 学会 + scratch 全不满足 + BC 能学但 fine-tune 摧毁",
+      "E": "scaled(全部 arm)supervised 也学不会",
+      "F": "证据互相矛盾或不充分"
+    }
+  },
+  "evidence": {
+    "arm_recovery": {
+      "A_unscaled": {
+        "flags": {
+          "seed27201": false,
+          "seed27202": false,
+          "seed27203": false
+        },
+        "n_positive": 0,
+        "recovered": false,
+        "detail": {
+          "seed27201": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27202": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27203": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          }
+        }
+      },
+      "B_fixed_causal": {
+        "flags": {
+          "seed27201": false,
+          "seed27202": false,
+          "seed27203": false
+        },
+        "n_positive": 0,
+        "recovered": false,
+        "detail": {
+          "seed27201": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27202": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27203": {
+            "capture_ok": false,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          }
+        }
+      },
+      "C_train_fitted": {
+        "flags": {
+          "seed27201": false,
+          "seed27202": false,
+          "seed27203": false
+        },
+        "n_positive": 0,
+        "recovered": false,
+        "detail": {
+          "seed27201": {
+            "capture_ok": true,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27202": {
+            "capture_ok": true,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          },
+          "seed27203": {
+            "capture_ok": true,
+            "probability_ok": false,
+            "det_gap_ok": false,
+            "best_signal": null
+          }
+        }
+      }
+    },
+    "supervised_learned_arms": {
+      "train_fitted": [
+        "c1_opportunity",
+        "c3_cost"
+      ]
+    },
+    "overfit_nondegenerate_by_family": {
+      "c1_opportunity": false,
+      "c2_context": false,
+      "c3_cost": true
+    },
+    "bc": {
+      "executed": true,
+      "retained": false
+    }
+  },
+  "branch": "D",
+  "branch_meaning": "supervised 学会 + scratch 全不满足 + BC 能学但 fine-tune 摧毁",
+  "recommended_next_stage": "PPO optimization repair:advantage normalization / critic stabilization / smaller updates / KL control / actor-critic LR 分离 / cost transition dynamics(仍不进 2.6.3)",
+  "official_stage_status_unchanged": "Stage 2.6.2 = FAIL(Repair R1 不改变)",
+  "final_namespace_unconsumed": true
+}
