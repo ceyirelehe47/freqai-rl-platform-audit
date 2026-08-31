@@ -195,7 +195,7 @@ Curriculum = real RouteCStrategy feature semantics
 
 ## 16. final qualification 是否 PASS?
 
-**PASS**。一次性执行(120 pairs = 3 families × 4 rungs × 10 pairs × A/B,`qualification_r2` seed space,lock 前从未生成)。全部 17 项 checks 通过:robustness gate 前置通过、production observation/runtime config/preprocessing boundary/code identity 四重身份、frozen contracts、vendor pin clean、pair integrity 1.0、causality、latent isolation、reproducibility、fresh seed、ordering、D3 positive、reference beats required、oracle positive、C2 local-cue independence、C2 context observability。PPO 256-step smoke PASS(不构成训练,不参与课程参数选择)。
+**PASS**。一次性执行(120 pairs = 3 families × 4 rungs × 10 pairs × A/B,`qualification_r2` seed space,lock 前从未生成)。全部 18 项 checks 通过:robustness gate 前置通过、production observation/runtime config/preprocessing boundary/code identity 四重身份、frozen contracts、vendor pin clean、pair integrity 1.0、causality、latent isolation、reproducibility、fresh seed、ordering、D3 positive、reference beats required、oracle positive、C2 local-cue independence、C2 context observability。PPO 256-step smoke PASS(不构成训练,不参与课程参数选择)。
 
 ## 17. 若 final FAIL,失败后是否停止而没有重用 test corpus?
 
