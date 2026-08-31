@@ -143,3 +143,18 @@ preprocessing 并重新 qualification,不得直接 official 2.6.2);C3=D
 文件(53 项;stage2_6_2 全套 149 项全绿;affected 2.6.1 106 项与
 Route C 代表 276 项全绿)。r0/R1 证据零覆盖(哈希重算验证);
 official final namespace 未解锁/未生成/未暴露。
+
+## Stage 2.6.2 侧的 R3 联动更新(2026-09-01)
+
+阶段 2.6.1 Repair R3(预处理合同轮,诚实 FAIL,详见
+`../stage2_6_1/report/route_c_stage2_6_1_repair3_preprocessing_qualification.md`)对本目录做了一处登记式更新:
+
+- `ppo262_input_lock.py`:新增 `R3_REGISTERED_CODE_CHANGES` 显式
+  白名单——2.6.1 的 `curriculum261_api.py` 在 R3 迭代中合法变更
+  (R3 namespace 白名单 + qualification_r3 完整守卫 + 重复派生
+  函数合并)。守卫语义不变:登记文件必须精确等于登记哈希(二次
+  漂移仍 fail closed);未登记文件的任何漂移仍然 fail;
+- `tests/route_c_stage2_6_2/test_ppo262_input_lock.py`:守卫测试
+  相应更新,并新增 R2 seed 派生黄金向量测试(证明 R3 变更不改变
+  R2 corpus 的 seed 派生);
+- Stage 2.6.2 official 状态保持 **FAIL**;C3 PPO Branch D 仍开放。

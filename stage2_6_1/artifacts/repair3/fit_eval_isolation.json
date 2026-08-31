@@ -1,0 +1,46 @@
+{
+  "main": {
+    "namespace": "preprocess_fit_calibration_r3",
+    "pairs_per_rung": 4,
+    "n_pairs": 48,
+    "n_episodes": 96,
+    "n_rows": 27648,
+    "columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "integrity_all_ok": true,
+    "state_hash": "r3pre-914ab89ea2c4acf8c0dec3bf1f56c6f4041f8b21e04fe385614706a1f8638981"
+  },
+  "holdout": {
+    "namespace": "preprocess_fit_holdout_r3",
+    "pairs_per_rung": 4,
+    "n_pairs": 48,
+    "n_episodes": 96,
+    "n_rows": 27648,
+    "columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "integrity_all_ok": true,
+    "state_hash": "r3pre-4b11ce31971776076e8846208872200bf6405847b1f31893b05dfb0b1f275c47"
+  },
+  "eval_namespaces": [
+    "calibration_r3",
+    "calibration_holdout_r3"
+  ],
+  "fit_bank_used_for_metrics": false,
+  "protocol": "offline training-corpus fit -> frozen transform;fit bank 只用于拟合 preprocessor"
+}

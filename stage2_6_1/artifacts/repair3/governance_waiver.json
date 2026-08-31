@@ -1,0 +1,17 @@
+{
+  "format": "cur261-r3-governance-waiver-v1",
+  "iteration": "r3",
+  "recorded_utc": "2026-08-31T17:17:24+00:00",
+  "waivers": [],
+  "declarations": [
+    "本轮无治理豁免:未修改 Route C 六项冻结合同;未修改 fee/slippage/reward/action/execution;未修改 C1/C2/C3 generator 与 rung 参数;vendor pin 保持 52bc96f 且 clean",
+    "supervised gate 修正记录(calibration 阶段内,plan lock 前):(a) behavior_gap 定义对齐 Stage 2.6.2 Repair R2 预注册先例 extended_binary_metrics.behavior_gap_proxy(TPR-FPR),替换本轮初版引入的 accuracy-majority 定义(该定义在 Long 率 4-8% 的类不平衡下结构性不可达,与预注册阈值 0.20 不兼容);(b) C1/C3 补齐 W/B 类不平衡控制(与 C2 及 262 R2 family-aware 先例一致);gate 阈值 0.60/0.20 全程未调整",
+    "curriculum gate margin 条件实现修正(calibration 阶段内):统计单元由跨 rung 混合 pair 改为 (rung, pair) 分层 pair-cluster(跨 rung 同 index pair 为不同 episode,混合制造伪 cluster);修正后 C1/C3 的 FAIL 判定不变(C1 的 d3 条件与 C3 的 holdout 条件在两版实现下均 FAIL)"
+  ],
+  "final_verdict_inputs": {
+    "preprocessing_robustness_gate": "PASS",
+    "curriculum_robustness_gate": "FAIL",
+    "qualification_executed": false,
+    "stop_rule": "§22:curriculum robustness FAIL -> 禁止生成 final plan/digest;禁止访问 preprocess_fit_qualification_r3 / qualification_r3;保存证据后停止"
+  }
+}

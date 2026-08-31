@@ -1,0 +1,23 @@
+{
+  "format": "cur261-r3-historical-binding-v1",
+  "iteration": "r3",
+  "recorded_utc": "2026-08-31T17:17:24+00:00",
+  "policy": "历史证据完整保留,未覆盖/删除/重写任何旧 artifact",
+  "preserved_history": {
+    "stage_2_6_1_r0_r1": "FAIL(artifacts/ 下原样保留)",
+    "stage_2_6_1_r2": "PASS(1927faa;artifacts/repair2/ 原样保留;qp-8f64a1b5... digest 复核一致)",
+    "stage_2_6_2_r0": "FAIL(s262_r0)",
+    "stage_2_6_2_repair_r1": "FAIL",
+    "stage_2_6_2_repair_r2_diagnostics": "PASS(dp-ee6f8dc1...)",
+    "family_diagnostics": {
+      "c1_opportunity": "Branch B(unscaled scratch PPO 三 seed 失败;fixed/train-fitted scaling 恢复)",
+      "c2_context": "Branch A(unscaled 2/3 seeds 恢复)",
+      "c3_cost": "Branch D(BC 可学但 PPO fine-tune 3/3 seeds 摧毁)"
+    },
+    "r2_interpretation_under_r3": "R2 的 causal-unscaled 合同 PASS 保留为历史 PASS;R3 若 PASS 将成为 2.6.2 新 preprocessing candidate (本轮 FAIL,见 qualification_result)"
+  },
+  "r3_writes_only": [
+    "stage2_6_1/artifacts/repair3/*",
+    "stage2_6_1/report/route_c_stage2_6_1_repair3_preprocessing_qualification.md"
+  ]
+}

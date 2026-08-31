@@ -80,7 +80,40 @@ def test_vendor_pin_constant():
 
 
 def test_stage261_directory_unmodified_by_262():
-    """2.6.2 代码不写入 2.6.1 模块(源码哈希与 plan 一致即证据)。"""
+    """2.6.2 代码不写入 2.6.1 模块(源码哈希与 plan 一致即证据)。
+
+    R3 迭代登记例外:curriculum261_api.py 的 R3 变更(R3 namespace
+    白名单 + qualification_r3 完整守卫 + 重复派生函数合并)显式登记
+    于 R3_REGISTERED_CODE_CHANGES;登记文件的漂移必须精确等于登记
+    哈希(二次漂移仍 fail);其余全部文件仍须与 R2 plan 逐文件一致。
+    """
     art = run_input_lock()
-    assert art["curriculum_source_identity"]["r2_code_identity"] == \
-        art["curriculum_source_identity"]["recomputed"]
+    ident = art["curriculum_source_identity"]
+    reg = ident["registered_r3_iteration_changes"]
+    assert ident["recomputed_minus_registered_r3"] == {
+        k: v for k, v in ident["r2_code_identity"].items()
+        if k not in reg}
+    for fname in reg:
+        assert ident["recomputed"][fname] == reg[fname]
+
+
+def test_r2_seed_derivation_unchanged_by_r3():
+    """R3 对 curriculum261_api.py 的登记变更不改变 R2 corpus 派生:
+    _derive261_seed_raw 的 payload 构造与 R2 生效实现逐字节同构
+    (stage2_6_1 + namespace + family + rung + pair + attempt 的
+    canonical JSON -> sha256 前 8 字节),以黄金向量锁定。"""
+    import hashlib
+    import json as _json
+    from rl_curriculum.curriculum261_api import _derive261_seed_raw
+
+    for ns, fam, rung, pair, att in (
+        ("calibration_r2", "c1_opportunity", "D0", 0, 0),
+        ("qualification_r2", "c3_cost", "D3", 29, 4),
+        ("fresh_holdout_r2", "c2_context", "D1", 505, 0),
+    ):
+        payload = _json.dumps(
+            ["stage2_6_1", ns, fam, rung, int(pair), int(att)],
+            sort_keys=True, separators=(",", ":"))
+        expected = int.from_bytes(
+            hashlib.sha256(payload.encode("utf-8")).digest()[:8], "big")
+        assert _derive261_seed_raw(ns, fam, rung, pair, att) == expected

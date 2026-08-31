@@ -1,0 +1,92 @@
+{
+  "contract_version": "RouteCFeaturePreprocessing-v1",
+  "builder": "pinned vendor IFreqaiModel.define_data_pipeline(直接复用,非 adapter 重实现)",
+  "pipeline_steps": [
+    "ds.VarianceThreshold(threshold=0)",
+    "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+  ],
+  "runtime_config": {
+    "format": "cur261-production-runtime-config-v1",
+    "config_path": "experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json",
+    "config_sha256": "37c03d340b43e67fc8ffb240f7992dc3aae4f8b9e28e465287161a601b91b642",
+    "drop_ohlc_from_features": false,
+    "add_state_info": false,
+    "model_type": "PPO",
+    "policy_type": "MlpPolicy",
+    "principal_component_analysis": false,
+    "use_SVM_to_remove_outliers": false,
+    "DI_threshold": 0,
+    "default_feature_pipeline": [
+      "ds.VarianceThreshold(threshold=0)",
+      "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+    ],
+    "conv_width_supported": 1,
+    "define_data_pipeline_sha256": "343b1c9b55738facb623e8ab3c2a5a26992a47748edcfa2df5d1a25c630bd90f",
+    "rl_model_train_path_sha256": "7f39d53cd7299066afccfe0a36c9cd91f0dd531a1cb1249e1ee18beeeae3ee36",
+    "rl_platform_guards_sha256": "95899f323a7e3d2fec6b496d53db29664364f52a58d934fe4b9451db54e706ec",
+    "rl_train_path_summary": "OHLCV -> RouteCStrategy.feature_engineering_standard(8 列) -> feature_pipeline.fit_transform(train_features)(VarianceThreshold(0)+MinMaxScaler((-1,1)),fit 于训练窗) -> AlignedLongFlatEnv(df=scaled, window=CONV_WIDTH=1) -> observation=[特征行, 仓位槽](dim=9)"
+  },
+  "strategy_identity": {
+    "strategy_path": "/home/cryptorl/projects/crypto_rl/user_data/strategies/RouteCStrategy.py",
+    "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756"
+  },
+  "input_columns": [
+    "%-ret-1",
+    "%-ret-4",
+    "%-vol-24",
+    "%-price-ma-ratio",
+    "%-raw_open",
+    "%-raw_high",
+    "%-raw_low",
+    "%-raw_close"
+  ],
+  "retained_columns": [
+    "%-ret-1",
+    "%-ret-4",
+    "%-vol-24",
+    "%-price-ma-ratio",
+    "%-raw_open",
+    "%-raw_high",
+    "%-raw_low",
+    "%-raw_close"
+  ],
+  "variance_mask": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "scaler_feature_range": [
+    -1,
+    1
+  ],
+  "output_dtype": "float64",
+  "clips": false,
+  "position_slot": {
+    "index": 8,
+    "values": "0=Flat,1=Long",
+    "participates_in_fit": false,
+    "scaled": false,
+    "clipped": false,
+    "appended_by": "rl_platform.env.AlignedLongFlatEnv._observation"
+  },
+  "observation_space": {
+    "low": -10.0,
+    "high": 10.0,
+    "dtype": "float32",
+    "dim": 9,
+    "clip_by_pipeline": false,
+    "out_of_train_range": "linear extrapolation beyond [-1, 1]; containment validated empirically per corpus",
+    "position_slot": "[0, 1] semantic, appended unscaled"
+  },
+  "state_hash": "r3pre-914ab89ea2c4acf8c0dec3bf1f56c6f4041f8b21e04fe385614706a1f8638981",
+  "env_core_version": "RouteCEnvCore-v1.0.0",
+  "observation_spec_version": "ObservationSpec-v1",
+  "observation_dim": 9,
+  "fit_protocol": "offline training-corpus fit -> frozen deployment transform;无 episode 内/family 切换/eval refit;无 online normalization"
+}

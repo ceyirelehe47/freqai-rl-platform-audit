@@ -1,0 +1,25 @@
+{
+  "format": "cur261-r3-regression-summary-v1",
+  "iteration": "r3",
+  "recorded_utc": "2026-08-31T17:38:02+00:00",
+  "strategy": "§37:开发期 targeted -> affected;full-cold 仅在两 gate PASS + final qualification PASS + 代码稳定后执行——本轮 curriculum robustness gate FAIL,按停止规则不执行 full-cold,不宣布 full-cold PASS",
+  "targeted": {
+    "command": "python3 regression_runner.py quick",
+    "directory": "tests/route_c_stage2_6_1",
+    "result": "153 passed / 0 failed / 0 skipped / 0 error",
+    "note": "含 R2 协议 19 项(api.py 白名单扩展与守卫增强无回归)与 R3 新增 3 文件(preprocessing/reference/protocol)"
+  },
+  "affected": {
+    "command": "python3 regression_runner.py affected",
+    "exit_code": 0,
+    "additional_manual": {
+      "directory": "tests/route_c_stage2_6_2",
+      "result": "150 passed / 0 failed(含新增 R2 seed 派生黄金向量测试与 R3 输入锁登记修复)",
+      "note": "262 输入锁(2.6.1 只读守卫)按 R3 迭代登记变更更新:curriculum261_api.py 的 R3 修改显式登记哈希白名单,登记文件二次漂移与未登记漂移仍 fail closed;R2 corpus 派生不变性以黄金向量锁定"
+    }
+  },
+  "fullcold": {
+    "executed": false,
+    "reason": "curriculum robustness gate FAIL -> §22/§37 停止规则"
+  }
+}

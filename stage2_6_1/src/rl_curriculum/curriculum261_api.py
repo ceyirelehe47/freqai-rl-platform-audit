@@ -80,13 +80,27 @@ CURRICULUM261_R2_NAMESPACES = (
     "calibration_r2", "calibration_holdout_r2", "qualification_r2",
     "fresh_holdout_r2", "training_r2", "stress_r2")
 
+#: repair R3 全新 iteration identity(curriculum_iteration = r3)。
+#: R3 namespace 与 R0/R1/R2 及全部 Stage 2.6.2 official/diagnostic
+#: namespace 不相交(curriculum261_r3_namespaces.verify_r3_namespace_
+#: isolation 显式验证);preprocess_fit_*_r3 是 preprocessing fit
+#: bank 专用 namespace(fit bank 只用于拟合 preprocessor,不用于
+#: 任何 qualification metric)。
+CURRICULUM261_ITERATION_ID_R3 = "r3"
+CURRICULUM261_R3_NAMESPACES = (
+    "preprocess_fit_calibration_r3", "preprocess_fit_holdout_r3",
+    "preprocess_fit_qualification_r3", "calibration_r3",
+    "calibration_holdout_r3", "qualification_r3", "fresh_holdout_r3",
+    "training_r3", "stress_r3", "ppo_smoke_r3")
+
 #: 旧(R0/R1)namespace 仅保留给历史 artifacts 的诊断复算;R2 正式
 #: 流程(calibration/holdout/stress/qualification/smoke)一律使用
 #: _r2 namespace;qualification 旧 namespace 的 corpus 已暴露,
-#: 不得再用于任何参数选择。
+#: 不得再用于任何参数选择。R3 正式流程一律使用 _r3 namespace。
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
-    "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES
+    "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
+    CURRICULUM261_R3_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -256,33 +270,45 @@ def derive261_seed(
             "(final qualification corpus lock 前对任何代码路径封闭;"
             "校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / "
             "stress_r2 namespace)")
+    if namespace == "qualification_r3":
+        # repair R3(§32 技术债修复):守卫必须完整验证 plan 存在 +
+        # digest 存在 + digest 重算一致 + robustness gate=true,
+        # 不再只检查 plan 文件存在。
+        from rl_curriculum.curriculum261_r3_namespaces import (
+            qualification_r3_unlocked,
+        )
+
+        if not qualification_r3_unlocked():
+            raise GeneratorError(
+                "qualification_r3 seed 在 R3 qualification plan 完整"
+                "锁定(plan + digest 重算一致 + robustness gate=true)"
+                "前不可访问(final qualification corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r3 / "
+                "calibration_holdout_r3 / stress_r3 namespace)")
+    if namespace == "preprocess_fit_qualification_r3":
+        from rl_curriculum.curriculum261_r3_namespaces import (
+            qualification_r3_unlocked as _r3_unlocked,
+        )
+
+        if not _r3_unlocked():
+            raise GeneratorError(
+                "preprocess_fit_qualification_r3(final fit bank)必须"
+                "在 plan 锁定后才允许生成(qualification 前 final fit "
+                "seeds 不可见)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
 def _derive261_seed_raw(
     namespace: str, family: str, rung: str, pair_index: int, attempt: int,
 ) -> int:
-    """seed 派生的纯哈希核心(无 qualification_r2 守卫)。
+    """seed 派生的纯哈希核心(无 qualification lock 守卫)。
 
     仅用于 seed_namespace_integrity 的碰撞枚举——只计算 seed 整数值,
     不生成任何 episode(qualification corpus 的暴露以生成为准);
     corpus 生成一律走 derive261_seed(带 lock 守卫)。
-    """
-    if namespace not in CURRICULUM261_SEED_NAMESPACES:
-        raise GeneratorError(
-            f"seed namespace {namespace!r} 不在 "
-            f"{CURRICULUM261_SEED_NAMESPACES}")
-    return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
-
-def _derive261_seed_raw(
-    namespace: str, family: str, rung: str, pair_index: int, attempt: int,
-) -> int:
-    """seed 派生的纯哈希核心(无 qualification_r2 守卫)。
-
-    仅用于 seed_namespace_integrity 的碰撞枚举——只计算 seed 整数值,
-    不生成任何 episode(qualification corpus 的暴露以生成为准);
-    corpus 生成一律走 derive261_seed(带 lock 守卫)。
+    repair R3(§32 技术债修复):历史上本函数曾被定义两次,第一次
+    (递归调用自身的死代码)被第二次定义覆盖;现已合并为单一实现。
     """
     if namespace not in CURRICULUM261_SEED_NAMESPACES:
         raise GeneratorError(

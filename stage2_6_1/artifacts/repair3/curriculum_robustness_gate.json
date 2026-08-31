@@ -1,0 +1,546 @@
+{
+  "format": "cur261-r3-curriculum-robustness-gate-v1",
+  "iteration": "r3",
+  "kappa": 1.5,
+  "statistical_unit": "pair cluster(A/B 均值;禁止 episode 假独立)",
+  "contract": [
+    "1 ordering",
+    "2 d3_positive",
+    "3 ref_beats_required",
+    "4 integrity_unity(corpus x2 + stress)",
+    "5 gap_ge_kappa_pair_se",
+    "6 d3_ge_kappa_pair_se",
+    "7 c2_local_cue+observability(c2)",
+    "8 attempts_distribution",
+    "9 reference_margin_ge_kappa_pair_se"
+  ],
+  "main_namespace": "calibration_r3",
+  "holdout_namespace": "calibration_holdout_r3",
+  "c2_local_cue_independence": {
+    "format": "cur261-c2-local-cue-independence-v1",
+    "n_pairs": 80,
+    "per_quadrant": {
+      "s-1_w-1": {
+        "n": 1014,
+        "mean_bps": 2.395160742181248,
+        "std_bps": 153.00127498209687,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -181.47,
+          -148.88,
+          3.59,
+          151.82,
+          189.05
+        ]
+      },
+      "s-1_w+1": {
+        "n": 1022,
+        "mean_bps": 1.0079834927971563,
+        "std_bps": 153.3869951093152,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -184.03,
+          -148.88,
+          -5.24,
+          151.29,
+          186.62
+        ]
+      },
+      "s+1_w-1": {
+        "n": 998,
+        "mean_bps": 0.6177773619151111,
+        "std_bps": 152.27183568892497,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -182.4,
+          -148.88,
+          -13.43,
+          150.04,
+          185.5
+        ]
+      },
+      "s+1_w+1": {
+        "n": 1104,
+        "mean_bps": 2.506949176842102,
+        "std_bps": 154.40218427834927,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -182.53,
+          -149.55,
+          -11.43,
+          154.3,
+          191.05
+        ]
+      }
+    },
+    "per_rung_pair_counts": {
+      "D0": {
+        "n_pairs": 20
+      },
+      "D1": {
+        "n_pairs": 20
+      },
+      "D2": {
+        "n_pairs": 20
+      },
+      "D3": {
+        "n_pairs": 20
+      }
+    },
+    "checks": {
+      "mean_gap_within_3se": true,
+      "std_ratio_in_range": true,
+      "sign_balance_gap": true,
+      "cue_rate_ratio_in_range": true
+    },
+    "max_mean_gap_bps": 1.8891718149269905,
+    "pooled_se_bps": 4.7679844266819895,
+    "pass": true
+  },
+  "c2_context_observability": {
+    "format": "cur261-c2-context-observability-v1",
+    "discriminator": {
+      "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+      "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+      "observation_only": true,
+      "latent_used_as": "evaluation label only"
+    },
+    "per_rung_accuracy": {
+      "D0": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D1": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D2": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D3": {
+        "dir_accuracy": 0.999826388888889,
+        "width_accuracy": 1.0
+      }
+    },
+    "direction": {
+      "n_bars": 23040,
+      "accuracy": 0.9999565972222222,
+      "margin": 0.9999131944444444,
+      "se": 8.680367173403027e-05,
+      "kappa_times_se": 0.00013020550760104542,
+      "margin_ge_kappa_se": true
+    },
+    "width": {
+      "n_bars": 23040,
+      "accuracy": 1.0,
+      "margin": 1.0,
+      "se": 1.3176150329477586e-05,
+      "kappa_times_se": 1.976422549421638e-05,
+      "margin_ge_kappa_se": true
+    },
+    "pass": true
+  },
+  "families": {
+    "c1_opportunity": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": null,
+      "pair_cluster_metric_mean": {
+        "D0": 0.1998557586766317,
+        "D1": 0.1022036577436484,
+        "D2": 0.07869886037857832,
+        "D3": 0.0026456427374645735
+      },
+      "pair_cluster_metric_se": {
+        "D0": 0.0061825047148409,
+        "D1": 0.003768453237362947,
+        "D2": 0.0036863982702801173,
+        "D3": 0.004627578779661415
+      },
+      "n_pairs_per_rung": {
+        "D0": 20,
+        "D1": 20,
+        "D2": 20,
+        "D3": 20
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.0970562038940366,
+          "gap_holdout": 0.09824799797193005,
+          "se_pair_cluster": 0.007240483709754566,
+          "kappa_times_se": 0.010860725564631848,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.019534723454514097,
+          "gap_holdout": 0.027474871275626075,
+          "se_pair_cluster": 0.005271695363857392,
+          "kappa_times_se": 0.007907543045786088,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.07669235928067955,
+          "gap_holdout": 0.0754140760015479,
+          "se_pair_cluster": 0.005916419319917823,
+          "kappa_times_se": 0.008874628979876734,
+          "ok": true
+        }
+      },
+      "reference_margin": {
+        "main": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": 0.1962341185575901,
+              "pair_cluster_se": 0.005477574629913795,
+              "gap_over_se": 35.82500135843487,
+              "kappa_times_se": 0.008216361944870694,
+              "ok": true
+            },
+            "D1": {
+              "reference_minus_best_required": 0.0991779146635535,
+              "pair_cluster_se": 0.004825045841613517,
+              "gap_over_se": 20.55481293217889,
+              "kappa_times_se": 0.007237568762420275,
+              "ok": true
+            },
+            "D2": {
+              "reference_minus_best_required": 0.0796431912090394,
+              "pair_cluster_se": 0.00610834422170057,
+              "gap_over_se": 13.038425523908447,
+              "kappa_times_se": 0.009162516332550856,
+              "ok": true
+            },
+            "D3": {
+              "reference_minus_best_required": 0.0029508319283598427,
+              "pair_cluster_se": 0.006420256801939203,
+              "gap_over_se": 0.45961275683996944,
+              "kappa_times_se": 0.009630385202908804,
+              "ok": false
+            }
+          },
+          "ok": false
+        },
+        "holdout": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": 0.20347739879567334,
+              "pair_cluster_se": 0.011334416046924213,
+              "gap_over_se": 17.952173094165747,
+              "kappa_times_se": 0.017001624070386318,
+              "ok": true
+            },
+            "D1": {
+              "reference_minus_best_required": 0.10522940082374328,
+              "pair_cluster_se": 0.005886021706332319,
+              "gap_over_se": 17.877847903709743,
+              "kappa_times_se": 0.00882903255949848,
+              "ok": true
+            },
+            "D2": {
+              "reference_minus_best_required": 0.07775452954811721,
+              "pair_cluster_se": 0.004457351982448743,
+              "gap_over_se": 17.444108038647887,
+              "kappa_times_se": 0.006686027973673115,
+              "ok": true
+            },
+            "D3": {
+              "reference_minus_best_required": 0.0023404535465693043,
+              "pair_cluster_se": 0.007012583025809642,
+              "gap_over_se": 0.3337505649423788,
+              "kappa_times_se": 0.010518874538714463,
+              "ok": false
+            }
+          },
+          "ok": false
+        }
+      },
+      "d3_mean": 0.0026456427374645735,
+      "d3_se": 0.004627578779661415,
+      "d3_mean_ge_kappa_se": false,
+      "pass": false
+    },
+    "c2_context": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": {
+        "local_cue_independence": true,
+        "context_observability": true
+      },
+      "pair_cluster_metric_mean": {
+        "D0": 0.02974388687193761,
+        "D1": 0.02043998725855851,
+        "D2": 0.012954435488199662,
+        "D3": 0.005266680946526106
+      },
+      "pair_cluster_metric_se": {
+        "D0": 0.0034592334831397113,
+        "D1": 0.0016402218463001926,
+        "D2": 0.0015307777014739092,
+        "D3": 0.001159592478313592
+      },
+      "n_pairs_per_rung": {
+        "D0": 20,
+        "D1": 20,
+        "D2": 20,
+        "D3": 20
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.008461455962280217,
+          "gap_holdout": 0.010146343264477973,
+          "se_pair_cluster": 0.0038283970530700326,
+          "kappa_times_se": 0.005742595579605049,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.006695448403298733,
+          "gap_holdout": 0.00827565513741897,
+          "se_pair_cluster": 0.0022435703858827687,
+          "kappa_times_se": 0.003365355578824153,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.008292583597066755,
+          "gap_holdout": 0.007082925486280357,
+          "se_pair_cluster": 0.001920399720654844,
+          "kappa_times_se": 0.002880599580982266,
+          "ok": true
+        }
+      },
+      "reference_margin": {
+        "main": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": 0.028212388171266235,
+              "pair_cluster_se": 0.004788191734402011,
+              "gap_over_se": 5.89207570126463,
+              "kappa_times_se": 0.007182287601603016,
+              "ok": true
+            },
+            "D1": {
+              "reference_minus_best_required": 0.02001171313671878,
+              "pair_cluster_se": 0.0024438392546848086,
+              "gap_over_se": 8.18863724295965,
+              "kappa_times_se": 0.003665758882027213,
+              "ok": true
+            },
+            "D2": {
+              "reference_minus_best_required": 0.013316264733420046,
+              "pair_cluster_se": 0.002166094985728208,
+              "gap_over_se": 6.147590397077311,
+              "kappa_times_se": 0.0032491424785923125,
+              "ok": true
+            },
+            "D3": {
+              "reference_minus_best_required": 0.005023681136353292,
+              "pair_cluster_se": 0.0019057539638276855,
+              "gap_over_se": 2.6360596549741837,
+              "kappa_times_se": 0.002858630945741528,
+              "ok": true
+            }
+          },
+          "ok": true
+        },
+        "holdout": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": 0.0284504737983726,
+              "pair_cluster_se": 0.004429331551436991,
+              "gap_over_se": 6.423198053246325,
+              "kappa_times_se": 0.0066439973271554854,
+              "ok": true
+            },
+            "D1": {
+              "reference_minus_best_required": 0.020868261380398247,
+              "pair_cluster_se": 0.002312152979885364,
+              "gap_over_se": 9.025467415842394,
+              "kappa_times_se": 0.003468229469828046,
+              "ok": true
+            },
+            "D2": {
+              "reference_minus_best_required": 0.012592606242979277,
+              "pair_cluster_se": 0.002274376738077314,
+              "gap_over_se": 5.53672838459677,
+              "kappa_times_se": 0.0034115651071159707,
+              "ok": true
+            },
+            "D3": {
+              "reference_minus_best_required": 0.00550968075669892,
+              "pair_cluster_se": 0.0014256264840274008,
+              "gap_over_se": 3.864743548488275,
+              "kappa_times_se": 0.002138439726041101,
+              "ok": true
+            }
+          },
+          "ok": true
+        }
+      },
+      "d3_mean": 0.005266680946526106,
+      "d3_se": 0.001159592478313592,
+      "d3_mean_ge_kappa_se": true,
+      "pass": true
+    },
+    "c3_cost": {
+      "per_corpus_flags": {
+        "main": {
+          "ordering_ok": true,
+          "d3_positive": true,
+          "ref_beats_required": true,
+          "integrity_unity": true
+        },
+        "holdout": {
+          "ordering_ok": true,
+          "d3_positive": false,
+          "ref_beats_required": false,
+          "integrity_unity": true
+        }
+      },
+      "stress_accepted_implies_integrity": true,
+      "attempts_distribution_ok": true,
+      "c2_diagnostics": null,
+      "pair_cluster_metric_mean": {
+        "D0": 0.05704349429872226,
+        "D1": 0.04005108653672289,
+        "D2": 0.02148086081353983,
+        "D3": 0.0027917965281307024
+      },
+      "pair_cluster_metric_se": {
+        "D0": 0.0031578884741849536,
+        "D1": 0.002846482394865595,
+        "D2": 0.002394824395518152,
+        "D3": 0.0021309444687811004
+      },
+      "n_pairs_per_rung": {
+        "D0": 20,
+        "D1": 20,
+        "D2": 20,
+        "D3": 20
+      },
+      "gaps": {
+        "D0-D1": {
+          "gap_main": 0.022376380015440185,
+          "gap_holdout": 0.011608435508558564,
+          "se_pair_cluster": 0.004251437596821803,
+          "kappa_times_se": 0.006377156395232704,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap_main": 0.016560898854721704,
+          "gap_holdout": 0.020579552591644394,
+          "se_pair_cluster": 0.003719898642389152,
+          "kappa_times_se": 0.005579847963583728,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap_main": 0.013549378706368775,
+          "gap_holdout": 0.023828749864449477,
+          "se_pair_cluster": 0.003205636943635016,
+          "kappa_times_se": 0.0048084554154525245,
+          "ok": true
+        }
+      },
+      "reference_margin": {
+        "main": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": -0.009664865231033964,
+              "pair_cluster_se": 0.0022604946656358464,
+              "gap_over_se": -4.27555321317928,
+              "kappa_times_se": 0.0033907419984537694,
+              "ok": false
+            },
+            "D1": {
+              "reference_minus_best_required": -0.007994054963281223,
+              "pair_cluster_se": 0.003206666932181664,
+              "gap_over_se": -2.492948326829331,
+              "kappa_times_se": 0.004810000398272496,
+              "ok": false
+            },
+            "D2": {
+              "reference_minus_best_required": -0.003781863509663691,
+              "pair_cluster_se": 0.0013948552008516038,
+              "gap_over_se": -2.7112946973669683,
+              "kappa_times_se": 0.0020922828012774055,
+              "ok": false
+            },
+            "D3": {
+              "reference_minus_best_required": 0.000763296327889501,
+              "pair_cluster_se": 0.00282871164951547,
+              "gap_over_se": 0.2698388603943587,
+              "kappa_times_se": 0.004243067474273205,
+              "ok": false
+            }
+          },
+          "ok": false
+        },
+        "holdout": {
+          "per_rung": {
+            "D0": {
+              "reference_minus_best_required": -0.013075349881353138,
+              "pair_cluster_se": 0.0012342961319466955,
+              "gap_over_se": -10.593365354496479,
+              "kappa_times_se": 0.0018514441979200433,
+              "ok": false
+            },
+            "D1": {
+              "reference_minus_best_required": -0.007980933078040615,
+              "pair_cluster_se": 0.001512677191809281,
+              "gap_over_se": -5.276031873327045,
+              "kappa_times_se": 0.0022690157877139215,
+              "ok": false
+            },
+            "D2": {
+              "reference_minus_best_required": -0.0031902856274250934,
+              "pair_cluster_se": 0.0018226794220805365,
+              "gap_over_se": -1.7503273415922331,
+              "kappa_times_se": 0.002734019133120805,
+              "ok": false
+            },
+            "D3": {
+              "reference_minus_best_required": -0.002018131169242948,
+              "pair_cluster_se": 0.0017889061553028997,
+              "gap_over_se": -1.1281369697681183,
+              "kappa_times_se": 0.0026833592329543496,
+              "ok": false
+            }
+          },
+          "ok": false
+        }
+      },
+      "d3_mean": 0.0027917965281307024,
+      "d3_se": 0.0021309444687811004,
+      "d3_mean_ge_kappa_se": false,
+      "pass": false
+    }
+  },
+  "pass": false
+}

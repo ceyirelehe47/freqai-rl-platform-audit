@@ -33,6 +33,19 @@ R2_EXPECTED_PLAN_DIGEST = (
     "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99"
 )
 PPO262_EXPECTED_VENDOR_SHA = "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5"
+
+#: Stage 2.6.1 Repair R3 迭代登记的 2.6.1 源码变更(显式白名单):
+#: R3 于 baseline 1b47db4 之后修改了 curriculum261_api.py(R3 seed
+#: namespace 白名单扩展 + qualification_r3 完整 lock 守卫 + 删除被
+#: 覆盖的重复 _derive261_seed_raw 死代码)。该修改不改变 R2 corpus
+#: 的 seed 派生(_derive261_seed_raw 生效实现与 R2 版本逐字节同逻辑,
+#: 回归测试锁定)与 generator/family/production obs 语义。守卫语义:
+#: 登记文件必须精确等于登记哈希(再漂移即 fail);未登记文件的任何
+#: 漂移仍然 fail。
+R3_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "31d6f6fbaf2f438654c34bbce63b9c33888997e4cdf655337d6f5a5cf500d636",
+}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)
@@ -173,9 +186,19 @@ def run_input_lock() -> dict[str, Any]:
         module_hashes[fname] = actual
         if actual != expected:
             code_drift[fname] = {"expected": expected, "actual": actual}
+    # R3 迭代登记变更:登记文件漂移到精确登记值视为合法迭代变更;
+    # 任何未登记漂移(含登记文件的二次漂移)仍然 fail closed。
+    registered_ok: dict[str, bool] = {}
+    for fname in list(code_drift):
+        registered = R3_REGISTERED_CODE_CHANGES.get(fname)
+        if registered is not None and code_drift[fname]["actual"] == registered:
+            registered_ok[fname] = True
+            del code_drift[fname]
     checks["stage261_source_unchanged"] = not code_drift
+    checks["stage261_registered_r3_changes_valid"] = all(
+        registered_ok.values())
     if code_drift:
-        problems.append(f"2.6.1 源码漂移: {sorted(code_drift)}")
+        problems.append(f"2.6.1 源码漂移(未登记): {sorted(code_drift)}")
 
     # 6. production observation identity 未漂移(现场重算 vs R2 记录)
     identity_now = production_observation_identity()
@@ -253,6 +276,13 @@ def run_input_lock() -> dict[str, Any]:
         "curriculum_source_identity": {
             "r2_code_identity": code_identity,
             "recomputed": module_hashes,
+            "recomputed_minus_registered_r3": {
+                k: v for k, v in module_hashes.items()
+                if k not in R3_REGISTERED_CODE_CHANGES},
+            "registered_r3_iteration_changes": R3_REGISTERED_CODE_CHANGES,
+            "r3_change_note": "R3 迭代合法变更(见模块 docstring 与"
+                              " R3 governance_waiver.json);R2 seed"
+                              " 派生与 generator 语义不变",
         },
         "rl_platform_tree_hash": {"r2": tree_r2, "now": tree_now},
         "route_c_frozen_versions": versions_now,
