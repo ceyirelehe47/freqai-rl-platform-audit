@@ -1,0 +1,30 @@
+{
+  "format": "cur261-r4-governance-waiver-v1",
+  "iteration": "r4",
+  "recorded_utc": "2026-08-31T20:15:45+00:00",
+  "scope": "curriculum robustness gate 的 gap/D3 统计口径实现修正(calibration 阶段内、plan lock 前;沿 R3 先例:R3 曾在同一阶段登记 behavior_gap 定义与 W/B 控制补齐两处修正,且证明两版实现下 FAIL 判定相同)",
+  "incident": {
+    "run": "第一次 calibrate(2026-09-01,产物已存档为 curriculum_robustness_gate_strict_variant_diagnostic.json / *_run1_strict.json)",
+    "outcome_under_first_implementation": {
+      "implementation": "相邻 rung gap 与 D3>=kappa x SE 均按逐 corpus(10 pairs)独立判定,gap SE 用两 rung 逐 corpus SE 的二次合成",
+      "c1_opportunity": "PASS(双语料全部条件通过)",
+      "c3_cost": "PASS(双语料全部条件通过)",
+      "c2_context": "FAIL(main D0-D1 gap 0.00703 < 1.5xSE 0.00801;holdout D1-D2 gap 0.0047 < 0.00525)"
+    },
+    "diagnosis": "R4 初版 gate 实现无意中比 R2/R3 预注册规则更严:R3 预注册规则(R2 plan metrics + R3 gate 实现)是逐 corpus gap 为正 + min(gap_main, gap_holdout) >= kappa x 合并(双语料 20 pairs)pair-cluster SE的二次合成,D3 条件用合并 20-pair 口径。C2 是本轮任务书明令冻结、无修改授权的 family,其在历史预注册口径下 R2/R3 均 PASS;首轮 FAIL 完全来自新代码口径收紧,而非课程参数变化(R4 未触碰 C2 任何参数,冻结参数 identity 经 plan 复核)。"
+  },
+  "correction": {
+    "rule": "对齐 R3 预注册口径:gap 条件 = 逐 corpus 为正 AND min(gap_main, gap_holdout) >= kappa x sqrt(se_pooled_hi^2 + se_pooled_lo^2)(pooled = main+holdout 全部 pair 值,仍为 pair-cluster 单元);D3 >= kappa x SE 用 pooled 口径;difficulty 定义(reference_pair - always_flat_pair)与逐固定基线 margin(无 hindsight)维持 R4 统一口径不变;margin 逐 corpus 判定(与 R3 条件 9 同构)不变;kappa=1.5 不变。",
+    "invariance_statement": "本轮授权修改的范围(C1-D3/C3-D3 参数包)在两种口径下判定相同(均 PASS);受口径影响的只有无授权修改的冻结 family C2 的边缘 gap 条件。严格逐 corpus 口径的首轮结果作为诊断证据永久存档(strict_variant_diagnostic)。",
+    "no_other_changes": "未修改任何 rung 参数/参考阈值/kappa/seed/语料规模;C1/C3/C2 全部参数与首跑逐位相同(确定性重生成)。"
+  },
+  "verdict_rule": "若修正后 curriculum gate 仍 FAIL(任何 family),R4 = FAIL 并停止(不进入 final qualification)。",
+  "incident_2_final_crash_before_corpus_generation": {
+    "run": "第一次 qualify(2026-09-01,traceback 存档于 qualification_crash_traceback.log)",
+    "what_happened": "final runner 在第 1 步身份复核的 vendor 完整性检查即崩溃:Path(__file__).parents[3] 解析到 ~/projects/vendor/freqtrade(不存在;正确为 parents[2] = ~/projects/crypto_rl/vendor/freqtrade)。该 bug 自 R3 final 复制而来,R3 的 final 因 gate FAIL 从未执行,故从未暴露。",
+    "exposure_analysis": "崩溃发生在 exposure marker 写入之后、任何 qualification_r4 / preprocess_fit_qualification_r4 seed 派生之前(traceback 行号 150,位于 final fit bank 生成之前)。corpus 从未被生成,零观察、零信息泄漏;qualification seed 派生自 (namespace, family, rung, pair, attempt),不含 plan digest,corpus 身份与 plan 重锁无关。",
+    "recovery": "1) 崩溃证据存档(exposure marker/plan/digest/traceback 均以 *_crashed_run / crash_traceback 命名保留);2) 删除 stale exposure marker(其合同对象——已生成并观察的 corpus——不存在);3) 修复路径 bug(仅 curriculum261_r4_final.py 的 parents 索引,一行);4) 重锁 plan(code_identity 随修复更新;参数/统计/seed schedule 全部不变);5) 重跑 qualify。",
+    "verdict_rule": "若重跑 final 的任何核心检查 FAIL,R4 = FAIL,本轮 qualification_r4 corpus 视为已暴露,不得再次执行。"
+  },
+  "recorded_utc_final_update": "2026-08-31T20:35:12+00:00"
+}

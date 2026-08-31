@@ -1,0 +1,1438 @@
+{
+  "format": "cur261-r4-curriculum-robustness-gate-v1",
+  "iteration": "r4",
+  "kappa": 1.5,
+  "statistical_unit": "pair cluster(A/B 均值;唯一 pair 证据表派生;禁止 episode 假独立与 hindsight max)",
+  "difficulty_metric": "reference_pair - always_flat_pair",
+  "corpus_rule": "calibration_r4 AND calibration_holdout_r4 各自独立满足全部条件",
+  "contract": [
+    "1 ordering",
+    "2 d3_positive",
+    "3 d3_ge_kappa_pair_se",
+    "4 gap_ge_kappa_pair_se",
+    "5 fixed_baseline_margin_per_baseline_ge_kappa_pair_se",
+    "6 integrity_unity(+stress)",
+    "7 oracle_positive",
+    "8 attempts_distribution",
+    "9 c2_local_cue+observability(c2)"
+  ],
+  "main_namespace": "calibration_r4",
+  "holdout_namespace": "calibration_holdout_r4",
+  "c2_local_cue_independence": {
+    "format": "cur261-c2-local-cue-independence-v1",
+    "n_pairs": 80,
+    "per_quadrant": {
+      "s-1_w-1": {
+        "n": 986,
+        "mean_bps": 0.6449138416423195,
+        "std_bps": 150.60991440022053,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -180.4,
+          -148.32,
+          14.06,
+          147.94,
+          181.32
+        ]
+      },
+      "s-1_w+1": {
+        "n": 1058,
+        "mean_bps": 0.8983432803510606,
+        "std_bps": 152.58044282276632,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -183.12,
+          -148.88,
+          12.61,
+          151.13,
+          184.05
+        ]
+      },
+      "s+1_w-1": {
+        "n": 970,
+        "mean_bps": 2.226982257311379,
+        "std_bps": 152.33686604206557,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -180.82,
+          -147.86,
+          3.3,
+          151.2,
+          182.78
+        ]
+      },
+      "s+1_w+1": {
+        "n": 1126,
+        "mean_bps": 2.120934909032074,
+        "std_bps": 151.70945705603424,
+        "positive_rate": 0.5,
+        "quantiles_bps": [
+          -176.88,
+          -145.7,
+          15.73,
+          151.13,
+          188.48
+        ]
+      }
+    },
+    "per_rung_pair_counts": {
+      "D0": {
+        "n_pairs": 20
+      },
+      "D1": {
+        "n_pairs": 20
+      },
+      "D2": {
+        "n_pairs": 20
+      },
+      "D3": {
+        "n_pairs": 20
+      }
+    },
+    "checks": {
+      "mean_gap_within_3se": true,
+      "std_ratio_in_range": true,
+      "sign_balance_gap": true,
+      "cue_rate_ratio_in_range": true
+    },
+    "max_mean_gap_bps": 1.5820684156690594,
+    "pooled_se_bps": 4.726903926204059,
+    "pass": true
+  },
+  "c2_context_observability": {
+    "format": "cur261-c2-context-observability-v1",
+    "discriminator": {
+      "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+      "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+      "observation_only": true,
+      "latent_used_as": "evaluation label only"
+    },
+    "per_rung_accuracy": {
+      "D0": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D1": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D2": {
+        "dir_accuracy": 1.0,
+        "width_accuracy": 1.0
+      },
+      "D3": {
+        "dir_accuracy": 0.999826388888889,
+        "width_accuracy": 1.0
+      }
+    },
+    "direction": {
+      "n_bars": 23040,
+      "accuracy": 0.9999565972222222,
+      "margin": 0.9999131944444444,
+      "se": 8.680367173403027e-05,
+      "kappa_times_se": 0.00013020550760104542,
+      "margin_ge_kappa_se": true
+    },
+    "width": {
+      "n_bars": 23040,
+      "accuracy": 1.0,
+      "margin": 1.0,
+      "se": 1.3176150329477586e-05,
+      "kappa_times_se": 1.976422549421638e-05,
+      "margin_ge_kappa_se": true
+    },
+    "pass": true
+  },
+  "families": {
+    "c1_opportunity": {
+      "calibration_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.0202979286967421,
+        "d3_se": 0.008809213715068289,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.0202979286967421,
+          "ci_low": 0.003422557030774765,
+          "ci_high": 0.0365340700420048,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.09321296289024322,
+            "se_pair_cluster": 0.011079336246852442,
+            "gap_over_se": 8.413226281197517,
+            "kappa_times_se": 0.01661900437027866,
+            "ok": true
+          },
+          "D1-D2": {
+            "gap": 0.0438661034053434,
+            "se_pair_cluster": 0.009625119312510875,
+            "gap_over_se": 4.557460742156784,
+            "kappa_times_se": 0.014437678968766313,
+            "ok": true
+          },
+          "D2-D3": {
+            "gap": 0.047225516951188054,
+            "se_pair_cluster": 0.010518706785213518,
+            "gap_over_se": 4.489669492220704,
+            "kappa_times_se": 0.015778060177820276,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": true,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.20460251194351678,
+              "se": 0.007946679561068143,
+              "kappa_times_se": 0.011920019341602216,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.20460251194351678,
+                "ci_low": 0.19260529120219536,
+                "ci_high": 0.22153909437128583,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.11138954905327356,
+              "se": 0.007720231578425622,
+              "kappa_times_se": 0.011580347367638433,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.11138954905327356,
+                "ci_low": 0.09774225820900055,
+                "ci_high": 0.12579478392571447,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.06752344564793016,
+              "se": 0.005748125447095744,
+              "kappa_times_se": 0.008622188170643617,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.06752344564793016,
+                "ci_low": 0.056558783916879386,
+                "ci_high": 0.07818067270074812,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.0202979286967421,
+              "se": 0.008809213715068289,
+              "kappa_times_se": 0.013213820572602434,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.0202979286967421,
+                "ci_low": 0.003422557030774765,
+                "ci_high": 0.0365340700420048,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.20660051394151857,
+              "se": 0.007946679561068147,
+              "kappa_times_se": 0.01192001934160222,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.20660051394151857,
+                "ci_low": 0.19460329320019712,
+                "ci_high": 0.22353709636928767,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.11338755105127533,
+              "se": 0.007720231578425621,
+              "kappa_times_se": 0.011580347367638431,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.11338755105127533,
+                "ci_low": 0.09974026020700233,
+                "ci_high": 0.12779278592371623,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.06952144764593197,
+              "se": 0.00574812544709574,
+              "kappa_times_se": 0.00862218817064361,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.06952144764593197,
+                "ci_low": 0.05855678591488122,
+                "ci_high": 0.08017867469874994,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.02229593069474392,
+              "se": 0.008809213715068289,
+              "kappa_times_se": 0.013213820572602434,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.02229593069474392,
+                "ci_low": 0.005420559028776584,
+                "ci_high": 0.03853207204000662,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": true
+      },
+      "calibration_holdout_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.029408471656196443,
+        "d3_se": 0.003771053639702805,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.029408471656196443,
+          "ci_low": 0.023270644833543262,
+          "ci_high": 0.03702093562220275,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.08338359484903893,
+            "se_pair_cluster": 0.00793833958427163,
+            "gap_over_se": 10.503908778889768,
+            "kappa_times_se": 0.011907509376407445,
+            "ok": true
+          },
+          "D1-D2": {
+            "gap": 0.041994245757686316,
+            "se_pair_cluster": 0.007616972456759965,
+            "gap_over_se": 5.513246371321319,
+            "kappa_times_se": 0.011425458685139948,
+            "ok": true
+          },
+          "D2-D3": {
+            "gap": 0.03936072430979149,
+            "se_pair_cluster": 0.006683973648074691,
+            "gap_over_se": 5.8888209891625305,
+            "kappa_times_se": 0.010025960472112037,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": true,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.19414703657271318,
+              "se": 0.005954294594896615,
+              "kappa_times_se": 0.008931441892344922,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.19414703657271318,
+                "ci_low": 0.18206977943495087,
+                "ci_high": 0.204480965723362,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.11076344172367425,
+              "se": 0.005250105830590353,
+              "kappa_times_se": 0.00787515874588553,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.11076344172367425,
+                "ci_low": 0.10150337830416219,
+                "ci_high": 0.12120507536758413,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.06876919596598793,
+              "se": 0.005518573925811008,
+              "kappa_times_se": 0.008277860888716512,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.06876919596598793,
+                "ci_low": 0.0586169755173749,
+                "ci_high": 0.07885693961679648,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.029408471656196443,
+              "se": 0.003771053639702805,
+              "kappa_times_se": 0.005656580459554208,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.029408471656196443,
+                "ci_low": 0.023270644833543262,
+                "ci_high": 0.03702093562220275,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.196145038570715,
+              "se": 0.005954294594896612,
+              "kappa_times_se": 0.008931441892344918,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.196145038570715,
+                "ci_low": 0.18406778143295274,
+                "ci_high": 0.20647896772136382,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.1127614437216761,
+              "se": 0.005250105830590351,
+              "kappa_times_se": 0.007875158745885527,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.1127614437216761,
+                "ci_low": 0.10350138030216403,
+                "ci_high": 0.12320307736558597,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.07076719796398975,
+              "se": 0.005518573925811008,
+              "kappa_times_se": 0.008277860888716512,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.07076719796398975,
+                "ci_low": 0.0606149775153767,
+                "ci_high": 0.0808549416147983,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.03140647365419827,
+              "se": 0.0037710536397028037,
+              "kappa_times_se": 0.005656580459554205,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03140647365419827,
+                "ci_low": 0.0252686468315451,
+                "ci_high": 0.039018937620204586,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": true
+      },
+      "attempts_distribution_ok": true,
+      "stress_accepted_implies_integrity": true,
+      "c2_diagnostics": null,
+      "pass": true
+    },
+    "c2_context": {
+      "calibration_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.006071591413909816,
+        "d3_se": 0.002618744794032842,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.006071591413909816,
+          "ci_low": 0.001384116469249408,
+          "ci_high": 0.010987997746830762,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.007033000586804717,
+            "se_pair_cluster": 0.005342159932003895,
+            "gap_over_se": 1.3165088047385678,
+            "kappa_times_se": 0.008013239898005842,
+            "ok": false
+          },
+          "D1-D2": {
+            "gap": 0.012083277730978701,
+            "se_pair_cluster": 0.004228450161318682,
+            "gap_over_se": 2.8576138466795635,
+            "kappa_times_se": 0.006342675241978023,
+            "ok": true
+          },
+          "D2-D3": {
+            "gap": 0.005522693601307816,
+            "se_pair_cluster": 0.0033806947387816635,
+            "gap_over_se": 1.6335972419970954,
+            "kappa_times_se": 0.005071042108172495,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": false,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.03071056333300105,
+              "se": 0.0039025830667525543,
+              "kappa_times_se": 0.005853874600128831,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03071056333300105,
+                "ci_low": 0.023904655573852705,
+                "ci_high": 0.038009389358815544,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.023677562746196333,
+              "se": 0.003648084174769558,
+              "kappa_times_se": 0.005472126262154337,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.023677562746196333,
+                "ci_low": 0.017571185104583203,
+                "ci_high": 0.031006056145503124,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.011594285015217632,
+              "se": 0.0021380534653165028,
+              "kappa_times_se": 0.003207080197974754,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.011594285015217632,
+                "ci_low": 0.007755199886543041,
+                "ci_high": 0.015668624911899028,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.006071591413909816,
+              "se": 0.002618744794032842,
+              "kappa_times_se": 0.003928117191049263,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.006071591413909816,
+                "ci_low": 0.001384116469249408,
+                "ci_high": 0.010987997746830762,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.03270856533100287,
+              "se": 0.0039025830667525543,
+              "kappa_times_se": 0.005853874600128831,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03270856533100287,
+                "ci_low": 0.025902657571854525,
+                "ci_high": 0.040007391356817364,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.025675564744198152,
+              "se": 0.003648084174769558,
+              "kappa_times_se": 0.005472126262154337,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.025675564744198152,
+                "ci_low": 0.019569187102585022,
+                "ci_high": 0.03300405814350495,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.013592287013219451,
+              "se": 0.0021380534653165028,
+              "kappa_times_se": 0.003207080197974754,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.013592287013219451,
+                "ci_low": 0.00975320188454486,
+                "ci_high": 0.017666626909900847,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.008069593411911635,
+              "se": 0.002618744794032842,
+              "kappa_times_se": 0.003928117191049263,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.008069593411911635,
+                "ci_low": 0.0033821184672512272,
+                "ci_high": 0.01298599974483258,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "c2_local_only": {
+            "D0": {
+              "mean": 0.080762479654064,
+              "se": 0.005398327870843558,
+              "kappa_times_se": 0.008097491806265338,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.080762479654064,
+                "ci_low": 0.07107607808583591,
+                "ci_high": 0.09139097685461033,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.0644079344469142,
+              "se": 0.005379459386300247,
+              "kappa_times_se": 0.00806918907945037,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.0644079344469142,
+                "ci_low": 0.054779183486985905,
+                "ci_high": 0.07477299785679667,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.06318122564903204,
+              "se": 0.004880483853089909,
+              "kappa_times_se": 0.007320725779634864,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.06318122564903204,
+                "ci_low": 0.05428615441193459,
+                "ci_high": 0.07239365000904804,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.05616174733748096,
+              "se": 0.0043277901611346575,
+              "kappa_times_se": 0.006491685241701986,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.05616174733748096,
+                "ci_low": 0.04830602622824926,
+                "ci_high": 0.06461138641856742,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": false
+      },
+      "calibration_holdout_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.004920072508234408,
+        "d3_se": 0.0020645579210963874,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.004920072508234408,
+          "ci_low": 0.0013171425428040095,
+          "ci_high": 0.008873541591016065,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.018377226251690172,
+            "se_pair_cluster": 0.0035067493831667652,
+            "gap_over_se": 5.240530258565168,
+            "kappa_times_se": 0.005260124074750148,
+            "ok": true
+          },
+          "D1-D2": {
+            "gap": 0.004696306635803237,
+            "se_pair_cluster": 0.0034998269526648716,
+            "gap_over_se": 1.341868240721825,
+            "kappa_times_se": 0.005249740428997307,
+            "ok": false
+          },
+          "D2-D3": {
+            "gap": 0.007247083096452388,
+            "se_pair_cluster": 0.0035466817519226364,
+            "gap_over_se": 2.0433418060483675,
+            "kappa_times_se": 0.005320022627883955,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": false,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.035240688492180205,
+              "se": 0.0028922404079882763,
+              "kappa_times_se": 0.004338360611982415,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.035240688492180205,
+                "ci_low": 0.0298446396467517,
+                "ci_high": 0.04066590652059363,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.016863462240490033,
+              "se": 0.001982986802462461,
+              "kappa_times_se": 0.0029744802036936915,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.016863462240490033,
+                "ci_low": 0.013153693156278989,
+                "ci_high": 0.020513578529553357,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.012167155604686796,
+              "se": 0.002883843275883623,
+              "kappa_times_se": 0.004325764913825435,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.012167155604686796,
+                "ci_low": 0.0071486858805773715,
+                "ci_high": 0.018051053207281002,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.004920072508234408,
+              "se": 0.0020645579210963874,
+              "kappa_times_se": 0.003096836881644581,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.004920072508234408,
+                "ci_low": 0.0013171425428040095,
+                "ci_high": 0.008873541591016065,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.037238690490182025,
+              "se": 0.0028922404079882763,
+              "kappa_times_se": 0.004338360611982415,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.037238690490182025,
+                "ci_low": 0.03184264164475352,
+                "ci_high": 0.04266390851859545,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.018861464238491853,
+              "se": 0.001982986802462461,
+              "kappa_times_se": 0.0029744802036936915,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.018861464238491853,
+                "ci_low": 0.015151695154280808,
+                "ci_high": 0.022511580527555176,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.014165157602688615,
+              "se": 0.002883843275883623,
+              "kappa_times_se": 0.004325764913825435,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.014165157602688615,
+                "ci_low": 0.009146687878579191,
+                "ci_high": 0.02004905520528282,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.006918074506236227,
+              "se": 0.0020645579210963874,
+              "kappa_times_se": 0.003096836881644581,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.006918074506236227,
+                "ci_low": 0.003315144540805829,
+                "ci_high": 0.010871543589017884,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "c2_local_only": {
+            "D0": {
+              "mean": 0.07506614992765259,
+              "se": 0.005002623720800568,
+              "kappa_times_se": 0.007503935581200852,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.07506614992765259,
+                "ci_low": 0.06622069034035159,
+                "ci_high": 0.08480907471706682,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.05814724627150854,
+              "se": 0.0038215541875702124,
+              "kappa_times_se": 0.005732331281355319,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.05814724627150854,
+                "ci_low": 0.0509487631136353,
+                "ci_high": 0.06528743226143616,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.058543534820086195,
+              "se": 0.0035321315339627286,
+              "kappa_times_se": 0.005298197300944093,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.058543534820086195,
+                "ci_low": 0.05159210776883608,
+                "ci_high": 0.06481059449664653,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.04823923020308636,
+              "se": 0.003813160241418438,
+              "kappa_times_se": 0.005719740362127657,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.04823923020308636,
+                "ci_low": 0.04119243567388667,
+                "ci_high": 0.055154049653055044,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": false
+      },
+      "attempts_distribution_ok": true,
+      "stress_accepted_implies_integrity": true,
+      "c2_diagnostics": {
+        "local_cue_independence": true,
+        "context_observability": true
+      },
+      "pass": false
+    },
+    "c3_cost": {
+      "calibration_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.00635650955500513,
+        "d3_se": 0.0027122281415460415,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.00635650955500513,
+          "ci_low": 0.00121364146612964,
+          "ci_high": 0.010929870910788642,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.013949419303114462,
+            "se_pair_cluster": 0.0064334967182310245,
+            "gap_over_se": 2.1682484524450087,
+            "kappa_times_se": 0.009650245077346537,
+            "ok": true
+          },
+          "D1-D2": {
+            "gap": 0.016879235705718636,
+            "se_pair_cluster": 0.005438048572773255,
+            "gap_over_se": 3.10391411180623,
+            "kappa_times_se": 0.008157072859159883,
+            "ok": true
+          },
+          "D2-D3": {
+            "gap": 0.010215969569763781,
+            "se_pair_cluster": 0.0039104991905185476,
+            "gap_over_se": 2.6124464095360427,
+            "kappa_times_se": 0.005865748785777822,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": true,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.04740113413360201,
+              "se": 0.004444471866363882,
+              "kappa_times_se": 0.006666707799545823,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.04740113413360201,
+                "ci_low": 0.04051190148886202,
+                "ci_high": 0.05662538318162175,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.03345171483048755,
+              "se": 0.004651510491505885,
+              "kappa_times_se": 0.006977265737258827,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03345171483048755,
+                "ci_low": 0.025627277632058784,
+                "ci_high": 0.04295907980497215,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.01657247912476891,
+              "se": 0.0028170591806442264,
+              "kappa_times_se": 0.00422558877096634,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.01657247912476891,
+                "ci_low": 0.011667721219503246,
+                "ci_high": 0.021925842266442425,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.00635650955500513,
+              "se": 0.0027122281415460415,
+              "kappa_times_se": 0.0040683422123190625,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.00635650955500513,
+                "ci_low": 0.00121364146612964,
+                "ci_high": 0.010929870910788642,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.04939913613160384,
+              "se": 0.004444471866363885,
+              "kappa_times_se": 0.006666707799545828,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.04939913613160384,
+                "ci_low": 0.04250990348686386,
+                "ci_high": 0.05862338517962357,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.03544971682848937,
+              "se": 0.004651510491505885,
+              "kappa_times_se": 0.006977265737258827,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03544971682848937,
+                "ci_low": 0.027625279630060603,
+                "ci_high": 0.04495708180297397,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.01857048112277073,
+              "se": 0.0028170591806442264,
+              "kappa_times_se": 0.00422558877096634,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.01857048112277073,
+                "ci_low": 0.013665723217505065,
+                "ci_high": 0.023923844264444244,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.00835451155300695,
+              "se": 0.0027122281415460415,
+              "kappa_times_se": 0.0040683422123190625,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.00835451155300695,
+                "ci_low": 0.003211643464131459,
+                "ci_high": 0.012927872908790461,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "c3_cost_ignorant": {
+            "D0": {
+              "mean": 0.0050152535357001985,
+              "se": 0.0014627971995213988,
+              "kappa_times_se": 0.0021941957992820983,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.0050152535357001985,
+                "ci_low": 0.002317061419111728,
+                "ci_high": 0.007704768463866343,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.005811338519163117,
+              "se": 0.0015460214714385625,
+              "kappa_times_se": 0.0023190322071578438,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.005811338519163117,
+                "ci_low": 0.003052908007316162,
+                "ci_high": 0.008755152292309316,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.00835193275564432,
+              "se": 0.0022794008628874303,
+              "kappa_times_se": 0.0034191012943311453,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.00835193275564432,
+                "ci_low": 0.0045008999415207035,
+                "ci_high": 0.012826675650868221,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.011813598253348373,
+              "se": 0.002788530819211196,
+              "kappa_times_se": 0.0041827962288167935,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.011813598253348373,
+                "ci_low": 0.00674053532418323,
+                "ci_high": 0.01709420414891932,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": true
+      },
+      "calibration_holdout_r4_conditions": {
+        "ordering_ok": true,
+        "d3_positive": true,
+        "d3_mean": 0.008421361000303223,
+        "d3_se": 0.002059413437869342,
+        "d3_mean_ge_kappa_se": true,
+        "d3_bootstrap_ci": {
+          "n": 10,
+          "mean": 0.008421361000303223,
+          "ci_low": 0.004407400153342361,
+          "ci_high": 0.012053270824108647,
+          "resamples": 5000,
+          "seed": 20260901,
+          "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+        },
+        "gaps": {
+          "D0-D1": {
+            "gap": 0.017355750659515765,
+            "se_pair_cluster": 0.005850441486605899,
+            "gap_over_se": 2.966571103950072,
+            "kappa_times_se": 0.008775662229908849,
+            "ok": true
+          },
+          "D1-D2": {
+            "gap": 0.0092231448846492,
+            "se_pair_cluster": 0.0037930783885359513,
+            "gap_over_se": 2.4315724432494896,
+            "kappa_times_se": 0.005689617582803927,
+            "ok": true
+          },
+          "D2-D3": {
+            "gap": 0.01488482547400556,
+            "se_pair_cluster": 0.002924001710602779,
+            "gap_over_se": 5.090566609462439,
+            "kappa_times_se": 0.004386002565904169,
+            "ok": true
+          }
+        },
+        "gaps_ge_kappa_se": true,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.04988508201847375,
+              "se": 0.004914145319600562,
+              "kappa_times_se": 0.007371217979400843,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.04988508201847375,
+                "ci_low": 0.040143907373372964,
+                "ci_high": 0.058361620280814,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.03252933135895798,
+              "se": 0.003174719100337435,
+              "kappa_times_se": 0.004762078650506152,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.03252933135895798,
+                "ci_low": 0.026665191157644087,
+                "ci_high": 0.03834797922333578,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.023306186474308783,
+              "se": 0.0020757172966305304,
+              "kappa_times_se": 0.0031135759449457956,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.023306186474308783,
+                "ci_low": 0.01928081184187121,
+                "ci_high": 0.02707623685952546,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.008421361000303223,
+              "se": 0.002059413437869342,
+              "kappa_times_se": 0.003089120156804013,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.008421361000303223,
+                "ci_low": 0.004407400153342361,
+                "ci_high": 0.012053270824108647,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.05188308401647557,
+              "se": 0.004914145319600564,
+              "kappa_times_se": 0.007371217979400846,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.05188308401647557,
+                "ci_low": 0.04214190937137478,
+                "ci_high": 0.06035962227881582,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.034527333356959816,
+              "se": 0.0031747191003374396,
+              "kappa_times_se": 0.00476207865050616,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.034527333356959816,
+                "ci_low": 0.028663193155645916,
+                "ci_high": 0.04034598122133763,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.025304188472310602,
+              "se": 0.0020757172966305304,
+              "kappa_times_se": 0.0031135759449457956,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.025304188472310602,
+                "ci_low": 0.02127881383987303,
+                "ci_high": 0.02907423885752728,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.01041936299830506,
+              "se": 0.0020594134378693453,
+              "kappa_times_se": 0.003089120156804018,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.01041936299830506,
+                "ci_low": 0.0064054021513441865,
+                "ci_high": 0.014051272822110484,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          },
+          "c3_cost_ignorant": {
+            "D0": {
+              "mean": 0.0031916558765708427,
+              "se": 0.0011262134478633012,
+              "kappa_times_se": 0.0016893201717949518,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.0031916558765708427,
+                "ci_low": 0.00113297142496895,
+                "ci_high": 0.0053429230771065645,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.004472871903699954,
+              "se": 0.0015217798090975628,
+              "kappa_times_se": 0.0022826697136463445,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.004472871903699954,
+                "ci_low": 0.0016224104816215132,
+                "ci_high": 0.007317036841965549,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.011762408205295654,
+              "se": 0.0029392751236723097,
+              "kappa_times_se": 0.004408912685508464,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.011762408205295654,
+                "ci_low": 0.006882246364446409,
+                "ci_high": 0.01789137431941801,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.00854900223960639,
+              "se": 0.0024356006046461908,
+              "kappa_times_se": 0.0036534009069692864,
+              "bootstrap_ci": {
+                "n": 10,
+                "mean": 0.00854900223960639,
+                "ci_low": 0.004111326430186288,
+                "ci_high": 0.013222133597351785,
+                "resamples": 5000,
+                "seed": 20260901,
+                "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+              },
+              "ok": true
+            }
+          }
+        },
+        "fixed_baseline_margins_ok": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": true
+      },
+      "attempts_distribution_ok": true,
+      "stress_accepted_implies_integrity": true,
+      "c2_diagnostics": null,
+      "pass": true
+    }
+  },
+  "pass": false
+}

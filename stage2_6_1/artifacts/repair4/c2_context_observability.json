@@ -1,0 +1,44 @@
+{
+  "format": "cur261-c2-context-observability-v1",
+  "discriminator": {
+    "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+    "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+    "observation_only": true,
+    "latent_used_as": "evaluation label only"
+  },
+  "per_rung_accuracy": {
+    "D0": {
+      "dir_accuracy": 1.0,
+      "width_accuracy": 1.0
+    },
+    "D1": {
+      "dir_accuracy": 1.0,
+      "width_accuracy": 1.0
+    },
+    "D2": {
+      "dir_accuracy": 1.0,
+      "width_accuracy": 1.0
+    },
+    "D3": {
+      "dir_accuracy": 0.999826388888889,
+      "width_accuracy": 1.0
+    }
+  },
+  "direction": {
+    "n_bars": 23040,
+    "accuracy": 0.9999565972222222,
+    "margin": 0.9999131944444444,
+    "se": 8.680367173403027e-05,
+    "kappa_times_se": 0.00013020550760104542,
+    "margin_ge_kappa_se": true
+  },
+  "width": {
+    "n_bars": 23040,
+    "accuracy": 1.0,
+    "margin": 1.0,
+    "se": 1.3176150329477586e-05,
+    "kappa_times_se": 1.976422549421638e-05,
+    "margin_ge_kappa_se": true
+  },
+  "pass": true
+}

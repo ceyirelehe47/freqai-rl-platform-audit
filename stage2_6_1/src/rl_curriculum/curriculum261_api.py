@@ -97,10 +97,27 @@ CURRICULUM261_R3_NAMESPACES = (
 #: 流程(calibration/holdout/stress/qualification/smoke)一律使用
 #: _r2 namespace;qualification 旧 namespace 的 corpus 已暴露,
 #: 不得再用于任何参数选择。R3 正式流程一律使用 _r3 namespace。
+#:
+#: repair R4 全新 iteration identity(curriculum_iteration = r4)。
+#: R4 namespace 与 R0/R1/R2/R3 及全部 Stage 2.6.2 namespace 不相交
+#: (curriculum261_r4_namespaces.verify_r4_namespace_isolation 显式
+#: 验证);design_r4 仅用于 D3 candidate 功效设计(不进入任何
+#: calibration/qualification metric);preprocess_fit_*_r4 是
+#: preprocessing fit bank 专用 namespace。R4 正式流程一律使用
+#: _r4 namespace;curriculum261_r4_namespaces 从本常量 re-export
+#: (单一来源)。
+CURRICULUM261_ITERATION_ID_R4 = "r4"
+CURRICULUM261_R4_NAMESPACES = (
+    "design_r4", "preprocess_fit_design_r4",
+    "preprocess_fit_calibration_r4", "preprocess_fit_holdout_r4",
+    "preprocess_fit_qualification_r4", "calibration_r4",
+    "calibration_holdout_r4", "qualification_r4", "fresh_holdout_r4",
+    "training_r4", "stress_r4", "ppo_smoke_r4")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
-    CURRICULUM261_R3_NAMESPACES)
+    CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -295,6 +312,22 @@ def derive261_seed(
                 "preprocess_fit_qualification_r3(final fit bank)必须"
                 "在 plan 锁定后才允许生成(qualification 前 final fit "
                 "seeds 不可见)")
+    if namespace in ("qualification_r4",
+                     "preprocess_fit_qualification_r4"):
+        # repair R4:完整守卫(plan + digest 重算 + gate + parameter
+        # pack 绑定一致;final corpus lock 前对任何代码路径封闭)。
+        from rl_curriculum.curriculum261_r4_namespaces import (
+            qualification_r4_unlocked,
+        )
+
+        if not qualification_r4_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R4 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致)前不可访问(final corpus "
+                "lock 前对任何代码路径封闭;校准/诊断一律使用 "
+                "calibration_r4 / calibration_holdout_r4 / stress_r4 "
+                "namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 

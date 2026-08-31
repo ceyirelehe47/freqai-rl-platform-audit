@@ -1,0 +1,30 @@
+{
+  "format": "cur261-r4-historical-binding-v1",
+  "iteration": "r4",
+  "recorded_utc": "2026-08-31T21:30:06+00:00",
+  "policy": "历史证据完整保留,未覆盖/删除/重写任何旧 artifact",
+  "preserved_history": {
+    "stage_2_6_1_r0_r1": "FAIL(artifacts/ 原样保留)",
+    "stage_2_6_1_r2": "PASS(1927faa;artifacts/repair2/ 原样;qp-8f64a1b5... 复核一致)",
+    "stage_2_6_1_r3": "FAIL(d105405;artifacts/repair3/ 原样;R3 plan 从未 lock)",
+    "stage_2_6_2_r0": "FAIL",
+    "stage_2_6_2_repair_r1": "FAIL",
+    "stage_2_6_2_repair_r2_diagnostics": "PASS(dp-ee6f8dc1...)",
+    "family_diagnostics": {
+      "c1_opportunity": "Branch B",
+      "c2_context": "Branch A",
+      "c3_cost": "Branch D"
+    }
+  },
+  "golden_episode_hashes_unchanged": {
+    "calibration_r3_c1_d3_pair0": "与 repair3 calibration_summary 记录逐位一致(测试锁定)",
+    "qualification_r2_c3_d3_pair0": "与 repair2 qualification_raw 记录逐位一致(测试锁定)"
+  },
+  "r4_writes_only": [
+    "stage2_6_1/artifacts/repair4/*",
+    "stage2_6_1/report/route_c_stage2_6_1_repair4_d3_qualification.md",
+    "stage2_6_1/src(R4 模块+api.py 白名单)",
+    "stage2_6_2/src/rl_curriculum/ppo262_input_lock.py(R4 变更登记)"
+  ],
+  "input_lock_registration": "R4_REGISTERED_CODE_CHANGES(curriculum261_api.py 新哈希);2.6.2 全部 150 测试通过"
+}

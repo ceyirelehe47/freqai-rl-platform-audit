@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r4_cli.py", line 532, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r4_cli.py", line 519, in main
+    return cmd_qualify(args)
+           ^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r4_cli.py", line 474, in cmd_qualify
+    result = run_final_qualification_r4(Path(args.out_dir))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r4_final.py", line 150, in run_final_qualification_r4
+    upstream = _upstream_integrity(vendor_dir)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_final.py", line 79, in _upstream_integrity
+    sha = subprocess.run(
+          ^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/vendor/freqtrade'

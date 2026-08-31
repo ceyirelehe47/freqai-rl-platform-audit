@@ -1,0 +1,110 @@
+{
+  "space_validation": {
+    "format": "cur261-r4-observation-space-validation-v1",
+    "context": "final_fit_space_v2",
+    "n_observations": 3444,
+    "max_abs_value_seen": 1.0,
+    "feature_bounds": "(-inf, +inf)",
+    "position_bounds": [
+      0.0,
+      1.0
+    ],
+    "declared_low_feature_unbounded": true,
+    "declared_high_feature_unbounded": true,
+    "clip_by_wrapper": false,
+    "wrapper_pass_through_bitwise": true,
+    "position_slot_valid": true,
+    "violations": [],
+    "pass": true
+  },
+  "adversarial_out_of_range": {
+    "format": "cur261-r4-adversarial-out-of-range-probe-v1",
+    "max_transformed_feature": 13.0,
+    "min_transformed_feature": -13.0,
+    "exceeds_plus_10": true,
+    "exceeds_minus_10": true,
+    "validation": {
+      "format": "cur261-r4-observation-space-validation-v1",
+      "context": "adversarial",
+      "n_observations": 59,
+      "max_abs_value_seen": 13.0,
+      "feature_bounds": "(-inf, +inf)",
+      "position_bounds": [
+        0.0,
+        1.0
+      ],
+      "declared_low_feature_unbounded": true,
+      "declared_high_feature_unbounded": true,
+      "clip_by_wrapper": false,
+      "wrapper_pass_through_bitwise": true,
+      "position_slot_valid": true,
+      "violations": [],
+      "pass": true
+    },
+    "pass": true
+  },
+  "observation_identity": {
+    "schema_version": "route-c-production-obs-r4-v2",
+    "schema_hash": "o-0882a111f0a3fdfe237f811de17325e85d08350cbe520427a4b5e9349382b2f3",
+    "normalization_method": "vendor-freqai-minmax-(-1,1)-v1",
+    "preprocessing_contract": "RouteCFeaturePreprocessing-v2",
+    "feature_columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "observation_dim": 9,
+    "position_slot": {
+      "index": 8,
+      "values": "0=Flat,1=Long",
+      "participates_in_fit": false,
+      "scaled": false,
+      "clipped": false,
+      "appended_by": "rl_platform.env.AlignedLongFlatEnv._observation"
+    },
+    "observation_space": {
+      "feature_dimensions": "(-inf, +inf) per feature dim",
+      "position_dimension": "[0, 1]",
+      "dtype": "float32",
+      "dim": 9,
+      "clip_by_pipeline": false,
+      "clip_by_wrapper": false,
+      "out_of_train_range": "linear extrapolation beyond [-1, 1];unbounded space accepts any finite value",
+      "declared_by": "RouteCPreprocessingEnvV2(outer Gymnasium wrapper;inner AlignedLongFlatEnv 冻结声明不变)"
+    },
+    "normalization_pipeline_hash": "r4pb-406dfcecf6f0dbe1d2a5fbc8c29d4e583f91d3fd88dd6d36827b9503db8beee8",
+    "preprocessing_identity": {
+      "contract_version": "RouteCFeaturePreprocessing-v2",
+      "numerics": "与 RouteCFeaturePreprocessing-v1 逐位一致(vendor pipeline 直接复用,无数值改动)",
+      "parameter_state_hash": "r4ps-22a27dfaf0035f8d1f72e104fa26b850ce0b7b23cdf82f21eaf112f53bed752a",
+      "fit_manifest_multiset_hash": "r4fm-4203ace3938740bca1d356ec26bb0cf5ab1b291236e9dcabe2808c0f59bf303b",
+      "preprocessor_bundle_hash": "r4pb-406dfcecf6f0dbe1d2a5fbc8c29d4e583f91d3fd88dd6d36827b9503db8beee8",
+      "fit_namespace": "preprocess_fit_qualification_r4",
+      "n_manifest_entries": 96,
+      "observation_space": {
+        "feature_dimensions": "(-inf, +inf) per feature dim",
+        "position_dimension": "[0, 1]",
+        "dtype": "float32",
+        "dim": 9,
+        "clip_by_pipeline": false,
+        "clip_by_wrapper": false,
+        "out_of_train_range": "linear extrapolation beyond [-1, 1];unbounded space accepts any finite value",
+        "declared_by": "RouteCPreprocessingEnvV2(outer Gymnasium wrapper;inner AlignedLongFlatEnv 冻结声明不变)"
+      },
+      "position_slot": {
+        "index": 8,
+        "values": "0=Flat,1=Long",
+        "participates_in_fit": false,
+        "scaled": false,
+        "clipped": false,
+        "appended_by": "rl_platform.env.AlignedLongFlatEnv._observation"
+      },
+      "clips": false
+    }
+  }
+}

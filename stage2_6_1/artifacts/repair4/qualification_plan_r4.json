@@ -1,0 +1,508 @@
+{
+  "format": "cur261-r4-qualification-plan-v1",
+  "iteration": "r4",
+  "baseline_commit": "d105405e5ddd989d6faf0601e912907746ad8980",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "frozen_contracts": {
+    "env_core": "RouteCEnvCore-v1.0.0",
+    "observation_spec": "ObservationSpec-v1",
+    "action_spec": "BinaryLongFlatAction-v1",
+    "reward_spec": "NetLogEquityReward-v1",
+    "execution": "MarketOpenCausalExecution-v1",
+    "terminal_liquidation": "TerminalLiquidation-v1"
+  },
+  "route_c_identities": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1",
+    "note": "内层 AlignedLongFlatEnv 冻结声明(Box(-10,10)为其内部 layout)不变;V2 正式 preprocessing 后空间由外层 wrapper 声明(无界 feature + [0,1] position)"
+  },
+  "parameter_pack": {
+    "pack_version": "CurriculumR4D3Pack-v1",
+    "digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+    "selected": {
+      "c1_opportunity": {
+        "candidate": "c1_a_edge_up",
+        "params": {
+          "opp_drift_bps": 24.5,
+          "neg_drift_bps": 16.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        }
+      },
+      "c3_cost": {
+        "candidate": "c3_c_alpha_strong",
+        "params": {
+          "alpha_bps": 50.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.23,
+          "mixture": [
+            0.2,
+            0.36,
+            0.44
+          ],
+          "distractor_rate": 0.06
+        }
+      }
+    },
+    "d3_overrides": {
+      "c1_opportunity": {
+        "opp_drift_bps": 24.5,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 26.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c3_cost": {
+        "alpha_bps": 50.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.2,
+          0.36,
+          0.44
+        ],
+        "distractor_rate": 0.06
+      }
+    },
+    "design_results_digest": "r4dr-5dfb26647f8579d77da486408e4551a039be4123f8f676447a5ec06d2e14fb8d"
+  },
+  "frozen_parameter_identity": {
+    "frozen": {
+      "c1_opportunity": {
+        "D0": {
+          "opp_drift_bps": 60.0,
+          "neg_drift_bps": 46.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        },
+        "D1": {
+          "opp_drift_bps": 42.0,
+          "neg_drift_bps": 33.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        },
+        "D2": {
+          "opp_drift_bps": 34.0,
+          "neg_drift_bps": 27.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        }
+      },
+      "c2_context": {
+        "D0": {
+          "alpha_bps": 68.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.8,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.55,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 32.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c3_cost": {
+        "D0": {
+          "alpha_bps": 70.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.2,
+          "mixture": [
+            0.6,
+            0.25,
+            0.15
+          ],
+          "distractor_rate": 0.015
+        },
+        "D1": {
+          "alpha_bps": 62.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.21,
+          "mixture": [
+            0.46,
+            0.32,
+            0.22
+          ],
+          "distractor_rate": 0.025
+        },
+        "D2": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.22,
+          "mixture": [
+            0.34,
+            0.35,
+            0.31
+          ],
+          "distractor_rate": 0.04
+        }
+      }
+    },
+    "identity": "r4fp-be017c1eafa6242cbc1af4109c57795d3be05567501b6d028d603965d0bd5bc0"
+  },
+  "preprocessing_v2": {
+    "contract_version": "RouteCFeaturePreprocessing-v2",
+    "contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+    "numerics": "与 RouteCFeaturePreprocessing-v1 逐位一致(vendor pipeline 直接复用)",
+    "vendor_pipeline_steps": [
+      "ds.VarianceThreshold(threshold=0)",
+      "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+    ],
+    "production_pipeline_identity": {
+      "builder": "pinned vendor IFreqaiModel.define_data_pipeline",
+      "freqai_interface_sha256": "343b1c9b55738facb623e8ab3c2a5a26992a47748edcfa2df5d1a25c630bd90f",
+      "steps": [
+        [
+          "const",
+          "VarianceThreshold"
+        ],
+        [
+          "scaler",
+          "SKLearnWrapper"
+        ]
+      ]
+    },
+    "runtime_config_identity": {
+      "format": "cur261-production-runtime-config-v1",
+      "config_path": "experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json",
+      "config_sha256": "37c03d340b43e67fc8ffb240f7992dc3aae4f8b9e28e465287161a601b91b642",
+      "drop_ohlc_from_features": false,
+      "add_state_info": false,
+      "model_type": "PPO",
+      "policy_type": "MlpPolicy",
+      "principal_component_analysis": false,
+      "use_SVM_to_remove_outliers": false,
+      "DI_threshold": 0,
+      "default_feature_pipeline": [
+        "ds.VarianceThreshold(threshold=0)",
+        "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+      ],
+      "conv_width_supported": 1,
+      "define_data_pipeline_sha256": "343b1c9b55738facb623e8ab3c2a5a26992a47748edcfa2df5d1a25c630bd90f",
+      "rl_model_train_path_sha256": "7f39d53cd7299066afccfe0a36c9cd91f0dd531a1cb1249e1ee18beeeae3ee36",
+      "rl_platform_guards_sha256": "95899f323a7e3d2fec6b496d53db29664364f52a58d934fe4b9451db54e706ec",
+      "rl_train_path_summary": "OHLCV -> RouteCStrategy.feature_engineering_standard(8 列) -> feature_pipeline.fit_transform(train_features)(VarianceThreshold(0)+MinMaxScaler((-1,1)),fit 于训练窗) -> AlignedLongFlatEnv(df=scaled, window=CONV_WIDTH=1) -> observation=[特征行, 仓位槽](dim=9)"
+    },
+    "feature_construction_identity": {
+      "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+      "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+      "ordered_feature_columns": [
+        "%-ret-1",
+        "%-ret-4",
+        "%-vol-24",
+        "%-price-ma-ratio",
+        "%-raw_open",
+        "%-raw_high",
+        "%-raw_low",
+        "%-raw_close"
+      ]
+    },
+    "ordered_feature_columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "feature_survival_requirement": "8/8 全部存活,observation dim 恒为 9",
+    "position_slot": {
+      "index": 8,
+      "values": "0=Flat,1=Long",
+      "participates_in_fit": false,
+      "scaled": false,
+      "clipped": false,
+      "appended_by": "rl_platform.env.AlignedLongFlatEnv._observation"
+    },
+    "observation_space": {
+      "feature_dimensions": "(-inf, +inf) per feature dim",
+      "position_dimension": "[0, 1]",
+      "dtype": "float32",
+      "dim": 9,
+      "clip_by_pipeline": false,
+      "clip_by_wrapper": false,
+      "out_of_train_range": "linear extrapolation beyond [-1, 1];unbounded space accepts any finite value",
+      "declared_by": "RouteCPreprocessingEnvV2(outer Gymnasium wrapper;inner AlignedLongFlatEnv 冻结声明不变)"
+    },
+    "outer_wrapper": "RouteCPreprocessingEnvV2",
+    "identity_layers": {
+      "parameter_state_hash": "r4ps-",
+      "fit_manifest_multiset_hash": "r4fm-",
+      "preprocessor_bundle_hash": "r4pb-"
+    },
+    "fit_protocol_digest": "r4fpd-8a7bdd8d52836dd2377179c3001635a49e6762a3dd56b2a7b945dbf94bf0420f",
+    "fit_manifest_derivation": "每 fit bank episode 一条 entry(namespace/family/rung/pair/side/episode hash/feature-matrix hash/generator+pack identity);multiset hash 行序不敏感"
+  },
+  "fit_bank_schedule": {
+    "calibration": {
+      "namespace": "preprocess_fit_calibration_r4",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "main fit corpus(preprocessor only)"
+    },
+    "holdout": {
+      "namespace": "preprocess_fit_holdout_r4",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "independent fit holdout(preprocessor only)"
+    },
+    "final": {
+      "namespace": "preprocess_fit_qualification_r4",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "final fit bank(plan lock 后首次生成)"
+    }
+  },
+  "qualification_bank_schedule": {
+    "namespace": "qualification_r4",
+    "families": 3,
+    "rungs": 4,
+    "pairs_per_rung": 10,
+    "sides": [
+      "A",
+      "B"
+    ],
+    "total_pairs": 120,
+    "fresh_seed_namespace": "fresh_holdout_r4"
+  },
+  "calibration_bundle_hash": "r4pb-f769301b0f65a80fe43d844cbad0a8170e8324dc0fd88b884bc3d7d3b915433a",
+  "holdout_bundle_hash": "r4pb-39b01dcc2f66c529677df2228cf5b211e0a12183e0e75b5774cc49c9915907f8",
+  "conditioning_gate_constants": {
+    "raw_ohlc_contribution_share_max": 0.6,
+    "tanh_saturation_rate_max": 0.05,
+    "near_zero_scaled_variance": "forbidden (variance > 1e-12)",
+    "eval_out_of_fit_range_rate_max": 0.1
+  },
+  "supervised_gate_constants": {
+    "min_seeds_passing": 2,
+    "n_model_seeds": 3,
+    "heldout_balanced_accuracy_min": 0.6,
+    "behavior_gap_min": 0.2,
+    "mlp_arch": [
+      128,
+      128
+    ],
+    "gated_controls": [
+      "W",
+      "B"
+    ],
+    "unweighted_control": "U (diagnostic only, not gated; all families)",
+    "imbalance_rationale": "C1/C2/C3 Long rate 4-8%; W/B controls are gated for all families (262 R2 family-aware supervised precedent)"
+  },
+  "reference_wrapper_identity": "PreprocessingAwarePolicy(inverse-transform wrapper,方式 B;仅 scaled obs + frozen state)",
+  "reference_thresholds_by_family": {
+    "c1_opportunity": {
+      "ma_sigma_mult": 1.0
+    },
+    "c2_context": {
+      "cue_thr": 0.0105,
+      "wick_dir_thr": 0.0,
+      "wick_width_thr": 0.012
+    },
+    "c3_cost": {
+      "margin": 1.1,
+      "any_signal_s": 0.22
+    }
+  },
+  "statistics": {
+    "pair_table_schema": {
+      "format": "cur261-r4-pair-evidence-table-v1",
+      "row_key": [
+        "corpus",
+        "family",
+        "rung",
+        "pair_index"
+      ],
+      "aggregation": "pair return = mean(A, B) per policy(A/B 不拆散)",
+      "difficulty": "difficulty_pair[p] = reference_pair[p] - always_flat_pair[p](唯一难度口径)",
+      "margin": "margin[p,b] = reference_pair[p] - baseline_b_pair[p](逐固定基线;禁止 episode 级 max)",
+      "uncertainty": "pair cluster;SE = sd(pair values)/sqrt(n_pairs)",
+      "gap": "adjacent rung gap = mean_hi - mean_lo;SE_gap = sqrt(SE_hi^2 + SE_lo^2)(独立 corpus 样本)",
+      "bootstrap": "percentile;resample pairs;seed=20260901;resamples=5000"
+    },
+    "pair_table_schema_identity": "r4pt-8983715e7bec9568038a49f504a635ff1532563c6550ac2fa6e115fe23573c09",
+    "difficulty_metric": "difficulty_pair[p] = reference_pair[p] - always_flat_pair[p]",
+    "fixed_baseline_margin": "margin[p,b] = reference_pair[p] - baseline_b_pair[p](逐固定基线;禁止 episode 级 hindsight max)",
+    "uncertainty": "pair cluster(A/B 均值为单一 cluster 样本;SE = sd/sqrt(n_pairs))",
+    "bootstrap": "percentile;按 pair 重采样(A/B 不拆散);seed=20260901;resamples=5000;辅助证据,不替代 κ gate",
+    "kappa": 1.5
+  },
+  "thresholds": {
+    "ordering": "D0>D1>D2>D3",
+    "d3_positive": true,
+    "d3_ge_kappa_pair_se": true,
+    "gap_ge_kappa_pair_se": true,
+    "fixed_baseline_margin_positive_and_ge_kappa_pair_se": true,
+    "pair_integrity_unity": true,
+    "oracle_positive": true
+  },
+  "seed_derivation": "derive261_seed(namespace, family, rung, pair, attempt);R4 namespace 白名单;qualification_r4/preprocess_fit_qualification_r4 lock 前封闭(完整守卫:plan+digest 重算+gate+parameter pack 绑定)",
+  "code_identity": {
+    "curriculum261_api.py": "2286c2db941c9642088b3779477f52596ddb18d2ac63c6cd39ae71aebe58a46e",
+    "curriculum261_production_obs.py": "d7d5b0b731721419d28c9aceebe3854dd839c320e902d0cc3fb6725f1712e849",
+    "curriculum261_c1.py": "28673215d4832dae8098acf375a69ae25a1b25150b26e94e5feeaca1cb2c2b5b",
+    "curriculum261_c2.py": "f5b5e685d78207c20cda80e5682502049d01de533d298f9b125ec92e6ca08a26",
+    "curriculum261_c3.py": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+    "curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+    "curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+    "evaluator.py": "4b33d66792cdc79a510f19641a83901e4de2e68ceb6feb3ae0aaf848a1dafb05",
+    "curriculum261_r3_preprocessing.py": "b0a0325e3350f129a8154d8e7a62283bcf2a9bf287d835870a85c4e088d68a0d",
+    "curriculum261_r3_obs.py": "f97ec301e903ec606f0e3266674bd7a9ab45741175f280d63ee89adcb462bc12",
+    "curriculum261_r4_namespaces.py": "4827797cd8fa5612aa62b12ee798e9852c028d1d3fc7e764e546b500f81be96d",
+    "curriculum261_r4_param_pack.py": "08d7765cfd45d7fe408cab09def51ea20b72450386165c10b8065e1c15212bdd",
+    "curriculum261_r4_preprocessing.py": "795cccde1cb2af471ac2cc182dded0ebc2d17179196614e59b729c171979c1a6",
+    "curriculum261_r4_obs.py": "04b5674987da207516ef2c92bd47fbd59fd6c61197d5a169da24db891dc0eb32",
+    "curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+    "curriculum261_r4_power.py": "c519a23a40ac61a539d62a3af83d5f5c8120ddfdd1714cb401adaaa320e63582",
+    "curriculum261_r4_calibration.py": "77df5eeb5f0238d66bb68d6726b54f7ce24c3ad68892ba75b29fe9db35912fa1",
+    "curriculum261_r4_plan.py": "12309ac74157a14a0dfd67c977d3e6b1b0ccb8912f34d87afe5d0a886335e4e6",
+    "curriculum261_r4_final.py": "f3ace3a4610bd39b7d740a0a0415a53a01da116b5ba05a6b1a432885ae0a6343",
+    "curriculum261_r4_smoke.py": "3f233ca254fa3c57fbacfaa7219b73a1c6a62fbbafac07ba1c83226155df25a9",
+    "curriculum261_r4_cli.py": "809d46f491e66c37e1d49e4367478e51e2ff85edb2fb65da6489ccd9fe0eca4b",
+    "RouteCStrategy.py": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "RouteCStrategy.feature_engineering_standard": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756"
+  },
+  "prior_digests": {
+    "stage2_6_1_r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "stage2_6_2_r2_diagnostic_plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60",
+    "stage2_6_1_r3_baseline_commit": "1b47db474461a82b07c6b863894b7f9c4b4dce98",
+    "stage2_6_1_r3_status": "FAIL(R3 plan 从未 lock;其全部资格证据与 FAIL 判定保留)"
+  },
+  "robustness_gate": {
+    "preprocessing": {
+      "pass": true,
+      "format": "cur261-r4-preprocessing-robustness-gate-v1"
+    },
+    "curriculum": {
+      "pass": true,
+      "format": "cur261-r4-curriculum-robustness-gate-v1"
+    },
+    "pass": true
+  },
+  "equivalence_pass": true,
+  "created_utc": "2026-08-31T20:35:35+00:00"
+}

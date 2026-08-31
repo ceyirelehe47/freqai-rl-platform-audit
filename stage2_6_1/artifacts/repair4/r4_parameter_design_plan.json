@@ -1,0 +1,209 @@
+{
+  "format": "cur261-r4-parameter-design-plan-v1",
+  "iteration": "r4",
+  "namespace": "design_r4",
+  "candidate_grid": {
+    "c1_opportunity": {
+      "c1_a_edge_up": {
+        "opp_drift_bps": 24.5,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 26.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c1_b_edge_up2": {
+        "opp_drift_bps": 28.0,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 26.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c1_c_vol_down": {
+        "opp_drift_bps": 21.0,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 21.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c1_d_edge_vol": {
+        "opp_drift_bps": 24.5,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 22.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c1_e_edge_vol2": {
+        "opp_drift_bps": 28.0,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 21.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      },
+      "c1_f_edge_vol3": {
+        "opp_drift_bps": 31.0,
+        "neg_drift_bps": 16.0,
+        "vol_bps": 20.0,
+        "seg_len_range": [
+          24,
+          24
+        ],
+        "state_weights": [
+          0.36,
+          0.28,
+          0.36
+        ],
+        "distractor_rate": 0.0
+      }
+    },
+    "c3_cost": {
+      "c3_a_alpha_up": {
+        "alpha_bps": 50.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.14,
+          0.36,
+          0.5
+        ],
+        "distractor_rate": 0.06
+      },
+      "c3_b_strong_up": {
+        "alpha_bps": 46.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.22,
+          0.36,
+          0.42
+        ],
+        "distractor_rate": 0.06
+      },
+      "c3_c_alpha_strong": {
+        "alpha_bps": 50.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.2,
+          0.36,
+          0.44
+        ],
+        "distractor_rate": 0.06
+      },
+      "c3_d_alpha_strong2": {
+        "alpha_bps": 52.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.24,
+          0.34,
+          0.42
+        ],
+        "distractor_rate": 0.06
+      },
+      "c3_e_mild_dis_down": {
+        "alpha_bps": 50.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.23,
+        "mixture": [
+          0.18,
+          0.36,
+          0.46
+        ],
+        "distractor_rate": 0.05
+      },
+      "c3_f_density_up": {
+        "alpha_bps": 50.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.26,
+        "mixture": [
+          0.18,
+          0.38,
+          0.44
+        ],
+        "distractor_rate": 0.06
+      }
+    }
+  },
+  "grid_locked_before_episode_generation": true,
+  "design_pairs_per_rung": 30,
+  "evaluated_rungs": [
+    "D2",
+    "D3"
+  ],
+  "d2_corpus_rule": "D2 参数冻结 -> 全部 candidate 共享同一 D2 design corpus(同 namespace 同 pair 序列)",
+  "paired_design": {
+    "same_seed_schedule": true,
+    "same_episode_count": true,
+    "same_evaluation_code": true,
+    "same_noise_realization": "结构性不可达(冻结 generator 的 derive_seed payload 含 rung 参数;不改 generator 即无法跨参数共享噪声流);缓解:antithetic A/B + 30 pair 样本 + bootstrap"
+  },
+  "power_rules": {
+    "formal_gate": "mean >= 1.5 x observed pair-cluster SE (kappa=1.5)",
+    "design_target_effect": "mean >= 2.5 x expected SE at n=10 (sd/sqrt(10))",
+    "design_target_gate_prob": "bootstrap P(formal-gate PASS) >= 0.8",
+    "n_formal_pairs": 10,
+    "gate_sim_resamples": 20000,
+    "gate_sim_seed": 20260902,
+    "kappa": 1.5
+  },
+  "structural_criteria": {
+    "both_families": [
+      "D2 > D3(design means);D2-D3 gap 明显(>= kappa x SE_gap,与正式 gate 同规则)",
+      "pair integrity = 1.0",
+      "oracle positive",
+      "margin vs always_long:mean > 0 且 effect size 达标"
+    ],
+    "c3_extra": [
+      "mean above-cost 事件数/episode >= 6.0",
+      "mean below-cost 信号数/episode >= 10.0(marginal/weak 诱饵仍大量存在)"
+    ]
+  },
+  "selection_rule": "合格 candidate 中取 gate_pass_probability 最高;平局取 difficulty mean 较小者;无合格 candidate -> R4 FAIL(不进入 calibration)",
+  "created_utc": "2026-08-31T19:55:42+00:00"
+}

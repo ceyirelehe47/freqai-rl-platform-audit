@@ -1,0 +1,683 @@
+{
+  "format": "cur261-r4-supervised-learnability-v1",
+  "iteration": "r4",
+  "namespace": "calibration_r4",
+  "gate_constants": {
+    "min_seeds_passing": 2,
+    "n_model_seeds": 3,
+    "heldout_balanced_accuracy_min": 0.6,
+    "behavior_gap_min": 0.2,
+    "mlp_arch": [
+      128,
+      128
+    ],
+    "gated_controls": [
+      "W",
+      "B"
+    ],
+    "unweighted_control": "U (diagnostic only, not gated; all families)",
+    "imbalance_rationale": "C1/C2/C3 Long rate 4-8%; W/B controls are gated for all families (262 R2 family-aware supervised precedent)"
+  },
+  "model_seeds": [
+    20260901,
+    20260902,
+    20260903
+  ],
+  "families": {
+    "c1_opportunity": {
+      "n_train_rows": 13776,
+      "n_test_rows": 9184,
+      "train_long_rate": 0.09712543554006968,
+      "test_long_rate": 0.0901567944250871,
+      "controls": [
+        "U",
+        "W",
+        "B"
+      ],
+      "gated_controls": [
+        "W",
+        "B"
+      ],
+      "n_gated_runs_passing": 6,
+      "min_seeds_passing": 2,
+      "runs": [
+        {
+          "seed": 20260901,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.5011683356808547,
+            "roc_auc": 0.9350390127259651,
+            "accuracy": 0.9098432055749129,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8888287625773836,
+            "long_recall": 0.8961352657004831,
+            "long_precision": 0.4284064665127021,
+            "pr_auc": 0.7664692899592939,
+            "roc_auc": 0.9687908309687505,
+            "accuracy": 0.8828397212543554,
+            "behavior_gap": 0.7776575251547674,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.027003484320557547,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8480999586947542,
+            "heldout_pair_balanced_accuracy_mean": 0.8792560877622997
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8873383238171882,
+            "long_recall": 0.8973429951690821,
+            "long_precision": 0.42024886877828055,
+            "pr_auc": 0.7639935821544558,
+            "roc_auc": 0.9684894767392114,
+            "accuracy": 0.8791376306620209,
+            "behavior_gap": 0.7746766476343765,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.030705574912892053,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8480999586947542,
+            "heldout_pair_balanced_accuracy_mean": 0.8779335899490796
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.5706557178529452,
+            "roc_auc": 0.9455634297898123,
+            "accuracy": 0.9098432055749129,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.880723851414009,
+            "long_recall": 0.9033816425120773,
+            "long_precision": 0.38676318510858326,
+            "pr_auc": 0.7123811612337759,
+            "roc_auc": 0.9623859334494234,
+            "accuracy": 0.8621515679442509,
+            "behavior_gap": 0.761447702828018,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.04769163763066209,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8405503692872942,
+            "heldout_pair_balanced_accuracy_mean": 0.8715689371057525
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8806096692359102,
+            "long_recall": 0.9045893719806763,
+            "long_precision": 0.3846944016435542,
+            "pr_auc": 0.7057774162009788,
+            "roc_auc": 0.9615532707557184,
+            "accuracy": 0.8609538327526133,
+            "behavior_gap": 0.7612193384718204,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.04888937282229966,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8395943463427435,
+            "heldout_pair_balanced_accuracy_mean": 0.871741714417805
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.6211171924428235,
+            "roc_auc": 0.9540717364710017,
+            "accuracy": 0.9098432055749129,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8896341082689867,
+            "long_recall": 0.9021739130434783,
+            "long_precision": 0.4210822998872604,
+            "pr_auc": 0.7902601615232742,
+            "roc_auc": 0.9713941123622009,
+            "accuracy": 0.8793554006968641,
+            "behavior_gap": 0.7792682165379733,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.030487804878048808,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8536585365853658,
+            "heldout_pair_balanced_accuracy_mean": 0.880289811769001
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8893349220554874,
+            "long_recall": 0.9021739130434783,
+            "long_precision": 0.41989881956155145,
+            "pr_auc": 0.7895507974737603,
+            "roc_auc": 0.9713085479958281,
+            "accuracy": 0.8788109756097561,
+            "behavior_gap": 0.7786698441109747,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.031032229965156866,
+            "class_balance": {
+              "long": 828,
+              "flat": 8356
+            },
+            "heldout_pair_balanced_accuracy_min": 0.8536585365853658,
+            "heldout_pair_balanced_accuracy_mean": 0.879993005729191
+          }
+        }
+      ],
+      "pass": true
+    },
+    "c2_context": {
+      "n_train_rows": 13776,
+      "n_test_rows": 9184,
+      "train_long_rate": 0.03360917537746806,
+      "test_long_rate": 0.03288327526132404,
+      "controls": [
+        "U",
+        "W",
+        "B"
+      ],
+      "gated_controls": [
+        "W",
+        "B"
+      ],
+      "n_gated_runs_passing": 6,
+      "min_seeds_passing": 2,
+      "runs": [
+        {
+          "seed": 20260901,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.07787078070978004,
+            "roc_auc": 0.6775474916901658,
+            "accuracy": 0.9671167247386759,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7857270676164756,
+            "long_recall": 0.6423841059602649,
+            "long_precision": 0.2354368932038835,
+            "pr_auc": 0.32023288926925253,
+            "roc_auc": 0.9379547294848872,
+            "accuracy": 0.9196428571428571,
+            "behavior_gap": 0.5714541352329512,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.04747386759581884,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6011329755515802,
+            "heldout_pair_balanced_accuracy_mean": 0.7761335852494498
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7835979755171185,
+            "long_recall": 0.6357615894039735,
+            "long_precision": 0.2397003745318352,
+            "pr_auc": 0.31573817060696996,
+            "roc_auc": 0.9356026997081679,
+            "accuracy": 0.9217116724738676,
+            "behavior_gap": 0.567195951034237,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.04540505226480829,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6029218843172331,
+            "heldout_pair_balanced_accuracy_mean": 0.7738448418786505
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.06185660473126074,
+            "roc_auc": 0.5137732984785063,
+            "accuracy": 0.9671167247386759,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.6535060118611792,
+            "long_recall": 0.33774834437086093,
+            "long_precision": 0.272,
+            "pr_auc": 0.2897579493776103,
+            "roc_auc": 0.9269849282200328,
+            "accuracy": 0.9484973867595818,
+            "behavior_gap": 0.30701202372235836,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.018619337979094097,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.48104693140794225,
+            "heldout_pair_balanced_accuracy_mean": 0.6362863921616185
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.6533934246060564,
+            "long_recall": 0.33774834437086093,
+            "long_precision": 0.27055702917771884,
+            "pr_auc": 0.29163364292671357,
+            "roc_auc": 0.9287773769704634,
+            "accuracy": 0.9482796167247387,
+            "behavior_gap": 0.3067868492121129,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.01883710801393723,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.48104693140794225,
+            "heldout_pair_balanced_accuracy_mean": 0.6361751821972057
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.06428049863756244,
+            "roc_auc": 0.5187724335697914,
+            "accuracy": 0.9671167247386759,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.704101680457984,
+            "long_recall": 0.45695364238410596,
+            "long_precision": 0.24168126094570927,
+            "pr_auc": 0.35365076308110077,
+            "roc_auc": 0.9409591688525495,
+            "accuracy": 0.9349956445993032,
+            "behavior_gap": 0.40820336091596815,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.03212108013937276,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5220216606498195,
+            "heldout_pair_balanced_accuracy_mean": 0.6963387009581
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7027838130842794,
+            "long_recall": 0.45364238410596025,
+            "long_precision": 0.2429078014184397,
+            "pr_auc": 0.3556626297386624,
+            "roc_auc": 0.9410915147981408,
+            "accuracy": 0.9355400696864111,
+            "behavior_gap": 0.4055676261685588,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.03157665505226481,
+            "class_balance": {
+              "long": 302,
+              "flat": 8882
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5220216606498195,
+            "heldout_pair_balanced_accuracy_mean": 0.6953737676662339
+          }
+        }
+      ],
+      "pass": true
+    },
+    "c3_cost": {
+      "n_train_rows": 13776,
+      "n_test_rows": 9184,
+      "train_long_rate": 0.08812427409988385,
+      "test_long_rate": 0.08797909407665505,
+      "controls": [
+        "U",
+        "W",
+        "B"
+      ],
+      "gated_controls": [
+        "W",
+        "B"
+      ],
+      "n_gated_runs_passing": 6,
+      "min_seeds_passing": 2,
+      "runs": [
+        {
+          "seed": 20260901,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.23480773024435558,
+            "roc_auc": 0.7366942147294959,
+            "accuracy": 0.912020905923345,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7858313947440589,
+            "long_recall": 0.6967821782178217,
+            "long_precision": 0.3494723774053383,
+            "pr_auc": 0.5493822746279522,
+            "roc_auc": 0.8994704045977664,
+            "accuracy": 0.8592116724738676,
+            "behavior_gap": 0.5716627894881179,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.0528092334494773,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6294007490636704,
+            "heldout_pair_balanced_accuracy_mean": 0.7811281619024437
+          }
+        },
+        {
+          "seed": 20260901,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7870034138084295,
+            "long_recall": 0.6955445544554455,
+            "long_precision": 0.3556962025316456,
+            "pr_auc": 0.5505145533030397,
+            "roc_auc": 0.8999299330004634,
+            "accuracy": 0.8623693379790941,
+            "behavior_gap": 0.5740068276168591,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.04965156794425085,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6303370786516854,
+            "heldout_pair_balanced_accuracy_mean": 0.7822293484705329
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.11109056683385844,
+            "roc_auc": 0.5298808713249549,
+            "accuracy": 0.912020905923345,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7948505631365429,
+            "long_recall": 0.7376237623762376,
+            "long_precision": 0.3247956403269755,
+            "pr_auc": 0.5482654171839775,
+            "roc_auc": 0.9045776712341721,
+            "accuracy": 0.8420078397212544,
+            "behavior_gap": 0.5897011262730858,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.07001306620209058,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6672284644194757,
+            "heldout_pair_balanced_accuracy_mean": 0.7909720072640036
+          }
+        },
+        {
+          "seed": 20260902,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.7975427198880347,
+            "long_recall": 0.7413366336633663,
+            "long_precision": 0.32839912280701755,
+            "pr_auc": 0.5588207616000358,
+            "roc_auc": 0.9066296650259582,
+            "accuracy": 0.8438588850174216,
+            "behavior_gap": 0.5950854397760693,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.06816202090592338,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6700374531835206,
+            "heldout_pair_balanced_accuracy_mean": 0.7936300023312963
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "U",
+          "gated": false,
+          "metrics": {
+            "balanced_accuracy": 0.5,
+            "long_recall": 0.0,
+            "long_precision": 0.0,
+            "pr_auc": 0.17917459612452452,
+            "roc_auc": 0.7068938716937596,
+            "accuracy": 0.912020905923345,
+            "behavior_gap": 0.0,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": 0.0,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.5,
+            "heldout_pair_balanced_accuracy_mean": 0.5
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "W",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8148020747633502,
+            "long_recall": 0.7586633663366337,
+            "long_precision": 0.36186540731995276,
+            "pr_auc": 0.6021812486607401,
+            "roc_auc": 0.907726918375935,
+            "accuracy": 0.8610627177700348,
+            "behavior_gap": 0.6296041495267005,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.0509581881533101,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6756554307116105,
+            "heldout_pair_balanced_accuracy_mean": 0.8105679871854372
+          }
+        },
+        {
+          "seed": 20260903,
+          "control": "B",
+          "gated": true,
+          "metrics": {
+            "balanced_accuracy": 0.8130112438177916,
+            "long_recall": 0.7586633663366337,
+            "long_precision": 0.35556844547563804,
+            "pr_auc": 0.5965261769393488,
+            "roc_auc": 0.9041587024927421,
+            "accuracy": 0.8577961672473867,
+            "behavior_gap": 0.6260224876355831,
+            "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+            "accuracy_minus_majority_diagnostic": -0.05422473867595823,
+            "class_balance": {
+              "long": 808,
+              "flat": 8376
+            },
+            "heldout_pair_balanced_accuracy_min": 0.6756554307116105,
+            "heldout_pair_balanced_accuracy_mean": 0.808755170032846
+          }
+        }
+      ],
+      "pass": true
+    }
+  },
+  "pass": true
+}

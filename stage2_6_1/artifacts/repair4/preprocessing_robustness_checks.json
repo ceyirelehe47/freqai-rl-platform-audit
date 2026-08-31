@@ -1,0 +1,151 @@
+{
+  "format": "cur261-r4-preprocessing-robustness-v1",
+  "iteration": "r4",
+  "checks": {
+    "survival_main": true,
+    "survival_holdout": true,
+    "fit_bank_integrity": true,
+    "production_numerical_equivalence": true,
+    "envelope_reload_bundle_identity_stable": true,
+    "envelope_reload_transform_bitwise_equal": true,
+    "manifest_tamper_rejected": true,
+    "parameter_state_tamper_rejected": true,
+    "staged_mixed_same_parameter_state_hash": true,
+    "staged_mixed_same_bundle_hash": true,
+    "manifest_order_invariant_multiset_hash": true,
+    "different_multiset_same_params_same_param_hash": true,
+    "different_multiset_different_bundle": true,
+    "observation_space_v2": {
+      "format": "cur261-r4-observation-space-validation-v1",
+      "context": "preprocessing_robustness_v2",
+      "n_observations": 4592,
+      "max_abs_value_seen": 1.0,
+      "feature_bounds": "(-inf, +inf)",
+      "position_bounds": [
+        0.0,
+        1.0
+      ],
+      "declared_low_feature_unbounded": true,
+      "declared_high_feature_unbounded": true,
+      "clip_by_wrapper": false,
+      "wrapper_pass_through_bitwise": true,
+      "position_slot_valid": true,
+      "violations": [],
+      "pass": true
+    },
+    "adversarial_out_of_range_probe": {
+      "format": "cur261-r4-adversarial-out-of-range-probe-v1",
+      "max_transformed_feature": 13.0,
+      "min_transformed_feature": -13.0,
+      "exceeds_plus_10": true,
+      "exceeds_minus_10": true,
+      "validation": {
+        "format": "cur261-r4-observation-space-validation-v1",
+        "context": "adversarial",
+        "n_observations": 59,
+        "max_abs_value_seen": 13.0,
+        "feature_bounds": "(-inf, +inf)",
+        "position_bounds": [
+          0.0,
+          1.0
+        ],
+        "declared_low_feature_unbounded": true,
+        "declared_high_feature_unbounded": true,
+        "clip_by_wrapper": false,
+        "wrapper_pass_through_bitwise": true,
+        "position_slot_valid": true,
+        "violations": [],
+        "pass": true
+      },
+      "pass": true
+    },
+    "no_nan_inf": true,
+    "position_identity": true,
+    "bundle_verification_main": {
+      "checks": {
+        "inner_fitted": true,
+        "retained_8_of_8": true,
+        "manifest_namespace_uniform": true,
+        "parameter_state_hash_recomputable": true,
+        "bundle_hash_recomputable": true
+      },
+      "hashes": {
+        "parameter_state_hash": "r4ps-d2501f774dbf46cce0765bb6ee7fee8ed46f1a9a1ce12c25f05a8653cf76b306",
+        "fit_manifest_multiset_hash": "r4fm-bd8456b25c555f87efd83bb54e8627c0d5a84cf90f3df090c22e59b366487545",
+        "preprocessor_bundle_hash": "r4pb-f769301b0f65a80fe43d844cbad0a8170e8324dc0fd88b884bc3d7d3b915433a"
+      },
+      "pass": true
+    },
+    "bundle_verification_holdout": {
+      "checks": {
+        "inner_fitted": true,
+        "retained_8_of_8": true,
+        "manifest_namespace_uniform": true,
+        "parameter_state_hash_recomputable": true,
+        "bundle_hash_recomputable": true
+      },
+      "hashes": {
+        "parameter_state_hash": "r4ps-8e5e7f919dabc3fd0377912eb9966439a5b6a5868419ee3c1d357d2ade54be82",
+        "fit_manifest_multiset_hash": "r4fm-5e49053c24037037e17e7de1c642ea0bb5864d23573c25f5af7d9956c1d8e95f",
+        "preprocessor_bundle_hash": "r4pb-39b01dcc2f66c529677df2228cf5b211e0a12183e0e75b5774cc49c9915907f8"
+      },
+      "pass": true
+    },
+    "fit_manifest_provenance_complete": true,
+    "dual_fit_transform_max_abs_diff": 0.13243373397523606,
+    "state_hashes_distinct": true,
+    "reference_equivalence_all": true,
+    "reference_equivalence_n_episodes": 72
+  },
+  "equivalence_report": {
+    "format": "cur261-r3-production-equivalence-v1",
+    "contract_version": "RouteCFeaturePreprocessing-v1",
+    "n_fit_rows": 13824,
+    "n_eval_rows": 13824,
+    "state_hash": "r3pre-bdf3458eb2e53f67e683e35cabecb0ccc119ee73730e1a6bebd1bffe7f365392",
+    "checks": {
+      "train_transform_bitwise_equal": true,
+      "eval_transform_bitwise_equal": true,
+      "output_shape": [
+        13824,
+        8
+      ],
+      "retained_columns": [
+        "%-ret-1",
+        "%-ret-4",
+        "%-vol-24",
+        "%-price-ma-ratio",
+        "%-raw_open",
+        "%-raw_high",
+        "%-raw_low",
+        "%-raw_close"
+      ],
+      "retained_mask_equal": true,
+      "feature_ordering": [
+        "%-ret-1",
+        "%-ret-4",
+        "%-vol-24",
+        "%-price-ma-ratio",
+        "%-raw_open",
+        "%-raw_high",
+        "%-raw_low",
+        "%-raw_close"
+      ],
+      "float_dtype": true,
+      "zero_variance_column_removed_by_vendor": true,
+      "zero_variance_absent_in_contract_fit": true,
+      "out_of_range_linear_extrapolation": true,
+      "out_of_range_value": 991.9586678310826,
+      "clip_behavior_matches_production": true,
+      "reload_train_bitwise_equal": true,
+      "reload_eval_bitwise_equal": true,
+      "reload_state_hash_equal": true,
+      "reload_inverse_bitwise_equal": true,
+      "shuffled_rows_same_state_hash": true,
+      "shuffled_rows_same_transform": true,
+      "all_equal": true
+    },
+    "pass": true
+  },
+  "pass": true
+}
