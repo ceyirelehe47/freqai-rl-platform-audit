@@ -62,11 +62,28 @@ R4_REGISTERED_CODE_CHANGES = {
         "2286c2db941c9642088b3779477f52596ddb18d2ac63c6cd39ae71aebe58a46e",
 }
 
-#: 全部迭代登记的合并视图(R4 覆盖同名键;run_input_lock 的守卫
+#: Stage 2.6.1 Repair R5 迭代登记(同一守卫语义):
+#: R5 于 baseline 95bb927 之后再次修改 curriculum261_api.py —— 仅
+#: 扩展 R5 seed namespace 白名单(CURRICULUM261_R5_NAMESPACES 追加
+#: 进 CURRICULUM261_SEED_NAMESPACES)+ qualification_r5 /
+#: preprocess_fit_qualification_r5 完整 lock 守卫(六要素:R4 五要素
+#: + sealed preflight attestation)+ design_r5_tier_b_* 机械授权守卫
+#: (Tier B namespace 仅在 design decision tier_b_authorized=true 后
+#: 可访问)。_derive261_seed_raw payload 构造与历史逐字节同构,
+#: R0-R4 corpus seed 派生不变;generator/family/production obs 语义
+#: 不变。登记哈希 = R5 版 curriculum261_api.py 的精确 sha256(覆盖
+#: R4 登记值;再漂移仍 fail)。
+R5_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "a298cd1053b150ece3d5720d48ed665650a44bed19f41e460e534ff6105356ae",
+}
+
+#: 全部迭代登记的合并视图(R5 覆盖同名键;run_input_lock 的守卫
 #: 数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
 REGISTERED_261_CODE_CHANGES = {
-    **R3_REGISTERED_CODE_CHANGES, **R4_REGISTERED_CODE_CHANGES}
+    **R3_REGISTERED_CODE_CHANGES, **R4_REGISTERED_CODE_CHANGES,
+    **R5_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)

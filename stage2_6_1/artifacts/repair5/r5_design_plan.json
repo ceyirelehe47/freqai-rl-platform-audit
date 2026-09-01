@@ -1,0 +1,325 @@
+{
+  "format": "cur261-r5-design-plan-v1",
+  "iteration": "r5",
+  "baseline_commit": "95bb927f3ba46fa18b98602ea05c37ed67df198b",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "r4_parameter_pack_digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+  "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+  "prior_digests": {
+    "stage2_6_1_r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "stage2_6_2_r2_diagnostic_plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+  },
+  "route_c_identities": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1"
+  },
+  "tier_a": {
+    "namespaces": [
+      "design_r5_tier_a_main",
+      "design_r5_tier_a_validation"
+    ],
+    "candidates": {
+      "c2_a_alpha26_vol16": {
+        "alpha_bps": 26.0,
+        "payoff_bars": 1,
+        "vol_bps": 16.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "c2_b_alpha27_vol18": {
+        "alpha_bps": 27.0,
+        "payoff_bars": 1,
+        "vol_bps": 18.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "c2_c_alpha24_vol16": {
+        "alpha_bps": 24.0,
+        "payoff_bars": 1,
+        "vol_bps": 16.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "c2_d_alpha26_vol13": {
+        "alpha_bps": 26.0,
+        "payoff_bars": 1,
+        "vol_bps": 13.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "c2_e_alpha27_kappa30_vol16": {
+        "alpha_bps": 27.0,
+        "payoff_bars": 1,
+        "vol_bps": 16.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.3,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "c2_f_alpha25_vol20": {
+        "alpha_bps": 25.0,
+        "payoff_bars": 1,
+        "vol_bps": 20.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      }
+    },
+    "scope": "C2-D3-only(键集与历史 D3 一致;仅 alpha_bps/vol_bps/wick_kappa 可变)",
+    "frozen_rungs": [
+      "D0",
+      "D1",
+      "D2"
+    ],
+    "frozen_sharing": "冻结 rung 语料逐 design corpus 生成一次,全部 candidate 共享(相同 pair-index schedule 0..39;参数不入 seed 派生,候选间仅通过 generator 内部派生流区分——噪声流共享结构性不可达,以 A/B antithetic + 双 corpus + 40 pairs 缓解)"
+  },
+  "tier_b": {
+    "namespaces": [
+      "design_r5_tier_b_main",
+      "design_r5_tier_b_validation"
+    ],
+    "candidates": {
+      "c2b_1_d2up42_d3down25": {
+        "D2": {
+          "alpha_bps": 42.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 25.0,
+          "payoff_bars": 1,
+          "vol_bps": 15.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2b_2_d2up44_d3down24": {
+        "D2": {
+          "alpha_bps": 44.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 24.0,
+          "payoff_bars": 1,
+          "vol_bps": 14.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2b_3_d2up42k40_d3down26": {
+        "D2": {
+          "alpha_bps": 42.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.4,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 26.0,
+          "payoff_bars": 1,
+          "vol_bps": 16.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      }
+    },
+    "scope": "C2-D2+D3 joint(键集与历史一致;D2 上调受 D1 约束)",
+    "mechanical_trigger": "当且仅当 Tier A 的 6 个 candidate 中满足全部硬门槛者为 0 时,tier_b_authorized=true 写入 design decision,tier B namespace 解锁;一旦 Tier A 存在合格 candidate,Tier B 永久封闭"
+  },
+  "design_data": {
+    "pairs_per_candidate_per_corpus": 40,
+    "corpora_per_tier": 2,
+    "corpora_role": "main/validation 均为参数开发数据,不得称为holdout",
+    "evaluation_mode": "raw(preproc=None;reference 数值与 scaled 逐位一致由 R4 reference 等价证明背书)"
+  },
+  "statistics": {
+    "pair_table": "唯一 pair 证据表(r4pt schema;A/B 均值;键 (rung, pair_index))",
+    "difficulty": "reference_pair - always_flat_pair",
+    "margins": "逐固定基线(无 hindsight;禁止 episode 级 max)",
+    "se_n10": "expected SE at n=10 = sd(ddof=1)/sqrt(10);gap SE 为二次合成 sqrt(se_hi^2 + se_lo^2)",
+    "kappa": 1.5,
+    "strict_gate_rule_identity": "r5sg-c85e5a18526691c3d519ee74e5fc21a7127d520661a67591d801a83f660bc6d8"
+  },
+  "power_targets": {
+    "gap_d2_d3_positive_and_ge": 3.0,
+    "d3_vs_flat_ge": 2.5,
+    "margins_d2_d3_ge": 2.5,
+    "formal_gate_pass_probability_min": 0.9,
+    "formal_gate_simulation": {
+      "n_formal_pairs": 10,
+      "n_sim": 20000,
+      "seed": 20260912,
+      "method": "按 pair 重采样(A/B 不拆散);模拟 corpus 内复算 mean/sd(ddof=1)/SE;条件=ordering+3 gaps(κ×SE)+D3(>0,κ×SE)+逐基线 margin(全部 rung,κ×SE);密度门槛按 design corpus 实测值直接判定"
+    }
+  },
+  "density_thresholds": {
+    "median_reference_trades_per_episode_min": 8.0,
+    "reference_long_label_rate_min": 0.015,
+    "n_trades_semantics": "buy+sell 双腿(evaluator EpisodeResult)",
+    "historical_reference": "R4 qualification C2 ref trades ~11.8-12.8(双腿)/label rate ~3.3%——门槛为任务书建议值,未放宽"
+  },
+  "selection_rule": {
+    "qualification": "candidate 在两个 design corpus 均满足全部硬门槛(A/B/C/D + 密度 + 结构)才合格",
+    "maximin_score": "score = min over {gap_D2_D3/SE_gap_n10, d3_vs_flat/SE_n10, d3_vs_long/SE_n10, d3_vs_local_only/SE_n10, min(median_trades/8, label_rate/0.015)} x min over 两个 design corpus",
+    "tie_breaker": "参数偏离历史最小(Σ|new-hist|/hist,键 alpha_bps/vol_bps/wick_kappa;Tier B 含 D2 侧同式累加)",
+    "hard_rule": "maximin score 最高者胜;平局取 distance 最小;不得看 Tier B 结果后回选 Tier A"
+  },
+  "code_identity": {
+    "curriculum261_api.py": "a298cd1053b150ece3d5720d48ed665650a44bed19f41e460e534ff6105356ae",
+    "curriculum261_c2.py": "f5b5e685d78207c20cda80e5682502049d01de533d298f9b125ec92e6ca08a26",
+    "curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+    "curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+    "curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+    "curriculum261_r5_param_pack.py": "00e48474a6c7cd62b5f6b2a866f22d1c9317e41c56e12fe548ad8ef6e0d9bb4b",
+    "curriculum261_r5_namespaces.py": "7a4b4c4d75c3057e1628e114286a567cb9a3eb1121fd58c014df72fe5fd5cc97",
+    "curriculum261_r5_pairs.py": "ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86",
+    "curriculum261_r5_design.py": "dfc493c5ef28bb989b07b8928b1aa75cface389d0353c8db29808cc0b1d632e1"
+  },
+  "created_utc": "2026-09-01T06:04:24+00:00"
+}

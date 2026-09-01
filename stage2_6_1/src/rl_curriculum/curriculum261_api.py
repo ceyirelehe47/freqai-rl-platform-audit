@@ -114,10 +114,27 @@ CURRICULUM261_R4_NAMESPACES = (
     "calibration_holdout_r4", "qualification_r4", "fresh_holdout_r4",
     "training_r4", "stress_r4", "ppo_smoke_r4")
 
+#: repair R5 全新 iteration identity(curriculum_iteration = r5)。
+#: R5 namespace 与 R0-R4 及全部 Stage 2.6.2 namespace 不相交
+#: (curriculum261_r5_namespaces.verify_r5_namespace_isolation 显式
+#: 验证);design_r5_tier_a_* 是 Tier A(C2-D3-only)candidate 开发语料
+#: (两份独立,均为开发数据,不得称为 holdout);design_r5_tier_b_*
+#: 在 Tier A 存在合格 candidate 时永久封闭(机械授权守卫);
+#: preprocess_fit_*_r5 是 preprocessing fit bank 专用 namespace。
+CURRICULUM261_ITERATION_ID_R5 = "r5"
+CURRICULUM261_R5_NAMESPACES = (
+    "design_r5_tier_a_main", "design_r5_tier_a_validation",
+    "design_r5_tier_b_main", "design_r5_tier_b_validation",
+    "preprocess_fit_calibration_r5", "preprocess_fit_holdout_r5",
+    "preprocess_fit_qualification_r5", "calibration_r5",
+    "calibration_holdout_r5", "qualification_r5", "fresh_holdout_r5",
+    "training_r5", "stress_r5", "ppo_smoke_r5")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
-    CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES)
+    CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES) + (
+    CURRICULUM261_R5_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -328,6 +345,39 @@ def derive261_seed(
                 "lock 前对任何代码路径封闭;校准/诊断一律使用 "
                 "calibration_r4 / calibration_holdout_r4 / stress_r4 "
                 "namespace)")
+    if namespace in ("qualification_r5",
+                     "preprocess_fit_qualification_r5"):
+        # repair R5:完整守卫(plan + digest 重算 + gate + parameter
+        # pack 绑定 + sealed preflight attestation;final corpus lock
+        # 前对任何代码路径封闭)。
+        from rl_curriculum.curriculum261_r5_namespaces import (
+            qualification_r5_unlocked,
+        )
+
+        if not qualification_r5_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R5 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r5 / "
+                "calibration_holdout_r5 / stress_r5 namespace)")
+    if namespace in ("design_r5_tier_b_main",
+                     "design_r5_tier_b_validation"):
+        # repair R5 §10/§17:Tier B namespace 机械授权守卫——仅当
+        # Tier A 全部 candidate 不满足硬门槛(design decision 落盘
+        # tier_b_authorized=true)后才允许访问;Tier A 存在合格
+        # candidate 时永久封闭。
+        from rl_curriculum.curriculum261_r5_namespaces import (
+            tier_b_authorized,
+        )
+
+        if not tier_b_authorized():
+            raise GeneratorError(
+                f"{namespace} 在 Tier B 机械授权(design decision "
+                "tier_b_authorized=true;仅当 Tier A 全部 candidate "
+                "不满足全部 design 硬门槛)前不可访问——Tier A 存在"
+                "合格 candidate 时 Tier B 永久封闭(§17)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
