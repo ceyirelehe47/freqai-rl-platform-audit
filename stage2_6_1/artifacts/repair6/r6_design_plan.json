@@ -1,0 +1,796 @@
+{
+  "format": "cur261-r6-design-plan-v1",
+  "iteration": "r6",
+  "baseline_commit": "40a0d9ae4ac8fcfa6f643f584a8fb63ec5579afc",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "r4_parameter_pack_digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+  "r5_design_plan_digest": "r5dp-0c1eb69f95336f7d649192bc4293eaf768b37508f47c8c21c919009eb3afe52d",
+  "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+  "prior_digests": {
+    "stage2_6_1_r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "stage2_6_2_r2_diagnostic_plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+  },
+  "route_c_identities": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1"
+  },
+  "matched_ladder": {
+    "contract_version": "C2MatchedLadderBlock-v1",
+    "contract_identity": "r6ml-b7723f07c0a652c2c02c31a460cbf573047f7aa1bb4a3176e10328f9f35332a3",
+    "base_random_tape": "block seed = derive261_seed(ns, c2_context, 'matched_block', block_index, attempt);matched-tape 实例从全部随机流派生 payload 剔除难度键(alpha_bps/wick_kappa/cur261_rung);同 block 四 rung 同 seed 共享 cue 表/s 链/w 链/基础噪声/volume/wick jitter/初始价/时长/时间戳;难度参数只做确定性变换",
+    "shared_components": [
+      "cue_time_table",
+      "cue_direction_table",
+      "wick_direction_context_chain",
+      "wick_width_context_chain",
+      "volume_path",
+      "base_noise_innovations",
+      "wick_jitter",
+      "initial_price",
+      "episode_duration",
+      "bar_timestamps",
+      "ab_variant_structure"
+    ],
+    "rung_varying": [
+      "alpha_bps",
+      "wick_kappa"
+    ],
+    "block_attempt_semantics": {
+      "max_attempts": 5,
+      "unit": "完整四-rung block(任一 rung 或跨 rung matching 失败 → 整 block 拒绝重试)",
+      "forbidden": [
+        "只重采样失败 rung",
+        "按 PnL 拒绝 block",
+        "无限重采样",
+        "跨 block 挑选"
+      ],
+      "reject_vocab": [
+        "too_few_cues",
+        "too_few_aligned_gate_windows",
+        "context_polarity_missing",
+        "cross_rung_matching_failed",
+        "pair_integrity_failed"
+      ]
+    },
+    "policy_leakage": "block ID / rung ID 不进入 observation(8 生产特征列不变;matched 只是采样/统计合同,不是新的 policy observation 或 reward 合同)"
+  },
+  "candidate_grid": {
+    "candidates": {
+      "c2l_balanced": {
+        "D0": {
+          "alpha_bps": 78.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.88,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 50.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.58,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 35.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.34,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 23.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.22,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_alpha_wide": {
+        "D0": {
+          "alpha_bps": 80.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.85,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 52.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.6,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 36.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 24.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.24,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_kappa_wide": {
+        "D0": {
+          "alpha_bps": 76.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.92,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.62,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.36,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 27.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.21,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_conservative": {
+        "D0": {
+          "alpha_bps": 74.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.82,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 56.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.6,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.4,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 28.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.26,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_alpha_edge": {
+        "D0": {
+          "alpha_bps": 82.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.85,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 48.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.55,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 34.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.36,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 22.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.24,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_mid_flat": {
+        "D0": {
+          "alpha_bps": 78.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.86,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 48.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.55,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 38.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 26.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.23,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_d0_high": {
+        "D0": {
+          "alpha_bps": 80.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.9,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.62,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 38.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.4,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 23.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.22,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_historical_control": {
+        "D0": {
+          "alpha_bps": 68.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.8,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.55,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 32.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      }
+    },
+    "n_candidates": 8,
+    "allowed_axes": [
+      "alpha_bps",
+      "wick_kappa"
+    ],
+    "frozen_structure_keys": [
+      "payoff_bars",
+      "vol_bps",
+      "cue_rate",
+      "dir_len_range",
+      "width_len_range",
+      "pulse_bps",
+      "wick_base_bps",
+      "wide_wick_bps",
+      "narrow_wick_bps"
+    ],
+    "historical_control": "c2l_historical_control(R5 ladder 的非选择性 control;不达标不得被选中)"
+  },
+  "design_data": {
+    "blocks_per_candidate_per_corpus": 40,
+    "min_blocks": 30,
+    "corpora": [
+      "design_r6_matched_main",
+      "design_r6_matched_validation"
+    ],
+    "corpora_role": "main/validation 均为参数开发数据,不得称为holdout",
+    "evaluation_mode": "raw(preproc=None;reference 数值与 scaled 逐位一致由 R4 reference 等价证明背书)",
+    "block_schedule_sharing": "不同 candidate 的同 block_index 结构带逐位一致(seed 派生不含难度参数;§20 相同 block-index schedule由构造满足)"
+  },
+  "formal_block_options": [
+    10,
+    15,
+    20
+  ],
+  "statistics": {
+    "pair_table": "R4 唯一 pair 证据表(C1/C3 与 C2 每 rung 的 A/B 均值;evaluate_pair_corpus_r4 同源)",
+    "block_table": "唯一 C2 block 证据表(r6bt schema;行键 block_index;gap = blockwise 配对差分)",
+    "difficulty": "reference_pair - always_flat_pair",
+    "margins": "逐固定基线(无 hindsight)",
+    "gap_se": "std(blockwise gap, ddof=1)/sqrt(n_blocks);禁止 sqrt(SE_hi^2+SE_lo^2) 独立二次合成(§13)",
+    "kappa": 1.5,
+    "strict_gate_rule_identity": "r6sg-8da293c1424729466113a237b923fd5596f5808d04c08100444da2c1d6dc6dbb",
+    "scrambled_control": "仅诊断(matched vs unpaired 方差缩减);禁止参与 PASS 判定(§15)"
+  },
+  "power_targets": {
+    "adjacent_gaps_positive_and_ge": 3.0,
+    "d3_vs_flat_ge": 2.5,
+    "margins_d2_d3_ge": 2.5,
+    "margins_all_rungs_positive": true,
+    "formal_gate_pass_probability_min": 0.9,
+    "positive_gap_block_rate_min": 0.65,
+    "formal_gate_simulation": {
+      "n_formal_block_options": [
+        10,
+        15,
+        20
+      ],
+      "n_sim": 20000,
+      "seed": 20260922,
+      "method": "按完整 matched block 重采样(A/B 与四 rung 不拆散);模拟 corpus 内复算 mean/sd(ddof=1)/SE;条件=ordering+3 matched gaps(κ×blockSE)+D3(>0,κ×SE)+逐基线 margin(全部 rung,κ×SE);密度/语义按 design corpus 实测直接判定"
+    }
+  },
+  "density_thresholds": {
+    "median_reference_trades_per_episode_min": 8.0,
+    "reference_long_label_rate_min": 0.015,
+    "n_trades_semantics": "buy+sell 双腿(evaluator EpisodeResult)"
+  },
+  "semantic_thresholds": {
+    "cue_recall_min": 0.95,
+    "cue_payoff_separation": {
+      "cue_precision_min": 0.85,
+      "non_cue_false_positive_max": 0.01,
+      "payoff_bar_false_cue_max": 0.06
+    },
+    "local_cue_independence": "四象限 mean/std/sign/rate 合同(curriculum261_qualification 冻结实现)",
+    "context_observability": "observation-only 判定器 margin >= κ×SE_binomial(冻结实现)"
+  },
+  "independent_marginal_guard": {
+    "namespace": "design_r6_independent_diagnostic",
+    "pairs_per_rung": 20,
+    "conditions": "mean ordering / D3 positive / 逐基线 positive margin / integrity=1.0 / oracle / 密度 / context+cue 语义;无 SE 要求;matched PASS 不可覆盖 FAIL;失败 → R6 = FAIL(§16)",
+    "timing": "design 选定 candidate 后、pack 锁定前"
+  },
+  "selection_rule": {
+    "qualification": "(candidate, n) 组合在两个 design corpus 均满足全部硬门槛(A-F)才合格",
+    "order": [
+      "最小 formal block count n(10→15→20)",
+      "maximin score 最大(该 n 下)",
+      "参数偏离历史最小(四档 alpha/kappa Σ|new-hist|/hist)",
+      "candidate id 稳定排序"
+    ],
+    "maximin_score": "min over {gap_D0-D1/SE, gap_D1-D2/SE, gap_D2-D3/SE, d3_vs_flat/SE, d3_vs_long/SE, d3_vs_local_only/SE, 最弱 positive-gap rate/0.65, 密度比 min(trades/8, label/0.015), separation 余量 min(1-fc/0.06, recall/0.95)} × min over 两 corpus(SE 取该 n 的 expected block SE)",
+    "hard_rule": "先选最小 n,再选该 n 下 score 最高者;平局取 distance 最小;禁止先选收益最好 candidate 再增加 block 数;禁止看到 final 后扩大 block 数;禁止设计后临时加入 30/40 blocks;禁止删除失败 candidate"
+  },
+  "fail_path": {
+    "auto_power_summary": "r6_power_analysis.json 由 design 流程自动产出(不得依赖事后手工脚本)",
+    "on_no_qualified_combination": "R6 = FAIL;保留原始 block tables;报告最弱 binding condition;不生成 pack;不进 calibration;不访问 final namespace;不写 exposure marker;不运行 full-cold(§26)"
+  },
+  "code_identity": {
+    "curriculum261_api.py": "81d0d4a3104be70c2cd41d595735206a6f54e1784227533ec42866309d70a158",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+    "curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+    "curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+    "curriculum261_r5_pairs.py": "ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r6_param_pack.py": "c86153681a72859676fc89973e669e1774bacd339f23feb1092061df7d316afc",
+    "curriculum261_r6_namespaces.py": "80c03ae1b0f6af56bc407a4bd038ea71cc0f49971f02df92501331bc8b5ba54b",
+    "curriculum261_r6_pairs.py": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+    "curriculum261_r6_design.py": "c51fe6634fcd0f83a64008d2eca22b01ae98caa3cc5ec0d911160fb976eb3801"
+  },
+  "created_utc": "2026-09-01T11:36:15+00:00"
+}

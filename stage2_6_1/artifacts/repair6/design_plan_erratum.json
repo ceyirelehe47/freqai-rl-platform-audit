@@ -1,0 +1,9 @@
+{
+  "format": "cur261-r6-design-plan-erratum-v1",
+  "event": "design_plan_relock_after_implementation_bug",
+  "bug": "build_c2_block_evidence_table margins 误排除 always_flat 键(KeyError);崩溃于任何 candidate 统计结果产出之前(第一个 candidate 第一个 corpus 的 margin_sd 计算处)",
+  "semantic_change": "none(修复仅恢复 margins 与 REQUIRED_BASELINES 一致的键集;margin 定义/统计公式/阈值/网格/seed 全部未动)",
+  "data_note": "design namespace episodes 完全确定于 seed+generator+参数,生成路径未修改;重跑逐位重现崩溃前数据,无结果可见/无数据浪费",
+  "old_plan_digest": "r6dp-09832f6d27c5183805ce4770d59257ae3f0af4a216f8a8fe5dc9bdde331d7f7d",
+  "action": "删除旧 plan 并重锁(新 code identity);勘误全文进入主报告与 artifacts"
+}

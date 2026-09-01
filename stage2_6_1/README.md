@@ -18,18 +18,24 @@
   - calibration 双 robustness gate **PASS**(C1-D3 0.0203/0.0294、C3-D3 0.0064/0.0084 双语料全正且过 κ×SE;supervised 三族 6/6);plan 锁定 `qp4-72b3a7e8…` → 一次性 final qualification **FAIL(34/36)**:**本轮授权修复的 C1(0.0244 ≥ κ×SE 0.0104)与 C3(0.0084 ≥ 0.0037)全部条件通过;唯无授权修改的冻结族 C2 在 fresh 语料上 D2 0.0070 < D3 0.0085 排序翻转**(其 D2-D3 设计间距 ~1.7×SE 本就功效不足);语料已暴露,证据完整;两次 governance waiver 登记(gate 口径对齐 R3 预注册规则 + final 崩溃于 corpus 生成前的路径 bug 恢复)
   - 回归:targeted 196 + affected 1631(含 2.6.2 输入锁 150)全绿;full-cold 依 §36 不执行;C3 PPO Branch D 仍开放;Stage 2.6.2 仍 FAIL
 
-- **Repair R5 报告(当前轮,FAIL,诚实 FAIL)**:[route_c_stage2_6_1_repair5_c2_ladder_qualification.md](route_c_stage2_6_1_repair5_c2_ladder_qualification.md)
+- **Repair R5 报告(FAIL,历史证据)**:[route_c_stage2_6_1_repair5_c2_ladder_qualification.md](route_c_stage2_6_1_repair5_c2_ladder_qualification.md)
   - **治理修复**:唯一 strict per-corpus PASS 口径(`r5sg-` identity,数据前冻结;pooled 仅诊断且测试锁定不可救援);exposure marker 硬合同(原子 O_EXCL 创建/单向状态机 running→terminal/append-only ledger 兜底删除检测/无 delete API/flock 并发互斥);qualification_r5 六要素守卫(plan+digest+gate+pack+sealed preflight attestation);两级 preflight(static 用非 final namespace,sealed 零 final seed 访问);Tier B namespace 机械授权守卫(tier A 全部不合格才解锁)
   - **C2 两级预注册 design(design plan `r5dp-0c1eb69f…` 先于数据锁定;每候选双开发语料 × 40 pairs)**:Tier A(D3-only,6 候选:α 24-27 / vol 13-20 / κ 0.25-0.30)0/6 合格 → 机械触发 Tier B(D2+D3 joint,3 候选:D2 α≤44)0/3 合格 → 按预注册规则 **R5 = FAIL,停止于 design,不进 calibration**;未生成 parameter pack,final namespace 零访问、exposure 零消耗
   - **根因标定**:C2 功效不足是 ladder 全局性质——冻结的 D0-D1 间距(0.0054-0.0061)< κ×SE(n=10)(0.0063-0.0070),单条件通过概率仅 0.38-0.51,封顶全部 strict 条件联合概率 ≤0.25(门槛 0.90);Tier B 上调 D2 拉开 D2-D3(ratio 2.10-4.02)但压缩 D1-D2(0.34-0.64);密度门槛全部通过(median trades 10-14 ≥ 8,label rate 2.0-2.4% ≥ 1.5%),非"机会删除"型伪难度
   - 基础设施:V2 逐位复用(R5 不改数值,C1/C3 R4 继承值经 `r4pk-eca9ed55…` artifact digest 复算黄金绑定);55 项 R5 测试 + 2.6.1 全套 251 + 2.6.2 全套 150 全绿;PPO smoke PASS;full-cold 依 §32 不执行;C3 PPO Branch D 仍开放
 
+- **Repair R6 报告(当前轮,FAIL,诚实 FAIL)**:[route_c_stage2_6_1_repair6_matched_ladder_qualification.md](route_c_stage2_6_1_repair6_matched_ladder_qualification.md)
+  - **matched-ladder block 基础设施(C2MatchedLadderBlock-v1)**:opt-in matched-tape 模式(`C2ContextGatingGenerator(matched_tape=True)` 独立实例,全部随机流派生 payload 剔除难度键 α/κ/cur261_rung;默认关闭=历史 namespace 逐位不变,2.6.1 全套 251 历史测试+seed 黄金向量锁定);同 block 四 rung 逐位共享 cue 表/s 链/w 链/基础噪声(反解差 3.3e-16)/volume/jitter/时长/时间戳,唯一差异 α 缩放 payoff 与 κ 变换 wick;block 级 attempt=5(整 block 重试,无 PnL 拒绝);blockwise 配对差分统计(SE=std(blockwise gap)/√n,禁独立二次合成);block/pair 两级唯一证据表(evaluator 与 gate 同源);scrambled control 仅诊断(实测方差缩减 3.5-11.4×,rung 相关 0.83-0.94);独立-rung marginal guard 合同;16 个 R6 namespace 与 R0-R5/2.6.2 完全隔离
+  - **design(8 个完整 ladder 候选含历史 control × formal block {10,15,20} × 双语料 40 blocks;design plan `r6dp-db74ed10…` 先于数据锁定,一次零语义勘误重锁)**:**0/8×3 合格 → R6 = FAIL,停止于 design**;主根因=预注册 `cue_recall_min=0.95` 卡在生成器固有检出率期望(Φ(45bps/27bps)≈0.951±0.005/语料)——matched 下 cue 表跨候选共享,main 8/8=0.9519 过、validation 8/8=0.9490 挂,与候选参数无关;次根因=D3 α∈[22,26] 的 4 候选 D3-vs-flat 与 D2/D3 margin 的 2.5×SE 真实不足
+  - **统计修复本身被验证成功**:R5 瓶颈(历史 ladder 冻结 D0-D1 功效不足)在 matched 口径消失——historical_control 三段 gap ratio 4.4-9.4、formal gate P(main/valid@n=15: 0.977/0.985;@n=20: 0.993/0.997);conservative@15(0.943/0.947)与 kappa_wide@20(0.901/0.949)功效条件全过(均被 recall gate 误伤);R6.1 处方:recall 阈值校准(0.93)+D3 α≥27 网格修正+全新 namespace
+  - 收尾:未生成 pack/final namespace 零访问/exposure 未写入/fail_path_cleanliness 验证;PPO smoke PASS(manifest 绑定 bundle hash+pack digest+observation identity);57 项 R6 测试+2.6.1 全套 308+2.6.2 全套 150(input lock R6 登记含 c2.py 首次)全绿;full-cold 依 §35 不执行;C3 PPO Branch D 仍开放
+
 ## 目录
 
 | 内容 | 位置 |
 |---|---|
-| C1/C2/C3 生成器与资格基础设施 | `src/rl_curriculum/curriculum261_*.py`(41 个模块,含 production_obs、8 个 r3 模块、11 个 r4 模块与 10 个 r5 模块) |
-| 阶段测试(251 项,含 production obs 守卫、R2/R3/R4 协议与统计测试) | `tests/route_c_stage2_6_1/` |
+| C1/C2/C3 生成器与资格基础设施 | `src/rl_curriculum/curriculum261_*.py`(52 个模块,含 production_obs、8 个 r3 模块、11 个 r4 模块、10 个 r5 模块与 11 个 r6 模块[matched-ladder 基础设施]) |
+| 阶段测试(308 项,含 production obs 守卫、R2-R4 协议与统计测试、57 项 R6 matched/governance 测试) | `tests/route_c_stage2_6_1/` |
 | 回归 runner(含 2.6.1 目录与 RouteCStrategy 规则) | `runner/` |
 | 第一轮 artifacts(FAIL 历史证据,未改动) | `artifacts/`(顶层) |
 | Repair R1 artifacts(calibration/holdout/gate/plan/final/smoke) | `artifacts/repair1/` |
@@ -39,6 +45,7 @@
 | **Repair R4 artifacts(design/power/pack/V2 合同/manifest/bundle/pair 表/双 gate/final qualification(FAIL 证据)/smoke/回归,69 份)** | `artifacts/repair4/` |
 | 治理 waiver(2.6.0j 安全审计不再投入) | `artifacts/governance_waiver.json` |
 | **Repair R5 artifacts(启动审计/design plan+digest/Tier A+B results/decision/selection/power 汇总/smoke,16 份;calibration 及后续依 §17/§35 未生成)** | `artifacts/repair5/` |
+| **Repair R6 artifacts(启动审计/design plan+digest+勘误/8 候选完整 block 证据/power 汇总/样本选择 FAIL/fail-path 清洁性/smoke/回归 raw,22 份;pack 与 calibration 及后续依 §26/§39 未生成)** | `artifacts/repair6/` |
 
 ## 一句话语义
 

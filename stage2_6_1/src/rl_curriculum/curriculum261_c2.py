@@ -105,6 +105,13 @@ C2_RUNG_PARAMS: dict[str, dict[str, Any]] = {
 C2_REFERENCE_DEFAULTS = {"cue_thr": 0.0105, "wick_dir_thr": 0.0,
                          "wick_width_thr": 0.0120}
 
+#: Repair R6 §10:matched-ladder 模式下从全部随机流派生 payload 中
+#: 剔除的键——alpha_bps/wick_kappa 是唯一允许的难度轴(§7),
+#: cur261_rung 是 curriculum261_pairs 无条件注入的 rung 标签键
+#: (历史独立-rung 采样靠它 + rung 进基 seed 实现路径分离;matched
+#: 场景下必须剔除,否则同 block 的 D0-D3 派生流仍然不同)。
+C2_MATCHED_TAPE_EXCLUDED_KEYS = ("alpha_bps", "wick_kappa", "cur261_rung")
+
 C2_REJECT_VOCAB = (
     "too_few_cues", "too_few_aligned_gate_windows",
     "context_polarity_missing",
@@ -167,12 +174,17 @@ def _alternating_chain(
 def c2_wick_regime_chains(n: int, params: dict[str, Any],
                           seed: int, family: str = FAMILY_C2,
                           family_version: str = "cur261-c2-v9",
+                          extra_excludes: tuple[str, ...] = (),
                           ) -> tuple[np.ndarray, np.ndarray]:
     """从确定性派生流重建 (s 链, w 链)——_generate 与 wick 重写共用。
 
     params 必须是与 _generate 相同的 effective params(含
     pair_variant 等被排除键也不影响:派生盐固定,不依赖 variant,
     保证 A/B 链逐位一致)。
+
+    extra_excludes(Repair R6 §10):matched-ladder 场景下额外从派生
+    payload 剔除的难度键——剔除后同 seed 的链不再依赖难度参数,
+    四个 rung 共享同一结构带。默认空 tuple = 历史行为逐位不变。
     """
     import hashlib
     import json as _json
@@ -181,7 +193,8 @@ def c2_wick_regime_chains(n: int, params: dict[str, Any],
         [family, family_version,
          {k: v for k, v in params.items()
           if k not in ("pair_variant", "antithetic_flip",
-                       "noise_mutate_from", "noise_mutate_salt")},
+                       "noise_mutate_from", "noise_mutate_salt")
+          and k not in extra_excludes},
          int(seed), "_c2_wick_regimes"],
         sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     rng = np.random.default_rng(int.from_bytes(
@@ -223,7 +236,18 @@ def _wick_log_plan(n: int, s: np.ndarray, w: np.ndarray,
 
 
 class C2ContextGatingGenerator(Curriculum261Base):
-    """C2 生成器 v9:wick 几何纹理上下文 + 幅值体制,A/B 换门控绑定。"""
+    """C2 生成器 v9:wick 几何纹理上下文 + 幅值体制,A/B 换门控绑定。
+
+    matched_tape(Repair R6 §9/§10,默认 False):
+    R6 matched-ladder block 专用模式——实例开启后,全部随机流的
+    派生 payload 额外剔除难度键 (alpha_bps, wick_kappa, cur261_rung)
+    (经 Curriculum261Base.derive_seed 与 c2_wick_regime_chains 的
+    extra_excludes 两处生效),使同 seed 的四个 rung 逐位共享
+    cue 表 / s/w 链 / 噪声 / volume / wick jitter,唯一差异是
+    alpha 对 payoff 注入的确定性缩放与 kappa 对 wick 纹理的确定性
+    变换。默认不开启 = 历史路径逐位不变(历史 golden hash 锁定);
+    R6 matched 生成必须使用独立实例,不得污染 family_specs() 单例。
+    """
 
     family = FAMILY_C2
     family_version = "cur261-c2-v9"
@@ -235,8 +259,10 @@ class C2ContextGatingGenerator(Curriculum261Base):
     #: 调用栈内传递;读取即清空,不跨调用持有)
     _wick_plan: tuple[np.ndarray, np.ndarray] | None = None
 
-    def __init__(self) -> None:
+    def __init__(self, matched_tape: bool = False) -> None:
         super().__init__()
+        self._matched_tape_excludes: tuple[str, ...] = (
+            C2_MATCHED_TAPE_EXCLUDED_KEYS if matched_tape else ())
         _assert_wick_col_index()
 
     def _generate(self, params, seed, rng):
@@ -250,9 +276,12 @@ class C2ContextGatingGenerator(Curriculum261Base):
         cue_rate = float(params["cue_rate"])
         pulse = float(params["pulse_bps"]) * 1e-4
 
-        # 上下文链:方向纹理 s / wick 幅值 w(等长成对交替,A/B 共享)
+        # 上下文链:方向纹理 s / wick 幅值 w(等长成对交替,A/B 共享;
+        # matched_tape 模式下派生 payload 额外剔除难度键,同 seed
+        # 四个 rung 链逐位一致)
         s, w = c2_wick_regime_chains(
-            n, params, seed, self.family, self.family_version)
+            n, params, seed, self.family, self.family_version,
+            extra_excludes=getattr(self, "_matched_tape_excludes", ()))
         # s 链右移占位 bar 0 复制(链在 [0, n) 直接构造即可——
         # wick 不进入 close 收益,无水平合同约束;首 bar 复制无副作用)
         # (保持与 R1 相同的 [1, n) 语义:s/w 全程定义,bar 0 由链首覆盖)

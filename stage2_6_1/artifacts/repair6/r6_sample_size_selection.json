@@ -1,0 +1,60 @@
+{
+  "format": "cur261-r6-design-stage-v1",
+  "iteration": "r6",
+  "design_plan_digest": "r6dp-db74ed109a7bf7a955c74f1bd248213002d3c08f79512abf0faf93f8941e03c7",
+  "n_candidates": 8,
+  "formal_block_options": [
+    10,
+    15,
+    20
+  ],
+  "qualified_combinations": 0,
+  "weakest_binding_condition": {
+    "rule": "在最多 candidate(×n)组合上失败的硬门槛条件(降序;并列按名称排序)",
+    "ranked": [
+      {
+        "condition": "semantics_gate",
+        "failed_combinations": 8
+      },
+      {
+        "condition": "n=10:formal_gate_probability_ge_0p90",
+        "failed_combinations": 7
+      },
+      {
+        "condition": "n=10:d3_ge_2p5x_se",
+        "failed_combinations": 6
+      },
+      {
+        "condition": "n=10:margins_positive_and_d2_d3_ge_2p5x_se",
+        "failed_combinations": 6
+      },
+      {
+        "condition": "n=15:d3_ge_2p5x_se",
+        "failed_combinations": 6
+      },
+      {
+        "condition": "n=15:formal_gate_probability_ge_0p90",
+        "failed_combinations": 6
+      },
+      {
+        "condition": "n=15:margins_positive_and_d2_d3_ge_2p5x_se",
+        "failed_combinations": 6
+      },
+      {
+        "condition": "n=20:formal_gate_probability_ge_0p90",
+        "failed_combinations": 5
+      },
+      {
+        "condition": "n=20:d3_ge_2p5x_se",
+        "failed_combinations": 4
+      },
+      {
+        "condition": "n=20:margins_positive_and_d2_d3_ge_2p5x_se",
+        "failed_combinations": 4
+      }
+    ],
+    "top": "semantics_gate"
+  },
+  "pass": false,
+  "verdict": "R6 FAIL:candidate × block count 无合格组合(§26);不生成 parameter pack,禁止进入 calibration,不访问 final namespace,不写 exposure marker,不运行 full-cold"
+}

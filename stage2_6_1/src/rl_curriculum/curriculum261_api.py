@@ -130,11 +130,31 @@ CURRICULUM261_R5_NAMESPACES = (
     "calibration_holdout_r5", "qualification_r5", "fresh_holdout_r5",
     "training_r5", "stress_r5", "ppo_smoke_r5")
 
+#: repair R6 全新 iteration identity(curriculum_iteration = r6)。
+#: R6 namespace 与 R0-R5 及全部 Stage 2.6.2 namespace 不相交
+#: (curriculum261_r6_namespaces.verify_r6_namespace_isolation 显式
+#: 验证);design_r6_matched_* 是 matched-ladder candidate 开发语料
+#: (两份独立,均为开发数据,不得称为 holdout);design_r6_independent_
+#: diagnostic 是选定 ladder 的独立-rung marginal guard 语料(§16);
+#: c2_independent_* 是 calibration/holdout/qualification 三阶段的
+#: C2 独立-rung marginal guard 语料;preprocess_fit_*_r6 是
+#: preprocessing fit bank 专用 namespace。
+CURRICULUM261_ITERATION_ID_R6 = "r6"
+CURRICULUM261_R6_NAMESPACES = (
+    "design_r6_matched_main", "design_r6_matched_validation",
+    "design_r6_independent_diagnostic",
+    "preprocess_fit_calibration_r6", "preprocess_fit_holdout_r6",
+    "preprocess_fit_qualification_r6",
+    "calibration_r6", "calibration_holdout_r6", "qualification_r6",
+    "c2_independent_calibration_r6", "c2_independent_holdout_r6",
+    "c2_independent_qualification_r6",
+    "fresh_holdout_r6", "training_r6", "stress_r6", "ppo_smoke_r6")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
     CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES) + (
-    CURRICULUM261_R5_NAMESPACES)
+    CURRICULUM261_R5_NAMESPACES) + (CURRICULUM261_R6_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -378,6 +398,23 @@ def derive261_seed(
                 "tier_b_authorized=true;仅当 Tier A 全部 candidate "
                 "不满足全部 design 硬门槛)前不可访问——Tier A 存在"
                 "合格 candidate 时 Tier B 永久封闭(§17)")
+    if namespace in ("qualification_r6",
+                     "preprocess_fit_qualification_r6"):
+        # repair R6:完整守卫(plan + digest 重算 + gate + parameter
+        # pack 绑定一致 + sealed preflight attestation;final corpus
+        # lock 前对任何代码路径封闭)。沿用 R5 六要素治理。
+        from rl_curriculum.curriculum261_r6_namespaces import (
+            qualification_r6_unlocked,
+        )
+
+        if not qualification_r6_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R6 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r6 / "
+                "calibration_holdout_r6 / stress_r6 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -449,8 +486,14 @@ class Curriculum261Base(BaseMarketGenerator):
                             "noise_mutate_from", "noise_mutate_salt")
 
     def derive_seed(self, params: dict[str, Any], seed: int) -> int:
+        # Repair R6 §10:matched-tape 实例(_matched_tape_excludes 非空)
+        # 的派生 payload 额外剔除难度键,使同 seed 的四个 rung 逐位
+        # 共享 cue 表/噪声/volume 流;默认属性不存在/为空 = 历史
+        # 行为逐位不变。
+        extra = getattr(self, "_matched_tape_excludes", ())
         seed_params = {k: v for k, v in params.items()
-                       if k not in self._SEED_EXCLUDED_KEYS}
+                       if k not in self._SEED_EXCLUDED_KEYS
+                       and k not in extra}
         payload = json.dumps(
             [self.family, self.family_version, seed_params, int(seed)],
             sort_keys=True, separators=(",", ":"), ensure_ascii=False,

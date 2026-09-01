@@ -78,12 +78,35 @@ R5_REGISTERED_CODE_CHANGES = {
         "a298cd1053b150ece3d5720d48ed665650a44bed19f41e460e534ff6105356ae",
 }
 
-#: 全部迭代登记的合并视图(R5 覆盖同名键;run_input_lock 的守卫
+#: Stage 2.6.1 Repair R6 迭代登记(同一守卫语义):
+#: R6 于 baseline 40a0d9a 之后修改两个文件——
+#: - curriculum261_api.py:R6 seed namespace 白名单(16 个)追加 +
+#:   qualification_r6/preprocess_fit_qualification_r6 完整 lock 守卫
+#:   (六要素,沿 R5)+ Curriculum261Base.derive_seed 的 matched-tape
+#:   opt-in 键剔除(仅 _matched_tape_excludes 非空的实例生效;默认
+#:   属性不存在 = 历史 seed 派生逐位不变,_derive261_seed_raw
+#:   payload 黄金向量锁定不变);
+#: - curriculum261_c2.py(首次登记):C2ContextGatingGenerator 增加
+#:   matched_tape 构造开关(默认 False = 历史 episode 逐位不变,
+#:   reproducibility/families 黄金测试回归锁定)与
+#:   c2_wick_regime_chains 的 extra_excludes 参数(默认空 tuple =
+#:   历史派生 payload 逐位不变)。matched-tape 仅在 R6 matched 场景
+#:   用独立实例启用,不污染 family_specs() 单例(2.6.2 ppo262_banks
+#:   的 R2 plan 官方 bank 生成不受影响);generator/family/
+#:   production obs 语义不变。
+R6_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "81d0d4a3104be70c2cd41d595735206a6f54e1784227533ec42866309d70a158",
+    "curriculum261_c2.py":
+        "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+}
+
+#: 全部迭代登记的合并视图(R6 覆盖同名键;run_input_lock 的守卫
 #: 数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
 REGISTERED_261_CODE_CHANGES = {
     **R3_REGISTERED_CODE_CHANGES, **R4_REGISTERED_CODE_CHANGES,
-    **R5_REGISTERED_CODE_CHANGES}
+    **R5_REGISTERED_CODE_CHANGES, **R6_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)
