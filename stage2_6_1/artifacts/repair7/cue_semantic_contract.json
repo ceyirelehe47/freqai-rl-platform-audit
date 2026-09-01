@@ -1,0 +1,34 @@
+{
+  "version": "C2CueDetectionSemanticContract-v1",
+  "unique_event_key": [
+    "block_index",
+    "cue_bar_index"
+  ],
+  "canonical_observation": [
+    "D0",
+    "A"
+  ],
+  "cluster_unit": "matched_block",
+  "deduplication": "4 rungs x A/B 共享 cue 表;同一 (block_index,cue_bar_index) 只计一个 unique cue event;canonical = D0/A;跨 rung/variant 的 cue detection input 不一致 => block integrity FAIL",
+  "noninferiority_delta": 0.02,
+  "absolute_minimum_recall": 0.9,
+  "recall_floor_formula": "max(absolute_minimum_recall, p_contract - noninferiority_delta)",
+  "recall_pass_rule": "one-sided 95% block-cluster bootstrap LCB >= recall_floor",
+  "lcb_confidence": 0.95,
+  "cue_precision_min": 0.85,
+  "non_cue_false_positive_max": 0.01,
+  "payoff_bar_false_cue_max": 0.06,
+  "min_unique_positive_cues": 460,
+  "candidate_independent_metrics": [
+    "positive cue recall",
+    "non-cue false-positive rate",
+    "unique cue count",
+    "block-level cue-event distribution"
+  ],
+  "candidate_specific_metrics": [
+    "payoff-bar false-cue rate",
+    "cue precision",
+    "payoff/cue confusion",
+    "reference trade side effects"
+  ]
+}

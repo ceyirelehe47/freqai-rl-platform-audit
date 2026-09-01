@@ -1,0 +1,36 @@
+{
+  "format": "cur261-r7-clustered-cue-metric-validation-v1",
+  "namespace": "ppo_smoke_r7",
+  "cluster_unit": "matched_block",
+  "clustered": {
+    "point": 0.9646302250803859,
+    "bound": 0.9512987012987013,
+    "bootstrap_se": 0.008451981393168871,
+    "n_clusters": 12,
+    "n_events": 311
+  },
+  "naive_eightfold_independent": {
+    "point": 0.9646302250803859,
+    "bound": 0.9597747385358005,
+    "bootstrap_se": 0.0029762629892828188,
+    "n_clusters": 96,
+    "n_events": 2488
+  },
+  "naive_ci_narrower_than_cluster": true,
+  "shared_gate_runs_on_sentinel": {
+    "pass": true,
+    "checks": {
+      "canonical_consistency": true,
+      "cross_candidate_cue_table_identical": true,
+      "recall_lcb_ge_floor": true,
+      "noncue_fp_ucb_le_max": true,
+      "n_unique_positive_cues_ge_min": true,
+      "coverage_complete": true
+    },
+    "recall_point": 0.9646302250803859,
+    "recall_lcb": 0.9512987012987013
+  },
+  "candidate_semantics_runs": true,
+  "payoff_fc_and_precision_bounds_reported": true,
+  "pass": true
+}

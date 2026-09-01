@@ -150,11 +150,35 @@ CURRICULUM261_R6_NAMESPACES = (
     "c2_independent_qualification_r6",
     "fresh_holdout_r6", "training_r6", "stress_r6", "ppo_smoke_r6")
 
+#: repair R7 全新 iteration identity(curriculum_iteration = r7)。
+#: R7 namespace 与 R0-R6 及全部 Stage 2.6.2 namespace 不相交
+#: (curriculum261_r7_namespaces.verify_r7_namespace_isolation 显式
+#: 验证);cue_contract_audit_r7 是 cue 检测合同审计专用(p_contract
+#: Monte Carlo;不读 candidate ladder/design 结果);preplan_smoke_r7
+#: 是 plan 锁定前工程 smoke(固定 sentinel ladder);design_r7_matched_*
+#: 是 matched-ladder candidate 开发语料(两份独立,均为开发数据,
+#: 不得称为 holdout);design_r7_independent_marginal 是选定 ladder
+#: 的独立-rung marginal guard 语料(§21);c2_independent_* 是
+#: calibration/holdout/qualification 三阶段的 C2 独立-rung marginal
+#: guard 语料;preprocess_fit_*_r7 是 preprocessing fit bank 专用。
+CURRICULUM261_ITERATION_ID_R7 = "r7"
+CURRICULUM261_R7_NAMESPACES = (
+    "cue_contract_audit_r7", "preplan_smoke_r7",
+    "design_r7_matched_main", "design_r7_matched_validation",
+    "design_r7_independent_marginal",
+    "preprocess_fit_calibration_r7", "preprocess_fit_holdout_r7",
+    "preprocess_fit_qualification_r7",
+    "calibration_r7", "calibration_holdout_r7", "qualification_r7",
+    "c2_independent_calibration_r7", "c2_independent_holdout_r7",
+    "c2_independent_qualification_r7",
+    "fresh_holdout_r7", "training_r7", "stress_r7", "ppo_smoke_r7")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
     CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES) + (
-    CURRICULUM261_R5_NAMESPACES) + (CURRICULUM261_R6_NAMESPACES)
+    CURRICULUM261_R5_NAMESPACES) + (CURRICULUM261_R6_NAMESPACES) + (
+    CURRICULUM261_R7_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -415,6 +439,26 @@ def derive261_seed(
                 "attestation)前不可访问(final corpus lock 前对任何"
                 "代码路径封闭;校准/诊断一律使用 calibration_r6 / "
                 "calibration_holdout_r6 / stress_r6 namespace)")
+    if namespace in ("qualification_r7",
+                     "preprocess_fit_qualification_r7",
+                     "c2_independent_qualification_r7"):
+        # repair R7:完整守卫(plan + digest 重算 + gate + parameter
+        # pack 绑定一致 + sealed preflight attestation;final corpus
+        # lock 前对任何代码路径封闭)。沿用 R5/R6 六要素治理;R7 相对
+        # R6 补强:c2_independent_qualification_r7 一并纳入守卫(它的
+        # 语料与 core qualification 同批暴露,同等一次性)。
+        from rl_curriculum.curriculum261_r7_namespaces import (
+            qualification_r7_unlocked,
+        )
+
+        if not qualification_r7_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R7 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r7 / "
+                "calibration_holdout_r7 / stress_r7 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 

@@ -30,12 +30,19 @@
   - **统计修复本身被验证成功**:R5 瓶颈(历史 ladder 冻结 D0-D1 功效不足)在 matched 口径消失——historical_control 三段 gap ratio 4.4-9.4、formal gate P(main/valid@n=15: 0.977/0.985;@n=20: 0.993/0.997);conservative@15(0.943/0.947)与 kappa_wide@20(0.901/0.949)功效条件全过(均被 recall gate 误伤);R6.1 处方:recall 阈值校准(0.93)+D3 α≥27 网格修正+全新 namespace
   - 收尾:未生成 pack/final namespace 零访问/exposure 未写入/fail_path_cleanliness 验证;PPO smoke PASS(manifest 绑定 bundle hash+pack digest+observation identity);57 项 R6 测试+2.6.1 全套 308+2.6.2 全套 150(input lock R6 登记含 c2.py 首次)全绿;full-cold 依 §35 不执行;C3 PPO Branch D 仍开放
 
+- **Repair R7 报告(当前轮,FAIL,诚实 FAIL)**:[route_c_stage2_6_1_repair7_clustered_cue_qualification.md](route_c_stage2_6_1_repair7_clustered_cue_qualification.md)
+  - **cluster-aware cue semantic 合同(C2CueDetectionSemanticContract-v1)**:unique cue event 去重(matched block 内 4 rung × A/B 共享 cue 表,同一 (block_index,cue_bar) 只计一次;canonical=D0/A;跨 rung/variant 读数不一致=>block integrity FAIL,design 双语料 violations=0);block-cluster bootstrap 单侧 95% LCB/UCB(20000 次,重采样完整 block);shared(candidate-independent:recall/non-cue FP/事件数)与 candidate-specific(payoff false-cue UCB/precision LCB,按 rung×side,D0-D3 单独判定)解耦——R6"同一 recall 记到全部候选"的重复判定被结构性消除
+  - **p_contract 合同审计(数据前)**:解析积分(cue bar 读数=exp(pulse+eps)−1;eps|K~N(0,vol²(1+K)),K~Bin(C(t),1/9) 镜像混合)+1e6 事件级 MC+200 matched blocks bridge 实测三层自洽:p_contract=0.950399(MC se 0.000218;bridge z=−0.12);预注册 recall_floor=max(0.90,p−0.02)=0.930399;有效噪声 σ_eff p50=28.3bps、K≤1 占 0.749——R6"0.95 点阈值卡固有检出率"的根因被合同化修复
+  - **design(4 候选[历史 control/R6 conservative/midpoint/conservative_d3_up]×双语料 40 matched blocks;design plan `r7dp-73d65b68…` 数据前锁定且全程未删未重锁)**:shared gate 短路 FAIL——validation 过(LCB 0.9355≥0.9304),**main 的 unique-event recall point 0.9260 落 p_contract 左尾 ~3σ,LCB 0.9120<floor 0.9304** => §19.1 整个 design FAIL,不进行 candidate 选择;三语料点估计(0.926/0.947/0.950)示语料级随机效应;§20/§37 禁改 floor/delta/candidate/n 救援
+  - **治理事件(完整披露)**:plan 锁后首跑因 loader 复算字段不对称失败(writer 附加 design_plan_digest 元字段而 loader 未排除);零 design data、plan/digest 从未改动(排除元字段复算逐位一致的只读验证)、src 零修改(code identity 不变)下以对称复算驱动继续;R6"删 plan 重锁同 namespace"路径未被触碰;loader 修复留 R7.1
+  - 收尾:无 pack/marginal namespace 未访问/exposure 未写/无 full-cold;unique/clustered 验证 artifacts+namespace post-design PASS+PPO smoke PASS(manifest 增绑 matched+cue 合同身份)+fail_path_cleanliness PASS;38 项 R7 测试+2.6.1 全套 346+2.6.2 全套 150(input lock R7 登记 api.py=4d8f1e82…)全绿;C3 PPO Branch D 仍开放;R7.1 处方:loader 对称修复+语料级方差处理(80 blocks/三语料/授权重跑三选一)+per-event K 落盘
+
 ## 目录
 
 | 内容 | 位置 |
 |---|---|
-| C1/C2/C3 生成器与资格基础设施 | `src/rl_curriculum/curriculum261_*.py`(52 个模块,含 production_obs、8 个 r3 模块、11 个 r4 模块、10 个 r5 模块与 11 个 r6 模块[matched-ladder 基础设施]) |
-| 阶段测试(308 项,含 production obs 守卫、R2-R4 协议与统计测试、57 项 R6 matched/governance 测试) | `tests/route_c_stage2_6_1/` |
+| C1/C2/C3 生成器与资格基础设施 | `src/rl_curriculum/curriculum261_*.py`(63 个模块,含 production_obs、8 个 r3 模块、11 个 r4 模块、10 个 r5 模块、11 个 r6 模块[matched-ladder 基础设施]与 11 个 r7 模块[cluster-aware cue 合同+R6 冻结实现零修改复用]) |
+| 阶段测试(346 项,含 production obs 守卫、R2-R4 协议与统计测试、57 项 R6 matched/governance 测试与 38 项 R7 cluster-cue/governance 测试) | `tests/route_c_stage2_6_1/` |
 | 回归 runner(含 2.6.1 目录与 RouteCStrategy 规则) | `runner/` |
 | 第一轮 artifacts(FAIL 历史证据,未改动) | `artifacts/`(顶层) |
 | Repair R1 artifacts(calibration/holdout/gate/plan/final/smoke) | `artifacts/repair1/` |
@@ -46,6 +53,7 @@
 | 治理 waiver(2.6.0j 安全审计不再投入) | `artifacts/governance_waiver.json` |
 | **Repair R5 artifacts(启动审计/design plan+digest/Tier A+B results/decision/selection/power 汇总/smoke,16 份;calibration 及后续依 §17/§35 未生成)** | `artifacts/repair5/` |
 | **Repair R6 artifacts(启动审计/design plan+digest+勘误/8 候选完整 block 证据/power 汇总/样本选择 FAIL/fail-path 清洁性/smoke/回归 raw,22 份;pack 与 calibration 及后续依 §26/§39 未生成)** | `artifacts/repair6/` |
+| **Repair R7 artifacts(基线/历史绑定/cue 合同+audit(p_contract)/preplan smoke/design plan+digest+iteration 账本/shared cue gate(FAIL 证据)/样本选择 FAIL/unique-event 与 cluster 度量验证/namespace 快照/失败路径清洁性/smoke/回归 raw,23 文件+3 份 raw log;pack/marginal/calibration 及后续依 §20 未生成)** | `artifacts/repair7/` |
 
 ## 一句话语义
 
