@@ -1,0 +1,29 @@
+{
+  "format": "cur261-r8-regression-summary-v1",
+  "iteration": "r8",
+  "verdict": "FAIL(§8.4:design plan 锁定后 evaluator import 错误 → R8 永久结束;targeted/affected 回归全绿佐证基础设施稳定)",
+  "recorded_utc": "2026-09-01T20:01:06+00:00",
+  "targeted_r8": {
+    "passed": 45,
+    "failed": 0,
+    "line": "45 passed, 346 deselected, 2 warnings in 22.70s"
+  },
+  "stage2_6_1_affected": {
+    "passed": 391,
+    "failed": 0,
+    "line": "391 passed, 11 warnings in 63.86s (0:01:03)"
+  },
+  "stage2_6_2_affected": {
+    "passed": 150,
+    "failed": 0,
+    "line": "150 passed, 2 warnings in 44.63s"
+  },
+  "fullcold": {
+    "executed": false,
+    "reason": "仅 PASS 允许运行 full-cold(§25/§34)"
+  },
+  "notes": [
+    "affected_262 首轮出现 3 项 input-lock 失败(api.py 哈希未登记)——按 R3-R7 每轮登记模式补 R8_REGISTERED_CODE_CHANGES 后全绿;登记内容仅为 namespace 白名单/守卫追加(paired_noise 与 _derive261_seed_raw 语义不变,exact replay 测试逐位锁定)",
+    "full-cold 基线未刷新(FAIL 路径)"
+  ]
+}

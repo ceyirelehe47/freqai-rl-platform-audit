@@ -112,13 +112,22 @@ R7_REGISTERED_CODE_CHANGES = {
         "4d8f1e82fe12e3c8a34624078c4be90b422faae79d6254deb216eafd6171403a",
 }
 
-#: 全部迭代登记的合并视图(R6/R7 覆盖同名键;run_input_lock 的守卫
-#: 数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
+#: repair R8 登记:api.py 仅追加 CURRICULUM261_R8_NAMESPACES(24 个
+#: namespace)白名单与 derive261_seed 的 R8 解锁守卫分支;paired_noise
+#: 与 _derive261_seed_raw payload/黄金向量不变(R0-R7 语料 seed 逐位
+#: 不受影响;仅新增 namespace 字符串进哈希)。
+R8_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "1aed6f559bbde37786cad4d785dc853c9e61a5d919646564738a64df45a09cfc",
+}
+
+#: 全部迭代登记的合并视图(R6/R7/R8 覆盖同名键;run_input_lock 的
+#: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
 REGISTERED_261_CODE_CHANGES = {
     **R3_REGISTERED_CODE_CHANGES, **R4_REGISTERED_CODE_CHANGES,
     **R5_REGISTERED_CODE_CHANGES, **R6_REGISTERED_CODE_CHANGES,
-    **R7_REGISTERED_CODE_CHANGES}
+    **R7_REGISTERED_CODE_CHANGES, **R8_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)

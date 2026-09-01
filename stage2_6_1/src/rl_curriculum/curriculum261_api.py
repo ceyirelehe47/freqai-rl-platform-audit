@@ -173,12 +173,42 @@ CURRICULUM261_R7_NAMESPACES = (
     "c2_independent_qualification_r7",
     "fresh_holdout_r7", "training_r7", "stress_r7", "ppo_smoke_r7")
 
+#: repair R8 全新 iteration identity(curriculum_iteration = r8)。
+#: R8 namespace 与 R0-R7 及全部 Stage 2.6.2 official/diagnostic
+#: namespace 不相交(curriculum261_r8_namespaces.verify_r8_namespace_
+#: isolation 显式验证);cue_contract_model_r8 / cue_contract_validation_r8
+#: 是 Cue Semantic Contract v2 合同审计的两个 candidate-independent
+#: direct-generator 语料(500 matched blocks each;不读 candidate ladder、
+#: 不读任何 R8 design 结果);cue_semantic_design_* / cue_semantic_
+#: calibration_r8 / cue_semantic_holdout_r8 / cue_semantic_qualification_r8
+#: 是 160-block dedicated cue semantic 语料(candidate-independent shared
+#: cue 指标与 candidate 选择解耦);design_r8_matched_* 是 candidate
+#: 开发语料;design_r8_independent_marginal 是选定 ladder 的独立-rung
+#: marginal guard 语料(§26);preprocess_fit_*_r8 是 preprocessing fit
+#: bank 专用;cue_semantic_qualification_r8 与 qualification_r8 同批
+#: 暴露(同等一次性,纳入 qualification 解锁守卫)。
+CURRICULUM261_ITERATION_ID_R8 = "r8"
+CURRICULUM261_R8_NAMESPACES = (
+    "cue_contract_model_r8", "cue_contract_validation_r8",
+    "preplan_smoke_r8",
+    "cue_semantic_design_main_r8", "cue_semantic_design_validation_r8",
+    "design_r8_matched_main", "design_r8_matched_validation",
+    "design_r8_independent_marginal",
+    "preprocess_fit_calibration_r8", "preprocess_fit_holdout_r8",
+    "preprocess_fit_qualification_r8",
+    "cue_semantic_calibration_r8", "cue_semantic_holdout_r8",
+    "cue_semantic_qualification_r8",
+    "calibration_r8", "calibration_holdout_r8", "qualification_r8",
+    "c2_independent_calibration_r8", "c2_independent_holdout_r8",
+    "c2_independent_qualification_r8",
+    "stress_r8", "fresh_holdout_r8", "training_r8", "ppo_smoke_r8")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
     CURRICULUM261_R3_NAMESPACES) + (CURRICULUM261_R4_NAMESPACES) + (
     CURRICULUM261_R5_NAMESPACES) + (CURRICULUM261_R6_NAMESPACES) + (
-    CURRICULUM261_R7_NAMESPACES)
+    CURRICULUM261_R7_NAMESPACES) + (CURRICULUM261_R8_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -459,6 +489,28 @@ def derive261_seed(
                 "attestation)前不可访问(final corpus lock 前对任何"
                 "代码路径封闭;校准/诊断一律使用 calibration_r7 / "
                 "calibration_holdout_r7 / stress_r7 namespace)")
+    if namespace in ("qualification_r8",
+                     "preprocess_fit_qualification_r8",
+                     "c2_independent_qualification_r8",
+                     "cue_semantic_qualification_r8"):
+        # repair R8:完整守卫(plan + digest 重算 + gate + parameter
+        # pack 绑定一致 + sealed preflight attestation;final corpus
+        # lock 前对任何代码路径封闭)。沿用 R5-R7 六要素治理;R8 相对
+        # R7 补强:cue_semantic_qualification_r8 一并纳入守卫——160-block
+        # dedicated semantic final 语料与 core qualification 同批暴露,
+        # 同等一次性。
+        from rl_curriculum.curriculum261_r8_namespaces import (
+            qualification_r8_unlocked,
+        )
+
+        if not qualification_r8_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R8 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r8 / "
+                "calibration_holdout_r8 / stress_r8 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 

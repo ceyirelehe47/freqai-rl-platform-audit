@@ -1,0 +1,54 @@
+{
+  "format": "cur261-r8-fail-path-cleanliness-v1",
+  "iteration": "r8",
+  "verdict": "FAIL(§8.4 一次性硬规则:design plan 锁定后 evaluator import 错误 → R8 永久结束)",
+  "recorded_utc": "2026-09-01T19:51:59+00:00",
+  "forbidden_artifacts_absent": {
+    "r8_parameter_pack.json": true,
+    "r8_parameter_pack_digest.txt": true,
+    "c2_independent_marginal_design.json": true,
+    "r8_candidate_results.json": true,
+    "r8_power_analysis.json": true,
+    "r8_sample_size_selection.json": true,
+    "qualification_plan_r8.json": true,
+    "qualification_plan_digest_r8.txt": true,
+    "qualification_exposure_r8.json": true,
+    "qualification_exposure_ledger_r8.jsonl": true,
+    "sealed_final_preflight.json": true,
+    "robustness_gate.json": true,
+    "curriculum_robustness_gate.json": true,
+    "preprocessing_robustness_gate.json": true,
+    "calibration_summary.json": true,
+    "calibration_holdout_summary.json": true,
+    "cue_semantic_calibration.json": true,
+    "cue_semantic_holdout.json": true,
+    "fit_manifest_calibration.json": true,
+    "qualification_result.json": true,
+    "qualification_cue_semantics.json": true
+  },
+  "fail_path_clean": true,
+  "abort": {
+    "iteration": "r8",
+    "aborted_utc": "2026-09-01T19:49:58+00:00",
+    "reason": "design plan 锁定后执行异常(ImportError: cannot import name 'c2_density_summary' from 'rl_curriculum.curriculum261_r6_pairs' (/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py));按 §8.4 R8 永久结束",
+    "contract": "design data 已生成后发生代码/评估器/统计缺陷;按 §16.2 R8 iteration 永久结束:原 plan 保留不得删除,不得复用任何 R8 design namespace,下一轮必须 R8.1/R8 + 全新 seed space。"
+  },
+  "ledger": [
+    {
+      "event": "design_data_started",
+      "iteration": "r8",
+      "utc": "2026-09-01T19:47:00+00:00",
+      "note": ""
+    },
+    {
+      "event": "iteration_aborted",
+      "iteration": "r8",
+      "utc": "2026-09-01T19:49:58+00:00",
+      "note": "design plan 锁定后执行异常(ImportError: cannot import name 'c2_density_summary' from 'rl_curriculum.curriculum261_r6_pairs' (/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py));按 §8.4 R8 永久结束"
+    }
+  ],
+  "secondary_defect_disclosure": {
+    "artifact_writer_bug": "semantic fname 判定使用 namespace.endswith('main'),而 namespace 为 cue_semantic_design_main_r8(以 _r8 结尾)→ main 语料 artifact 被 validation 覆盖;main semantic gate PASS 的事实由执行流推进证明(semantic 阶段未触发 FAIL 短路,流程进入 candidate 生成),但其数值落盘丢失",
+    "validation_corpus_retained": "semantic_design_validation.json 保留完整(LCB 0.9458 ≥ floor 0.9305)"
+  }
+}
