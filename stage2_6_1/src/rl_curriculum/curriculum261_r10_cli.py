@@ -284,6 +284,28 @@ def _r9_abort_binding(out_dir: Path) -> dict:
 
 
 def cmd_audit(args: argparse.Namespace) -> int:
+    # §6/§21:freeze 是正式数据的第一件事(先于任何治理 artifact)
+    freeze_sha = str(getattr(args, "code_freeze_sha", "") or "")
+    if freeze_sha:
+        from rl_curriculum.curriculum261_r10_dependencies import (
+            write_r10_code_freeze,
+        )
+
+        freeze_doc = write_r10_code_freeze(
+            Path(args.out_dir), code_freeze_sha=freeze_sha)
+        print(f"[audit] code freeze anchored: {freeze_sha} "
+              f"(tree {freeze_doc['source_tree_digest'][:14]}...)")
+    else:
+        from rl_curriculum.curriculum261_r10_dependencies import (
+            verify_r10_code_freeze,
+        )
+
+        existing = verify_r10_code_freeze(Path(args.out_dir))
+        if not existing["pass"]:
+            print("[audit] 缺少 --code-freeze-sha 且无有效 freeze 记录"
+                  "(§6:正式数据开始前必须冻结;fail closed)")
+            return 1
+
     from rl_curriculum.curriculum261_r3_calibration import (
         fit_matrix_from_records,
         generate_fit_bank,
@@ -382,20 +404,15 @@ def cmd_audit(args: argparse.Namespace) -> int:
         print(f"[audit] delegation 合同失败(fail closed):"
               f"sig={sig_audit['all_pass']} ast={ast_checks['pass']}")
         return 1
-    freeze_sha = str(getattr(args, "code_freeze_sha", "") or "")
-    if freeze_sha:
-        from rl_curriculum.curriculum261_r10_dependencies import (
-            write_r10_code_freeze,
-        )
+    from rl_curriculum.curriculum261_r10_dependencies import (
+        verify_r10_code_freeze,
+    )
 
-        _write_json(out, "r10_code_freeze.json", write_r10_code_free(
-            out, code_freeze_sha=freeze_sha))
-    else:
-        existing = Path(out) / "r10_code_freeze.json"
-        if not existing.is_file():
-            print("[audit] 缺少 --code-freeze-sha 且无既有 freeze 记录"
-                  "(§6:正式数据开始前必须冻结;fail closed)")
-            return 1
+    freeze_check = verify_r10_code_freeze(out)
+    if not freeze_check["pass"]:
+        print(f"[audit] code freeze 复验失败(fail closed):"
+              f"{freeze_check}")
+        return 1
     entry = _official_entrypoint_validation()
     _write_json(out, "official_entrypoint_validation.json", entry)
     _write_json(out, "r8_abort_binding.json",
