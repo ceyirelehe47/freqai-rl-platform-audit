@@ -1,0 +1,36 @@
+{
+ "format": "cur261-r10-fail-path-cleanliness-v1",
+ "iteration": "r10",
+ "fail_reason": "calibrate 阶段 supervised main 的 c3_cost/D0/pair1 PairGenerationError(5 attempts 全部 too_few_distractors);§21 硬规则:plan 锁定后任何异常 -> R10 永久结束,下一轮 R11",
+ "banned_artifacts_absent": true,
+ "violations": [],
+ "plans_and_markers_retained": {
+  "r10_design_plan.json": true,
+  "r10_design_plan_digest.txt": true,
+  "r10_parameter_pack.json": true,
+  "r10_parameter_pack_digest.txt": true,
+  "cue_audit_plan.json": true,
+  "r10_iteration_aborted.json": true,
+  "r10_iteration_events.jsonl": true,
+  "r10_code_freeze.json": true
+ },
+ "exposure_ever_written": false,
+ "qualification_namespace_ever_unlocked": true,
+ "not_executed": [
+  "final qualification(exposure 从未写入)",
+  "sealed preflight(无 final plan)",
+  "PPO smoke(FAIL 路径)",
+  "full-cold(final 未 PASS)",
+  "calibration_holdout_r10 独立 gate(supervised main 即失败)",
+  "supervised_holdout_r10",
+  "cue_semantic_calibration_r10 / cue_semantic_holdout_r10",
+  "c2 matched calibration 双语料 / c2 independent 双语料",
+  "robustness gate 汇总(supervised 未完成)"
+ ],
+ "temporary_driver_used_for_formal_data": false,
+ "source_changed_after_freeze": false,
+ "post_freeze_commits": [
+  "06e9b5b(freeze 锚点;audit 中断披露 commit)"
+ ],
+ "pass": true
+}

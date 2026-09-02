@@ -1,0 +1,39 @@
+{
+ "format": "cur261-r10-generation-failure-replay-diagnostics-v1",
+ "iteration": "r10",
+ "failure": {
+  "stage": "calibrate / shared orchestration / supervised main",
+  "namespace": "supervised_main_r10",
+  "call": "generate_pair('c3_cost', 'D0', 1, namespace=..., rung_params_override={'D3': R4_SELECTED_C3_D3})",
+  "error": "PairGenerationError: 5 次尝试全部未通过结构性校验(A/B/pair 全部 too_few_distractors)",
+  "attempt_seeds": [
+   4610631957848990728,
+   11133740903307515606,
+   6129992300414987011,
+   4882666421302941032,
+   4309486781261668342
+  ]
+ },
+ "c3_d0_structural_rule": "distractor_flag.sum() >= C3_MIN_DISTRACTORS(=1);D0 distractor_rate=0.015/bar",
+ "replays": [
+  {
+   "name": "single-call replay(同一 override/pack/namespace)",
+   "result": "PASS(attempt0 直接通过;integrity_ok=True)"
+  },
+  {
+   "name": "generation-sequence replay(c1×40 → c2×40 → c3/D0 pairs 0-2)",
+   "result": "PASS(83 pairs 全部生成成功)"
+  },
+  {
+   "name": "full supervised-main replay(c1+c2 完整 dataset(各 22960 rows)+ 9×2 次 MLP 训练(含 torch)后 c3 全 40 records)",
+   "result": "PASS"
+  }
+ ],
+ "verdict": "失败在三种重放路径下均不可复现;确定性 seed 派生下同调用应同结果——唯一自洽解释为当时进程内一次性运行时状态(未定位;unexplained runtime failure)。c3 生成器路径无全局 RNG 使用(全部 default_rng(seed 派生);grep 审计)。按 §21 硬规则R10 已永久结束;根因定性移交 R11",
+ "r11_prescription": [
+  "R11 新 namespace 全链重做(本报告 §44)",
+  "扩展重放:加入 robustness 电池(eval/equiv×144 episodes×3 runs)后再到 supervised,若重现则二分定位进程内状态源",
+  "设计期即登记生成失败监控:PairGenerationError 的 attempt 明细逐条落盘(本次 traceback 已含 5 条同文案 issues;attempt log 建议进入 supervised artifact)",
+  "考虑预注册 attempt-escalation 合同(生成失败时的预注册扩展attempt 区间;须进入 R11 plan 且不得修改生成器/参数)"
+ ]
+}

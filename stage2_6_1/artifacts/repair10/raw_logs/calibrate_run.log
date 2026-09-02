@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r10_cli.py", line 1476, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r10_cli.py", line 1472, in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r10_cli.py", line 1186, in cmd_calibrate
+    stage = orchestrate_calibration_stage_r10(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r10_orchestrator.py", line 523, in orchestrate_calibration_stage_r10
+    supervised[role] = supervised_learnability_run_r10(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r10_calibration.py", line 361, in supervised_learnability_run_r10
+    records.append(generate_pair(
+                   ^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_pairs.py", line 114, in generate_pair
+    episodes, log = generate_pair_with_attempts(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_api.py", line 868, in generate_pair_with_attempts
+    raise PairGenerationError(
+rl_curriculum.curriculum261_api.PairGenerationError: c3_cost/D0/pair1: 5 次尝试全部未通过结构性校验:['A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors']
+[calibrate] fitting main preprocessor (preprocess_fit_calibration_r10)...
+[calibrate] fitting holdout preprocessor (preprocess_fit_holdout_r10)...
+[calibrate] shared orchestration (formal main/holdout profiles; same function as rehearsal)...

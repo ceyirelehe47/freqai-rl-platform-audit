@@ -1,0 +1,4916 @@
+{
+ "format": "cur261-r10-preprocessing-robustness-v1",
+ "iteration": "r10",
+ "profile": "rehearsal_main",
+ "checks": {
+  "survival_main": true,
+  "survival_holdout": true,
+  "fit_bank_integrity": true,
+  "production_numerical_equivalence": true,
+  "envelope_reload_bundle_identity_stable": true,
+  "envelope_reload_transform_bitwise_equal": true,
+  "manifest_tamper_rejected": true,
+  "parameter_state_tamper_rejected": true,
+  "staged_mixed_same_parameter_state_hash": true,
+  "staged_mixed_same_bundle_hash": true,
+  "manifest_order_invariant_multiset_hash": true,
+  "different_multiset_same_params_same_param_hash": true,
+  "different_multiset_different_bundle": true,
+  "observation_space_v2": {
+   "format": "cur261-r4-observation-space-validation-v1",
+   "context": "preprocessing_robustness_r10",
+   "n_observations": 4592,
+   "max_abs_value_seen": 1.061292052268982,
+   "feature_bounds": "(-inf, +inf)",
+   "position_bounds": [
+    0.0,
+    1.0
+   ],
+   "declared_low_feature_unbounded": true,
+   "declared_high_feature_unbounded": true,
+   "clip_by_wrapper": false,
+   "wrapper_pass_through_bitwise": true,
+   "position_slot_valid": true,
+   "violations": [],
+   "pass": true
+  },
+  "adversarial_out_of_range_probe": {
+   "format": "cur261-r4-adversarial-out-of-range-probe-v1",
+   "max_transformed_feature": 13.000000000000004,
+   "min_transformed_feature": -13.000000000000002,
+   "exceeds_plus_10": true,
+   "exceeds_minus_10": true,
+   "validation": {
+    "format": "cur261-r4-observation-space-validation-v1",
+    "context": "adversarial",
+    "n_observations": 59,
+    "max_abs_value_seen": 13.0,
+    "feature_bounds": "(-inf, +inf)",
+    "position_bounds": [
+     0.0,
+     1.0
+    ],
+    "declared_low_feature_unbounded": true,
+    "declared_high_feature_unbounded": true,
+    "clip_by_wrapper": false,
+    "wrapper_pass_through_bitwise": true,
+    "position_slot_valid": true,
+    "violations": [],
+    "pass": true
+   },
+   "pass": true
+  },
+  "no_nan_inf": true,
+  "position_identity": true,
+  "bundle_verification_main": {
+   "checks": {
+    "inner_fitted": true,
+    "retained_8_of_8": true,
+    "manifest_namespace_uniform": true,
+    "parameter_state_hash_recomputable": true,
+    "bundle_hash_recomputable": true
+   },
+   "hashes": {
+    "parameter_state_hash": "r4ps-04d99bafcc586f9c5fbb59f1ffdbd54d50253d2e3fcf455c8e187dfe7d9a322d",
+    "fit_manifest_multiset_hash": "r4fm-92bb1661e7ace7c1995008896f8a265ce79d6a787ab2066d5e96f34d5312b177",
+    "preprocessor_bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0"
+   },
+   "pass": true
+  },
+  "bundle_verification_holdout": {
+   "checks": {
+    "inner_fitted": true,
+    "retained_8_of_8": true,
+    "manifest_namespace_uniform": true,
+    "parameter_state_hash_recomputable": true,
+    "bundle_hash_recomputable": true
+   },
+   "hashes": {
+    "parameter_state_hash": "r4ps-e03b7c5ec4e390f3bb060a74585b7fd2b8500216285cb6f08aee21991ff11503",
+    "fit_manifest_multiset_hash": "r4fm-ca1572ecfa4104e17bcc7137faa669f793371df5d37636dbf157141dffef611f",
+    "preprocessor_bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f"
+   },
+   "pass": true
+  },
+  "fit_manifest_provenance_complete": true,
+  "dual_fit_transform_max_abs_diff": 0.21513296820733596,
+  "state_hashes_distinct": true,
+  "r4_inheritance_verified": {
+   "format": "cur261-r6-r4-inheritance-verification-v1",
+   "checks": {
+    "c1_matches_r4_constants": true,
+    "c3_matches_r4_constants": true,
+    "r4_pack_digest_bound": true,
+    "r5_design_plan_digest_bound": true,
+    "r4_pack_artifact": {
+     "present": true,
+     "digest_recompute_matches_bound": true,
+     "c1_bitwise_equal": true,
+     "c3_bitwise_equal": true
+    }
+   },
+   "pass": true
+  },
+  "reference_equivalence_main": {
+   "pass": true,
+   "n_episodes": 24,
+   "canonical_scaled_full_equality": true,
+   "legacy_action_diffs_total": 32,
+   "unexplained_mismatches": 0,
+   "float64_math_path_pass": true
+  },
+  "reference_equivalence_main_detail": {
+   "format": "cur261-r10-reference-equivalence-v1",
+   "iteration": "r10",
+   "eval_namespace": "preplan_calibration_main_r10",
+   "contract": "PolicyVisibleReferenceCanonicalization-v1",
+   "contract_digest": "r10pv-698ffe95b04cfc9d22f0a62c3d0e760a32c2e17052d7dfba2e048916126388dd",
+   "float64_math_path": {
+    "path": "float64_mathematical",
+    "n_rows": 6912,
+    "max_abs_reconstruction_error": 1.1102230246251565e-16,
+    "max_relative_reconstruction_error": 1.1217181856556425e-12,
+    "abs_tol": 1e-14,
+    "pass": true
+   },
+   "runtime_projection_stats": {
+    "path": "runtime_float32_projection",
+    "n_rows": 6912,
+    "max_abs_projection_deviation": 7.705471316565848e-09,
+    "max_relative_projection_deviation": 4.813366529368615e+290,
+    "float32_relative_quantum": 5.960464477539063e-08,
+    "float32_bound_scale_floor": 0.1,
+    "all_within_float32_bound": true
+   },
+   "n_episodes": 24,
+   "canonical_scaled_full_equality": true,
+   "legacy_action_diffs_total": 32,
+   "unexplained_mismatches": 0,
+   "mismatches": [
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.48540577287395625,
+     "wrapped_net_return": 0.4898223471216878,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018986463546753,
+      0.998104989528656,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.052883878941214046,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17923645918788278,
+      -0.1763576019611044,
+      -0.1746766148430412
+     ],
+     "scaled_float32_obs_row": [
+      -0.052883878350257874,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17923645675182343,
+      -0.17635759711265564,
+      -0.17467661201953888
+     ],
+     "inverse_obs_float64": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0018986055934467,
+      0.9981049933917046,
+      1.000000000433575
+     ],
+     "per_feature_reconstruction_error": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      3.7887781800804987e-10,
+      7.354489239830286e-10,
+      4.3357495371765253e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.48540577287395625,
+     "wrapped_net_return": 0.4898223471216878,
+     "raw_obs_float32": [
+      0.003486539237201214,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.006335973739624,
+      0.9971684813499451,
+      1.0034865140914917,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.023210445461185645,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.1507055872607257,
+      -0.18253146014501898,
+      -0.15197176680633717
+     ],
+     "scaled_float32_obs_row": [
+      -0.023210445418953896,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.15070559084415436,
+      -0.1825314611196518,
+      -0.15197177231311798
+     ],
+     "inverse_obs_float64": [
+      0.0034865393131405416,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0063359833419265,
+      0.9971684956262713,
+      1.0034865384625613
+     ],
+     "per_feature_reconstruction_error": [
+      4.962103644645666e-12,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      5.573270733805202e-10,
+      1.4783962942743756e-10,
+      8.456171318727002e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.48540577287395625,
+     "wrapped_net_return": 0.4898223471216878,
+     "raw_obs_float32": [
+      -0.00017145006859209388,
+      0.0,
+      0.0,
+      0.0,
+      1.0034865140914917,
+      1.0063809156417847,
+      1.0004289150238037,
+      1.00331449508667,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.0543430657738605,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.15197176680633717,
+      -0.15041684944390532,
+      -0.16103684941573349,
+      -0.15309216719772767
+     ],
+     "scaled_float32_obs_row": [
+      -0.05434306710958481,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.15197177231311798,
+      -0.15041685104370117,
+      -0.16103684902191162,
+      -0.153092160820961
+     ],
+     "inverse_obs_float64": [
+      -0.000171450227034822,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0034865384625613,
+      1.006380890761483,
+      1.0004289587941637,
+      1.0033144924498898
+     ],
+     "per_feature_reconstruction_error": [
+      1.5694359397147584e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      8.456171318727002e-10,
+      2.4881474658400293e-10,
+      5.97377702860058e-11,
+      9.792113786488699e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.48540577287395625,
+     "wrapped_net_return": 0.4898223471216878,
+     "raw_obs_float32": [
+      -0.004784755874425173,
+      0.0,
+      0.0,
+      0.0,
+      1.00331449508667,
+      1.003341794013977,
+      0.9984867572784424,
+      0.9985138773918152,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.09360624652949089,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.15309216719772767,
+      -0.16995745190428035,
+      -0.1738409376943455,
+      -0.18435446554983592
+     ],
+     "scaled_float32_obs_row": [
+      -0.09360624849796295,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.153092160820961,
+      -0.1699574589729309,
+      -0.1738409399986267,
+      -0.18435446918010712
+     ],
+     "inverse_obs_float64": [
+      -0.004784756111129952,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0033144924498898,
+      1.0033417590681957,
+      0.9984867387234739,
+      0.9985138760008233
+     ],
+     "per_feature_reconstruction_error": [
+      2.3128955521645178e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      9.792113786488699e-10,
+      1.0993803645220623e-09,
+      3.4953051564201587e-10,
+      5.574617434334073e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.006690904487325566,
+     "wrapped_net_return": -0.003737487009493501,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018986463546753,
+      0.998104989528656,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.052883878941214046,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17923645918788278,
+      -0.1763576019611044,
+      -0.1746766148430412
+     ],
+     "scaled_float32_obs_row": [
+      -0.052883878350257874,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17923645675182343,
+      -0.17635759711265564,
+      -0.17467661201953888
+     ],
+     "inverse_obs_float64": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0018986055934467,
+      0.9981049933917046,
+      1.000000000433575
+     ],
+     "per_feature_reconstruction_error": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      3.7887781800804987e-10,
+      7.354489239830286e-10,
+      4.3357495371765253e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.006690904487325566,
+     "wrapped_net_return": -0.003737487009493501,
+     "raw_obs_float32": [
+      0.003486539237201214,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.006335973739624,
+      0.9971684813499451,
+      1.0034865140914917,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.023210445461185645,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.1507055872607257,
+      -0.18253146014501898,
+      -0.15197176680633717
+     ],
+     "scaled_float32_obs_row": [
+      -0.023210445418953896,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.15070559084415436,
+      -0.1825314611196518,
+      -0.15197177231311798
+     ],
+     "inverse_obs_float64": [
+      0.0034865393131405416,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0063359833419265,
+      0.9971684956262713,
+      1.0034865384625613
+     ],
+     "per_feature_reconstruction_error": [
+      4.962103644645666e-12,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      5.573270733805202e-10,
+      1.4783962942743756e-10,
+      8.456171318727002e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.006690904487325566,
+     "wrapped_net_return": -0.003737487009493501,
+     "raw_obs_float32": [
+      -0.00017145006859209388,
+      0.0,
+      0.0,
+      0.0,
+      1.0034865140914917,
+      1.0063809156417847,
+      1.0004289150238037,
+      1.00331449508667,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.0543430657738605,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.15197176680633717,
+      -0.15041684944390532,
+      -0.16103684941573349,
+      -0.15309216719772767
+     ],
+     "scaled_float32_obs_row": [
+      -0.05434306710958481,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.15197177231311798,
+      -0.15041685104370117,
+      -0.16103684902191162,
+      -0.153092160820961
+     ],
+     "inverse_obs_float64": [
+      -0.000171450227034822,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0034865384625613,
+      1.006380890761483,
+      1.0004289587941637,
+      1.0033144924498898
+     ],
+     "per_feature_reconstruction_error": [
+      1.5694359397147584e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      8.456171318727002e-10,
+      2.4881474658400293e-10,
+      5.97377702860058e-11,
+      9.792113786488699e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.006690904487325566,
+     "wrapped_net_return": -0.003737487009493501,
+     "raw_obs_float32": [
+      -0.004784755874425173,
+      0.0,
+      0.0,
+      0.0,
+      1.00331449508667,
+      1.003341794013977,
+      0.9984867572784424,
+      0.9985138773918152,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.09360624652949089,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.15309216719772767,
+      -0.16995745190428035,
+      -0.1738409376943455,
+      -0.18435446554983592
+     ],
+     "scaled_float32_obs_row": [
+      -0.09360624849796295,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.153092160820961,
+      -0.1699574589729309,
+      -0.1738409399986267,
+      -0.18435446918010712
+     ],
+     "inverse_obs_float64": [
+      -0.004784756111129952,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0033144924498898,
+      1.0033417590681957,
+      0.9984867387234739,
+      0.9985138760008233
+     ],
+     "per_feature_reconstruction_error": [
+      2.3128955521645178e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      9.792113786488699e-10,
+      1.0993803645220623e-09,
+      3.4953051564201587e-10,
+      5.574617434334073e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23584142719534817,
+     "wrapped_net_return": 0.24123135018805497,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0020637512207031,
+      0.9979404211044312,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.052883878941214046,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17817427570708055,
+      -0.17744238317942163,
+      -0.1746766148430412
+     ],
+     "scaled_float32_obs_row": [
+      -0.052883878350257874,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17817427217960358,
+      -0.17744238674640656,
+      -0.17467661201953888
+     ],
+     "inverse_obs_float64": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.002063806124016,
+      0.9979404444047457,
+      1.000000000433575
+     ],
+     "per_feature_reconstruction_error": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      5.486249232689033e-10,
+      5.410668579841627e-10,
+      4.3357495371765253e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23584142719534817,
+     "wrapped_net_return": 0.24123135018805497,
+     "raw_obs_float32": [
+      0.001559226424433291,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.002165675163269,
+      0.9993948936462402,
+      1.0015592575073242,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03961352780349711,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17751950721178833,
+      -0.16785391233400837,
+      -0.16452270709999706
+     ],
+     "scaled_float32_obs_row": [
+      -0.039613526314496994,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17751950025558472,
+      -0.16785390675067902,
+      -0.1645227074623108
+     ],
+     "inverse_obs_float64": [
+      0.0015592265754341584,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0021656421627598,
+      0.9993948966051382,
+      1.0015592263448445
+     ],
+     "per_feature_reconstruction_error": [
+      1.7495304098676112e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      1.081891465304352e-09,
+      8.469210888151224e-10,
+      5.563660643304047e-11
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23584142719534817,
+     "wrapped_net_return": 0.24123135018805497,
+     "raw_obs_float32": [
+      0.006597605533897877,
+      0.0,
+      0.0,
+      0.0,
+      1.0015592575073242,
+      1.0100867748260498,
+      0.9996557831764221,
+      1.0081671476364136,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      0.0032673924399410983,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.16452270709999706,
+      -0.12658917355112287,
+      -0.16613412394545968,
+      -0.12149115324020521
+     ],
+     "scaled_float32_obs_row": [
+      0.0032673925161361694,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.1645227074623108,
+      -0.12658917903900146,
+      -0.16613411903381348,
+      -0.12149115651845932
+     ],
+     "inverse_obs_float64": [
+      0.006597605742928745,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0015592263448445,
+      1.0100867853492568,
+      0.9996557668400574,
+      1.0081671187920913
+     ],
+     "per_feature_reconstruction_error": [
+      8.952691886443542e-12,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      5.563660643304047e-11,
+      8.535243622986854e-10,
+      7.450351446891545e-10,
+      5.034062056097355e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23584142719534817,
+     "wrapped_net_return": 0.24123135018805497,
+     "raw_obs_float32": [
+      -0.004493832588195801,
+      0.0,
+      0.0,
+      0.0,
+      1.0081671476364136,
+      1.0088080167770386,
+      1.002998948097229,
+      1.0036365985870361,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.09113024023153951,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.12149115324020521,
+      -0.13481094451008424,
+      -0.14409432122962595,
+      -0.15099464722923273
+     ],
+     "scaled_float32_obs_row": [
+      -0.09113024175167084,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.12149115651845932,
+      -0.1348109394311905,
+      -0.144094318151474,
+      -0.15099464356899261
+     ],
+     "inverse_obs_float64": [
+      -0.004493832755257682,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0081671187920913,
+      1.0088080629741387,
+      1.0029989283113039,
+      1.003636585614167
+     ],
+     "per_feature_reconstruction_error": [
+      1.7861086481357757e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      5.034062056097355e-10,
+      7.899154663704167e-10,
+      4.669171715931952e-10,
+      5.62063728892781e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.03501149139355564,
+     "wrapped_net_return": -0.03080284970556746,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0020637512207031,
+      0.9979404211044312,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.052883878941214046,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17817427570708055,
+      -0.17744238317942163,
+      -0.1746766148430412
+     ],
+     "scaled_float32_obs_row": [
+      -0.052883878350257874,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17817427217960358,
+      -0.17744238674640656,
+      -0.17467661201953888
+     ],
+     "inverse_obs_float64": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.002063806124016,
+      0.9979404444047457,
+      1.000000000433575
+     ],
+     "per_feature_reconstruction_error": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      5.486249232689033e-10,
+      5.410668579841627e-10,
+      4.3357495371765253e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.03501149139355564,
+     "wrapped_net_return": -0.03080284970556746,
+     "raw_obs_float32": [
+      0.001559226424433291,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.002165675163269,
+      0.9993948936462402,
+      1.0015592575073242,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03961352780349711,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.17751950721178833,
+      -0.16785391233400837,
+      -0.16452270709999706
+     ],
+     "scaled_float32_obs_row": [
+      -0.039613526314496994,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17751950025558472,
+      -0.16785390675067902,
+      -0.1645227074623108
+     ],
+     "inverse_obs_float64": [
+      0.0015592265754341584,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.0021656421627598,
+      0.9993948966051382,
+      1.0015592263448445
+     ],
+     "per_feature_reconstruction_error": [
+      1.7495304098676112e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      1.081891465304352e-09,
+      8.469210888151224e-10,
+      5.563660643304047e-11
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.03501149139355564,
+     "wrapped_net_return": -0.03080284970556746,
+     "raw_obs_float32": [
+      0.006597605533897877,
+      0.0,
+      0.0,
+      0.0,
+      1.0015592575073242,
+      1.0100867748260498,
+      0.9996557831764221,
+      1.0081671476364136,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      0.0032673924399410983,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.16452270709999706,
+      -0.12658917355112287,
+      -0.16613412394545968,
+      -0.12149115324020521
+     ],
+     "scaled_float32_obs_row": [
+      0.0032673925161361694,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.1645227074623108,
+      -0.12658917903900146,
+      -0.16613411903381348,
+      -0.12149115651845932
+     ],
+     "inverse_obs_float64": [
+      0.006597605742928745,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0015592263448445,
+      1.0100867853492568,
+      0.9996557668400574,
+      1.0081671187920913
+     ],
+     "per_feature_reconstruction_error": [
+      8.952691886443542e-12,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      5.563660643304047e-11,
+      8.535243622986854e-10,
+      7.450351446891545e-10,
+      5.034062056097355e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.03501149139355564,
+     "wrapped_net_return": -0.03080284970556746,
+     "raw_obs_float32": [
+      -0.004493832588195801,
+      0.0,
+      0.0,
+      0.0,
+      1.0081671476364136,
+      1.0088080167770386,
+      1.002998948097229,
+      1.0036365985870361,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.09113024023153951,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.12149115324020521,
+      -0.13481094451008424,
+      -0.14409432122962595,
+      -0.15099464722923273
+     ],
+     "scaled_float32_obs_row": [
+      -0.09113024175167084,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.12149115651845932,
+      -0.1348109394311905,
+      -0.144094318151474,
+      -0.15099464356899261
+     ],
+     "inverse_obs_float64": [
+      -0.004493832755257682,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.0081671187920913,
+      1.0088080629741387,
+      1.0029989283113039,
+      1.003636585614167
+     ],
+     "per_feature_reconstruction_error": [
+      1.7861086481357757e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      5.034062056097355e-10,
+      7.899154663704167e-10,
+      4.669171715931952e-10,
+      5.62063728892781e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.24472762736152354,
+     "wrapped_net_return": 0.2370862353212453,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018866062164307,
+      0.9981169700622559,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.052883878941214046,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.179313585959596,
+      -0.17627882040199783,
+      -0.1746766148430412
+     ],
+     "scaled_float32_obs_row": [
+      -0.052883878350257874,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.17931358516216278,
+      -0.17627881467342377,
+      -0.17467661201953888
+     ],
+     "inverse_obs_float64": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.00188660988701,
+      0.9981169437000061,
+      1.000000000433575
+     ],
+     "per_feature_reconstruction_error": [
+      6.943557534597968e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      1.2402412430390086e-10,
+      8.689527986049939e-10,
+      4.3357495371765253e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.24472762736152354,
+     "wrapped_net_return": 0.2370862353212453,
+     "raw_obs_float32": [
+      -0.001199779799208045,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0006368160247803,
+      0.9981645941734314,
+      0.9988002181053162,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06309503181018132,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1746766148430412,
+      -0.18734936241293543,
+      -0.17596480031196826,
+      -0.18248975430752168
+     ],
+     "scaled_float32_obs_row": [
+      -0.06309503316879272,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.17467661201953888,
+      -0.1873493641614914,
+      -0.17596480250358582,
+      -0.18248975276947021
+     ],
+     "inverse_obs_float64": [
+      -0.0011997799519993875,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      1.000000000433575,
+      1.000636813016536,
+      0.998164575409263,
+      0.9988002204438154
+     ],
+     "per_feature_reconstruction_error": [
+      1.5963275883448813e-10,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      4.3357495371765253e-10,
+      2.719511282833764e-10,
+      3.324409636462633e-10,
+      2.361820738983056e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.24472762736152354,
+     "wrapped_net_return": 0.2370862353212453,
+     "raw_obs_float32": [
+      -0.002233997918665409,
+      0.0,
+      0.0,
+      0.0,
+      0.9988002181053162,
+      0.9990478157997131,
+      0.996321976184845,
+      0.9965689182281494,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07189711255411821,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.18248975430752168,
+      -0.19756625271500994,
+      -0.18811233612706246,
+      -0.1970204166969518
+     ],
+     "scaled_float32_obs_row": [
+      -0.07189711183309555,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.18248975276947021,
+      -0.19756625592708588,
+      -0.18811233341693878,
+      -0.19702041149139404
+     ],
+     "inverse_obs_float64": [
+      -0.0022339977575467486,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      0.9988002204438154,
+      0.9990477898047626,
+      0.996321947268605,
+      0.9965689034701976
+     ],
+     "per_feature_reconstruction_error": [
+      8.47179969405698e-11,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      2.361820738983056e-10,
+      4.995710511934703e-10,
+      4.1109171622366603e-10,
+      7.993615769308349e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.24472762736152354,
+     "wrapped_net_return": 0.2370862353212453,
+     "raw_obs_float32": [
+      0.002084281761199236,
+      0.0,
+      0.0,
+      0.0,
+      0.9965689182281494,
+      1.0009599924087524,
+      0.9942651391029358,
+      0.9986460208892822,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.035144858112325275,
+      -0.05445157384082455,
+      -1.0,
+      -0.07477639222962551,
+      -0.1970204166969518,
+      -0.1852715450435065,
+      -0.20167202291772757,
+      -0.1834938439237348
+     ],
+     "scaled_float32_obs_row": [
+      -0.0351448580622673,
+      -0.05445157364010811,
+      -1.0,
+      -0.07477638870477676,
+      -0.19702041149139404,
+      -0.18527154624462128,
+      -0.2016720175743103,
+      -0.18349383771419525
+     ],
+     "inverse_obs_float64": [
+      0.0020842816731900028,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      0.9965689034701976,
+      1.0009599740106518,
+      0.9942651131856112,
+      0.9986460339184146
+     ],
+     "per_feature_reconstruction_error": [
+      5.881661910983604e-12,
+      2.740523728031589e-11,
+      0.0,
+      4.813366529368615e-10,
+      7.993615769308349e-10,
+      1.8680812452487316e-10,
+      8.105294213578418e-10,
+      9.53532142133895e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    }
+   ],
+   "n_mismatches_recorded": 20,
+   "n_episodes_canonical_gate_failed": 0,
+   "per_episode": [
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 11090012653980489354,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.4898223471216878,
+       "scaled_net_return": 0.4898223471216878,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.46771850473876353,
+       "scaled_net_return": 0.46771850473876353,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 11090012653980489354,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.003737487009493501,
+       "scaled_net_return": -0.003737487009493501,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.01648948173546605,
+       "scaled_net_return": -0.01648948173546605,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 12312672932820693915,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.24123135018805497,
+       "scaled_net_return": 0.24123135018805497,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.2550622817649104,
+       "scaled_net_return": 0.2550622817649104,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 12312672932820693915,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03080284970556746,
+       "scaled_net_return": -0.03080284970556746,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.06955048717513013,
+       "scaled_net_return": -0.06955048717513013,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 12624910855793455040,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.2370862353212453,
+       "scaled_net_return": 0.2370862353212453,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.23626334063291154,
+       "scaled_net_return": 0.23626334063291154,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 12624910855793455040,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.054380701444953106,
+       "scaled_net_return": -0.054380701444953106,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.027283812351721948,
+       "scaled_net_return": -0.027283812351721948,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 17196970435223595945,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.04808400060917073,
+       "scaled_net_return": 0.04808400060917073,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.09571230010072718,
+       "scaled_net_return": 0.09571230010072718,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 17196970435223595945,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.07225578081055417,
+       "scaled_net_return": -0.07225578081055417,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.10113595774172635,
+       "scaled_net_return": -0.10113595774172635,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 14824491308264815455,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04056498562756761,
+       "scaled_net_return": -0.04056498562756761,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.05889834245798453,
+       "scaled_net_return": 0.05889834245798453,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03936627326993003,
+       "scaled_net_return": -0.03936627326993003,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.009413704461354033,
+       "scaled_net_return": 0.009413704461354033,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 14824491308264815455,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.06027795422743254,
+       "scaled_net_return": -0.06027795422743254,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.031139789963815057,
+       "scaled_net_return": -0.031139789963815057,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.028335502851808192,
+       "scaled_net_return": 0.028335502851808192,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.009413704461354033,
+       "scaled_net_return": 0.009413704461354033,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 5173746428848390775,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.045992097435464396,
+       "scaled_net_return": -0.045992097435464396,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.04332257594382183,
+       "scaled_net_return": 0.04332257594382183,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.040596621418156786,
+       "scaled_net_return": -0.040596621418156786,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.017130394668220195,
+       "scaled_net_return": 0.017130394668220195,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 5173746428848390775,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04998826488920993,
+       "scaled_net_return": -0.04998826488920993,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.043036085145464975,
+       "scaled_net_return": -0.043036085145464975,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.041600751417185666,
+       "scaled_net_return": 0.041600751417185666,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.017130394668220195,
+       "scaled_net_return": 0.017130394668220195,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 460235538413949886,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03426133172750356,
+       "scaled_net_return": -0.03426133172750356,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.02269003153370086,
+       "scaled_net_return": 0.02269003153370086,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.01634641061945441,
+       "scaled_net_return": -0.01634641061945441,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.015060369719964273,
+       "scaled_net_return": 0.015060369719964273,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 460235538413949886,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04959019251922825,
+       "scaled_net_return": -0.04959019251922825,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04071163745114914,
+       "scaled_net_return": -0.04071163745114914,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.03202048098265475,
+       "scaled_net_return": 0.03202048098265475,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.015060369719964273,
+       "scaled_net_return": 0.015060369719964273,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 10045835969258654795,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.07147865738809367,
+       "scaled_net_return": -0.07147865738809367,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.002444321036389807,
+       "scaled_net_return": 0.002444321036389807,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.031259374538538554,
+       "scaled_net_return": -0.031259374538538554,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.00043255608336956186,
+       "scaled_net_return": 0.00043255608336956186,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 10045835969258654795,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.053478801949899846,
+       "scaled_net_return": -0.053478801949899846,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.016619016267269915,
+       "scaled_net_return": -0.016619016267269915,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.006663729194386736,
+       "scaled_net_return": 0.006663729194386736,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.00043255608337000595,
+       "scaled_net_return": 0.00043255608337000595,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 10158199606193615446,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.16294270269017352,
+       "scaled_net_return": 0.16294270269017352,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.171692172395147,
+       "scaled_net_return": 0.171692172395147,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 10158199606193615446,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.024114407178279618,
+       "scaled_net_return": -0.024114407178279618,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.01535001744666753,
+       "scaled_net_return": -0.01535001744666753,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 2471242255084720542,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.10198216639263014,
+       "scaled_net_return": 0.10198216639263014,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.10379866979007568,
+       "scaled_net_return": 0.10379866979007568,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 2471242255084720542,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.020128066381333465,
+       "scaled_net_return": -0.020128066381333465,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.019096529964019338,
+       "scaled_net_return": -0.019096529964019338,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 1849021184636260893,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.01912930617252062,
+       "scaled_net_return": 0.01912930617252062,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.02652345528411293,
+       "scaled_net_return": 0.02652345528411293,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 1849021184636260893,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.050562538220414455,
+       "scaled_net_return": -0.050562538220414455,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03979324572498544,
+       "scaled_net_return": -0.03979324572498544,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 5420014735568854240,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.013447017804797179,
+       "scaled_net_return": 0.013447017804797179,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.021795682359570412,
+       "scaled_net_return": 0.021795682359570412,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 5420014735568854240,
+     "bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+     "fit_namespace": "preplan_fit_main_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.013996370267600922,
+       "scaled_net_return": -0.013996370267600922,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.0004440417468728475,
+       "scaled_net_return": -0.0004440417468728475,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    }
+   ],
+   "pass": true
+  },
+  "reference_equivalence_holdout": {
+   "pass": true,
+   "n_episodes": 24,
+   "canonical_scaled_full_equality": true,
+   "legacy_action_diffs_total": 36,
+   "unexplained_mismatches": 0,
+   "float64_math_path_pass": true
+  },
+  "reference_equivalence_holdout_detail": {
+   "format": "cur261-r10-reference-equivalence-v1",
+   "iteration": "r10",
+   "eval_namespace": "preplan_calibration_holdout_r10",
+   "contract": "PolicyVisibleReferenceCanonicalization-v1",
+   "contract_digest": "r10pv-0a7b61c2366b2cfa5ca57a0e8816b7de247fe148c70ae6d7f0379d7bce67c24b",
+   "float64_math_path": {
+    "path": "float64_mathematical",
+    "n_rows": 6912,
+    "max_abs_reconstruction_error": 1.1102230246251565e-16,
+    "max_relative_reconstruction_error": 1.6355570014815015e-12,
+    "abs_tol": 1e-14,
+    "pass": true
+   },
+   "runtime_projection_stats": {
+    "path": "runtime_float32_projection",
+    "n_rows": 6912,
+    "max_abs_projection_deviation": 7.945196112135733e-09,
+    "max_relative_projection_deviation": 4.326375894574622e+290,
+    "float32_relative_quantum": 5.960464477539063e-08,
+    "float32_bound_scale_floor": 0.1,
+    "all_within_float32_bound": true
+   },
+   "n_episodes": 24,
+   "canonical_scaled_full_equality": true,
+   "legacy_action_diffs_total": 36,
+   "unexplained_mismatches": 0,
+   "mismatches": [
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.4389461621102573,
+     "wrapped_net_return": 0.4600751147292843,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018986463546753,
+      0.998104989528656,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07387596583752298,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19351465343998875,
+      -0.18247535032472761,
+      -0.19067699920283054
+     ],
+     "scaled_float32_obs_row": [
+      -0.07387596368789673,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.1935146600008011,
+      -0.18247534334659576,
+      -0.1906770020723343
+     ],
+     "inverse_obs_float64": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0018986042190594,
+      0.9981049937032467,
+      0.9999999995657565
+     ],
+     "per_feature_reconstruction_error": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      9.955094526503672e-10,
+      1.046991049413748e-09,
+      4.342435300230818e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.4389461621102573,
+     "wrapped_net_return": 0.4600751147292843,
+     "raw_obs_float32": [
+      0.005095236003398895,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0079492330551147,
+      0.9971684813499451,
+      1.0050952434539795,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03072964183906888,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.15363845479768923,
+      -0.18871704563617797,
+      -0.15700741468915602
+     ],
+     "scaled_float32_obs_row": [
+      -0.030729642137885094,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.15363845229148865,
+      -0.1887170523405075,
+      -0.15700741112232208
+     ],
+     "inverse_obs_float64": [
+      0.005095235739945825,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0079492487116457,
+      0.9971684947682009,
+      1.0050952363150045
+     ],
+     "per_feature_reconstruction_error": [
+      3.528780566364187e-11,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      3.8028002968815144e-10,
+      1.0059100219450556e-09,
+      5.397708946475177e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.4389461621102573,
+     "wrapped_net_return": 0.4600751147292843,
+     "raw_obs_float32": [
+      0.001244535786099732,
+      0.0,
+      0.0,
+      0.0,
+      1.0050952434539795,
+      1.0092487335205078,
+      1.0022045373916626,
+      1.0063461065292358,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06333726890978995,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.15700741468915602,
+      -0.14507445846478717,
+      -0.1551518368260183,
+      -0.14874155390650046
+     ],
+     "scaled_float32_obs_row": [
+      -0.06333726644515991,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.15700741112232208,
+      -0.14507445693016052,
+      -0.1551518440246582,
+      -0.14874155819416046
+     ],
+     "inverse_obs_float64": [
+      0.0012445361085761367,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0050952363150045,
+      1.0092487125860767,
+      1.0022045805378261,
+      1.0063461121473238
+     ],
+     "per_feature_reconstruction_error": [
+      2.9105309633757626e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      5.397708946475177e-10,
+      2.328577330956705e-10,
+      1.0800758065698801e-09,
+      6.488538595306181e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.4389461621102573,
+     "wrapped_net_return": 0.4600751147292843,
+     "raw_obs_float32": [
+      0.004753271583467722,
+      0.0,
+      0.0,
+      0.0,
+      1.0063461065292358,
+      1.0111570358276367,
+      1.0063188076019287,
+      1.0111294984817505,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03362538491924689,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.14874155390650046,
+      -0.13249786670301233,
+      -0.12773106940725665,
+      -0.11713235547010825
+     ],
+     "scaled_float32_obs_row": [
+      -0.03362538665533066,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.14874155819416046,
+      -0.1324978619813919,
+      -0.1277310699224472,
+      -0.11713235825300217
+     ],
+     "inverse_obs_float64": [
+      0.00475327147291455,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0063461121473238,
+      1.0111570310881013,
+      1.0063187623700613,
+      1.011129548851192
+     ],
+     "per_feature_reconstruction_error": [
+      2.050176079251842e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      6.488538595306181e-10,
+      7.164384641100696e-10,
+      7.729861195571175e-11,
+      4.21136903128172e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.061807001264022055,
+     "wrapped_net_return": -0.04803092267278186,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018986463546753,
+      0.998104989528656,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07387596583752298,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19351465343998875,
+      -0.18247535032472761,
+      -0.19067699920283054
+     ],
+     "scaled_float32_obs_row": [
+      -0.07387596368789673,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.1935146600008011,
+      -0.18247534334659576,
+      -0.1906770020723343
+     ],
+     "inverse_obs_float64": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0018986042190594,
+      0.9981049937032467,
+      0.9999999995657565
+     ],
+     "per_feature_reconstruction_error": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      9.955094526503672e-10,
+      1.046991049413748e-09,
+      4.342435300230818e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.061807001264022055,
+     "wrapped_net_return": -0.04803092267278186,
+     "raw_obs_float32": [
+      0.005095236003398895,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0079492330551147,
+      0.9971684813499451,
+      1.0050952434539795,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03072964183906888,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.15363845479768923,
+      -0.18871704563617797,
+      -0.15700741468915602
+     ],
+     "scaled_float32_obs_row": [
+      -0.030729642137885094,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.15363845229148865,
+      -0.1887170523405075,
+      -0.15700741112232208
+     ],
+     "inverse_obs_float64": [
+      0.005095235739945825,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0079492487116457,
+      0.9971684947682009,
+      1.0050952363150045
+     ],
+     "per_feature_reconstruction_error": [
+      3.528780566364187e-11,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      3.8028002968815144e-10,
+      1.0059100219450556e-09,
+      5.397708946475177e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.061807001264022055,
+     "wrapped_net_return": -0.04803092267278186,
+     "raw_obs_float32": [
+      0.001244535786099732,
+      0.0,
+      0.0,
+      0.0,
+      1.0050952434539795,
+      1.0092487335205078,
+      1.0022045373916626,
+      1.0063461065292358,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06333726890978995,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.15700741468915602,
+      -0.14507445846478717,
+      -0.1551518368260183,
+      -0.14874155390650046
+     ],
+     "scaled_float32_obs_row": [
+      -0.06333726644515991,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.15700741112232208,
+      -0.14507445693016052,
+      -0.1551518440246582,
+      -0.14874155819416046
+     ],
+     "inverse_obs_float64": [
+      0.0012445361085761367,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0050952363150045,
+      1.0092487125860767,
+      1.0022045805378261,
+      1.0063461121473238
+     ],
+     "per_feature_reconstruction_error": [
+      2.9105309633757626e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      5.397708946475177e-10,
+      2.328577330956705e-10,
+      1.0800758065698801e-09,
+      6.488538595306181e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.061807001264022055,
+     "wrapped_net_return": -0.04803092267278186,
+     "raw_obs_float32": [
+      0.004753271583467722,
+      0.0,
+      0.0,
+      0.0,
+      1.0063461065292358,
+      1.0111570358276367,
+      1.0063188076019287,
+      1.0111294984817505,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03362538491924689,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.14874155390650046,
+      -0.13249786670301233,
+      -0.12773106940725665,
+      -0.11713235547010825
+     ],
+     "scaled_float32_obs_row": [
+      -0.03362538665533066,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.14874155819416046,
+      -0.1324978619813919,
+      -0.1277310699224472,
+      -0.11713235825300217
+     ],
+     "inverse_obs_float64": [
+      0.00475327147291455,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0063461121473238,
+      1.0111570310881013,
+      1.0063187623700613,
+      1.011129548851192
+     ],
+     "per_feature_reconstruction_error": [
+      2.050176079251842e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      6.488538595306181e-10,
+      7.164384641100696e-10,
+      7.729861195571175e-11,
+      4.21136903128172e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.28240082124221155,
+     "wrapped_net_return": 0.2743524091868741,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0020637512207031,
+      0.9979404211044312,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07387596583752298,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19242591588321023,
+      -0.18357205090362338,
+      -0.19067699920283054
+     ],
+     "scaled_float32_obs_row": [
+      -0.07387596368789673,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.1924259215593338,
+      -0.18357205390930176,
+      -0.1906770020723343
+     ],
+     "inverse_obs_float64": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0020638047141204,
+      0.9979404444948441,
+      0.9999999995657565
+     ],
+     "per_feature_reconstruction_error": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      8.612706103861001e-10,
+      4.5096848477754747e-10,
+      4.342435300230818e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.28240082124221155,
+     "wrapped_net_return": 0.2743524091868741,
+     "raw_obs_float32": [
+      0.0005543460720218718,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0011601448059082,
+      0.9993948936462402,
+      1.0005543231964111,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06918177786676863,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19838135837673665,
+      -0.1738782238449259,
+      -0.18701385147766025
+     ],
+     "scaled_float32_obs_row": [
+      -0.06918177753686905,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.19838136434555054,
+      -0.17387822270393372,
+      -0.18701384961605072
+     ],
+     "inverse_obs_float64": [
+      0.0005543460936795462,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0011601514039055,
+      0.9993948959294103,
+      1.0005543463364395
+     ],
+     "per_feature_reconstruction_error": [
+      3.8958501789171374e-11,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      9.056821959063655e-10,
+      1.7119317075042773e-10,
+      2.817184263648187e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.28240082124221155,
+     "wrapped_net_return": 0.2743524091868741,
+     "raw_obs_float32": [
+      0.00017322885105386376,
+      0.0,
+      0.0,
+      0.0,
+      1.0005543231964111,
+      1.0026332139968872,
+      0.9986528158187866,
+      1.000727653503418,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07240906837419507,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.18701385147766025,
+      -0.18867355778025185,
+      -0.17882427722473349,
+      -0.1858685115601144
+     ],
+     "scaled_float32_obs_row": [
+      -0.07240907102823257,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.18701384961605072,
+      -0.18867355585098267,
+      -0.1788242757320404,
+      -0.1858685165643692
+     ],
+     "inverse_obs_float64": [
+      0.00017322854459324966,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0005543463364395,
+      1.0026331725705855,
+      0.998652795745307,
+      1.0007276701841725
+     ],
+     "per_feature_reconstruction_error": [
+      3.1342060224275395e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      2.817184263648187e-10,
+      2.927391662410628e-10,
+      2.2396196008855895e-10,
+      7.572964477731148e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.28240082124221155,
+     "wrapped_net_return": 0.2743524091868741,
+     "raw_obs_float32": [
+      0.0008588361088186502,
+      0.0,
+      0.0,
+      0.0,
+      1.000727653503418,
+      1.0022238492965698,
+      1.0000919103622437,
+      1.001587152481079,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06660336416138495,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.1858685115601144,
+      -0.1913708836180339,
+      -0.16923298647181095,
+      -0.18018914804655584
+     ],
+     "scaled_float32_obs_row": [
+      -0.06660336256027222,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1858685165643692,
+      -0.191370889544487,
+      -0.16923297941684723,
+      -0.18018914759159088
+     ],
+     "inverse_obs_float64": [
+      0.0008588362799727069,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0007276701841725,
+      1.0022238907407723,
+      1.0000918629612967,
+      1.00158713205128
+     ],
+     "per_feature_reconstruction_error": [
+      1.8907860737174542e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      7.572964477731148e-10,
+      8.992546707276006e-10,
+      1.0585188281453384e-09,
+      6.885003678291923e-11
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.11145704500433984,
+     "wrapped_net_return": -0.11703358528115071,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0020637512207031,
+      0.9979404211044312,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07387596583752298,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19242591588321023,
+      -0.18357205090362338,
+      -0.19067699920283054
+     ],
+     "scaled_float32_obs_row": [
+      -0.07387596368789673,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.1924259215593338,
+      -0.18357205390930176,
+      -0.1906770020723343
+     ],
+     "inverse_obs_float64": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0020638047141204,
+      0.9979404444948441,
+      0.9999999995657565
+     ],
+     "per_feature_reconstruction_error": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      8.612706103861001e-10,
+      4.5096848477754747e-10,
+      4.342435300230818e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.11145704500433984,
+     "wrapped_net_return": -0.11703358528115071,
+     "raw_obs_float32": [
+      0.0005543460720218718,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0011601448059082,
+      0.9993948936462402,
+      1.0005543231964111,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06918177786676863,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19838135837673665,
+      -0.1738782238449259,
+      -0.18701385147766025
+     ],
+     "scaled_float32_obs_row": [
+      -0.06918177753686905,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.19838136434555054,
+      -0.17387822270393372,
+      -0.18701384961605072
+     ],
+     "inverse_obs_float64": [
+      0.0005543460936795462,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0011601514039055,
+      0.9993948959294103,
+      1.0005543463364395
+     ],
+     "per_feature_reconstruction_error": [
+      3.8958501789171374e-11,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      9.056821959063655e-10,
+      1.7119317075042773e-10,
+      2.817184263648187e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.11145704500433984,
+     "wrapped_net_return": -0.11703358528115071,
+     "raw_obs_float32": [
+      0.00017322885105386376,
+      0.0,
+      0.0,
+      0.0,
+      1.0005543231964111,
+      1.0026332139968872,
+      0.9986528158187866,
+      1.000727653503418,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07240906837419507,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.18701385147766025,
+      -0.18867355778025185,
+      -0.17882427722473349,
+      -0.1858685115601144
+     ],
+     "scaled_float32_obs_row": [
+      -0.07240907102823257,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.18701384961605072,
+      -0.18867355585098267,
+      -0.1788242757320404,
+      -0.1858685165643692
+     ],
+     "inverse_obs_float64": [
+      0.00017322854459324966,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0005543463364395,
+      1.0026331725705855,
+      0.998652795745307,
+      1.0007276701841725
+     ],
+     "per_feature_reconstruction_error": [
+      3.1342060224275395e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      2.817184263648187e-10,
+      2.927391662410628e-10,
+      2.2396196008855895e-10,
+      7.572964477731148e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": -0.11145704500433984,
+     "wrapped_net_return": -0.11703358528115071,
+     "raw_obs_float32": [
+      0.0008588361088186502,
+      0.0,
+      0.0,
+      0.0,
+      1.000727653503418,
+      1.0022238492965698,
+      1.0000919103622437,
+      1.001587152481079,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.06660336416138495,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.1858685115601144,
+      -0.1913708836180339,
+      -0.16923298647181095,
+      -0.18018914804655584
+     ],
+     "scaled_float32_obs_row": [
+      -0.06660336256027222,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1858685165643692,
+      -0.191370889544487,
+      -0.16923297941684723,
+      -0.18018914759159088
+     ],
+     "inverse_obs_float64": [
+      0.0008588362799727069,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0007276701841725,
+      1.0022238907407723,
+      1.0000918629612967,
+      1.00158713205128
+     ],
+     "per_feature_reconstruction_error": [
+      1.8907860737174542e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      7.572964477731148e-10,
+      8.992546707276006e-10,
+      1.0585188281453384e-09,
+      6.885003678291923e-11
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 0,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23228625293807803,
+     "wrapped_net_return": 0.23694244427282607,
+     "raw_obs_float32": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018866062164307,
+      0.9981169700622559,
+      1.0,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.07387596583752298,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.19359370834388834,
+      -0.1823957031294965,
+      -0.19067699920283054
+     ],
+     "scaled_float32_obs_row": [
+      -0.07387596368789673,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.19359371066093445,
+      -0.18239569664001465,
+      -0.1906770020723343
+     ],
+     "inverse_obs_float64": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0018866094114072,
+      0.9981169438047278,
+      0.9999999995657565
+     ],
+     "per_feature_reconstruction_error": [
+      2.5385366774500217e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      3.515787661001468e-10,
+      9.736744743804593e-10,
+      4.342435300230818e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 1,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23228625293807803,
+     "wrapped_net_return": 0.23694244427282607,
+     "raw_obs_float32": [
+      0.0024685149546712637,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.003106951713562,
+      0.9993636012077332,
+      1.002468466758728,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.05297264524234775,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.19067699920283054,
+      -0.18555149782211267,
+      -0.17408686161060327,
+      -0.1743649231283797
+     ],
+     "scaled_float32_obs_row": [
+      -0.052972644567489624,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.1906770020723343,
+      -0.1855514943599701,
+      -0.17408686876296997,
+      -0.17436492443084717
+     ],
+     "inverse_obs_float64": [
+      0.0024685150549579177,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      0.9999999995657565,
+      1.0031069007722193,
+      0.999363590911461,
+      1.0024685147781596
+     ],
+     "per_feature_reconstruction_error": [
+      7.969534754348473e-11,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.342435300230818e-10,
+      5.253306678554281e-10,
+      1.0731330268853867e-09,
+      1.9710300058761732e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 2,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23228625293807803,
+     "wrapped_net_return": 0.23694244427282607,
+     "raw_obs_float32": [
+      0.004760600160807371,
+      0.0,
+      0.0,
+      0.0,
+      1.002468466758728,
+      1.0074905157089233,
+      1.0022201538085938,
+      1.007240891456604,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.03356332927799939,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.1743649231283797,
+      -0.15666160305601107,
+      -0.15504842639082916,
+      -0.14282897436395015
+     ],
+     "scaled_float32_obs_row": [
+      -0.03356333076953888,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.17436492443084717,
+      -0.15666159987449646,
+      -0.1550484299659729,
+      -0.14282897114753723
+     ],
+     "inverse_obs_float64": [
+      0.004760599776696847,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0024685147781596,
+      1.007490529281585,
+      1.0022200966658485,
+      1.0072408670271147
+     ],
+     "per_feature_reconstruction_error": [
+      1.7613888386031062e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.9710300058761732e-10,
+      4.827493960135598e-10,
+      5.364104715965823e-10,
+      4.86741535965507e-10
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "policy": "c1_shortcut_naive_momentum",
+     "timestep": 3,
+     "raw_action": 0,
+     "wrapped_action": 1,
+     "canonical_action": 1,
+     "raw_net_return": 0.23228625293807803,
+     "wrapped_net_return": 0.23694244427282607,
+     "raw_obs_float32": [
+      -0.0020628797356039286,
+      0.0,
+      0.0,
+      0.0,
+      1.007240891456604,
+      1.0095747709274292,
+      1.00283944606781,
+      1.0051630735397339,
+      0.0
+     ],
+     "scaled_float64_obs_row": [
+      -0.09134437752415399,
+      -0.07562736743398268,
+      -1.0,
+      -0.18683645186196085,
+      -0.14282897436395015,
+      -0.1429259178593565,
+      -0.15092086238146596,
+      -0.15655929608099228
+     ],
+     "scaled_float32_obs_row": [
+      -0.09134437888860703,
+      -0.07562736421823502,
+      -1.0,
+      -0.18683645129203796,
+      -0.14282897114753723,
+      -0.1429259181022644,
+      -0.15092086791992188,
+      -0.1565593034029007
+     ],
+     "inverse_obs_float64": [
+      -0.0020628798670688717,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      1.0072408670271147,
+      1.0095747226400136,
+      1.0028393913917373,
+      1.0051630486897674
+     ],
+     "per_feature_reconstruction_error": [
+      1.611309904947511e-10,
+      4.3263758945746225e-10,
+      0.0,
+      9.516043288510971e-11,
+      4.86741535965507e-10,
+      3.685785010532072e-11,
+      8.309837262743258e-10,
+      1.1080283357500775e-09
+     ],
+     "position": 0.0,
+     "policy_conditions": {},
+     "decision_margin_to_threshold": Infinity,
+     "float32_relative_quantum": 5.960464477539063e-08,
+     "explainable_by_float32_boundary": true,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "policy_state": {
+      "fresh_policy_objects": true,
+      "per_episode_instance_reset": true,
+      "n_decisions": 287,
+      "action_length_equal": true
+     }
+    }
+   ],
+   "n_mismatches_recorded": 20,
+   "n_episodes_canonical_gate_failed": 0,
+   "per_episode": [
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 9385283891672171173,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.4600751147292843,
+       "scaled_net_return": 0.4600751147292843,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.43069573803025096,
+       "scaled_net_return": 0.43069573803025096,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 9385283891672171173,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04803092267278186,
+       "scaled_net_return": -0.04803092267278186,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.06207341566760116,
+       "scaled_net_return": -0.06207341566760116,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 7720596876376252246,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.2743524091868741,
+       "scaled_net_return": 0.2743524091868741,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.30287992747091375,
+       "scaled_net_return": 0.30287992747091375,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 7720596876376252246,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.11703358528115071,
+       "scaled_net_return": -0.11703358528115071,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04542292708816531,
+       "scaled_net_return": -0.04542292708816531,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 15562318289833003083,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.23694244427282607,
+       "scaled_net_return": 0.23694244427282607,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.1926759461646237,
+       "scaled_net_return": 0.1926759461646237,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 15562318289833003083,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03112894834144131,
+       "scaled_net_return": -0.03112894834144131,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.06312938545759561,
+       "scaled_net_return": -0.06312938545759561,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 7584962702856431414,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.10681789968375321,
+       "scaled_net_return": 0.10681789968375321,
+       "legacy_vs_scaled_action_diffs": 4,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.1117489427606293,
+       "scaled_net_return": 0.1117489427606293,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 7584962702856431414,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c1_shortcut_naive_momentum": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03736991240929188,
+       "scaled_net_return": -0.03736991240929188,
+       "legacy_vs_scaled_action_diffs": 8,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.056730414415957275,
+       "scaled_net_return": -0.056730414415957275,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 3347285853384067973,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.01575595940243002,
+       "scaled_net_return": -0.01575595940243002,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.07619706883139066,
+       "scaled_net_return": 0.07619706883139066,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.008095560846055116,
+       "scaled_net_return": 0.008095560846055116,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.05678973884296101,
+       "scaled_net_return": 0.05678973884296101,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 3347285853384067973,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.016982833317057078,
+       "scaled_net_return": -0.016982833317057078,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.00419507776561967,
+       "scaled_net_return": 0.00419507776561967,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.07903051596107047,
+       "scaled_net_return": 0.07903051596107047,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.05678973884296101,
+       "scaled_net_return": 0.05678973884296101,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 1572158550344594644,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.04874300879169213,
+       "scaled_net_return": -0.04874300879169213,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.040166968902973776,
+       "scaled_net_return": 0.040166968902973776,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.046589922638290204,
+       "scaled_net_return": -0.046589922638290204,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.015245038763625596,
+       "scaled_net_return": 0.015245038763625596,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 1572158550344594644,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.027972342138983586,
+       "scaled_net_return": -0.027972342138983586,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.03557070111747962,
+       "scaled_net_return": -0.03557070111747962,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.05073491002451758,
+       "scaled_net_return": 0.05073491002451758,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.015245038763625596,
+       "scaled_net_return": 0.015245038763625596,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 12475454931907409179,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.046144565153884876,
+       "scaled_net_return": -0.046144565153884876,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.047511089871248746,
+       "scaled_net_return": 0.047511089871248746,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.02501321897755293,
+       "scaled_net_return": -0.02501321897755293,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.03363430278960622,
+       "scaled_net_return": 0.03363430278960622,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 12475454931907409179,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.022975113419775983,
+       "scaled_net_return": -0.022975113419775983,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.006437592543236503,
+       "scaled_net_return": 0.006437592543236503,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.039425996140978636,
+       "scaled_net_return": 0.039425996140978636,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.03363430278960622,
+       "scaled_net_return": 0.03363430278960622,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 3192085643598699702,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.022614529957579732,
+       "scaled_net_return": -0.022614529957579732,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.030621064591090486,
+       "scaled_net_return": 0.030621064591090486,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.02186882577823368,
+       "scaled_net_return": -0.02186882577823368,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.020211899087738017,
+       "scaled_net_return": 0.020211899087738017,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c2_context",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 3192085643598699702,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c2_local_only": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.0036674187165317562,
+       "scaled_net_return": -0.0036674187165317562,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_dir": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.0018367153140589343,
+       "scaled_net_return": -0.0018367153140589343,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "c2_single_context_wick_width": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.029515709820568947,
+       "scaled_net_return": 0.029515709820568947,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.020211899087738017,
+       "scaled_net_return": 0.020211899087738017,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 7029125041430975220,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.11879840800883978,
+       "scaled_net_return": 0.11879840800883978,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.13300610839258287,
+       "scaled_net_return": 0.13300610839258287,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 7029125041430975220,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.030311161530722774,
+       "scaled_net_return": -0.030311161530722774,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.020842513797941442,
+       "scaled_net_return": -0.020842513797941442,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D1",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 11407235676540094673,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.08969117605756693,
+       "scaled_net_return": 0.08969117605756693,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.08026886149799806,
+       "scaled_net_return": 0.08026886149799806,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D1",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 11407235676540094673,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.028332738413853864,
+       "scaled_net_return": -0.028332738413853864,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.027968366519075416,
+       "scaled_net_return": -0.027968366519075416,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D2",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 7148077412017775505,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.06183466247660219,
+       "scaled_net_return": 0.06183466247660219,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.07965345546226699,
+       "scaled_net_return": 0.07965345546226699,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D2",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 7148077412017775505,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.02444074009090369,
+       "scaled_net_return": -0.02444074009090369,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.00450401751991325,
+       "scaled_net_return": -0.00450401751991325,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D3",
+     "pair": 0,
+     "side": "A",
+     "episode_seed": 12684151334981504579,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.011144511129391965,
+       "scaled_net_return": 0.011144511129391965,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": 0.025827233415586015,
+       "scaled_net_return": 0.025827233415586015,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D3",
+     "pair": 0,
+     "side": "B",
+     "episode_seed": 12684151334981504579,
+     "bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+     "fit_namespace": "preplan_fit_holdout_r10",
+     "policies": {
+      "c3_cost_ignorant": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.028611699325859052,
+       "scaled_net_return": -0.028611699325859052,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      },
+      "reference": {
+       "canonical_vs_scaled_actions_equal": true,
+       "canonical_vs_scaled_net_return_equal": true,
+       "canonical_net_return": -0.008940351915455391,
+       "scaled_net_return": -0.008940351915455391,
+       "legacy_vs_scaled_action_diffs": 0,
+       "n_decisions": 287
+      }
+     },
+     "pass": true
+    }
+   ],
+   "pass": true
+  },
+  "reference_equivalence_all": true,
+  "routing_matrix_all_pass": true
+ },
+ "production_equivalence": {
+  "format": "cur261-r3-production-equivalence-v1",
+  "contract_version": "RouteCFeaturePreprocessing-v1",
+  "n_fit_rows": 6912,
+  "n_eval_rows": 6912,
+  "state_hash": "r3pre-1e9bcb3151b9a28e061fa8897a550e85d6fb33c987f905b0402db3ae46d3ad4e",
+  "checks": {
+   "train_transform_bitwise_equal": true,
+   "eval_transform_bitwise_equal": true,
+   "output_shape": [
+    6912,
+    8
+   ],
+   "retained_columns": [
+    "%-ret-1",
+    "%-ret-4",
+    "%-vol-24",
+    "%-price-ma-ratio",
+    "%-raw_open",
+    "%-raw_high",
+    "%-raw_low",
+    "%-raw_close"
+   ],
+   "retained_mask_equal": true,
+   "feature_ordering": [
+    "%-ret-1",
+    "%-ret-4",
+    "%-vol-24",
+    "%-price-ma-ratio",
+    "%-raw_open",
+    "%-raw_high",
+    "%-raw_low",
+    "%-raw_close"
+   ],
+   "float_dtype": true,
+   "zero_variance_column_removed_by_vendor": true,
+   "zero_variance_absent_in_contract_fit": true,
+   "out_of_range_linear_extrapolation": true,
+   "out_of_range_value": 1055.1814418021809,
+   "clip_behavior_matches_production": true,
+   "reload_train_bitwise_equal": true,
+   "reload_eval_bitwise_equal": true,
+   "reload_state_hash_equal": true,
+   "reload_inverse_bitwise_equal": true,
+   "shuffled_rows_same_state_hash": true,
+   "shuffled_rows_same_transform": true,
+   "all_equal": true
+  },
+  "pass": true
+ },
+ "routing_matrix": [
+  {
+   "corpus": "reference_equivalence_main",
+   "expected_role": "main",
+   "actual_role": "main",
+   "expected_fit_namespace": "preplan_fit_main_r10",
+   "actual_fit_namespace": "preplan_fit_main_r10",
+   "expected_bundle_hash": "(unbound)",
+   "actual_bundle_hash": "r4pb-967f1936e373468d218b060e4fb9c8960669918169aa37c2830213564e9c78f0",
+   "pass": true
+  },
+  {
+   "corpus": "reference_equivalence_holdout",
+   "expected_role": "holdout",
+   "actual_role": "holdout",
+   "expected_fit_namespace": "preplan_fit_holdout_r10",
+   "actual_fit_namespace": "preplan_fit_holdout_r10",
+   "expected_bundle_hash": "(unbound)",
+   "actual_bundle_hash": "r4pb-92ea138cfb6726dca0c10728fad142dd46eb8656427e547f9058b06b15c87c9f",
+   "pass": true
+  }
+ ],
+ "pass": true
+}
