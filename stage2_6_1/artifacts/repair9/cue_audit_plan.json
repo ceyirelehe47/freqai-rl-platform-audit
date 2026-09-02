@@ -1,0 +1,54 @@
+{
+  "format": "cur261-r9-cue-audit-plan-v1",
+  "audit_namespaces": {
+    "model": "cue_contract_model_r9",
+    "validation": "cue_contract_validation_r9"
+  },
+  "generation_mode": {
+    "model": "once",
+    "validation": "attempts"
+  },
+  "blocks_per_corpus": 500,
+  "max_attempts_per_block": 5,
+  "exact_noise_replay": true,
+  "replay_tolerance": 1e-12,
+  "mirror_bound": "lo = max(1, t-16); hi = min(t-8, n-17)",
+  "monte_carlo": {
+    "n_events": 1000000,
+    "rng_seed": 20261101,
+    "abs_tol": 0.001
+  },
+  "bootstrap": {
+    "seed": 20261102,
+    "resamples": 20000
+  },
+  "noninferiority_delta": 0.02,
+  "absolute_minimum_recall": 0.9,
+  "event_trace_schema": [
+    "block_index",
+    "cue_bar",
+    "primary_present",
+    "k_actual",
+    "mirror_positions",
+    "mirror_candidates",
+    "effective_sigma_bps",
+    "actual_noise",
+    "cue_read",
+    "detected"
+  ],
+  "once_vs_attempts": {
+    "first_pass_bitwise_check_blocks": 50,
+    "recall_tolerance_rule": "max(3*sqrt(se_m^2+se_v^2), 0.005)",
+    "k_mean_tolerance_rule": "max(3*pooled_se, 0.05)"
+  },
+  "code_identity": {
+    "curriculum261_api.py": "2abacd034e315d0cc449d2f09920f68c8a4808201bc2420770950b29465e37f0",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r9_noise_replay.py": "0282ee3ce3ae22d8f8bcd48b9163d4923dadf46abdff5a33520c97a79fa0fbc1",
+    "curriculum261_r9_cue_contract.py": "faf90d564052ffb63b8d59610b4e698624fc93ac00db80e5244d7ad1d9b0cf03",
+    "curriculum261_r9_cue_eval.py": "5b89a2a35d57317906a90d4e310ba373209b05997610f9e21f8ba03717b3c390"
+  },
+  "cue_audit_plan_digest": "r9ap-9cd438876c632d645f3f4cc4b1d0fc7629a26341115ee29bd6052d43723ef918",
+  "locked_utc": "2026-09-02T07:20:43+00:00"
+}

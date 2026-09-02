@@ -1,0 +1,69 @@
+{
+  "format": "cur261-r9-fail-path-cleanliness-v1",
+  "iteration": "r9",
+  "checked_utc": "2026-09-02T07:37:24+00:00",
+  "crash": {
+    "stage": "calibrate",
+    "command": "python -m rl_curriculum.curriculum261_r9_cli calibrate --out-dir <repair9 artifacts>",
+    "exception_type": "TypeError",
+    "exception_message": "supervised_learnability_run_r9() missing 1 required positional argument: 'namespace'",
+    "traceback_tail": [
+      "File \"src/rl_curriculum/curriculum261_r9_cli.py\", line 1015, in cmd_calibrate",
+      "    supervised = supervised_learnability_run_r9(v2_main, pack)"
+    ],
+    "completed_before_crash": [
+      "preprocess_fit_calibration_r9 / preprocess_fit_holdout_r9 (V2 fit banks)",
+      "fit_manifest_calibration/holdout",
+      "preprocessor_bundle_calibration/holdout",
+      "fit_eval_isolation",
+      "observation_space_validation",
+      "preprocessing_v2_requalification",
+      "production_equivalence (calibrate 阶段重算)"
+    ],
+    "crashed_at": "supervised learnability(3 families x 3 seeds)第一步",
+    "root_cause": "R8 潜伏缺陷:curriculum261_r8_cli.py:825 supervised_learnability_run_r8(v2_main, pack) 缺第三参数 namespace(签名 preproc_v2/pack/namespace);R8 永久结束于 design 阶段,calibrate 从未执行,缺陷从未暴露;R9 blind-rename 继承,首次执行即爆发",
+    "one_shot_rule": "§18:design plan 锁定后任何异常 => R9 永久结束;禁止 plan 锁后修复代码并继续(§34);下一轮必须 R10",
+    "aborted_utc": "2026-09-02T07:36:25+00:00"
+  },
+  "fail_path_clean": true,
+  "forbidden_artifacts_absent": {
+    "qualification_plan.json": true,
+    "qualification_plan_digest.txt": true,
+    "sealed_final_preflight.json": true,
+    "sealed_final_preflight_digest.txt": true,
+    "qualification_exposure.json": true,
+    "qualification_fit_manifest.json": true,
+    "qualification_preprocessor_bundle.json": true,
+    "qualification_cue_semantics.json": true,
+    "qualification_pair_evidence_table.json": true,
+    "qualification_c2_block_evidence_table.json": true,
+    "qualification_c2_independent_marginal.json": true,
+    "qualification_result.json": true,
+    "curriculum_robustness_gate.json": true,
+    "robustness_gate.json": true,
+    "calibration_summary.json": true,
+    "calibration_holdout_summary.json": true,
+    "supervised_learnability.json": true,
+    "cue_semantic_calibration.json": true,
+    "cue_semantic_holdout.json": true,
+    "pair_evidence_table_calibration.json": true,
+    "pair_evidence_table_holdout.json": true,
+    "c2_block_evidence_table_calibration.json": true,
+    "c2_block_evidence_table_holdout.json": true,
+    "c2_independent_marginal_calibration.json": true,
+    "c2_independent_marginal_holdout.json": true,
+    "ppo_256step_smoke.json": true,
+    "regression_summary.json": true
+  },
+  "present_forbidden": [],
+  "qualification_exposed": false,
+  "qualification_r9_unlocked": false,
+  "namespace_isolation": {
+    "pass": true,
+    "r9_vs_historical_overlap": 0
+  },
+  "design_plan_retained": true,
+  "design_plan_digest_retained": "r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4",
+  "r8_history_untouched_note": "R0-R8 artifacts/报告未做任何修改;R8 aborted marker 完整保留(r8_abort_binding.json 于 audit 阶段绑定)",
+  "pass": true
+}

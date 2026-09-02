@@ -1,0 +1,17 @@
+........................................................................ [ 48%]
+........................................................................ [ 96%]
+......                                                                   [100%]
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_2/test_ppo262_repair1_diagnostics.py::TestUpdateMetricBinding::test_diagnosed_ppo_same_seed_same_init_as_ppo
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/ppo/ppo.py:155: UserWarning: You have specified a mini-batch size of 64, but because the `RolloutBuffer` is of size `n_steps * n_envs = 574`, after every 8 untruncated mini-batches, there will be a truncated mini-batch of size 62
+  We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.
+  Info: (n_steps=574 and n_envs=1)
+    warnings.warn(
+
+tests/route_c_stage2_6_2/test_ppo262_repair1_diagnostics.py::TestBCWarmStart::test_actor_bc_updates_actor_not_critic
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/ppo262_diag_train.py:749: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:822.)
+    history.append({"epoch": epoch + 1, "loss": float(loss),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+150 passed, 2 warnings in 49.42s

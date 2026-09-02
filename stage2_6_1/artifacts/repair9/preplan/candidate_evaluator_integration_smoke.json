@@ -1,0 +1,60 @@
+{
+  "format": "cur261-r9-candidate-evaluator-smoke-v1",
+  "namespace": "preplan_candidate_eval_r9",
+  "n_blocks": 4,
+  "monkeypatch_used": false,
+  "execution_chain": [
+    "generate_matched_block_with_attempts",
+    "evaluate_pair_corpus_r4",
+    "build_c2_block_evidence_table",
+    "c2_density_summary (r5_pairs)",
+    "density_gate_r5",
+    "candidate_cue_semantics",
+    "check_c2_local_cue_independence",
+    "check_c2_context_observability",
+    "formal block calculations (10/15/20)",
+    "scrambled diagnostic",
+    "result serialization",
+    "result reload"
+  ],
+  "checks": {
+    "no_crash": true,
+    "keys_present": {
+      "candidate": true,
+      "corpus": true,
+      "n_blocks": true,
+      "block_corpus_summary": true,
+      "block_attempt_stats": true,
+      "block_table": true,
+      "pair_table_rows": true,
+      "difficulty_means": true,
+      "per_formal_block_count": true,
+      "density_gates": true,
+      "semantics": true,
+      "semantics_pass": true,
+      "density_pass": true,
+      "pair_integrity_unity": true,
+      "oracle_positive": true,
+      "scrambled_control_diagnostic": true
+    },
+    "all_keys_present": true,
+    "expected_rungs": true,
+    "density_schema_ok": true,
+    "cue_semantic_schema_ok": true,
+    "formal_block_options_present": true,
+    "numeric_finite": true,
+    "json_serializable_and_reloadable": true,
+    "pass_all": true
+  },
+  "difficulty_means": {
+    "D0": 0.028811887385033874,
+    "D1": 0.020248394801945013,
+    "D2": 0.012302432290466875,
+    "D3": 0.00805880810609369
+  },
+  "density_pass": true,
+  "semantics_pass": false,
+  "oracle_positive": true,
+  "pair_integrity_unity": true,
+  "pass": true
+}
