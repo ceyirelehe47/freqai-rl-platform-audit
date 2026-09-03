@@ -324,6 +324,69 @@ CURRICULUM261_R12_NAMESPACES = (
     "c2_independent_qualification_r12",
     "stress_r12", "fresh_holdout_r12", "training_r12", "ppo_smoke_r12")
 
+#: repair R13:全新 seed namespace(R12 全部 namespace 永久封存;R13 与
+#: R0-R12 Stage 2.6.1 / Stage 2.6.2 全部 namespace 不重合)。结构分三类:
+#: 1) 正式链 namespace(cue audit / design / calibration / holdout /
+#:    qualification;与 R12 同构,r13 后缀);
+#: 2) 工程 namespace(preplan_*/shadow_*/stress/fresh_holdout/training/
+#:    ppo_smoke;R12 同职责的 R13 等价物);
+#: 3) rt_* = R13RealArtifactCliRoundTrip-v1 真实 CLI round-trip rehearsal
+#:    专用(Commit A 前的 pre-freeze rehearsal;与正式 namespace 完全
+#:    不相交;rehearsal 不得访问任何正式 namespace)。
+CURRICULUM261_ITERATION_ID_R13 = "r13"
+CURRICULUM261_R13_NAMESPACES = (
+    "cue_contract_model_r13", "cue_contract_validation_r13",
+    "cue_k_global_null_r13",
+    "preplan_engineering_smoke_r13",
+    "preplan_smoke_r13", "preplan_candidate_eval_r13",
+    "preplan_semantic_main_r13", "preplan_semantic_validation_r13",
+    "preplan_fit_main_r13", "preplan_fit_holdout_r13",
+    "preplan_supervised_main_r13", "preplan_supervised_holdout_r13",
+    "preplan_calibration_main_r13", "preplan_calibration_holdout_r13",
+    "preplan_final_r13",
+    "shadow_fit_main_r13", "shadow_fit_holdout_r13",
+    "shadow_supervised_main_r13", "shadow_supervised_holdout_r13",
+    "shadow_calibration_main_r13", "shadow_calibration_holdout_r13",
+    "shadow_semantic_main_r13", "shadow_semantic_validation_r13",
+    "shadow_c2_independent_main_r13", "shadow_c2_independent_holdout_r13",
+    "shadow_semantic_final_r13",
+    "reference_diagnostic_main_r13", "reference_diagnostic_holdout_r13",
+    "reference_diagnostic_r13",
+    "rt_cue_model_r13", "rt_cue_validation_r13",
+    "rt_design_matched_main_r13", "rt_design_matched_validation_r13",
+    "rt_design_independent_r13",
+    "rt_semantic_design_main_r13", "rt_semantic_design_validation_r13",
+    "rt_fit_main_r13", "rt_fit_holdout_r13", "rt_fit_qualification_r13",
+    "rt_calibration_main_r13", "rt_calibration_holdout_r13",
+    "rt_supervised_main_r13", "rt_supervised_holdout_r13",
+    "rt_semantic_main_r13", "rt_semantic_validation_r13",
+    "rt_semantic_final_r13",
+    "rt_c2_independent_main_r13", "rt_c2_independent_holdout_r13",
+    "rt_stress_r13", "rt_qualification_r13",
+    # rt2 = rehearsal 第二抽(rt_ 首抽的 calibrate/final 侧 c3 margin
+    # 统计边缘;cue/design 侧 rt_ 首抽全部通过故沿用;工程重试,非
+    # 正式数据,不进入任何资格判定)
+    "rt2_fit_main_r13", "rt2_fit_holdout_r13",
+    "rt2_fit_qualification_r13",
+    "rt2_calibration_main_r13", "rt2_calibration_holdout_r13",
+    "rt2_supervised_main_r13", "rt2_supervised_holdout_r13",
+    "rt2_semantic_main_r13", "rt2_semantic_validation_r13",
+    "rt2_semantic_final_r13",
+    "rt2_c2_independent_main_r13", "rt2_c2_independent_holdout_r13",
+    "rt2_stress_r13", "rt2_qualification_r13",
+    "cue_semantic_design_main_r13", "cue_semantic_design_validation_r13",
+    "design_r13_matched_main", "design_r13_matched_validation",
+    "design_r13_independent_marginal",
+    "preprocess_fit_calibration_r13", "preprocess_fit_holdout_r13",
+    "preprocess_fit_qualification_r13",
+    "supervised_main_r13", "supervised_holdout_r13",
+    "cue_semantic_calibration_r13", "cue_semantic_holdout_r13",
+    "cue_semantic_qualification_r13",
+    "calibration_r13", "calibration_holdout_r13", "qualification_r13",
+    "c2_independent_calibration_r13", "c2_independent_holdout_r13",
+    "c2_independent_qualification_r13",
+    "stress_r13", "fresh_holdout_r13", "training_r13", "ppo_smoke_r13")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
@@ -332,7 +395,8 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R7_NAMESPACES) + (CURRICULUM261_R8_NAMESPACES) + (
     CURRICULUM261_R9_NAMESPACES) + (
     CURRICULUM261_R10_NAMESPACES) + (CURRICULUM261_R11_NAMESPACES) + (
-    CURRICULUM261_R12_NAMESPACES)
+    CURRICULUM261_R12_NAMESPACES) + (
+    CURRICULUM261_R13_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -714,6 +778,26 @@ def derive261_seed(
                 "attestation)前不可访问(final corpus lock 前对任何"
                 "代码路径封闭;校准/诊断一律使用 calibration_r12 / "
                 "calibration_holdout_r12 / stress_r12 namespace)")
+    if namespace in ("qualification_r13",
+                     "preprocess_fit_qualification_r13",
+                     "c2_independent_qualification_r13",
+                     "cue_semantic_qualification_r13"):
+        # repair R13:六要素守卫沿用;R12 诚实 FAIL(lock-plan 阶段
+        # artifact 接口缺陷:读取 'bundle_hash' 而正式 artifact 键为
+        # 'preprocessor_bundle_hash')后 R13 在全新 namespace 重做;
+        # final corpus lock 前对任何代码路径封闭。
+        from rl_curriculum.curriculum261_r13_namespaces import (
+            qualification_r13_unlocked,
+        )
+
+        if not qualification_r13_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R13 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r13 / "
+                "calibration_holdout_r13 / stress_r13 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -975,10 +1059,12 @@ def _default_recorder(namespace: str, family: str, rung: str,
         from rl_curriculum.curriculum261_generation_envelope import (
             active_recorder,
         )
-        # repair R12:iteration 字段按 namespace 后缀派生——R0-R11
+        # repair R12/R13:iteration 字段按 namespace 后缀派生——R0-R11
         # namespace 行为与 R11 完全一致("r11");全部 R12 namespace 含
-        # "r12" 子串且历史 namespace 均不含,故无歧义。
-        iteration = "r12" if "r12" in namespace else "r11"
+        # "r12" 子串、全部 R13 namespace 含 "r13" 子串,且历史 namespace
+        # 均不含,故无歧义。
+        iteration = ("r13" if "r13" in namespace
+                     else "r12" if "r12" in namespace else "r11")
         return active_recorder(iteration, namespace, family, rung,
                                pair_index, rung_params)
     except Exception:  # noqa: BLE001 —— 证据路径 fail-open
