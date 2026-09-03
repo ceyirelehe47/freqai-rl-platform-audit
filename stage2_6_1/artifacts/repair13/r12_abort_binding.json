@@ -1,0 +1,32 @@
+{
+  "iteration": "r12",
+  "final_verdict": "FAIL(永久;统计链 cue/global K/design/calibration/holdout 全部 PASS 但不被追认为 R13 输入;R13 必须全新 namespace 重新执行)",
+  "fail_reasons": [
+    "lock-plan 阶段源码缺陷:读取 preprocessor_bundle_calibration.json / preprocessor_bundle_holdout.json 的 'bundle_hash' 键,实际键为 'preprocessor_bundle_hash'(KeyError: 'bundle_hash';curriculum261_r12_cli.py:1717;Commit A 75a66dd 冻结代码;§五 不可变冻结规则 => R12 永久 FAIL,下一轮 R13)",
+    "治理缺口(非硬失败,但为 R13 直接动因):Commit A 前的 release rehearsal 使用 synthetic/in-memory 输入,未真正通过正式 CLI 读取 production command 写出的落盘 artifacts,未覆盖真实 producer/consumer 接口"
+  ],
+  "failure_classification": "producer/consumer artifact interface inconsistency(冻结源码缺陷;非统计失败;非 tail/position-wise 失败)",
+  "latent_defect_2_discovered_by_r13": "R13 全仓库接口审计另发现 sealed preflight 证据文件名错配(要求 preprocessing_robustness_gate.json / curriculum_robustness_gate.json / supervised_learnability.json 三个 R3/R4 时代文件名,而 calibrate 实际写 robustness_gate.json / supervised_learnability_main|holdout.json);R12 未活到该步故未触发;R13 已在 Commit A 前修复",
+  "statistical_chain_status_at_failure": "cue audit PASS(p_contract=0.950442)/global K PASS(T_obs=3.2329,p=0.511770)/tail integrity PASS/design PASS(c2l_historical_control,n=15)/calibration main+holdout 独立 PASS —— 全部仅作历史记录,不进入 R13",
+  "abort_marker_exists": true,
+  "abort_marker_blob_matches_baseline": true,
+  "failure_traceback_blob_matches_baseline": true,
+  "cue_audit_result_blob_matches_baseline": true,
+  "robustness_gate_blob_matches_baseline": true,
+  "calibration_evidence_blob_matches_baseline": true,
+  "preprocessor_bundle_calibration_blob_matches_baseline": true,
+  "preprocessor_bundle_holdout_blob_matches_baseline": true,
+  "fail_path_cleanliness_blob_matches_baseline": true,
+  "r12_design_plan_digest": "r12dp-cfbf0f1535b9c54723cd7d23a2d8db016a6257bb4b5f1686d60212f58e593592",
+  "r12_parameter_pack_digest": "r12pk-c021cc6a45bc114fe869fe94ea2a61e77b16f58861464dcf445dc81950eadd9d",
+  "design_plan_digest_ok": true,
+  "parameter_pack_digest_ok": true,
+  "qualification_exposure_absent": true,
+  "qualification_plan_never_locked": true,
+  "final_qualification_not_executed": true,
+  "r12_commits": {
+    "commit_a": "75a66dde368c6f7c8ccc1a70e19445a6f86165fe",
+    "commit_b": "960dbe19701901f9262614aadf8b7f97742fab4d"
+  },
+  "pass": true
+}

@@ -1,0 +1,149 @@
+{
+  "format": "cur261-r13-cue-audit-plan-v1",
+  "audit_namespaces": {
+    "model": "cue_contract_model_r13",
+    "validation": "cue_contract_validation_r13"
+  },
+  "generation_mode": {
+    "model": "once",
+    "validation": "attempts"
+  },
+  "blocks_per_corpus": 500,
+  "max_attempts_per_block": 5,
+  "exact_noise_replay": true,
+  "replay_tolerance": 1e-12,
+  "mirror_bound": "lo = max(1, t-16); hi = min(t-8, n-17)",
+  "monte_carlo": {
+    "n_events": 1000000,
+    "rng_seed": 20270101,
+    "abs_tol": 0.001
+  },
+  "bootstrap": {
+    "seed": 20270102,
+    "resamples": 20000
+  },
+  "noninferiority_delta": 0.02,
+  "absolute_minimum_recall": 0.9,
+  "event_trace_schema": [
+    "block_index",
+    "cue_bar",
+    "primary_present",
+    "k_actual",
+    "mirror_positions",
+    "mirror_candidates",
+    "effective_sigma_bps",
+    "actual_noise",
+    "cue_read",
+    "detected"
+  ],
+  "once_vs_attempts": {
+    "first_pass_bitwise_check_blocks": 50,
+    "recall_tolerance_rule": "max(3*sqrt(se_m^2+se_v^2), 0.005)",
+    "k_mean_tolerance_rule": "max(3*pooled_se, 0.05)"
+  },
+  "global_k_audit": {
+    "contract_version": "C2MirrorCountGlobalAudit-v1",
+    "contract_digest": "r13gk-65a8dc36168a0b65f3fa55c08a9e820b108459803d8e7dc34a98b44e84e472e3",
+    "contract_payload_fingerprint": {
+      "version": "C2MirrorCountGlobalAudit-v1",
+      "random_unit": {
+        "definition": "unit = (corpus, block_index, source bar s), s ∈ [1, n-17];随机原语 = paired_noise 该 source bar 的 gap 抽签",
+        "gap_distribution": "Uniform{8,...,16}",
+        "unit_hit_probability": 0.1111111111111111,
+        "event_k_definition": "K_b(t) = #{u=(b,s): s ∈ cand(t), G_u = t - s}",
+        "candidate_bound": "cand(t) = [max(1, t-16), min(t-8, n-17)] (TailMirrorBoundIntegrity-v2 同源)",
+        "shared_source_semantics": "每 unit 单一 gap ⇒ 同 block 内 相邻位置事件共享 unit 且命中互斥(负相关);聚合统计量必须保留 incidence 权重",
+        "independence_claims": [
+          "同 block 内不同 source bar 的 gap 抽签 iid(顺序消耗同一 PCG64 流)",
+          "不同 block 的噪声种子独立(derive261_block_seed 按 namespace/block/attempt 哈希派生)",
+          "cue 位置表与噪声 gap 由独立派生流决定(cue 主流 vs '_noise':'market' 流)"
+        ],
+        "attempts_acceptance_independence": "attempts-mode 结构接受只读 hidden 结构表(cue_dir/s/w ±1 状态、A/B 共享表一致性、参数差异面),不读噪声值/mirror hit/K/cue 检出 ⇒ 条件固定 cue schedule/block membership/candidate incidence graph,只重采样底层 gap 随机单元的 null 合法"
+      },
+      "cells": {
+        "position_cell": "每 corpus 每 cue 位置 t:S = Σ_{events at t} K(unit 权重 1)",
+        "corpus_aggregate_cell": "S = Σ_events K(unit 权重 = 所属 block 内以该 source 为候选的事件数;共享单元保留权重)",
+        "true_tail_aggregate_cell": "t >= 264(最后 24 bars)的 事件聚合;t=226 不是 tail",
+        "eligibility": {
+          "exact_null_variance_positive": true,
+          "min_unique_underlying_null_units": 30,
+          "eligibility_basis": "仅 cue schedule/candidate graph/null 信息量;禁止依据观察到的 K 偏离大小"
+        },
+        "statistic": {
+          "S_j": "Σ_u H_u;H_u = 1{unit u 的单一 gap 镜像命中 cell 内任一事件}(每单元最多命中一个事件;小图精确枚举验证)",
+          "mu": "Σ_u q_u;q_u = n_u/9(n_u = 该单元可命中的 cell 内事件数)",
+          "sigma2": "Σ_u q_u(1-q_u)(单元间独立:gap iid)",
+          "Z_j": "(S_j - μ_j)/σ_j",
+          "T_obs": "max_j |Z_j| 跨 model positions / validation positions / model aggregate / validation aggregate / model true-tail aggregate / validation true-tail aggregate"
+        }
+      },
+      "global_test": {
+        "null": "联合 null:固定依赖结构/incidence graph,逐 replicate 重采样全部 unit gap",
+        "p_global_formula": "(1 + count(T_null >= T_obs)) / (B + 1)",
+        "alpha": 0.05,
+        "tier1_B": 50000,
+        "tier2_B": 200000,
+        "cp_confidence": 0.99,
+        "continuation": "tier2 复用同一预注册 stream(前缀 chunk digest 逐位一致;不换 seed/不重置/不丢弃)",
+        "indeterminate_rule": "tier2 后 99% CP 区间仍跨 0.05 ⇒ INDETERMINATE ⇒ 按 FAIL 处理",
+        "rng_seed": 20270201,
+        "rng_stream_namespace": "cue_k_global_null_r13",
+        "rng_algorithm": "numpy PCG64(default_rng)固定 draw 模式:每 replicate 依 corpus 注册顺序(model→validation)逐 corpus integers(8,17,n_units) 一次"
+      },
+      "legacy_diagnostic": {
+        "name": "legacy_positionwise_z_diagnostic",
+        "rule": "逐位置 K 均值 vs Binomial(C(t),1/9),独立 event SE,|z| <= 4.0",
+        "binding_gate": false,
+        "legacy_diagnostic_only": true,
+        "note": "R11 t=226 的 |z|=4.000504 属于该 legacy 检查;R13 起不再决定 PASS/FAIL"
+      },
+      "tail_definition": {
+        "true_tail": "t >= 264(n=288 的最后 24 bars)",
+        "t226_is_tail": false,
+        "t226_classification": "position-wise mirror-count distribution failure(非 tail)"
+      }
+    },
+    "random_unit_identity": {
+      "unit": "(corpus, block_index, source bar s)",
+      "primitive": "paired_noise gap 抽签 Uniform{8..16}",
+      "stream": "独立 '_noise':'market' 派生流"
+    },
+    "incidence_graph_rules": "candidate 并集;event CSR;共享单元保留权重",
+    "eligibility": {
+      "min_unique_null_units": 30,
+      "exact_null_variance_positive": true
+    },
+    "global_statistic": "T = max_j |Z_j| 跨 model/validation 的 position/aggregate/true-tail cell;μ=Σq,σ²=Σq(1-q),q_u=n_u/9(单元级Bernoulli;小图精确枚举验证)",
+    "alpha": 0.05,
+    "b_tier1": 50000,
+    "b_tier2": 200000,
+    "continuation": "同 stream 前缀 chunk digest 逐位一致;indeterminate=FAIL",
+    "rng": {
+      "seed": 20270201,
+      "stream_namespace": "cue_k_global_null_r13"
+    }
+  },
+  "tail_mirror_bound_integrity": {
+    "contract_version": "TailMirrorBoundIntegrity-v2",
+    "deterministic_hard_gate": true,
+    "true_tail": "t >= 264(最后 24 bars)",
+    "independent_of_global_k_audit": true
+  },
+  "legacy_positionwise_diagnostic": {
+    "binding_gate": false,
+    "legacy_diagnostic_only": true,
+    "z_threshold": 4.0,
+    "min_events": 30
+  },
+  "code_identity": {
+    "curriculum261_api.py": "433e50f6226d733cca3a42e16c7c413479be96938e6b02099ced4a26f5e5e27a",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r13_noise_replay.py": "b108a055e848e40012bce1445ac1c4029fd08ceceadffaee994a8c15bcc1c7da",
+    "curriculum261_r13_cue_contract.py": "41f743ac7eedb28effe9b52b3ae587b7462bbc529387e10d355ec866f6371310",
+    "curriculum261_r13_cue_eval.py": "9395220932c5afe82203a41893a399822f202c4dbf68a4146818f0d0c19c9a61",
+    "curriculum261_r13_global_k.py": "b2751dcc8e727ed09d02917eca327c5a4a1ad5db69591ba94222ad1504396cf9"
+  },
+  "cue_audit_plan_digest": "r13ap-059a52b9ff75fd5356a5951f8a42e94fcd9bad4f4a70a549b951e9883639c38c",
+  "locked_utc": "2026-09-03T22:17:26+00:00"
+}

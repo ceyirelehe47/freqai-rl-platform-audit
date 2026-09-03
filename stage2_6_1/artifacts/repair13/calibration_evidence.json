@@ -1,0 +1,155 @@
+{
+  "gate": {
+    "format": "cur261-r13-robustness-gate-v1",
+    "iteration": "r13",
+    "rehearsal": false,
+    "profiles": [
+      "formal_main",
+      "formal_holdout"
+    ],
+    "design_plan_digest": "r13dp-4da657bdb3d6781033f7e8397d109d5bf4926ff5b32cee36364a87285119250c",
+    "code_freeze_sha": "47d3f22f4df97855423ee748f3aa2df5497422a6",
+    "preprocessing_robustness_pass": true,
+    "bundle_routing_all_pass": true,
+    "supervised_main_pass": true,
+    "supervised_holdout_pass": true,
+    "curriculum_main_independent_pass": true,
+    "curriculum_holdout_independent_pass": true,
+    "density_pass": true,
+    "conditioning_pass": true,
+    "pooled_rescue_used": false,
+    "pass": true,
+    "routing_matrix": [
+      {
+        "corpus": "reference_equivalence_main",
+        "expected_role": "main",
+        "actual_role": "main",
+        "expected_fit_namespace": "preprocess_fit_calibration_r13",
+        "actual_fit_namespace": "preprocess_fit_calibration_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-74cc5fc95c0901e0641b008b38c673d1e24d9118bbbf9bee5134547999f07910",
+        "pass": true
+      },
+      {
+        "corpus": "reference_equivalence_holdout",
+        "expected_role": "holdout",
+        "actual_role": "holdout",
+        "expected_fit_namespace": "preprocess_fit_holdout_r13",
+        "actual_fit_namespace": "preprocess_fit_holdout_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-c9bc31e4035c0d9d5e51a05726f0ae801fbbed67774a8bc16334cfe893edcd8a",
+        "pass": true
+      },
+      {
+        "corpus": "supervised_main",
+        "expected_role": "main",
+        "actual_role": "main",
+        "expected_fit_namespace": "preprocess_fit_calibration_r13",
+        "actual_fit_namespace": "preprocess_fit_calibration_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-74cc5fc95c0901e0641b008b38c673d1e24d9118bbbf9bee5134547999f07910",
+        "pass": true
+      },
+      {
+        "corpus": "supervised_holdout",
+        "expected_role": "holdout",
+        "actual_role": "holdout",
+        "expected_fit_namespace": "preprocess_fit_holdout_r13",
+        "actual_fit_namespace": "preprocess_fit_holdout_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-c9bc31e4035c0d9d5e51a05726f0ae801fbbed67774a8bc16334cfe893edcd8a",
+        "pass": true
+      },
+      {
+        "corpus": "c13_main",
+        "expected_role": "main",
+        "actual_role": "main",
+        "expected_fit_namespace": "preprocess_fit_calibration_r13",
+        "actual_fit_namespace": "preprocess_fit_calibration_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-74cc5fc95c0901e0641b008b38c673d1e24d9118bbbf9bee5134547999f07910",
+        "pass": true
+      },
+      {
+        "corpus": "c2_matched_main",
+        "expected_role": "main",
+        "actual_role": "main",
+        "expected_fit_namespace": "preprocess_fit_calibration_r13",
+        "actual_fit_namespace": "preprocess_fit_calibration_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-74cc5fc95c0901e0641b008b38c673d1e24d9118bbbf9bee5134547999f07910",
+        "pass": true
+      },
+      {
+        "corpus": "c2_independent_main",
+        "expected_role": "main",
+        "actual_role": "main",
+        "expected_fit_namespace": "preprocess_fit_calibration_r13",
+        "actual_fit_namespace": "preprocess_fit_calibration_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-74cc5fc95c0901e0641b008b38c673d1e24d9118bbbf9bee5134547999f07910",
+        "pass": true
+      },
+      {
+        "corpus": "c13_holdout",
+        "expected_role": "holdout",
+        "actual_role": "holdout",
+        "expected_fit_namespace": "preprocess_fit_holdout_r13",
+        "actual_fit_namespace": "preprocess_fit_holdout_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-c9bc31e4035c0d9d5e51a05726f0ae801fbbed67774a8bc16334cfe893edcd8a",
+        "pass": true
+      },
+      {
+        "corpus": "c2_matched_holdout",
+        "expected_role": "holdout",
+        "actual_role": "holdout",
+        "expected_fit_namespace": "preprocess_fit_holdout_r13",
+        "actual_fit_namespace": "preprocess_fit_holdout_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-c9bc31e4035c0d9d5e51a05726f0ae801fbbed67774a8bc16334cfe893edcd8a",
+        "pass": true
+      },
+      {
+        "corpus": "c2_independent_holdout",
+        "expected_role": "holdout",
+        "actual_role": "holdout",
+        "expected_fit_namespace": "preprocess_fit_holdout_r13",
+        "actual_fit_namespace": "preprocess_fit_holdout_r13",
+        "expected_bundle_hash": "(unbound)",
+        "actual_bundle_hash": "r4pb-c9bc31e4035c0d9d5e51a05726f0ae801fbbed67774a8bc16334cfe893edcd8a",
+        "pass": true
+      }
+    ]
+  },
+  "stage_profiles": [
+    "formal_main",
+    "formal_holdout"
+  ],
+  "orchestrator": "orchestrate_calibration_stage_r13",
+  "reference_equivalence_detail_artifacts": [
+    "preprocessing_v2_requalification.json"
+  ],
+  "reference_thresholds_by_family": {
+    "c1_opportunity": {
+      "ma_sigma_mult": 1.0
+    },
+    "c2_context": {
+      "cue_thr": 0.0105,
+      "wick_dir_thr": 0.0,
+      "wick_width_thr": 0.012
+    },
+    "c3_cost": {
+      "margin": 1.1,
+      "any_signal_s": 0.22
+    }
+  },
+  "supervised_gate_constants": {
+    "source": "r13_orchestrator"
+  },
+  "main_holdout_independent": {
+    "main": true,
+    "holdout": true,
+    "pooled_rescue_used": false
+  }
+}

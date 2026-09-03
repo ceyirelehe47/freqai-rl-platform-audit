@@ -1,0 +1,1259 @@
+{
+  "format": "cur261-r13-final-qualification-v1",
+  "iteration": "r13",
+  "profile": "formal_final",
+  "rehearsal": false,
+  "rt": false,
+  "plan_digest": "qp12-2934cc579ef1a6566d697ae68f23383021f914aadd99cc53448c65316e05d466",
+  "parameter_pack_digest": "r13pk-b68280456e1f6b0cd624748ba4cfaec28e9aa95d1d922003ed76a6f41ada3e1a",
+  "started_utc": "2026-09-03T22:39:55+00:00",
+  "completed_utc": "2026-09-03T22:44:11+00:00",
+  "namespace": "qualification_r13",
+  "final_bundle_hash": "r4pb-52b71e6a3e8c756f8c1c7d310f28a59ec60ab0670ba5038b103dbaea39e6ac68",
+  "final_fit_namespace": "preprocess_fit_qualification_r13",
+  "selected_block_count": 20,
+  "core_qualification_pairs": 160,
+  "c2_independent_guard_pairs": 80,
+  "semantic_blocks": 160,
+  "semantic_episodes": 1280,
+  "reference_equivalence_episodes": 480,
+  "reference_equivalence_unexplained": 0,
+  "total_generated_pairs": 240,
+  "total_generated_episodes": 1760,
+  "c1_pairs": 40,
+  "c3_pairs": 40,
+  "c2_pairs": 80,
+  "kappa": 1.5,
+  "checks": {
+    "preprocessing_survival_8_of_8": true,
+    "preprocessing_envelope_reload": true,
+    "production_numerical_equivalence": true,
+    "observation_space_v2": true,
+    "adversarial_out_of_range": true,
+    "reference_equivalence_all": true,
+    "reference_equivalence_canonical_full": true,
+    "reference_equivalence_unexplained": 0,
+    "reference_equivalence_n_episodes": 480,
+    "routing_final_bundle_verified": true,
+    "reproducibility_all": true,
+    "matched_block_reproducibility": true,
+    "latent_isolation": true,
+    "fresh_seed_disjoint": true,
+    "c1_strict_pass": true,
+    "c3_strict_pass": true,
+    "c2_matched_strict_pass": true,
+    "c2_independent_marginal_pass": true,
+    "c2_dedicated_semantic_corpus_pass": true,
+    "semantic_block_count_consistent": true,
+    "c2_density_pass": true,
+    "c2_semantics_pass": false,
+    "conditioning_gate": true,
+    "supervised_gate": true,
+    "block_contract_identity": true,
+    "cue_semantic_contract_identity": true,
+    "selected_block_count_consistent": true
+  },
+  "conditions": {
+    "c1_opportunity": {
+      "rule": "strict per-corpus(R6;实现复用 R5 pair-cluster 口径)",
+      "kappa": 1.5,
+      "ordering_ok": true,
+      "gaps_ge_kappa_se": true,
+      "gaps": {
+        "D0-D1": {
+          "gap": 0.0986765727202896,
+          "se_pair_cluster": 0.005833423047967358,
+          "gap_over_se": 16.915723736970044,
+          "kappa_times_se": 0.008750134571951038,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap": 0.03980112569868585,
+          "se_pair_cluster": 0.00476805250975335,
+          "gap_over_se": 8.347459600595874,
+          "kappa_times_se": 0.007152078764630025,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap": 0.03448115509562855,
+          "se_pair_cluster": 0.007178164246887836,
+          "gap_over_se": 4.803617458402154,
+          "kappa_times_se": 0.010767246370331753,
+          "ok": true
+        }
+      },
+      "d3_positive": true,
+      "d3_mean_ge_kappa_se": true,
+      "d3_mean": 0.03306516682404328,
+      "d3_se": 0.005889318078713101,
+      "d3_bootstrap_ci": {
+        "n": 10,
+        "mean": 0.03306516682404328,
+        "ci_low": 0.022942721558462047,
+        "ci_high": 0.04491045674850778,
+        "resamples": 5000,
+        "seed": 20260901,
+        "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+      },
+      "margins_ok": true,
+      "fixed_baseline_margins": {
+        "always_flat": {
+          "D0": {
+            "mean": 0.20602402033864728,
+            "se": 0.0053043825506682105,
+            "kappa_times_se": 0.007956573826002317,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.20602402033864728,
+              "ci_low": 0.1955561251991497,
+              "ci_high": 0.2156826384232866,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.10734744761835768,
+            "se": 0.0024274163657525645,
+            "kappa_times_se": 0.0036411245486288467,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.10734744761835768,
+              "ci_low": 0.10274446997547701,
+              "ci_high": 0.11171956712660402,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.06754632191967183,
+            "se": 0.004103897479596905,
+            "kappa_times_se": 0.006155846219395357,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.06754632191967183,
+              "ci_low": 0.05991903111236993,
+              "ci_high": 0.07470951305884838,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.03306516682404328,
+            "se": 0.005889318078713101,
+            "kappa_times_se": 0.008833977118069651,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.03306516682404328,
+              "ci_low": 0.022942721558462047,
+              "ci_high": 0.04491045674850778,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          }
+        },
+        "always_long": {
+          "D0": {
+            "mean": 0.20802202233664913,
+            "se": 0.005304382550668213,
+            "kappa_times_se": 0.00795657382600232,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.20802202233664913,
+              "ci_low": 0.19755412719715154,
+              "ci_high": 0.2176806404212884,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.10934544961635953,
+            "se": 0.002427416365752564,
+            "kappa_times_se": 0.0036411245486288463,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.10934544961635953,
+              "ci_low": 0.10474247197347884,
+              "ci_high": 0.11371756912460586,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.06954432391767365,
+            "se": 0.0041038974795968965,
+            "kappa_times_se": 0.006155846219395345,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.06954432391767365,
+              "ci_low": 0.06191703311037177,
+              "ci_high": 0.07670751505685014,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.0350631688220451,
+            "se": 0.005889318078713101,
+            "kappa_times_se": 0.008833977118069651,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.0350631688220451,
+              "ci_low": 0.024940723556463866,
+              "ci_high": 0.0469084587465096,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          }
+        }
+      },
+      "pair_integrity_unity": true,
+      "oracle_positive": true,
+      "pass": true,
+      "rule_iteration": "r6"
+    },
+    "c3_cost": {
+      "rule": "strict per-corpus(R6;实现复用 R5 pair-cluster 口径)",
+      "kappa": 1.5,
+      "ordering_ok": true,
+      "gaps_ge_kappa_se": true,
+      "gaps": {
+        "D0-D1": {
+          "gap": 0.019711176550870367,
+          "se_pair_cluster": 0.010554903013160971,
+          "gap_over_se": 1.8674900684821436,
+          "kappa_times_se": 0.015832354519741458,
+          "ok": true
+        },
+        "D1-D2": {
+          "gap": 0.019287938007021437,
+          "se_pair_cluster": 0.006677893263885863,
+          "gap_over_se": 2.888326788828876,
+          "kappa_times_se": 0.010016839895828794,
+          "ok": true
+        },
+        "D2-D3": {
+          "gap": 0.013461983766499534,
+          "se_pair_cluster": 0.00526046940815173,
+          "gap_over_se": 2.559084127670921,
+          "kappa_times_se": 0.007890704112227594,
+          "ok": true
+        }
+      },
+      "d3_positive": true,
+      "d3_mean_ge_kappa_se": true,
+      "d3_mean": 0.006756540046280263,
+      "d3_se": 0.003649991118283673,
+      "d3_bootstrap_ci": {
+        "n": 10,
+        "mean": 0.006756540046280263,
+        "ci_low": 0.00018916751131910952,
+        "ci_high": 0.01391126421623247,
+        "resamples": 5000,
+        "seed": 20260901,
+        "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+      },
+      "margins_ok": true,
+      "fixed_baseline_margins": {
+        "always_flat": {
+          "D0": {
+            "mean": 0.0592176383706716,
+            "se": 0.009008985647892492,
+            "kappa_times_se": 0.013513478471838737,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.0592176383706716,
+              "ci_low": 0.04580954857849761,
+              "ci_high": 0.07792603652156509,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.039506461819801234,
+            "se": 0.005499468630086152,
+            "kappa_times_se": 0.008249202945129229,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.039506461819801234,
+              "ci_low": 0.029363542666057816,
+              "ci_high": 0.04953689127392378,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.020218523812779797,
+            "se": 0.003788153010445924,
+            "kappa_times_se": 0.005682229515668886,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.020218523812779797,
+              "ci_low": 0.01289937553853902,
+              "ci_high": 0.02699660895848444,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.006756540046280263,
+            "se": 0.003649991118283673,
+            "kappa_times_se": 0.005474986677425509,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.006756540046280263,
+              "ci_low": 0.00018916751131910952,
+              "ci_high": 0.01391126421623247,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          }
+        },
+        "always_long": {
+          "D0": {
+            "mean": 0.06121564036867342,
+            "se": 0.009008985647892497,
+            "kappa_times_se": 0.013513478471838746,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.06121564036867342,
+              "ci_low": 0.04780755057649943,
+              "ci_high": 0.07992403851956692,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.04150446381780308,
+            "se": 0.005499468630086163,
+            "kappa_times_se": 0.008249202945129245,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.04150446381780308,
+              "ci_low": 0.031361544664059646,
+              "ci_high": 0.05153489327192567,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.02221652581078163,
+            "se": 0.003788153010445925,
+            "kappa_times_se": 0.005682229515668888,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.02221652581078163,
+              "ci_low": 0.01489737753654085,
+              "ci_high": 0.02899461095648626,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.008754542044282082,
+            "se": 0.003649991118283673,
+            "kappa_times_se": 0.005474986677425509,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.008754542044282082,
+              "ci_low": 0.002187169509320929,
+              "ci_high": 0.01590926621423429,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          }
+        },
+        "c3_cost_ignorant": {
+          "D0": {
+            "mean": 0.0036599255753318126,
+            "se": 0.0017127052832855382,
+            "kappa_times_se": 0.002569057924928307,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.0036599255753318126,
+              "ci_low": 0.0004962683489017683,
+              "ci_high": 0.006802092165683672,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.004789611316650916,
+            "se": 0.0024232225547612092,
+            "kappa_times_se": 0.003634833832141814,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.004789611316650916,
+              "ci_low": 0.0006480369824953924,
+              "ci_high": 0.009579480356821842,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.007490714333028503,
+            "se": 0.0022288586950728593,
+            "kappa_times_se": 0.003343288042609289,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.007490714333028503,
+              "ci_low": 0.0036246469313406197,
+              "ci_high": 0.011962182699625703,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.020245725744884195,
+            "se": 0.0028751604706706256,
+            "kappa_times_se": 0.004312740706005938,
+            "bootstrap_ci": {
+              "n": 10,
+              "mean": 0.020245725744884195,
+              "ci_low": 0.015123874560366327,
+              "ci_high": 0.02570931820805112,
+              "resamples": 5000,
+              "seed": 20260901,
+              "method": "percentile bootstrap;resample pairs(A/B 不拆散)"
+            },
+            "ok": true
+          }
+        }
+      },
+      "pair_integrity_unity": true,
+      "oracle_positive": true,
+      "pass": true,
+      "rule_iteration": "r6"
+    },
+    "c2_context": {
+      "format": "cur261-r13-c2-matched-conditions-v1",
+      "statistical": {
+        "kappa": 1.5,
+        "n_blocks": 20,
+        "difficulty_ladder_blockwise": {
+          "D0": {
+            "n": 20,
+            "mean": 0.02928684187011311,
+            "sd": 0.012869396272430502,
+            "se": 0.0028776844894537004
+          },
+          "D1": {
+            "n": 20,
+            "mean": 0.021752043006040434,
+            "sd": 0.010083142847246039,
+            "se": 0.002254659283328292
+          },
+          "D2": {
+            "n": 20,
+            "mean": 0.012620353362690129,
+            "sd": 0.008228818604283362,
+            "se": 0.0018400197773692539
+          },
+          "D3": {
+            "n": 20,
+            "mean": 0.00861357790571723,
+            "sd": 0.007275187208526623,
+            "se": 0.0016267813147302465
+          }
+        },
+        "ordering_ok": true,
+        "gaps_ge_kappa_block_se": true,
+        "gaps": {
+          "D0-D1": {
+            "n": 20,
+            "mean": 0.0075347988640726785,
+            "sd": 0.005398099376623053,
+            "se": 0.0012070517155428385,
+            "positive_gap_block_rate": 0.9,
+            "kappa_times_se": 0.001810577573314258,
+            "positive_gap_rate_min": 0.65,
+            "ok": true
+          },
+          "D1-D2": {
+            "n": 20,
+            "mean": 0.009131689643350305,
+            "sd": 0.002781458453818482,
+            "se": 0.0006219530179329585,
+            "positive_gap_block_rate": 1.0,
+            "kappa_times_se": 0.0009329295268994377,
+            "positive_gap_rate_min": 0.65,
+            "ok": true
+          },
+          "D2-D3": {
+            "n": 20,
+            "mean": 0.004006775456972899,
+            "sd": 0.004971298857288245,
+            "se": 0.001111616218136354,
+            "positive_gap_block_rate": 0.95,
+            "kappa_times_se": 0.001667424327204531,
+            "positive_gap_rate_min": 0.65,
+            "ok": true
+          }
+        },
+        "gap_se_formula": "std(blockwise gap, ddof=1)/sqrt(n_blocks)(禁止 sqrt(SE_hi^2+SE_lo^2))",
+        "d3_positive": true,
+        "d3_mean_ge_kappa_se": true,
+        "d3_mean": 0.00861357790571723,
+        "d3_block_se": 0.0016267813147302465,
+        "margins_ok": true,
+        "fixed_baseline_margins": {
+          "always_flat": {
+            "D0": {
+              "mean": 0.02928684187011311,
+              "se": 0.0028776844894537004,
+              "kappa_times_se": 0.004316526734180551,
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.021752043006040434,
+              "se": 0.002254659283328292,
+              "kappa_times_se": 0.0033819889249924375,
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.012620353362690129,
+              "se": 0.0018400197773692539,
+              "kappa_times_se": 0.0027600296660538807,
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.00861357790571723,
+              "se": 0.0016267813147302465,
+              "kappa_times_se": 0.00244017197209537,
+              "ok": true
+            }
+          },
+          "always_long": {
+            "D0": {
+              "mean": 0.031284843868114934,
+              "se": 0.0028776844894537004,
+              "kappa_times_se": 0.004316526734180551,
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.023750045004042254,
+              "se": 0.002254659283328292,
+              "kappa_times_se": 0.0033819889249924375,
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.014618355360691948,
+              "se": 0.0018400197773692539,
+              "kappa_times_se": 0.0027600296660538807,
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.010611579903719049,
+              "se": 0.0016267813147302465,
+              "kappa_times_se": 0.00244017197209537,
+              "ok": true
+            }
+          },
+          "c2_local_only": {
+            "D0": {
+              "mean": 0.08751995977618462,
+              "se": 0.004698698021273228,
+              "kappa_times_se": 0.007048047031909843,
+              "ok": true
+            },
+            "D1": {
+              "mean": 0.07621749611844611,
+              "se": 0.0040936275456045735,
+              "kappa_times_se": 0.00614044131840686,
+              "ok": true
+            },
+            "D2": {
+              "mean": 0.06677241729202554,
+              "se": 0.003723690851819844,
+              "kappa_times_se": 0.005585536277729766,
+              "ok": true
+            },
+            "D3": {
+              "mean": 0.06035214614718892,
+              "se": 0.003378379856836629,
+              "kappa_times_se": 0.005067569785254944,
+              "ok": true
+            }
+          }
+        },
+        "block_integrity_unity": true,
+        "oracle_positive": true,
+        "pass": true
+      },
+      "density_gates": {
+        "D0": {
+          "format": "cur261-r5-c2-density-gate-v1",
+          "thresholds": {
+            "median_reference_trades_per_episode_min": 8.0,
+            "reference_long_label_rate_min": 0.015
+          },
+          "median_reference_trades_per_episode": 12.0,
+          "reference_long_label_rate": 0.024041811846689895,
+          "trades_ok": true,
+          "label_rate_ok": true,
+          "pass": true
+        },
+        "D1": {
+          "format": "cur261-r5-c2-density-gate-v1",
+          "thresholds": {
+            "median_reference_trades_per_episode_min": 8.0,
+            "reference_long_label_rate_min": 0.015
+          },
+          "median_reference_trades_per_episode": 12.0,
+          "reference_long_label_rate": 0.022125435540069686,
+          "trades_ok": true,
+          "label_rate_ok": true,
+          "pass": true
+        },
+        "D2": {
+          "format": "cur261-r5-c2-density-gate-v1",
+          "thresholds": {
+            "median_reference_trades_per_episode_min": 8.0,
+            "reference_long_label_rate_min": 0.015
+          },
+          "median_reference_trades_per_episode": 12.0,
+          "reference_long_label_rate": 0.02195121951219512,
+          "trades_ok": true,
+          "label_rate_ok": true,
+          "pass": true
+        },
+        "D3": {
+          "format": "cur261-r5-c2-density-gate-v1",
+          "thresholds": {
+            "median_reference_trades_per_episode_min": 8.0,
+            "reference_long_label_rate_min": 0.015
+          },
+          "median_reference_trades_per_episode": 12.0,
+          "reference_long_label_rate": 0.02177700348432056,
+          "trades_ok": true,
+          "label_rate_ok": true,
+          "pass": true
+        }
+      },
+      "semantics": {
+        "local_cue_independence": {
+          "format": "cur261-c2-local-cue-independence-v1",
+          "n_pairs": 80,
+          "per_rung_pair_counts": {
+            "D0": {
+              "n_pairs": 20
+            },
+            "D1": {
+              "n_pairs": 20
+            },
+            "D2": {
+              "n_pairs": 20
+            },
+            "D3": {
+              "n_pairs": 20
+            }
+          },
+          "checks": {
+            "mean_gap_within_3se": true,
+            "std_ratio_in_range": true,
+            "sign_balance_gap": true,
+            "cue_rate_ratio_in_range": true
+          },
+          "max_mean_gap_bps": 2.125084324589476,
+          "pooled_se_bps": 4.729517048275408,
+          "pass": true
+        },
+        "context_observability": {
+          "format": "cur261-c2-context-observability-v1",
+          "discriminator": {
+            "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+            "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+            "observation_only": true,
+            "latent_used_as": "evaluation label only"
+          },
+          "per_rung_accuracy": {
+            "D0": {
+              "dir_accuracy": 1.0,
+              "width_accuracy": 1.0
+            },
+            "D1": {
+              "dir_accuracy": 1.0,
+              "width_accuracy": 1.0
+            },
+            "D2": {
+              "dir_accuracy": 1.0,
+              "width_accuracy": 1.0
+            },
+            "D3": {
+              "dir_accuracy": 1.0,
+              "width_accuracy": 1.0
+            }
+          },
+          "direction": {
+            "n_bars": 23040,
+            "accuracy": 1.0,
+            "margin": 1.0,
+            "se": 1.3176150329477586e-05,
+            "kappa_times_se": 1.976422549421638e-05,
+            "margin_ge_kappa_se": true
+          },
+          "width": {
+            "n_bars": 23040,
+            "accuracy": 1.0,
+            "margin": 1.0,
+            "se": 1.3176150329477586e-05,
+            "kappa_times_se": 1.976422549421638e-05,
+            "margin_ge_kappa_se": true
+          },
+          "pass": true
+        }
+      },
+      "checks": {
+        "statistical_block_conditions": true,
+        "shared_tape_cross_rung": true,
+        "block_pair_integrity": true,
+        "density_pass": true,
+        "local_cue_independence": true,
+        "context_observability": true,
+        "cue_semantics_delegated_note": "cue recall/precision/false-cue 的正式 gate 在 dedicated 160-block semantic corpus(cue_semantic_*_r13 namespace)"
+      },
+      "pass": true
+    }
+  },
+  "c2_independent_marginal": {
+    "format": "cur261-r13-c2-independent-marginal-v1",
+    "namespace": "c2_independent_qualification_r13",
+    "pairs_per_rung": 20,
+    "guard": {
+      "format": "cur261-r13-c2-marginal-guard-v1",
+      "rule": "independent-rung 语料 mean ordering + D3 positive + 逐基线 positive margin + integrity + oracle + 密度 + 语义(matched sampling 不得掩盖 marginal 分布异常;无 SE 要求;matched PASS 不能覆盖本 FAIL)",
+      "n_pairs_per_rung": 20,
+      "mean_ordering_ok": true,
+      "d3_mean_positive": true,
+      "fixed_baseline_means_positive": true,
+      "fixed_baseline_margins": {
+        "always_flat": {
+          "D0": {
+            "mean": 0.028070835948737678,
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.021663094279914946,
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.008311450463015253,
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.00594539333706765,
+            "ok": true
+          }
+        },
+        "always_long": {
+          "D0": {
+            "mean": 0.030068837946739497,
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.023661096277916766,
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.010309452461017072,
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.00794339533506947,
+            "ok": true
+          }
+        },
+        "c2_local_only": {
+          "D0": {
+            "mean": 0.08117705015329588,
+            "ok": true
+          },
+          "D1": {
+            "mean": 0.06668465781716217,
+            "ok": true
+          },
+          "D2": {
+            "mean": 0.07384574707419482,
+            "ok": true
+          },
+          "D3": {
+            "mean": 0.052595784147769734,
+            "ok": true
+          }
+        }
+      },
+      "integrity_unity": true,
+      "oracle_positive": true,
+      "density_pass": true,
+      "semantics_pass": true,
+      "pass": true,
+      "r13_semantics_rule": "local cue ∧ context observability ∧ independent cue semantics(point recall ≥ 0.90 灾难护栏)",
+      "r13_semantics_pass": true
+    },
+    "density_gates": {
+      "D0": {
+        "format": "cur261-r5-c2-density-gate-v1",
+        "thresholds": {
+          "median_reference_trades_per_episode_min": 8.0,
+          "reference_long_label_rate_min": 0.015
+        },
+        "median_reference_trades_per_episode": 12.0,
+        "reference_long_label_rate": 0.025261324041811847,
+        "trades_ok": true,
+        "label_rate_ok": true,
+        "pass": true
+      },
+      "D1": {
+        "format": "cur261-r5-c2-density-gate-v1",
+        "thresholds": {
+          "median_reference_trades_per_episode_min": 8.0,
+          "reference_long_label_rate_min": 0.015
+        },
+        "median_reference_trades_per_episode": 14.0,
+        "reference_long_label_rate": 0.022996515679442508,
+        "trades_ok": true,
+        "label_rate_ok": true,
+        "pass": true
+      },
+      "D2": {
+        "format": "cur261-r5-c2-density-gate-v1",
+        "thresholds": {
+          "median_reference_trades_per_episode_min": 8.0,
+          "reference_long_label_rate_min": 0.015
+        },
+        "median_reference_trades_per_episode": 10.0,
+        "reference_long_label_rate": 0.018466898954703832,
+        "trades_ok": true,
+        "label_rate_ok": true,
+        "pass": true
+      },
+      "D3": {
+        "format": "cur261-r5-c2-density-gate-v1",
+        "thresholds": {
+          "median_reference_trades_per_episode_min": 8.0,
+          "reference_long_label_rate_min": 0.015
+        },
+        "median_reference_trades_per_episode": 12.0,
+        "reference_long_label_rate": 0.022473867595818816,
+        "trades_ok": true,
+        "label_rate_ok": true,
+        "pass": true
+      }
+    },
+    "cue_semantics": {
+      "format": "cur261-r13-independent-cue-semantics-v1",
+      "candidate": "c2l_historical_control",
+      "cluster_unit": "independent_pair",
+      "canonical": "A",
+      "violations": [],
+      "n_unique_positive_cues": 2068,
+      "recall": {
+        "point": 0.9530947775628626,
+        "n_events": 2068,
+        "n_clusters": 80,
+        "side": "lower",
+        "bound": 0.9448209099709584,
+        "n_boot": 20000,
+        "degenerate": false,
+        "bootstrap_se": 0.004978190237317948
+      },
+      "recall_floor": 0.9304439814730227,
+      "recall_gate_rule": "point >= absolute_minimum_recall(0.90);正式 cluster LCB gate 由 160-block dedicated semantic corpus 承担(§26)",
+      "noncue_false_positive": {
+        "point": 0.0008802816901408451,
+        "n_events": 14768,
+        "n_clusters": 80,
+        "side": "upper",
+        "bound": 0.0012876118189211168,
+        "n_boot": 20000,
+        "degenerate": false,
+        "bootstrap_se": 0.00024083610254651492,
+        "max": 0.01
+      },
+      "per_rung": {
+        "D0": {
+          "sides": {
+            "A": {
+              "payoff_false_cue": {
+                "point": 0.04519230769230769,
+                "n_events": 1040,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.05662188099808062,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.006819148835439383,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.911275415896488,
+                "n_events": 541,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.8910714285714286,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.012473601735986883,
+                "min": 0.85,
+                "pass": true
+              }
+            },
+            "B": {
+              "payoff_false_cue": {
+                "point": 0.04423076923076923,
+                "n_events": 1040,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.055984555984555984,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.007058280781213168,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.912962962962963,
+                "n_events": 540,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.8929219600725953,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.012258910861590162,
+                "min": 0.85,
+                "pass": true
+              }
+            }
+          },
+          "diagnostic_only": true
+        },
+        "D1": {
+          "sides": {
+            "A": {
+              "payoff_false_cue": {
+                "point": 0.016472868217054265,
+                "n_events": 1032,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.0224609375,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.0037154240807420434,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9592233009708738,
+                "n_events": 515,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.9450980392156862,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.00854643962366609,
+                "min": 0.85,
+                "pass": true
+              }
+            },
+            "B": {
+              "payoff_false_cue": {
+                "point": 0.01937984496124031,
+                "n_events": 1032,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.02621359223300971,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.004096409663121376,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9536679536679536,
+                "n_events": 518,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.9378640776699029,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.00953963757656497,
+                "min": 0.85,
+                "pass": true
+              }
+            }
+          },
+          "diagnostic_only": true
+        },
+        "D2": {
+          "sides": {
+            "A": {
+              "payoff_false_cue": {
+                "point": 0.008737864077669903,
+                "n_events": 1030,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.01348747591522158,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.0025716740285312576,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9762845849802372,
+                "n_events": 506,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.9644268774703557,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.006998062967956089,
+                "min": 0.85,
+                "pass": true
+              }
+            },
+            "B": {
+              "payoff_false_cue": {
+                "point": 0.008737864077669903,
+                "n_events": 1030,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.012720156555772993,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.002554747071440322,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9762845849802372,
+                "n_events": 506,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.9649122807017544,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.0063717188137034685,
+                "min": 0.85,
+                "pass": true
+              }
+            }
+          },
+          "diagnostic_only": true
+        },
+        "D3": {
+          "sides": {
+            "A": {
+              "payoff_false_cue": {
+                "point": 0.005802707930367505,
+                "n_events": 1034,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.008754863813229572,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.0019922844421887864,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9780439121756487,
+                "n_events": 501,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.9647058823529412,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.007612671043022349,
+                "min": 0.85,
+                "pass": true
+              }
+            },
+            "B": {
+              "payoff_false_cue": {
+                "point": 0.0038684719535783366,
+                "n_events": 1034,
+                "n_clusters": 20,
+                "side": "upper",
+                "bound": 0.006782945736434108,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.0017260485034252177,
+                "max": 0.06,
+                "pass": true
+              },
+              "cue_precision": {
+                "point": 0.9819639278557114,
+                "n_events": 499,
+                "n_clusters": 20,
+                "side": "lower",
+                "bound": 0.969758064516129,
+                "n_boot": 20000,
+                "degenerate": false,
+                "bootstrap_se": 0.007113211188004148,
+                "min": 0.85,
+                "pass": true
+              }
+            }
+          },
+          "diagnostic_only": true
+        }
+      },
+      "checks": {
+        "canonical_consistency": true,
+        "point_recall_ge_absolute_floor": true,
+        "noncue_fp_ucb_le_max": true
+      },
+      "pass": true
+    },
+    "semantics": {
+      "local_cue_independence": {
+        "format": "cur261-c2-local-cue-independence-v1",
+        "n_pairs": 80,
+        "per_rung_pair_counts": {
+          "D0": {
+            "n_pairs": 20
+          },
+          "D1": {
+            "n_pairs": 20
+          },
+          "D2": {
+            "n_pairs": 20
+          },
+          "D3": {
+            "n_pairs": 20
+          }
+        },
+        "checks": {
+          "mean_gap_within_3se": true,
+          "std_ratio_in_range": true,
+          "sign_balance_gap": true,
+          "cue_rate_ratio_in_range": true
+        },
+        "max_mean_gap_bps": 1.2580500614000891,
+        "pooled_se_bps": 4.776436326593397,
+        "pass": true
+      },
+      "context_observability": {
+        "format": "cur261-c2-context-observability-v1",
+        "discriminator": {
+          "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+          "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+          "observation_only": true,
+          "latent_used_as": "evaluation label only"
+        },
+        "per_rung_accuracy": {
+          "D0": {
+            "dir_accuracy": 1.0,
+            "width_accuracy": 1.0
+          },
+          "D1": {
+            "dir_accuracy": 1.0,
+            "width_accuracy": 1.0
+          },
+          "D2": {
+            "dir_accuracy": 1.0,
+            "width_accuracy": 1.0
+          },
+          "D3": {
+            "dir_accuracy": 0.999826388888889,
+            "width_accuracy": 1.0
+          }
+        },
+        "direction": {
+          "n_bars": 23040,
+          "accuracy": 0.9999565972222222,
+          "margin": 0.9999131944444444,
+          "se": 8.680367173403027e-05,
+          "kappa_times_se": 0.00013020550760104542,
+          "margin_ge_kappa_se": true
+        },
+        "width": {
+          "n_bars": 23040,
+          "accuracy": 1.0,
+          "margin": 1.0,
+          "se": 1.3176150329477586e-05,
+          "kappa_times_se": 1.976422549421638e-05,
+          "margin_ge_kappa_se": true
+        },
+        "pass": true
+      },
+      "cue_semantics": {
+        "format": "cur261-r13-independent-cue-semantics-v1",
+        "candidate": "c2l_historical_control",
+        "cluster_unit": "independent_pair",
+        "canonical": "A",
+        "violations": [],
+        "n_unique_positive_cues": 2068,
+        "recall": {
+          "point": 0.9530947775628626,
+          "n_events": 2068,
+          "n_clusters": 80,
+          "side": "lower",
+          "bound": 0.9448209099709584,
+          "n_boot": 20000,
+          "degenerate": false,
+          "bootstrap_se": 0.004978190237317948
+        },
+        "recall_floor": 0.9304439814730227,
+        "recall_gate_rule": "point >= absolute_minimum_recall(0.90);正式 cluster LCB gate 由 160-block dedicated semantic corpus 承担(§26)",
+        "noncue_false_positive": {
+          "point": 0.0008802816901408451,
+          "n_events": 14768,
+          "n_clusters": 80,
+          "side": "upper",
+          "bound": 0.0012876118189211168,
+          "n_boot": 20000,
+          "degenerate": false,
+          "bootstrap_se": 0.00024083610254651492,
+          "max": 0.01
+        },
+        "checks": {
+          "canonical_consistency": true,
+          "point_recall_ge_absolute_floor": true,
+          "noncue_fp_ucb_le_max": true
+        },
+        "pass": true
+      }
+    }
+  },
+  "verdict": "FAIL"
+}

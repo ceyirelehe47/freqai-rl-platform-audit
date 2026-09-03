@@ -1,0 +1,143 @@
+{
+ "format": "r13_preplan_full_pipeline_rehearsal_v1",
+ "iteration": "r13",
+ "orchestrator": "orchestrate_calibration_stage_r13(与正式 calibrate 同一函数)",
+ "monkeypatch_used": false,
+ "namespaces_touched": [
+  "preplan_fit_main_r13",
+  "preplan_fit_holdout_r13",
+  "preplan_calibration_main_r13",
+  "preplan_calibration_holdout_r13",
+  "preplan_calibration_main_r13",
+  "preplan_calibration_holdout_r13",
+  "preplan_supervised_main_r13",
+  "preplan_supervised_holdout_r13",
+  "preplan_semantic_main_r13",
+  "preplan_semantic_validation_r13",
+  "preplan_calibration_main_r13",
+  "preplan_calibration_holdout_r13",
+  "preplan_calibration_main_r13",
+  "preplan_calibration_holdout_r13",
+  "preplan_final_r13"
+ ],
+ "proofs": {
+  "cli_passes_namespace_explicitly": true,
+  "wrapper_namespace_vs_pairs_per_rung_separate": {
+   "supervised_namespace_main": "preplan_supervised_main_r13",
+   "supervised_pairs_per_rung": 4,
+   "distinct_channels": true
+  },
+  "supervised_labels_not_raw_on_scaled": {
+   "label_source": "canonical_reference_on_canonical_obs",
+   "label_contract": "PolicyVisibleSupervisedLabel-v1"
+  },
+  "holdout_uses_v2_hold": {
+   "holdout_bundle_hash": "r4pb-1fa4ca96ca78e6cdd8b64d375092e647663efb24c7b82652c3f6e572594c2ce9",
+   "main_bundle_hash": "r4pb-148ef8f7645fff04aaf1f8e66cdb1ec6e07ed76d1660f5e63e7b57f9142976d6",
+   "bundles_distinct": true,
+   "routing_matrix_holdout_rows_all_pass": true
+  },
+  "reference_mismatches_detailed": true,
+  "runner_reaches_final_gate": true,
+  "routing_matrix_all_pass": true,
+  "artifacts_reload": {
+   "preprocessing_v2_requalification.json": true,
+   "supervised_learnability_main.json": true,
+   "supervised_learnability_holdout.json": true,
+   "preplan_semantic_main.json": true,
+   "preplan_semantic_validation.json": true
+  },
+  "qualification_plan_lock_load_temp": {
+   "locked": true,
+   "digest": "qp12-7243c4d701214e2e8f5d707989f4596881e9f97f8a42c9a8eae92313a0683513",
+   "digest_match": true,
+   "payload_bit_identical": true,
+   "namespace": "preplan_final_r13(临时目录;零正式 ns)"
+  },
+  "sealed_preflight_rehearsal": {
+   "written": true,
+   "zero_final_seed": true
+  },
+  "final_like_runner": {
+   "executed": true,
+   "verdict": "FAIL",
+   "exposure_terminal_status": "rehearsal-terminal",
+   "namespaces": [
+    "preplan_final_r13"
+   ]
+  }
+ },
+ "calibration_stage_pass": true,
+ "routing_matrix_all_pass": true,
+ "calibration_stage_gate_pass_ignored": "rehearsal 微样本不做统计 gate 判定(§12:同 orchestration、execution profile 只改样本量与 namespace;gate 数值由正式 calibrate 判定)",
+ "all_proofs_pass": true,
+ "bundle_routing_contract": {
+  "format": "cur261-r13-bundle-routing-contract-v1",
+  "iteration": "r13",
+  "formal_role_fit_namespace": {
+   "main": "preprocess_fit_calibration_r13",
+   "holdout": "preprocess_fit_holdout_r13",
+   "final": "preprocess_fit_qualification_r13"
+  },
+  "preplan_role_fit_namespace": {
+   "main": "preplan_fit_main_r13",
+   "holdout": "preplan_fit_holdout_r13",
+   "final": "preplan_fit_main_r13",
+   "diagnostic": "preplan_fit_main_r13"
+  },
+  "eval_namespace_role": {
+   "calibration_r13": "main",
+   "calibration_holdout_r13": "holdout",
+   "qualification_r13": "final",
+   "c2_independent_calibration_r13": "main",
+   "c2_independent_holdout_r13": "holdout",
+   "c2_independent_qualification_r13": "final",
+   "supervised_main_r13": "main",
+   "supervised_holdout_r13": "holdout",
+   "cue_semantic_calibration_r13": "main",
+   "cue_semantic_holdout_r13": "holdout",
+   "cue_semantic_qualification_r13": "final",
+   "reference_diagnostic_main_r13": "diagnostic",
+   "reference_diagnostic_holdout_r13": "diagnostic",
+   "preplan_smoke_r13": "diagnostic",
+   "preplan_candidate_eval_r13": "diagnostic",
+   "preplan_supervised_main_r13": "main",
+   "preplan_supervised_holdout_r13": "holdout",
+   "preplan_calibration_main_r13": "main",
+   "preplan_calibration_holdout_r13": "holdout",
+   "preplan_final_r13": "final",
+   "shadow_supervised_main_r13": "main",
+   "shadow_supervised_holdout_r13": "holdout",
+   "shadow_calibration_main_r13": "main",
+   "shadow_calibration_holdout_r13": "holdout",
+   "shadow_semantic_main_r13": "main",
+   "shadow_semantic_validation_r13": "holdout",
+   "shadow_c2_independent_main_r13": "main",
+   "shadow_c2_independent_holdout_r13": "holdout",
+   "shadow_semantic_final_r13": "final",
+   "rt2_calibration_main_r13": "main",
+   "rt2_calibration_holdout_r13": "holdout",
+   "rt2_supervised_main_r13": "main",
+   "rt2_supervised_holdout_r13": "holdout",
+   "rt2_semantic_main_r13": "main",
+   "rt2_semantic_validation_r13": "holdout",
+   "rt2_c2_independent_main_r13": "main",
+   "rt2_c2_independent_holdout_r13": "holdout",
+   "rt2_qualification_r13": "final",
+   "rt2_semantic_final_r13": "final",
+   "rt_semantic_design_main_r13": "diagnostic",
+   "rt_semantic_design_validation_r13": "diagnostic"
+  },
+  "fail_closed_rules": [
+   "holdout 评估绑定 main bundle 拒绝",
+   "main 评估绑定 holdout bundle 拒绝",
+   "namespace 与 bundle provenance 不匹配拒绝",
+   "bundle hash 与 plan 不匹配拒绝",
+   "fit manifest role 错误拒绝",
+   "final 使用 main/holdout bundle 拒绝"
+  ],
+  "implicit_global_preprocessor": false
+ },
+ "pass": true,
+ "rehearsal_digest": "r13rh-5a03c5382cd0ff8421a634dfb79598e5442ced85e6a390dbaef81dd1e2b5226a"
+}

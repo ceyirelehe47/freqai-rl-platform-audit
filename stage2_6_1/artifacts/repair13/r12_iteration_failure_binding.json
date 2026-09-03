@@ -1,0 +1,18 @@
+{
+  "format": "cur261-r13-r12-iteration-failure-binding-v1",
+  "iteration": "r12",
+  "failure_stage": "lock-plan(calibration 与 holdout 完成之后、final exposure 之前)",
+  "exception": "KeyError: 'bundle_hash'",
+  "failing_frame": "curriculum261_r12_cli.py:1717(cmd_lock_plan)",
+  "artifact_read": "preprocessor_bundle_calibration.json / preprocessor_bundle_holdout.json",
+  "canonical_field": "preprocessor_bundle_hash",
+  "wrong_field_read": "bundle_hash",
+  "producer": "RouteCPreprocessorV2.identity()(curriculum261_r4_preprocessing.py;cmd_calibrate 写 preprocessor_bundle_{calibration,holdout}.json)",
+  "consumer": "cmd_lock_plan → build_plan_r13(calibration_bundle_hash/holdout_bundle_hash)",
+  "frozen_at_commit": "75a66dde368c6f7c8ccc1a70e19445a6f86165fe",
+  "classification": "producer/consumer artifact interface inconsistency(冻结源码缺陷;非统计失败)",
+  "governance_gap": "R12 pre-freeze release rehearsal 使用 synthetic/in-memory 输入,未覆盖真实落盘 artifact 读取(§三-2;R13 R13RealArtifactCliRoundTrip-v1 修复)",
+  "binding_gate_in_r13": true,
+  "source_artifact": "stage2_6_1/artifacts/repair12/lock_plan_failure_traceback.json",
+  "source_blob_verified": true
+}
