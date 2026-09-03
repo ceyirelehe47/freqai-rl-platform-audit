@@ -1,0 +1,38 @@
+{
+  "format": "cur261-r11-official-entrypoint-v1",
+  "entrypoint": "rl_curriculum.curriculum261_r11_cli.main",
+  "entrypoint_callable": true,
+  "import_sweep_modules": 17,
+  "import_sweep_failed": {},
+  "subcommands": [
+    "audit",
+    "cue-audit",
+    "preplan-smoke",
+    "plan-roundtrip",
+    "design-plan-lock",
+    "design",
+    "calibrate",
+    "preflight-static",
+    "lock-plan",
+    "preflight-sealed",
+    "qualify",
+    "smoke",
+    "namespace-integrity",
+    "determinism-matrix",
+    "shadow-run",
+    "shadow-compare"
+  ],
+  "no_alternate_loader": {
+    "design_plan_readers": [
+      "curriculum261_r11_design.py"
+    ],
+    "qualification_plan_readers": [
+      "curriculum261_r11_namespaces.py (path fn) + curriculum261_r11_plan.py (loader)"
+    ],
+    "stray_design_plan_references": [],
+    "stray_qualification_plan_references": [],
+    "pass": true
+  },
+  "temporary_driver_forbidden": true,
+  "pass": true
+}

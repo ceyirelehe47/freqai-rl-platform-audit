@@ -1,0 +1,55 @@
+{
+  "format": "cur261-r11-bundle-routing-contract-v1",
+  "iteration": "r11",
+  "formal_role_fit_namespace": {
+    "main": "preprocess_fit_calibration_r11",
+    "holdout": "preprocess_fit_holdout_r11",
+    "final": "preprocess_fit_qualification_r11"
+  },
+  "preplan_role_fit_namespace": {
+    "main": "preplan_fit_main_r11",
+    "holdout": "preplan_fit_holdout_r11",
+    "final": "preplan_fit_main_r11",
+    "diagnostic": "preplan_fit_main_r11"
+  },
+  "eval_namespace_role": {
+    "calibration_r11": "main",
+    "calibration_holdout_r11": "holdout",
+    "qualification_r11": "final",
+    "c2_independent_calibration_r11": "main",
+    "c2_independent_holdout_r11": "holdout",
+    "c2_independent_qualification_r11": "final",
+    "supervised_main_r11": "main",
+    "supervised_holdout_r11": "holdout",
+    "cue_semantic_calibration_r11": "main",
+    "cue_semantic_holdout_r11": "holdout",
+    "cue_semantic_qualification_r11": "final",
+    "reference_diagnostic_main_r11": "diagnostic",
+    "reference_diagnostic_holdout_r11": "diagnostic",
+    "preplan_smoke_r11": "diagnostic",
+    "preplan_candidate_eval_r11": "diagnostic",
+    "preplan_supervised_main_r11": "main",
+    "preplan_supervised_holdout_r11": "holdout",
+    "preplan_calibration_main_r11": "main",
+    "preplan_calibration_holdout_r11": "holdout",
+    "preplan_final_r11": "final",
+    "shadow_supervised_main_r11": "main",
+    "shadow_supervised_holdout_r11": "holdout",
+    "shadow_calibration_main_r11": "main",
+    "shadow_calibration_holdout_r11": "holdout",
+    "shadow_semantic_main_r11": "main",
+    "shadow_semantic_validation_r11": "holdout",
+    "shadow_c2_independent_main_r11": "main",
+    "shadow_c2_independent_holdout_r11": "holdout",
+    "shadow_semantic_final_r11": "final"
+  },
+  "fail_closed_rules": [
+    "holdout 评估绑定 main bundle 拒绝",
+    "main 评估绑定 holdout bundle 拒绝",
+    "namespace 与 bundle provenance 不匹配拒绝",
+    "bundle hash 与 plan 不匹配拒绝",
+    "fit manifest role 错误拒绝",
+    "final 使用 main/holdout bundle 拒绝"
+  ],
+  "implicit_global_preprocessor": false
+}

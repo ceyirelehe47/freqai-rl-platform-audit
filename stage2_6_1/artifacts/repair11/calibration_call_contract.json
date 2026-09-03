@@ -1,0 +1,28 @@
+{
+  "format": "cur261-r11-calibration-call-contract-v1",
+  "iteration": "r11",
+  "r9_defects_closed": [
+    "CLI supervised 调用缺 namespace(TypeError)",
+    "wrapper 第三位置参数把 namespace 传进 pairs_per_rung",
+    "supervised 标签 = raw reference policy on scaled obs",
+    "holdout 评估三处错传 v2_main"
+  ],
+  "supervised_entrypoint": {
+    "symbol": "rl_curriculum.curriculum261_r11_calibration.supervised_learnability_run_r11",
+    "keyword_only": [
+      "namespace",
+      "pairs_per_rung",
+      "train_pair_limit",
+      "model_seeds",
+      "training_config"
+    ],
+    "positional_params": [
+      "preproc_v2",
+      "pack"
+    ],
+    "third_positional_param_forbidden": true,
+    "delegate_style": "explicit keywords only"
+  },
+  "label_contract": "PolicyVisibleSupervisedLabel-v1",
+  "label_source": "canonical_reference_on_canonical_obs"
+}
