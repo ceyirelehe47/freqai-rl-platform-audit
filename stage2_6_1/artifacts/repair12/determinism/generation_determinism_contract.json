@@ -1,0 +1,20 @@
+{
+ "format": "cur261-r12-generation-determinism-contract-v1",
+ "iteration": "r12",
+ "contract": "同一完整 invocation envelope 跨进程:内部 seed/canonical params/event table digest/signal-distractor 计数/A-B episode hash/structural validator 结果/接受状态全部一致;调用前后 generator 状态无未声明变化",
+ "checks": {
+  "cross_process_matrix_pass": true,
+  "matrix_all_scenarios_identical": true,
+  "r10_seed_replay_consistent": true,
+  "r10_failure_reproduced": false,
+  "state_audit_pass": true,
+  "singleton_state_clean": true,
+  "envelope_roundtrip_all_ok": true,
+  "replay_call_digest_match": true,
+  "replay_envelopes_consistent": true,
+  "target_call_executable": true
+ },
+ "envelope_roundtrip_problems": [],
+ "r10_root_cause_statement": "historically underdetermined due to missing invocation-state evidence",
+ "pass": true
+}

@@ -1,0 +1,88 @@
+{
+  "format": "cur261-r12-full-supervised-release-rehearsal-v1",
+  "development_evidence_only": true,
+  "not_used_for_parameter_selection": true,
+  "formal_model_seeds": [
+    20270111,
+    20270112,
+    20270113
+  ],
+  "formal_gate_constants": {
+    "min_seeds_passing": 2,
+    "n_model_seeds": 3,
+    "heldout_balanced_accuracy_min": 0.6,
+    "behavior_gap_min": 0.2,
+    "mlp_arch": [
+      128,
+      128
+    ],
+    "gated_controls": [
+      "W",
+      "B"
+    ]
+  },
+  "roles": {
+    "main": {
+      "fit_namespace": "preplan_fit_main_r12",
+      "supervised_namespace": "preplan_supervised_main_r12",
+      "model_seeds": [
+        20270111,
+        20270112,
+        20270113
+      ],
+      "training_config": {},
+      "alignment_all_ok": true,
+      "overall_pass": true,
+      "per_family": {
+        "c1_opportunity": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        },
+        "c2_context": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        },
+        "c3_cost": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        }
+      }
+    },
+    "holdout": {
+      "fit_namespace": "preplan_fit_holdout_r12",
+      "supervised_namespace": "preplan_supervised_holdout_r12",
+      "model_seeds": [
+        20270111,
+        20270112,
+        20270113
+      ],
+      "training_config": {},
+      "alignment_all_ok": true,
+      "overall_pass": true,
+      "per_family": {
+        "c1_opportunity": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        },
+        "c2_context": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        },
+        "c3_cost": {
+          "pass": true,
+          "W_passing_seeds": 3,
+          "B_passing_seeds": 3
+        }
+      }
+    }
+  },
+  "nan_or_inf_detected": false,
+  "alignment_failures": [],
+  "distinct_seed_gate_recomputed": true,
+  "pass": true
+}

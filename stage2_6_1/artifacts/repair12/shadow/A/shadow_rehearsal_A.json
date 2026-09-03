@@ -1,0 +1,33 @@
+{
+ "format": "cur261-r12-full-scale-shadow-rehearsal-v1",
+ "iteration": "r12",
+ "run_tag": "A",
+ "started_utc": "2026-09-03T17:17:18+00:00",
+ "monkeypatch_used": false,
+ "engineering_pack_digest": "r12pk-e21c6806c79fe1aa5b08dc8f1a9cd40449f8fef47d6c153b57cdd97bc86ec254",
+ "cardinality": {
+  "c13_pairs_per_rung": 10,
+  "equivalence_pairs_per_rung": 3,
+  "supervised_pairs_per_rung": 10,
+  "supervised_coverage": "全部三 family × 全部 rung × 全部 pair index(含 C3 D0-D3)",
+  "semantic_blocks": 160,
+  "c2_matched_blocks": 20,
+  "c2_independent_pairs_per_rung": 20,
+  "roles": [
+   "main",
+   "holdout"
+  ],
+  "formal_order_held": "preprocessing robustness/reference-equivalence 电池先于 supervised(orchestrate_calibration_stage_r12 正式顺序)",
+  "training_reduction": "仅纯训练计算:1 model seed + epochs=2(不改变任何生成调用路径覆盖)"
+ },
+ "bundle_hashes": {
+  "main": "r4pb-0c723a6dc31a767d93f452729e0b23897a9c7e5df0dd172d2cd2dda47c81b067",
+  "holdout": "r4pb-c973d2f12ad381ac72292ff7713b7438d314e8e6c544d783f439ce892e692107"
+ },
+ "orchestration_stage_completed": true,
+ "orchestration_gate_pass": false,
+ "stage_pass_field_note": "工程 rehearsal:gate 数值不作正式判定;identity 一致性由 compare_full_scale_shadow_runs 判定",
+ "final_like_executed": true,
+ "final_like_verdict": "FAIL",
+ "completed_utc": "2026-09-03T17:28:41+00:00"
+}
