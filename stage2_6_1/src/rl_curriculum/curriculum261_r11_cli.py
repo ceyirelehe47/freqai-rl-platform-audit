@@ -56,7 +56,7 @@ PRIOR_R9_DESIGN_PLAN_DIGEST = (
     "r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432e"
     "f4843f4")
 PRIOR_R9_PARAMETER_PACK_DIGEST = (
-    "r9pk-c3070b5bc114b77d0ca314a033ff14181aeac5fe7a9162f"
+    "r9pk-c3070b5bc114b77d0ca314a033ff14181aeac5fe7a916f"
     "4f5a6269624b6b26b9")
 #: R10 证据链(R10 于 calibrate/supervised main 的
 #: PairGenerationError(c3_cost/D0/pair1 五连败 too_few_distractors)
