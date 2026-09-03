@@ -250,6 +250,42 @@ CURRICULUM261_R10_NAMESPACES = (
     "c2_independent_qualification_r10",
     "stress_r10", "fresh_holdout_r10", "training_r10", "ppo_smoke_r10")
 
+#: repair R11:全新 seed namespace(R10 全部 namespace 永久封存;R11 与
+#: R0-R10 Stage 2.6.1 / Stage 2.6.2 全部 namespace 不重合)。shadow_*
+#: 为 full-scale shadow rehearsal 专用(工程、非正式、不产生参数选择
+#: 数据);preplan_* 为 plan-roundtrip tiny rehearsal 专用;reference_
+#: diagnostic_r11 为 reference 诊断专用。
+CURRICULUM261_ITERATION_ID_R11 = "r11"
+CURRICULUM261_R11_NAMESPACES = (
+    "cue_contract_model_r11", "cue_contract_validation_r11",
+    "preplan_engineering_smoke_r11",
+    "preplan_smoke_r11", "preplan_candidate_eval_r11",
+    "preplan_semantic_main_r11", "preplan_semantic_validation_r11",
+    "preplan_fit_main_r11", "preplan_fit_holdout_r11",
+    "preplan_supervised_main_r11", "preplan_supervised_holdout_r11",
+    "preplan_calibration_main_r11", "preplan_calibration_holdout_r11",
+    "preplan_final_r11",
+    "shadow_fit_main_r11", "shadow_fit_holdout_r11",
+    "shadow_supervised_main_r11", "shadow_supervised_holdout_r11",
+    "shadow_calibration_main_r11", "shadow_calibration_holdout_r11",
+    "shadow_semantic_main_r11", "shadow_semantic_validation_r11",
+    "shadow_c2_independent_main_r11", "shadow_c2_independent_holdout_r11",
+    "shadow_semantic_final_r11",
+    "reference_diagnostic_main_r11", "reference_diagnostic_holdout_r11",
+    "reference_diagnostic_r11",
+    "cue_semantic_design_main_r11", "cue_semantic_design_validation_r11",
+    "design_r11_matched_main", "design_r11_matched_validation",
+    "design_r11_independent_marginal",
+    "preprocess_fit_calibration_r11", "preprocess_fit_holdout_r11",
+    "preprocess_fit_qualification_r11",
+    "supervised_main_r11", "supervised_holdout_r11",
+    "cue_semantic_calibration_r11", "cue_semantic_holdout_r11",
+    "cue_semantic_qualification_r11",
+    "calibration_r11", "calibration_holdout_r11", "qualification_r11",
+    "c2_independent_calibration_r11", "c2_independent_holdout_r11",
+    "c2_independent_qualification_r11",
+    "stress_r11", "fresh_holdout_r11", "training_r11", "ppo_smoke_r11")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
@@ -257,7 +293,7 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R5_NAMESPACES) + (CURRICULUM261_R6_NAMESPACES) + (
     CURRICULUM261_R7_NAMESPACES) + (CURRICULUM261_R8_NAMESPACES) + (
     CURRICULUM261_R9_NAMESPACES) + (
-    CURRICULUM261_R10_NAMESPACES)
+    CURRICULUM261_R10_NAMESPACES) + (CURRICULUM261_R11_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -601,6 +637,25 @@ def derive261_seed(
                 "attestation)前不可访问(final corpus lock 前对任何"
                 "代码路径封闭;校准/诊断一律使用 calibration_r10 / "
                 "calibration_holdout_r10 / stress_r10 namespace)")
+    if namespace in ("qualification_r11",
+                     "preprocess_fit_qualification_r11",
+                     "c2_independent_qualification_r11",
+                     "cue_semantic_qualification_r11"):
+        # repair R11:六要素守卫沿用;R10 诚实 FAIL(calibrate/supervised
+        # main 的 PairGenerationError)后 R11 在全新 namespace 重做;
+        # final corpus lock 前对任何代码路径封闭。
+        from rl_curriculum.curriculum261_r11_namespaces import (
+            qualification_r11_unlocked,
+        )
+
+        if not qualification_r11_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R11 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r11 / "
+                "calibration_holdout_r11 / stress_r11 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -781,7 +836,24 @@ class EpisodeAttemptLog:
 
 
 class PairGenerationError(RuntimeError):
-    """max_attempts 内未获得结构性合法候选(如实失败,不得静默重采样)。"""
+    """max_attempts 内未获得结构性合法候选(如实失败,不得静默重采样)。
+
+    repair R11(生成确定性闭环):异常除字符串化 reasons 外,携带完整
+    逐 attempt 证据 —— attempt_envelopes(每 attempt 的可序列化调用
+    envelope;由被动 recorder 构建,不改变 seed/顺序/接受条件)、
+    attempt_log(结构化尝试日志)与 call_envelope(调用级静态身份)。
+    历史(R6-R10)版本只保留字符串,导致正式失败后无法复原每个
+    attempt 的真实生成输入(R10 c3_cost/D0/pair1 五连败不可复现的
+    直接证据缺口);R11 起任何生成失败路径必须在 abort 前落盘
+    envelopes。属性可选(默认空)以保持历史调用兼容。
+    """
+
+    def __init__(self, message: str, *, attempt_envelopes=None,
+                 attempt_log=None, call_envelope=None) -> None:
+        super().__init__(message)
+        self.attempt_envelopes: list[Any] = list(attempt_envelopes or [])
+        self.attempt_log: Any = attempt_log
+        self.call_envelope: Any = call_envelope
 
 
 def check_attempt_log(log: EpisodeAttemptLog) -> list[str]:
@@ -815,12 +887,49 @@ def check_attempt_log(log: EpisodeAttemptLog) -> list[str]:
     return problems
 
 
+def _recorder_record(recorder, event: str, payload: dict[str, Any],
+                     errors: list[str]) -> None:
+    """被动证据记录(recorder 异常绝不影响生成;错误就地登记)。
+
+    repair R11:recorder 是纯观察钩子 —— 其返回值被忽略、其异常被
+    吞掉(记录为 recorder_error)。证据记录不得改变 seed、生成顺序
+    或接受条件(合同见 curriculum261_generation_envelope)。
+    """
+    if recorder is None:
+        return
+    try:
+        recorder.record(event, payload)
+    except Exception as exc:  # noqa: BLE001 —— 证据路径 fail-open
+        errors.append(f"recorder_error:{type(exc).__name__}:{exc}")
+
+
+def _default_recorder(namespace: str, family: str, rung: str,
+                      pair_index: int, rung_params: dict[str, Any]):
+    """未显式注入 recorder 时,查询全局 envelope sink(repair R11)。
+
+    R11 正式阶段(supervised/corpus/equiv/independent,含 R6 冻结
+    runner 内部的 generate_pair 调用)通过
+    curriculum261_generation_envelope.envelope_sink 打开 sink 后,
+    全部 pair attempt 自动获得 invocation envelope;sink 未打开
+    (历史路径/测试)返回 None = 历史行为逐位不变。
+    """
+    try:
+        from rl_curriculum.curriculum261_generation_envelope import (
+            active_recorder,
+        )
+        return active_recorder("r11", namespace, family, rung,
+                               pair_index, rung_params)
+    except Exception:  # noqa: BLE001 —— 证据路径 fail-open
+        return None
+
+
 def generate_pair_with_attempts(
     generator: Curriculum261Base,
     rung_params: dict[str, Any],
     *,
     namespace: str, family: str, rung: str, pair_index: int,
     structural_validator,
+    recorder=None,
 ) -> tuple[dict[str, GeneratedEpisode], EpisodeAttemptLog]:
     """first_pass 尝试策略的确定性 pair 生成(A/B 同 seed 同 attempt)。
 
@@ -830,19 +939,36 @@ def generate_pair_with_attempts(
     pair integrity 共用同一合同源(见 pairs.pair_structural_contract),
     accepted => final integrity=true 由同函数确定性保证。
     A/B 在同一 attempt 下使用同一 seed(共享随机流),只有因果映射不同。
+
+    repair R11:可选 recorder(被动观察钩子,默认 None = 历史行为
+    逐位不变)。每个 attempt 结束后收到
+      recorder.record("attempt", {
+        "attempt", "seed", "params"(A/B 两端实际使用的 params dict),
+        "episodes"(该 attempt 生成的 episode;GeneratorError 时可能
+        为部分 dict), "issues"(结构性拒绝原因列表),
+        "accepted"(bool), "exception"(GeneratorError 字符串或 None)})
+    ;全部失败时 PairGenerationError 携带 recorder 的逐 attempt
+    envelopes / attempt_log / call_envelope(见 PairGenerationError)。
+    recorder 的任何异常被吞掉并登记为 recorder_error —— 证据记录
+    永远不得改变生成结果。
     """
     log = EpisodeAttemptLog(
         family=family, rung=rung, pair_index=pair_index,
         seed_namespace=namespace)
+    if recorder is None:
+        recorder = _default_recorder(
+            namespace, family, rung, pair_index, rung_params)
     params = {
         side: generator.base_params(dict(rung_params), side)
         for side in CURRICULUM261_PAIR_VARIANTS
     }
+    recorder_errors: list[str] = []
     selected: dict[str, GeneratedEpisode] | None = None
     for attempt in range(CURRICULUM261_MAX_ATTEMPTS):
         seed = derive261_seed(namespace, family, rung, pair_index, attempt)
         reasons: list[str] = []
         episodes: dict[str, GeneratedEpisode] = {}
+        gen_error: str | None = None
         try:
             for side in CURRICULUM261_PAIR_VARIANTS:
                 episodes[side] = generator.generate(
@@ -852,6 +978,13 @@ def generate_pair_with_attempts(
             pair_issues = list(structural_validator(episodes))
         except GeneratorError as exc:
             pair_issues = [f"generator_contract:{str(exc)[:200]}"]
+            gen_error = str(exc)
+        accepted = not pair_issues
+        _recorder_record(recorder, "attempt", {
+            "attempt": attempt, "seed": seed, "params": params,
+            "episodes": episodes, "issues": list(pair_issues),
+            "accepted": accepted, "exception": gen_error,
+        }, recorder_errors)
         if pair_issues:
             reasons.extend(pair_issues)
         else:
@@ -868,7 +1001,14 @@ def generate_pair_with_attempts(
         raise PairGenerationError(
             f"{family}/{rung}/pair{pair_index}: "
             f"{CURRICULUM261_MAX_ATTEMPTS} 次尝试全部未通过结构性校验:"
-            f"{[a.reason for a in log.attempts]}")
+            f"{[a.reason for a in log.attempts]}",
+            attempt_envelopes=(
+                getattr(recorder, "attempt_envelopes", None)
+                if recorder is not None else None),
+            attempt_log=log,
+            call_envelope=(
+                getattr(recorder, "call_envelope", None)
+                if recorder is not None else None))
     return selected, log
 
 

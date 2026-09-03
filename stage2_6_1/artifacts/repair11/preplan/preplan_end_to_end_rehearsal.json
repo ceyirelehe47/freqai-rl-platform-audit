@@ -1,0 +1,121 @@
+{
+  "format": "cur261-r11-preplan-rehearsal-v1",
+  "formal_namespaces_used": false,
+  "monkeypatch_used": false,
+  "namespaces": {
+    "audit_model": "preplan_smoke_r11",
+    "audit_validation": "preplan_candidate_eval_r11",
+    "evaluator_smoke": "preplan_candidate_eval_r11",
+    "semantic_main": "preplan_semantic_main_r11",
+    "semantic_validation": "preplan_semantic_validation_r11"
+  },
+  "sections": {
+    "cue_audit_mini_schema": true,
+    "cue_audit_mini_finite": true,
+    "semantic_writer_validation": true,
+    "real_candidate_evaluator_smoke": true,
+    "semantic_mini_corpora": true,
+    "static_builders": true,
+    "exposure_marker_rehearsal": true,
+    "dependency_resolution": true
+  },
+  "detail": {
+    "cue_audit_mini": {
+      "p_contract": 0.950436770718972,
+      "model_empirical": 0.9423076923076923,
+      "validation_empirical": 0.9758454106280193,
+      "once_vs_attempts": {
+        "first_pass_bitwise_check": {
+          "n_blocks_checked": 8,
+          "max_blocks": 50,
+          "n_mismatches": 0,
+          "mismatch_sample": [],
+          "bitwise_ok": true
+        },
+        "recall_model": 0.9423076923076923,
+        "recall_validation": 0.9758454106280193,
+        "recall_modes_consistent": true,
+        "k_modes_consistent": true
+      },
+      "statistical_pass_recorded_only": false
+    },
+    "semantic_writer_validation": {
+      "filename_mapping_exact": true,
+      "embedded_namespace_consistent": true,
+      "both_files_exist": true,
+      "hashes_differ": true,
+      "overwrite_attempt_rejected": true,
+      "unknown_namespace_rejected": true,
+      "no_suffix_heuristic_in_mapping": true
+    },
+    "evaluator_smoke": {
+      "no_crash": true,
+      "keys_present": {
+        "candidate": true,
+        "corpus": true,
+        "n_blocks": true,
+        "block_corpus_summary": true,
+        "block_attempt_stats": true,
+        "block_table": true,
+        "pair_table_rows": true,
+        "difficulty_means": true,
+        "per_formal_block_count": true,
+        "density_gates": true,
+        "semantics": true,
+        "semantics_pass": true,
+        "density_pass": true,
+        "pair_integrity_unity": true,
+        "oracle_positive": true,
+        "scrambled_control_diagnostic": true
+      },
+      "all_keys_present": true,
+      "expected_rungs": true,
+      "density_schema_ok": true,
+      "cue_semantic_schema_ok": true,
+      "formal_block_options_present": true,
+      "numeric_finite": true,
+      "json_serializable_and_reloadable": true,
+      "pass_all": true
+    },
+    "semantic_mini_corpora": {
+      "main": {
+        "namespace": "preplan_semantic_main_r11",
+        "n_blocks": 4,
+        "n_unique_positive_cues": 104,
+        "checks_schema_ok": true,
+        "finite": true
+      },
+      "validation": {
+        "namespace": "preplan_semantic_validation_r11",
+        "n_blocks": 4,
+        "n_unique_positive_cues": 105,
+        "checks_schema_ok": true,
+        "finite": true
+      },
+      "pass": true
+    },
+    "static_builders": {
+      "parameter_pack_builder_dry": true,
+      "pack_digest_prefix": "r11pk",
+      "final_plan_builder_qp9_prefix": true,
+      "calibration_runner_importable": true,
+      "sealed_preflight_builder_importable": true,
+      "final_runner_static_import_ok": true,
+      "cue_audit_plan_lock_functions_importable": true,
+      "design_plan_lock_functions_importable": true,
+      "pass": true
+    },
+    "exposure_marker": {
+      "running_atomic_exclusive": true,
+      "terminal_one_way": true,
+      "pass": true
+    },
+    "dependency_resolution": {
+      "pass": true,
+      "digest": "r11dep-f89f2ef08b1fef961b08bba0786e7048b4403ef50afa6fcb0c0a93a3cda7bebd",
+      "problems": []
+    }
+  },
+  "pass": true,
+  "rehearsal_digest": "r11pr-386a8a06688cbf7bd897dfbe1fb8a73ef1951354cda721485984d6318f0384f5"
+}

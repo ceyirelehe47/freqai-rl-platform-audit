@@ -1,0 +1,503 @@
+{
+  "format": "cur261-r11-c2-independent-marginal-v1",
+  "namespace": "shadow_c2_independent_main_r11",
+  "pairs_per_rung": 20,
+  "guard": {
+    "format": "cur261-r11-c2-marginal-guard-v1",
+    "rule": "independent-rung 语料 mean ordering + D3 positive + 逐基线 positive margin + integrity + oracle + 密度 + 语义(matched sampling 不得掩盖 marginal 分布异常;无 SE 要求;matched PASS 不能覆盖本 FAIL)",
+    "n_pairs_per_rung": 20,
+    "mean_ordering_ok": false,
+    "d3_mean_positive": true,
+    "fixed_baseline_means_positive": true,
+    "fixed_baseline_margins": {
+      "always_flat": {
+        "D0": {
+          "mean": 0.02851850076556333,
+          "ok": true
+        },
+        "D1": {
+          "mean": 0.020646059765008294,
+          "ok": true
+        },
+        "D2": {
+          "mean": 0.008926030812309683,
+          "ok": true
+        },
+        "D3": {
+          "mean": 0.009494758876637427,
+          "ok": true
+        }
+      },
+      "always_long": {
+        "D0": {
+          "mean": 0.03051650276356515,
+          "ok": true
+        },
+        "D1": {
+          "mean": 0.022644061763010113,
+          "ok": true
+        },
+        "D2": {
+          "mean": 0.010924032810311502,
+          "ok": true
+        },
+        "D3": {
+          "mean": 0.011492760874639246,
+          "ok": true
+        }
+      },
+      "c2_local_only": {
+        "D0": {
+          "mean": 0.08041193833501341,
+          "ok": true
+        },
+        "D1": {
+          "mean": 0.06209317144986444,
+          "ok": true
+        },
+        "D2": {
+          "mean": 0.05724263965297681,
+          "ok": true
+        },
+        "D3": {
+          "mean": 0.05835568271958733,
+          "ok": true
+        }
+      }
+    },
+    "integrity_unity": true,
+    "oracle_positive": true,
+    "density_pass": true,
+    "semantics_pass": true,
+    "pass": false,
+    "r11_semantics_rule": "local cue ∧ context observability ∧ independent cue semantics(point recall ≥ 0.90 灾难护栏)",
+    "r11_semantics_pass": true
+  },
+  "density_gates": {
+    "D0": {
+      "format": "cur261-r5-c2-density-gate-v1",
+      "thresholds": {
+        "median_reference_trades_per_episode_min": 8.0,
+        "reference_long_label_rate_min": 0.015
+      },
+      "median_reference_trades_per_episode": 12.0,
+      "reference_long_label_rate": 0.0264808362369338,
+      "trades_ok": true,
+      "label_rate_ok": true,
+      "pass": true
+    },
+    "D1": {
+      "format": "cur261-r5-c2-density-gate-v1",
+      "thresholds": {
+        "median_reference_trades_per_episode_min": 8.0,
+        "reference_long_label_rate_min": 0.015
+      },
+      "median_reference_trades_per_episode": 12.0,
+      "reference_long_label_rate": 0.02177700348432056,
+      "trades_ok": true,
+      "label_rate_ok": true,
+      "pass": true
+    },
+    "D2": {
+      "format": "cur261-r5-c2-density-gate-v1",
+      "thresholds": {
+        "median_reference_trades_per_episode_min": 8.0,
+        "reference_long_label_rate_min": 0.015
+      },
+      "median_reference_trades_per_episode": 12.0,
+      "reference_long_label_rate": 0.022038327526132405,
+      "trades_ok": true,
+      "label_rate_ok": true,
+      "pass": true
+    },
+    "D3": {
+      "format": "cur261-r5-c2-density-gate-v1",
+      "thresholds": {
+        "median_reference_trades_per_episode_min": 8.0,
+        "reference_long_label_rate_min": 0.015
+      },
+      "median_reference_trades_per_episode": 12.0,
+      "reference_long_label_rate": 0.020731707317073172,
+      "trades_ok": true,
+      "label_rate_ok": true,
+      "pass": true
+    }
+  },
+  "cue_semantics": {
+    "format": "cur261-r11-independent-cue-semantics-v1",
+    "candidate": "c2l_historical_control",
+    "cluster_unit": "independent_pair",
+    "canonical": "A",
+    "violations": [],
+    "n_unique_positive_cues": 2072,
+    "recall": {
+      "point": 0.9536679536679536,
+      "n_events": 2072,
+      "n_clusters": 80,
+      "side": "lower",
+      "bound": 0.9457613979766127,
+      "n_boot": 20000,
+      "degenerate": false,
+      "bootstrap_se": 0.004754307783702779
+    },
+    "recall_floor": 0.9304,
+    "recall_gate_rule": "point >= absolute_minimum_recall(0.90);正式 cluster LCB gate 由 160-block dedicated semantic corpus 承担(§26)",
+    "noncue_false_positive": {
+      "point": 0.0006100867678958785,
+      "n_events": 14752,
+      "n_clusters": 80,
+      "side": "upper",
+      "bound": 0.000948252506095909,
+      "n_boot": 20000,
+      "degenerate": false,
+      "bootstrap_se": 0.0001909595072906041,
+      "max": 0.01
+    },
+    "per_rung": {
+      "D0": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.05662188099808062,
+              "n_events": 1042,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.06621880998080615,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.005687858987222448,
+              "max": 0.06,
+              "pass": false
+            },
+            "cue_precision": {
+              "point": 0.8867256637168142,
+              "n_events": 565,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.8686514886164624,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.010920057378091144,
+              "min": 0.85,
+              "pass": true
+            }
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.0508637236084453,
+              "n_events": 1042,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.06057692307692308,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.005926215765918644,
+              "max": 0.06,
+              "pass": false
+            },
+            "cue_precision": {
+              "point": 0.8962432915921288,
+              "n_events": 559,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.8791564960421525,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.010661714942875345,
+              "min": 0.85,
+              "pass": true
+            }
+          }
+        },
+        "diagnostic_only": true
+      },
+      "D1": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.015414258188824663,
+              "n_events": 1038,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.022157996146435453,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0038193417457513547,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9644970414201184,
+              "n_events": 507,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.9513618677042801,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.007741631462261316,
+              "min": 0.85,
+              "pass": true
+            }
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.017341040462427744,
+              "n_events": 1038,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.02403846153846154,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.00384747006384896,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9607072691552063,
+              "n_events": 509,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.9478764478764479,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.007669616100655709,
+              "min": 0.85,
+              "pass": true
+            }
+          }
+        },
+        "diagnostic_only": true
+      },
+      "D2": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.005825242718446602,
+              "n_events": 1030,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.0087890625,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.002008542158911537,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9860557768924303,
+              "n_events": 502,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.9784735812133072,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.004234954084300893,
+              "min": 0.85,
+              "pass": true
+            }
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.005825242718446602,
+              "n_events": 1030,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.008771929824561403,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0019617059175047083,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9860557768924303,
+              "n_events": 502,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.9784714707800929,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.004194794274634525,
+              "min": 0.85,
+              "pass": true
+            }
+          }
+        },
+        "diagnostic_only": true
+      },
+      "D3": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.0038684719535783366,
+              "n_events": 1034,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.006782945736434108,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.001723856030615585,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9899193548387096,
+              "n_events": 496,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.983739837398374,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0038755472789075082,
+              "min": 0.85,
+              "pass": true
+            }
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.004835589941972921,
+              "n_events": 1034,
+              "n_clusters": 20,
+              "side": "upper",
+              "bound": 0.008737864077669903,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0023254089807920385,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9879275653923542,
+              "n_events": 497,
+              "n_clusters": 20,
+              "side": "lower",
+              "bound": 0.9797160243407708,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.004993542470070488,
+              "min": 0.85,
+              "pass": true
+            }
+          }
+        },
+        "diagnostic_only": true
+      }
+    },
+    "checks": {
+      "canonical_consistency": true,
+      "point_recall_ge_absolute_floor": true,
+      "noncue_fp_ucb_le_max": true
+    },
+    "pass": true
+  },
+  "semantics": {
+    "local_cue_independence": {
+      "format": "cur261-c2-local-cue-independence-v1",
+      "n_pairs": 80,
+      "per_rung_pair_counts": {
+        "D0": {
+          "n_pairs": 20
+        },
+        "D1": {
+          "n_pairs": 20
+        },
+        "D2": {
+          "n_pairs": 20
+        },
+        "D3": {
+          "n_pairs": 20
+        }
+      },
+      "checks": {
+        "mean_gap_within_3se": true,
+        "std_ratio_in_range": true,
+        "sign_balance_gap": true,
+        "cue_rate_ratio_in_range": true
+      },
+      "max_mean_gap_bps": 1.840029891857242,
+      "pooled_se_bps": 4.747172416109633,
+      "pass": true
+    },
+    "context_observability": {
+      "format": "cur261-c2-context-observability-v1",
+      "discriminator": {
+        "direction": "sign(raw_high+raw_low-raw_open-raw_close)",
+        "width": "(raw_high-raw_low)-|raw_close-raw_open|>0.0120",
+        "observation_only": true,
+        "latent_used_as": "evaluation label only"
+      },
+      "per_rung_accuracy": {
+        "D0": {
+          "dir_accuracy": 1.0,
+          "width_accuracy": 1.0
+        },
+        "D1": {
+          "dir_accuracy": 1.0,
+          "width_accuracy": 1.0
+        },
+        "D2": {
+          "dir_accuracy": 1.0,
+          "width_accuracy": 1.0
+        },
+        "D3": {
+          "dir_accuracy": 0.999826388888889,
+          "width_accuracy": 1.0
+        }
+      },
+      "direction": {
+        "n_bars": 23040,
+        "accuracy": 0.9999565972222222,
+        "margin": 0.9999131944444444,
+        "se": 8.680367173403027e-05,
+        "kappa_times_se": 0.00013020550760104542,
+        "margin_ge_kappa_se": true
+      },
+      "width": {
+        "n_bars": 23040,
+        "accuracy": 1.0,
+        "margin": 1.0,
+        "se": 1.3176150329477586e-05,
+        "kappa_times_se": 1.976422549421638e-05,
+        "margin_ge_kappa_se": true
+      },
+      "pass": true
+    },
+    "cue_semantics": {
+      "format": "cur261-r11-independent-cue-semantics-v1",
+      "candidate": "c2l_historical_control",
+      "cluster_unit": "independent_pair",
+      "canonical": "A",
+      "violations": [],
+      "n_unique_positive_cues": 2072,
+      "recall": {
+        "point": 0.9536679536679536,
+        "n_events": 2072,
+        "n_clusters": 80,
+        "side": "lower",
+        "bound": 0.9457613979766127,
+        "n_boot": 20000,
+        "degenerate": false,
+        "bootstrap_se": 0.004754307783702779
+      },
+      "recall_floor": 0.9304,
+      "recall_gate_rule": "point >= absolute_minimum_recall(0.90);正式 cluster LCB gate 由 160-block dedicated semantic corpus 承担(§26)",
+      "noncue_false_positive": {
+        "point": 0.0006100867678958785,
+        "n_events": 14752,
+        "n_clusters": 80,
+        "side": "upper",
+        "bound": 0.000948252506095909,
+        "n_boot": 20000,
+        "degenerate": false,
+        "bootstrap_se": 0.0001909595072906041,
+        "max": 0.01
+      },
+      "checks": {
+        "canonical_consistency": true,
+        "point_recall_ge_absolute_floor": true,
+        "noncue_fp_ucb_le_max": true
+      },
+      "pass": true
+    }
+  }
+}

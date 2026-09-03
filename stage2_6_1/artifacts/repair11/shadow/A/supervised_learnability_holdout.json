@@ -1,0 +1,1316 @@
+{
+ "format": "cur261-r11-supervised-learnability-v1",
+ "iteration": "r11",
+ "namespace": "shadow_supervised_holdout_r11",
+ "label_contract": "PolicyVisibleSupervisedLabel-v1",
+ "label_source": "canonical_reference_on_canonical_obs",
+ "gate_constants": {
+  "min_seeds_passing": 2,
+  "n_model_seeds": 3,
+  "heldout_balanced_accuracy_min": 0.6,
+  "behavior_gap_min": 0.2,
+  "mlp_arch": [
+   128,
+   128
+  ],
+  "gated_controls": [
+   "W",
+   "B"
+  ]
+ },
+ "model_seeds": [
+  20261121
+ ],
+ "training_config": {
+  "epochs": 2
+ },
+ "families": {
+  "c1_opportunity": {
+   "n_pairs": 40,
+   "pairs_per_rung": 10,
+   "train_pair_limit": 6,
+   "n_train_rows": 13776,
+   "n_test_rows": 9184,
+   "distinct_seed_gate": {
+    "rule": "gated controls = W、B;对每个 gated control 分别统计通过的 distinct model seeds;W 与 B 各至少 2/3 distinct seeds 通过;family pass = W AND B;U 仅诊断不计数;重复记录同一 seed 不增加计数",
+    "passing_seed_ids_by_control": {
+     "W": [
+      20261121
+     ],
+     "B": [
+      20261121
+     ]
+    },
+    "distinct_seed_count_by_control": {
+     "W": 1,
+     "B": 1
+    },
+    "control_pass": {
+     "W": false,
+     "B": false
+    },
+    "per_seed_wb_results": {
+     "20261121": {
+      "W": true,
+      "B": true
+     }
+    },
+    "u_diagnostic_only": true
+   },
+   "n_passing_gated": 2,
+   "pass": false,
+   "seed_reports": [
+    {
+     "seed": 20261121,
+     "control": "U",
+     "gated": false,
+     "metrics": {
+      "balanced_accuracy": 0.5004531037607612,
+      "long_recall": 0.0009062075215224287,
+      "long_precision": 1.0,
+      "pr_auc": 0.6560573851642957,
+      "roc_auc": 0.7407672396824079,
+      "accuracy": 0.7599085365853658,
+      "behavior_gap": 0.0009062075215224287,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": 0.00021777003484324542,
+      "class_balance": {
+       "long": 2207,
+       "flat": 6977
+      },
+      "heldout_pair_balanced_accuracy_min": 0.5,
+      "heldout_pair_balanced_accuracy_mean": 0.5004254938613496
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "W",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8590850551157181,
+      "long_recall": 0.8586316266425011,
+      "long_precision": 0.6591304347826087,
+      "pr_auc": 0.8448699860752772,
+      "roc_auc": 0.9034508751292923,
+      "accuracy": 0.8593205574912892,
+      "behavior_gap": 0.7181701102314362,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": 0.09962979094076663,
+      "class_balance": {
+       "long": 2207,
+       "flat": 6977
+      },
+      "heldout_pair_balanced_accuracy_min": 0.781896775573172,
+      "heldout_pair_balanced_accuracy_mean": 0.8616505443996143
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "B",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8703987189703966,
+      "long_recall": 0.8554599003171727,
+      "long_precision": 0.7023809523809523,
+      "pr_auc": 0.8515590606379517,
+      "roc_auc": 0.9081674859053688,
+      "accuracy": 0.8781576655052264,
+      "behavior_gap": 0.7407974379407931,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": 0.11846689895470386,
+      "class_balance": {
+       "long": 2207,
+       "flat": 6977
+      },
+      "heldout_pair_balanced_accuracy_min": 0.7962852647818051,
+      "heldout_pair_balanced_accuracy_mean": 0.8728135964040085
+     }
+    }
+   ],
+   "label_evidence_sample": [
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 0,
+     "raw_feature_summary": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018986052145689,
+      0.9981049926562556,
+      1.0
+     ],
+     "scaled_input_summary": [
+      -0.0557279996573925,
+      -0.08274387568235397,
+      -1.0,
+      -0.011123187839984894,
+      -0.16120484471321106,
+      -0.16185113787651062,
+      -0.15871211886405945,
+      -0.16120484471321106,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 0,
+     "replay_action": 0,
+     "canonical_obs_summary": [
+      1.697489510066319e-10,
+      1.1385047071765797e-10,
+      0.0,
+      2.3718338057476807e-11,
+      1.0,
+      1.0018986463546753,
+      0.998104989528656,
+      1.0,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 27,
+     "raw_feature_summary": [
+      0.005451618666308722,
+      0.026839773882362694,
+      0.004229071901713196,
+      0.011102642161767706,
+      1.016414042087464,
+      1.0227316066186445,
+      1.0156423756462771,
+      1.0219551438520065
+     ],
+     "scaled_input_summary": [
+      -0.009410468861460686,
+      0.11107982695102692,
+      -0.8495769500732422,
+      0.059664614498615265,
+      -0.05588225647807121,
+      -0.027818793430924416,
+      -0.04663589969277382,
+      -0.020327139645814896,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 1,
+     "replay_action": 1,
+     "canonical_obs_summary": [
+      0.005451618693768978,
+      0.02683977410197258,
+      0.004229072481393814,
+      0.011102641932666302,
+      1.0164140462875366,
+      1.0227316617965698,
+      1.0156424045562744,
+      1.021955132484436,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c1_opportunity",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 143,
+     "raw_feature_summary": [
+      0.00526783808273823,
+      0.01618796681960899,
+      0.0034799280176556874,
+      0.057713832390486663,
+      1.1285729676717302,
+      1.135130102405261,
+      1.1279645078160307,
+      1.1345181073299804
+     ],
+     "scaled_input_summary": [
+      -0.010971887968480587,
+      0.03415768966078758,
+      -0.8762231469154358,
+      0.3568464517593384,
+      0.6637983918190002,
+      0.6953144073486328,
+      0.6711816191673279,
+      0.7019460201263428,
+      1.0
+     ],
+     "position": 1,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 1,
+     "replay_action": 1,
+     "canonical_obs_summary": [
+      0.005267838016152382,
+      0.016187965869903564,
+      0.0034799273125827312,
+      0.0577138289809227,
+      1.128572940826416,
+      1.1351300477981567,
+      1.1279644966125488,
+      1.1345181465148926,
+      1.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    }
+   ]
+  },
+  "c2_context": {
+   "n_pairs": 40,
+   "pairs_per_rung": 10,
+   "train_pair_limit": 6,
+   "n_train_rows": 13776,
+   "n_test_rows": 9184,
+   "distinct_seed_gate": {
+    "rule": "gated controls = W、B;对每个 gated control 分别统计通过的 distinct model seeds;W 与 B 各至少 2/3 distinct seeds 通过;family pass = W AND B;U 仅诊断不计数;重复记录同一 seed 不增加计数",
+    "passing_seed_ids_by_control": {
+     "W": [
+      20261121
+     ],
+     "B": [
+      20261121
+     ]
+    },
+    "distinct_seed_count_by_control": {
+     "W": 1,
+     "B": 1
+    },
+    "control_pass": {
+     "W": false,
+     "B": false
+    },
+    "per_seed_wb_results": {
+     "20261121": {
+      "W": true,
+      "B": true
+     }
+    },
+    "u_diagnostic_only": true
+   },
+   "n_passing_gated": 2,
+   "pass": false,
+   "seed_reports": [
+    {
+     "seed": 20261121,
+     "control": "U",
+     "gated": false,
+     "metrics": {
+      "balanced_accuracy": 0.5,
+      "long_recall": 0.0,
+      "long_precision": 0.0,
+      "pr_auc": 0.07284978960876708,
+      "roc_auc": 0.83171224808176,
+      "accuracy": 0.9771341463414634,
+      "behavior_gap": 0.0,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": 0.0,
+      "class_balance": {
+       "long": 210,
+       "flat": 8974
+      },
+      "heldout_pair_balanced_accuracy_min": 0.5,
+      "heldout_pair_balanced_accuracy_mean": 0.5
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "W",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8083871926305624,
+      "long_recall": 0.7333333333333333,
+      "long_precision": 0.12833333333333333,
+      "pr_auc": 0.12156022152128093,
+      "roc_auc": 0.9091863266367389,
+      "accuracy": 0.8800087108013938,
+      "behavior_gap": 0.6167743852611247,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": -0.0971254355400697,
+      "class_balance": {
+       "long": 210,
+       "flat": 8974
+      },
+      "heldout_pair_balanced_accuracy_min": 0.6414893617021277,
+      "heldout_pair_balanced_accuracy_mean": 0.8004497111636085
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "B",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.7445917836713469,
+      "long_recall": 0.5904761904761905,
+      "long_precision": 0.12003872216844143,
+      "pr_auc": 0.11915040240828048,
+      "roc_auc": 0.9082264106890806,
+      "accuracy": 0.8916594076655052,
+      "behavior_gap": 0.48918356734269375,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": -0.08547473867595823,
+      "class_balance": {
+       "long": 210,
+       "flat": 8974
+      },
+      "heldout_pair_balanced_accuracy_min": 0.6097271648873073,
+      "heldout_pair_balanced_accuracy_mean": 0.7388790308287416
+     }
+    }
+   ],
+   "label_evidence_sample": [
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 0,
+     "raw_feature_summary": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0018708932788147,
+      0.9834292387572966,
+      1.0
+     ],
+     "scaled_input_summary": [
+      -0.0557279996573925,
+      -0.08274387568235397,
+      -1.0,
+      -0.011123187839984894,
+      -0.16120484471321106,
+      -0.162029430270195,
+      -0.2525005340576172,
+      -0.16120484471321106,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 0,
+     "replay_action": 0,
+     "canonical_obs_summary": [
+      1.697489510066319e-10,
+      1.1385047071765797e-10,
+      0.0,
+      2.3718338057476807e-11,
+      1.0,
+      1.00187087059021,
+      0.9834292531013489,
+      1.0,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 69,
+     "raw_feature_summary": [
+      0.0132358401382775,
+      -0.006889656474327377,
+      0.007210322859607494,
+      0.00576128460724612,
+      0.9900901927432496,
+      1.0240683204659924,
+      0.9878153141159793,
+      1.0031948682568756
+     ],
+     "scaled_input_summary": [
+      0.05672510713338852,
+      -0.13249759376049042,
+      -0.743537425994873,
+      0.025609390810132027,
+      -0.2247922569513321,
+      -0.01921883597970009,
+      -0.22447040677070618,
+      -0.14070460200309753,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 1,
+     "replay_action": 1,
+     "canonical_obs_summary": [
+      0.013235840015113354,
+      -0.0068896557204425335,
+      0.007210323587059975,
+      0.005761284381151199,
+      0.9900901913642883,
+      1.0240683555603027,
+      0.9878153204917908,
+      1.003194808959961,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c2_context",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 143,
+     "raw_feature_summary": [
+      0.004509864817186848,
+      -0.0034725386376047718,
+      0.008032900915434819,
+      -0.0009193150510408143,
+      1.0006752863942636,
+      1.0058021190139417,
+      0.9961409450474347,
+      1.0051881966618015
+     ],
+     "scaled_input_summary": [
+      -0.01741170883178711,
+      -0.10782084614038467,
+      -0.7142793536186218,
+      -0.016984522342681885,
+      -0.15687178075313568,
+      -0.13673728704452515,
+      -0.17126376926898956,
+      -0.1279141753911972,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 0,
+     "replay_action": 0,
+     "canonical_obs_summary": [
+      0.004509864840656519,
+      -0.003472538199275732,
+      0.008032900281250477,
+      -0.000919315149076283,
+      1.0006753206253052,
+      1.0058021545410156,
+      0.9961409568786621,
+      1.005188226699829,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    }
+   ]
+  },
+  "c3_cost": {
+   "n_pairs": 40,
+   "pairs_per_rung": 10,
+   "train_pair_limit": 6,
+   "n_train_rows": 13776,
+   "n_test_rows": 9184,
+   "distinct_seed_gate": {
+    "rule": "gated controls = W、B;对每个 gated control 分别统计通过的 distinct model seeds;W 与 B 各至少 2/3 distinct seeds 通过;family pass = W AND B;U 仅诊断不计数;重复记录同一 seed 不增加计数",
+    "passing_seed_ids_by_control": {
+     "W": [
+      20261121
+     ],
+     "B": [
+      20261121
+     ]
+    },
+    "distinct_seed_count_by_control": {
+     "W": 1,
+     "B": 1
+    },
+    "control_pass": {
+     "W": false,
+     "B": false
+    },
+    "per_seed_wb_results": {
+     "20261121": {
+      "W": true,
+      "B": true
+     }
+    },
+    "u_diagnostic_only": true
+   },
+   "n_passing_gated": 2,
+   "pass": false,
+   "seed_reports": [
+    {
+     "seed": 20261121,
+     "control": "U",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8341260986012389,
+      "long_recall": 0.7218543046357616,
+      "long_precision": 0.41132075471698115,
+      "pr_auc": 0.7281675507574077,
+      "roc_auc": 0.967953118256407,
+      "accuracy": 0.935322299651568,
+      "behavior_gap": 0.6682521972024779,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": -0.015352787456445971,
+      "class_balance": {
+       "long": 453,
+       "flat": 8731
+      },
+      "heldout_pair_balanced_accuracy_min": 0.7159272581934453,
+      "heldout_pair_balanced_accuracy_mean": 0.8308776211911799
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "W",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8982361699690757,
+      "long_recall": 1.0,
+      "long_precision": 0.2031390134529148,
+      "pr_auc": 0.7822919069139053,
+      "roc_auc": 0.9776143365739242,
+      "accuracy": 0.8065113240418118,
+      "behavior_gap": 0.7964723399381515,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": -0.14416376306620216,
+      "class_balance": {
+       "long": 453,
+       "flat": 8731
+      },
+      "heldout_pair_balanced_accuracy_min": 0.8420560747663551,
+      "heldout_pair_balanced_accuracy_mean": 0.8980104722530609
+     }
+    },
+    {
+     "seed": 20261121,
+     "control": "B",
+     "gated": true,
+     "metrics": {
+      "balanced_accuracy": 0.8974344290459283,
+      "long_recall": 1.0,
+      "long_precision": 0.2018716577540107,
+      "pr_auc": 0.7799226831403547,
+      "roc_auc": 0.9770055090296356,
+      "accuracy": 0.8049869337979094,
+      "behavior_gap": 0.7948688580918566,
+      "behavior_gap_definition": "TPR - FPR (= 2*balanced_accuracy - 1; R2 extended_binary_metrics 同口径)",
+      "accuracy_minus_majority_diagnostic": -0.14568815331010454,
+      "class_balance": {
+       "long": 453,
+       "flat": 8731
+      },
+      "heldout_pair_balanced_accuracy_min": 0.8383177570093459,
+      "heldout_pair_balanced_accuracy_mean": 0.8972005551967812
+     }
+    }
+   ],
+   "label_evidence_sample": [
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 0,
+     "raw_feature_summary": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0003630863237942,
+      0.9996370454600354,
+      1.0
+     ],
+     "scaled_input_summary": [
+      -0.0557279996573925,
+      -0.08274387568235397,
+      -1.0,
+      -0.011123187839984894,
+      -0.16120484471321106,
+      -0.1717301458120346,
+      -0.14892122149467468,
+      -0.16120484471321106,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 0,
+     "replay_action": 0,
+     "canonical_obs_summary": [
+      1.697489510066319e-10,
+      1.1385047071765797e-10,
+      0.0,
+      2.3718338057476807e-11,
+      1.0,
+      1.0003631114959717,
+      0.9996370673179626,
+      1.0,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 27,
+     "raw_feature_summary": [
+      0.1170316400557605,
+      0.11068729498853735,
+      0.024502949673813668,
+      0.10227272950860766,
+      0.9964260442431584,
+      1.113223989243919,
+      0.9962608383165525,
+      1.113039418395209
+     ],
+     "scaled_input_summary": [
+      0.9385852813720703,
+      0.7165855765342712,
+      -0.1284594088792801,
+      0.6409434080123901,
+      -0.18413753807544708,
+      0.5543780326843262,
+      -0.1704975664615631,
+      0.5641255378723145,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 1,
+     "replay_action": 1,
+     "canonical_obs_summary": [
+      0.11703164130449295,
+      0.11068730056285858,
+      0.02450294978916645,
+      0.10227273404598236,
+      0.9964260458946228,
+      1.1132240295410156,
+      0.9962608218193054,
+      1.1130393743515015,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    },
+    {
+     "family": "c3_cost",
+     "rung": "D0",
+     "pair": 0,
+     "side": "A",
+     "step": 143,
+     "raw_feature_summary": [
+      0.0039255372062774185,
+      0.002510289249914921,
+      0.024456647609507186,
+      0.012368242460849999,
+      1.001494719845102,
+      1.006765641809184,
+      1.0001622157084495,
+      1.0054261246297445
+     ],
+     "scaled_input_summary": [
+      -0.02237621881067753,
+      -0.06461579352617264,
+      -0.13010631501674652,
+      0.0677337795495987,
+      -0.15161380171775818,
+      -0.13053831458091736,
+      -0.14556501805782318,
+      -0.12638749182224274,
+      0.0
+     ],
+     "position": 0,
+     "label_source": "canonical_reference_on_canonical_obs",
+     "label": 0,
+     "replay_action": 0,
+     "canonical_obs_summary": [
+      0.003925537224858999,
+      0.0025102896615862846,
+      0.024456648156046867,
+      0.012368242256343365,
+      1.0014947652816772,
+      1.006765604019165,
+      1.0001622438430786,
+      1.0054261684417725,
+      0.0
+     ],
+     "alignment_ok": true,
+     "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c"
+    }
+   ]
+  }
+ },
+ "label_alignment": {
+  "c1_opportunity": {
+   "alignment_ok": true,
+   "n_alignment_failures": 0,
+   "n_rows": 22960
+  },
+  "c2_context": {
+   "alignment_ok": true,
+   "n_alignment_failures": 0,
+   "n_rows": 22960
+  },
+  "c3_cost": {
+   "alignment_ok": true,
+   "n_alignment_failures": 0,
+   "n_rows": 22960
+  }
+ },
+ "dataset_identity": {
+  "c1_opportunity": {
+   "format": "cur261-r11-supervised-dataset-identity-v1",
+   "label_contract": "PolicyVisibleSupervisedLabel-v1",
+   "family": "c1_opportunity",
+   "eval_namespace": "shadow_supervised_holdout_r11",
+   "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c",
+   "n_rows": 22960,
+   "obs_dtype": "float32",
+   "obs_shape": [
+    22960,
+    9
+   ],
+   "obs_finite": true,
+   "label_counts": {
+    "0": 17385,
+    "1": 5575
+   },
+   "long_label_rate": 0.2428135888501742,
+   "pairs": [
+    [
+     "D0",
+     0
+    ],
+    [
+     "D0",
+     1
+    ],
+    [
+     "D0",
+     2
+    ],
+    [
+     "D0",
+     3
+    ],
+    [
+     "D0",
+     4
+    ],
+    [
+     "D0",
+     5
+    ],
+    [
+     "D0",
+     6
+    ],
+    [
+     "D0",
+     7
+    ],
+    [
+     "D0",
+     8
+    ],
+    [
+     "D0",
+     9
+    ],
+    [
+     "D1",
+     0
+    ],
+    [
+     "D1",
+     1
+    ],
+    [
+     "D1",
+     2
+    ],
+    [
+     "D1",
+     3
+    ],
+    [
+     "D1",
+     4
+    ],
+    [
+     "D1",
+     5
+    ],
+    [
+     "D1",
+     6
+    ],
+    [
+     "D1",
+     7
+    ],
+    [
+     "D1",
+     8
+    ],
+    [
+     "D1",
+     9
+    ],
+    [
+     "D2",
+     0
+    ],
+    [
+     "D2",
+     1
+    ],
+    [
+     "D2",
+     2
+    ],
+    [
+     "D2",
+     3
+    ],
+    [
+     "D2",
+     4
+    ],
+    [
+     "D2",
+     5
+    ],
+    [
+     "D2",
+     6
+    ],
+    [
+     "D2",
+     7
+    ],
+    [
+     "D2",
+     8
+    ],
+    [
+     "D2",
+     9
+    ],
+    [
+     "D3",
+     0
+    ],
+    [
+     "D3",
+     1
+    ],
+    [
+     "D3",
+     2
+    ],
+    [
+     "D3",
+     3
+    ],
+    [
+     "D3",
+     4
+    ],
+    [
+     "D3",
+     5
+    ],
+    [
+     "D3",
+     6
+    ],
+    [
+     "D3",
+     7
+    ],
+    [
+     "D3",
+     8
+    ],
+    [
+     "D3",
+     9
+    ]
+   ],
+   "alignment_ok": true
+  },
+  "c2_context": {
+   "format": "cur261-r11-supervised-dataset-identity-v1",
+   "label_contract": "PolicyVisibleSupervisedLabel-v1",
+   "family": "c2_context",
+   "eval_namespace": "shadow_supervised_holdout_r11",
+   "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c",
+   "n_rows": 22960,
+   "obs_dtype": "float32",
+   "obs_shape": [
+    22960,
+    9
+   ],
+   "obs_finite": true,
+   "label_counts": {
+    "0": 22440,
+    "1": 520
+   },
+   "long_label_rate": 0.02264808362369338,
+   "pairs": [
+    [
+     "D0",
+     0
+    ],
+    [
+     "D0",
+     1
+    ],
+    [
+     "D0",
+     2
+    ],
+    [
+     "D0",
+     3
+    ],
+    [
+     "D0",
+     4
+    ],
+    [
+     "D0",
+     5
+    ],
+    [
+     "D0",
+     6
+    ],
+    [
+     "D0",
+     7
+    ],
+    [
+     "D0",
+     8
+    ],
+    [
+     "D0",
+     9
+    ],
+    [
+     "D1",
+     0
+    ],
+    [
+     "D1",
+     1
+    ],
+    [
+     "D1",
+     2
+    ],
+    [
+     "D1",
+     3
+    ],
+    [
+     "D1",
+     4
+    ],
+    [
+     "D1",
+     5
+    ],
+    [
+     "D1",
+     6
+    ],
+    [
+     "D1",
+     7
+    ],
+    [
+     "D1",
+     8
+    ],
+    [
+     "D1",
+     9
+    ],
+    [
+     "D2",
+     0
+    ],
+    [
+     "D2",
+     1
+    ],
+    [
+     "D2",
+     2
+    ],
+    [
+     "D2",
+     3
+    ],
+    [
+     "D2",
+     4
+    ],
+    [
+     "D2",
+     5
+    ],
+    [
+     "D2",
+     6
+    ],
+    [
+     "D2",
+     7
+    ],
+    [
+     "D2",
+     8
+    ],
+    [
+     "D2",
+     9
+    ],
+    [
+     "D3",
+     0
+    ],
+    [
+     "D3",
+     1
+    ],
+    [
+     "D3",
+     2
+    ],
+    [
+     "D3",
+     3
+    ],
+    [
+     "D3",
+     4
+    ],
+    [
+     "D3",
+     5
+    ],
+    [
+     "D3",
+     6
+    ],
+    [
+     "D3",
+     7
+    ],
+    [
+     "D3",
+     8
+    ],
+    [
+     "D3",
+     9
+    ]
+   ],
+   "alignment_ok": true
+  },
+  "c3_cost": {
+   "format": "cur261-r11-supervised-dataset-identity-v1",
+   "label_contract": "PolicyVisibleSupervisedLabel-v1",
+   "family": "c3_cost",
+   "eval_namespace": "shadow_supervised_holdout_r11",
+   "bundle_hash": "r4pb-6c8143fa08b141f4dfb249793099905be889774e5645d1ff2e9261030de5e55c",
+   "n_rows": 22960,
+   "obs_dtype": "float32",
+   "obs_shape": [
+    22960,
+    9
+   ],
+   "obs_finite": true,
+   "label_counts": {
+    "0": 21916,
+    "1": 1044
+   },
+   "long_label_rate": 0.045470383275261324,
+   "pairs": [
+    [
+     "D0",
+     0
+    ],
+    [
+     "D0",
+     1
+    ],
+    [
+     "D0",
+     2
+    ],
+    [
+     "D0",
+     3
+    ],
+    [
+     "D0",
+     4
+    ],
+    [
+     "D0",
+     5
+    ],
+    [
+     "D0",
+     6
+    ],
+    [
+     "D0",
+     7
+    ],
+    [
+     "D0",
+     8
+    ],
+    [
+     "D0",
+     9
+    ],
+    [
+     "D1",
+     0
+    ],
+    [
+     "D1",
+     1
+    ],
+    [
+     "D1",
+     2
+    ],
+    [
+     "D1",
+     3
+    ],
+    [
+     "D1",
+     4
+    ],
+    [
+     "D1",
+     5
+    ],
+    [
+     "D1",
+     6
+    ],
+    [
+     "D1",
+     7
+    ],
+    [
+     "D1",
+     8
+    ],
+    [
+     "D1",
+     9
+    ],
+    [
+     "D2",
+     0
+    ],
+    [
+     "D2",
+     1
+    ],
+    [
+     "D2",
+     2
+    ],
+    [
+     "D2",
+     3
+    ],
+    [
+     "D2",
+     4
+    ],
+    [
+     "D2",
+     5
+    ],
+    [
+     "D2",
+     6
+    ],
+    [
+     "D2",
+     7
+    ],
+    [
+     "D2",
+     8
+    ],
+    [
+     "D2",
+     9
+    ],
+    [
+     "D3",
+     0
+    ],
+    [
+     "D3",
+     1
+    ],
+    [
+     "D3",
+     2
+    ],
+    [
+     "D3",
+     3
+    ],
+    [
+     "D3",
+     4
+    ],
+    [
+     "D3",
+     5
+    ],
+    [
+     "D3",
+     6
+    ],
+    [
+     "D3",
+     7
+    ],
+    [
+     "D3",
+     8
+    ],
+    [
+     "D3",
+     9
+    ]
+   ],
+   "alignment_ok": true
+  }
+ },
+ "alignment_all_ok": true,
+ "pass": false
+}
