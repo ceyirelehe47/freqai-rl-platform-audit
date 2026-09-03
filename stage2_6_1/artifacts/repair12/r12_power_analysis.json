@@ -1,0 +1,52 @@
+{
+  "format": "cur261-r12-power-analysis-v1",
+  "design_plan_digest": "r12dp-cfbf0f1535b9c54723cd7d23a2d8db016a6257bb4b5f1686d60212f58e593592",
+  "selected_candidate": "c2l_historical_control",
+  "selected_block_count": 15,
+  "semantic_gate_margins": {
+    "cue_semantic_design_main_r12": {
+      "recall_lcb_minus_floor": 0.014806355355821754,
+      "noncue_max_minus_ucb": 0.009118165784832452
+    },
+    "cue_semantic_design_validation_r12": {
+      "recall_lcb_minus_floor": 0.01380122508709658,
+      "noncue_max_minus_ucb": 0.009425127993061765
+    }
+  },
+  "per_candidate_weakest": {
+    "c2l_historical_control": {
+      "10": {
+        "formal_gate_probability_ge_0p90": false
+      }
+    },
+    "c2l_conservative": {
+      "10": {
+        "d3_ge_2p5x_se": false,
+        "formal_gate_probability_ge_0p90": false
+      },
+      "15": {
+        "d3_ge_2p5x_se": false,
+        "formal_gate_probability_ge_0p90": false
+      },
+      "20": {
+        "formal_gate_probability_ge_0p90": false
+      },
+      "semantics": false
+    },
+    "c2l_midpoint": {
+      "10": {
+        "formal_gate_probability_ge_0p90": false
+      },
+      "semantics": false
+    }
+  },
+  "global_fail_counts": {
+    "n=10:formal_gate_probability_ge_0p90": 3,
+    "semantics": 2,
+    "n=10:d3_ge_2p5x_se": 1,
+    "n=15:d3_ge_2p5x_se": 1,
+    "n=15:formal_gate_probability_ge_0p90": 1,
+    "n=20:formal_gate_probability_ge_0p90": 1
+  },
+  "weakest_binding_condition": "n=10:formal_gate_probability_ge_0p90"
+}

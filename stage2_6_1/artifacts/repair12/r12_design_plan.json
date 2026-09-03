@@ -1,0 +1,579 @@
+{
+  "format": "cur261-r12-design-plan-v1",
+  "iteration": "r12",
+  "baseline_commit": "96446f2f91cd13df0411dc70909dd43ab8864046",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "r4_parameter_pack_digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+  "r5_design_plan_digest": "r5dp-0c1eb69f95336f7d649192bc4293eaf768b37508f47c8c21c919009eb3afe52d",
+  "r6_design_plan_digest": "r6dp-db74ed109a7bf7a955c74f1bd248213002d3c08f79512abf0faf93f8941e03c7",
+  "r7_design_plan_digest": "r7dp-73d65b6838c0686b26ad4c74c1fd7ca94d72aa8f20930d78a555bb8f8890e454",
+  "r8_design_plan_digest": "r8dp-60bb85d5481054b619188fb5a97209acd054e9e110da26710458ecaf2ef0db9d",
+  "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+  "prior_digests": {
+    "stage2_6_1_r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "stage2_6_2_r2_diagnostic_plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60"
+  },
+  "route_c_identities": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1"
+  },
+  "dependency_resolution_identity": {
+    "digest": "r12dep-e479b6088d077deb9cdf38df3207e0ca352442abbe89a77b65e38e6d1cf3163d",
+    "n_declared": 44,
+    "pass": true,
+    "c2_density_summary_definition_module": "rl_curriculum.curriculum261_r5_pairs"
+  },
+  "artifact_writer_identity": {
+    "design_mapping": {
+      "cue_semantic_design_main_r12": "semantic_design_main.json",
+      "cue_semantic_design_validation_r12": "semantic_design_validation.json"
+    },
+    "stage_mapping": {
+      "cue_semantic_calibration_r12": "cue_semantic_calibration.json",
+      "cue_semantic_holdout_r12": "cue_semantic_holdout.json",
+      "cue_semantic_qualification_r12": "qualification_cue_semantics.json",
+      "preplan_semantic_main_r12": "preplan_semantic_main.json",
+      "preplan_semantic_validation_r12": "preplan_semantic_validation.json",
+      "shadow_semantic_main_r12": "shadow_semantic_main.json",
+      "shadow_semantic_validation_r12": "shadow_semantic_validation.json",
+      "shadow_semantic_final_r12": "shadow_semantic_final.json"
+    },
+    "roles": {
+      "cue_semantic_design_main_r12": "main",
+      "cue_semantic_design_validation_r12": "validation",
+      "cue_semantic_calibration_r12": "calibration",
+      "cue_semantic_holdout_r12": "holdout",
+      "cue_semantic_qualification_r12": "qualification",
+      "preplan_semantic_main_r12": "preplan_main",
+      "preplan_semantic_validation_r12": "preplan_validation",
+      "shadow_semantic_main_r12": "shadow_main",
+      "shadow_semantic_validation_r12": "shadow_validation",
+      "shadow_semantic_final_r12": "shadow_final"
+    },
+    "heuristic_suffix_match_forbidden": true,
+    "write_mode": "exclusive-create(O_CREAT|O_EXCL;已存在即拒)",
+    "reload_check": "embedded namespace/corpus_role 与显式映射一致",
+    "dual_file_gate": "design main+validation 同时存在且 sha256 不同,才允许生成 candidate blocks"
+  },
+  "preplan_rehearsal_digest": "r12pr-ae5680361416649bae6f92f829f60f853c35cd13740a46386ebc1330adce9331",
+  "r8_abort_evidence": {
+    "retained": true,
+    "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair8/r8_iteration_aborted.json",
+    "aborted_utc": "2026-09-01T19:49:58+00:00",
+    "reason_head": "design plan 锁定后执行异常(ImportError: cannot import name 'c2_density_summary' from 'rl_curriculum.curriculum261_r6_pairs' (/home/cryptorl/projects/crypto_rl/src/rl_c",
+    "contract": "design data 已生成后发生代码/评估器/统计缺陷;按 §16.2 R8 iteration 永久结束:原 plan 保留不得删除,不得复用任何 R8 design namespace,下一轮必须 R8.1/R8 + 全新 seed space。"
+  },
+  "r9_abort_evidence": {
+    "retained": true,
+    "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair9/r9_iteration_aborted.json",
+    "aborted_utc": "2026-09-02T07:36:25+00:00",
+    "reason_head": "calibrate 阶段(design plan r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4 锁定后)执行异常(TypeError: supervised_learnability_run_r9() missing 1 re",
+    "failure_mode": "CLI supervised 调用缺 namespace -> TypeError(R9 硬规则诚实 FAIL)",
+    "design_evidence_role": "R9 cue audit/160x2 semantic/三候选/n=10/marginal/pack = development evidence only",
+    "r9_design_plan_digest": "r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4",
+    "r9_parameter_pack_digest": "r9pk-c3070b5bc114b77d0ca314a033ff14181aeac5fe7a916f4f5a6269624b6b26b9",
+    "r9_exposure_absent": true,
+    "r9_qualification_never_run": true
+  },
+  "r10_abort_evidence": {
+    "retained": true,
+    "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair10/r10_iteration_aborted.json",
+    "aborted_utc": "2026-09-02T17:29:54+00:00",
+    "reason_head": "calibrate 阶段(design plan r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c 锁定后)shared orchestration 的 supervised main 步骤抛 PairGenerationError:c3_cost/D0/pair1(namespace=supervised_main_r10)5 次尝试全部未通过结构性校验(too_few_distractors)。按 §21 硬规则(plan 锁定后任何异常,含 calibration runner 错误):R10 永久结束;保留全部 plan 与已生成证据;不得修复后继续;下一轮必须 R11。",
+    "failure_mode": "calibrate/shared orchestration/supervised main 生成 c3_cost/D0/pair1 抛 PairGenerationError(5 attempts 全部 too_few_distractors;A/B/pair 三段同文案)",
+    "root_cause_statement": "historically underdetermined due to missing invocation-state evidence(三种重放不可复现;R10 当时的 PairGenerationError 未保留逐 attempt 调用状态)",
+    "r12_closure": "R12 工作包 A:generation invocation envelope + 逐 attempt 证据落盘 + 跨进程确定性矩阵 + mutable state 审计",
+    "design_evidence_role": "R10 cue audit/semantic 160x2/三候选/n=15(机械)/marginal/pack = development evidence only;R12 必须全新 namespace 重新执行机械 design,不得复制 R10 正式结论",
+    "r10_design_plan_digest": "r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c",
+    "r10_parameter_pack_digest": "r10pk-a475b997313b445ca25aa76f43e394bbe5bf493942942d39f7a6f6b75feb9314",
+    "r10_final_freeze_commit": "06e9b5beb4df564e51d27aae444f281843356809",
+    "r10_exposure_absent": true,
+    "r10_qualification_never_run": true
+  },
+  "r11_abort_evidence": {
+    "iteration": "r11",
+    "final_verdict": "FAIL(永久;不得 conditional PASS/audit-only/被 R12 追认/因门槛不合理撤销)",
+    "fail_reasons": [
+      "A. 治理 FAIL:Commit A(df0292a)后修改源码建立 A′(572c509)并继续同一 iteration(clean formal chain 失效)",
+      "B. cue audit K 位置检查:t=226(corpus model,once-mode,500 blocks,n_events=31,C=9,K mean=1.6774193548387097,|z|=4.000504>4.0;position-wise mirror-count distribution failure,非 tail failure)"
+    ],
+    "t226_classification": "position-wise mirror-count distribution failure(t=226 < 264,不是 tail)",
+    "abort_marker_exists": true,
+    "abort_marker_blob_matches_baseline": true,
+    "cue_audit_result_blob_matches_baseline": true,
+    "cue_event_trace_blob_matches_baseline": true,
+    "qualification_exposure_absent": true,
+    "final_qualification_not_executed": true,
+    "r11_commits": {
+      "commit_a": "df0292ac2208375cca478b037c4ba87c6808911e",
+      "commit_a_prime": "572c509233fef560a39ea30cd497a34053d47ce0",
+      "commit_b": "96446f2f91cd13df0411dc70909dd43ab8864046"
+    },
+    "pass": true
+  },
+  "generation_determinism_binding": {
+    "bound": true,
+    "path": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair12/determinism/generation_determinism_contract.json",
+    "root_cause_statement": "historically underdetermined due to missing invocation-state evidence",
+    "checks": {
+      "cross_process_matrix_pass": true,
+      "matrix_all_scenarios_identical": true,
+      "r10_seed_replay_consistent": true,
+      "r10_failure_reproduced": false,
+      "state_audit_pass": true,
+      "singleton_state_clean": true,
+      "envelope_roundtrip_all_ok": true,
+      "replay_call_digest_match": true,
+      "replay_envelopes_consistent": true,
+      "target_call_executable": true
+    }
+  },
+  "code_freeze_sha": "75a66dde368c6f7c8ccc1a70e19445a6f86165fe",
+  "policy_visible_reference_contract_digest": "r12pv-6bf4d9a3fee8d05adfb82c0624c9fe65c1ccb429502dd1478fa3967528e09591",
+  "cue_audit_plan_digest": "r12ap-7f67dc189f922ede8bbddf1984708fa1e43d91143df45329fda440f8b2e5fc1d",
+  "plan_digest_contract": {
+    "digest_fields_excluded": [
+      "locked_utc",
+      "design_plan_digest"
+    ],
+    "self_reference_free": true,
+    "roundtrip": "build -> lock(O_CREAT 语义:已存在即拒) -> load_locked_design_plan_r12(独立进程) -> recompute -> compare -> no-data validation;design_plan_digest 写入 payload 但被复算排除(与 pack digest 同一模式,经 plan-roundtrip 子命令在临时目录真实验证)",
+    "one_shot_rule": "§8.4:正式 plan 锁定后任何 loader/代码缺陷 => R12 永久结束(aborted;不删不重锁;不复用 namespace;下一轮 R12)"
+  },
+  "matched_ladder": {
+    "contract_version": "C2MatchedLadderBlock-v1",
+    "contract_identity": "r6ml-b7723f07c0a652c2c02c31a460cbf573047f7aa1bb4a3176e10328f9f35332a3",
+    "implementation": "R6 冻结实现零修改复用(import,不复制);R6 tape/pairs + C2 generator 模块 sha256 进入 code_identity 且与 R8 baseline 记录值对拍(verify_matched_core_identity_r9)",
+    "matched_core_identity_r8": {
+      "r10_design_plan_digest": "r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c",
+      "modules": {
+        "curriculum261_c2.py": {
+          "r10_locked": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+          "r12_current": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+          "match": true
+        },
+        "curriculum261_r6_tape.py": {
+          "r10_locked": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+          "r12_current": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+          "match": true
+        },
+        "curriculum261_r6_pairs.py": {
+          "r10_locked": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+          "r12_current": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+          "match": true
+        }
+      },
+      "pass": true
+    },
+    "shared_components": [
+      "cue_time_table",
+      "cue_direction_table",
+      "wick_direction_context_chain",
+      "wick_width_context_chain",
+      "volume_path",
+      "base_noise_innovations",
+      "wick_jitter",
+      "initial_price",
+      "episode_duration",
+      "bar_timestamps",
+      "ab_variant_structure"
+    ],
+    "rung_varying": [
+      "alpha_bps",
+      "wick_kappa"
+    ],
+    "block_attempt_semantics": {
+      "max_attempts": 5,
+      "unit": "完整四-rung block"
+    }
+  },
+  "cue_semantic_contract": {
+    "version": "C2CueDetectionSemanticContract-v2",
+    "contract_digest": "r12cue-cf62a57d688289f37bef5dd75ec988310b1ac38be67b93d1a9a21f45a0c4012c",
+    "rule_identity": "r12csg-f4e02e9e7962f691bd868fc820ddea1d0fcb839deb065009010bad552b3c7ae2",
+    "audit_digest": "r12ca-334bcadd5e10cad3de5a475f5a5670992ff0005597754d895b7160a70ced497a",
+    "audit_pass": true,
+    "p_contract": 0.9504420768680084,
+    "noninferiority_delta": 0.02,
+    "absolute_minimum_recall": 0.9,
+    "recall_floor": 0.9304420768680084,
+    "recall_floor_formula": "max(absolute_minimum_recall, p_contract - noninferiority_delta)",
+    "mirror_bound": "lo = max(1, t-16); hi = min(t-8, n-17)",
+    "cluster_unit": "matched_block",
+    "canonical_observation": "D0/A",
+    "cluster_bootstrap": {
+      "resamples": 20000,
+      "seed": 20261010,
+      "method": "重采样完整 matched block;cluster 内 pooled 聚合;lower = α 分位(单侧 95% LCB),upper = 1-α 分位(单侧 95% UCB)"
+    },
+    "shared_gate_candidate_independent": true,
+    "candidate_specific": [
+      "payoff-bar false-cue UCB",
+      "cue precision LCB"
+    ],
+    "thresholds": {
+      "cue_precision_min": 0.85,
+      "non_cue_false_positive_max": 0.01,
+      "payoff_bar_false_cue_max": 0.06,
+      "min_unique_positive_cues": 3600
+    }
+  },
+  "semantic_corpora": {
+    "blocks_per_corpus": 160,
+    "namespaces": [
+      "cue_semantic_design_main_r12",
+      "cue_semantic_design_validation_r12"
+    ],
+    "ladder": "冻结 sentinel ladder(cur261-c2-v9 默认 D0-D3;candidate-independent;与任何 R12 candidate 数值无依赖)",
+    "sample_size_rationale": "R7 40 blocks 的 bootstrap SE ≈0.0069-0.0085,point≈0.95/floor≈0.93 时单侧 LCB 偶然失败概率过高;40→160 使 block-cluster SE 理论上减半,LCB 有明确余量(§14;数据后禁止扩样/第三 corpus/合并/删除)",
+    "min_unique_positive_cues": 3600,
+    "gate": "每 corpus 独立:unique-event coverage ≥3600 / canonical consistency / recall LCB ≥ recall_floor / non-cue FP UCB ≤0.01 / per-event K 完整 / noise replay 完整性;任一 FAIL => R12 design FAIL(§15)",
+    "candidate_decoupling": "shared cue 指标不进入 candidate maximin score;candidate-specific precision/false-cue 在 40-block candidate corpus 评估(§16)"
+  },
+  "candidate_grid": {
+    "candidates": {
+      "c2l_historical_control": {
+        "D0": {
+          "alpha_bps": 68.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.8,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.55,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.38,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 32.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.25,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_conservative": {
+        "D0": {
+          "alpha_bps": 74.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.82,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 56.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.6,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.4,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 28.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.26,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      },
+      "c2l_midpoint": {
+        "D0": {
+          "alpha_bps": 71.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.81,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D1": {
+          "alpha_bps": 55.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.575,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D2": {
+          "alpha_bps": 40.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.39,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        },
+        "D3": {
+          "alpha_bps": 30.0,
+          "payoff_bars": 1,
+          "vol_bps": 20.0,
+          "cue_rate": 0.82,
+          "wick_kappa": 0.255,
+          "dir_len_range": [
+            56,
+            80
+          ],
+          "width_len_range": [
+            96,
+            136
+          ],
+          "pulse_bps": 150.0,
+          "wick_base_bps": 80.0,
+          "wide_wick_bps": 110.0,
+          "narrow_wick_bps": 30.0
+        }
+      }
+    },
+    "n_candidates": 3,
+    "allowed_axes": [
+      "alpha_bps",
+      "wick_kappa"
+    ],
+    "historical_control": "c2l_historical_control(冻结默认;非选择性 control,不达标不得被选中)",
+    "grid_bounds": "§17:数量恰好 3(禁止第四个);非历史 candidate 的 D3 alpha∈[28,32];严格单调;三候选覆盖 D3 28/30/32"
+  },
+  "design_data": {
+    "blocks_per_candidate_per_corpus": 40,
+    "corpora": [
+      "design_r12_matched_main",
+      "design_r12_matched_validation"
+    ],
+    "corpora_role": "main/validation 均为参数开发数据,不得称为holdout",
+    "evaluation_mode": "raw(preproc=None)",
+    "block_schedule_sharing": "不同 candidate 的同 block_index 结构带逐位一致(seed 派生不含难度参数)"
+  },
+  "formal_block_options": [
+    10,
+    15,
+    20
+  ],
+  "statistics": {
+    "pair_table": "R4 唯一 pair 证据表(evaluate_pair_corpus_r4)",
+    "block_table": "唯一 C2 block 证据表(r6bt schema)",
+    "difficulty": "reference_pair - always_flat_pair",
+    "gap_se": "std(blockwise gap, ddof=1)/sqrt(n_blocks);禁止 sqrt(SE_hi^2+SE_lo^2)",
+    "power_targets": {
+      "gap_ge": "3.0x expected block SE",
+      "d3_ge": "2.5x expected block SE",
+      "margins_d2_d3_ge": "2.5x expected block SE",
+      "positive_gap_block_rate_min": 0.65,
+      "formal_gate_probability_min": 0.9
+    },
+    "formal_gate_simulation": {
+      "n_sim": 20000,
+      "seed": 20260922,
+      "resample_unit": "完整 block(bootstrap 不拆块)"
+    },
+    "scrambled_control": "仅诊断(permute 后 unpaired SE 对比;不参与任何 PASS 判定)"
+  },
+  "independent_marginal_guard": {
+    "namespace": "design_r12_independent_marginal",
+    "pairs_per_rung": 20,
+    "conditions": "marginal ordering / D3 positive / 基线 margins>0 / integrity=1.0 / oracle / 密度 / local cue independence / context observability / independent cue 语义;cue recall 只用点估计 ≥ 0.90 的灾难性退化护栏(正式 cluster gate 由 160-block dedicated semantic corpus 承担;§26);matched PASS 不可覆盖 FAIL;失败 → R12 = FAIL",
+    "timing": "design 选定 candidate 后、pack 锁定前"
+  },
+  "selection_rule": {
+    "qualification": "(candidate, n) 在两个 design corpus 均满足全部 matched power 硬门槛 + candidate-specific 语义(§23/§24);shared cue gate 在 dedicated semantic corpus 独立完成(§15)",
+    "order": [
+      "最小 formal block count n(10→15→20)",
+      "maximin score 最大(该 n 下)",
+      "参数偏离历史最小",
+      "candidate id 稳定排序"
+    ],
+    "maximin_score": "min over {gap/SE ×3, d3/SE, d3 margin/SE ×2, pos_rate/0.65, 密度比, payoff-fc UCB 余量 1-fc/0.06, precision LCB 余量 prec/0.85} × 两 corpus(不含 shared recall;§16)",
+    "hard_rule": "先选最小 n,再选该 n 下 score 最高者;平局取 distance 最小;禁止事后扩大 block 数;禁止删除失败 candidate;不得用 R6/R7 的 n=15 结果预指定(§18 全新 data 机械选择)"
+  },
+  "fail_path": {
+    "on_cue_audit_fail": "cue audit FAIL → 不得锁 design plan(§12)",
+    "on_semantic_gate_fail": "任一 semantic corpus gate FAIL → R12 design FAIL(不生成 candidate blocks;§15/§25)",
+    "on_no_qualified_combination": "R12 = FAIL;自动 power/semantic summary;保留 block tables;报告 binding condition;不生成 pack;不访问 marginal/calibration/final namespace;不写 exposure marker;不运行 full-cold(§25)",
+    "no_rescue": "不得通过修改 recall floor/delta/candidate/n/semantic block count 救援;不得追加 blocks 或换语料救援"
+  },
+  "preplan_smoke_identity": {
+    "sentinel_digest": "r12smoke-b1b0ab11014ec85451e679033f85d594a9cd2b6ae06fdbb1d4ec0c03e51be29a",
+    "cue_contract_digest": "r12cue-cf62a57d688289f37bef5dd75ec988310b1ac38be67b93d1a9a21f45a0c4012c",
+    "audit_digest": "r12ca-334bcadd5e10cad3de5a475f5a5670992ff0005597754d895b7160a70ced497a",
+    "plan_roundtrip": {
+      "executed": true,
+      "pass": true,
+      "format": "cur261-r12-plan-roundtrip-validation-v1"
+    }
+  },
+  "code_identity": {
+    "curriculum261_api.py": "0ee1b769259f1b30d3d9d16929319f6cd6b43a281b9863950115485bf826f330",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+    "curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+    "curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+    "curriculum261_r5_pairs.py": "ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r6_param_pack.py": "c86153681a72859676fc89973e669e1774bacd339f23feb1092061df7d316afc",
+    "curriculum261_r6_namespaces.py": "80c03ae1b0f6af56bc407a4bd038ea71cc0f49971f02df92501331bc8b5ba54b",
+    "curriculum261_r6_pairs.py": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+    "curriculum261_r12_noise_replay.py": "4d9df2154effb175c4035b0e76f6c759fa1f567fb8ec613a7caf854b80c0a6a2",
+    "curriculum261_r12_cue_contract.py": "e7814d6ac80b3c825b926b758fdaec9e6b8492fb2f51d47d473c1185d9c8761b",
+    "curriculum261_r12_cue_eval.py": "64f9566d0c03df43c8a805c053a427ea88891e2b54f480f7a0eff7f8e6016662",
+    "curriculum261_r12_dependencies.py": "b8c2e3157dcd63c670e7af17839c832db6671263325617c7d81d2aa2b4a6ddbc",
+    "curriculum261_r12_routing.py": "415dfcb242a04f012378c6ffafdf6bc5aeb9d381fb91575f74251d3960b2bcd4",
+    "curriculum261_r12_reference.py": "6864a2900ad704cf0d4da4107a225b26c89608ac64e76b78bc3cf4f040fb2598",
+    "curriculum261_r12_labels.py": "b995fae0b96c65e53158244820d36881034fdbb603c2b53fd5ba2d3dbed5bbb5",
+    "curriculum261_r12_orchestrator.py": "f996183e8acfb17c7e3ea3e2dd7aa35c7a3422117870c7dd0e972e86dfaa0d80",
+    "curriculum261_r12_delegation.py": "94fd35b3443b4addae88f5e8da00e750e203207c3c908cf99f38e16607ec7dad",
+    "curriculum261_r12_rehearsal.py": "1ebbb11fdbb993b8c77e0a92921bed6f9e955511b3ba314a780dcdc1664c7eb0",
+    "curriculum261_r12_namespaces.py": "b8034a2b0d338c04ed250042a764134f366afb72c22443e124fdb0e5cac8d26b",
+    "curriculum261_r12_param_pack.py": "ba4a744eefa3d4838547e3ff00a823b460c7afa56490b54af3b5997056af2c71",
+    "curriculum261_r12_preplan.py": "3098b8811cdb9925e47d0914c82a494a614c10cedc1c80dd7cd80ca60a38b284",
+    "curriculum261_r12_design.py": "bf01794aeb9834662c283b7afce278daebe63eca95c755b9ed016ce8ab8f1356",
+    "curriculum261_r12_calibration.py": "acfd385fa6b99bd65c909f4ef7d6d62c2e936226c9d6ecae45a28705f3c64a27",
+    "curriculum261_r12_plan.py": "d37b349d0810f2de057dab79dfbc335001304b17b1271b9330dbb02108c40866",
+    "curriculum261_r12_preflight.py": "507d20707ee2680f96ca710add1bc2db524dc9decf898c4c56d34ebb8f2f729d",
+    "curriculum261_r12_final.py": "5fed52230383d899cfa291ba3c6571a1f8492089f4ea9f59fdca4e0081cce622",
+    "curriculum261_r12_smoke.py": "e962d267daa9ee86cd069c3c27466d0615c7da709aaf9a626b502681d99d7bbb",
+    "curriculum261_r12_cli.py": "4e2efe4f15da9c4b606befa822df4cb0d3734085cce0f0fdbed765f6bc93a0f6"
+  },
+  "design_plan_digest": "r12dp-cfbf0f1535b9c54723cd7d23a2d8db016a6257bb4b5f1686d60212f58e593592",
+  "locked_utc": "2026-09-03T18:08:33+00:00"
+}
