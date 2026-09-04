@@ -1,0 +1,447 @@
+{
+  "format": "cur261-r14-semantic-corpus-v1",
+  "namespace": "preplan_semantic_main_r14",
+  "ladder": "c2l_historical_control",
+  "n_blocks": 2,
+  "semantic_blocks_per_corpus_expected": 160,
+  "shared": {
+    "format": "cur261-r14-semantic-cue-gate-v1",
+    "label": "selected@preplan_semantic_main_r14",
+    "canonical": "D0/A",
+    "cluster_unit": "matched_block",
+    "ladder_alpha_wick": {
+      "D0": {
+        "alpha_bps": 68.0,
+        "wick_kappa": 0.8
+      },
+      "D1": {
+        "alpha_bps": 54.0,
+        "wick_kappa": 0.55
+      },
+      "D2": {
+        "alpha_bps": 40.0,
+        "wick_kappa": 0.38
+      },
+      "D3": {
+        "alpha_bps": 32.0,
+        "wick_kappa": 0.25
+      }
+    },
+    "cue_table_digest": "r14ct-6e78379f8ed04975659815f6106bd417674c7314f5f6c1a428c2860c854dd53f",
+    "violations": [],
+    "n_blocks": 2,
+    "n_unique_positive_cues": 52,
+    "min_unique_positive_cues": 3600,
+    "unique_positive_cues_per_block": {
+      "min": 26,
+      "median": 26.0,
+      "max": 26
+    },
+    "recall": {
+      "point": 0.9615384615384616,
+      "n_events": 52,
+      "n_clusters": 2,
+      "side": "lower",
+      "bound": 0.9615384615384616,
+      "n_boot": 20000,
+      "degenerate": false,
+      "bootstrap_se": 0.0
+    },
+    "recall_floor": 0.9304,
+    "noncue_false_positive": {
+      "point": 0.0,
+      "n_events": 368,
+      "n_clusters": 2,
+      "side": "upper",
+      "bound": 0.0,
+      "n_boot": 20000,
+      "degenerate": false,
+      "bootstrap_se": 0.0,
+      "max": 0.01
+    },
+    "noise_replay": {
+      "max_replay_abs_error": 2.0556473190325164e-16,
+      "tolerance": 1e-12,
+      "all_replay_ok": true,
+      "all_bounds_ok": true
+    },
+    "tail_position_diagnostic": {
+      "n_events": 3,
+      "n_detected": 3,
+      "recall": 1.0
+    },
+    "k_summary": {
+      "k_mean": 0.9615384615384616,
+      "k_histogram": {
+        "0": 16,
+        "1": 25,
+        "2": 9,
+        "3": 1,
+        "4": 1
+      }
+    },
+    "checks": {
+      "canonical_consistency": true,
+      "recall_lcb_ge_floor": true,
+      "noncue_fp_ucb_le_max": true,
+      "n_unique_positive_cues_ge_min": false,
+      "coverage_complete": true,
+      "per_event_k_complete": true,
+      "noise_replay_integrity": true,
+      "aggregate_recompute_ok": true
+    },
+    "pass": false,
+    "block_attempt_stats": {
+      "n_blocks": 2,
+      "first_pass_rate": 1.0,
+      "attempts_histogram": {
+        "0": 2,
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0
+      },
+      "mean_attempts": 0.0,
+      "max_attempts_used": 0,
+      "rejection_reasons": {}
+    },
+    "block_corpus_summary": {
+      "n_blocks": 2,
+      "block_contract": "C2MatchedLadderBlock-v1",
+      "all_rung_pair_integrity_pass": true,
+      "all_cross_rung_matching_pass": true,
+      "distinct_shared_tape_count": 2,
+      "attempt_stats": {
+        "n_blocks": 2,
+        "first_pass_rate": 1.0,
+        "attempts_histogram": {
+          "0": 2,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "mean_attempts": 0.0,
+        "max_attempts_used": 0,
+        "rejection_reasons": {}
+      },
+      "block_indices": [
+        0,
+        1
+      ],
+      "episode_bars": 288,
+      "initial_price": 1.0
+    }
+  },
+  "candidate": {
+    "format": "cur261-r14-candidate-cue-semantics-v1",
+    "candidate": "c2l_historical_control",
+    "cluster_unit": "matched_block",
+    "per_rung": {
+      "D0": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.028846153846153848,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.038461538461538464,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.006821312300857492,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9433962264150944,
+              "n_events": 53,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 0.9259259259259259,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.012632741508541644,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 3,
+              "noncue_over": 0
+            },
+            "pass": true
+          }
+        },
+        "d0_hard_requirement_note": "D0(最大 alpha)单独通过是硬要求;本 gate 按 rung × side 全部单独通过(更强)",
+        "pass": true
+      },
+      "D1": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.009615384615384616,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.019230769230769232,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.006821312300857492,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 0.9803921568627451,
+              "n_events": 51,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 0.9615384615384616,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.013644415747074253,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 1,
+              "noncue_over": 0
+            },
+            "pass": true
+          }
+        },
+        "d0_hard_requirement_note": "D0(最大 alpha)单独通过是硬要求;本 gate 按 rung × side 全部单独通过(更强)",
+        "pass": true
+      },
+      "D2": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          }
+        },
+        "d0_hard_requirement_note": "D0(最大 alpha)单独通过是硬要求;本 gate 按 rung × side 全部单独通过(更强)",
+        "pass": true
+      },
+      "D3": {
+        "sides": {
+          "A": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          },
+          "B": {
+            "payoff_false_cue": {
+              "point": 0.0,
+              "n_events": 104,
+              "n_clusters": 2,
+              "side": "upper",
+              "bound": 0.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "max": 0.06,
+              "pass": true
+            },
+            "cue_precision": {
+              "point": 1.0,
+              "n_events": 50,
+              "n_clusters": 2,
+              "side": "lower",
+              "bound": 1.0,
+              "n_boot": 20000,
+              "degenerate": false,
+              "bootstrap_se": 0.0,
+              "min": 0.85,
+              "pass": true
+            },
+            "confusion": {
+              "cue_pos_over": 50,
+              "cue_neg_over": 0,
+              "payoff_over_true": 0,
+              "payoff_over": 0,
+              "noncue_over": 0
+            },
+            "pass": true
+          }
+        },
+        "d0_hard_requirement_note": "D0(最大 alpha)单独通过是硬要求;本 gate 按 rung × side 全部单独通过(更强)",
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "n_semantic_episodes": 16,
+  "pass": false,
+  "corpus_role": "preplan_main",
+  "design_plan_digest": "r14dp-rehearsal-sentinel",
+  "event_count": 52
+}
