@@ -1,0 +1,920 @@
+{
+  "format": "cur261-r14-qualification-plan-v1",
+  "iteration": "r14",
+  "baseline_commit": "b8e1de05cc3040ddc81634eb36d735a9fe3483da",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+  "frozen_contracts": {
+    "expected": {
+      "env_core": "RouteCEnvCore-v1.0.0",
+      "observation_spec": "ObservationSpec-v1",
+      "action_spec": "BinaryLongFlatAction-v1",
+      "reward_spec": "NetLogEquityReward-v1",
+      "execution": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation": "TerminalLiquidation-v1"
+    },
+    "actual": {
+      "env_core": "RouteCEnvCore-v1.0.0",
+      "observation_spec": "ObservationSpec-v1",
+      "action_spec": "BinaryLongFlatAction-v1",
+      "reward_spec": "NetLogEquityReward-v1",
+      "execution": "MarketOpenCausalExecution-v1",
+      "terminal_liquidation": "TerminalLiquidation-v1"
+    },
+    "unchanged": true,
+    "rl_platform_tree_hash": "rp-8a61cd612e4543d5c76fa2c7d2a31538a6408195019622eaf38c8470724ca5b3",
+    "pass": true
+  },
+  "route_c_identities": {
+    "env_core_version": "RouteCEnvCore-v1.0.0",
+    "observation_spec_version": "ObservationSpec-v1"
+  },
+  "code_freeze": {
+    "code_freeze_sha": "586f6bd764f91d85fd4abaf2d616239f5a30fbaa",
+    "contract": "正式 R14 数据开始前全部源码+测试已提交;正式数据开始后任何源码变化 -> R14 永久结束(§6/§21)"
+  },
+  "policy_visible_reference": {
+    "contract_digest": "r14pv-6bf4d9a3fee8d05adfb82c0624c9fe65c1ccb429502dd1478fa3967528e09591",
+    "bundle_routing_contract_digest": "r14rt-e25bce9480153e0995c24ba3adf4734afaf089f7c49b2d635157cdf15f065022",
+    "supervised_label_contract": "PolicyVisibleSupervisedLabel-v1"
+  },
+  "prior_r9": {
+    "design_plan_digest": "r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4",
+    "abort_evidence": {
+      "retained": true,
+      "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair9/r9_iteration_aborted.json",
+      "aborted_utc": "2026-09-02T07:36:25+00:00",
+      "reason_head": "calibrate 阶段(design plan r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4 锁定后)执行异常(TypeError: supervised_learnability_run_r9() missing 1 re",
+      "failure_mode": "CLI supervised 调用缺 namespace -> TypeError(R9 硬规则诚实 FAIL)",
+      "design_evidence_role": "R9 cue audit/160x2 semantic/三候选/n=10/marginal/pack = development evidence only",
+      "r9_design_plan_digest": "r9dp-83d4d3b71942604db1bbe895cedcdf083151b835c962f8f9da20b432ef4843f4",
+      "r9_parameter_pack_digest": "r9pk-c3070b5bc114b77d0ca314a033ff14181aeac5fe7a916f4f5a6269624b6b26b9",
+      "r9_exposure_absent": true,
+      "r9_qualification_never_run": true
+    },
+    "role": "R9 design 全部结果仅作 development evidence;R14 在全新 namespace 重做"
+  },
+  "prior_r10": {
+    "design_plan_digest": "r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c",
+    "abort_evidence": {
+      "retained": true,
+      "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair10/r10_iteration_aborted.json",
+      "aborted_utc": "2026-09-02T17:29:54+00:00",
+      "reason_head": "calibrate 阶段(design plan r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c 锁定后)shared orchestration 的 supervised main 步骤抛 PairGenerationError:c3_cost/D0/pair1(namespace=supervised_main_r10)5 次尝试全部未通过结构性校验(too_few_distractors)。按 §21 硬规则(plan 锁定后任何异常,含 calibration runner 错误):R10 永久结束;保留全部 plan 与已生成证据;不得修复后继续;下一轮必须 R11。",
+      "failure_mode": "calibrate/shared orchestration/supervised main 生成 c3_cost/D0/pair1 抛 PairGenerationError(5 attempts 全部 too_few_distractors;A/B/pair 三段同文案)",
+      "root_cause_statement": "historically underdetermined due to missing invocation-state evidence(三种重放不可复现;R10 当时的 PairGenerationError 未保留逐 attempt 调用状态)",
+      "r14_closure": "R12 工作包 A(经 curriculum261_generation_envelope 共享模块由 R14 继承):generation invocation envelope + 逐 attempt 证据落盘 + 跨进程确定性矩阵 + mutable state 审计",
+      "design_evidence_role": "R10 cue audit/semantic 160x2/三候选/n=15(机械)/marginal/pack = development evidence only;R14 必须全新 namespace 重新执行机械 design,不得复制 R10 正式结论",
+      "r10_design_plan_digest": "r10dp-e39575ba0cf66c5f229328ceefc4ef506ffbb3c191f15261f592ab5087dd6f9c",
+      "r10_parameter_pack_digest": "r10pk-a475b997313b445ca25aa76f43e394bbe5bf493942942d39f7a6f6b75feb9314",
+      "r10_final_freeze_commit": "06e9b5beb4df564e51d27aae444f281843356809",
+      "r10_exposure_absent": true,
+      "r10_qualification_never_run": true
+    },
+    "root_cause_statement": "historically underdetermined due to missing invocation-state evidence(R10 生成失败重放不可复现)",
+    "role": "R10 design/pack 全部结果仅作 development evidence;R14 在全新 namespace 重做机械 design"
+  },
+  "prior_r12": {
+    "design_plan_digest": "r12dp-cfbf0f1535b9c54723cd7d23a2d8db016a6257bb4b5f1686d60212f58e593592",
+    "abort_evidence": {
+      "iteration": "r12",
+      "final_verdict": "FAIL(永久;统计链 cue/global K/design/calibration/holdout 全部 PASS 但不被追认为 R14 输入;R14 必须全新 namespace 重新执行)",
+      "fail_reasons": [
+        "lock-plan 阶段源码缺陷:读取 preprocessor_bundle_calibration.json / preprocessor_bundle_holdout.json 的 'bundle_hash' 键,实际键为 'preprocessor_bundle_hash'(KeyError: 'bundle_hash';curriculum261_r12_cli.py:1717;Commit A 75a66dd 冻结代码;§五 不可变冻结规则 => R12 永久 FAIL,下一轮 R15)",
+        "治理缺口(非硬失败,但为 R14 直接动因):Commit A 前的 release rehearsal 使用 synthetic/in-memory 输入,未真正通过正式 CLI 读取 production command 写出的落盘 artifacts,未覆盖真实 producer/consumer 接口"
+      ],
+      "failure_classification": "producer/consumer artifact interface inconsistency(冻结源码缺陷;非统计失败;非 tail/position-wise 失败)",
+      "latent_defect_2_discovered_by_r14": "R14 全仓库接口审计另发现 sealed preflight 证据文件名错配(要求 preprocessing_robustness_gate.json / curriculum_robustness_gate.json / supervised_learnability.json 三个 R3/R4 时代文件名,而 calibrate 实际写 robustness_gate.json / supervised_learnability_main|holdout.json);R12 未活到该步故未触发;R14 已在 Commit A 前修复",
+      "statistical_chain_status_at_failure": "cue audit PASS(p_contract=0.950442)/global K PASS(T_obs=3.2329,p=0.511770)/tail integrity PASS/design PASS(c2l_historical_control,n=15)/calibration main+holdout 独立 PASS —— 全部仅作历史记录,不进入 R14",
+      "abort_marker_exists": true,
+      "abort_marker_blob_matches_baseline": true,
+      "failure_traceback_blob_matches_baseline": true,
+      "cue_audit_result_blob_matches_baseline": true,
+      "robustness_gate_blob_matches_baseline": true,
+      "calibration_evidence_blob_matches_baseline": true,
+      "preprocessor_bundle_calibration_blob_matches_baseline": true,
+      "preprocessor_bundle_holdout_blob_matches_baseline": true,
+      "fail_path_cleanliness_blob_matches_baseline": true,
+      "r12_design_plan_digest": "r12dp-cfbf0f1535b9c54723cd7d23a2d8db016a6257bb4b5f1686d60212f58e593592",
+      "r12_parameter_pack_digest": "r12pk-c021cc6a45bc114fe869fe94ea2a61e77b16f58861464dcf445dc81950eadd9d",
+      "design_plan_digest_ok": true,
+      "parameter_pack_digest_ok": true,
+      "qualification_exposure_absent": true,
+      "qualification_plan_never_locked": true,
+      "final_qualification_not_executed": true,
+      "r12_commits": {
+        "commit_a": "75a66dde368c6f7c8ccc1a70e19445a6f86165fe",
+        "commit_b": "960dbe19701901f9262614aadf8b7f97742fab4d"
+      },
+      "pass": true
+    },
+    "failure_classification": "producer/consumer artifact interface inconsistency(lock-plan 读取 'bundle_hash',实际键 'preprocessor_bundle_hash';非统计失败)",
+    "role": "R12 统计链全部 PASS 仅作历史记录,不进入 R14;R14 在全新 namespace 重做全链,且以 R14RealArtifactCliRoundTrip-v1 在 Commit A 前覆盖真实落盘 artifact 读写边界"
+  },
+  "generation_determinism_contract": {
+    "binding": {
+      "bound": true,
+      "path": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal/determinism/generation_determinism_contract.json",
+      "root_cause_statement": "historically underdetermined due to missing invocation-state evidence",
+      "checks": {
+        "cross_process_matrix_pass": true,
+        "matrix_all_scenarios_identical": true,
+        "r10_seed_replay_consistent": true,
+        "r10_failure_reproduced": false,
+        "state_audit_pass": true,
+        "singleton_state_clean": true,
+        "envelope_roundtrip_all_ok": true,
+        "replay_call_digest_match": true,
+        "replay_envelopes_consistent": true,
+        "target_call_executable": true
+      }
+    },
+    "role": "工作包 A6:同一 invocation 跨进程 identity 完全一致的合同证据(audit 阶段硬前置)"
+  },
+  "parameter_pack": {
+    "digest": "r14pk-cc6cb2ad6b9467486ed843e70afa808b12e7a7f9d142646fee1d3d6ec0a82e2b",
+    "pack_version": "CurriculumR14MatchedLadderPack-v1",
+    "selected_c2_candidate": "c2l_historical_control",
+    "selected_block_count": 20,
+    "c2_ladder": {
+      "D0": {
+        "alpha_bps": 68.0,
+        "payoff_bars": 1,
+        "vol_bps": 20.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.8,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "D1": {
+        "alpha_bps": 54.0,
+        "payoff_bars": 1,
+        "vol_bps": 20.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.55,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "D2": {
+        "alpha_bps": 40.0,
+        "payoff_bars": 1,
+        "vol_bps": 20.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.38,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      },
+      "D3": {
+        "alpha_bps": 32.0,
+        "payoff_bars": 1,
+        "vol_bps": 20.0,
+        "cue_rate": 0.82,
+        "wick_kappa": 0.25,
+        "dir_len_range": [
+          56,
+          80
+        ],
+        "width_len_range": [
+          96,
+          136
+        ],
+        "pulse_bps": 150.0,
+        "wick_base_bps": 80.0,
+        "wide_wick_bps": 110.0,
+        "narrow_wick_bps": 30.0
+      }
+    },
+    "r4_parameter_pack_digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+    "r5_design_plan_digest": "r5dp-0c1eb69f95336f7d649192bc4293eaf768b37508f47c8c21c919009eb3afe52d",
+    "r6_design_plan_digest": "r6dp-db74ed109a7bf7a955c74f1bd248213002d3c08f79512abf0faf93f8941e03c7",
+    "r7_design_plan_digest": "r7dp-73d65b6838c0686b26ad4c74c1fd7ca94d72aa8f20930d78a555bb8f8890e454",
+    "semantic_blocks_per_corpus": 160,
+    "noninferiority_delta": 0.02
+  },
+  "design": {
+    "design_plan_digest": "r14dp-11d7c442463f998787698ec225459afa79ae1a39ac2accf9ea5ffa8f3e07a04f",
+    "selected_c2_candidate": "c2l_historical_control"
+  },
+  "matched_ladder": {
+    "contract_version": "C2MatchedLadderBlock-v1",
+    "contract_identity": "r6ml-b7723f07c0a652c2c02c31a460cbf573047f7aa1bb4a3176e10328f9f35332a3",
+    "implementation": "R6 冻结实现零修改复用(import);R6 tape/pairs 模块 sha256 进入 code_identity",
+    "block_integrity_identity": "C2MatchedLadderBlock-v1|n=40|tapes=40|integrity=True|cross=True",
+    "block_attempt_semantics": "block-level max_attempts=5;任一 rung 或跨 rung matching 失败 → 整 block 重试",
+    "statistical_unit": "matched block(四 rung 同结构带配对差分;gap SE = std(blockwise)/sqrt(n_blocks);禁止独立 SE 二次合成)",
+    "scrambled_control": "仅诊断(不参与 PASS 判定)",
+    "independent_marginal_guard": "独立-rung 语料 mean ordering/D3/逐基线 positive/integrity/密度/cluster-aware cue 语义(matched PASS 不可覆盖)"
+  },
+  "cue_semantic_contract": {
+    "version": "C2CueDetectionSemanticContract-v2",
+    "contract_digest": "r14cue-cf62a57d688289f37bef5dd75ec988310b1ac38be67b93d1a9a21f45a0c4012c",
+    "rule_identity": "r14csg-f4e02e9e7962f691bd868fc820ddea1d0fcb839deb065009010bad552b3c7ae2",
+    "audit_digest": "r14ca-de0873a2f732fc2c61955558e14454b52b2441be89b7f51154356cf2e93e3831",
+    "p_contract": 0.9504658590419711,
+    "noninferiority_delta": 0.02,
+    "recall_floor": 0.9304658590419711,
+    "recall_pass_rule": "dedicated 160-block semantic corpus 的 block-cluster bootstrap 单侧 95% LCB >= recall_floor(unique event 去重;canonical D0/A;marginal guard 只用点估计≥0.90 灾难护栏)",
+    "cluster_unit": "matched block / independent pair",
+    "mirror_bound": "lo = max(1, t-16); hi = min(t-8, n-17)",
+    "semantic_blocks_per_corpus": 160
+  },
+  "preprocessing_v2": {
+    "contract_version": "RouteCFeaturePreprocessing-v2",
+    "contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+    "implementation": "pinned vendor IFreqaiModel.define_data_pipeline(直接复用;R14 全新语料重新资格验证)",
+    "vendor_pipeline_steps": [
+      "ds.VarianceThreshold(threshold=0)",
+      "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+    ],
+    "runtime_config_identity": {
+      "format": "cur261-production-runtime-config-v1",
+      "config_path": "experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json",
+      "config_sha256": "37c03d340b43e67fc8ffb240f7992dc3aae4f8b9e28e465287161a601b91b642",
+      "drop_ohlc_from_features": false,
+      "add_state_info": false,
+      "model_type": "PPO",
+      "policy_type": "MlpPolicy",
+      "principal_component_analysis": false,
+      "use_SVM_to_remove_outliers": false,
+      "DI_threshold": 0,
+      "default_feature_pipeline": [
+        "ds.VarianceThreshold(threshold=0)",
+        "SKLearnWrapper(MinMaxScaler(feature_range=(-1,1)))"
+      ],
+      "conv_width_supported": 1,
+      "define_data_pipeline_sha256": "343b1c9b55738facb623e8ab3c2a5a26992a47748edcfa2df5d1a25c630bd90f",
+      "rl_model_train_path_sha256": "7f39d53cd7299066afccfe0a36c9cd91f0dd531a1cb1249e1ee18beeeae3ee36",
+      "rl_platform_guards_sha256": "95899f323a7e3d2fec6b496d53db29664364f52a58d934fe4b9451db54e706ec",
+      "rl_train_path_summary": "OHLCV -> RouteCStrategy.feature_engineering_standard(8 列) -> feature_pipeline.fit_transform(train_features)(VarianceThreshold(0)+MinMaxScaler((-1,1)),fit 于训练窗) -> AlignedLongFlatEnv(df=scaled, window=CONV_WIDTH=1) -> observation=[特征行, 仓位槽](dim=9)"
+    },
+    "ordered_feature_columns": [
+      "%-ret-1",
+      "%-ret-4",
+      "%-vol-24",
+      "%-price-ma-ratio",
+      "%-raw_open",
+      "%-raw_high",
+      "%-raw_low",
+      "%-raw_close"
+    ],
+    "feature_survival_requirement": "8/8 全部存活,observation dim 恒为 9",
+    "position_slot": {
+      "index": 8,
+      "values": "0=Flat,1=Long",
+      "participates_in_fit": false,
+      "scaled": false,
+      "clipped": false,
+      "appended_by": "rl_platform.env.AlignedLongFlatEnv._observation"
+    },
+    "observation_space": {
+      "feature_dimensions": "(-inf, +inf) per feature dim",
+      "position_dimension": "[0, 1]",
+      "dtype": "float32",
+      "dim": 9,
+      "clip_by_pipeline": false,
+      "clip_by_wrapper": false,
+      "out_of_train_range": "linear extrapolation beyond [-1, 1];unbounded space accepts any finite value",
+      "declared_by": "RouteCPreprocessingEnvV2(outer Gymnasium wrapper;inner AlignedLongFlatEnv 冻结声明不变)"
+    },
+    "fit_protocol": "offline training-corpus fit -> frozen deployment transform;统一 single preprocessor,C1/C2/C3 共享;position 不参与 fit;staged/mixed 同 multiset 同 state",
+    "fit_manifest_derivation": "build_fit_manifest_entries(逐 episode provenance;multiset hash 行序不敏感)"
+  },
+  "pair_table": {
+    "schema": {
+      "format": "cur261-r4-pair-evidence-table-v1",
+      "row_key": [
+        "corpus",
+        "family",
+        "rung",
+        "pair_index"
+      ],
+      "aggregation": "pair return = mean(A, B) per policy(A/B 不拆散)",
+      "difficulty": "difficulty_pair[p] = reference_pair[p] - always_flat_pair[p](唯一难度口径)",
+      "margin": "margin[p,b] = reference_pair[p] - baseline_b_pair[p](逐固定基线;禁止 episode 级 max)",
+      "uncertainty": "pair cluster;SE = sd(pair values)/sqrt(n_pairs)",
+      "gap": "adjacent rung gap = mean_hi - mean_lo;SE_gap = sqrt(SE_hi^2 + SE_lo^2)(独立 corpus 样本)",
+      "bootstrap": "percentile;resample pairs;seed=20260901;resamples=5000"
+    },
+    "schema_identity": "r4pt-8983715e7bec9568038a49f504a635ff1532563c6550ac2fa6e115fe23573c09",
+    "c2_block_table": {
+      "format": "cur261-r6-c2-block-evidence-table-v1",
+      "row_key": [
+        "corpus",
+        "family",
+        "block_index"
+      ],
+      "pair_metrics": "每 rung 的 pair(A/B 均值)return 指标,来自唯一 R4 pair 表(evaluate_pair_corpus_r4 同源)",
+      "gaps": "gap[block] = pair_return[hi] - pair_return[lo](blockwise 配对差分)",
+      "uncertainty": "block cluster;SE = std(blockwise values)/sqrt(n_blocks)",
+      "bootstrap": "percentile;resample whole blocks(A/B 与四 rung 不拆散);seed=20260922;resamples=20000"
+    },
+    "c2_block_table_identity": "r6bt-c8fb20b7a633038c672d8fedd9d78c34fd52a3cee8d0f80a95d59ab14d95ec18",
+    "difficulty": "reference_pair - always_flat_pair",
+    "fixed_baseline_margin": "逐固定基线,无 hindsight",
+    "statistical_unit": "C1/C3 pair cluster(A/B 均值);C2 matched block(四 rung 配对差分);cue 语义 = unique event 去重 + block cluster bootstrap"
+  },
+  "statistics_rule": {
+    "rule": "strict per-corpus AND(calibration_r6 AND calibration_holdout_r6 各自独立满足全部条件;pooled 仅诊断)",
+    "kappa": 1.5,
+    "c1_c3": "R4/R5 pair-cluster 口径(ordering/gaps κ×SE/D3 κ×SE/逐基线 margin κ×SE/integrity/oracle);统计实现复用corpus_conditions_r5(同源)",
+    "c2_matched": "difficulty ordering + blockwise adjacent gaps + D3 absolute margin + fixed-baseline margins + positive-gap block rate + block/pair/cross-rung integrity + density + local cue independence + context observability(A/B 双 carrier);cue/payoff 点估计分离检查仅 diagnostic_only(R14 GateTopologyReconciliation-v1)",
+    "c2_marginal_guard": "marginal ordering + D3 positive + fixed-baseline positive margins + integrity + density + local/context structural checks;cue 点估计仅 0.90 灾难护栏 + noncue UCB;matched PASS 不可覆盖 FAIL;无 SE 要求(R14 GateTopologyReconciliation-v1)",
+    "pooled_rule": "仅诊断字段;不得覆盖任何 corpus FAIL",
+    "scrambled_control": "仅诊断(matched vs unpaired 方差缩减说明);禁止参与 PASS 判定或事后口径选择",
+    "locked_before_data": "本字典进入 design plan 与 qualification plan;design/calibration data 生成后禁止修改",
+    "cue_semantic_gate_topology": "cue recall/precision/non-cue FP/payoff-bar false-cue 的唯一 binding source = dedicated 160-block semantic corpus(cluster-aware LCB/UCB,既有阈值);matched corpus 点估计 diagnostic_only",
+    "rule_identity": "r6sg-8da293c1424729466113a237b923fd5596f5808d04c08100444da2c1d6dc6dbb",
+    "cue_rule_identity": "r14csg-f4e02e9e7962f691bd868fc820ddea1d0fcb839deb065009010bad552b3c7ae2",
+    "gate_topology_version": "GateTopologyReconciliation-v1",
+    "gate_topology_digest": "r14gt-1e221e42016c64e525f8628e0c13024dd21f19a769c33ada48dbf9f5af7a14cc",
+    "gate_topology": {
+      "version": "GateTopologyReconciliation-v1",
+      "iteration": "r14",
+      "binding_checks": [
+        "adversarial_out_of_range",
+        "block_contract_identity",
+        "c1_strict_pass",
+        "c2_context_observability_pass",
+        "c2_dedicated_semantic_corpus_pass",
+        "c2_density_pass",
+        "c2_independent_marginal_pass",
+        "c2_local_cue_independence_pass",
+        "c2_matched_strict_pass",
+        "c3_strict_pass",
+        "conditioning_gate",
+        "cue_semantic_contract_identity",
+        "fresh_seed_disjoint",
+        "gate_topology_digest_consistent",
+        "latent_isolation",
+        "matched_block_reproducibility",
+        "observation_space_v2",
+        "preprocessing_envelope_reload",
+        "preprocessing_survival_8_of_8",
+        "production_numerical_equivalence",
+        "reference_equivalence_all",
+        "reference_equivalence_canonical_full",
+        "reproducibility_all",
+        "routing_final_bundle_verified",
+        "selected_block_count_consistent",
+        "semantic_block_count_consistent",
+        "supervised_gate"
+      ],
+      "diagnostic_only_checks": [
+        "c2_matched_cue_point_diagnostics"
+      ],
+      "cue_semantic_binding_source": "dedicated_160_block_semantic_corpus",
+      "matched_responsibilities": [
+        "difficulty_ordering",
+        "blockwise_adjacent_gaps",
+        "d3_absolute_margin",
+        "fixed_baseline_margins",
+        "positive_gap_block_rate",
+        "block_pair_cross_rung_integrity",
+        "density",
+        "local_cue_independence",
+        "context_observability"
+      ],
+      "independent_marginal_responsibilities": [
+        "marginal_ordering",
+        "d3_positive",
+        "fixed_baseline_positive_margins",
+        "integrity",
+        "density",
+        "local_context_structural_checks"
+      ],
+      "matched_point_diagnostic_thresholds": {
+        "cue_recall_min": 0.95,
+        "cue_precision_min": 0.85,
+        "non_cue_false_positive_max": 0.01,
+        "payoff_bar_false_cue_max": 0.06
+      },
+      "registry": {
+        "preprocessing_survival_8_of_8": {
+          "check": "preprocessing_survival_8_of_8",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "preprocessing_v2_survival",
+          "rule": "8/8 family survival(fail closed)"
+        },
+        "preprocessing_envelope_reload": {
+          "check": "preprocessing_envelope_reload",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "preprocessor_bundle_reload",
+          "rule": "final fit state envelope 落盘重载等价"
+        },
+        "production_numerical_equivalence": {
+          "check": "production_numerical_equivalence",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "production_preprocessing_equivalence",
+          "rule": "production 8-feature 逐 bar 数值等价"
+        },
+        "observation_space_v2": {
+          "check": "observation_space_v2",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "observation_space_validation",
+          "rule": "V2 outer 无界空间契约"
+        },
+        "adversarial_out_of_range": {
+          "check": "adversarial_out_of_range",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "adversarial_probe",
+          "rule": "out-of-range 输入 fail closed"
+        },
+        "reference_equivalence_all": {
+          "check": "reference_equivalence_all",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "canonical_reference_equivalence",
+          "rule": "policy-visible canonical reference 全等"
+        },
+        "reference_equivalence_canonical_full": {
+          "check": "reference_equivalence_canonical_full",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "canonical_reference_equivalence",
+          "rule": "canonical scaled full equality"
+        },
+        "routing_final_bundle_verified": {
+          "check": "routing_final_bundle_verified",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "bundle_routing",
+          "rule": "final namespace routing contract"
+        },
+        "reproducibility_all": {
+          "check": "reproducibility_all",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "determinism_replay",
+          "rule": "seed 重放全等"
+        },
+        "matched_block_reproducibility": {
+          "check": "matched_block_reproducibility",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "determinism_replay",
+          "rule": "matched block 重放全等"
+        },
+        "latent_isolation": {
+          "check": "latent_isolation",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "latent_probe",
+          "rule": "latent 通道隔离"
+        },
+        "fresh_seed_disjoint": {
+          "check": "fresh_seed_disjoint",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "fresh_seed_validity",
+          "rule": "fresh seed 与正式 seed 不相交"
+        },
+        "c1_strict_pass": {
+          "check": "c1_strict_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "c1_opportunity_corpus",
+          "rule": "strict per-corpus AND(kappa;相邻 gap;D3 margin;fixed-baseline margins)"
+        },
+        "c3_strict_pass": {
+          "check": "c3_strict_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "c3_cost_corpus",
+          "rule": "strict per-corpus AND(kappa;相邻 gap;D3 margin;fixed-baseline margins)"
+        },
+        "c2_matched_strict_pass": {
+          "check": "c2_matched_strict_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "matched_ladder_20_blocks",
+          "rule": "matched corpus 9 项正式职责(difficulty ordering/adjacent gaps/D3 margin/fixed-baseline margins/positive-gap block rate/integrity/density/local cue independence/context observability);cue 点估计不在其中",
+          "responsibilities": [
+            "difficulty_ordering",
+            "blockwise_adjacent_gaps",
+            "d3_absolute_margin",
+            "fixed_baseline_margins",
+            "positive_gap_block_rate",
+            "block_pair_cross_rung_integrity",
+            "density",
+            "local_cue_independence",
+            "context_observability"
+          ]
+        },
+        "c2_independent_marginal_pass": {
+          "check": "c2_independent_marginal_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "independent_marginal_corpus",
+          "rule": "marginal ordering/D3 positive/fixed-baseline positive margins/integrity/density/local-context structural;cue 点估计仅 0.90 灾难护栏 + noncue UCB(既有语义)",
+          "responsibilities": [
+            "marginal_ordering",
+            "d3_positive",
+            "fixed_baseline_positive_margins",
+            "integrity",
+            "density",
+            "local_context_structural_checks"
+          ]
+        },
+        "c2_dedicated_semantic_corpus_pass": {
+          "check": "c2_dedicated_semantic_corpus_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "dedicated_160_block_semantic_corpus",
+          "rule": "cluster-aware block bootstrap 单侧 95% LCB >= recall_floor(既有);noncue FP UCB <= 0.01;precision LCB >= 0.85;payoff-bar false-cue UCB <= 0.06——cue recall/precision/false-cue 的唯一 binding source",
+          "metric_scope": [
+            "cue_recall",
+            "cue_precision",
+            "non_cue_false_positive",
+            "payoff_bar_false_cue"
+          ],
+          "semantic_blocks_per_corpus": 160
+        },
+        "c2_local_cue_independence_pass": {
+          "check": "c2_local_cue_independence_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "matched_ladder_20_blocks",
+          "rule": "local cue independence(matched corpus 诊断器;binding——R14 §四-1 matched 正式职责)"
+        },
+        "c2_context_observability_pass": {
+          "check": "c2_context_observability_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "matched_ladder_20_blocks",
+          "rule": "context observability A/B 双 carrier(matched corpus 诊断器;binding——R14 §四-1 matched 正式职责)"
+        },
+        "c2_density_pass": {
+          "check": "c2_density_pass",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "matched_ladder_20_blocks",
+          "rule": "cue-adjacent bar 密度带宽"
+        },
+        "conditioning_gate": {
+          "check": "conditioning_gate",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "conditioning_profile",
+          "rule": "conditioning 单调性/幅值"
+        },
+        "supervised_gate": {
+          "check": "supervised_gate",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "supervised_learnability",
+          "rule": "min_seeds_passing gate(既有)"
+        },
+        "block_contract_identity": {
+          "check": "block_contract_identity",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "parameter_pack_binding",
+          "rule": "pack 绑定 matched ladder contract identity"
+        },
+        "cue_semantic_contract_identity": {
+          "check": "cue_semantic_contract_identity",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "parameter_pack_binding",
+          "rule": "pack 绑定 cue semantic contract digest"
+        },
+        "semantic_block_count_consistent": {
+          "check": "semantic_block_count_consistent",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "dedicated_160_block_semantic_corpus",
+          "rule": "dedicated semantic corpus 块数 == 160 == plan 声明"
+        },
+        "selected_block_count_consistent": {
+          "check": "selected_block_count_consistent",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "parameter_pack_binding",
+          "rule": "selected block count == pack == 实际"
+        },
+        "gate_topology_digest_consistent": {
+          "check": "gate_topology_digest_consistent",
+          "binding": true,
+          "diagnostic_only": false,
+          "authoritative_source": "r14_gate_registry",
+          "rule": "plan 携带的 gate_topology_digest == 注册表重算 digest(单一权威来源的一致性自证)"
+        },
+        "c2_matched_cue_point_diagnostics": {
+          "check": "c2_matched_cue_point_diagnostics",
+          "binding": false,
+          "diagnostic_only": true,
+          "binding_gate": false,
+          "authoritative_source": "matched_ladder_point_estimates",
+          "rule": "R6 点估计分离检查(check_c2_cue_payoff_separation)在 matched corpus 上继续执行并报告;阈值冻结保留;diagnostic_only=True;binding_gate=False;诊断失败不得改变 R14 verdict(R14 §四-3)",
+          "thresholds": {
+            "cue_recall_min": 0.95,
+            "cue_precision_min": 0.85,
+            "non_cue_false_positive_max": 0.01,
+            "payoff_bar_false_cue_max": 0.06
+          },
+          "historical_note": "R6 STRICT_GATE_RULE_IDENTITY 曾把该项列入 c2_matched binding 条目;R13 plan 原样继承,R13 final 据此把点估计 gate 绑定为 c2_semantics_pass 并 FAIL——R14 权威注册表将该项永久降级为诊断"
+        }
+      }
+    },
+    "pooled_role": "仅诊断;不得把任一 corpus FAIL 救成 PASS"
+  },
+  "density_thresholds": {},
+  "fit_bank_schedule": {
+    "calibration": {
+      "namespace": "preprocess_fit_calibration_r14",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "main fit corpus(preprocessor only)"
+    },
+    "holdout": {
+      "namespace": "preprocess_fit_holdout_r14",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "independent fit holdout(preprocessor only)"
+    },
+    "final": {
+      "namespace": "preprocess_fit_qualification_r14",
+      "pairs_per_rung": 4,
+      "sides": [
+        "A",
+        "B"
+      ],
+      "role": "final fit bank(plan lock + sealed preflight 后首次生成)"
+    }
+  },
+  "semantic_corpus_schedule": {
+    "design": {
+      "namespaces": [
+        "cue_semantic_design_main_r14",
+        "cue_semantic_design_validation_r14"
+      ],
+      "blocks_per_corpus": 160,
+      "ladder": "sentinel(candidate-independent)"
+    },
+    "calibration": {
+      "namespace": "cue_semantic_calibration_r14",
+      "blocks_per_corpus": 160,
+      "ladder": "selected(pack)"
+    },
+    "holdout": {
+      "namespace": "cue_semantic_holdout_r14",
+      "blocks_per_corpus": 160,
+      "ladder": "selected(pack)"
+    },
+    "final": {
+      "namespace": "cue_semantic_qualification_r14",
+      "blocks_per_corpus": 160,
+      "ladder": "selected(pack)"
+    }
+  },
+  "final_sample_counts": {
+    "c1_pairs": 40,
+    "c3_pairs": 40,
+    "c2_matched_blocks": 20,
+    "c2_pairs": 80,
+    "core_qualification_pairs": 160,
+    "c2_independent_guard_pairs": 80,
+    "semantic_blocks": 160,
+    "semantic_episodes": 1280,
+    "total_generated_episodes": 1760,
+    "total_note": "§33:core pairs = 80 + 4n;independent pairs = 80;semantic blocks = 160(×8 episodes = 1280);报告必须分别列出 core pairs / independent pairs / semantic blocks / semantic episodes / total generated episodes,不得混成一个总数"
+  },
+  "qualification_bank_schedule": {
+    "namespace": "qualification_r14",
+    "c2_independent_marginal_namespace": "c2_independent_qualification_r14",
+    "cue_semantic_namespace": "cue_semantic_qualification_r14",
+    "fresh_seed_namespace": "fresh_holdout_r14"
+  },
+  "calibration_bundle_hash": "r4pb-0e256e300eeec6f726b67141f95e717a30f071a4d7b3384847699616182b83ff",
+  "holdout_bundle_hash": "r4pb-f0536caefab51afd1f4c139b57cf342f5999244ca3b7e27b0241ce07218e3997",
+  "final_bundle_hash": "",
+  "conditioning_gate_constants": {},
+  "supervised_gate_constants": {
+    "source": "r14_orchestrator"
+  },
+  "reference_wrapper_identity": "PreprocessingAwarePolicy(inverse-transform wrapper,方式 B;仅 scaled obs + frozen state)",
+  "reference_thresholds_by_family": {
+    "c1_opportunity": {
+      "ma_sigma_mult": 1.0
+    },
+    "c2_context": {
+      "cue_thr": 0.0105,
+      "wick_dir_thr": 0.0,
+      "wick_width_thr": 0.012
+    },
+    "c3_cost": {
+      "margin": 1.1,
+      "any_signal_s": 0.22
+    }
+  },
+  "frozen_parameter_identity": {
+    "frozen_scope": "C1/C3 D0-D2(逐位等于历史;C2 四档与 C1/C3 D3 由 pack 承载)",
+    "frozen": {
+      "c1_opportunity": {
+        "D0": {
+          "opp_drift_bps": 60.0,
+          "neg_drift_bps": 46.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        },
+        "D1": {
+          "opp_drift_bps": 42.0,
+          "neg_drift_bps": 33.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        },
+        "D2": {
+          "opp_drift_bps": 34.0,
+          "neg_drift_bps": 27.0,
+          "vol_bps": 26.0,
+          "seg_len_range": [
+            24,
+            24
+          ],
+          "state_weights": [
+            0.36,
+            0.28,
+            0.36
+          ],
+          "distractor_rate": 0.0
+        }
+      },
+      "c3_cost": {
+        "D0": {
+          "alpha_bps": 70.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.2,
+          "mixture": [
+            0.6,
+            0.25,
+            0.15
+          ],
+          "distractor_rate": 0.015
+        },
+        "D1": {
+          "alpha_bps": 62.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.21,
+          "mixture": [
+            0.46,
+            0.32,
+            0.22
+          ],
+          "distractor_rate": 0.025
+        },
+        "D2": {
+          "alpha_bps": 54.0,
+          "payoff_bars": 1,
+          "vol_bps": 18.0,
+          "cue_rate": 0.22,
+          "mixture": [
+            0.34,
+            0.35,
+            0.31
+          ],
+          "distractor_rate": 0.04
+        }
+      }
+    },
+    "identity": "r6fp-21bca75c0eff8c531cf9a733c568d70a2c8570472b09e146a459b539bc3225a2",
+    "r14_note": "R14 不修改任何冻结参数面(与 R6/R7 逐位一致)"
+  },
+  "sealed_preflight_requirement": "final runner 启动前必须验证 sealed_final_preflight attestation(六要素守卫之一)",
+  "prior_digests": {
+    "stage2_6_1_r2_qualification_plan_digest": "qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99",
+    "stage2_6_2_r2_diagnostic_plan_digest": "dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60",
+    "stage2_6_1_r4_parameter_pack_digest": "r4pk-eca9ed55e0a51d1f2732dd61c14c19829b677c6b45e9d722ac5aac8e6d764f99",
+    "stage2_6_1_r5_design_plan_digest": "r5dp-0c1eb69f95336f7d649192bc4293eaf768b37508f47c8c21c919009eb3afe52d",
+    "stage2_6_1_r6_design_plan_digest": "r6dp-db74ed109a7bf7a955c74f1bd248213002d3c08f79512abf0faf93f8941e03c7",
+    "stage2_6_1_r7_design_plan_digest": "r7dp-73d65b6838c0686b26ad4c74c1fd7ca94d72aa8f20930d78a555bb8f8890e454",
+    "stage2_6_1_r8_design_plan_digest": "r8dp-60bb85d5481054b619188fb5a97209acd054e9e110da26710458ecaf2ef0db9d"
+  },
+  "r8_abort_evidence": {
+    "retained": true,
+    "marker_path": "/mnt/e/trading/freqai-rl-audit/stage2_6_1/artifacts/repair8/r8_iteration_aborted.json",
+    "aborted_utc": "2026-09-01T19:49:58+00:00",
+    "reason_head": "design plan 锁定后执行异常(ImportError: cannot import name 'c2_density_summary' from 'rl_curriculum.curriculum261_r6_pairs' (/home/cryptorl/projects/crypto_rl/src/rl_c",
+    "contract": "design data 已生成后发生代码/评估器/统计缺陷;按 §16.2 R8 iteration 永久结束:原 plan 保留不得删除,不得复用任何 R8 design namespace,下一轮必须 R8.1/R8 + 全新 seed space。"
+  },
+  "robustness_gate": {
+    "preprocessing": {
+      "pass": true,
+      "format": "cur261-r14-preprocessing-robustness-v1"
+    },
+    "curriculum": {
+      "pass": true,
+      "format": null,
+      "rule": "strict per-corpus AND + C2 matched block + cluster-aware cue semantics + independent marginal guard"
+    },
+    "pass": true
+  },
+  "equivalence_pass": null,
+  "code_identity": {
+    "curriculum261_api.py": "1a2efd17519acc14fb52b3daf8aad324d1a156382d7a9d9abf74dadf6fa7cfce",
+    "curriculum261_production_obs.py": "d7d5b0b731721419d28c9aceebe3854dd839c320e902d0cc3fb6725f1712e849",
+    "curriculum261_c1.py": "28673215d4832dae8098acf375a69ae25a1b25150b26e94e5feeaca1cb2c2b5b",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_c3.py": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+    "curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+    "curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+    "curriculum261_r3_preprocessing.py": "b0a0325e3350f129a8154d8e7a62283bcf2a9bf287d835870a85c4e088d68a0d",
+    "curriculum261_r3_obs.py": "f97ec301e903ec606f0e3266674bd7a9ab45741175f280d63ee89adcb462bc12",
+    "curriculum261_r3_calibration.py": "df97a4bc37ba99e51bef879aea1c27131c852592089ceab82b17280f25e9557e",
+    "curriculum261_r4_preprocessing.py": "795cccde1cb2af471ac2cc182dded0ebc2d17179196614e59b729c171979c1a6",
+    "curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+    "curriculum261_r4_param_pack.py": "08d7765cfd45d7fe408cab09def51ea20b72450386165c10b8065e1c15212bdd",
+    "curriculum261_r4_namespaces.py": "4827797cd8fa5612aa62b12ee798e9852c028d1d3fc7e764e546b500f81be96d",
+    "curriculum261_r4_obs.py": "04b5674987da207516ef2c92bd47fbd59fd6c61197d5a169da24db891dc0eb32",
+    "curriculum261_r5_pairs.py": "ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r6_param_pack.py": "c86153681a72859676fc89973e669e1774bacd339f23feb1092061df7d316afc",
+    "curriculum261_r6_namespaces.py": "80c03ae1b0f6af56bc407a4bd038ea71cc0f49971f02df92501331bc8b5ba54b",
+    "curriculum261_r6_pairs.py": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+    "curriculum261_r6_calibration.py": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d",
+    "curriculum261_r14_noise_replay.py": "4b302150d7aba8d401c0ef277b445e46f1fa09ad50a9d96426ae31112c87da6c",
+    "curriculum261_r14_cue_contract.py": "10c4888e86be9c0b09aa8250bff98ee03e9edcd4bc998fb80d27f60702e59a13",
+    "curriculum261_r14_cue_eval.py": "850e7a3f1c6f410c5b1df249f5297360ddc8474b47522924d585bced98ca68e7",
+    "curriculum261_r14_dependencies.py": "2291f314fb23b75c7b1143b78e3aa736776be8c3ae13a96fd57991f3afae6ab3",
+    "curriculum261_r14_routing.py": "1f73d8b88864951e00b26769defb2b19bf60e63f867111ae8575ba8af5b48efe",
+    "curriculum261_r14_reference.py": "424d07bed09bedd1339a55343efabf33f55b3e81454840c1db3638b3710db35f",
+    "curriculum261_r14_labels.py": "65d2c4a7be37486a409e6995a5961e5126d2c4738a40a8ec2673be9d9faaf5c0",
+    "curriculum261_r14_orchestrator.py": "120683e84959badd1e2f5e33c2832e9cb7b7c1cd45c13f4697a935d9ec38caa5",
+    "curriculum261_r14_delegation.py": "3c4a92976706547c3f40da96a5b7389c6c7859ef70f9ba00006563304b31c697",
+    "curriculum261_r14_rehearsal.py": "3f416ee117468254654631e675c9f7bfc0a18f61d565d3fa67357fe079071284",
+    "curriculum261_r14_namespaces.py": "e6d20ba286c655f46970046b996bf04bde9f07931ad1eca8771d8cf00cc8911f",
+    "curriculum261_r14_param_pack.py": "8c928337b5f8521eee170ad8fa76d9bc1dd666e6d207d7079b2c489b2b2f555e",
+    "curriculum261_r14_preplan.py": "51fab9b491f15cbde072ddfa1b37b52f64c68af90bf788477162a35a72eeeb63",
+    "curriculum261_r14_design.py": "7812c535f38c5b9d3525549fa0be590f7b6015aca0a3aa13081e7532d0a45396",
+    "curriculum261_r14_calibration.py": "e39f3b31482a8c164d93d93381b4e3c11017690f7ab768c605403c2af590ad24",
+    "curriculum261_r14_preflight.py": "247a5336d77151fdcfd46d0005c0590c271999adf7a52b80ca117cc7b7e83dbd",
+    "curriculum261_r14_plan.py": "b9651bc806ac4a035aa20f2c60c3a236d90c9e0d8870f08c501d9f02470a834a",
+    "curriculum261_r14_final.py": "ba97bc7144f273d6615ee7bc9043b034f6077c4cfc4da9afed1674deb18b9d17",
+    "curriculum261_r14_smoke.py": "500826266ead4490cbbd4078d95815fb626643a39b87293bf28a1dd60597d9e2",
+    "curriculum261_r14_cli.py": "cf04f3b577f3470c8c3a6cc79deb9d577bf91ef3f2b9eb46b2587a406e40f625",
+    "RouteCStrategy.py": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "RouteCStrategy.feature_engineering_standard": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756"
+  },
+  "gate_topology_version": "GateTopologyReconciliation-v1",
+  "gate_topology_digest": "r14gt-1e221e42016c64e525f8628e0c13024dd21f19a769c33ada48dbf9f5af7a14cc",
+  "created_utc": "2026-09-04T06:28:33+00:00"
+}

@@ -1,0 +1,500 @@
+{
+  "format": "R14RealArtifactCliRoundTrip-v1",
+  "iteration": "r14",
+  "head_at_rehearsal": "586f6bd764f91d85fd4abaf2d616239f5a30fbaa",
+  "rehearsal_dir": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+  "monkeypatch_used": false,
+  "cli_entrypoint": "subprocess python -m rl_curriculum.curriculum261_r14_cli",
+  "real_artifacts_only": true,
+  "synthetic_dict_substitution": false,
+  "generation_scale": "正式生成规模(rt profiles;c13 10/rung、equiv 3/rung、supervised 10/rung、semantic 160、matched 20、independent 20/rung);唯一削减 = supervised 纯训练(1 model seed + epochs=2);qualify 阶段缩小样本量(c13 2/rung、matched 4、semantic 8、independent 2/rung;verdict 不作资格判定)",
+  "steps": [
+    {
+      "step": "provenance-lock",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "provenance-lock",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[provenance-lock] pass=True digest=r14gtrec-d284bff2c644c0990fafe2a96ef734f09bba7cec940006a2402c0c46f1f570b0\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "gate_topology_reconciliation.json": "4a3a741f03eb1d663ec7d93f423bf3ccf4220b00cd9383ea2b57c87ba14e86e0",
+        "gate_topology_reconciliation_digest.txt": "b5340dc1e4e5b7687e8bb04ec217f78730e76275081b012423fce8c9d178e865"
+      }
+    },
+    {
+      "step": "determinism-matrix",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "determinism-matrix"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[determinism] A4: generator mutable state audit ...\n[determinism] A4 pass=True findings=0\n[determinism] A5: cross-process matrix (14 scenarios) ...\n[determinism] A5 pass=True all_identical=True r10_consistent=True r10_failure_reproduced=False\n[determinism] A6 gate pass=True\n",
+      "stderr_tail": "",
+      "output_artifacts": {}
+    },
+    {
+      "step": "audit",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "audit",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--fit-pairs",
+        "2",
+        "--code-freeze-sha",
+        "586f6bd764f91d85fd4abaf2d616239f5a30fbaa"
+      ],
+      "input_artifacts": {
+        "gate_topology_reconciliation.json": "4a3a741f03eb1d663ec7d93f423bf3ccf4220b00cd9383ea2b57c87ba14e86e0"
+      },
+      "returncode": 0,
+      "stdout_tail": "[audit] code freeze anchored: 586f6bd764f91d85fd4abaf2d616239f5a30fbaa (surface r14fs-f13cd71f...; dev_files=363 repo_tracked=324)\n[audit] equivalence pass=True ns pass=True digests_match=True ancestry ok=True r11_binding pass=True r12_binding pass=True r13_binding pass=True provenance pass=True dep pass=True entry pass=True determinism_contract=bound\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "r14_code_freeze.json": "eb2a3368105fd51ef4a07659a0626dbf6beb12578563e85210ff00af1d01ca1c",
+        "baseline_ancestry.json": "f312a2e2c569e3cc2c51337778df41bc10816c13d51f1ab6067e7e655c34a186",
+        "historical_evidence_binding.json": "63d2d0d66cbcbaa250ad3911e719575234b4c1eb5270de69b840d2833eea2ae4",
+        "r12_abort_binding.json": "c59cf2cde3412fdba5673dd89118c9e635af2cf25e611f80d940d4aa081e66fe",
+        "r12_iteration_failure_binding.json": "239faf3e908dc0abf547952a4341baf0d789136169f817448346bc91fcfb4b4f",
+        "gate_topology_reconciliation_verify.json": "1117daf10b31dfbecf42d6299e12140d191150125175528e06089e6e251407ff"
+      }
+    },
+    {
+      "step": "cue-audit",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "cue-audit",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[cue-audit][rehearsal] pass=True p_contract=0.950466 namespaces=rt_cue_model_r14/rt_cue_validation_r14\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "cue_contract_audit.json": "72db4caf129cae2254b270e00a7a924f18c489730510a5159343bd251bbe729d",
+        "cue_event_trace.jsonl": "4ef97f317110e96132bf64a47b40f51a1b3be12e83079bf4ebb85392c4b6be57"
+      }
+    },
+    {
+      "step": "preplan-smoke",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "preplan-smoke",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[preplan-smoke] rehearsal pass digest=r14pr-d4c15bd96808659ecc17473d913528e7e2b93f741706976119b59a478a68c65c\n[preplan-smoke] reference root-cause: float64_path=True canonical_full_equality=True legacy_diffs=0 unexplained=0 branch=Branch B(pure float32 projection)\n[preplan-smoke] full-pipeline rehearsal pass digest=r14rh-484d29fcf31a6429ebf66cd6260426a4811d3c844b8ffa4ce379cf0e05cc915a\n[preplan-smoke] pass(no crash;sentinel ladder only;replay+semantic-gate+root-cause+full-pipeline OK)\n",
+      "stderr_tail": "=1) / n\n/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:3015: RuntimeWarning: Degrees of freedom <= 0 for slice\n  c = cov(x, y, rowvar, dtype=dtype)\n/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: divide by zero encountered in divide\n  c *= np.true_divide(1, fact)\n/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: invalid value encountered in multiply\n  c *= np.true_divide(1, fact)\n",
+      "output_artifacts": {
+        "preplan_engineering_smoke.json": "f1ff86454820ccb7d04c2ea185e3206afa06435626d42ae2e72e69a86174d93c"
+      }
+    },
+    {
+      "step": "plan-roundtrip",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "plan-roundtrip",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[plan-roundtrip] pass=True checks={'lock_ok': True, 'payload_bit_identical': True, 'new_process_load_digest_match': True, 'candidate_grid_identical': True, 'formal_block_options_identical': True, 'semantic_blocks_identical': True, 'existing_plan_not_overwritable': True, 'digest_file_matches': True, 'qualification_plan_build': True, 'qualification_lock_ok': True, 'qualification_new_process_load': True, 'qualification_not_overwritable': True, 'no_alternate_loader': True, 'digest_not_self_referential': True}\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "plan_roundtrip_validation.json": "a7a5af5e474cd684a1d4b259afc650cfb1c5bc6e739c43d024e0c3b8bb72ed71"
+      }
+    },
+    {
+      "step": "design-plan-lock",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "design-plan-lock",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[design-plan-lock] locked /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal/r14_design_plan.json digest=r14dp-11d7c442463f998787698ec225459afa79ae1a39ac2accf9ea5ffa8f3e07a04f [rehearsal]\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "r14_design_plan.json": "1312e7a8032f0834d803c2984420ed9d5909c9a730f200a2ca380a9edbbca8ab",
+        "r14_design_plan_digest.txt": "7750546713578e0b7afdfe93e7df8a2736b932c2c35637da312fd2ac5d2f7e48"
+      }
+    },
+    {
+      "step": "design",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "design",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[design] pass=True selected=c2l_historical_control n=20 pack=r14pk-cc6cb2ad6b9467486ed843e70afa808b12e7a7f9d142646fee1d3d6ec0a82e2b\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "r14_parameter_pack.json": "820e7202cdacc493b939e285ad855343e3b6857ccad7836b70ec2e93d7c2b5e5",
+        "r14_parameter_pack_digest.txt": "6f2cefaf61e3f8b1448128aa407fec96e356756c313a511b04f84bb9f11dfd78"
+      }
+    },
+    {
+      "step": "calibrate",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "calibrate",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[calibrate][rehearsal] rt_* namespace;正式生成规模;write_artifacts=True(R14RealArtifactCliRoundTrip-v1)\n[calibrate] fitting main preprocessor (rt3_fit_main_r14)...\n[calibrate] fitting holdout preprocessor (rt3_fit_holdout_r14)...\n[calibrate] shared orchestration (rt_main/rt_holdout profiles; same function as formal)...\n[calibrate] preprocessing_robustness_pass=True supervised main/holdout=True/True curriculum main/holdout=True/True routing_all_pass=True\n[calibrate] conditioning + generator stress (rt3_stress_r14) + frozen identity...\n[calibrate] robustness gate pass=True\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "preprocessor_bundle_calibration.json": "0aca14b408bd4e1a36a7ca0c60c7df50a319eff833425f520cb8861416e58fa6",
+        "preprocessor_bundle_holdout.json": "67c414a592b754b39cba74e6ec8901cc5ecf4eeb644eccf98217f92b17f20c6a",
+        "robustness_gate.json": "75baf68a04aac4c0b6cf95b5708d25cb4afaadec5d273f91c8371370fe415fdd",
+        "calibration_evidence.json": "06578a6318a2dbb05f4de333d0f9e3cbad2ddcb1e0a72b750320ad558e7fd129",
+        "preprocessing_v2_requalification.json": "1feff446f140445e15fb9d069b47fc5ad620e5077f44aca1d3db02b4c5e565a0",
+        "supervised_learnability_main.json": "aa0dfb8c11704c5da7db5d23ab161ac545eade909c95e9954444f7e162abff46",
+        "supervised_learnability_holdout.json": "c142807298a06839651e8e7b0700bf3c4be2206d81c1668a69f469fe68d7eaf8"
+      }
+    },
+    {
+      "step": "preflight-static",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "preflight-static",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {},
+      "returncode": 0,
+      "stdout_tail": "[preflight-static] pass=True\n",
+      "stderr_tail": "/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.\n  warnings.warn(\n",
+      "output_artifacts": {
+        "prelock_static_preflight.json": "29b3477ce81b2b22f17f5ec14491f58fe34e81af5a3d5d39c99ff7757fb9f310"
+      }
+    },
+    {
+      "step": "lock-plan",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "lock-plan",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {
+        "preprocessor_bundle_calibration.json": "0aca14b408bd4e1a36a7ca0c60c7df50a319eff833425f520cb8861416e58fa6",
+        "preprocessor_bundle_holdout.json": "67c414a592b754b39cba74e6ec8901cc5ecf4eeb644eccf98217f92b17f20c6a",
+        "robustness_gate.json": "75baf68a04aac4c0b6cf95b5708d25cb4afaadec5d273f91c8371370fe415fdd",
+        "calibration_evidence.json": "06578a6318a2dbb05f4de333d0f9e3cbad2ddcb1e0a72b750320ad558e7fd129"
+      },
+      "returncode": 0,
+      "stdout_tail": "[lock-plan] locked /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal/qualification_plan_r14.json digest=r14qp-f51de093296282dc3c81cdb76b0a2355ecd55dc6b4a56295dc83755cebab9be9\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "qualification_plan_r14.json": "62021c7ba4773f916f10e373753ea37010eef7cdaa8b475aaa8967b0ca8459cd",
+        "qualification_plan_digest_r14.txt": "7aa8f89318d8fa5ea381e82e4c587affc94ad7bf43cafe820971d68bf434c350"
+      }
+    },
+    {
+      "step": "preflight-sealed",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "preflight-sealed",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {
+        "qualification_plan_r14.json": "62021c7ba4773f916f10e373753ea37010eef7cdaa8b475aaa8967b0ca8459cd",
+        "r14_parameter_pack.json": "820e7202cdacc493b939e285ad855343e3b6857ccad7836b70ec2e93d7c2b5e5"
+      },
+      "returncode": 0,
+      "stdout_tail": "[preflight-sealed] pass=True digest=r14fa-fc3421e38f4079bd301622b1b3c5f223ae5fb2ca38fcbabee68707793539548f\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "sealed_final_preflight.json": "2b2b92f02af85bbd4f706b2e932af852f52b13269770d97726b737f3afb5ceae",
+        "sealed_final_preflight_digest.txt": "74b69b0e05c28e48d8d7fe05dfcff826bcfa59a4034402d2162d1ebda430066f"
+      }
+    },
+    {
+      "step": "qualify",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "qualify",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "input_artifacts": {
+        "qualification_plan_r14.json": "62021c7ba4773f916f10e373753ea37010eef7cdaa8b475aaa8967b0ca8459cd",
+        "sealed_final_preflight.json": "2b2b92f02af85bbd4f706b2e932af852f52b13269770d97726b737f3afb5ceae",
+        "r14_parameter_pack.json": "820e7202cdacc493b939e285ad855343e3b6857ccad7836b70ec2e93d7c2b5e5"
+      },
+      "returncode": 0,
+      "stdout_tail": "[qualify] verdict=FAIL [rehearsal;缩小规模,不作资格判定]\n[qualify][rehearsal] artifacts_complete=True\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "qualification_result.json": "0456adf1cf09dd6cf5b01eb1048dd68a90a31518fba4fc12ddc7fbadf90c5f1a",
+        "qualification_preprocessor_bundle.json": "a4a31cbd44d2a4e1e63d9fac49f393b89e79e03484628356a93b2c836bb791c6",
+        "qualification_fit_manifest.json": "9ec488f1819ca629767da4a2898a117f1144b9e0c87f841a1cdec0844de659ef"
+      }
+    },
+    {
+      "step": "smoke",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "smoke",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal"
+      ],
+      "input_artifacts": {
+        "r14_parameter_pack.json": "820e7202cdacc493b939e285ad855343e3b6857ccad7836b70ec2e93d7c2b5e5",
+        "qualification_result.json": "0456adf1cf09dd6cf5b01eb1048dd68a90a31518fba4fc12ddc7fbadf90c5f1a"
+      },
+      "returncode": 0,
+      "stdout_tail": "[smoke] pass=True\n",
+      "stderr_tail": "/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.\n  warnings.warn(\n",
+      "output_artifacts": {
+        "ppo_256step_smoke.json": "078318a81239629fcb4b2c60aea5db9bf9ba5bcc275ae3f395f2af9e940aca58"
+      }
+    },
+    {
+      "step": "full-cold-reader-check",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "full-cold-reader-check",
+        "--artifacts-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "input_artifacts": {
+        "qualification_result.json": "0456adf1cf09dd6cf5b01eb1048dd68a90a31518fba4fc12ddc7fbadf90c5f1a",
+        "qualification_preprocessor_bundle.json": "a4a31cbd44d2a4e1e63d9fac49f393b89e79e03484628356a93b2c836bb791c6",
+        "ppo_256step_smoke.json": "078318a81239629fcb4b2c60aea5db9bf9ba5bcc275ae3f395f2af9e940aca58"
+      },
+      "returncode": 0,
+      "stdout_tail": "[full-cold-reader-check] reader_integrity=True verdict=FAIL smoke_pass=True overall=False rehearsal=True\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "full_cold_reader_check.json": "d6e12f0706b5d76f29853ad21f6f1b0e4a846b4ff9f5ba7bdd3d358a158c08d4"
+      }
+    },
+    {
+      "step": "report-read",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "report-read",
+        "--artifacts-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--out-file",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal/rt_report_values.json"
+      ],
+      "input_artifacts": {
+        "cue_contract_audit.json": "72db4caf129cae2254b270e00a7a924f18c489730510a5159343bd251bbe729d",
+        "robustness_gate.json": "75baf68a04aac4c0b6cf95b5708d25cb4afaadec5d273f91c8371370fe415fdd",
+        "qualification_result.json": "0456adf1cf09dd6cf5b01eb1048dd68a90a31518fba4fc12ddc7fbadf90c5f1a",
+        "ppo_256step_smoke.json": "078318a81239629fcb4b2c60aea5db9bf9ba5bcc275ae3f395f2af9e940aca58",
+        "full_cold_reader_check.json": "d6e12f0706b5d76f29853ad21f6f1b0e4a846b4ff9f5ba7bdd3d358a158c08d4"
+      },
+      "returncode": 0,
+      "stdout_tail": "[report-read] artifacts=7 -> /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal/rt_report_values.json\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "rt_report_values.json": "cffecc87195a172a94a8654c2f4df54dbdaa9536527dd4bb294bbaf94c6a5be8"
+      }
+    },
+    {
+      "step": "fail-closure-rehearsal",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "-m",
+        "rl_curriculum.curriculum261_r14_cli",
+        "fail-closure",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair14/real_artifact_rehearsal",
+        "--reason",
+        "rt-rehearsal-failure-path-boundary-probe(rehearsal-only;验证 §十四 失败路径 writer 真实落盘)",
+        "--verdict",
+        "FAIL",
+        "--rehearsal"
+      ],
+      "input_artifacts": {
+        "qualification_result.json": "0456adf1cf09dd6cf5b01eb1048dd68a90a31518fba4fc12ddc7fbadf90c5f1a",
+        "qualification_raw.json": "fbdbcc89f509717b59b8fa4b877abb0a4b3cd7b158c791759d4623b1a83efaba"
+      },
+      "returncode": 0,
+      "stdout_tail": "[fail-closure] rehearsal=True verdict=FAIL evidence=7/7\n",
+      "stderr_tail": "",
+      "output_artifacts": {
+        "r14_fail_closure_summary.json": "b4526f19dd383420f74de03572149b257fc53ae569c22b2ab74d7f9c60a1fbf1",
+        "fail_path_cleanliness.json": "f3e31d859ce3ccdcb2ed67c6fedc0d19593ff90cdf8fcd22f6045f8df96aef72"
+      }
+    }
+  ],
+  "boundary_checks": {
+    "plan_loader": {
+      "probe_ok": true,
+      "digest": "r14qp-f51de093296282dc3c81cdb76b0a2355ecd55dc6b4a56295dc83755cebab9be9",
+      "iteration": "r14",
+      "n_blocks": 20,
+      "calibration_bundle_hash": "r4pb-0e256e300eeec6f726b67141f95e717a30f071a4d7b3384847699616182b83ff",
+      "holdout_bundle_hash": "r4pb-f0536caefab51afd1f4c139b57cf342f5999244ca3b7e27b0241ce07218e3997",
+      "bundle_hash_consistent": true
+    },
+    "sealed_attestation_loader": {
+      "probe_ok": true,
+      "pass": true,
+      "digest_ok": true,
+      "plan_digest": "r14qp-f51de093296282dc3c81cdb76b0a2355ecd55dc6b4a56295dc83755cebab9be9"
+    },
+    "qualification_output_reader": {
+      "probe_ok": true,
+      "verdict": "FAIL",
+      "final_bundle_hash": "r4pb-29ae4192fb40de7fecd2b251618a9693f1ea701ce7c41573667cbe63d2038ca2",
+      "n_checks": 29,
+      "plan_digest": "r14qp-f51de093296282dc3c81cdb76b0a2355ecd55dc6b4a56295dc83755cebab9be9",
+      "preprocessor_bundle_keys": [
+        "manifest_multiset_hash",
+        "namespace",
+        "preprocessor_bundle_hash",
+        "state_hash"
+      ]
+    },
+    "ppo_smoke_reader": {
+      "probe_ok": true,
+      "pass": true,
+      "bundle_bound": "r4pb-ee029f2445aa752c78a7d6286e5656dfa56d3f38b1121ba2e0a2df8c296e14c9"
+    },
+    "exposure_one_shot": {
+      "probe_ok": true,
+      "exposed": true
+    }
+  },
+  "boundary_checks_pass": true,
+  "namespace_purity": {
+    "formal_namespace_hits": {},
+    "formal_namespaces_clean": true
+  },
+  "artifact_interface_coverage": {
+    "calibration-bundle→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "calibration-gate→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "calibration-evidence→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "preprocessing-robustness→lock-plan+sealed": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "supervised→sealed-preflight": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "static-preflight→sealed-preflight": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "lock-plan→sealed-preflight+qualify": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "sealed-attestation→qualify-init": {
+      "rehearsal_step": "qualify",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "pack→calibrate+sealed+qualify+smoke": {
+      "rehearsal_step": "calibrate",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "qualify-outputs→ppo-smoke+downstream": {
+      "rehearsal_step": "smoke",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "smoke-outputs→downstream": {
+      "rehearsal_step": "full-cold-reader-check",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "cue-audit→design-plan-lock": {
+      "rehearsal_step": "design-plan-lock",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "design-plan→design+calibrate": {
+      "rehearsal_step": "design",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "determinism→audit-binding": {
+      "rehearsal_step": "audit",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    }
+  },
+  "artifact_interface_coverage_pass": true,
+  "chain_returncodes_all_zero": true,
+  "pass": true
+}

@@ -1,0 +1,326 @@
+{
+  "format": "cur261-r14-artifact-interface-audit-v1",
+  "iteration": "r14",
+  "canonical_identity_fields": {
+    "preprocessor_bundle_{calibration,holdout}.json": "preprocessor_bundle_hash(producer RouteCPreprocessorV2.identity();r4pb- 前缀;唯一合法键名;旧键 'bundle_hash' 禁止冒充)",
+    "r14_parameter_pack.json": "digest(r14pk-;pack_digest_r14 复算)",
+    "r14_design_plan.json": "design_plan_digest(r14dp-)",
+    "qualification_plan_r14.json": "plan_digest(r14qp-)",
+    "sealed_final_preflight.json": "digest(r14fa-)",
+    "qualification_result.json": "verdict/final_bundle_hash/checks(下游 2.6.2 input lock 与 full-cold 测试读取)"
+  },
+  "edges": [
+    {
+      "edge": "calibration-bundle→lock-plan",
+      "producer_command": "calibrate",
+      "producer_function": "RouteCPreprocessorV2.identity() → _write_json",
+      "artifacts": [
+        "preprocessor_bundle_calibration.json",
+        "preprocessor_bundle_holdout.json"
+      ],
+      "consumer_command": "lock-plan",
+      "consumer_fields": [
+        "preprocessor_bundle_hash"
+      ],
+      "r12_defect": "R12 永久 FAIL(KeyError 'bundle_hash';curriculum261_r12_cli.py:1717)",
+      "r14_closure": "read_preprocessor_bundle_hash fail-closed accessor(curriculum261_r14_plan.py;§四-1)",
+      "rehearsal_step": "lock-plan"
+    },
+    {
+      "edge": "calibration-gate→lock-plan",
+      "producer_command": "calibrate",
+      "artifacts": [
+        "robustness_gate.json"
+      ],
+      "consumer_command": "lock-plan",
+      "consumer_fields": [
+        "pass"
+      ],
+      "r12_defect": "无(R12 读取正常)",
+      "rehearsal_step": "lock-plan"
+    },
+    {
+      "edge": "calibration-evidence→lock-plan",
+      "producer_command": "calibrate",
+      "artifacts": [
+        "calibration_evidence.json"
+      ],
+      "consumer_command": "lock-plan",
+      "consumer_fields": [
+        "main_holdout_independent.main",
+        "main_holdout_independent.holdout",
+        "gate.supervised_main_pass",
+        "gate.supervised_holdout_pass",
+        "supervised_gate_constants",
+        "reference_thresholds_by_family"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "lock-plan"
+    },
+    {
+      "edge": "preprocessing-robustness→lock-plan+sealed",
+      "producer_command": "calibrate(orchestrator)",
+      "artifacts": [
+        "preprocessing_v2_requalification.json"
+      ],
+      "consumer_command": "lock-plan / preflight-sealed",
+      "consumer_fields": [
+        "pass"
+      ],
+      "r12_defect": "R12 sealed preflight 检查错误文件名 preprocessing_robustness_gate.json(R3/R4 时代名称)——潜伏缺陷,R14 修复(§四-2)",
+      "r14_closure": "run_postlock_sealed_preflight_r14 证据文件清单与真实 producer 对齐",
+      "rehearsal_step": "preflight-sealed"
+    },
+    {
+      "edge": "supervised→sealed-preflight",
+      "producer_command": "calibrate(orchestrator)",
+      "artifacts": [
+        "supervised_learnability_main.json",
+        "supervised_learnability_holdout.json"
+      ],
+      "consumer_command": "preflight-sealed",
+      "consumer_fields": [
+        "pass"
+      ],
+      "r12_defect": "R12 sealed preflight 检查不存在的 supervised_learnability.json——潜伏缺陷,R14 修复",
+      "rehearsal_step": "preflight-sealed"
+    },
+    {
+      "edge": "static-preflight→sealed-preflight",
+      "producer_command": "preflight-static",
+      "artifacts": [
+        "prelock_static_preflight.json"
+      ],
+      "consumer_command": "preflight-sealed",
+      "consumer_fields": [
+        "pass"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "preflight-sealed"
+    },
+    {
+      "edge": "lock-plan→sealed-preflight+qualify",
+      "producer_command": "lock-plan",
+      "artifacts": [
+        "qualification_plan_r14.json",
+        "qualification_plan_digest_r14.txt"
+      ],
+      "consumer_command": "preflight-sealed / qualify(初始化)",
+      "consumer_fields": [
+        "iteration",
+        "robustness_gate.pass",
+        "parameter_pack.digest",
+        "final_sample_counts.c2_matched_blocks",
+        "cue_semantic_contract.*",
+        "code_identity",
+        "preprocessing_v2.contract_digest",
+        "statistics_rule.kappa",
+        "reference_thresholds_by_family"
+      ],
+      "r12_defect": "无(R12 未活到本边)",
+      "rehearsal_step": "preflight-sealed"
+    },
+    {
+      "edge": "sealed-attestation→qualify-init",
+      "producer_command": "preflight-sealed",
+      "artifacts": [
+        "sealed_final_preflight.json",
+        "sealed_final_preflight_digest.txt"
+      ],
+      "consumer_command": "qualify(初始化)",
+      "consumer_fields": [
+        "digest",
+        "pass",
+        "plan_digest",
+        "final_seed_derivations_performed",
+        "final_namespaces_touched",
+        "exposure_marker_written"
+      ],
+      "r12_defect": "无(R12 未活到本边;§四-4 必须覆盖)",
+      "rehearsal_step": "qualify"
+    },
+    {
+      "edge": "pack→calibrate+sealed+qualify+smoke",
+      "producer_command": "design",
+      "artifacts": [
+        "r14_parameter_pack.json",
+        "r14_parameter_pack_digest.txt"
+      ],
+      "consumer_command": "calibrate / preflight-sealed / qualify / smoke",
+      "consumer_fields": [
+        "digest",
+        "selected_c2_candidate",
+        "selected_block_count",
+        "recall_floor",
+        "p_contract",
+        "matched_ladder_contract_identity",
+        "cue_semantic_contract_digest",
+        "cue_semantic_rule_identity",
+        "cue_contract_audit_digest"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "calibrate"
+    },
+    {
+      "edge": "qualify-outputs→ppo-smoke+downstream",
+      "producer_command": "qualify",
+      "artifacts": [
+        "qualification_result.json",
+        "qualification_raw.json",
+        "qualification_preprocessor_bundle.json",
+        "qualification_fit_manifest.json",
+        "qualification_pair_evidence_table.json",
+        "qualification_c2_block_evidence_table.json",
+        "qualification_c2_independent_marginal.json"
+      ],
+      "consumer_command": "smoke / 下游(2.6.2 ppo262 input lock)/ full-cold 测试 reader",
+      "consumer_fields": [
+        "verdict",
+        "final_bundle_hash",
+        "checks",
+        "parameter_pack_digest",
+        "namespace"
+      ],
+      "r12_defect": "无(R12 未活到本边;§四-4 必须覆盖)",
+      "rehearsal_step": "smoke"
+    },
+    {
+      "edge": "smoke-outputs→downstream",
+      "producer_command": "smoke",
+      "artifacts": [
+        "ppo_256step_smoke.json"
+      ],
+      "consumer_command": "full-cold-reader-check(curriculum261_r14_full_cold.read_full_cold_evidence;与正式 full-cold 同一 reader) / 下游 reader",
+      "consumer_fields": [
+        "pass",
+        "checks.preprocessor_bundle_hash_bound",
+        "model_manifest.preprocessor_bundle_hash"
+      ],
+      "r13_defect": "R13 rehearsal 将本边标记为 smoke '同时覆盖 full-cold',但 full-cold reader 从未实际执行(§九-5)",
+      "r14_closure": "R14 rehearsal 第 14 步真实执行 full-cold-reader-check(独立 subprocess,读真实 rehearsal qualification+smoke artifacts)",
+      "rehearsal_step": "full-cold-reader-check"
+    },
+    {
+      "edge": "cue-audit→design-plan-lock",
+      "producer_command": "cue-audit",
+      "artifacts": [
+        "cue_contract_audit.json"
+      ],
+      "consumer_command": "design-plan-lock / plan-roundtrip / design",
+      "consumer_fields": [
+        "audit_digest",
+        "p_contract",
+        "pass"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "design-plan-lock"
+    },
+    {
+      "edge": "design-plan→design+calibrate",
+      "producer_command": "design-plan-lock",
+      "artifacts": [
+        "r14_design_plan.json",
+        "r14_design_plan_digest.txt"
+      ],
+      "consumer_command": "design / calibrate",
+      "consumer_fields": [
+        "candidate_grid.candidates",
+        "design_data.blocks_per_candidate_per_corpus",
+        "semantic_corpora.*",
+        "cue_semantic_contract.*",
+        "code_identity"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "design"
+    },
+    {
+      "edge": "determinism→audit-binding",
+      "producer_command": "determinism-matrix",
+      "artifacts": [
+        "determinism/generation_determinism_contract.json"
+      ],
+      "consumer_command": "audit",
+      "consumer_fields": [
+        "pass",
+        "r10_root_cause_statement",
+        "checks"
+      ],
+      "r12_defect": "无",
+      "rehearsal_step": "audit"
+    }
+  ],
+  "rehearsal_coverage": {
+    "calibration-bundle→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "calibration-gate→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "calibration-evidence→lock-plan": {
+      "rehearsal_step": "lock-plan",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "preprocessing-robustness→lock-plan+sealed": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "supervised→sealed-preflight": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "static-preflight→sealed-preflight": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "lock-plan→sealed-preflight+qualify": {
+      "rehearsal_step": "preflight-sealed",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "sealed-attestation→qualify-init": {
+      "rehearsal_step": "qualify",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "pack→calibrate+sealed+qualify+smoke": {
+      "rehearsal_step": "calibrate",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "qualify-outputs→ppo-smoke+downstream": {
+      "rehearsal_step": "smoke",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "smoke-outputs→downstream": {
+      "rehearsal_step": "full-cold-reader-check",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "cue-audit→design-plan-lock": {
+      "rehearsal_step": "design-plan-lock",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "design-plan→design+calibrate": {
+      "rehearsal_step": "design",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    },
+    "determinism→audit-binding": {
+      "rehearsal_step": "audit",
+      "step_returncode_ok": true,
+      "artifacts_present": true
+    }
+  },
+  "rehearsal_pass": true,
+  "rehearsal_summary_digest": "bdf1c174a6c9d46ce702219feaef01ab6c3cb9f0dde399fa9774a963def43043"
+}

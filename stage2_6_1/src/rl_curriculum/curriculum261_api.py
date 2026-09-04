@@ -387,6 +387,66 @@ CURRICULUM261_R13_NAMESPACES = (
     "c2_independent_qualification_r13",
     "stress_r13", "fresh_holdout_r13", "training_r13", "ppo_smoke_r13")
 
+#: repair R14:全新 seed namespace(R13 全部 namespace 永久封存;R14 与
+#: R0-R13 Stage 2.6.1 / Stage 2.6.2 全部 namespace 不重合)。三类结构
+#: 与 R13 同构(正式链/工程/rt* rehearsal);R14 修复 cue semantic
+#: gate topology 冲突(matched corpus 点估计 gate 降级为 diagnostic_only,
+#: dedicated 160-block semantic corpus 是 cue recall/precision/false-cue
+#: 的唯一 binding source)。
+CURRICULUM261_ITERATION_ID_R14 = "r14"
+CURRICULUM261_R14_NAMESPACES = (
+    "cue_contract_model_r14", "cue_contract_validation_r14",
+    "cue_k_global_null_r14",
+    "preplan_engineering_smoke_r14",
+    "preplan_smoke_r14", "preplan_candidate_eval_r14",
+    "preplan_semantic_main_r14", "preplan_semantic_validation_r14",
+    "preplan_fit_main_r14", "preplan_fit_holdout_r14",
+    "preplan_supervised_main_r14", "preplan_supervised_holdout_r14",
+    "preplan_calibration_main_r14", "preplan_calibration_holdout_r14",
+    "preplan_final_r14",
+    "shadow_fit_main_r14", "shadow_fit_holdout_r14",
+    "shadow_supervised_main_r14", "shadow_supervised_holdout_r14",
+    "shadow_calibration_main_r14", "shadow_calibration_holdout_r14",
+    "shadow_semantic_main_r14", "shadow_semantic_validation_r14",
+    "shadow_c2_independent_main_r14", "shadow_c2_independent_holdout_r14",
+    "shadow_semantic_final_r14",
+    "reference_diagnostic_main_r14", "reference_diagnostic_holdout_r14",
+    "reference_diagnostic_r14",
+    "rt_cue_model_r14", "rt_cue_validation_r14",
+    "rt_design_matched_main_r14", "rt_design_matched_validation_r14",
+    "rt_design_independent_r14",
+    "rt_semantic_design_main_r14", "rt_semantic_design_validation_r14",
+    "rt_fit_main_r14", "rt_fit_holdout_r14", "rt_fit_qualification_r14",
+    "rt_calibration_main_r14", "rt_calibration_holdout_r14",
+    "rt_supervised_main_r14", "rt_supervised_holdout_r14",
+    "rt_semantic_main_r14", "rt_semantic_validation_r14",
+    "rt_semantic_final_r14",
+    "rt_c2_independent_main_r14", "rt_c2_independent_holdout_r14",
+    "rt_stress_r14", "rt_qualification_r14",
+    # rt3 = rehearsal calibrate/final 侧重抽(rt2 抽样在 c3_cost/D0/
+    # p32 遇 5 attempts 全败的结构性边缘——deterministic seed 不可
+    # 重试,工程 namespace 换新;正式链 namespace 不受影响)
+    "rt3_fit_main_r14", "rt3_fit_holdout_r14",
+    "rt3_fit_qualification_r14",
+    "rt3_calibration_main_r14", "rt3_calibration_holdout_r14",
+    "rt3_supervised_main_r14", "rt3_supervised_holdout_r14",
+    "rt3_semantic_main_r14", "rt3_semantic_validation_r14",
+    "rt3_semantic_final_r14",
+    "rt3_c2_independent_main_r14", "rt3_c2_independent_holdout_r14",
+    "rt3_stress_r14", "rt3_qualification_r14",
+    "cue_semantic_design_main_r14", "cue_semantic_design_validation_r14",
+    "design_r14_matched_main", "design_r14_matched_validation",
+    "design_r14_independent_marginal",
+    "preprocess_fit_calibration_r14", "preprocess_fit_holdout_r14",
+    "preprocess_fit_qualification_r14",
+    "supervised_main_r14", "supervised_holdout_r14",
+    "cue_semantic_calibration_r14", "cue_semantic_holdout_r14",
+    "cue_semantic_qualification_r14",
+    "calibration_r14", "calibration_holdout_r14", "qualification_r14",
+    "c2_independent_calibration_r14", "c2_independent_holdout_r14",
+    "c2_independent_qualification_r14",
+    "stress_r14", "fresh_holdout_r14", "training_r14", "ppo_smoke_r14")
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
@@ -396,7 +456,8 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R9_NAMESPACES) + (
     CURRICULUM261_R10_NAMESPACES) + (CURRICULUM261_R11_NAMESPACES) + (
     CURRICULUM261_R12_NAMESPACES) + (
-    CURRICULUM261_R13_NAMESPACES)
+    CURRICULUM261_R13_NAMESPACES) + (
+    CURRICULUM261_R14_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -798,6 +859,36 @@ def derive261_seed(
                 "attestation)前不可访问(final corpus lock 前对任何"
                 "代码路径封闭;校准/诊断一律使用 calibration_r13 / "
                 "calibration_holdout_r13 / stress_r13 namespace)")
+    if namespace in ("qualification_r14",
+                     "preprocess_fit_qualification_r14",
+                     "c2_independent_qualification_r14",
+                     "cue_semantic_qualification_r14"):
+        # repair R14:六要素守卫沿用 + 终态 exposure fail closed(§八:
+        # R13 的 final FAIL 诊断通过 exposure 后重生成 qualification
+        # corpus 取得——R14 规定 final 一次性执行即保存全部详细证据,
+        # exposure 进入终态(completed/failed/crashed)后 qualification
+        # namespace 及其 final subordinate namespace 对任何语料生成
+        # 调用永久封闭;running 是唯一合法的一次性执行窗口)。
+        from rl_curriculum.curriculum261_r14_namespaces import (
+            qualification_r14_unlocked,
+            qualification_r14_terminal_exposed,
+        )
+
+        if not qualification_r14_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R14 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r14 / "
+                "calibration_holdout_r14 / stress_r14 namespace)")
+        if qualification_r14_terminal_exposed():
+            raise GeneratorError(
+                f"{namespace} 已终态暴露(exposure marker/ledger 处于 "
+                "completed/failed/crashed):final qualification 一次性"
+                "执行后 qualification corpus 不得再次生成(§八;R14 "
+                "final 在执行时保存全部详细证据,失败诊断只读原始 "
+                "artifact;继续必须 R15 + 全新 namespace)")
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -1059,11 +1150,12 @@ def _default_recorder(namespace: str, family: str, rung: str,
         from rl_curriculum.curriculum261_generation_envelope import (
             active_recorder,
         )
-        # repair R12/R13:iteration 字段按 namespace 后缀派生——R0-R11
+        # repair R12/R13/R14:iteration 字段按 namespace 后缀派生——R0-R11
         # namespace 行为与 R11 完全一致("r11");全部 R12 namespace 含
-        # "r12" 子串、全部 R13 namespace 含 "r13" 子串,且历史 namespace
+        # "r12" 子串、R13 含 "r13"、R14 含 "r14" 子串,且历史 namespace
         # 均不含,故无歧义。
-        iteration = ("r13" if "r13" in namespace
+        iteration = ("r14" if "r14" in namespace
+                     else "r13" if "r13" in namespace
                      else "r12" if "r12" in namespace else "r11")
         return active_recorder(iteration, namespace, family, rung,
                                pair_index, rung_params)

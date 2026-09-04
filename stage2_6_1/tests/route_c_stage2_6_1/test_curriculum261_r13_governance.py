@@ -96,9 +96,29 @@ def test_generation_evidence_iteration_mismatch_rejected():
 
 
 # ------------------------------------------------ historical binding
+def _on_r13_branch() -> bool:
+    """R13 binding 的分支检查只在 repair13 分支上下文中有意义。
+
+    R14 起 HEAD 位于 repair14 分支,r13 模块的 r13_branch_name_ok 按
+    设计为 False;R14 的等价断言由 test_curriculum261_r14_governance
+    承担。checkout 到 repair13 分支时本测试恢复完整执行。
+    """
+    repo = _release_repo()
+    if repo is None:
+        return False
+    out = subprocess.run(
+        ["git", "branch", "--show-current"], cwd=str(repo),
+        capture_output=True, text=True)
+    return out.stdout.strip() == "route-c-stage2-6-1-repair13"
+
+
 @pytest.mark.skipif(_release_repo() is None,
-                    reason="release repo 不可达(仅 WSL/开发机)")
+reason="release repo 不可达(仅 WSL/开发机)")
 class TestHistoricalEvidenceBindingR13:
+    @pytest.mark.skipif(not _on_r13_branch(),
+                        reason="非 repair13 分支:R13 binding 的分支检查"
+                               "仅在 R13 iteration 上下文有效(R14 起"
+                               "由 r14 governance 测试承担)")
     def test_ancestry_and_r12_clean_chain(self):
         repo = _release_repo()
         binding = historical_evidence_binding(repo)

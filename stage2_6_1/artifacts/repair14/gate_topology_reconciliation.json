@@ -1,0 +1,89 @@
+{
+ "format": "GateTopologyReconciliation-v1",
+ "iteration": "r14",
+ "r14_gate_topology_version": "GateTopologyReconciliation-v1",
+ "r14_gate_topology_digest": "r14gt-1e221e42016c64e525f8628e0c13024dd21f19a769c33ada48dbf9f5af7a14cc",
+ "cue_semantic_binding_uniqueness": {
+  "pass": true,
+  "binding_sources_for_cue_semantics": {
+   "dedicated_160_block_semantic_corpus": [
+    "c2_dedicated_semantic_corpus_pass"
+   ]
+  },
+  "expected_unique_source": "dedicated_160_block_semantic_corpus"
+ },
+ "contradiction_evidence": {
+  "declaration_side": {
+   "what": "calibration wrapper 与 c2_matched_conditions 声明 cue 语义 gate delegated 给 dedicated semantic corpus;run_c2_diagnostics 定位为诊断对照",
+   "markers": {
+    "calibration_delegated_note": {
+     "present": true,
+     "line": 234
+    },
+    "calibration_delegated_note_text": {
+     "present": true,
+     "line": 235
+    },
+    "diagnostics_docstring": {
+     "present": true,
+     "line": 521
+    }
+   },
+   "calibration_blob_sha": "0001e8b1085c8c2bbb17412ce093f0ea0451c0f9"
+  },
+  "implementation_side": {
+   "what": "final aggregator 把 matched corpus 点估计 gate 绑定为 verdict 级 c2_semantics_pass(与声明冲突)",
+   "markers": {
+    "final_double_binding_line": {
+     "present": true,
+     "line": 680
+    },
+    "final_double_binding_context": {
+     "present": true,
+     "line": 641
+    }
+   },
+   "final_blob_sha": "f63084e3e7ab9b42b43be88de168dbd97ee3caa5"
+  },
+  "plan_side": {
+   "what": "qualification plan 原样继承 R6 STRICT_GATE_RULE_IDENTITY(旧拓扑文字)",
+   "c2_matched_contains_old_text": {
+    "present": true,
+    "line": 1
+   }
+  },
+  "r6_root": {
+   "what": "R6 STRICT_GATE_RULE_IDENTITY.c2_matched 把 'cue/payoff separation' 列为 matched binding 条目(拓扑冲突的字面根)",
+   "marker_in_r6_rule": {
+    "present": true,
+    "line": 1
+   }
+  }
+ },
+ "r13_binding": {
+  "commit_chain": [
+   "960dbe19701901f9262614aadf8b7f97742fab4d",
+   "47d3f22f4df97855423ee748f3aa2df5497422a6",
+   "b8e1de05cc3040ddc81634eb36d735a9fe3483da"
+  ],
+  "r13_verdict": "FAIL",
+  "r13_failed_checks": [
+   "c2_semantics_pass"
+  ],
+  "c2_semantics_pass_observed": false,
+  "exposure_status": "failed",
+  "exposure_count": 1,
+  "remains_permanent_fail": true,
+  "note": "R13 不因 R14 修订 gate topology 而被追认、撤销或改写为 PASS"
+ },
+ "conclusions": {
+  "r13_remains_permanent_fail": true,
+  "r14_fixes_pre_exposure_contract_contradiction": true,
+  "no_use_of_r13_observed_recall_for_rule_choice": true,
+  "rule_choice_basis": "拓扑冲突由 R13 Commit A 源码与 plan 文本的声明/实现矛盾机械证明(上方 markers),在查看任何 R13 final 数值前已成立;注册表不含任何 R13 observed 统计量参数",
+  "dedicated_thresholds_unchanged": true,
+  "dedicated_thresholds_note": "dedicated 160-block semantic corpus 的 cluster-aware LCB/UCB 规则与 recall floor 推导(max(0.90, p_contract - 0.02))原样沿用;R14 不改阈值/不降样本量"
+ },
+ "pass": true,
+ "digest": "r14gtrec-d284bff2c644c0990fafe2a96ef734f09bba7cec940006a2402c0c46f1f570b0"
+}
