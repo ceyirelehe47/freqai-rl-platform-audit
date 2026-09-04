@@ -1,0 +1,423 @@
+{
+  "format": "cur261-r15-workflow-plan-v1",
+  "profile": "rehearsal",
+  "workflow_version": "AuthoritativeWorkflow-v1",
+  "workflow_graph_digest": "r15wg-a3483ee83bb21be526638d24c8f94824cdc1cf362008607fca909ca4abe36d3c",
+  "out_dir": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+  "freeze_sha": "e534af9e2b0adb06c369b61c44c04c7b0fca36e3",
+  "manifest_path": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal/r15_formal_log_manifest.jsonl",
+  "report_out": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal/rt_report_values.json",
+  "steps": [
+    {
+      "name": "provenance-verify",
+      "cli_command": "provenance-verify",
+      "argv": [
+        "provenance-verify",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "gate_topology_reconciliation.json"
+      ],
+      "output_artifacts": [
+        "gate_topology_provenance_verify.json"
+      ],
+      "prerequisites": [],
+      "postcondition": null,
+      "failure_phase": "pre-provenance",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "determinism-matrix",
+      "cli_command": "determinism-matrix",
+      "argv": [
+        "determinism-matrix"
+      ],
+      "requires_artifacts": [],
+      "output_artifacts": [
+        "determinism/generation_determinism_contract.json"
+      ],
+      "prerequisites": [],
+      "postcondition": null,
+      "failure_phase": "determinism",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "audit",
+      "cli_command": "audit",
+      "argv": [
+        "audit",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--code-freeze-sha",
+        "e534af9e2b0adb06c369b61c44c04c7b0fca36e3",
+        "--fit-pairs",
+        "2"
+      ],
+      "requires_artifacts": [
+        "gate_topology_reconciliation.json",
+        "determinism/generation_determinism_contract.json"
+      ],
+      "output_artifacts": [
+        "r15_code_freeze.json",
+        "baseline_ancestry.json",
+        "historical_evidence_binding.json",
+        "r12_abort_binding.json",
+        "r12_iteration_failure_binding.json",
+        "r14_failure_binding.json",
+        "gate_topology_reconciliation_verify.json"
+      ],
+      "prerequisites": [],
+      "postcondition": null,
+      "failure_phase": "audit",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "cue-audit",
+      "cli_command": "cue-audit",
+      "argv": [
+        "cue-audit",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "requires_artifacts": [],
+      "output_artifacts": [
+        "cue_contract_audit.json",
+        "cue_event_trace.jsonl"
+      ],
+      "prerequisites": [],
+      "postcondition": null,
+      "failure_phase": "cue-audit",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "preplan-smoke",
+      "cli_command": "preplan-smoke",
+      "argv": [
+        "preplan-smoke",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [],
+      "output_artifacts": [
+        "preplan_engineering_smoke.json"
+      ],
+      "prerequisites": [],
+      "postcondition": null,
+      "failure_phase": "preplan-smoke",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "plan-roundtrip",
+      "cli_command": "plan-roundtrip",
+      "argv": [
+        "plan-roundtrip",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "cue_contract_audit.json",
+        "preplan_engineering_smoke.json"
+      ],
+      "output_artifacts": [
+        "plan_roundtrip_validation.json"
+      ],
+      "prerequisites": [
+        "preplan-smoke",
+        "cue-audit"
+      ],
+      "postcondition": null,
+      "failure_phase": "plan-roundtrip",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "design-plan-lock",
+      "cli_command": "design-plan-lock",
+      "argv": [
+        "design-plan-lock",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "requires_artifacts": [
+        "preplan_engineering_smoke.json"
+      ],
+      "output_artifacts": [
+        "r15_design_plan.json",
+        "r15_design_plan_digest.txt"
+      ],
+      "prerequisites": [
+        "preplan-smoke"
+      ],
+      "postcondition": null,
+      "failure_phase": "design-plan-lock",
+      "touches_exposure": false,
+      "data_class": "design"
+    },
+    {
+      "name": "design",
+      "cli_command": "design",
+      "argv": [
+        "design",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "r15_design_plan.json"
+      ],
+      "output_artifacts": [
+        "r15_parameter_pack.json",
+        "r15_parameter_pack_digest.txt"
+      ],
+      "prerequisites": [
+        "design-plan-lock"
+      ],
+      "postcondition": null,
+      "failure_phase": "design",
+      "touches_exposure": false,
+      "data_class": "design"
+    },
+    {
+      "name": "calibrate",
+      "cli_command": "calibrate",
+      "argv": [
+        "calibrate",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "requires_artifacts": [
+        "r15_parameter_pack.json"
+      ],
+      "output_artifacts": [
+        "preprocessor_bundle_calibration.json",
+        "preprocessor_bundle_holdout.json",
+        "robustness_gate.json",
+        "calibration_evidence.json",
+        "preprocessing_v2_requalification.json",
+        "supervised_learnability_main.json",
+        "supervised_learnability_holdout.json"
+      ],
+      "prerequisites": [
+        "design"
+      ],
+      "postcondition": null,
+      "failure_phase": "calibration",
+      "touches_exposure": false,
+      "data_class": "calibration"
+    },
+    {
+      "name": "preflight-static",
+      "cli_command": "preflight-static",
+      "argv": [
+        "preflight-static",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "r15_parameter_pack.json"
+      ],
+      "output_artifacts": [
+        "prelock_static_preflight.json"
+      ],
+      "prerequisites": [
+        "design"
+      ],
+      "postcondition": null,
+      "failure_phase": "preflight-static",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "lock-plan",
+      "cli_command": "lock-plan",
+      "argv": [
+        "lock-plan",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "preprocessor_bundle_calibration.json",
+        "preprocessor_bundle_holdout.json",
+        "robustness_gate.json",
+        "calibration_evidence.json"
+      ],
+      "output_artifacts": [
+        "qualification_plan_r15.json",
+        "qualification_plan_digest_r15.txt"
+      ],
+      "prerequisites": [
+        "calibrate",
+        "preflight-static"
+      ],
+      "postcondition": null,
+      "failure_phase": "lock-plan",
+      "touches_exposure": false,
+      "data_class": "calibration"
+    },
+    {
+      "name": "preflight-sealed",
+      "cli_command": "preflight-sealed",
+      "argv": [
+        "preflight-sealed",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "qualification_plan_r15.json",
+        "r15_parameter_pack.json"
+      ],
+      "output_artifacts": [
+        "sealed_final_preflight.json",
+        "sealed_final_preflight_digest.txt"
+      ],
+      "prerequisites": [
+        "lock-plan"
+      ],
+      "postcondition": null,
+      "failure_phase": "sealed-preflight",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "qualify",
+      "cli_command": "qualify",
+      "argv": [
+        "qualify",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--rehearsal"
+      ],
+      "requires_artifacts": [
+        "qualification_plan_r15.json",
+        "sealed_final_preflight.json",
+        "r15_parameter_pack.json"
+      ],
+      "output_artifacts": [
+        "qualification_result.json",
+        "qualification_raw.json",
+        "qualification_preprocessor_bundle.json",
+        "qualification_fit_manifest.json",
+        "qualification_pair_evidence_table.json",
+        "qualification_c2_block_evidence_table.json",
+        "qualification_c2_independent_marginal.json"
+      ],
+      "prerequisites": [
+        "preflight-sealed"
+      ],
+      "postcondition": null,
+      "failure_phase": "qualification",
+      "touches_exposure": true,
+      "data_class": "final"
+    },
+    {
+      "name": "smoke",
+      "cli_command": "smoke",
+      "argv": [
+        "smoke",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [
+        "r15_parameter_pack.json",
+        "qualification_result.json"
+      ],
+      "output_artifacts": [
+        "ppo_256step_smoke.json"
+      ],
+      "prerequisites": [
+        "qualify"
+      ],
+      "postcondition": "final_verdict_pass",
+      "failure_phase": "smoke",
+      "touches_exposure": false,
+      "data_class": "final"
+    },
+    {
+      "name": "full-cold",
+      "cli_command": "full-cold",
+      "argv": [
+        "full-cold",
+        "--artifacts-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--skip-regression"
+      ],
+      "requires_artifacts": [
+        "qualification_result.json",
+        "qualification_preprocessor_bundle.json",
+        "ppo_256step_smoke.json"
+      ],
+      "output_artifacts": [
+        "full_cold_reader_check.json"
+      ],
+      "prerequisites": [
+        "smoke"
+      ],
+      "postcondition": "smoke_pass",
+      "failure_phase": "full-cold",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "report-read",
+      "cli_command": "report-read",
+      "argv": [
+        "report-read",
+        "--artifacts-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal",
+        "--out-file",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal/rt_report_values.json"
+      ],
+      "requires_artifacts": [
+        "cue_contract_audit.json",
+        "robustness_gate.json",
+        "qualification_result.json",
+        "ppo_256step_smoke.json",
+        "full_cold_reader_check.json"
+      ],
+      "output_artifacts": [
+        "rt_report_values.json"
+      ],
+      "prerequisites": [
+        "full-cold"
+      ],
+      "postcondition": null,
+      "failure_phase": "report-read",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    },
+    {
+      "name": "verify-formal-logs",
+      "cli_command": "verify-formal-logs",
+      "argv": [
+        "verify-formal-logs",
+        "--manifest",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal/r15_formal_log_manifest.jsonl",
+        "--stopped-at",
+        "report-read",
+        "--out-dir",
+        "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair15/real_artifact_rehearsal"
+      ],
+      "requires_artifacts": [],
+      "output_artifacts": [
+        "r15_formal_log_verification.json"
+      ],
+      "prerequisites": [
+        "report-read"
+      ],
+      "postcondition": null,
+      "failure_phase": "verify-formal-logs",
+      "touches_exposure": false,
+      "data_class": "engineering"
+    }
+  ]
+}

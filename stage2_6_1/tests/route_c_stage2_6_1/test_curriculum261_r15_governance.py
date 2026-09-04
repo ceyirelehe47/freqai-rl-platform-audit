@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""R14 治理测试:HistoricalEvidenceBinding(R14 版)/R12 abort binding/
+"""R15 治理测试:HistoricalEvidenceBinding(R15 版)/R12 abort binding/
 freeze 治理/rt 路由合同/sealed preflight 证据文件名对齐/generation
 evidence completeness(§四-2/§四-5)。
 """
@@ -12,17 +12,17 @@ from pathlib import Path
 
 import pytest
 
-from rl_curriculum.curriculum261_r14_generation_evidence import (
+from rl_curriculum.curriculum261_r15_generation_evidence import (
     BlockAttemptSummary,
     ExpectedCall,
     verify_generation_evidence_completeness,
 )
-from rl_curriculum.curriculum261_r14_historical import (
+from rl_curriculum.curriculum261_r15_historical import (
     R11_COMMIT_A,
     R11_COMMIT_A_PRIME,
     R12_COMMIT_A,
     R12_COMMIT_B,
-    R14_EXPECTED_BASELINE,
+    R15_EXPECTED_BASELINE,
     historical_evidence_binding, R13_COMMIT_A, R13_COMMIT_B)
 
 
@@ -35,12 +35,12 @@ def _release_repo() -> Path | None:
 
 
 # ------------------------------------------------ generation evidence
-def _env(namespace="stress_r14", family="c3_cost", rung="D0", pair=0,
+def _env(namespace="stress_r15", family="c3_cost", rung="D0", pair=0,
          attempt=0, accepted=True, digest=None, call_digest="cd-1"):
     return {
-        "stage": "s", "iteration": "r14", "call_digest": call_digest,
+        "stage": "s", "iteration": "r15", "call_digest": call_digest,
         "envelope": {
-            "iteration": "r14", "namespace": namespace,
+            "iteration": "r15", "namespace": namespace,
             "family": family, "rung": rung, "pair_index": pair,
             "attempt_index": attempt, "outer_seed": 12345,
             "accepted": accepted,
@@ -49,7 +49,7 @@ def _env(namespace="stress_r14", family="c3_cost", rung="D0", pair=0,
     }
 
 
-EXPECTED = [ExpectedCall("stress_r14", "c3_cost", "D0", 0)]
+EXPECTED = [ExpectedCall("stress_r15", "c3_cost", "D0", 0)]
 
 
 def test_generation_evidence_complete_pass():
@@ -58,11 +58,11 @@ def test_generation_evidence_complete_pass():
         None, EXPECTED, stage_label="s", ledger_rows_override=rows)
     assert r["pass"], r["problems_sample"]
     assert r["observed_call_invocations"] == 1
-    assert r["iteration"] == "r14"
+    assert r["iteration"] == "r15"
 
 
 def test_generation_evidence_missing_rejected():
-    rows = [_env(namespace="other_r14")]
+    rows = [_env(namespace="other_r15")]
     r = verify_generation_evidence_completeness(
         None, EXPECTED, stage_label="s", ledger_rows_override=rows)
     assert not r["pass"]
@@ -70,13 +70,13 @@ def test_generation_evidence_missing_rejected():
 
 
 def test_generation_evidence_same_coordinate_two_legal_calls():
-    calls = [ExpectedCall("calibration_r14", "c1_opportunity", "D0", 0),
-             ExpectedCall("calibration_r14", "c1_opportunity", "D0", 0)]
+    calls = [ExpectedCall("calibration_r15", "c1_opportunity", "D0", 0),
+             ExpectedCall("calibration_r15", "c1_opportunity", "D0", 0)]
     rows = [
-        _env(namespace="calibration_r14", family="c1_opportunity",
+        _env(namespace="calibration_r15", family="c1_opportunity",
              rung="D0", pair=0, attempt=0, accepted=True,
              call_digest="cd-eval"),
-        _env(namespace="calibration_r14", family="c1_opportunity",
+        _env(namespace="calibration_r15", family="c1_opportunity",
              rung="D0", pair=0, attempt=0, accepted=True,
              call_digest="cd-c13"),
     ]
@@ -95,38 +95,19 @@ def test_generation_evidence_iteration_mismatch_rejected():
 
 
 # ------------------------------------------------ historical binding
-def _on_r14_branch() -> bool:
-    """R14 binding 的分支检查只在 repair14 分支上下文中有意义。
-
-    R15 起 HEAD 位于 repair15 分支,r14 模块的分支名检查按设计为
-    False;R15 的等价断言由 test_curriculum261_r15_governance 承担。
-    checkout 到 repair14 分支时本测试恢复完整执行。
-    """
-    repo = _release_repo()
-    if repo is None:
-        return False
-    out = subprocess.run(
-        ["git", "branch", "--show-current"], cwd=str(repo),
-        capture_output=True, text=True)
-    return out.stdout.strip() == "route-c-stage2-6-1-repair14"
-
-
 @pytest.mark.skipif(_release_repo() is None,
                     reason="release repo 不可达(仅 WSL/开发机)")
-class TestHistoricalEvidenceBindingR14:
-    @pytest.mark.skipif(not _on_r14_branch(),
-                        reason="非 repair14 分支:R14 binding 的分支检查"
-                               "仅在 R14 iteration 上下文有效(R15 起"
-                               "由 r15 governance 测试承担)")
+class TestHistoricalEvidenceBindingR15:
     def test_ancestry_and_r13_clean_chain(self):
         repo = _release_repo()
         binding = historical_evidence_binding(repo)
-        assert binding["expected_baseline"] == R14_EXPECTED_BASELINE
-        assert R14_EXPECTED_BASELINE == (
-            "b8e1de05cc3040ddc81634eb36d735a9fe3483da")
+        assert binding["expected_baseline"] == R15_EXPECTED_BASELINE
+        assert R15_EXPECTED_BASELINE == (
+            "14a889c2854571e3ab5245ef51da7c858c83f59b")  # R14 Commit B
         assert R13_COMMIT_A == (
             "47d3f22f4df97855423ee748f3aa2df5497422a6")
-        assert R13_COMMIT_B == R14_EXPECTED_BASELINE
+        assert R13_COMMIT_B == "b8e1de05cc3040ddc81634eb36d735a9fe3483da"
+        assert R13_COMMIT_B != R15_EXPECTED_BASELINE
         assert binding["checks"]["baseline_commit_exists"] is True
         assert binding["checks"]["r12_clean_two_commit_chain"] is True
         assert binding["checks"]["r13_clean_two_commit_chain"] is True
@@ -135,6 +116,18 @@ class TestHistoricalEvidenceBindingR14:
         assert binding["checks"]["r13_commit_b_contains_runner_py"] is True
         assert binding["checks"]["r13_raw_logs_incomplete"] is True
         assert binding["checks"]["r13_plan_digest_qp12_prefix"] is True
+        # R15 新增:R14 链与失败事实绑定(§二)
+        assert binding["checks"]["r14_clean_two_commit_chain"] is True
+        assert binding["checks"]["r14_exposure_never_occurred"] is True
+        assert binding["checks"]["r14_final_not_executed"] is True
+        assert binding["checks"][
+            "r14_fail_closure_verdict_fail"] is True
+        assert binding["checks"][
+            "r14_manifest_tail_plan_roundtrip_rc1"] is True
+        assert binding["checks"][
+            "r14_runner_missing_preplan_step"] is True
+        assert binding["checks"][
+            "r14_hidden_dual_binding_evidence"] is True
         assert binding["ok"] is True, binding["failed_checks"]
         gaps = binding["r13_governance_binding"]["r13_governance_gaps"]
         assert gaps["plan_digest_prefix"] == "qp12-"
@@ -156,7 +149,7 @@ class TestHistoricalEvidenceBindingR14:
                     reason="release repo 不可达(仅 WSL/开发机)")
 class TestR12AbortBinding:
     def test_binding_passes_against_real_repo(self, tmp_path):
-        from rl_curriculum.curriculum261_r14_cli import _r12_abort_binding
+        from rl_curriculum.curriculum261_r15_cli import _r12_abort_binding
 
         binding = _r12_abort_binding(tmp_path)
         assert binding["pass"] is True
@@ -173,7 +166,7 @@ class TestR12AbortBinding:
         """cmd_audit 的 r12_iteration_failure_binding.json 内容锁。"""
         src = Path(
             __file__).resolve().parents[2] / "src" / "rl_curriculum" / (
-                "curriculum261_r14_cli.py")
+                "curriculum261_r15_cli.py")
         text = src.read_text(encoding="utf-8")
         assert "r12_iteration_failure_binding.json" in text
         assert "preprocessor_bundle_hash" in text
@@ -184,7 +177,7 @@ class TestR12AbortBinding:
                     reason="release repo 不可达(仅 WSL/开发机)")
 class TestR13FailureBinding:
     def test_binding_passes_against_real_repo(self, tmp_path):
-        from rl_curriculum.curriculum261_r14_cli import _r13_failure_binding
+        from rl_curriculum.curriculum261_r15_cli import _r13_failure_binding
 
         binding = _r13_failure_binding(tmp_path)
         assert binding["pass"] is True
@@ -197,7 +190,7 @@ class TestR13FailureBinding:
     def test_audit_writes_r13_failure_binding(self):
         src = Path(
             __file__).resolve().parents[2] / "src" / "rl_curriculum" / (
-                "curriculum261_r14_cli.py")
+                "curriculum261_r15_cli.py")
         text = src.read_text(encoding="utf-8")
         assert "r13_iteration_failure_binding.json" in text
         assert "_r13_failure_binding(out)" in text
@@ -209,96 +202,96 @@ class TestR13FailureBinding:
 @pytest.mark.skipif(_release_repo() is None,
                     reason="release repo 不可达(仅 WSL/开发机)")
 class TestFreezeGovernance:
-    """R14 全 freeze surface(§六):完整行为(tmp dev/repo 场景)由
-    test_curriculum261_r14_freeze.py 覆盖;此处锁定结构合同与
+    """R15 全 freeze surface(§六):完整行为(tmp dev/repo 场景)由
+    test_curriculum261_r15_freeze.py 覆盖;此处锁定结构合同与
     fail closed 语义。"""
 
     def test_verify_fails_closed_without_freeze(self, tmp_path):
-        from rl_curriculum.curriculum261_r14_dependencies import (
-            verify_r14_code_freeze,
+        from rl_curriculum.curriculum261_r15_dependencies import (
+            verify_r15_code_freeze,
         )
 
-        result = verify_r14_code_freeze(tmp_path)
+        result = verify_r15_code_freeze(tmp_path)
         assert result["pass"] is False
         assert "error" in result
 
     def test_write_requires_commit_a_head_match(self, tmp_path):
         """code_freeze_sha 必须等于 repo HEAD(冻结绑定 Commit A)。"""
-        from rl_curriculum.curriculum261_r14_dependencies import (
-            write_r14_code_freeze,
+        from rl_curriculum.curriculum261_r15_dependencies import (
+            write_r15_code_freeze,
         )
 
         with pytest.raises(RuntimeError) as excinfo:
-            write_r14_code_freeze(tmp_path, code_freeze_sha="0" * 40)
+            write_r15_code_freeze(tmp_path, code_freeze_sha="0" * 40)
         # 两种 fail closed 之一:repo 不可达(纯 tmp)或 sha 不匹配
         assert ("code_freeze_sha 与 repo HEAD 不一致"
                 in str(excinfo.value)) or ("不可达" in str(excinfo.value))
 
     def test_freeze_surface_contract_declared(self):
-        from rl_curriculum.curriculum261_r14_dependencies import (
-            R14_FREEZE_DEV_DIRS,
-            R14_FREEZE_DEV_FILES,
-            R14_FREEZE_REPO_PATHS,
+        from rl_curriculum.curriculum261_r15_dependencies import (
+            R15_FREEZE_DEV_DIRS,
+            R15_FREEZE_DEV_FILES,
+            R15_FREEZE_REPO_PATHS,
         )
 
-        assert "src/rl_curriculum" in R14_FREEZE_DEV_DIRS
-        assert "tests/route_c_stage2_6_1" in R14_FREEZE_DEV_DIRS
+        assert "src/rl_curriculum" in R15_FREEZE_DEV_DIRS
+        assert "tests/route_c_stage2_6_1" in R15_FREEZE_DEV_DIRS
         assert "user_data/strategies/RouteCStrategy.py" in (
-            R14_FREEZE_DEV_FILES)
-        assert "requirements-lock.txt" in R14_FREEZE_DEV_FILES
-        assert "stage2_6_1/runner" in R14_FREEZE_REPO_PATHS
-        assert "stage2_6_1/src" in R14_FREEZE_REPO_PATHS
+            R15_FREEZE_DEV_FILES)
+        assert "requirements-lock.txt" in R15_FREEZE_DEV_FILES
+        assert "stage2_6_1/runner" in R15_FREEZE_REPO_PATHS
+        assert "stage2_6_1/src" in R15_FREEZE_REPO_PATHS
         assert "stage2_6_1/tests/route_c_stage2_6_1" in (
-            R14_FREEZE_REPO_PATHS)
+            R15_FREEZE_REPO_PATHS)
 
 
 # ------------------------------------------------ rt 路由合同
 class TestRtRoutingContract:
     def test_rt_table_and_mutual_exclusivity(self):
-        from rl_curriculum.curriculum261_r14_routing import (
-            R14_RT_ROLE_FIT_NAMESPACE,
+        from rl_curriculum.curriculum261_r15_routing import (
+            R15_RT_ROLE_FIT_NAMESPACE,
             RoutingContractError,
-            build_routing_r14,
+            build_routing_r15,
         )
 
-        assert R14_RT_ROLE_FIT_NAMESPACE["final"] == (
-            "rt3_fit_qualification_r14")
+        assert R15_RT_ROLE_FIT_NAMESPACE["final"] == (
+            "rt3_fit_qualification_r15")
 
         class _FakeV2:
-            namespace = "rt3_fit_main_r14"
+            namespace = "rt3_fit_main_r15"
             bundle_hash = "r4pb-rt"
             parameter_state_hash = "p"
             manifest_multiset_hash = "m"
 
-        routing = build_routing_r14("main", _FakeV2(), rt=True)
+        routing = build_routing_r15("main", _FakeV2(), rt=True)
         assert routing.nonformal is True
         with pytest.raises(RoutingContractError):
-            build_routing_r14("main", _FakeV2(), rt=True, shadow=True)
+            build_routing_r15("main", _FakeV2(), rt=True, shadow=True)
 
     def test_formal_routing_rejects_rt_namespace(self):
-        from rl_curriculum.curriculum261_r14_routing import (
+        from rl_curriculum.curriculum261_r15_routing import (
             RoutingContractError,
-            build_routing_r14,
+            build_routing_r15,
         )
 
         class _FakeV2:
-            namespace = "rt3_fit_main_r14"
+            namespace = "rt3_fit_main_r15"
             bundle_hash = "r4pb-rt"
             parameter_state_hash = "p"
             manifest_multiset_hash = "m"
 
         with pytest.raises(RoutingContractError):
-            build_routing_r14("main", _FakeV2())
+            build_routing_r15("main", _FakeV2())
 
     def test_rt_eval_namespaces_mapped(self):
-        from rl_curriculum.curriculum261_r14_routing import (
-            R14_EVAL_NAMESPACE_ROLE,
+        from rl_curriculum.curriculum261_r15_routing import (
+            R15_EVAL_NAMESPACE_ROLE,
         )
 
-        assert R14_EVAL_NAMESPACE_ROLE[
-            "rt3_calibration_main_r14"] == "main"
-        assert R14_EVAL_NAMESPACE_ROLE[
-            "rt3_qualification_r14"] == "final"
+        assert R15_EVAL_NAMESPACE_ROLE[
+            "rt3_calibration_main_r15"] == "main"
+        assert R15_EVAL_NAMESPACE_ROLE[
+            "rt3_qualification_r15"] == "final"
 
 
 # ------------------------------------------------ sealed preflight 证据文件名
@@ -308,7 +301,7 @@ class TestSealedPreflightEvidenceFilenames:
         产物名对齐(R12 潜伏缺陷的回归锁)。"""
         src = Path(
             __file__).resolve().parents[2] / "src" / "rl_curriculum" / (
-                "curriculum261_r14_preflight.py")
+                "curriculum261_r15_preflight.py")
         text = src.read_text(encoding="utf-8")
         for required in (
                 "preprocessing_v2_requalification.json",
@@ -330,7 +323,7 @@ class TestCleanlinessReads:
         producer 文件名缺陷)。"""
         src = Path(
             __file__).resolve().parents[2] / "src" / "rl_curriculum" / (
-                "curriculum261_r14_cli.py")
+                "curriculum261_r15_cli.py")
         text = src.read_text(encoding="utf-8")
         assert "calibration_report_main.json" not in text
         assert "calibration_report_holdout.json" not in text
@@ -339,7 +332,7 @@ class TestCleanlinessReads:
 # ------------------------------------------------ 官方入口
 class TestOfficialEntrypoint:
     def test_import_sweep_passes(self):
-        from rl_curriculum.curriculum261_r14_cli import (
+        from rl_curriculum.curriculum261_r15_cli import (
             _official_entrypoint_validation,
         )
 
@@ -348,7 +341,7 @@ class TestOfficialEntrypoint:
         assert "real-artifact-rehearsal" in entry["subcommands"]
 
     def test_no_alternate_loader_passes(self):
-        from rl_curriculum.curriculum261_r14_cli import (
+        from rl_curriculum.curriculum261_r15_cli import (
             _no_alternate_loader_check,
         )
 
@@ -357,17 +350,17 @@ class TestOfficialEntrypoint:
 
 
 # ------------------------------------------------ api namespace 注册
-class TestR14NamespacesRegistered:
+class TestR15NamespacesRegistered:
     def test_namespaces_in_whitelist_and_guarded(self):
         from rl_curriculum.curriculum261_api import (
-            CURRICULUM261_R14_NAMESPACES,
+            CURRICULUM261_R15_NAMESPACES,
             CURRICULUM261_SEED_NAMESPACES,
         )
 
-        ns_set = set(CURRICULUM261_R14_NAMESPACES)
-        assert "qualification_r14" in ns_set
-        assert "rt_qualification_r14" in ns_set
-        assert "rt_cue_model_r14" in ns_set
+        ns_set = set(CURRICULUM261_R15_NAMESPACES)
+        assert "qualification_r15" in ns_set
+        assert "rt_qualification_r15" in ns_set
+        assert "rt_cue_model_r15" in ns_set
         assert ns_set <= set(CURRICULUM261_SEED_NAMESPACES)
         # 与 R12 namespace 完全不相交
         from rl_curriculum.curriculum261_api import (
@@ -378,27 +371,27 @@ class TestR14NamespacesRegistered:
 
     def test_qualification_guard_blocks_before_unlock(self, tmp_path,
                                                       monkeypatch):
-        monkeypatch.setenv("CURRICULUM261_R14_LOCK_DIR", str(tmp_path))
+        monkeypatch.setenv("CURRICULUM261_R15_LOCK_DIR", str(tmp_path))
         from rl_curriculum.curriculum261_api import (
             GeneratorError,
             derive261_seed,
         )
 
-        with pytest.raises(GeneratorError, match="qualification_r14"):
-            derive261_seed("qualification_r14", "c1_opportunity", "D0",
+        with pytest.raises(GeneratorError, match="qualification_r15"):
+            derive261_seed("qualification_r15", "c1_opportunity", "D0",
                            0, 0)
 
 
 # ------------------------------------------------ rt profiles
 class TestRtProfiles:
     def test_rt_profiles_full_generation_scale(self):
-        from rl_curriculum.curriculum261_r14_orchestrator import (
-            rt_holdout_profile_r14,
-            rt_main_profile_r14,
+        from rl_curriculum.curriculum261_r15_orchestrator import (
+            rt_holdout_profile_r15,
+            rt_main_profile_r15,
         )
 
-        main = rt_main_profile_r14()
-        hold = rt_holdout_profile_r14()
+        main = rt_main_profile_r15()
+        hold = rt_holdout_profile_r15()
         assert main.name == "rt_main" and hold.name == "rt_holdout"
         # c13 评估 60/rung(rehearsal-only 扩样;c3 margin 临界性;
         # 正式链保持 10 冻结);其余生成基数与正式同构
@@ -413,9 +406,9 @@ class TestRtProfiles:
                                                20270134)
         assert main.supervised_training_config is None
         # rehearsal-only namespace + 落盘
-        assert main.c13_eval_namespace == "rt3_calibration_main_r14"
+        assert main.c13_eval_namespace == "rt3_calibration_main_r15"
         assert main.write_artifacts is True
-        assert hold.c13_eval_namespace == "rt3_calibration_holdout_r14"
+        assert hold.c13_eval_namespace == "rt3_calibration_holdout_r15"
         assert hold.write_artifacts is True
 
 
@@ -424,13 +417,13 @@ class TestRtProfiles:
                     reason="release repo 不可达(仅 WSL/开发机)")
 class TestGateTopologyProvenance:
     def test_build_provenance_passes(self):
-        from rl_curriculum.curriculum261_r14_provenance import (
+        from rl_curriculum.curriculum261_r15_provenance import (
             build_gate_topology_reconciliation,
         )
 
         payload = build_gate_topology_reconciliation()
         assert payload["pass"] is True
-        assert payload["digest"].startswith("r14gtrec-")
+        assert payload["digest"].startswith("r15gtrec-")
         # 双侧证据齐全
         ce = payload["contradiction_evidence"]
         for marker in ce["declaration_side"]["markers"].values():
@@ -442,27 +435,59 @@ class TestGateTopologyProvenance:
             "present"] is True
 
     def test_provenance_conclusions_locked(self):
-        from rl_curriculum.curriculum261_r14_provenance import (
+        from rl_curriculum.curriculum261_r15_provenance import (
             build_gate_topology_reconciliation,
         )
 
         payload = build_gate_topology_reconciliation()
         concl = payload["conclusions"]
         assert concl["r13_remains_permanent_fail"] is True
-        assert concl["r14_fixes_pre_exposure_contract_contradiction"] \
+        assert concl["r14_remains_permanent_fail"] is True
+        assert concl["r15_fixes_pre_exposure_contract_contradiction"] \
             is True
-        assert concl["no_use_of_r13_observed_recall_for_rule_choice"] \
+        assert concl["r15_fixes_r14_hidden_dual_binding"] is True
+        assert concl["r15_fixes_r14_uniqueness_fail_open"] is True
+        assert concl["r15_fixes_r14_orchestration_single_source"] is True
+        assert concl["independent_cue_point_metrics_diagnostic_only"] \
             is True
+        assert concl[
+            "no_use_of_r13_r14_observed_recall_for_rule_choice"] is True
         assert concl["dedicated_thresholds_unchanged"] is True
-        # R13 observed 数值不进入规则选择声明(证明靠源码 markers,
-        # 不靠结果);数值只允许出现在 r13_binding 历史事实块
+        # R13/R14 observed 数值不进入规则选择声明(证明靠源码 markers,
+        # 不靠结果);数值只允许出现在历史事实块
         concl_text = json.dumps(concl, ensure_ascii=False)
         assert "0.948571" not in concl_text
-        assert "在查看任何 R13 final 数值前已成立" in (
+        assert "在查看任何 final 数值前已成立" in (
             concl["rule_choice_basis"])
 
+    def test_provenance_r14_binding(self):
+        """§二:R14 历史绑定(隐藏双绑定/编排缺陷/永久 FAIL)。"""
+        from rl_curriculum.curriculum261_r15_provenance import (
+            build_gate_topology_reconciliation,
+        )
+
+        payload = build_gate_topology_reconciliation()
+        ce14 = payload["contradiction_evidence_r14"]
+        for marker in ce14["implementation_side"]["markers"].values():
+            assert marker["present"] is True
+        for marker in ce14["declaration_side"]["markers"].values():
+            assert marker["present"] is True
+        assert ce14["uniqueness_blindspot"]["marker"]["present"] is True
+        orch = ce14["orchestration_defect"]
+        assert orch["runner_has_plan_roundtrip"]["present"] is True
+        assert orch["runner_has_preplan_smoke"]["present"] is False
+        rb14 = payload["r14_binding"]
+        assert rb14["commit_chain"] == [
+            "b8e1de05cc3040ddc81634eb36d735a9fe3483da",
+            "0b07778d98430791756ca4a4768bc46bf1f05d8f",
+            "14a889c2854571e3ab5245ef51da7c858c83f59b"]
+        assert rb14["r14_verdict"] == "FAIL"
+        assert rb14["raw_log_last_step"] == "plan-roundtrip"
+        assert rb14["raw_log_last_rc"] == 1
+        assert payload["pass"] is True
+
     def test_provenance_r13_binding(self):
-        from rl_curriculum.curriculum261_r14_provenance import (
+        from rl_curriculum.curriculum261_r15_provenance import (
             build_gate_topology_reconciliation,
         )
 
@@ -476,7 +501,7 @@ class TestGateTopologyProvenance:
         assert rb["c2_semantics_pass_observed"] is False
 
     def test_write_once_and_verify(self, tmp_path):
-        from rl_curriculum.curriculum261_r14_provenance import (
+        from rl_curriculum.curriculum261_r15_provenance import (
             verify_gate_topology_reconciliation,
             write_gate_topology_reconciliation,
         )

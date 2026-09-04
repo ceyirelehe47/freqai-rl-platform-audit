@@ -1,0 +1,869 @@
+{
+ "format": "cur261-r15-cross-process-determinism-matrix-v1",
+ "iteration": "r15",
+ "r15_target": {
+  "iteration": "r15",
+  "namespace": "stress_r15",
+  "family": "c3_cost",
+  "rung": "D0",
+  "pair_index": 3
+ },
+ "r10_target": {
+  "namespace": "supervised_main_r10",
+  "family": "c3_cost",
+  "rung": "D0",
+  "pair_index": 1
+ },
+ "baseline": {
+  "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+  "attempt_digests": [
+   "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+  ],
+  "attempt_outer_seeds": [
+   17011118705889542700
+  ],
+  "attempt_accepted": [
+   true
+  ],
+  "attempt_event_digests": [
+   {
+    "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+    "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+   }
+  ],
+  "attempt_counts": [
+   {
+    "A": {
+     "sig_dir_nonzero": 42,
+     "distractor_flag_nonzero": 4,
+     "above_cost_nonzero": 32,
+     "cue_dir_nonzero": null,
+     "payoff_active_nonzero": 38,
+     "n_signals": 38,
+     "n_above_cost": 32,
+     "n_below_cost": 6,
+     "n_distractors": 4
+    },
+    "B": {
+     "sig_dir_nonzero": 42,
+     "distractor_flag_nonzero": 4,
+     "above_cost_nonzero": 0,
+     "cue_dir_nonzero": null,
+     "payoff_active_nonzero": 38,
+     "n_signals": 38,
+     "n_above_cost": 0,
+     "n_below_cost": 38,
+     "n_distractors": 4
+    }
+   }
+  ],
+  "generation_error": null
+ },
+ "baseline_r10": {
+  "call_digest": "r11call-6c1efe2e8991be0c16ebb4faab58b3d8b7631a00a8c168b678eacd967e51c962",
+  "attempt_digests": [
+   "r11env-216e4388d67beb5f2a8379b0663bf99c8d314bb02eff491a6c7ac957f72acf26"
+  ],
+  "attempt_outer_seeds": [
+   4610631957848990728
+  ],
+  "attempt_accepted": [
+   true
+  ],
+  "attempt_event_digests": [
+   {
+    "A": "df-0b4d45376983eb6358d09bce738dc534754b3986087e21e988bb9472950ecd30",
+    "B": "df-17522cd3ad4cef6e256343b2198924bcefc3fd6779bf0f493c4c1b58969b3a2c"
+   }
+  ],
+  "attempt_counts": [
+   {
+    "A": {
+     "sig_dir_nonzero": 44,
+     "distractor_flag_nonzero": 2,
+     "above_cost_nonzero": 36,
+     "cue_dir_nonzero": null,
+     "payoff_active_nonzero": 42,
+     "n_signals": 42,
+     "n_above_cost": 36,
+     "n_below_cost": 6,
+     "n_distractors": 2
+    },
+    "B": {
+     "sig_dir_nonzero": 44,
+     "distractor_flag_nonzero": 2,
+     "above_cost_nonzero": 0,
+     "cue_dir_nonzero": null,
+     "payoff_active_nonzero": 42,
+     "n_signals": 42,
+     "n_above_cost": 0,
+     "n_below_cost": 42,
+     "n_distractors": 2
+    }
+   }
+  ],
+  "generation_error": null
+ },
+ "scenarios": [
+  {
+   "name": "1_r10_failure_invocation_replay",
+   "note": "R10 c3_cost/D0/pair1(supervised_main_r10)单独重放(torch 预导入);另验证 5 个 outer seeds 与记录一致",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "r10_attempt_seeds_match_recorded": true,
+   "r10_reproduces_original_failure": false,
+   "run": {
+    "call_digest": "r11call-6c1efe2e8991be0c16ebb4faab58b3d8b7631a00a8c168b678eacd967e51c962",
+    "attempt_digests": [
+     "r11env-216e4388d67beb5f2a8379b0663bf99c8d314bb02eff491a6c7ac957f72acf26"
+    ],
+    "attempt_outer_seeds": [
+     4610631957848990728
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-0b4d45376983eb6358d09bce738dc534754b3986087e21e988bb9472950ecd30",
+      "B": "df-17522cd3ad4cef6e256343b2198924bcefc3fd6779bf0f493c4c1b58969b3a2c"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 44,
+       "distractor_flag_nonzero": 2,
+       "above_cost_nonzero": 36,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 42,
+       "n_signals": 42,
+       "n_above_cost": 36,
+       "n_below_cost": 6,
+       "n_distractors": 2
+      },
+      "B": {
+       "sig_dir_nonzero": 44,
+       "distractor_flag_nonzero": 2,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 42,
+       "n_signals": 42,
+       "n_above_cost": 0,
+       "n_below_cost": 42,
+       "n_distractors": 2
+      }
+     }
+    ],
+    "generation_error": null
+   }
+  },
+  {
+   "name": "2_pythonhashseed_variant",
+   "note": "PYTHONHASHSEED=12345(基线为随机/未设)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "3_import_order_variant",
+   "note": "不同 hash 种子下的 import/set 遍历顺序路径",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "4_import_torch_first",
+   "note": "目标调用前 import torch(基线不 import)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "5_c1_generation_first",
+   "note": "预先执行 C1 全 rung 生成",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "6_c2_generation_first",
+   "note": "预先执行 C2 全 rung 生成",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "7_c1c2_dataset_first",
+   "note": "预先执行 C1/C2 dataset 构造(R10 失败序列核心)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "8_mlp_training_first",
+   "note": "预先执行 U/W/B MLP 训练(torch)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "9_preprocessing_battery_first",
+   "note": "预先执行 robustness/equivalence 电池(工程规模;全规模覆盖由 full-scale shadow 承担)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "10_main_holdout_bundle_first",
+   "note": "预先执行 main/holdout 双 bundle fit 流程",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "11_same_process_twice",
+   "note": "同一进程内目标调用连续两次",
+   "ok": true,
+   "identical_to_baseline": true,
+   "same_process_bitwise": true,
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   }
+  },
+  {
+   "name": "12_two_cold_processes",
+   "note": "基线冷进程 vs 第二个独立冷进程",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "13_thread_env_variant",
+   "note": "OMP_NUM_THREADS=1 / MKL_NUM_THREADS=1",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "detail_digest": "probe-d325e3a12a920a212ed3d95616b23c81b73bc660dd9e59454a4dbd9a7d19ce5f",
+   "run": {
+    "call_digest": "r11call-6e1aa7ff5b86f6020832a54796f570ea41a1de923da3884e3f3966d752ded69d",
+    "attempt_digests": [
+     "r11env-22c2173109ef772553f81cf0ed77b82eba05b7faadaec3ac0e48135e79133ff4"
+    ],
+    "attempt_outer_seeds": [
+     17011118705889542700
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-fa344262ab9b85c6226785d448b08aef4b70079dc4ce65d871335ca298281604",
+      "B": "df-dc526eb73232a5114782794cdb0b4684eafe55050ac371cb123601a8df32a1ee"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 32,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 32,
+       "n_below_cost": 6,
+       "n_distractors": 4
+      },
+      "B": {
+       "sig_dir_nonzero": 42,
+       "distractor_flag_nonzero": 4,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 38,
+       "n_signals": 38,
+       "n_above_cost": 0,
+       "n_below_cost": 38,
+       "n_distractors": 4
+      }
+     }
+    ],
+    "generation_error": null
+   },
+   "same_process_bitwise": null
+  },
+  {
+   "name": "14_r10_five_attempt_seeds_replay",
+   "note": "R10 调用整体重放(内部逐 attempt 派生 seed 逐一覆盖五个记录值)",
+   "ok": true,
+   "probe_error": null,
+   "identical_to_baseline": true,
+   "r10_attempt_seeds_match_recorded": true,
+   "r10_all_five_seeds_replayed": true,
+   "r10_reproduces_original_failure": false,
+   "run": {
+    "call_digest": "r11call-6c1efe2e8991be0c16ebb4faab58b3d8b7631a00a8c168b678eacd967e51c962",
+    "attempt_digests": [
+     "r11env-216e4388d67beb5f2a8379b0663bf99c8d314bb02eff491a6c7ac957f72acf26"
+    ],
+    "attempt_outer_seeds": [
+     4610631957848990728
+    ],
+    "attempt_accepted": [
+     true
+    ],
+    "attempt_event_digests": [
+     {
+      "A": "df-0b4d45376983eb6358d09bce738dc534754b3986087e21e988bb9472950ecd30",
+      "B": "df-17522cd3ad4cef6e256343b2198924bcefc3fd6779bf0f493c4c1b58969b3a2c"
+     }
+    ],
+    "attempt_counts": [
+     {
+      "A": {
+       "sig_dir_nonzero": 44,
+       "distractor_flag_nonzero": 2,
+       "above_cost_nonzero": 36,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 42,
+       "n_signals": 42,
+       "n_above_cost": 36,
+       "n_below_cost": 6,
+       "n_distractors": 2
+      },
+      "B": {
+       "sig_dir_nonzero": 44,
+       "distractor_flag_nonzero": 2,
+       "above_cost_nonzero": 0,
+       "cue_dir_nonzero": null,
+       "payoff_active_nonzero": 42,
+       "n_signals": 42,
+       "n_above_cost": 0,
+       "n_below_cost": 42,
+       "n_distractors": 2
+      }
+     }
+    ],
+    "generation_error": null
+   }
+  }
+ ],
+ "all_scenarios_identical": true,
+ "r10_seed_replay_consistent": true,
+ "r10_failure_reproduced_in_any_scenario": false,
+ "root_cause_statement": "historically underdetermined due to missing invocation-state evidence",
+ "pass": true
+}
