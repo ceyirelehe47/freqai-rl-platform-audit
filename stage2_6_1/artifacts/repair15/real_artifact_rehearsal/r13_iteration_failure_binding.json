@@ -1,0 +1,36 @@
+{
+  "iteration": "r13",
+  "final_verdict": "FAIL",
+  "failed_checks": [
+    "c2_semantics_pass"
+  ],
+  "failure_classification": "cue semantic gate topology conflict:calibration wrapper/c2_matched_conditions_r13 声明 cue 语义 gate delegated 给 dedicated 160-block semantic corpus 且 run_c2_diagnostics_r13 定位为诊断对照,但 final aggregator 把 matched 20-block 点估计 gate(check_c2_cue_payoff_separation;cue_recall>=0.95)绑定为 verdict 级 c2_semantics_pass;R13 不因 R15 修订被追认/撤销/改写",
+  "remains_permanent_fail": true,
+  "exposure_status": "failed",
+  "exposure_terminal_failed": true,
+  "abort_marker_iteration_r13": true,
+  "result_blob_matches_baseline": true,
+  "exposure_blob_matches_baseline": true,
+  "abort_marker_blob_matches_baseline": true,
+  "cue_semantics_blob_matches_baseline": true,
+  "fail_path_cleanliness_blob_matches_baseline": true,
+  "r13_qualification_plan_digest_expected": "qp12-2934cc579ef1a6566d697ae68f23383021f914aadd99cc53448c65316e05d466",
+  "r13_qualification_plan_digest_actual": "qp12-2934cc579ef1a6566d697ae68f23383021f914aadd99cc53448c65316e05d466",
+  "qualification_plan_digest_ok": true,
+  "r13_parameter_pack_digest": "r13pk-b68280456e1f6b0cd624748ba4cfaec28e9aa95d1d922003ed76a6f41ada3e1a",
+  "parameter_pack_digest_ok": true,
+  "governance_gaps": [
+    "R13 Commit B 新增 runner/*.py(非 results-only)",
+    "freeze 只覆盖 27 个 src 模块,未覆盖 runner/tests",
+    "formal raw logs 仅 2 个文件提交(13 步正式链日志不完整)",
+    "full-cold reader 无实际 rehearsal(smoke 被标记为同时覆盖 full-cold)",
+    "detailed final failure 通过 exposure 后重生成 qualification_r13 取得(runner/r13_diag_final_semantics.py)",
+    "plan digest 沿用 qp12- 前缀(R13 未换 r13qp-)",
+    "部分合同文字误写下一轮指引(应为 R15 处写成 R13)"
+  ],
+  "r13_commits": {
+    "commit_a": "47d3f22f4df97855423ee748f3aa2df5497422a6",
+    "commit_b": "b8e1de05cc3040ddc81634eb36d735a9fe3483da"
+  },
+  "pass": true
+}

@@ -1,0 +1,216 @@
+{
+ "c1_opportunity": {
+  "schema": {
+   "format": "cur261-r4-pair-evidence-table-v1",
+   "row_key": [
+    "corpus",
+    "family",
+    "rung",
+    "pair_index"
+   ],
+   "aggregation": "pair return = mean(A, B) per policy(A/B 不拆散)",
+   "difficulty": "difficulty_pair[p] = reference_pair[p] - always_flat_pair[p](唯一难度口径)",
+   "margin": "margin[p,b] = reference_pair[p] - baseline_b_pair[p](逐固定基线;禁止 episode 级 max)",
+   "uncertainty": "pair cluster;SE = sd(pair values)/sqrt(n_pairs)",
+   "gap": "adjacent rung gap = mean_hi - mean_lo;SE_gap = sqrt(SE_hi^2 + SE_lo^2)(独立 corpus 样本)",
+   "bootstrap": "percentile;resample pairs;seed=20260901;resamples=5000"
+  },
+  "schema_identity": "r4pt-8983715e7bec9568038a49f504a635ff1532563c6550ac2fa6e115fe23573c09",
+  "corpus": "preplan_calibration_holdout_r15",
+  "family": "c1_opportunity",
+  "rows": [
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c1_opportunity",
+    "rung": "D0",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-b0afdebe7548de85c6fc11d87ca83b9805fb1e331a9d2f84ff9bd34e39cd2361",
+     "B": "ce-79694b0f612b11d3551dab0f1b6dcbed946717ce9145a13636309f7332c3e57d"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.001998001998001875,
+     "always_long_trades": 1.0,
+     "c1_shortcut_naive_momentum": 0.18593514208064799,
+     "c1_shortcut_naive_momentum_trades": 49.0,
+     "reference": 0.20866282354728727,
+     "reference_trades": 22.0,
+     "oracle": 0.2583781041553669
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c1_opportunity",
+    "rung": "D1",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-4b77e096f365603c54b18db20062e5fd0ce633519d16e29c29a4d923ca62df41",
+     "B": "ce-0799c8bfdcbae8719b4b8e5cf415dec26ccafef33098af239b3629146956313c"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c1_shortcut_naive_momentum": 0.09758463083532443,
+     "c1_shortcut_naive_momentum_trades": 47.0,
+     "reference": 0.10275406725759328,
+     "reference_trades": 22.0,
+     "oracle": 0.16340889741807796
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c1_opportunity",
+    "rung": "D2",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-43193200a8f47649c40156519e0a7f753677df5980e30935560b8d24a12b55b0",
+     "B": "ce-ec9ac8474c523e6683a7fd1db4652455f8f2b22cc5c10a727efaf83cf4c0b39c"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.001998001998001875,
+     "always_long_trades": 1.0,
+     "c1_shortcut_naive_momentum": 0.0026242024516196505,
+     "c1_shortcut_naive_momentum_trades": 56.0,
+     "reference": 0.059362740218294685,
+     "reference_trades": 20.0,
+     "oracle": 0.103027550784204
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c1_opportunity",
+    "rung": "D3",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-ecf3943880f051506b8b257c17bf90fd92e6671188d4ab04097824ba54e017a1",
+     "B": "ce-87bfbef6d6a412c8cd98f2d3474980f5b83e4b3432f7b01a20fec521b25d4546"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c1_shortcut_naive_momentum": 0.03869078671452003,
+     "c1_shortcut_naive_momentum_trades": 50.5,
+     "reference": 0.06083177184392341,
+     "reference_trades": 17.5,
+     "oracle": 0.08088838473820564
+    }
+   }
+  ],
+  "n_pairs": 4
+ },
+ "c3_cost": {
+  "schema": {
+   "format": "cur261-r4-pair-evidence-table-v1",
+   "row_key": [
+    "corpus",
+    "family",
+    "rung",
+    "pair_index"
+   ],
+   "aggregation": "pair return = mean(A, B) per policy(A/B 不拆散)",
+   "difficulty": "difficulty_pair[p] = reference_pair[p] - always_flat_pair[p](唯一难度口径)",
+   "margin": "margin[p,b] = reference_pair[p] - baseline_b_pair[p](逐固定基线;禁止 episode 级 max)",
+   "uncertainty": "pair cluster;SE = sd(pair values)/sqrt(n_pairs)",
+   "gap": "adjacent rung gap = mean_hi - mean_lo;SE_gap = sqrt(SE_hi^2 + SE_lo^2)(独立 corpus 样本)",
+   "bootstrap": "percentile;resample pairs;seed=20260901;resamples=5000"
+  },
+  "schema_identity": "r4pt-8983715e7bec9568038a49f504a635ff1532563c6550ac2fa6e115fe23573c09",
+  "corpus": "preplan_calibration_holdout_r15",
+  "family": "c3_cost",
+  "rows": [
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c3_cost",
+    "rung": "D0",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-d651c2ccd3dc8898761fc9bb361cf9f1fb4affba302c9ef661d6214aa4c6ec8f",
+     "B": "ce-2e37623faa94509fae646848d2f6d671cc99fd596edec85dbf26bfd90e6fcb91"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c3_cost_ignorant": 0.0514273550286109,
+     "c3_cost_ignorant_trades": 42.0,
+     "reference": 0.05642617388998905,
+     "reference_trades": 38.0,
+     "oracle": 0.06233589170493414
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c3_cost",
+    "rung": "D1",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-65371921f92d876798dbf227e80e4a019dae6a36dcd1a1ec3d8f8a93ba86ab7d",
+     "B": "ce-b7e35d3fdeff46abda1c93e29a432b7f6736bec209f0cc824c1e3b80d8885cf6"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c3_cost_ignorant": 0.029196339962669404,
+     "c3_cost_ignorant_trades": 38.0,
+     "reference": 0.03605671488506579,
+     "reference_trades": 28.0,
+     "oracle": 0.048542739067308216
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c3_cost",
+    "rung": "D2",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-9ce6a69c2429d0f17ea72f837a780d6d684a9ab91c5d497cf5315e3450cc7abd",
+     "B": "ce-3bf29dfd448ef7aee3720a4cbae22e59e12996a8dca1e996afadde73d1ee6fd5"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c3_cost_ignorant": 0.0003010953945856154,
+     "c3_cost_ignorant_trades": 38.0,
+     "reference": 0.013758229827329771,
+     "reference_trades": 24.0,
+     "oracle": 0.017234391284775552
+    }
+   },
+   {
+    "corpus": "preplan_calibration_holdout_r15",
+    "family": "c3_cost",
+    "rung": "D3",
+    "pair_index": 0,
+    "episode_hashes": {
+     "A": "ce-bd374dc033b27170b7bb91c25efacdaccfc49c4c22d682b7566455a842da126f",
+     "B": "ce-f86a204ba3977745634d4b4f03623e4c425cc41d3898c999b2c4e2d171493e75"
+    },
+    "returns": {
+     "always_flat": 0.0,
+     "always_flat_trades": 0.0,
+     "always_long": -0.0019980019980018193,
+     "always_long_trades": 1.0,
+     "c3_cost_ignorant": -0.00614102950398282,
+     "c3_cost_ignorant_trades": 44.0,
+     "reference": 0.019195852423523396,
+     "reference_trades": 24.0,
+     "oracle": 0.020876707793125227
+    }
+   }
+  ],
+  "n_pairs": 4
+ }
+}

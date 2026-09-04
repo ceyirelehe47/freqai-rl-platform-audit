@@ -1,0 +1,172 @@
+{
+ "format": "GateTopologyReconciliation-v2",
+ "iteration": "r15",
+ "r15_gate_topology_version": "GateTopologyReconciliation-v2",
+ "r15_gate_topology_digest": "r15gt-a4359773684752ba06e69762eec4292b283384fde5763c21cbf985183879db36",
+ "cue_semantic_binding_uniqueness": {
+  "pass": true,
+  "binding_sources_for_cue_semantics": {
+   "dedicated_160_block_semantic_corpus": [
+    "c2_dedicated_semantic_corpus_pass"
+   ]
+  },
+  "expected_unique_source": "dedicated_160_block_semantic_corpus",
+  "leaf_metric_violations": [],
+  "rule": "binding 条目 metric_scope 传递闭包唯一 source + leaf_metrics 不含 cue metric 名(R15 §六-5)"
+ },
+ "contradiction_evidence": {
+  "declaration_side": {
+   "what": "calibration wrapper 与 c2_matched_conditions 声明 cue 语义 gate delegated 给 dedicated semantic corpus;run_c2_diagnostics 定位为诊断对照",
+   "markers": {
+    "calibration_delegated_note": {
+     "present": true,
+     "line": 234
+    },
+    "calibration_delegated_note_text": {
+     "present": true,
+     "line": 235
+    },
+    "diagnostics_docstring": {
+     "present": true,
+     "line": 521
+    }
+   },
+   "calibration_blob_sha": "0001e8b1085c8c2bbb17412ce093f0ea0451c0f9"
+  },
+  "implementation_side": {
+   "what": "final aggregator 把 matched corpus 点估计 gate 绑定为 verdict 级 c2_semantics_pass(与声明冲突)",
+   "markers": {
+    "final_double_binding_line": {
+     "present": true,
+     "line": 680
+    },
+    "final_double_binding_context": {
+     "present": true,
+     "line": 641
+    }
+   },
+   "final_blob_sha": "f63084e3e7ab9b42b43be88de168dbd97ee3caa5"
+  },
+  "plan_side": {
+   "what": "qualification plan 原样继承 R6 STRICT_GATE_RULE_IDENTITY(旧拓扑文字)",
+   "c2_matched_contains_old_text": {
+    "present": true,
+    "line": 1
+   }
+  },
+  "r6_root": {
+   "what": "R6 STRICT_GATE_RULE_IDENTITY.c2_matched 把 'cue/payoff separation' 列为 matched binding 条目(拓扑冲突的字面根)",
+   "marker_in_r6_rule": {
+    "present": true,
+    "line": 1
+   }
+  }
+ },
+ "contradiction_evidence_r14": {
+  "declaration_side": {
+   "what": "R14 注册表声明四类 cue rate metric 唯一 binding source = dedicated 160-block semantic corpus;条目 rule 同时自认 marginal guard 保留 0.90 灾难护栏 + noncue UCB(声明内即含矛盾)",
+   "markers": {
+    "registry_rule_admits_dual_binding": {
+     "present": true,
+     "line": 174
+    },
+    "uniqueness_fail_open_optional_scope": {
+     "present": true,
+     "line": 289
+    }
+   },
+   "gate_topology_blob_sha": "29202efd7d465c02e7b5cdd26dfc8b6a779f4a1f"
+  },
+  "implementation_side": {
+   "what": "independent_cue_semantics.pass 含 point recall >= 0.90 与 noncue FP UCB <= 0.01;该 pass 被 AND 进 marginal guard.pass → c2_independent_marginal_pass → final verdict(dedicated 之外的第二个传递性 binding source)",
+   "markers": {
+    "cue_eval_point_recall_in_pass": {
+     "present": true,
+     "line": 487
+    },
+    "cue_eval_pass_all_checks": {
+     "present": true,
+     "line": 280
+    },
+    "guard_ands_cue_pass": {
+     "present": true,
+     "line": 805
+    },
+    "final_marginal_binding": {
+     "present": true,
+     "line": 1846
+    }
+   },
+   "blob_shas": {
+    "r14_cue_eval": "4f7b3c339d0931f3a59f27ee4a9343f5a4c3b20b",
+    "r14_calibration": "2116847ad3a25132f3100d43b95a0daed57cfc49",
+    "r14_final": "a7ac7e3831c1a5dfff1f5e94dadd629cd1097a28"
+   }
+  },
+  "uniqueness_blindspot": {
+   "what": "r14 uniqueness checker 只扫显式 metric_scope,optional 缺省 fail-open;independent 条目无 metric_scope 键 ⇒ 永不参与检查 ⇒ 隐藏绑定不可见(R15 v2 修复:构造期强制声明 + 传递闭包+ leaf 名交叉检查)",
+   "marker": {
+    "present": true,
+    "line": 289
+   }
+  },
+  "orchestration_defect": {
+   "what": "R14 formal runner 缺 preplan-smoke 步(rehearsal 有、formal 无——两份独立硬编码列表),plan-roundtrip 读 preplan_engineering_smoke.json 时 FileNotFoundError,rc=1,R14 永久 FAIL",
+   "runner_has_plan_roundtrip": {
+    "present": true,
+    "line": 40
+   },
+   "runner_has_preplan_smoke": {
+    "present": false,
+    "line": null,
+    "expected_absent": true
+   },
+   "runner_blob_sha": "db817f2296a4606687cfdf6a2059c7b5f43c258a"
+  }
+ },
+ "r13_binding": {
+  "commit_chain": [
+   "960dbe19701901f9262614aadf8b7f97742fab4d",
+   "47d3f22f4df97855423ee748f3aa2df5497422a6",
+   "b8e1de05cc3040ddc81634eb36d735a9fe3483da"
+  ],
+  "r13_verdict": "FAIL",
+  "r13_failed_checks": [
+   "c2_semantics_pass"
+  ],
+  "c2_semantics_pass_observed": false,
+  "exposure_status": "failed",
+  "exposure_count": 1,
+  "remains_permanent_fail": true,
+  "note": "R13 不因 R15 修订 gate topology 而被追认、撤销或改写为 PASS"
+ },
+ "r14_binding": {
+  "commit_chain": [
+   "b8e1de05cc3040ddc81634eb36d735a9fe3483da",
+   "0b07778d98430791756ca4a4768bc46bf1f05d8f",
+   "14a889c2854571e3ab5245ef51da7c858c83f59b"
+  ],
+  "r14_verdict": "FAIL",
+  "fail_closure_reason": "formal chain step plan-roundtrip rc=1(R14 §十四:停止;只读收尾;不创建新代码;下一轮必须 R15)",
+  "raw_log_last_step": "plan-roundtrip",
+  "raw_log_last_rc": 1,
+  "n_manifest_records": 4,
+  "remains_permanent_fail": true,
+  "note": "R14 不因 R15 修复隐藏双绑定/编排缺陷而被追认;缺陷位于 R14 Commit A 冻结面内"
+ },
+ "conclusions": {
+  "r13_remains_permanent_fail": true,
+  "r14_remains_permanent_fail": true,
+  "r15_fixes_pre_exposure_contract_contradiction": true,
+  "r15_fixes_r14_hidden_dual_binding": true,
+  "r15_fixes_r14_uniqueness_fail_open": true,
+  "r15_fixes_r14_orchestration_single_source": true,
+  "independent_cue_point_metrics_diagnostic_only": true,
+  "no_use_of_r13_r14_observed_recall_for_rule_choice": true,
+  "rule_choice_basis": "R13 冲突由 R13 Commit A 源码与 plan 文本的声明/实现矛盾机械证明;R14 隐藏双绑定由 R14 Commit A blob 的实现侧 marker(cue 点指标进 pass → guard AND → final checks)机械证明——两者在查看任何 final 数值前已成立;注册表不含任何 R13/R14 observed 统计量参数",
+  "dedicated_thresholds_unchanged": true,
+  "dedicated_thresholds_note": "dedicated 160-block semantic corpus 的 cluster-aware LCB/UCB 规则与 recall floor 推导(max(0.90, p_contract - 0.02))原样沿用;R15 不改阈值/不降样本量/不改 160-block 规模"
+ },
+ "pass": true,
+ "digest": "r15gtrec-11a4316870a9e97140079e08b1b51b5e2c560ce34de28db314d26628cbf900e5"
+}

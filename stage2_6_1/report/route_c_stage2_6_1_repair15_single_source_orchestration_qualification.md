@@ -35,8 +35,9 @@ R15 修复(全部冻结于 Commit A):
    **preplan-smoke** → plan-roundtrip → design-plan-lock → design →
    calibrate → preflight-static → lock-plan → preflight-sealed →
    qualify → smoke → full-cold → report-read → verify-formal-logs。
-   workflow graph digest `r15wg-da2e68b0eab775bb4fd2…`(进 freeze
-   manifest / rehearsal / formal manifest 与本报告)。
+   workflow graph digest `r15wg-a3483ee83bb21be526638d24c8f94824cdc1cf362008607fca909ca4abe36d3c`
+   (以 artifacts 内 rehearsal/freeze 记录为准;进 freeze
+   manifest / rehearsal / formal manifest)。
 2. **同源消费者**:rehearsal 与 formal 共用同一
    `execute_workflow_chain` 执行器(rehearsal 经 subprocess
    `r15_run_step.py chain` 与 formal 完全同路径);raw-log verifier 的
@@ -115,23 +116,81 @@ R15 修复(`curriculum261_r15_fail_closure.py`):
 
 ## 五、Commit A 前证据(工程证据;§十一)
 
-(数值由 rehearsal/测试执行后填充)
+- 全量测试:**1203 passed / 3 skipped / 0 failed**(tests/route_c_stage2_6_1
+  全目录;JUnit XML + 完整 stdout + 环境身份 + SHA-256 digest 见
+  `artifacts/repair15/test_evidence/`;3 skipped = r13/r14 历史分支
+  守卫等环境条件跳过)。
+- r15 专项测试:271/271(11 文件:workflow parity/mutation、lineage
+  A-G、fail-closure phase injection、gate topology v2、freeze、
+  no-post-exposure、identity、full-cold reader、allowlist、roundtrip、
+  governance)。
+- real-artifact rehearsal:**PASS**(pass=True,
+  chain/boundary/purity/coverage 全 True;同一
+  `execute_workflow_chain` 经 subprocess `r15_run_step.py chain` 执行
+  17 步;rt 路径 binding_lineage pass=True——lineage audit 在真实链上
+  验证;rt final verdict=FAIL 为小样本统计运气,不作资格判定)。
+- determinism 矩阵:A4 mutable state 审计 PASS;A5 跨进程矩阵 PASS
+  (all_identical=True,14 场景);A6 gate PASS。
+- GateTopologyReconciliation-v2 lock(Commit A 前一次且仅一次):
+  digest `r15gtrec-11a4316870a9e97140079e08b1b51b5e2c560ce34de28db314d26628cbf900e5`
+  (绑定 R13 冲突 + R14 隐藏双绑定/编排缺陷的 blob 级证据)。
+- Commit A:`c1c973e057375cbc258d0fe48e7ce7044a9a05df`(baseline
+  14a889c → A 恰好一步;工作树干净;freeze surface 覆盖
+  src/tests/runner/config/strategy 并挂载 workflow graph digest)。
 
-- 全量测试:<!-- N passed / N skipped / 0 failed;JUnit+stdout+digest 见
-  artifacts/repair15/test_evidence/ -->
-- real-artifact rehearsal:<!-- pass=?;同一 execute_workflow_chain;
-  boundary/purity/coverage -->
-- determinism 矩阵:<!-- A4/A5/A6 -->
-- GateTopologyReconciliation-v2 lock:<!-- digest r15gtrec-…;一次且仅一次 -->
+## 六、正式链执行(Commit A 后;§十三)——诚实 FAIL
 
-## 六、正式链执行(Commit A 后;§十三)
+**R15 = FAIL(永久)。**
 
-(执行结果填充;17 步 raw logs 与 manifest 见 artifacts/repair15/raw_logs/)
+精确失败事实:
+
+- 正式链**在第一步之前未启动**。启动入口
+  `stage2_6_1/runner/r15_formal_chain.sh`(Commit A 冻结面内)为
+  **CRLF 行尾**(Agent 的 Windows Write 工具产物),WSL bash 无法解析:
+  `set: pipefail: invalid option name` / `cd` 带回车污染 / 语法
+  错误——`workflow-plan` 与 chain 调用从未执行,formal manifest 为
+  空(0 条记录)。
+- 缺陷位于 Commit A 冻结面内;按 §十二"Commit A 后不允许修改
+  runner……任一实现问题直接令 R15 永久 FAIL"——不修复、不转换
+  行尾、不创建 A′;下一轮 R16 + 全新 namespace。
+- 工程教训(诚实记录):pre-freeze rehearsal 覆盖了权威 chain 执行器
+  (`r15_run_step.py`,Python,对 CRLF 免疫)但**未覆盖 formal 的 bash
+  启动 wrapper 本身**;sed 生成的旧 runner 脚本是 LF,而本轮新增的
+  wrapper 由 Windows 工具写入为 CRLF。rehearsal 与 formal 在"同一
+  执行器"层面同源,但 shell wrapper 的行尾可执行性没有被任何
+  Commit A 前检查覆盖(测试断言检查了步骤列表缺失,未执行
+  `bash -n` 语法检查)。R16 应在 workflow validation/测试中加入
+  runner 脚本 `bash -n` + LF 行尾断言。
+
+§十四处置(全部已冻结命令,零新代码):
+
+1. `fail-closure --failed-step provenance-verify`(阶段精确:
+   phase=pre-provenance;全部证据 not_started;expected multiset=[];
+   exposure=not_exposed;gate_identity=not_applicable——工作包 C 的
+   语义在真实失败场景验证:无任何"aborted/已生成"误导字段);
+2. `verify-formal-logs`(事实记录:manifest 缺失,rc=1);
+3. `report-read`(事实记录:7 类 artifact present=False);
+4. assemble_r15_b(全部现有 raw logs + 工程证据目录进 repo)。
 
 ## 七、Commit B(§十四)
 
-- allowlist 机器检查:<!-- changed=? violations=? -->
-- Commit B SHA:<!-- … -->
+- allowlist 机器检查(命令 `commit-b-allowlist --from-commit c1c973e`):
+  **pass=True, changed=156, violations=0**(A→B diff 只含
+  `stage2_6_1/artifacts/repair15/**` 与本报告)。
+- Commit B:`d3ffc54f8ba5cc7871eebf90c0f3ef25f900f2d3`
+  (提交链:14a889c → c1c973e(A) → d3ffc54(B);恰好两步)。
+
+## 七A、R15 最终判定
+
+- **R15 = FAIL(永久;诚实)**——正式链启动 wrapper 的 CRLF 行尾缺陷
+  位于 Commit A 冻结面内,按 §十二 不修复即 FAIL;三工作包
+  (单一权威编排/传递性 binding lineage/阶段精确 fail closure)的
+  实现与验证本身全部完成并被 rehearsal(17 步全绿)与测试
+  (271+1203)覆盖,可整体继承至 R16(需先按 §六 教训补 runner
+  `bash -n`/LF 行尾断言)。
+- Stage 2.6.1 = FAIL(R13/R14/R15 连续三轮诚实 FAIL)。
+- Stage 2.6.2 未开始;不进入 Stage 2.6.3。
+- 下一轮 = R16 + 全新 namespace。
 
 ## 八、复核路径
 

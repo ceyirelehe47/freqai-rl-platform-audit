@@ -1,0 +1,744 @@
+{
+  "format": "cur261-r15-delegation-signature-audit-v1",
+  "iteration": "r15",
+  "entries": [
+    {
+      "use": "supervised runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:supervised_learnability_run_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "KEYWORD_ONLY",
+            "default": "10"
+          },
+          "train_pair_limit": {
+            "kind": "KEYWORD_ONLY",
+            "default": "6"
+          },
+          "model_seeds": {
+            "kind": "KEYWORD_ONLY",
+            "default": "(20270111, 20270112, 20270113)"
+          },
+          "training_config": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "model_seeds",
+          "namespace",
+          "pairs_per_rung",
+          "train_pair_limit",
+          "training_config"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 173,
+      "forwarded_keywords": [
+        "namespace",
+        "pairs_per_rung",
+        "train_pair_limit",
+        "model_seeds",
+        "training_config"
+      ],
+      "expected_return_keys": [
+        "pass",
+        "families",
+        "namespace",
+        "label_contract",
+        "label_alignment",
+        "dataset_identity"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "supervised mlp trainer",
+      "wrapper": "rl_curriculum.ppo262_r2_supervised:train_supervised_mlp",
+      "wrapper_signature": {
+        "parameters": {
+          "Xtr": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "ytr": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "control": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          },
+          "seed": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          },
+          "epochs": {
+            "kind": "KEYWORD_ONLY",
+            "default": "20"
+          },
+          "lr": {
+            "kind": "KEYWORD_ONLY",
+            "default": "0.0003"
+          },
+          "batch_size": {
+            "kind": "KEYWORD_ONLY",
+            "default": "512"
+          }
+        },
+        "keyword_only": [
+          "batch_size",
+          "control",
+          "epochs",
+          "lr",
+          "seed"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "516dde62f7206eb32fc507b18d3a5ce2b6cbfde61d5e0d9d3fdf4573509a65da",
+      "wrapper_source_lines": 48,
+      "forwarded_keywords": [
+        "control",
+        "seed"
+      ],
+      "expected_return_keys": [
+        "net"
+      ],
+      "checks": {
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "fit-bank builder",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:generate_fit_bank_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "pairs_per_rung"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 6,
+      "forwarded_keywords": [
+        "pairs_per_rung"
+      ],
+      "expected_return_keys": [],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "forwarded_keywords_in_underlying": true,
+        "forwarded_keywords_missing_underlying": [],
+        "pass": true
+      },
+      "underlying": "rl_curriculum.curriculum261_r6_calibration:generate_fit_bank_r6",
+      "underlying_signature": {
+        "parameters": {
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "4"
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 3
+      },
+      "underlying_source_sha256": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d"
+    },
+    {
+      "use": "preprocessor fit",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:fit_preprocessor_v2_from_bank_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "records": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          },
+          "pairs_per_rung": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          },
+          "parameter_pack_identity": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "pairs_per_rung",
+          "parameter_pack_identity",
+          "records"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 11,
+      "forwarded_keywords": [
+        "records",
+        "pairs_per_rung",
+        "parameter_pack_identity"
+      ],
+      "expected_return_keys": [],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "forwarded_keywords_in_underlying": true,
+        "forwarded_keywords_missing_underlying": [],
+        "pass": true
+      },
+      "underlying": "rl_curriculum.curriculum261_r6_calibration:fit_preprocessor_v2_from_bank_r6",
+      "underlying_signature": {
+        "parameters": {
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "records": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None"
+          },
+          "pairs_per_rung": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "4"
+          },
+          "parameter_pack_identity": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None"
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 5
+      },
+      "underlying_source_sha256": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d"
+    },
+    {
+      "use": "C1/C3 corpus runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:run_calibration_corpus_c13_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "KEYWORD_ONLY",
+            "default": "10"
+          }
+        },
+        "keyword_only": [
+          "pairs_per_rung"
+        ],
+        "n_positional_params": 3
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 7,
+      "forwarded_keywords": [
+        "pairs_per_rung"
+      ],
+      "expected_return_keys": [
+        "seed_namespace",
+        "families"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "forwarded_keywords_in_underlying": true,
+        "forwarded_keywords_missing_underlying": [],
+        "pass": true
+      },
+      "underlying": "rl_curriculum.curriculum261_r6_calibration:run_calibration_corpus_c13_r6",
+      "underlying_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "10"
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 4
+      },
+      "underlying_source_sha256": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d"
+    },
+    {
+      "use": "C2 matched runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:run_c2_matched_corpus_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "n_blocks": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          }
+        },
+        "keyword_only": [
+          "n_blocks"
+        ],
+        "n_positional_params": 3
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 6,
+      "forwarded_keywords": [
+        "n_blocks"
+      ],
+      "expected_return_keys": [
+        "seed_namespace",
+        "block_table",
+        "pair_table"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "forwarded_keywords_in_underlying": true,
+        "forwarded_keywords_missing_underlying": [],
+        "pass": true
+      },
+      "underlying": "rl_curriculum.curriculum261_r6_calibration:run_c2_matched_corpus_r6",
+      "underlying_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "n_blocks": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 4
+      },
+      "underlying_source_sha256": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d"
+    },
+    {
+      "use": "C2 independent runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:run_c2_independent_corpus_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "KEYWORD_ONLY",
+            "default": "20"
+          }
+        },
+        "keyword_only": [
+          "pairs_per_rung"
+        ],
+        "n_positional_params": 3
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 7,
+      "forwarded_keywords": [
+        "pairs_per_rung"
+      ],
+      "expected_return_keys": [
+        "seed_namespace"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "forwarded_keywords_in_underlying": true,
+        "forwarded_keywords_missing_underlying": [],
+        "pass": true
+      },
+      "underlying": "rl_curriculum.curriculum261_r6_calibration:run_c2_independent_corpus_r6",
+      "underlying_signature": {
+        "parameters": {
+          "preproc_v2": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pairs_per_rung": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "20"
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 4
+      },
+      "underlying_source_sha256": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d"
+    },
+    {
+      "use": "semantic runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_calibration:run_c2_semantic_corpus_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "namespace": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "n_blocks": {
+            "kind": "KEYWORD_ONLY",
+            "default": "160"
+          },
+          "out_dir": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          },
+          "artifact_name": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "artifact_name",
+          "n_blocks",
+          "out_dir"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+      "wrapper_source_lines": 76,
+      "forwarded_keywords": [
+        "n_blocks",
+        "out_dir",
+        "artifact_name"
+      ],
+      "expected_return_keys": [
+        "pass",
+        "shared",
+        "n_blocks"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "robustness builder",
+      "wrapper": "rl_curriculum.curriculum261_r15_orchestrator:preprocessing_robustness_checks_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "routing_main": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "routing_holdout": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "records_main": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "records_holdout": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "eval_records_main": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "eval_records_holdout": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "equiv_records_main": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "equiv_records_holdout": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "pack": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "profile": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          },
+          "ledger": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          },
+          "profile_holdout": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "ledger",
+          "profile",
+          "profile_holdout"
+        ],
+        "n_positional_params": 9
+      },
+      "wrapper_source_sha256": "181d8ca5168c5e92e402e683d1d2e0ac53fa0edd907f126bf382f96deec2208e",
+      "wrapper_source_lines": 202,
+      "forwarded_keywords": [
+        "profile",
+        "ledger"
+      ],
+      "expected_return_keys": [
+        "checks",
+        "pass",
+        "routing_matrix"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "final runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_final:run_final_qualification_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "out_dir": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "vendor_dir": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": "None"
+          },
+          "rehearsal_profile": {
+            "kind": "KEYWORD_ONLY",
+            "default": "None"
+          }
+        },
+        "keyword_only": [
+          "rehearsal_profile"
+        ],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "53c50a68928dfd4b07c83fa8cbc27be6f1a69654e65d77f51ca3390716961e47",
+      "wrapper_source_lines": 147,
+      "forwarded_keywords": [
+        "vendor_dir"
+      ],
+      "expected_return_keys": [
+        "verdict"
+      ],
+      "checks": {
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "full-scale shadow runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_shadow:run_full_scale_shadow_r15",
+      "wrapper_signature": {
+        "parameters": {
+          "out_dir": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "run_tag": {
+            "kind": "KEYWORD_ONLY",
+            "default": null
+          }
+        },
+        "keyword_only": [
+          "run_tag"
+        ],
+        "n_positional_params": 1
+      },
+      "wrapper_source_sha256": "a474137b7c98d4530fb23ab61864c224c37cf916ab784d2c2f89379ecc1eb42c",
+      "wrapper_source_lines": 108,
+      "forwarded_keywords": [
+        "run_tag"
+      ],
+      "expected_return_keys": [
+        "orchestration_stage_completed",
+        "final_like_executed"
+      ],
+      "checks": {
+        "keyword_only_enforced": true,
+        "keyword_only_missing": [],
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "shadow comparison runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_shadow:compare_full_scale_shadow_runs",
+      "wrapper_signature": {
+        "parameters": {
+          "dir_a": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          },
+          "dir_b": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 2
+      },
+      "wrapper_source_sha256": "a474137b7c98d4530fb23ab61864c224c37cf916ab784d2c2f89379ecc1eb42c",
+      "wrapper_source_lines": 66,
+      "forwarded_keywords": [],
+      "expected_return_keys": [
+        "pass",
+        "ledger_identity_digests_identical"
+      ],
+      "checks": {
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    },
+    {
+      "use": "determinism matrix runner",
+      "wrapper": "rl_curriculum.curriculum261_r15_determinism:run_cross_process_determinism_matrix",
+      "wrapper_signature": {
+        "parameters": {
+          "out_dir": {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": null
+          }
+        },
+        "keyword_only": [],
+        "n_positional_params": 1
+      },
+      "wrapper_source_sha256": "beed653209a36275c803e376bbb711a5fc2c2668bb1b095b367d3ecebbe923cf",
+      "wrapper_source_lines": 171,
+      "forwarded_keywords": [],
+      "expected_return_keys": [
+        "pass",
+        "scenarios"
+      ],
+      "checks": {
+        "forwarded_keywords_declared": true,
+        "forwarded_keywords_unknown": [],
+        "pass": true
+      }
+    }
+  ],
+  "all_pass": true,
+  "digest": "r15sig-230d39b6d0e64520862ed7bd3268d42e2bdad9830e54be77a98066dc1f06669c"
+}

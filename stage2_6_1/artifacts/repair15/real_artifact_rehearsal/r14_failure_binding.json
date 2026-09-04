@@ -1,0 +1,37 @@
+{
+  "format": "cur261-r15-r14-iteration-failure-binding-v1",
+  "iteration": "r14",
+  "commit_a": "0b07778d98430791756ca4a4768bc46bf1f05d8f",
+  "commit_b": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+  "r14_checks": {
+    "r14_clean_two_commit_chain": true,
+    "r14_commit_a_exists": true,
+    "r14_commit_a_parent_is_r13_b": true,
+    "r14_commit_b_is_baseline": true,
+    "r14_commit_b_parent_is_a": true,
+    "r14_exposure_never_occurred": true,
+    "r14_fail_closure_verdict_fail": true,
+    "r14_fail_step_is_plan_roundtrip": true,
+    "r14_final_not_executed": true,
+    "r14_hidden_dual_binding_evidence": true,
+    "r14_manifest_tail_plan_roundtrip_rc1": true,
+    "r14_runner_missing_preplan_step": true
+  },
+  "governance_binding": {
+    "r14_commit_a": "0b07778d98430791756ca4a4768bc46bf1f05d8f",
+    "r14_commit_b": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+    "clean_two_commit_chain": "A(0b07778 实现冻结)→ B(14a889c results-only 诚实 FAIL);无 A′/A2/hotfix",
+    "r14_final_verdict": "FAIL(永久;不因 R15 修复而被追认/撤销/改写;R15 baseline = R14 Commit B)",
+    "r14_failure_classification": "formal runner 编排缺陷:r14_formal_chain.sh 与 R15_FORMAL_CHAIN_STEPS 同构常量缺 preplan-smoke 步(rehearsal 链有该步——两份独立硬编码列表不一致),plan-roundtrip 读 preplan_engineering_smoke.json 时 FileNotFoundError rc=1;determinism/audit/cue-audit 全 PASS 后永久停止;design/calibration/final/smoke/full-cold 未执行",
+    "r14_governance_gaps": {
+      "orchestration_dual_lists": "rehearsal 链(17 步含 preplan-smoke)与 formal runner/R15_FORMAL_CHAIN_STEPS 同构常量(无该步)各自维护——R15 工作包 A 单一权威 workflow 修复",
+      "hidden_dual_binding": "independent_cue_semantics.pass(point recall ≥0.90 + noncue UCB ≤0.01)被 AND 进 marginal guard.pass → c2_independent_marginal_pass → final verdict——dedicated 之外的第二传递性 binding source(R15 工作包 B 修复)",
+      "uniqueness_fail_open": "r14_cue_semantic_binding_uniqueness 只扫显式 metric_scope,optional 缺省 fail-open,漏检隐藏绑定(R15 v2 构造期强制声明+传递闭包修复)",
+      "fixed_template_fail_closure": "cmd_fail_closure 使用固定成功阶段尾部模板(7 文件全后期产物),与实际失败阶段不符(R15 工作包 C 阶段精确组装修复)",
+      "provenance_conditional_skip": "formal runner 对 provenance-lock '已存在则静默跳过',而 verify-formal-logs expected 序列要求它——manifest 永不完整(R15 恒执行 provenance-verify 修复)"
+    }
+  },
+  "r14_remains_permanent_fail": true,
+  "pass": true,
+  "binding_gate_in_r15": true
+}

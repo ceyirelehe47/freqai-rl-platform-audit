@@ -1,0 +1,374 @@
+{
+  "format": "cur261-r15-historical-evidence-binding-v1",
+  "iteration": "r15",
+  "expected_baseline": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+  "head": "e534af9e2b0adb06c369b61c44c04c7b0fca36e3",
+  "ancestry_semantics": "git merge-base --is-ancestor (R12 起取代 HEAD==baseline 严格相等)",
+  "r11_governance_failure_binding": {
+    "r11_commit_a": "df0292ac2208375cca478b037c4ba87c6808911e",
+    "r11_commit_a_prime": "572c509233fef560a39ea30cd497a34053d47ce0",
+    "r11_commit_b": "96446f2f91cd13df0411dc70909dd43ab8864046",
+    "clean_formal_chain_invalidated_by": "A′ 出现(Commit A 后修改源码并继续同一 iteration)",
+    "r11_final_verdict": "FAIL(永久;不得重解释/追认/撤销)"
+  },
+  "r12_governance_binding": {
+    "r12_commit_a": "75a66dde368c6f7c8ccc1a70e19445a6f86165fe",
+    "r12_commit_b": "960dbe19701901f9262614aadf8b7f97742fab4d",
+    "clean_two_commit_chain": "A(75a66dd 实现冻结)→ B(960dbe1 诚实 FAIL 结果);无 A′/A2/hotfix",
+    "r12_final_verdict": "FAIL(永久;lock-plan 阶段 artifact 接口缺陷;统计链 cue/global K/design/calibration/holdout 全部 PASS 但不被追认为 R15 输入)",
+    "r12_failure_classification": "producer/consumer artifact interface inconsistency(冻结源码读取 preprocessor_bundle_calibration.json 的 'bundle_hash',实际键 'preprocessor_bundle_hash';KeyError at curriculum261_r12_cli.py:1717)"
+  },
+  "r13_governance_binding": {
+    "r13_commit_a": "47d3f22f4df97855423ee748f3aa2df5497422a6",
+    "r13_commit_b": "b8e1de05cc3040ddc81634eb36d735a9fe3483da",
+    "clean_two_commit_chain": "A(47d3f22 实现冻结)→ B(b8e1de0 诚实 FAIL 结果);无 A′/A2/hotfix",
+    "r13_final_verdict": "FAIL(永久;不因 R15 gate topology 修订而追认/撤销/改写)",
+    "r13_failed_checks": [
+      "c2_semantics_pass"
+    ],
+    "r13_failure_classification": "cue semantic gate topology conflict:calibration wrapper/c2_matched_conditions 声明 cue 语义 gate delegated 给 dedicated 160-block semantic corpus,final aggregator 却把 matched 20-block 点估计 gate 绑定为 verdict 级 c2_semantics_pass(唯一 false 检查);机械证明见 GateTopologyReconciliation-v1",
+    "r13_governance_gaps": {
+      "commit_b_runner_py": [
+        "stage2_6_1/runner/r13_diag_c13.py",
+        "stage2_6_1/runner/r13_diag_c13_official.py",
+        "stage2_6_1/runner/r13_diag_c3_ladder.py",
+        "stage2_6_1/runner/r13_diag_final_semantics.py",
+        "stage2_6_1/runner/r13_diag_margins.py",
+        "stage2_6_1/runner/r13_diag_matched.py",
+        "stage2_6_1/runner/r13_diag_r12_compare.py",
+        "stage2_6_1/runner/r13_fail_closure.py",
+        "stage2_6_1/runner/r13_gather_report.py",
+        "stage2_6_1/runner/r13_read_logs.py"
+      ],
+      "freeze_surface_partial": "R13 freeze 仅 27 个 src 模块,未覆盖 runner/tests/strategy/依赖锁",
+      "raw_logs_committed": 2,
+      "full_cold_reader_rehearsal_absent": true,
+      "detailed_failure_via_post_exposure_regeneration": "runner/r13_diag_final_semantics.py 在 exposure 后重生成 qualification_r13 取得 detailed failure",
+      "plan_digest_prefix": "qp12-",
+      "next_iteration_text_errors": "部分合同文字误写下一轮指引误写(R13)"
+    }
+  },
+  "r14_governance_binding": {
+    "r14_commit_a": "0b07778d98430791756ca4a4768bc46bf1f05d8f",
+    "r14_commit_b": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+    "clean_two_commit_chain": "A(0b07778 实现冻结)→ B(14a889c results-only 诚实 FAIL);无 A′/A2/hotfix",
+    "r14_final_verdict": "FAIL(永久;不因 R15 修复而被追认/撤销/改写;R15 baseline = R14 Commit B)",
+    "r14_failure_classification": "formal runner 编排缺陷:r14_formal_chain.sh 与 R15_FORMAL_CHAIN_STEPS 同构常量缺 preplan-smoke 步(rehearsal 链有该步——两份独立硬编码列表不一致),plan-roundtrip 读 preplan_engineering_smoke.json 时 FileNotFoundError rc=1;determinism/audit/cue-audit 全 PASS 后永久停止;design/calibration/final/smoke/full-cold 未执行",
+    "r14_governance_gaps": {
+      "orchestration_dual_lists": "rehearsal 链(17 步含 preplan-smoke)与 formal runner/R15_FORMAL_CHAIN_STEPS 同构常量(无该步)各自维护——R15 工作包 A 单一权威 workflow 修复",
+      "hidden_dual_binding": "independent_cue_semantics.pass(point recall ≥0.90 + noncue UCB ≤0.01)被 AND 进 marginal guard.pass → c2_independent_marginal_pass → final verdict——dedicated 之外的第二传递性 binding source(R15 工作包 B 修复)",
+      "uniqueness_fail_open": "r14_cue_semantic_binding_uniqueness 只扫显式 metric_scope,optional 缺省 fail-open,漏检隐藏绑定(R15 v2 构造期强制声明+传递闭包修复)",
+      "fixed_template_fail_closure": "cmd_fail_closure 使用固定成功阶段尾部模板(7 文件全后期产物),与实际失败阶段不符(R15 工作包 C 阶段精确组装修复)",
+      "provenance_conditional_skip": "formal runner 对 provenance-lock '已存在则静默跳过',而 verify-formal-logs expected 序列要求它——manifest 永不完整(R15 恒执行 provenance-verify 修复)"
+    }
+  },
+  "checks": {
+    "baseline_commit_exists": true,
+    "baseline_is_ancestor_of_head": true,
+    "merge_base_equals_baseline": true,
+    "merge_base": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+    "current_branch": "route-c-stage2-6-1-repair15",
+    "r15_branch_name_ok": true,
+    "r11_commit_a_exists": true,
+    "r11_commit_a_prime_exists": true,
+    "r11_commit_b_exists": true,
+    "r11_a_ancestor_of_a_prime": true,
+    "r11_a_prime_ancestor_of_b": true,
+    "r11_clean_chain_invalidated_by_a_prime": true,
+    "r12_commit_a_exists": true,
+    "r12_commit_b_is_r13_chain_grandparent": true,
+    "r12_commit_b_parent_is_a": true,
+    "r12_commit_a_parent_is_r11_b": true,
+    "r12_clean_two_commit_chain": true,
+    "preserved_file_blob_rows": [
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_iteration_aborted.json",
+        "baseline_blob": "d05438bdd0d9e42fe6ad4e1a0bf09dc221d1f9ca",
+        "head_blob": "d05438bdd0d9e42fe6ad4e1a0bf09dc221d1f9ca",
+        "worktree_sha256": "f67118c37cbc6dd99b356bf0b8c25c1387847e6c2a74a0f9798b5385bbb0fb92",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_iteration_events.jsonl",
+        "baseline_blob": "7400b2360d457be20aee3479f3a692ab96e5b5e2",
+        "head_blob": "7400b2360d457be20aee3479f3a692ab96e5b5e2",
+        "worktree_sha256": "9848e2d61133c97f33d1b4b9cb753811fd3f3d469e0c39cfbffe0f6014f12592",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_code_freeze.json",
+        "baseline_blob": "5861f7f2bbbad30b2033422f475678c93deb15ac",
+        "head_blob": "5861f7f2bbbad30b2033422f475678c93deb15ac",
+        "worktree_sha256": "59c7a000d794a0d08b66710d29d3565131c4bfa86a073b19d8eba32694acbc46",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_design_plan.json",
+        "baseline_blob": "274d34cf05f7b5365cde2edd5c6feea4e8635dc2",
+        "head_blob": "274d34cf05f7b5365cde2edd5c6feea4e8635dc2",
+        "worktree_sha256": "0b8ad9dcfb483628e83c97b011c338035e59dfebe083854f120991b1895eb111",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_design_plan_digest.txt",
+        "baseline_blob": "ee1393ee8977e2c68f481320b322c3f7876e6bbb",
+        "head_blob": "ee1393ee8977e2c68f481320b322c3f7876e6bbb",
+        "worktree_sha256": "fadd860dbcae8522fbf644631fad499ff60c20662b4af7dee23d093d99798869",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_parameter_pack.json",
+        "baseline_blob": "e721bc3e3477fc5d288344b24f6e17ba9ebabcc0",
+        "head_blob": "e721bc3e3477fc5d288344b24f6e17ba9ebabcc0",
+        "worktree_sha256": "bd8b6813fa662c09478796452f74f0a5e1174c5670f255c03d563b854672d4fc",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/r12_parameter_pack_digest.txt",
+        "baseline_blob": "e0875bbdf6b6133c97008b33893606645d9f8a50",
+        "head_blob": "e0875bbdf6b6133c97008b33893606645d9f8a50",
+        "worktree_sha256": "ac017aedfc891b997c2d80779990a91ee4bb7d208fe57a22e6cac1471dfdac0a",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/cue_audit_plan.json",
+        "baseline_blob": "937b9e34ccddd4e434257365fb599534f0f6cb49",
+        "head_blob": "937b9e34ccddd4e434257365fb599534f0f6cb49",
+        "worktree_sha256": "071ca791cec5595a42f0c075ae730abf7bb38ea6b02d3678780edc9151e7851b",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/cue_audit_plan_digest.txt",
+        "baseline_blob": "bc19803835fffd2f489ed17aeddff170b4850c87",
+        "head_blob": "bc19803835fffd2f489ed17aeddff170b4850c87",
+        "worktree_sha256": "14492cd121738f9fd69fb57f66a6ce3fee59ba6b0868b07f80563c460c84590c",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/cue_contract_audit.json",
+        "baseline_blob": "6a969b5e00501d1cfe20b4c13af521fd907c8aed",
+        "head_blob": "6a969b5e00501d1cfe20b4c13af521fd907c8aed",
+        "worktree_sha256": "860cb93d1dd1de54116f6343810fb920e6da37a0ac314b6e58fba6b8659461ac",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/cue_event_trace.jsonl",
+        "baseline_blob": "ed3f5502e5cc777f4fbc3659395902b0a931c87d",
+        "head_blob": "ed3f5502e5cc777f4fbc3659395902b0a931c87d",
+        "worktree_sha256": "425ea6d9960abb8ee2da38c434566dc7a140dec408704f10ab64ca29d5795235",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/robustness_gate.json",
+        "baseline_blob": "be2cfe75d50f8963e64edd169bf3c237694e0334",
+        "head_blob": "be2cfe75d50f8963e64edd169bf3c237694e0334",
+        "worktree_sha256": "283403c248a33873660931d0a1a17eb317b2e244208994b854aeea50df58348d",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/calibration_evidence.json",
+        "baseline_blob": "e0eacb500b87178ed36f09ad5b258a5b7cf945c9",
+        "head_blob": "e0eacb500b87178ed36f09ad5b258a5b7cf945c9",
+        "worktree_sha256": "77e50351f3c855fed01c5cf624773768e008b3613a5dbc7f730fce4f64c7e704",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/preprocessor_bundle_calibration.json",
+        "baseline_blob": "ed6a634ecb98274e0265ad573870008f4f57da81",
+        "head_blob": "ed6a634ecb98274e0265ad573870008f4f57da81",
+        "worktree_sha256": "571b29ae06a948cc8e81ed3e97e40e995b60086bb73710463a68a34280fc5ee3",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/preprocessor_bundle_holdout.json",
+        "baseline_blob": "1b18ba2e7ed7b04fa3094ab4fd42f1c8d74fbefa",
+        "head_blob": "1b18ba2e7ed7b04fa3094ab4fd42f1c8d74fbefa",
+        "worktree_sha256": "8137f0f6f5aac3b1716ea270b6f996fdcedba0d1ae3f1ad4e9f227bc5e9b13a3",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/lock_plan_failure_traceback.json",
+        "baseline_blob": "52c4729895e5a5133cb02784037747d03f2ad54b",
+        "head_blob": "52c4729895e5a5133cb02784037747d03f2ad54b",
+        "worktree_sha256": "72f4633f809daaebd15b969cc3ef252338e6803f4f280878b79f937067d92b07",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/fail_path_cleanliness.json",
+        "baseline_blob": "9bf1f8d81eccb2e2de43151f9e3ffc8d003165ff",
+        "head_blob": "9bf1f8d81eccb2e2de43151f9e3ffc8d003165ff",
+        "worktree_sha256": "b0eac6408c7a6c93012bc4dbdcd892c1be75a2ed398fdb19bd0b6f10e4cea201",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair12/historical_evidence_binding.json",
+        "baseline_blob": "be20514ed5951dd8e456bb1b5dd0f34a95c29330",
+        "head_blob": "be20514ed5951dd8e456bb1b5dd0f34a95c29330",
+        "worktree_sha256": "bae0869793aa60c48e9e161ec6872ea018f485817d5a178bf0895a0b672469e4",
+        "blob_identity_preserved": true
+      }
+    ],
+    "preserved_files_blob_identity_ok": true,
+    "r12_abort_marker_exists": true,
+    "r12_abort_marker_content_matches_baseline": true,
+    "r12_qualification_exposure_absent": true,
+    "r12_qualification_plan_never_locked": true,
+    "r12_final_qualification_not_executed": true,
+    "r13_commit_a_exists": true,
+    "r13_commit_b_is_baseline": true,
+    "r13_commit_b_parent_is_a": true,
+    "r13_commit_a_parent_is_r12_b": true,
+    "r13_clean_two_commit_chain": true,
+    "r13_preserved_files_blob_rows": [
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_code_freeze.json",
+        "baseline_blob": "a47ae3a73316f67d76ed2872af133b5a5b9032eb",
+        "head_blob": "a47ae3a73316f67d76ed2872af133b5a5b9032eb",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_plan_r13.json",
+        "baseline_blob": "d7ce6fd251a4eae2b954464552c4a1e8ffee24dc",
+        "head_blob": "d7ce6fd251a4eae2b954464552c4a1e8ffee24dc",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_plan_digest_r13.txt",
+        "baseline_blob": "9b10eb2599e8042d8a2987159529eb28bb530145",
+        "head_blob": "9b10eb2599e8042d8a2987159529eb28bb530145",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_result.json",
+        "baseline_blob": "7f538ac5dc7b7a1100b18dfcb6769b85ba3705b3",
+        "head_blob": "7f538ac5dc7b7a1100b18dfcb6769b85ba3705b3",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_raw.json",
+        "baseline_blob": "c9642bc2a652fc849ca16592adc07969f069ef62",
+        "head_blob": "c9642bc2a652fc849ca16592adc07969f069ef62",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_exposure_r13.json",
+        "baseline_blob": "8a3a5d9cb6afc7d2567b659c2e945c653b3d7beb",
+        "head_blob": "8a3a5d9cb6afc7d2567b659c2e945c653b3d7beb",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_exposure_ledger_r13.jsonl",
+        "baseline_blob": "4a19f299c80b88de3f88a5449900a326e2c57da9",
+        "head_blob": "4a19f299c80b88de3f88a5449900a326e2c57da9",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_iteration_aborted.json",
+        "baseline_blob": "52774517d329cf797ec7a763d8d69446e17b0287",
+        "head_blob": "52774517d329cf797ec7a763d8d69446e17b0287",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_iteration_events.jsonl",
+        "baseline_blob": "7ee8ed301df090972918525123efa56e8ca1e09c",
+        "head_blob": "7ee8ed301df090972918525123efa56e8ca1e09c",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_design_plan.json",
+        "baseline_blob": "bbce0538737ee4cc15d021ea1e3d2227f4e997bf",
+        "head_blob": "bbce0538737ee4cc15d021ea1e3d2227f4e997bf",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_design_plan_digest.txt",
+        "baseline_blob": "1d881b4fd13148a3bb0862ba95ab0e0184f0dc47",
+        "head_blob": "1d881b4fd13148a3bb0862ba95ab0e0184f0dc47",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_parameter_pack.json",
+        "baseline_blob": "4e31c20b1bee346dd4417c53367cda93aa59ef9a",
+        "head_blob": "4e31c20b1bee346dd4417c53367cda93aa59ef9a",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/r13_parameter_pack_digest.txt",
+        "baseline_blob": "4190e1dbac42843270604bf2596863c0dd2e341b",
+        "head_blob": "4190e1dbac42843270604bf2596863c0dd2e341b",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/robustness_gate.json",
+        "baseline_blob": "0676e7e09256027953b0a12ab8947a11119b479c",
+        "head_blob": "0676e7e09256027953b0a12ab8947a11119b479c",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/calibration_evidence.json",
+        "baseline_blob": "ebffe87d1c44e8d06e2fc8ef3933c7c8d1ad9062",
+        "head_blob": "ebffe87d1c44e8d06e2fc8ef3933c7c8d1ad9062",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/preprocessor_bundle_calibration.json",
+        "baseline_blob": "2dc06c35c9975035656a6fb1462b1f1c2daa2b8b",
+        "head_blob": "2dc06c35c9975035656a6fb1462b1f1c2daa2b8b",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/preprocessor_bundle_holdout.json",
+        "baseline_blob": "a05fa43b4e7d512d2f3ce6fba24066315df1b113",
+        "head_blob": "a05fa43b4e7d512d2f3ce6fba24066315df1b113",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/qualification_cue_semantics.json",
+        "baseline_blob": "ba6334b11df96b77c114de68b05fc5f772b3dfa0",
+        "head_blob": "ba6334b11df96b77c114de68b05fc5f772b3dfa0",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/sealed_final_preflight.json",
+        "baseline_blob": "871da84f518711cd5ea8a0fcedc706e97ade1586",
+        "head_blob": "871da84f518711cd5ea8a0fcedc706e97ade1586",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/fail_path_cleanliness.json",
+        "baseline_blob": "7b0e03cbb4ae6af4d280afc824a3006c66b0b545",
+        "head_blob": "7b0e03cbb4ae6af4d280afc824a3006c66b0b545",
+        "blob_identity_preserved": true
+      },
+      {
+        "path": "stage2_6_1/artifacts/repair13/real_artifact_rehearsal/real_artifact_cli_roundtrip.json",
+        "baseline_blob": "0d0577a5260687007e9e822dfb48e299333e5833",
+        "head_blob": "0d0577a5260687007e9e822dfb48e299333e5833",
+        "blob_identity_preserved": true
+      }
+    ],
+    "r13_preserved_files_blob_identity_ok": true,
+    "r13_exposure_exists": true,
+    "r13_exposure_terminal_failed": true,
+    "r13_final_verdict_fail": true,
+    "r13_failed_checks_only_c2_semantics": true,
+    "r13_commit_b_contains_runner_py": true,
+    "r13_raw_logs_incomplete": true,
+    "r13_plan_digest_qp12_prefix": true,
+    "r14_commit_a_exists": true,
+    "r14_commit_b_is_baseline": true,
+    "r14_commit_b_parent_is_a": true,
+    "r14_commit_a_parent_is_r13_b": true,
+    "r14_clean_two_commit_chain": true,
+    "r14_exposure_never_occurred": true,
+    "r14_final_not_executed": true,
+    "r14_fail_closure_verdict_fail": true,
+    "r14_fail_step_is_plan_roundtrip": true,
+    "r14_manifest_tail_plan_roundtrip_rc1": true,
+    "r14_runner_missing_preplan_step": true,
+    "r14_hidden_dual_binding_evidence": true
+  },
+  "failed_checks": [],
+  "ok": true,
+  "historical_evidence_binding_digest": "r15heb-482a2815a34c77d4db0542dab3f4e8a86d8232fe184993db5dad2113646729e0"
+}
