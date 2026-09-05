@@ -1,0 +1,9 @@
+# R16(§5.2):本轮批准修改的执行面锁定 LF。
+# Git 区分 index 文本规范化与 checkout 行尾选择(gitattributes 文档
+# text/eol 章节);实际文件仍需字节检查,不以配置存在代替结果验证。
+# 规范化只覆盖本轮执行面;不 renormalize 全仓库、不改写 R0-R15
+# 历史原始证据。
+stage2_6_1/runner/*.sh text eol=lf
+stage2_6_1/runner/*.py text eol=lf
+stage2_6_1/src/**/*.py text eol=lf
+stage2_6_1/tests/**/*.py text eol=lf

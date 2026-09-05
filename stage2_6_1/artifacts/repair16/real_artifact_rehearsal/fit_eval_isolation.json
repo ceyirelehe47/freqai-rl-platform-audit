@@ -1,0 +1,26 @@
+{
+  "main": {
+    "namespace": "rt3_fit_main_r16",
+    "pairs_per_rung": 6,
+    "n_pairs": 72,
+    "n_episodes": 144,
+    "n_rows": 41472,
+    "integrity_all_ok": true,
+    "multiset_hash": "r4fm-f293ef88b3225d8bb8618c22196baf44d847952e74c91ec3f4afd1d949df3fe6"
+  },
+  "holdout": {
+    "namespace": "rt3_fit_holdout_r16",
+    "pairs_per_rung": 6,
+    "n_pairs": 72,
+    "n_episodes": 144,
+    "n_rows": 41472,
+    "integrity_all_ok": true,
+    "multiset_hash": "r4fm-64cc78513373dd76208d795e88d1bc5df891fbf34b74f7d73c593c76205cadd5"
+  },
+  "eval_namespaces": [
+    "rt3_calibration_main_r16",
+    "rt3_calibration_holdout_r16"
+  ],
+  "routing_contract": "main 评估(rt3_calibration_main_r16/rt3_c2_independent_main_r16/rt3_supervised_main_r16)→ v2_main;holdout 评估(rt3_calibration_holdout_r16/rt3_c2_independent_holdout_r16/rt3_supervised_holdout_r16)→ v2_hold;fail closed(§9)",
+  "fit_bank_used_for_metrics": false
+}

@@ -503,6 +503,78 @@ CURRICULUM261_R15_NAMESPACES = (
     "c2_independent_qualification_r15",
     "stress_r15", "fresh_holdout_r15", "training_r15", "ppo_smoke_r15")
 
+CURRICULUM261_ITERATION_ID_R16 = "r16"
+#: repair R16 全部 seed namespace(§7.2:正式四件套 + 工程/排练/
+#: design/calibration namespace;与 R0–R15 全历史空间命名不相交)。
+CURRICULUM261_R16_NAMESPACES = (
+    "cue_contract_model_r16", "cue_contract_validation_r16",
+    "cue_k_global_null_r16",
+    "preplan_engineering_smoke_r16",
+    "preplan_smoke_r16", "preplan_candidate_eval_r16",
+    "preplan_semantic_main_r16", "preplan_semantic_validation_r16",
+    "preplan_fit_main_r16", "preplan_fit_holdout_r16",
+    "preplan_supervised_main_r16", "preplan_supervised_holdout_r16",
+    "preplan_calibration_main_r16", "preplan_calibration_holdout_r16",
+    "preplan_final_r16",
+    "shadow_fit_main_r16", "shadow_fit_holdout_r16",
+    "shadow_supervised_main_r16", "shadow_supervised_holdout_r16",
+    "shadow_calibration_main_r16", "shadow_calibration_holdout_r16",
+    "shadow_semantic_main_r16", "shadow_semantic_validation_r16",
+    "shadow_c2_independent_main_r16", "shadow_c2_independent_holdout_r16",
+    "shadow_semantic_final_r16",
+    "reference_diagnostic_main_r16", "reference_diagnostic_holdout_r16",
+    "reference_diagnostic_r16",
+    "rt_cue_model_r16", "rt_cue_validation_r16",
+    "rt_design_matched_main_r16", "rt_design_matched_validation_r16",
+    "rt_design_independent_r16",
+    "rt_semantic_design_main_r16", "rt_semantic_design_validation_r16",
+    "rt_fit_main_r16", "rt_fit_holdout_r16", "rt_fit_qualification_r16",
+    "rt_calibration_main_r16", "rt_calibration_holdout_r16",
+    "rt_supervised_main_r16", "rt_supervised_holdout_r16",
+    "rt_semantic_main_r16", "rt_semantic_validation_r16",
+    "rt_semantic_final_r16",
+    "rt_c2_independent_main_r16", "rt_c2_independent_holdout_r16",
+    "rt_stress_r16", "rt_qualification_r16",
+    "rt3_fit_main_r16", "rt3_fit_holdout_r16",
+    "rt3_fit_qualification_r16",
+    "rt3_calibration_main_r16", "rt3_calibration_holdout_r16",
+    "rt3_supervised_main_r16", "rt3_supervised_holdout_r16",
+    "rt3_semantic_main_r16", "rt3_semantic_validation_r16",
+    "rt3_semantic_final_r16",
+    "rt3_c2_independent_main_r16", "rt3_c2_independent_holdout_r16",
+    "rt3_stress_r16", "rt3_qualification_r16",
+    "cue_semantic_design_main_r16", "cue_semantic_design_validation_r16",
+    "design_r16_matched_main", "design_r16_matched_validation",
+    "design_r16_independent_marginal",
+    "preprocess_fit_calibration_r16", "preprocess_fit_holdout_r16",
+    "preprocess_fit_qualification_r16",
+    "supervised_main_r16", "supervised_holdout_r16",
+    "cue_semantic_calibration_r16", "cue_semantic_holdout_r16",
+    "cue_semantic_qualification_r16",
+    "calibration_r16", "calibration_holdout_r16", "qualification_r16",
+    "c2_independent_calibration_r16", "c2_independent_holdout_r16",
+    "c2_independent_qualification_r16",
+    "stress_r16", "fresh_holdout_r16", "training_r16", "ppo_smoke_r16")
+
+#: R16 正式 qualification 四件套(唯一受动态执行授权保护的 namespace;
+#: §7.1:静态资格不构成动态执行权)。
+CURRICULUM261_R16_FORMAL_NAMESPACES = (
+    "qualification_r16",
+    "preprocess_fit_qualification_r16",
+    "c2_independent_qualification_r16",
+    "cue_semantic_qualification_r16")
+
+#: R16 namespace 角色/迭代登记(名称级隔离验证用;§7.2 静态检查)。
+CURRICULUM261_R16_NAMESPACE_ROLES = {
+    name: {"iteration": "r16", "class": "engineering"}
+    for name in CURRICULUM261_R16_NAMESPACES
+    if name not in CURRICULUM261_R16_FORMAL_NAMESPACES
+}
+CURRICULUM261_R16_NAMESPACE_ROLES.update({
+    name: {"iteration": "r16", "class": "formal_qualification"}
+    for name in CURRICULUM261_R16_FORMAL_NAMESPACES
+})
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
@@ -514,7 +586,8 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R12_NAMESPACES) + (
     CURRICULUM261_R13_NAMESPACES) + (
     CURRICULUM261_R14_NAMESPACES) + (
-    CURRICULUM261_R15_NAMESPACES)
+    CURRICULUM261_R15_NAMESPACES) + (
+    CURRICULUM261_R16_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -975,6 +1048,38 @@ def derive261_seed(
                 "执行后 qualification corpus 不得再次生成(§十;R15 "
                 "final 在执行时保存全部详细证据,失败诊断只读原始 "
                 "artifact;继续必须 R16 + 全新 namespace)")
+    if namespace in CURRICULUM261_R16_FORMAL_NAMESPACES:
+        # repair R16(§7.1 强制行为表):静态资格 + 动态执行权分离。
+        # 六要素 unlocked 只说明"可以申请开始 qualification";
+        # 正式 seed 派生还要求唯一授权窗口内的有效执行授权
+        # (exposure 已持久化 + 会话有效 + 受委派 token + namespace
+        # 在授予范围)。R15 的缺口——running 窗口对任意进程开放、
+        # _derive261_seed_raw 可绕过——由本守卫与 execgov 关闭:
+        # 受支持调用图内不存在绕过路径;数值碰撞抽检移入授权窗口
+        # (curriculum261_r16_namespaces.
+        # verify_r16_namespace_collision_within_grant)。
+        from rl_curriculum.curriculum261_r16_namespaces import (
+            qualification_r16_unlocked,
+        )
+        from rl_curriculum.curriculum261_r16_execgov import (
+            R16AuthorizationError,
+            require_r16_generation_authorization,
+        )
+
+        if not qualification_r16_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R16 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r16 / "
+                "calibration_holdout_r16 / stress_r16 namespace)")
+        try:
+            require_r16_generation_authorization(namespace)
+        except R16AuthorizationError as exc:
+            raise GeneratorError(
+                f"{namespace} 缺少有效的 R16 正式生成授权(静态资格"
+                "不构成动态执行权;§7.1):{exc}") from exc
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -1236,11 +1341,12 @@ def _default_recorder(namespace: str, family: str, rung: str,
         from rl_curriculum.curriculum261_generation_envelope import (
             active_recorder,
         )
-        # repair R12-R15:iteration 字段按 namespace 后缀派生——R0-R11
+        # repair R12-R16:iteration 字段按 namespace 后缀派生——R0-R11
         # namespace 行为与 R11 完全一致("r11");全部 R12 namespace 含
-        # "r12" 子串、R13 含 "r13"、R14 含 "r14"、R15 含 "r15"
-        # 子串,且历史 namespace 均不含,故无歧义。
-        iteration = ("r15" if "r15" in namespace
+        # "r12" 子串、R13 含 "r13"、R14 含 "r14"、R15 含 "r15"、
+        # R16 含 "r16" 子串,且历史 namespace 均不含,故无歧义。
+        iteration = ("r16" if "r16" in namespace
+                     else "r15" if "r15" in namespace
                      else "r14" if "r14" in namespace
                      else "r13" if "r13" in namespace
                      else "r12" if "r12" in namespace else "r11")

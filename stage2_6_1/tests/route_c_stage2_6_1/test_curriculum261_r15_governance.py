@@ -97,7 +97,27 @@ def test_generation_evidence_iteration_mismatch_rejected():
 # ------------------------------------------------ historical binding
 @pytest.mark.skipif(_release_repo() is None,
                     reason="release repo 不可达(仅 WSL/开发机)")
+def _on_r15_branch() -> bool:
+    """R15 binding 的分支检查只在 repair15 分支上下文中有意义。
+
+    R16 起 HEAD 位于 repair16 分支,r15 模块的分支名检查按设计为
+    False;R16 的等价断言由 test_curriculum261_r16_governance 承担。
+    checkout 到 repair15 分支时本测试恢复完整执行。
+    """
+    repo = _release_repo()
+    if repo is None:
+        return False
+    out = subprocess.run(
+        ["git", "branch", "--show-current"], cwd=str(repo),
+        capture_output=True, text=True)
+    return out.stdout.strip() == "route-c-stage2-6-1-repair15"
+
+
 class TestHistoricalEvidenceBindingR15:
+    @pytest.mark.skipif(not _on_r15_branch(),
+                        reason="非 repair15 分支:R15 binding 的分支检查"
+                               "仅在 R15 iteration 上下文有效(R16 起"
+                               "由 r16 governance 测试承担)")
     def test_ancestry_and_r13_clean_chain(self):
         repo = _release_repo()
         binding = historical_evidence_binding(repo)

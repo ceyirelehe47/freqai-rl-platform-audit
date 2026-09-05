@@ -1,0 +1,23 @@
+{
+  "format": "cur261-r16-r15-iteration-failure-binding-v1",
+  "iteration": "r15",
+  "commit_a": "c1c973e057375cbc258d0fe48e7ce7044a9a05df",
+  "commit_b": "c0da37a498740201c42898ea9b743ecfb54990da",
+  "r15_governance_binding": {
+    "r15_commit_a": "c1c973e057375cbc258d0fe48e7ce7044a9a05df",
+    "r15_commit_b": "c0da37a498740201c42898ea9b743ecfb54990da",
+    "clean_two_commit_chain": "A(c1c973e 实现冻结)→ B(c0da37a results-only 诚实 FAIL);无 A'/A2/hotfix",
+    "r15_remains_permanent_fail": true,
+    "r15_final_verdict": "FAIL(永久;不因 R16 修复而被追认/撤销/改写;R16 exact baseline = R15 Commit B c0da37a)",
+    "r15_failure_classification": "正式 shell wrapper CRLF 启动失败:r15_formal_chain.sh 为 Agent Windows Write 工具产物(CRLF 行尾),bash 解析失败(set: pipefail: invalid option name;cd 附带 CR 字节污染);17 步权威链在第一步之前未启动(manifest 0 条);exposure 未发生;design/calibration/qualification 均未开始;缺陷位于 Commit A 冻结面内",
+    "r15_governance_gaps": {
+      "crlf_byte_gate_absent": "freeze 未对执行面做字节级行尾检查;git autocrlf 不阻止 blob 含 CRLF(R16 .gitattributes + LF 自检 + freeze 字节验证修复)",
+      "runner_on_drvfs": "正式 runner 从 /mnt/e drvfs 执行,非已验证本地文件系统(R16 执行面同步至 WSL 本地修复)",
+      "activation_failure_swallowed": "source activate-freqtrade.sh || true 吞掉环境激活失败(R16 激活失败即拒绝修复)",
+      "bootstrap_misattributed": "workflow-plan 失败被写成 provenance-verify 已执行失败,而非 bootstrap 边界(R16 --failed-step bootstrap 修复)"
+    }
+  },
+  "r15_remains_permanent_fail": true,
+  "pass": true,
+  "binding_gate_in_r16": true
+}
