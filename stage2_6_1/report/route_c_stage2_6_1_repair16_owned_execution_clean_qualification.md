@@ -21,8 +21,8 @@ Commit A 之后的新正式链。工程测试或 rehearsal PASS 只表示工程�
 | R16 分支 | route-c-stage2-6-1-repair16(自 c0da37a 创建) |
 | exact baseline | c0da37a(R15 Commit B;本地=远端核验一致) |
 | vendor pin | 52bc96f4480b1a0da6a9b455bd00b17fbb6786a5 |
-| R16 Commit A | (待 Commit A 后填入真实 SHA) |
-| R16 Commit B | (待 Commit B 后填入真实 SHA) |
+| R16 Commit A | 4a42f6b4bf1bdd1468d7ae899d331be756e6deec |
+| R16 Commit B | (本提交;results-only) |
 | 执行面行尾 | .gitattributes 固定 runner/src/tests 为 LF;全 r16_*.sh 字节级验证 LF |
 | freeze surface | R16_FREEZE_REPO_PATHS(src/tests/runner 递归)+ dev 单文件;digest 前缀 r16fs- |
 | code identity | PLAN_CODE_MODULES_R16 = R15 清单 + 31 个 r16 模块 |
@@ -128,4 +128,34 @@ CRLF 字节门缺失/runner 在 drvfs/激活失败被吞/bootstrap 误归属)。
 
 ## 7. 结论
 
-(待全部阶段完成后按 §13 矩阵填写。)
+**R16 iteration 诚实 FAIL(正式统计;治理与证据正确)。**
+
+正式链(r16_formal_chain.sh,绑定 Commit A 4a42f6b)于 2026-09-05
+19:17 UTC 启动——R15 的 CRLF 启动事故得到实证修复:LF wrapper
+真实执行,启动请求证据/环境激活/bootstrap 验证全部记录,17 步
+权威链正常推进。
+
+前 8 步(provenance-verify/determinism-matrix/audit/cue-audit/
+preplan-smoke/plan-roundtrip/design-plan-lock/design)全部 rc=0。
+**calibrate 步骤统计失败**:main 语料的 curriculum gate 未过
+(holdout 通过;supervised/density/conditioning/routing 全部
+通过;semantic 与 matched block 全过;C1/C3 严格条件在
+calibration_r16 语料上未达门槛)。fail-closure 已按 §13 自动
+封口:failed_step=calibrate,phase=calibration,
+exposure=not_exposed——**qualification_r16 及全部 final
+subordinate namespace 未消耗,正式资格机会未使用**。
+
+按 R16 §13 矩阵第三行处置:正式统计失败,治理和证据正确 ⇒
+诚实统计 FAIL,不调整规则、不重跑、不换 seed。
+
+R16 四个工作包的工程目标全部达成并有证据:发布入口一致性
+(rehearsal 17 步全绿+正式链真实启动)、执行所有权(唯一会话/
+竞争零副作用/持权终态,56 项测试含真实双进程竞争)、sealed
+generation 底层授权(静态资格≠动态执行权,9 反例矩阵)、阶段
+精确证据(bootstrap 边界/journal 权威/fail-closure 四值状态)。
+qualification 未执行到 final——一次性资格保留在"未消耗"状态,
+但 calibrate 的统计结果按合同终结本轮 iteration:main curriculum
+gate FAIL 即 STOP(§24:任一条件失败 -> 不得 lock-plan)。
+
+下一轮(R17+)须全新 namespace;C1/C3 在 calibration main 语料
+的机会条件差异是本轮诚实记录的统计事实。
