@@ -1,0 +1,104 @@
+{
+ "format": "r17-wp0-r16-readonly-attribution-v1",
+ "baseline_read": "d2ee974a5bb6573b4dfaa0d09288d20a74a91c87",
+ "question": "R16 calibration main curriculum gate 的精确 false leaf",
+ "r16_recorded_aggregate": {
+  "curriculum_main_independent_pass": false,
+  "curriculum_holdout_independent_pass": true,
+  "r16_report_claim": "R16 主报告称 'C1/C3 严格条件在 calibration_r16 语料未达门槛'",
+  "claim_verdict": "错误归因:C1/C3 数值条件在 main 与 holdout 全部通过(独立公式与冻结实现双路一致)"
+ },
+ "false_leaf": {
+  "component": "c2_matched_main (statistical_block_conditions)",
+  "corpus": "c2_matched_calibration_r16",
+  "condition": "D3 blockwise difficulty mean >= kappa*SE",
+  "kappa": 1.5,
+  "main": {
+   "n_blocks": 15,
+   "d3_mean": 0.0027893084268249104,
+   "d3_se": 0.001880716886482892,
+   "kappa_times_se": 0.0028210753297243383,
+   "distance": -3.176690289942788e-05,
+   "ratio_to_threshold": 0.9887394347238037,
+   "d3_positive": true,
+   "d3_ge_kappa_se": false,
+   "pass": false
+  },
+  "holdout": {
+   "n_blocks": 15,
+   "d3_mean": 0.006322119872569476,
+   "d3_se": 0.002463988239270528,
+   "kappa_times_se": 0.0036959823589057922,
+   "ratio_to_threshold": 1.7105384329921858,
+   "pass": true
+  },
+  "collateral_false": "margin always_flat/D3 与 D3 difficulty 同数值(difficulty := reference−always_flat),同一条件连带 false;其余全部条件(ordering/三段 gap 含 pgr/D3 正值性/always_long 与 c2_local_only margins/block integrity/oracle)在 main 全部通过",
+  "main_vs_holdout_difference": "holdout D3 均值 0.006322(1.711x κ×SE)通过;main D3 均值 0.002789 仅为 κ×SE 的 0.989x——C2 matched main 语料的 D3 rung 难度信号幅度不足,非排序逆转、非负均值、非实现偏差"
+ },
+ "other_components": {
+  "c1_main": {
+   "pass_with_integrity_assumed_1": true,
+   "ordering_ok": true,
+   "gaps_ge_kappa_se": true,
+   "d3_positive": true,
+   "d3_mean_ge_kappa_se": true,
+   "margins_ok": true,
+   "d3_mean": 0.03393411061032611,
+   "d3_se": 0.006769330183375697
+  },
+  "c3_main": {
+   "pass_with_integrity_assumed_1": true,
+   "ordering_ok": true,
+   "gaps_ge_kappa_se": true,
+   "d3_positive": true,
+   "d3_mean_ge_kappa_se": true,
+   "margins_ok": true,
+   "d3_mean": 0.004717614495136096,
+   "d3_se": 0.0024049430549775274
+  },
+  "c1_holdout": {
+   "pass_with_integrity_assumed_1": true,
+   "ordering_ok": true,
+   "gaps_ge_kappa_se": true,
+   "d3_positive": true,
+   "d3_mean_ge_kappa_se": true,
+   "margins_ok": true,
+   "d3_mean": 0.03766475093064685,
+   "d3_se": 0.008155512284684025
+  },
+  "c3_holdout": {
+   "pass_with_integrity_assumed_1": true,
+   "ordering_ok": true,
+   "gaps_ge_kappa_se": true,
+   "d3_positive": true,
+   "d3_mean_ge_kappa_se": true,
+   "margins_ok": true,
+   "d3_mean": 0.005980016487681089,
+   "d3_se": 0.0030503615321412804
+  },
+  "semantic": {
+   "pass": true,
+   "shared_pass": true,
+   "candidate_pass": true
+  },
+  "marginal_main": {
+   "guard_pass": true,
+   "note_cue_point_metrics_binding_false_is_declaration": "guard.cue_point_metrics_binding=False 声明 independent cue 点指标不参与 binding(R16 §六 lineage;diagnostic_only=True),不是 gate 失败"
+  },
+  "marginal_holdout": {
+   "guard_pass": true,
+   "note_cue_point_metrics_binding_false_is_declaration": "guard.cue_point_metrics_binding=False 声明 independent cue 点指标不参与 binding(R16 §六 lineage;diagnostic_only=True),不是 gate 失败"
+  }
+ },
+ "evidence_gaps": {
+  "c13_pair_integrity_pass_rate": "pair_evidence_table 不含主语料 integrity 列;generator_stress.json(独立 48 对 stress 语料)为 1.0 仅作 侧证。即便 integrity=1.0,matched_main 的 D3 false 已足以唯一解释 main gate false;integrity 不改变归因结论",
+  "matched_non_statistical_checks": "density/local cue/context observability 顶层布尔由 robustness_gate.density_pass=True 与 semantic pass=True 侧证;block 表内 integrity 列已复算通过"
+ },
+ "independent_vs_frozen_crosscheck": {
+  "method": "独立公式实现(本脚本)与 d2ee974 冻结实现(frozen_crosscheck.py, WSL freqtrade-rl)双路",
+  "agreement": "全部组件布尔一致",
+  "frozen_results_file": "frozen_crosscheck_result.json"
+ },
+ "decision_under_section_4_4": "第 2 类:冻结规则下的真实统计失败。计算/路由/汇总实现与冻结合同一致(双路复算);不存在实现偏离或证据矛盾。R16 永久 FAIL 不变;R17 工程修复满足准入后允许一次新正式验证(全新 namespace),不修改 κ/样本量/baseline/判据",
+ "zero_generation_calls": true
+}

@@ -575,6 +575,72 @@ CURRICULUM261_R16_NAMESPACE_ROLES.update({
     for name in CURRICULUM261_R16_FORMAL_NAMESPACES
 })
 
+#: R17 全部 seed namespace(与 curriculum261_r17_registry.R17_ALL_
+#: NAMESPACES 同源;此处为单一权威,registry 侧断言对齐)。
+CURRICULUM261_R17_NAMESPACES = (
+    "cue_contract_model_r17", "cue_contract_validation_r17",
+    "cue_k_global_null_r17", "preplan_engineering_smoke_r17",
+    "preplan_smoke_r17", "preplan_candidate_eval_r17",
+    "preplan_semantic_main_r17", "preplan_semantic_validation_r17",
+    "preplan_fit_main_r17", "preplan_fit_holdout_r17",
+    "preplan_supervised_main_r17", "preplan_supervised_holdout_r17",
+    "preplan_calibration_main_r17", "preplan_calibration_holdout_r17",
+    "preplan_final_r17", "shadow_fit_main_r17",
+    "shadow_fit_holdout_r17", "shadow_supervised_main_r17",
+    "shadow_supervised_holdout_r17", "shadow_calibration_main_r17",
+    "shadow_calibration_holdout_r17", "shadow_semantic_main_r17",
+    "shadow_semantic_validation_r17", "shadow_c2_independent_main_r17",
+    "shadow_c2_independent_holdout_r17", "shadow_semantic_final_r17",
+    "reference_diagnostic_main_r17", "reference_diagnostic_holdout_r17",
+    "reference_diagnostic_r17", "rt_cue_model_r17",
+    "rt_cue_validation_r17", "rt_design_matched_main_r17",
+    "rt_design_matched_validation_r17", "rt_design_independent_r17",
+    "rt_semantic_design_main_r17", "rt_semantic_design_validation_r17",
+    "rt_fit_main_r17", "rt_fit_holdout_r17",
+    "rt_fit_qualification_r17", "rt_calibration_main_r17",
+    "rt_calibration_holdout_r17", "rt_supervised_main_r17",
+    "rt_supervised_holdout_r17", "rt_semantic_main_r17",
+    "rt_semantic_validation_r17", "rt_semantic_final_r17",
+    "rt_c2_independent_main_r17", "rt_c2_independent_holdout_r17",
+    "rt_stress_r17", "rt_qualification_r17", "rt3_fit_main_r17",
+    "rt3_fit_holdout_r17", "rt3_fit_qualification_r17",
+    "rt3_calibration_main_r17", "rt3_calibration_holdout_r17",
+    "rt3_supervised_main_r17", "rt3_supervised_holdout_r17",
+    "rt3_semantic_main_r17", "rt3_semantic_validation_r17",
+    "rt3_semantic_final_r17", "rt3_c2_independent_main_r17",
+    "rt3_c2_independent_holdout_r17", "rt3_stress_r17",
+    "rt3_qualification_r17", "cue_semantic_design_main_r17",
+    "cue_semantic_design_validation_r17", "design_r17_matched_main",
+    "design_r17_matched_validation", "design_r17_independent_marginal",
+    "preprocess_fit_calibration_r17", "preprocess_fit_holdout_r17",
+    "preprocess_fit_qualification_r17", "supervised_main_r17",
+    "supervised_holdout_r17", "cue_semantic_calibration_r17",
+    "cue_semantic_holdout_r17", "cue_semantic_qualification_r17",
+    "calibration_r17", "calibration_holdout_r17",
+    "qualification_r17", "c2_independent_calibration_r17",
+    "c2_independent_holdout_r17", "c2_independent_qualification_r17",
+    "stress_r17", "fresh_holdout_r17", "training_r17",
+    "ppo_smoke_r17",
+)
+
+#: R17 正式资格面(数据入口四件套;§6.5)。
+CURRICULUM261_R17_FORMAL_NAMESPACES = (
+    "qualification_r17",
+    "preprocess_fit_qualification_r17",
+    "c2_independent_qualification_r17",
+    "cue_semantic_qualification_r17",
+)
+
+CURRICULUM261_R17_NAMESPACE_ROLES = {
+    name: {"iteration": "r17", "class": "engineering"}
+    for name in CURRICULUM261_R17_NAMESPACES
+    if name not in CURRICULUM261_R17_FORMAL_NAMESPACES
+}
+CURRICULUM261_R17_NAMESPACE_ROLES.update({
+    name: {"iteration": "r17", "class": "formal_qualification"}
+    for name in CURRICULUM261_R17_FORMAL_NAMESPACES
+})
+
 CURRICULUM261_SEED_NAMESPACES = (
     "calibration", "calibration_holdout", "qualification",
     "fresh_holdout", "training") + CURRICULUM261_R2_NAMESPACES + (
@@ -587,7 +653,8 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R13_NAMESPACES) + (
     CURRICULUM261_R14_NAMESPACES) + (
     CURRICULUM261_R15_NAMESPACES) + (
-    CURRICULUM261_R16_NAMESPACES)
+    CURRICULUM261_R16_NAMESPACES) + (
+    CURRICULUM261_R17_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对
@@ -1080,6 +1147,34 @@ def derive261_seed(
             raise GeneratorError(
                 f"{namespace} 缺少有效的 R16 正式生成授权(静态资格"
                 "不构成动态执行权;§7.1):{exc}") from exc
+    if namespace in CURRICULUM261_R17_FORMAL_NAMESPACES:
+        # R17(任务书 §6.5):强制行为表的 R17 延伸——静态资格
+        # (六要素,registry)与动态执行权(execgov;执行者实例身份
+        # 绑定 + 链会话窗口)分离。R17 与 R16 守卫结构一致,但授权
+        # 验证含 F2 修复(当前进程实例 == 被委派执行者)。
+        from rl_curriculum.curriculum261_r17_registry import (
+            qualification_r17_unlocked,
+        )
+        from rl_curriculum.curriculum261_r17_execgov import (
+            R17AuthorizationError,
+            require_r17_generation_authorization,
+        )
+
+        if not qualification_r17_unlocked():
+            raise GeneratorError(
+                f"{namespace} 在 R17 qualification plan 完整锁定"
+                "(plan + digest 重算一致 + robustness gate=true + "
+                "parameter pack 绑定一致 + sealed final preflight "
+                "attestation)前不可访问(final corpus lock 前对任何"
+                "代码路径封闭;校准/诊断一律使用 calibration_r17 / "
+                "calibration_holdout_r17 / stress_r17 namespace)")
+        try:
+            require_r17_generation_authorization(namespace)
+        except R17AuthorizationError as exc:
+            raise GeneratorError(
+                f"{namespace} 缺少有效的 R17 正式生成授权(静态资格"
+                "不构成动态执行权;执行者实例身份绑定;§WP2):"
+                f"{exc}") from exc
     return _derive261_seed_raw(namespace, family, rung, pair_index, attempt)
 
 
@@ -1344,8 +1439,10 @@ def _default_recorder(namespace: str, family: str, rung: str,
         # repair R12-R16:iteration 字段按 namespace 后缀派生——R0-R11
         # namespace 行为与 R11 完全一致("r11");全部 R12 namespace 含
         # "r12" 子串、R13 含 "r13"、R14 含 "r14"、R15 含 "r15"、
-        # R16 含 "r16" 子串,且历史 namespace 均不含,故无歧义。
-        iteration = ("r16" if "r16" in namespace
+        # R16 含 "r16"、R17 含 "r17" 子串,且历史 namespace 均不含,
+        # 故无歧义。
+        iteration = ("r17" if "r17" in namespace
+                     else "r16" if "r16" in namespace
                      else "r15" if "r15" in namespace
                      else "r14" if "r14" in namespace
                      else "r13" if "r13" in namespace

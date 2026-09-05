@@ -1,0 +1,113 @@
+{
+ "format": "r17-f1f4f5-static-counterexamples-v1",
+ "baseline": "d2ee974a5bb6573b4dfaa0d09288d20a74a91c87",
+ "evidence_class": "static(源码结构与已发布证据;行为反例见 f2/f3 探针 JSON)",
+ "F1": {
+  "S1_launcher_session_references": {
+   "matches": [],
+   "verdict": "缺陷成立:launcher 全文无会话获取"
+  },
+  "S2_journal_events": {
+   "events": [
+    "design_data_started",
+    "iteration_aborted"
+   ],
+   "n": 2,
+   "session_events_present": false,
+   "design_data_started_by_namespaces_112_125": true,
+   "verdict": "整链正式写入发生在零会话状态"
+  },
+  "S3_qualify_nested_session": {
+   "acquire_lines_in_final_py": [
+    227
+   ],
+   "release_lines_in_final_py": [
+    242,
+    259,
+    284,
+    290
+   ],
+   "verdict": "会话 acquire→release 完全嵌套在 qualify 单步内"
+  },
+  "S4_journal_writer_pids": {
+   "pids": [
+    3687,
+    4036
+   ],
+   "verdict": "≥2 个不同进程先后写权威 journal(无单写者)"
+  }
+ },
+ "F4": {
+  "S5_assembly_source_vs_manifest": {
+   "assemble_source_line": "for f in \"$SRC/route_c_stage2_6_1_repair16_chain_logs\"/*.log \\",
+   "manifest_real_dir": "$SRC/artifacts/route_c_stage2_6_1_repair16_chain_logs",
+   "verdict": "缺陷成立:组包目录比 manifest 少一层 artifacts/"
+  },
+  "S6_silent_skips": {
+   "lines_with_or_true": [
+    "git checkout route-c-stage2-6-1-repair16 2>/dev/null || true",
+    "[ -f \"$f\" ] && cp \"$f\" \"$DST/\" || true",
+    "[ -f \"$f\" ] && cp \"$f\" \"$DST/raw_logs/\" || true",
+    "} || true"
+   ],
+   "verdict": "缺失静默跳过"
+  },
+  "S7_committed_raw_logs": {
+   "files": [
+    "stage2_6_1/artifacts/repair16/raw_logs/chain.log",
+    "stage2_6_1/artifacts/repair16/raw_logs/r16_launch_evidence.jsonl",
+    "stage2_6_1/artifacts/repair16/raw_logs/workflow_plan.log"
+   ],
+   "manifest_steps": [
+    "audit",
+    "calibrate",
+    "cue-audit",
+    "design",
+    "design-plan-lock",
+    "determinism-matrix",
+    "plan-roundtrip",
+    "preplan-smoke",
+    "provenance-verify"
+   ],
+   "verdict": "已提交 raw_logs 无逐步 .log/.err;真实文件留在执行机(historical_recovered 已找回)"
+  }
+ },
+ "F5": {
+  "S8_rehearsal_driver": {
+   "keys": [
+    "boundary_checks",
+    "boundary_checks_pass",
+    "chain_failed_step",
+    "chain_records",
+    "chain_returncodes_all_zero",
+    "cli_entrypoint",
+    "format",
+    "generation_scale",
+    "head_at_rehearsal",
+    "iteration",
+    "monkeypatch_used",
+    "namespace_purity",
+    "pass",
+    "pre_freeze_steps",
+    "real_artifacts_only",
+    "rehearsal_dir",
+    "rehearsal_only_tail_step",
+    "synthetic_dict_substitution",
+    "workflow_coverage",
+    "workflow_coverage_pass"
+   ],
+   "snippet": "{\"format\": \"R16RealArtifactCliRoundTrip-v1\", \"iteration\": \"r16\", \"head_at_rehearsal\": \"0d91d1a4ccefa689d688623272095375f91407ee\", \"rehearsal_dir\": \"/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair16/real_artifact_rehearsal\", \"monkeypatch_used\": false, \"cli_entrypoint\": \"subprocess python -m rl_curriculum.curriculum261_r16_cli(\\u7ecf\\u6743\\u5a01 execute_workflow_chain)\", \"workflow_executor\": \"curriculum261_r16_workflow.execute_workflow_chain(rehearsal \\u4e0e formal \\u540c\\u4e00\\u6267\\u884c\\u5668;\\u00a7\\u5341\\u4e00)\", \"workflow_graph_digest\": \"r16wg-bbaa8b23b3b5cd08c1cb90ac9",
+   "verdict": "rehearsal 由 python -m 内部驱动,未穿外层 shell 入口"
+  },
+  "S9_rt_rehearsal_shell": {
+   "r15_rt_rehearsal_exists": true,
+   "r16_rt_rehearsal_exists": false,
+   "verdict": "R16 缺失 r1X_rt_rehearsal.sh 形态(R13/R14/R15 均有)"
+  },
+  "S10_rehearsal_head": {
+   "head_at_rehearsal": "0d91d1a4ccefa689d688623272095375f91407ee",
+   "commit_a": "4a42f6b4bf1bdd1468d7ae899d331be756e6deec",
+   "note": "仅记录不一致事实;不据此判定存在 A′(以内容闭包验证为准,R17 WP4 §8.3 落实)"
+  }
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "format": "r17-f2-counterexample-v1",
+ "module_under_test": "rl_curriculum.curriculum261_r16_execgov@d2ee974",
+ "state_root": "/tmp/r17_f2_probe_tpxczd9q",
+ "results": {
+  "fork_child": {
+   "child_owns_true": true,
+   "child_verify_token_passed": true,
+   "child_verify_facts": {
+    "grant": "ffa5ca6b19c7cec30bff2d9f9df7d3e4a004c1160e9f08747310ab5607c03e03",
+    "namespace": "qualification_r16_f2_probe",
+    "session": "c4491fce3ee03689279ceb2807d48a71b280a89b66ce5b2376ce97c5d73f2c3b"
+   },
+   "child_release_succeeded": true
+  },
+  "spawn_child": {
+   "spawn_verify_passed": true,
+   "facts": {
+    "grant": "ffa5ca6b19c7cec30bff2d9f9df7d3e4a004c1160e9f08747310ab5607c03e03",
+    "namespace": "qualification_r16_f2_probe",
+    "session": "c4491fce3ee03689279ceb2807d48a71b280a89b66ce5b2376ce97c5d73f2c3b"
+   }
+  },
+  "fork_child_release": {
+   "child_release_succeeded": true
+  },
+  "defect_confirmation": {
+   "C1_fork_child_owns": "缺陷成立:fork 子进程 owns()==True",
+   "C2_fork_child_verify_token": "缺陷成立:非被委派的 fork 子进程凭继承 token 通过验证",
+   "C3_fork_child_release": "缺陷成立:fork 子进程可 release 父会话",
+   "C4_spawn_verify_token": true,
+   "root_cause": "verify_executor_token 不验证当前执行者实例;executor_delegated 的 executor_pid 仅记录不校验;owns() 仅检查 released 标志与 lock_fh 非 None"
+  }
+ }
+}
