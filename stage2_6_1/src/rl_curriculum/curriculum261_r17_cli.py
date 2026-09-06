@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -2082,13 +2083,19 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
 
         fit_ns_main = "rt3_fit_main_r17"
         fit_ns_hold = "rt3_fit_holdout_r17"
-        profile_main_obj = rt_main_profile_r17(small=True)
-        profile_holdout_obj = rt_holdout_profile_r17(small=True)
+        # 诊断轮(2026-09-06):缺省 = R16 rt 预登记规模(RT_* 常量,
+        # R15/R16 rehearsal 17 步全绿的同一规模);CURRICULUM261_R17_
+        # RT_SMALL=1 时的缩小模式仅作工程链路诊断逃生门(统计排序
+        # 在缩小语料上不保证成立——本轮实测 curriculum gate False,
+        # 不构成任何统计结论)。
+        _rt_small = os.environ.get(
+            "CURRICULUM261_R17_RT_SMALL", "0") == "1"
+        profile_main_obj = rt_main_profile_r17(small=_rt_small)
+        profile_holdout_obj = rt_holdout_profile_r17(small=_rt_small)
         conditioning_eval_ns = "rt3_calibration_main_r17"
         stress_ns = "rt3_stress_r17"
-        print("[calibrate][rehearsal] rt3_* namespace;预登记工程缩小规模"
-              "(c13 2/rung,matched 4,semantic 8,indep 2/supervised"
-              " 4/rung,equiv 1/rung;链路验证非统计;§8.1)")
+        print("[calibrate][rehearsal] rt3_* namespace;预登记工程规模"
+              "(rt 缩小模式=%s;链路验证非统计;§8.1)" % _rt_small)
     else:
         fit_ns_main = "preprocess_fit_calibration_r17"
         fit_ns_hold = "preprocess_fit_holdout_r17"
