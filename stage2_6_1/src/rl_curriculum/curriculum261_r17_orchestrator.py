@@ -313,7 +313,7 @@ def rt_main_profile_r17(small: bool = False) -> R17ExecutionProfile:
         C2_INDEPENDENT_PAIRS_PER_RUNG_R17,
         supervised_pairs_per_rung=4 if small else
         CALIBRATION_PAIRS_PER_RUNG_R17,
-        supervised_train_pair_limit=6,
+        supervised_train_pair_limit=(3 if small else 6),
         supervised_model_seeds=RT_SUPERVISED_MODEL_SEEDS,
         supervised_training_config=(dict(RT_SUPERVISED_TRAINING_CONFIG)
                                    if RT_SUPERVISED_TRAINING_CONFIG
@@ -342,7 +342,7 @@ def rt_holdout_profile_r17(small: bool = False) -> R17ExecutionProfile:
         C2_INDEPENDENT_PAIRS_PER_RUNG_R17,
         supervised_pairs_per_rung=4 if small else
         CALIBRATION_PAIRS_PER_RUNG_R17,
-        supervised_train_pair_limit=6,
+        supervised_train_pair_limit=(3 if small else 6),
         supervised_model_seeds=RT_SUPERVISED_MODEL_SEEDS,
         supervised_training_config=(dict(RT_SUPERVISED_TRAINING_CONFIG)
                                    if RT_SUPERVISED_TRAINING_CONFIG
