@@ -71,3 +71,41 @@ PYVERIFY
   echo "FATAL: 解释器或模块来源验证失败" >&2
   exit 97
 }
+
+# ---- 正式入口观测接线(观测型;任务书 WP1/§5.1) ----
+# 仅为正式链请求启动宿主采样器并登记:判定/保护不作用于正式入口的
+# 业务编排(该编排进程不是本段启动的,无登记进程组),边界如实声明;
+# 会话准入失败时 EXIT trap 调 teardown,被拒请求只关闭自己的观测。
+r17_monitored_bootstrap() {
+  local req_dir="$1" run_id="$2" ps1_guest ps1_win out_guest out_win pid
+  ps1_guest="${R17_RELEASE_REPO:-/mnt/f/trading/freqai-rl-audit}/stage2_6_1/runner/r17_win_sampler.ps1"
+  [ -f "$ps1_guest" ] || return 1
+  ps1_win="$(wslpath -w "$ps1_guest")" || return 1
+  out_guest="$req_dir/obs/win_samples.jsonl"
+  mkdir -p "$req_dir/obs"
+  out_win="$(wslpath -w "$out_guest")" || return 1
+  powershell.exe -NoProfile -ExecutionPolicy Bypass \
+    -File "$ps1_win" -RunId "$run_id" -OutFile "$out_win" \
+    -MaxSeconds 43200 -Volumes "C:,F:" \
+    -EmergencyDir "C:/Users/15027/AppData/Local/r17_supervision_emergency" \
+    >/dev/null 2>&1 &
+  pid=$!
+  printf '{"win_sampler_interop_pid":%s,"out_guest":"%s","started_utc":"%s","mode":"observation_only"}\n' \
+    "$pid" "$out_guest" "$(r17_ts)" > "$req_dir/observation.json"
+  return 0
+}
+
+r17_monitored_teardown() {
+  local req_dir="$1" pid
+  [ -f "$req_dir/observation.json" ] || return 0
+  pid=""
+  pid="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['win_sampler_interop_pid'])" "$req_dir/observation.json" 2>/dev/null)" || pid=""
+  if [ -n "$pid" ]; then
+    # 采样器可能已自行退出(MaxSeconds 兜底);kill 失败仅记录
+    if ! kill "$pid" 2>/dev/null; then
+      emit_launch "observation_teardown_nopid" "pid=$pid"
+    fi
+  fi
+  emit_launch "observation_closed" "req_dir=$req_dir"
+  return 0
+}

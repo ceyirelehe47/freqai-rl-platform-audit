@@ -1,0 +1,107 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "m10_154455_415",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "7c46974e4614d8e3970840a050584787cdfc4e14f17fa458dabe39e414a6d10f",
+ "argv": [
+  "bash",
+  "-c",
+  "echo m10-biz-start; sleep 90; echo m10-biz-done"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 430,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "keyvol: 关键卷 F: 可用 3.0GiB < 5.0GiB"
+ ],
+ "incidents": [
+  {
+   "incident_id": "m10_154455_415-keyvol-0",
+   "kind": "keyvol",
+   "detail": "关键卷 F: 可用 3.0GiB < 5.0GiB",
+   "severity": "CRITICAL",
+   "first_seen_mono": 1.0,
+   "last_seen_mono": 1.0,
+   "samples": 1,
+   "peak": {
+    "vol": "F:",
+    "present": true,
+    "free_gb": 3.0,
+    "writable": true
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "m10_154455_415-worker_exit-0",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 1.0,
+   "last_seen_mono": 1.0,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.9,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.9600234659999387,
+  "win_last_mono": 0.9600234659999387,
+  "win_parse_errors": 0,
+  "coverage_gaps": null
+ },
+ "telemetry_bytes": 2826,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T15:44:56Z",
+   "stage": "observation_ready",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T15:44:56Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T15:44:57Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T15:44:57Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "C:\\Users\\15027\\AppData\\Local\\r17_supervision_emergency",
+ "win_pids": {
+  "interop": 429,
+  "windows": null
+ },
+ "written_utc": "2026-09-06T15:44:57Z"
+}

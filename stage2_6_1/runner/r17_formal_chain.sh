@@ -32,8 +32,10 @@ RUNNER="$PROJECT_ROOT/stage2_6_1_runner"
 # shellcheck source=/dev/null
 source "$RUNNER/r17_entry_common.sh"
 
-# 正式产物根(冻结面:部署状态根缺省锚定 $ART/state,不可变)
-ART="$PROJECT_ROOT/artifacts/route_c_stage2_6_1_repair17"
+# 正式产物根(冻结面:部署状态根缺省锚定 $ART/state,不可变);
+# R17_ART_ROOT 仅供工程测试把 chain-run 顶层产物重定向到隔离区
+# (真实正式运行不设置该变量;缺省行为逐位不变)。
+ART="${R17_ART_ROOT:-$PROJECT_ROOT/artifacts/route_c_stage2_6_1_repair17}"
 
 # ---- 请求级隔离目录(E1;先于任何重定向与 emit 建立) ----
 REQ_ROOT="$PROJECT_ROOT/r17_formal_requests"
@@ -53,6 +55,15 @@ FREEZE_SHA="${1:?需要 Commit A SHA}"
 # ---- 部署状态根绑定(准入解析;正式唯一) ----
 export CURRICULUM261_R17_DEPLOYED_STATE_ROOT="${R17_STATE_ROOT:-$ART/state}"
 export CURRICULUM261_R17_STATE_ROOT="$CURRICULUM261_R17_DEPLOYED_STATE_ROOT"
+
+# ---- 观测接线(观测型;WP1/§5.1) ----
+# 仅启动宿主采样器并登记;判定/保护不作用于本入口的业务编排(其进程
+# 非本段启动,无登记进程组)。观测不可用时链继续并记录降级(不吞其它
+# 失败);EXIT trap 保证被拒请求只关闭自己的观测(M16 被拒者路径)。
+if ! r17_monitored_bootstrap "$REQ_DIR" "$RUN_ID"; then
+  emit_launch "monitored_bootstrap_degraded" "win observation unavailable"
+fi
+trap 'r17_monitored_teardown "$REQ_DIR"' EXIT
 
 # ---- 唯一编排调用:协调者 chain-run(会话 → plan → 17 步 → 终态) ----
 # workflow plan 由协调者在会话内生成;plan 结构校验失败 =

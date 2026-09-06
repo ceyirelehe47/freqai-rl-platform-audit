@@ -122,7 +122,7 @@ class TestWorkflowStructure:
 class TestRunnerSurface:
 
     SHELLS = ["r17_formal_chain.sh", "r17_rt_rehearsal.sh",
-              "r17_entry_common.sh",
+              "r17_entry_common.sh", "r17_monitored_entry.sh",
               "r17_sync.sh", "assemble_r17_b.sh"]
 
     @pytest.mark.parametrize("name", SHELLS)

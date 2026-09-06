@@ -1,0 +1,127 @@
+{
+ "schema": "r17-c3-p52-diagnosis-v1",
+ "written_utc": "2026-09-06T16:09:41Z",
+ "coordinates": {
+  "namespace": "rt3_calibration_main_r17",
+  "family": "c3_cost",
+  "rung": "D0",
+  "pair_index": 52,
+  "max_attempts": 5
+ },
+ "generator_identity_envelope": {
+  "module": "rl_curriculum.curriculum261_c3",
+  "source_file_stem": "curriculum261_c3",
+  "source_sha256": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+  "class": "rl_curriculum.curriculum261_c3.C3CostAwareGenerator",
+  "family": "c3_cost",
+  "family_version": "cur261-c3-v4",
+  "fingerprint": "g-0fad084e33886f0a979d04f75969b061428fe10079a0f7e5a7dc6b3989dbefaa"
+ },
+ "envelope_summary": [
+  {
+   "attempt": 0,
+   "outer_seed": 13789798477146280547,
+   "internal_derived_seed": 406202693990541250,
+   "n_distractors_A": 0,
+   "n_distractors_B": 0,
+   "n_signals_A": 48,
+   "rejection_reasons": [
+    "A:too_few_distractors",
+    "B:too_few_distractors",
+    "pair:too_few_distractors"
+   ],
+   "digest": "r11env-eacacaf52e0610e36be44f3b8232a499235f25a208424381ba3355927dfd6a42",
+   "episode_content_hash_A": "ce-8547afd594efab109b5a6d906abbe5ce1aefb80321c3ac4e8e98e447cf8a5b27"
+  },
+  {
+   "attempt": 1,
+   "outer_seed": 4434537110150918250,
+   "internal_derived_seed": 7197750141884907982,
+   "n_distractors_A": 0,
+   "n_distractors_B": 0,
+   "n_signals_A": 42,
+   "rejection_reasons": [
+    "A:too_few_distractors",
+    "B:too_few_distractors",
+    "pair:too_few_distractors"
+   ],
+   "digest": "r11env-47924e92ffafbbeb825178fd98947bd8cafec7f10feefe7596030b95c8b46c66",
+   "episode_content_hash_A": "ce-66c36cf1e93da46dfbd6926f919fc426bb021f99cbfd66a27d7d89fa2a13289e"
+  },
+  {
+   "attempt": 2,
+   "outer_seed": 2805828569347123724,
+   "internal_derived_seed": 16632265689532522217,
+   "n_distractors_A": 0,
+   "n_distractors_B": 0,
+   "n_signals_A": 44,
+   "rejection_reasons": [
+    "A:too_few_distractors",
+    "B:too_few_distractors",
+    "pair:too_few_distractors"
+   ],
+   "digest": "r11env-e30705ab5f1358825f039f404bdb4e2f305d6a8ca158a9236c75569899bf42ee",
+   "episode_content_hash_A": "ce-ebdfa3b2680ead5b6718bc04f5f4628365b6f85c0d84990956d059327c91ca7c"
+  },
+  {
+   "attempt": 3,
+   "outer_seed": 905091986341826865,
+   "internal_derived_seed": 6450298271804106051,
+   "n_distractors_A": 0,
+   "n_distractors_B": 0,
+   "n_signals_A": 38,
+   "rejection_reasons": [
+    "A:too_few_distractors",
+    "B:too_few_distractors",
+    "pair:too_few_distractors"
+   ],
+   "digest": "r11env-2cb85c99bde52dc3b7af1e4d74534939d8cdb031cbca186325e245764b133abb",
+   "episode_content_hash_A": "ce-807b7f2d8c8d335b8a3cd53a9abdc229c5b70a4c3b80aaf5772bc9627acf65f5"
+  },
+  {
+   "attempt": 4,
+   "outer_seed": 1592450192860512588,
+   "internal_derived_seed": 5199833824762685668,
+   "n_distractors_A": 0,
+   "n_distractors_B": 0,
+   "n_signals_A": 44,
+   "rejection_reasons": [
+    "A:too_few_distractors",
+    "B:too_few_distractors",
+    "pair:too_few_distractors"
+   ],
+   "digest": "r11env-690198fe1a37ca2d2507521b39812b7e4c6dfa9c0c9e6018c35135a6c90bd95d",
+   "episode_content_hash_A": "ce-ccb47b55768b6868e399a73242371d4d6e8071f36a40b7602e01a13ea5e75d93"
+  }
+ ],
+ "dp": {
+  "p_zero_distractor_single_event_table": 0.21153571482930553,
+  "p_five_consecutive_zero": 0.0004235634841548598,
+  "method": "exact DP over scheduling loop (no generator invocation;collision-overwrite not modeled: DP is an upper bound of P(zero))",
+  "params": {
+   "n_bars": 288,
+   "t0": 10,
+   "t_end": 280,
+   "p_cue": 0.2,
+   "p_dis": 0.015,
+   "gap_lo": 4,
+   "gap_hi": 6,
+   "advance_dist": [
+    8,
+    9,
+    10
+   ]
+  }
+ },
+ "generator_source_sha256_actual": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+ "generator_source_matches_envelope": true,
+ "replay": {
+  "performed": true,
+  "unexpectedly_accepted": false,
+  "n_attempt_envelopes": 0,
+  "rows": [],
+  "deterministic_replay_consistent": true
+ },
+ "verdict": "CONTRACT_LEGAL_STRUCTURAL_REJECTION",
+ "verdict_note": "确定性重放逐字段一致(生成器源哈希匹配);解析 DP 给出单事件表零 distractor 概率≈0.2115,五连零≈4.24e-04——小概率但合同内事件;A/B 共享事件表(pair_variant 不入 seed 派生)故五次尝试=五个独立事件表;维持工程 BLOCKED,不构成改 namespace/阈值/attempts 的授权"
+}

@@ -1,0 +1,132 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "20260906T161351_3975_28145",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "b05cb9e302ce32b7171d0eba9017ecb22b870540b64f6bc41b43caae9b93508e",
+ "argv": [
+  "python",
+  "-m",
+  "pytest",
+  "tests/route_c_stage2_6_1",
+  "-q",
+  "--junitxml=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/run_supervision/full_regression_junit.xml",
+  "-p",
+  "no:cacheprovider"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 28210,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "win_vol_not_writable: {\"vol\": \"C:\", \"run_id\": \"20260906T161351_3975_28145\", \"utc\": \"2026-09-06T16:14:22.498Z\", \"event\": \"vol_not_writable\"}",
+  "keyvol: 关键卷 C: 可写探测失败(必要证据可能无法写入)"
+ ],
+ "incidents": [
+  {
+   "incident_id": "20260906T16135-win_vol_not_writable-28",
+   "kind": "win_vol_not_writable",
+   "detail": "{\"vol\": \"C:\", \"run_id\": \"20260906T161351_3975_28145\", \"utc\": \"2026-09-06T16:14:22.498Z\", \"event\": \"vol_not_writable\"}",
+   "severity": "CRITICAL",
+   "first_seen_mono": 29.0,
+   "last_seen_mono": 29.0,
+   "samples": 1,
+   "peak": {
+    "vol": "C:",
+    "run_id": "20260906T161351_3975_28145",
+    "utc": "2026-09-06T16:14:22.498Z",
+    "event": "vol_not_writable"
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "20260906T16135-keyvol-29",
+   "kind": "keyvol",
+   "detail": "关键卷 C: 可写探测失败(必要证据可能无法写入)",
+   "severity": "CRITICAL",
+   "first_seen_mono": 29.0,
+   "last_seen_mono": 29.0,
+   "samples": 1,
+   "peak": {
+    "serial": "B800FCAC",
+    "writable": false,
+    "size_gb": 475.8,
+    "vol": "C:",
+    "present": true,
+    "free_gb": 104.39,
+    "identity_match": true
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "20260906T16135-worker_exit-30",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 30.1,
+   "last_seen_mono": 30.1,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 38.887,
+  "win_commit_max_pct": 46.84
+ },
+ "coverage": {
+  "guest_last_mono": 26.02859773099999,
+  "win_last_mono": 28.951420229999712,
+  "win_parse_errors": 0,
+  "coverage_gaps": null
+ },
+ "telemetry_bytes": 15241,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:13:55Z",
+   "stage": "observation_ready",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:13:58Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:14:24Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:14:24Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "C:\\Users\\15027\\AppData\\Local\\r17_supervision_emergency",
+ "win_pids": {
+  "interop": 28207,
+  "windows": 133416
+ },
+ "written_utc": "2026-09-06T16:14:24Z"
+}

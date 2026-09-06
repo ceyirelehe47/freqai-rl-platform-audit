@@ -1,0 +1,87 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "m12_001028_25657",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "7c46974e4614d8e3970840a050584787cdfc4e14f17fa458dabe39e414a6d10f",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 120"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 25720,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "m12_001028_256-worker_exit-4",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 4.1,
+   "last_seen_mono": 4.1,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 38.909,
+  "win_commit_max_pct": 46.7,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.948868845999641,
+  "win_last_mono": 1.7775399639999705,
+  "win_parse_errors": 0,
+  "coverage_gaps": null
+ },
+ "telemetry_bytes": 3282,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:10:28Z",
+   "stage": "observation_ready",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:10:29Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:10:32Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-06T16:10:32Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "C:\\Users\\15027\\AppData\\Local\\r17_supervision_emergency",
+ "win_pids": {
+  "interop": 25718,
+  "windows": 129852
+ },
+ "written_utc": "2026-09-06T16:10:32Z"
+}
