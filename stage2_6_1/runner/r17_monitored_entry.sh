@@ -67,12 +67,23 @@ if ! flock -n 9; then
 fi
 
 # ---- run 身份(排他创建;碰撞拒绝,不靠时间戳唯一性假设) ----
-RUN_ID="$(date -u +%Y%m%dT%H%M%S)_$(date +%N | tail -c 5)_$$"
-RUN_DIR="$SUPERV_ROOT/runs/$RUN_ID"
+# R17_RUN_DIR(可选,工程调用方预指定 run 目录;使 --junitxml 等
+# 业务产物路径先验可知,S5 运行前登记闭环)。缺省自动生成,行为
+# 不变;两种来源同样排他创建、同样拒绝碰撞。
+if [ -n "${R17_RUN_DIR:-}" ]; then
+  RUN_DIR="${R17_RUN_DIR%/}"
+  RUN_ID="$(basename "$RUN_DIR")"
+else
+  RUN_ID="$(date -u +%Y%m%dT%H%M%S)_$(date +%N | tail -c 5)_$$"
+  RUN_DIR="$SUPERV_ROOT/runs/$RUN_ID"
+fi
 if ! mkdir "$RUN_DIR" 2>/dev/null; then
   echo "FATAL: run 目录碰撞: $RUN_DIR" >&2
   exit 96
 fi
+# R17_RUN_DIR 只作用于本入口自身;不得泄入 supervisor→业务环境
+# (嵌套受监护任务会误撞同一目录;M16 全量回归真实暴露)
+unset R17_RUN_DIR
 LAUNCH_EVIDENCE="$RUN_DIR/launch_evidence.jsonl"
 export LAUNCH_EVIDENCE
 emit_launch "monitored_entry_start" "task_kind=$TASK_KIND run_id=$RUN_ID"

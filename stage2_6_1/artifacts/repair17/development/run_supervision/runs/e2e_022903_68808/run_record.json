@@ -1,0 +1,67 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "e2e_022903_68808",
+ "task_kind": "fixture",
+ "argv": [
+  "python3",
+  "-c",
+  "import sys; sys.stderr.write('PairGenerationError: too_few_distractors\\n');sys.exit(7)"
+ ],
+ "started_utc": "2026-09-06T18:29:03Z",
+ "ended_utc": "2026-09-06T18:29:05Z",
+ "business": {
+  "rc": 7,
+  "signal": null,
+  "pgid": 68873
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "7c46974e4614d8e3970840a050584787cdfc4e14f17fa458dabe39e414a6d10f"
+ },
+ "required": [
+  {
+   "role": "telemetry_guest",
+   "path": "runs/e2e_022903_68808/telemetry/guest_samples.jsonl",
+   "status": "missing"
+  },
+  {
+   "role": "telemetry_win",
+   "path": "runs/e2e_022903_68808/telemetry/win_samples.jsonl",
+   "status": "missing"
+  },
+  {
+   "role": "alerts",
+   "path": "runs/e2e_022903_68808/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "88809a0956770493be307b27cc72a7b0842517fb812c7f26b678744d628df85a",
+   "bytes": 2227
+  },
+  {
+   "role": "business_stdout",
+   "path": "runs/e2e_022903_68808/business/stdout.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "business_stderr",
+   "path": "runs/e2e_022903_68808/business/stderr.log",
+   "status": "present",
+   "sha256": "a8e45da45e01a36a9f29bfed329d7793d892cdfb0b7824ffb016d131847089dc",
+   "bytes": 41
+  },
+  {
+   "role": "summary",
+   "path": "runs/e2e_022903_68808/summary.json",
+   "status": "present",
+   "sha256": "adda37714df6ae9e26d6194aec4e5268c392425a16f027d25a1bdd687253d219",
+   "bytes": 2281
+  }
+ ],
+ "evidence_complete": false,
+ "missing_roles": [
+  "telemetry_guest",
+  "telemetry_win"
+ ],
+ "finalized": true
+}

@@ -26,6 +26,7 @@ import datetime as _dt
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -510,109 +511,159 @@ def execute_workflow_chain_r17(
     failure_reason = ""
     qualification_terminal_status: str | None = None
 
-    for step in plan["steps"]:
-        name = step["name"]
-        argv = [sys.executable, "-m", R17_WORKFLOW_CLI_MODULE,
-                *step["argv"]]
-        start_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
-        t0 = time.monotonic()
-        pre_missing = [a for a in step.get("requires_artifacts", ())
-                       if not (out_dir / a).is_file()]
-        rc = 0
-        signal_info: int | None = None
-        # §5.4:design 步正式数据开始事件由协调者在 subprocess
-        # 启动之前写入(worker 只验证,不自行写 journal)。
-        if name == "design" and not pre_missing:
-            session.record_design_data_started(
-                note="design step subprocess launch")
-        if pre_missing:
-            rc = 2
-        else:
-            post_ok, post_msg = _postcondition_ok(
-                step, out_dir, profile=profile)
-            if not post_ok:
+    # §5.2 监护联动(C11):协调者自行优雅封口的停止接线。
+    # 外层监护(登记进程组)发 SIGTERM=带 run/实例关联的停止请求;
+    # 协调者终止当前 worker(qualify 委派走 revoke→terminal 既有
+    # 路径)、在步骤边界停止新增步骤,并作为唯一 journal writer
+    # 按 fail-closure→abort→release 封口。监护器不写 journal。
+    stop_state: dict[str, Any] = {"requested": False, "signal": None,
+                                  "proc": None}
+
+    def _on_supervision_stop(signum, frame):  # noqa: ANN001
+        stop_state["requested"] = True
+        stop_state["signal"] = signum
+        proc = stop_state.get("proc")
+        if proc is not None and proc.poll() is None:
+            try:
+                proc.terminate()
+            except OSError:
+                pass
+
+    _prev_handlers = {}
+    for _sig in (signal.SIGTERM, signal.SIGINT):
+        _prev_handlers[_sig] = signal.signal(_sig,
+                                             _on_supervision_stop)
+
+    def _fail_closure_for(step_label: str, reason: str) -> None:
+        fc_argv = [
+            sys.executable, "-m", R17_WORKFLOW_CLI_MODULE,
+            "fail-closure", "--out-dir", str(out_dir),
+            "--failed-step", step_label,
+            "--verdict", "FAIL",
+            "--reason", reason,
+            # rehearsal profile 的 fail-closure 不写正式
+            # iteration abort(rehearsal 目录隔离)
+            *(("--rehearsal",) if profile == "rehearsal" else ()),
+            *fail_closure_extra,
+        ]
+        fc = subprocess.run(fc_argv, cwd=str(project_dir), env=env,
+                            capture_output=True, text=True)
+        (log_dir / "fail_closure.log").write_text(
+            fc.stdout + fc.stderr, encoding="utf-8")
+
+    try:
+        for step in plan["steps"]:
+            # 步骤边界停止:已开始的步骤按其真实 rc 处理,未开始的
+            # 步骤不再启动(停止请求发生在两步之间时)
+            if stop_state["requested"]:
+                failed_step = "supervision_stop"
+                failure_reason = (
+                    f"supervision stop requested(signal="
+                    f"{stop_state['signal']});在步骤边界停止,"
+                    "未启动新步骤;由协调者唯一 writer 封口"
+                    "(R17 §5.2:不重置、不追改已完成步骤/qualification"
+                    " 终态)"
+                )
+                _fail_closure_for("supervision_stop", failure_reason)
+                break
+            name = step["name"]
+            argv = [sys.executable, "-m", R17_WORKFLOW_CLI_MODULE,
+                    *step["argv"]]
+            start_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
+            t0 = time.monotonic()
+            pre_missing = [a for a in step.get("requires_artifacts", ())
+                           if not (out_dir / a).is_file()]
+            rc = 0
+            signal_info: int | None = None
+            # §5.4:design 步正式数据开始事件由协调者在 subprocess
+            # 启动之前写入(worker 只验证,不自行写 journal)。
+            if name == "design" and not pre_missing:
+                session.record_design_data_started(
+                    note="design step subprocess launch")
+            if pre_missing:
                 rc = 2
-        log_path = log_dir / f"{name}.log"
-        err_path = log_dir / f"{name}.err"
-        # 步骤进入执行器即写 started(前置/后置预检失败也属于
-        # "已开始但失败";§9.4 状态语义)
-        session.record_step_started(name)
-        if rc == 0:
-            rc, signal_info = _run_step_subprocess(
-                argv, cwd=str(project_dir), env=env,
-                log_path=log_path, err_path=err_path,
-                step=name, session=session, plan=plan,
-                profile=profile, out_dir=out_dir)
-        else:
-            # 前置/后置条件失败:零字节真实文件仍要存在(§8.4)
-            log_path.write_text("", encoding="utf-8")
-            detail = ("PrerequisiteError: 缺少前置产物 "
-                      + ", ".join(pre_missing)
-                      if pre_missing
-                      else "PostconditionError")
-            err_path.write_text(detail + "\n", encoding="utf-8")
-        end_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
-        if rc == 0:
-            session.record_step_completed(name, rc=rc)
-        else:
-            session.record_step_failed(name, rc=rc)
-        in_shas = {a: _sha256_file(out_dir / a)
-                   for a in step.get("requires_artifacts", ())}
-        out_shas = {a: _sha256_file(out_dir / a)
-                    for a in step.get("output_artifacts", ())}
-        rec = {
-            "step": name,
-            "workflow_graph_digest": plan["workflow_graph_digest"],
-            "profile": profile,
-            "cli_command": step["cli_command"],
-            "argv": argv,
-            "cwd": str(project_dir),
-            "env_identity": _env_identity(),
-            "start_utc": start_utc,
-            "end_utc": end_utc,
-            "duration_s": round(time.monotonic() - t0, 3),
-            "rc": rc,
-            "signal": signal_info,
-            "stdout_path": str(log_path),
-            "stderr_path": str(err_path),
-            "stdout_sha256": _sha256_file(log_path),
-            "stderr_sha256": _sha256_file(err_path),
-            "stdout_bytes": log_path.stat().st_size,
-            "stderr_bytes": err_path.stat().st_size,
-            "input_artifacts": in_shas,
-            "output_artifacts": out_shas,
-        }
-        records.append(rec)
-        with manifest_path.open("a", encoding="utf-8") as mf:
-            mf.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            mf.flush()
-        if rc != 0:
-            failed_step = name
-            failure_reason = (
-                f"formal chain step {name} rc={rc}"
-                + (f" signal={signal_info}" if signal_info else "")
-                + ("; PrerequisiteError(前置产物缺失)"
-                   if rc == 2 and pre_missing else "")
-                + ("; PostconditionError" if rc == 2 and not pre_missing
-                   else "")
-                + "(R17:停止后续正式计算;已冻结代码封口;不修代码继续)"
-            )
-            fc_argv = [
-                sys.executable, "-m", R17_WORKFLOW_CLI_MODULE,
-                "fail-closure", "--out-dir", str(out_dir),
-                "--failed-step", name,
-                "--verdict", "FAIL",
-                "--reason", failure_reason,
-                # rehearsal profile 的 fail-closure 不写正式
-                # iteration abort(rehearsal 目录隔离)
-                *(("--rehearsal",) if profile == "rehearsal" else ()),
-                *fail_closure_extra,
-            ]
-            fc = subprocess.run(fc_argv, cwd=str(project_dir), env=env,
-                                capture_output=True, text=True)
-            (log_dir / "fail_closure.log").write_text(
-                fc.stdout + fc.stderr, encoding="utf-8")
-            break
+            else:
+                post_ok, post_msg = _postcondition_ok(
+                    step, out_dir, profile=profile)
+                if not post_ok:
+                    rc = 2
+            log_path = log_dir / f"{name}.log"
+            err_path = log_dir / f"{name}.err"
+            # 步骤进入执行器即写 started(前置/后置预检失败也属于
+            # "已开始但失败";§9.4 状态语义)
+            session.record_step_started(name)
+            if rc == 0:
+                rc, signal_info = _run_step_subprocess(
+                    argv, cwd=str(project_dir), env=env,
+                    log_path=log_path, err_path=err_path,
+                    step=name, session=session, plan=plan,
+                    profile=profile, out_dir=out_dir,
+                    stop_state=stop_state)
+            else:
+                # 前置/后置条件失败:零字节真实文件仍要存在(§8.4)
+                log_path.write_text("", encoding="utf-8")
+                detail = ("PrerequisiteError: 缺少前置产物 "
+                          + ", ".join(pre_missing)
+                          if pre_missing
+                          else "PostconditionError")
+                err_path.write_text(detail + "\n", encoding="utf-8")
+            end_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
+            if rc == 0:
+                session.record_step_completed(name, rc=rc)
+            else:
+                session.record_step_failed(name, rc=rc)
+            in_shas = {a: _sha256_file(out_dir / a)
+                       for a in step.get("requires_artifacts", ())}
+            out_shas = {a: _sha256_file(out_dir / a)
+                        for a in step.get("output_artifacts", ())}
+            rec = {
+                "step": name,
+                "workflow_graph_digest": plan["workflow_graph_digest"],
+                "profile": profile,
+                "cli_command": step["cli_command"],
+                "argv": argv,
+                "cwd": str(project_dir),
+                "env_identity": _env_identity(),
+                "start_utc": start_utc,
+                "end_utc": end_utc,
+                "duration_s": round(time.monotonic() - t0, 3),
+                "rc": rc,
+                "signal": signal_info,
+                "stdout_path": str(log_path),
+                "stderr_path": str(err_path),
+                "stdout_sha256": _sha256_file(log_path),
+                "stderr_sha256": _sha256_file(err_path),
+                "stdout_bytes": log_path.stat().st_size,
+                "stderr_bytes": err_path.stat().st_size,
+                "input_artifacts": in_shas,
+                "output_artifacts": out_shas,
+            }
+            records.append(rec)
+            with manifest_path.open("a", encoding="utf-8") as mf:
+                mf.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                mf.flush()
+            if rc != 0:
+                failed_step = name
+                failure_reason = (
+                    f"formal chain step {name} rc={rc}"
+                    + (f" signal={signal_info}" if signal_info else "")
+                    + ("; PrerequisiteError(前置产物缺失)"
+                       if rc == 2 and pre_missing else "")
+                    + ("; PostconditionError" if rc == 2 and not pre_missing
+                       else "")
+                    + (f"; supervision stop(signal={stop_state['signal']})"
+                       " worker 被外层监护终止" if stop_state["requested"]
+                       else "")
+                    + "(R17:停止后续正式计算;已冻结代码封口;不修代码继续)"
+                )
+                _fail_closure_for(name, failure_reason)
+                break
+    finally:
+        for _sig, _handler in _prev_handlers.items():
+            try:
+                signal.signal(_sig, _handler)
+            except (OSError, ValueError):
+                pass
 
     return {
         "ok": failed_step is None,
@@ -629,12 +680,16 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                          log_path: Path, err_path: Path, step: str,
                          session: "R17ChainSession",
                          plan: dict[str, Any], profile: str,
-                         out_dir: Path) -> tuple[int, int | None]:
+                         out_dir: Path,
+                         stop_state: dict[str, Any] | None = None,
+                         ) -> tuple[int, int | None]:
     """流式 raw logs 的步骤 subprocess(§8.4);qualify 走委派协议。
 
     stdout/stderr 直接重定向到已打开的文件句柄:数据经 OS 管道
     即时落盘,不经过父进程内存缓冲;子进程被 kill 时已写前缀
-    保留在文件中。
+    保留在文件中。stop_state(监护联动)登记当前 proc:协调者
+    收到停止信号时先 terminate worker(self 委派路径的 revoke/
+    terminal 既有逻辑随后按真实 rc/signal 收口)。
     """
     pass_fds: tuple[int, ...] = ()
     extra_args: list[str] = []
@@ -651,9 +706,19 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
         proc = subprocess.Popen(
             [*argv, *extra_args], cwd=cwd, env=env,
             stdout=lf, stderr=ef, pass_fds=pass_fds)
+        if stop_state is not None:
+            stop_state["proc"] = proc
+            # 竞态:等待登记期间已收到停止请求 → 立即补发
+            if stop_state.get("requested") and proc.poll() is None:
+                try:
+                    proc.terminate()
+                except OSError:
+                    pass
         if delegation is not None:
             _qualify_delegation_handshake(session, delegation, proc)
         rc = proc.wait()
+    if stop_state is not None:
+        stop_state["proc"] = None
     signal_info = None
     if rc < 0:
         signal_info = -rc

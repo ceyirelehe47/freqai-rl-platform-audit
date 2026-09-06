@@ -44,7 +44,7 @@ from typing import Any
 
 MANIFEST_SCHEMA = "r17-delivery-manifest-v2"
 ANCHOR_SCHEMA = "r17-delivery-anchor-v1"
-RUN_RECORD_SCHEMA = "r17-run-record-v1"
+RUN_RECORD_SCHEMAS = ("r17-run-record-v1", "r17-run-record-v2")
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 
 
@@ -85,13 +85,20 @@ def cmd_build(args: argparse.Namespace) -> int:
         rr = json.loads(run_record_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise UsageError(f"run_record 解析失败: {exc}") from exc
-    if rr.get("schema") != RUN_RECORD_SCHEMA:
+    if rr.get("schema") not in RUN_RECORD_SCHEMAS:
         raise UsageError(f"run_record schema 不符: {rr.get('schema')!r}")
     if not rr.get("finalized"):
         raise UsageError("run_record finalized!=true;原始流仍在写入时禁止组包")
     required = rr.get("required")
     if not isinstance(required, list) or not required:
         raise UsageError("run_record.required 缺失或为空")
+    # S5(v2):缺件保留为缺件——build 允许组包(清单反映现实),
+    # 但 evidence_incomplete 如实透传,verify 据此 FAIL;不得以
+    # 跳过/external/optional 恢复完整。
+    missing_roles = [str(i.get("role"))
+                     for i in required if isinstance(i, dict)
+                     and str(i.get("status", "present")) != "present"
+                     and not i.get("external")]
     root = Path(args.root).resolve() if args.root else run_record_path.parent.parent
     # run_record 内 path 以 run_supervision 根为相对基准(E4 合同)
     rows: list[dict[str, Any]] = []
@@ -106,6 +113,10 @@ def cmd_build(args: argparse.Namespace) -> int:
         if not role or not rel:
             raise VerifyError(f"required 条目缺 role/path: {item!r}")
         _check_rel(rel)
+        if str(item.get("status", "present")) == "missing":
+            # 运行前登记、结束时缺失:不进清单文件行(无文件可锚),
+            # 缺口以 manifest 头行如实记录(verify FAIL)
+            continue
         p = (root / rel).resolve()
         if not p.is_file():
             raise VerifyError(f"必需文件缺失: {rel}")
@@ -264,7 +275,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
             rr = json.loads(rr_path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             raise UsageError(f"run_record 解析失败: {exc}") from exc
-        if rr.get("schema") != RUN_RECORD_SCHEMA:
+        if rr.get("schema") not in RUN_RECORD_SCHEMAS:
             problems.append(f"run_record schema 不符: {rr.get('schema')!r}")
         rr_sha, _ = digest_file(rr_path)
         if anchor.get("run_record_sha256") and \
@@ -341,6 +352,17 @@ def cmd_verify(args: argparse.Namespace) -> int:
         if len(record_pairs) != 1:
             problems.append(
                 f"role=record 行数异常: {len(record_pairs)}(应为 1)")
+        # S5(v2):缺件=交付不完整(finalized 可成立,evidence 不完整
+        # 必 FAIL;事后补文件也过不了——missing 行不在清单,补了即
+        # "必需文件未入清单",删 run_record 行则与锚哈希矛盾)
+        if rr.get("schema") == "r17-run-record-v2":
+            for item in rr.get("required", []):
+                if isinstance(item, dict) and \
+                        str(item.get("status", "present")) == "missing":
+                    problems.append(
+                        f"evidence_incomplete: 角色 "
+                        f"{item.get('role')} 登记后缺失"
+                        f"({item.get('path')})")
     # 7) 回执(独立输出区;manifest/原文件只读)
     receipt = {
         "schema": "r17-delivery-verify-receipt-v1",

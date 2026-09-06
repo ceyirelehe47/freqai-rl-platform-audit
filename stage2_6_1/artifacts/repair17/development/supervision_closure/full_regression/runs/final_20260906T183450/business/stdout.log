@@ -1,0 +1,128 @@
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 20%]
+......................s................................................s [ 26%]
+........................................................................ [ 31%]
+.....................s.................................................. [ 36%]
+........................................................................ [ 41%]
+......................................................................s. [ 47%]
+........................................................................ [ 52%]
+........................................................................ [ 57%]
+.......................................................s.s.s............ [ 62%]
+........................................................................ [ 68%]
+......................F................................................. [ 73%]
+........................................................................ [ 78%]
+........................................................................ [ 83%]
+........................................................................ [ 89%]
+........................................................................ [ 94%]
+........................................................................ [ 99%]
+.......                                                                  [100%]
+=================================== FAILURES ===================================
+______ TestMonitoredEntryIntegration.test_m16_concurrent_second_rejected _______
+
+self = <test_curriculum261_r17_supervision_unit.TestMonitoredEntryIntegration object at 0x746763f1f8d0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-37/test_m16_concurrent_second_rej0')
+
+    def test_m16_concurrent_second_rejected(self, tmp_path):
+        """两个并发启动请求:被拒者 rc=95、写自己的 rejected 记录、
+        不触碰 owner 的 run 目录(受控交错:owner 先获锁后再发第二个)。"""
+        import tempfile
+        lock = tmp_path / "test_supervision.lock"
+        env = dict(os.environ, R17_SUPERVISION_LOCK=str(lock),
+                   R17_PROJECT_ROOT=str(self.SYNC))
+        # owner:先启动并等待其通过 flock 段(监控全链会跑满业务时长)
+        owner_run = tmp_path / "owner_out.txt"
+        with owner_run.open("wb") as so:
+            owner = subprocess.Popen(
+                ["bash", str(self.ENTRY), "fixture", "--max-seconds", "60",
+                 "--", "bash", "-c", "sleep 20"],
+                stdout=so, stderr=subprocess.STDOUT, cwd=self.SYNC, env=env)
+        try:
+            deadline = time.time() + 30
+            while time.time() < deadline:
+                if lock.exists():
+                    break
+                assert owner.poll() is None, "owner 提前退出"
+                time.sleep(0.5)
+            assert lock.exists(), "owner 未在期限内建立锁"
+            # 第二个请求:必须被单例拒绝(非零+95)
+            second = subprocess.run(
+                ["bash", str(self.ENTRY), "fixture",
+                 "--", "bash", "-c", "echo second-ran"],
+                capture_output=True, text=True, timeout=60,
+                cwd=self.SYNC, env=env)
+>           assert second.returncode == 95, second.stderr
+E           AssertionError: FATAL: run 目录碰撞: /mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/supervision_closure/full_regression/runs/final_20260906T183450
+E             
+E           assert 96 == 95
+E            +  where 96 = CompletedProcess(args=['bash', '/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_monitored_entry.sh', 'fixture'...i-rl-audit/stage2_6_1/artifacts/repair17/development/supervision_closure/full_regression/runs/final_20260906T183450\n').returncode
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py:719: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:61
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:61: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py::test_prelock_static_preflight
+tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py::test_prelock_static_preflight
+tests/route_c_stage2_6_1/test_curriculum261_r4_preprocessing.py::test_sb3_sees_outer_space
+tests/route_c_stage2_6_1/test_curriculum261_r5_preflight.py::test_static_preflight_uses_no_final_namespace
+tests/route_c_stage2_6_1/test_curriculum261_r6_preflight.py::test_static_preflight_touches_only_smoke_ns
+tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py::test_prelock_static_preflight
+tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py::test_prelock_static_preflight
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py:150: UserWarning: You are trying to run PPO on the GPU, but it is primarily intended to run on the CPU when not using a CNN policy (you are using ActorCriticPolicy which should be a MlpPolicy). See https://github.com/DLR-RM/stable-baselines3/issues/1245 for more info. You can pass `device='cpu'` or `export CUDA_VISIBLE_DEVICES=` to force using the CPU.Note: The model will train, but the GPU utilization will be poor and the training might take longer than on CPU.
+    warnings.warn(
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py:430: RuntimeWarning: Degrees of freedom <= 0 for slice
+    var_hi = perm_hi.var(ddof=1) / n
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py:431: RuntimeWarning: Degrees of freedom <= 0 for slice
+    var_lo = perm_lo.var(ddof=1) / n
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:3015: RuntimeWarning: Degrees of freedom <= 0 for slice
+    c = cov(x, y, rowvar, dtype=dtype)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: divide by zero encountered in divide
+    c *= np.true_divide(1, fact)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: invalid value encountered in multiply
+    c *= np.true_divide(1, fact)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py::TestMonitoredEntryIntegration::test_m16_concurrent_second_rejected
+1 failed, 1367 passed, 7 skipped, 23 warnings in 1157.44s (0:19:17)

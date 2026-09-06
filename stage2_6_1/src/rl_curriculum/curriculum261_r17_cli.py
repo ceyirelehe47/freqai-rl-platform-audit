@@ -4125,6 +4125,19 @@ def cmd_chain_run(args: argparse.Namespace) -> int:
     out_dir = Path(args.out_dir)
     profile = "rehearsal" if args.rehearsal else "formal"
     freeze_sha = args.freeze_sha
+    if profile == "formal":
+        # 正式准入许可闸门(WP0c/C01):任何文件创建(log_dir/journal/
+        # plan)之前;无有效许可 → rc=96 零文件副作用。防绕过
+        # r17_formal_chain.sh 直接调用 CLI;--rehearsal 工程链豁免。
+        from rl_curriculum.curriculum261_r17_admission import (
+            REJECT_RC, enforce_formal_admission,
+        )
+        _reason = enforce_formal_admission(
+            state_root=r17_state_root(), freeze_sha=freeze_sha)
+        if _reason is not None:
+            print(f"[chain-run] FAIL: formal admission 拒绝: "
+                  f"{_reason}")
+            return REJECT_RC
     log_dir = out_dir.parent / (out_dir.name + "_chain_logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     plan_path = out_dir / ("r17_workflow_plan_rehearsal.json"

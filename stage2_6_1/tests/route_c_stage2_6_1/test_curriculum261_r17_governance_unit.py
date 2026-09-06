@@ -152,6 +152,17 @@ class TestRunnerSurface:
         assert grep_idx < set_idx
         # 唯一编排调用 = chain-run(协调者);不残留 r16 入口引用
         assert "chain-run" in src
+        # WP0c:准入许可闸门前置(env_redirect_forbidden + gate 调用
+        # + admission_rejected 请求日志;许可文件名必须出现在拒绝
+        # 诊断信息中)
+        assert "env_redirect_forbidden" in src
+        assert "admission_rejected" in src
+        assert ".r17_formal_admission.json" in src
+        # WP0c:正式 root 重定向通道已撤销——R17_ART_ROOT/R17_STATE_ROOT
+        # 只允许出现在"检测到即拒绝"的空值检查里,不得作为路径缺省
+        for forbidden in ('R17_ART_ROOT:-$PROJECT_ROOT',
+                          'R17_ART_ROOT:-$', 'R17_STATE_ROOT:-$'):
+            assert forbidden not in src, forbidden
         # 不引用 R16 执行面(模块/入口/run_step);注释中的
         # 历史叙述(R16 缺陷对照)不构成执行面引用
         for forbidden in ("curriculum261_r16_cli",
