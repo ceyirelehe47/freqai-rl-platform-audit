@@ -1,0 +1,371 @@
+{
+ "ok": false,
+ "failed_step": "calibrate",
+ "failure_reason": "formal chain step calibrate rc=1(R17:停止后续正式计算;已冻结代码封口;不修代码继续)",
+ "profile": "rehearsal",
+ "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+ "records": [
+  {
+   "step": "provenance-verify",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "provenance-verify",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "provenance-verify",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:03:05.350030+00:00",
+   "end_utc": "2026-09-06T13:03:07.685617+00:00",
+   "duration_s": 2.448,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/provenance-verify.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/provenance-verify.err",
+   "stdout_sha256": "d5dab955de2c49ad9e67a81e2b1b1d8a1d8bd325240a97ce7be6565a88708155",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 100,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "gate_topology_reconciliation.json": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff"
+   },
+   "output_artifacts": {
+    "gate_topology_provenance_verify.json": "78d6b1d3c4f57521d2f8dc39ab26f8975c64bf2f54a08c9b2c36f1540a10b1a5"
+   }
+  },
+  {
+   "step": "determinism-matrix",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "determinism-matrix",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "determinism-matrix",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:03:07.798392+00:00",
+   "end_utc": "2026-09-06T13:04:16.162415+00:00",
+   "duration_s": 68.473,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/determinism-matrix.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/determinism-matrix.err",
+   "stdout_sha256": "7930b7b5b8bc78db4c7b0c6714ad639a24c65d956865103426c785b690ee0410",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 275,
+   "stderr_bytes": 0,
+   "input_artifacts": {},
+   "output_artifacts": {
+    "determinism/generation_determinism_contract.json": "6f232d3b8fad720046d1d8d523a0e4d943ce1e94c2192c124ec9dc02479b864f"
+   }
+  },
+  {
+   "step": "audit",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "audit",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "audit",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts",
+    "--code-freeze-sha",
+    "ce6c0ca59965507b76ed7a949b002cdb20731215",
+    "--fit-pairs",
+    "2"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:04:16.271458+00:00",
+   "end_utc": "2026-09-06T13:05:09.696476+00:00",
+   "duration_s": 54.019,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/audit.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/audit.err",
+   "stdout_sha256": "f681266a836adccf2e75888cbf9c48c836c89f602ea15bfacb92935e6ce29513",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 395,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "gate_topology_reconciliation.json": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff",
+    "determinism/generation_determinism_contract.json": "6f232d3b8fad720046d1d8d523a0e4d943ce1e94c2192c124ec9dc02479b864f"
+   },
+   "output_artifacts": {
+    "r17_code_freeze.json": "ce2f2366321cd95672606eb0d80c1cb7490ad584f4df62198e7c09182471c6fb",
+    "baseline_ancestry.json": "555e8df24d9c06fd9cd635e8a16d0849587aba2ece6545793833329fb8338091",
+    "historical_evidence_binding.json": "b8a98f229695243ade39af93292497781788f384f112ceb8e340676f18d47f76",
+    "r12_abort_binding.json": "e6779368e9a3f01d187db903fab6078a5c5b28c0c14c54cb67aceb943f7d8cda",
+    "r12_iteration_failure_binding.json": "4f5259a4e4849fef4ceacc9baa42fad5aac7dfd1006c8cd68f1979929e7be42b",
+    "r14_failure_binding.json": "acd5a73c04e62fff87ecb80c1f0972e635187a2dddb9d6f2558b34d005b46922",
+    "r15_failure_binding.json": "290c7380ae5c2f7f8e3d4ec25ae5a98b3bd02a1eaea7aab4933476ccdea3f225",
+    "gate_topology_reconciliation_verify.json": "78d6b1d3c4f57521d2f8dc39ab26f8975c64bf2f54a08c9b2c36f1540a10b1a5"
+   }
+  },
+  {
+   "step": "cue-audit",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "cue-audit",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "cue-audit",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts",
+    "--rehearsal"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:05:09.806842+00:00",
+   "end_utc": "2026-09-06T13:09:37.103787+00:00",
+   "duration_s": 267.9,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/cue-audit.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/cue-audit.err",
+   "stdout_sha256": "c274a0ae7e26badf7e1ab6e97dee817f0cfd6f56c0fc863aaa3df2c73fc514f6",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 103,
+   "stderr_bytes": 0,
+   "input_artifacts": {},
+   "output_artifacts": {
+    "cue_contract_audit.json": "e9af8e8e6a7e00ef3c2d7f3a21f59fbeec2f4a194f8c3a971218731e637af93d",
+    "cue_event_trace.jsonl": "bb5d38b38dd240a37c90d89cac4c3e4530c642c7712b89a81aded1398a12575b"
+   }
+  },
+  {
+   "step": "preplan-smoke",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "preplan-smoke",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "preplan-smoke",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:09:37.219546+00:00",
+   "end_utc": "2026-09-06T13:11:13.806941+00:00",
+   "duration_s": 96.697,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/preplan-smoke.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/preplan-smoke.err",
+   "stdout_sha256": "403f1db2141527a26f5df1bc8c351babcbe841d9457734ea59980fd8647f4da8",
+   "stderr_sha256": "6d6c2a30c5f14610a42c8e77f2f8041b264207f297797782c119e365d855f9ef",
+   "stdout_bytes": 488,
+   "stderr_bytes": 1338,
+   "input_artifacts": {},
+   "output_artifacts": {
+    "preplan_engineering_smoke.json": "926a2512f5d7ddbfb3999441c589804455af39be399e698ce0358da6fe51d26d"
+   }
+  },
+  {
+   "step": "plan-roundtrip",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "plan-roundtrip",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "plan-roundtrip",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:11:13.916823+00:00",
+   "end_utc": "2026-09-06T13:11:17.679821+00:00",
+   "duration_s": 3.873,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/plan-roundtrip.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/plan-roundtrip.err",
+   "stdout_sha256": "8b6eeded108e1620dea259e75ec00f3000a8f98145ae2b5f42b73632acae3a32",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 511,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "cue_contract_audit.json": "e9af8e8e6a7e00ef3c2d7f3a21f59fbeec2f4a194f8c3a971218731e637af93d",
+    "preplan_engineering_smoke.json": "926a2512f5d7ddbfb3999441c589804455af39be399e698ce0358da6fe51d26d"
+   },
+   "output_artifacts": {
+    "plan_roundtrip_validation.json": "551b697ecc764a88ff6dc75d19b20a1d8dfc02d012151f9bfa1296960e5583bd"
+   }
+  },
+  {
+   "step": "design-plan-lock",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "design-plan-lock",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "design-plan-lock",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts",
+    "--rehearsal"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:11:17.789834+00:00",
+   "end_utc": "2026-09-06T13:11:29.323141+00:00",
+   "duration_s": 11.642,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/design-plan-lock.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/design-plan-lock.err",
+   "stdout_sha256": "7b296df45d5a2776b79e30b4cb4af996dd47ad0fd135ab45b23c4c0194150f7e",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 215,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "preplan_engineering_smoke.json": "926a2512f5d7ddbfb3999441c589804455af39be399e698ce0358da6fe51d26d"
+   },
+   "output_artifacts": {
+    "r17_design_plan.json": "62f57b050dacf1be5867fc54dc94996e8c790b73ae3d05a891dc4e14c7bd2fee",
+    "r17_design_plan_digest.txt": "022d4d0711f3c45302844dc8afa749d5c805e7edd16c4c5d1b20b1cf94f28ca2"
+   }
+  },
+  {
+   "step": "design",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "design",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "design",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:11:29.431748+00:00",
+   "end_utc": "2026-09-06T13:16:45.937852+00:00",
+   "duration_s": 317.03,
+   "rc": 0,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/design.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/design.err",
+   "stdout_sha256": "f13158b4fbe366d05d34d6805a4fd72d17a663966277699d4eab12e2ecbff643",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 132,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "r17_design_plan.json": "62f57b050dacf1be5867fc54dc94996e8c790b73ae3d05a891dc4e14c7bd2fee"
+   },
+   "output_artifacts": {
+    "r17_parameter_pack.json": "7337c993e793ce4dfaa80296d14c5b2bac96901be5c824e1144c09e3b1a6397a",
+    "r17_parameter_pack_digest.txt": "b40620c24e518db7862ea7578730ad08c4511c4e694c376368b1681b0288158e"
+   }
+  },
+  {
+   "step": "calibrate",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "rehearsal",
+   "cli_command": "calibrate",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "calibrate",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts",
+    "--rehearsal"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "freqtrade-rl",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+   },
+   "start_utc": "2026-09-06T13:16:46.047541+00:00",
+   "end_utc": "2026-09-06T13:17:21.821317+00:00",
+   "duration_s": 35.886,
+   "rc": 1,
+   "signal": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/calibrate.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl/r17_rt_runs/20260906T130300Z_1468/artifacts_chain_logs/calibrate.err",
+   "stdout_sha256": "d692c31869b5b8b168eb3fc0268f696893af5f86a80bb6fc33ff8121f7676fe8",
+   "stderr_sha256": "85a297db2365b090cfa67a01789d1d738f77f81bbbe5c723177cd786cca70b61",
+   "stdout_bytes": 384,
+   "stderr_bytes": 1886,
+   "input_artifacts": {
+    "r17_parameter_pack.json": "7337c993e793ce4dfaa80296d14c5b2bac96901be5c824e1144c09e3b1a6397a"
+   },
+   "output_artifacts": {
+    "preprocessor_bundle_calibration.json": "db94e691792cf691d851cf769add58cf1e7704d2464e933764bdd58609fda864",
+    "preprocessor_bundle_holdout.json": "e1ee93bde803207dbdaeb79ab9e7036c5903d8fd9955e088cb2e7ed679c2014c",
+    "robustness_gate.json": null,
+    "calibration_evidence.json": null,
+    "preprocessing_v2_requalification.json": "5e4df0ffcab4e69cd1ac440290350875e2fe6b835ee7e645a15b5772d8b2b00a",
+    "supervised_learnability_main.json": null,
+    "supervised_learnability_holdout.json": null
+   }
+  }
+ ],
+ "qualification_terminal_status": null
+}

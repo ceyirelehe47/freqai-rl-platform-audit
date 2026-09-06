@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 4300, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 4296, in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 2008, in cmd_calibrate
+    return _cmd_calibrate_inner(args, out)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 2142, in _cmd_calibrate_inner
+    stage = orchestrate_calibration_stage_r17(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_orchestrator.py", line 732, in orchestrate_calibration_stage_r17
+    return _orchestrate_calibration_stage_inner_r17(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_orchestrator.py", line 826, in _orchestrate_calibration_stage_inner_r17
+    supervised[role] = supervised_learnability_run_r17(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_calibration.py", line 438, in supervised_learnability_run_r17
+    Xte = np.stack([r["obs"] for r in test_rows]).astype(np.float32)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/shape_base.py", line 454, in stack
+    raise ValueError('need at least one array to stack')
+ValueError: need at least one array to stack

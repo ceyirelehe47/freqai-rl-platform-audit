@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 4307, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 4303, in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 2009, in cmd_calibrate
+    return _cmd_calibrate_inner(args, out)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cli.py", line 2149, in _cmd_calibrate_inner
+    stage = orchestrate_calibration_stage_r17(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_orchestrator.py", line 732, in orchestrate_calibration_stage_r17
+    return _orchestrate_calibration_stage_inner_r17(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_orchestrator.py", line 788, in _orchestrate_calibration_stage_inner_r17
+    eval_main = _generate_eval_records(
+                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_orchestrator.py", line 573, in _generate_eval_records
+    records.append(_gp(
+                   ^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_pairs.py", line 114, in generate_pair
+    episodes, log = generate_pair_with_attempts(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_api.py", line 1531, in generate_pair_with_attempts
+    raise PairGenerationError(
+rl_curriculum.curriculum261_api.PairGenerationError: c3_cost/D0/pair52: 5 次尝试全部未通过结构性校验:['A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors', 'A:too_few_distractors; B:too_few_distractors; pair:too_few_distractors']
