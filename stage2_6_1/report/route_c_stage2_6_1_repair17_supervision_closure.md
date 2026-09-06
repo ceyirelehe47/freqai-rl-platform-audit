@@ -60,7 +60,7 @@
 
 ## 3. S1–S5 修复（位置/回归/静态 vs 实际执行）
 
-任务书静态结论 S1–S6 全部核实成立（无反证）；全部转化为真实模块回归（`TestWiringClosure` 等，59 项专项全绿）。
+任务书静态结论 S1–S6 全部核实成立（无反证）；全部转化为真实模块回归（监护专项文件 final4 实测 **60 项全过、0 skip**；其中本轮新增 TestWiringClosure/TestFormalAdmissionIsolation/TestFormalAdmissionUnit/TestChainCoordinatorSupervisionStop 合计 24 项）。
 
 | 项 | 缺陷（核实） | 修复位置 | 回归测试 |
 |---|---|---|---|
@@ -88,7 +88,7 @@
 
 - 升级/冷却/独立 incident：C09（§3 表）。
 - IO 失败：C10（§3 表）；全量回归期间真实 stdout 通道=模式 B（下）。
-- **C13 真实接收（模式 B）**：全量回归以后台任务启动（任务输出通道），Agent 以 TaskOutput 周期取回增量 stdout，`R17ALERT`/`R17LOG` 事件逐条接收；事件级中文摘要与确认回执落 `receipts/`（UTC 精确到秒、incident_id、run_dir、工具任务 id、接收延迟）。已检测（采样/判定）→已投递（stdout 写入）→已展示（工具输出返回 Agent）→已确认（本回执）四级分明；`alert_delivered` 仅代表本地持久化+stdout 写入路径执行，不自动等于接收成功。pending/重连语义：消费按 incident_id 去重；无消费者不影响保护（C10）。
+- **C13 真实接收（模式 B）**：全量回归以后台任务启动（任务输出通道），Agent 以 TaskOutput 周期取回增量 stdout。接收记录的详细程度如实限定：**轮 1 逐时点记录（启动/健康计数/阶段事件/完成通知四级）、轮 2 记录启动确认，轮 3/轮 4 由任务完成通知接收、未逐事件读取**；确认回执落 `receipts/`（含 run_id、run_dir、工具任务 id；UTC 记到十秒位掩码级；本轮全程零资源告警故无 incident_id/接收延迟字段可记——该两字段仅在存在资源告警事件时适用）。已检测（采样/判定）→已投递（stdout 写入）→已展示（工具输出返回 Agent）→已确认（本回执）四级分明；`alert_delivered` 仅代表本地持久化+stdout 写入路径执行，不自动等于接收成功。pending/重连语义：消费按 incident_id 去重；无消费者不影响保护（C10）。
 
 ## 6. 证据完整性与交付锚（C14/C15/C18）
 
@@ -112,7 +112,7 @@
 | 1 | `final_20260906T183450`（18:34:51Z–18:53:56Z，19:17） | **1 failed / 1367 passed / 7 skipped** | 缺陷暴露轮：新增 `R17_RUN_DIR` 经业务环境泄漏，嵌套受监护的 M16 撞已存在 run 目录（rc=96≠95）——受监护全量真实暴露接线缺陷；run 与事件链原样保留 |
 | 2 | `final2_20260906T185600`（18:56–19:15，19:01） | **0 failed / 1368 passed / 7 skipped** | M16 修复（entry 用后 `unset R17_RUN_DIR`+测试防御清理）验证轮 |
 | 3 | `final3_20260906T191713`（19:17–19:36，18:38） | **1 failed / 1368 passed / 7 skipped** | junit 登记验证轮：run_record v2 首次含 `junit_xml present`（219,416B）——S5 登记闭环在真实全量验证；失败项=M01 的测试自身 flaky（E2E run 目录名同秒+同测试进程 pid 碰撞，final2 同代码通过=时序性；已修：目录名加纳秒尾段） |
-| 4 | `final4_20260906T193909`（19:39–19:57，18:24） | **0 failed / 1369 passed / 7 skipped** | 最终交付轮：全绿；build 8 行 manifest（7 角色+record，junit_xml present）→验证前篡改反例（追加 1 字节→verify rc=1 `哈希不符` 检出→恢复逐字节一致）→正式 verify **rc=0/8 行/0 问题**；manifest git blob `1ddfa868…`（独立登记文件，锚不回写）；资源复算与 summary 四项一致（guest 最低 33.951GiB / win 最低 34.483GiB / commit 峰 52.94% / 任务树 RSS 峰 6.064GiB；guest 215/win 210 样本、213 含任务树；监护开销 RSS 峰 22.3MB、CPU 峰 1.6%；零资源告警；stdout/log failures=0） |
+| 4 | `final4_20260906T193909`（19:39–19:57，18:24） | **0 failed / 1369 passed / 7 skipped** | 最终交付轮：全绿；build 8 行 manifest（7 角色+record，junit_xml present）→验证前篡改反例（追加 1 字节→verify rc=1 `哈希不符` 检出→恢复逐字节一致）→正式 verify **rc=0/8 行/0 问题**；manifest git blob `1ddfa868…`（独立登记文件，锚不回写）；资源复算与 summary 四项一致（guest 最低 33.951GiB / win 最低 34.483GiB / commit 峰 52.94% / 任务树 RSS 峰 6.064GiB；guest 215/win 210 样本、213 含任务树；监护开销：guest 侧采样线程 RSS 峰 22.3MiB、CPU 峰 1.6%，win 侧 powershell 采样器工作集峰 186.8MB（final 轮 201MB；双侧合计仍低于 256MiB 预算，结论不变）；零资源告警；stdout/log failures=0） |
 
 - 修复链：轮1 暴露 → entry `unset R17_RUN_DIR`（run 目录只作用于入口自身，不泄入 supervisor→业务环境）→ 轮2 全绿；轮2 的 run_record 仍缺 junit 角色（时序：junit 正则修复在轮2 启动后同步）→ 轮3 验证登记闭环。
 - 7 项 skipped 全部为历史轮次分支上下文跳过（R12–R16 binding 检查在各自 iteration 分支外无效——设计内，与上轮同类；逐项见 JUnit）。
@@ -126,11 +126,11 @@
 | win commit 峰值 | 54.85% / 54.85% | 52.81% / 52.81% |
 | 任务树 RSS 峰值（同刻求和，非去重物理占用） | 5.479 / 5.479 GiB | 6.067 / 6.067 GiB |
 | 采样覆盖 | guest 225 / win 220 样本；224 含任务树；parse_errors=0 | guest 222 / win 218；221 含任务树 |
-| 监护自身开销 | 采样线程 RSS 峰值 22.8MB、CPU 峰值 2.0%（目标 ≤256MiB/≤单核 5%） | 24.0MB / 1.8% |
-| 递交面健康 | stdout_failures=0、log_failures=0、遥测总量 526KB | 同左 |
+| 监护自身开销（guest 侧采样线程；MiB 口径） | RSS 峰值 22.2MiB、CPU 峰值 2.0%（目标 ≤256MiB/≤单核 5%） | 23.5MiB / 1.8% |
+| 递交面健康 | stdout_failures=0、log_failures=0、遥测总量 526KB；win 侧采样器工作集峰 201MB | 同左（win 侧 156.5MB） |
 | 资源告警 | 0（全程 WARNING/CRITICAL 零事件） | 0 |
 
-- 口径说明：5 秒采样峰值为采样时刻峰值（非严格峰值）；任务树 RSS 为 pgid+后代同刻 RSS 求和（含共享页重复计数，不称去重物理占用）；win 侧为 GetPerformanceInfo 口径。
+- 口径说明：监护开销 RSS 均为 MiB（1024²KB）口径；guest 侧=采样线程自记，win 侧=powershell 采样器工作集（sampler_self_ws_mb 字段）。5 秒采样峰值为采样时刻峰值（非严格峰值）；任务树 RSS 为 pgid+后代同刻 RSS 求和（含共享页重复计数，不称去重物理占用）；win 侧为 GetPerformanceInfo 口径。
 - 轮3 的 build+verify+锚+git blob 与验证前缺件反例：见 §6 与 `full_regression/verify_receipts/`。（轮3 数据完成后补录。）
 
 ## 9. 停点
