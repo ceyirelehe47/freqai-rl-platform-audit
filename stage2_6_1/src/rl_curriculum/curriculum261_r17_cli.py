@@ -198,8 +198,8 @@ def _historical_binding() -> dict:
         "r12_commit_b": R12_COMMIT_B,
     }
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -344,8 +344,8 @@ def _r11_abort_binding(out_dir: Path) -> dict:
     - R11 cue audit 结果存在且 blob 与基线一致。
     """
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -433,8 +433,8 @@ def _r12_abort_binding(out_dir: Path) -> dict:
     - R12 final qualification 从未执行。
     """
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -580,8 +580,8 @@ def _r13_failure_binding(out_dir: Path) -> dict:
     - R13 治理缺口清单(7 项)机械记录。
     """
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -697,8 +697,8 @@ def _r8_abort_binding(out_dir: Path) -> dict:
     """§18:R8 aborted marker 保留性绑定(读 release repo 的
     r8_iteration_aborted.json;缺失 => 拒绝锁 plan)。"""
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -754,8 +754,8 @@ def _r9_abort_binding(out_dir: Path) -> dict:
     r9_iteration_aborted.json + plan/pack digest + 零 exposure;
     缺失或异常 => 拒绝锁 plan)。"""
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -820,8 +820,8 @@ def _r10_abort_binding(out_dir: Path) -> dict:
     due to missing invocation-state evidence(R12 工作包 A 动因;
 R17 继承该合同)。"""
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -1005,8 +1005,8 @@ def cmd_audit(args: argparse.Namespace) -> int:
 
     out = Path(args.out_dir)
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -2586,8 +2586,8 @@ def cmd_global_k_reanalysis(args: argparse.Namespace) -> int:
 
     out = Path(args.out_dir)
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -2718,8 +2718,8 @@ def cmd_release_rehearsal(args: argparse.Namespace) -> int:
     base = Path(args.out_dir) / "pre_freeze_release_rehearsal_raw"
     base.mkdir(parents=True, exist_ok=True)
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -3432,8 +3432,8 @@ def cmd_real_artifact_rehearsal(args: argparse.Namespace) -> int:
         return 1
     proj = Path(__file__).resolve().parents[2]
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if cand.is_dir():
             release_repo = cand
             break
@@ -4028,8 +4028,8 @@ def commit_b_allowlist_violations(paths: list[str]) -> list[str]:
 def cmd_commit_b_allowlist(args: argparse.Namespace) -> int:
     """§七:Commit B allowlist 机器检查(A→B diff 只许结果文件)。"""
     release_repo = None
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if (cand / ".git").exists():
             release_repo = cand
             break

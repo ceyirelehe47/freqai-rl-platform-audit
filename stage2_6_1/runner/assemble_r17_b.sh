@@ -12,7 +12,7 @@ RUNNER_DIR="$SRC/stage2_6_1_runner"
 DST_PARENT="${R17_DELIVERY_PARENT:-$SRC/r17_delivery}"
 DST="$DST_PARENT/repair17_release"
 
-RELEASE_REPO="${RELEASE_REPO:-/mnt/e/trading/freqai-rl-audit}"
+RELEASE_REPO="${RELEASE_REPO:-/mnt/f/trading/freqai-rl-audit}"
 B_STAGE="$RELEASE_REPO/stage2_6_1/artifacts/repair17"
 
 MANIFEST="$ART/r17_formal_log_manifest.jsonl"
