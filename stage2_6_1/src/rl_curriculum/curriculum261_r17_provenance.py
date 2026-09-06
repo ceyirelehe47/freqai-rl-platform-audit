@@ -125,14 +125,14 @@ R14_ORCHESTRATION_MARKERS = {
 
 
 def _release_repo() -> Path:
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit"),
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit"),
                  Path(__file__).resolve().parents[3] / "freqai-rl-audit"):
         if (cand / ".git").exists():
             return cand
     raise RuntimeError(
-        "release repo 不可达(需要 /mnt/e/trading/freqai-rl-audit 或 "
-        "E:/trading/freqai-rl-audit 以读取 R13 历史提交)")
+        "release repo 不可达(需要 /mnt/f/trading/freqai-rl-audit 或 "
+        "F:/trading/freqai-rl-audit 以读取 R13 历史提交)")
 
 
 def _git_show(repo: Path, commit: str, path: str) -> str:

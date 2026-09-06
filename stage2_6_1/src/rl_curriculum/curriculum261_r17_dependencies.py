@@ -308,13 +308,13 @@ def _freeze_dev_root() -> Path:
 
 
 def _freeze_release_repo() -> Path:
-    for cand in (Path("/mnt/e/trading/freqai-rl-audit"),
-                 Path("E:/trading/freqai-rl-audit")):
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
+                 Path("F:/trading/freqai-rl-audit")):
         if (cand / ".git").exists():
             return cand
     raise RuntimeError(
         "release repo 不可达:R17 freeze 需要 git 权威树"
-        "(/mnt/e/trading/freqai-rl-audit 或 E:/trading/freqai-rl-audit)")
+        "(/mnt/f/trading/freqai-rl-audit 或 F:/trading/freqai-rl-audit)")
 
 
 def _scan_freeze_dir(root: Path) -> dict[str, dict[str, Any]]:
