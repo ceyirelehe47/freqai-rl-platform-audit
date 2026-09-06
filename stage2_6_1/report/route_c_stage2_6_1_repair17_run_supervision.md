@@ -25,7 +25,7 @@
 
 ### 1.1 实际交付物（新增/修改，全部 LF；.sh/.py 经 r17_sync.sh 同步入 WSL）
 
-新增：`stage2_6_1/runner/r17_supervision.py`（监护核心：策略引擎 R17-SUPERVISION-POLICY-v1/incident 去重升级恢复/递交/保护/预算/收尾/run_record）、`r17_guest_sampler.py`（guest 采样：页大小 sysconf/starttime 实例身份/CPU 累计/IO/PSS 低频/cgroup 链解析）、`r17_win_sampler.ps1`（Windows 采样：GetPerformanceInfo SIZE_T 口径/关键卷空间+身份+可写探测/C 盘应急/MaxSeconds 必填）、`r17_verify_delivery.py`（交付验证器 build/verify 分离）、`r17_monitored_entry.sh`（受监护统一入口：flock 单例/排他 run 目录/env 零注入）、`r17_c3_p52_diagnosis.py`（WP7 诊断：envelope 只读+解析 DP+一次最小复现）；测试 `test_curriculum261_r17_supervision_unit.py`（38 项）。
+新增：`stage2_6_1/runner/r17_supervision.py`（监护核心：策略引擎 R17-SUPERVISION-POLICY-v1/incident 去重升级恢复/递交/保护/预算/收尾/run_record）、`r17_guest_sampler.py`（guest 采样：页大小 sysconf/starttime 实例身份/CPU 累计/IO/PSS 低频/cgroup 链解析）、`r17_win_sampler.ps1`（Windows 采样：GetPerformanceInfo SIZE_T 口径/关键卷空间+身份+可写探测/C 盘应急/MaxSeconds 必填）、`r17_verify_delivery.py`（交付验证器 build/verify 分离）、`r17_monitored_entry.sh`（受监护统一入口：flock 单例/排他 run 目录/env 零注入）、`r17_c3_p52_diagnosis.py`（WP7 诊断：envelope 只读+解析 DP+一次最小复现）；测试 `test_curriculum261_r17_supervision_unit.py`（35 项）。
 
 修改：`r17_entry_common.sh`（追加 `r17_monitored_bootstrap/teardown`——formal 观测型接线）、`r17_formal_chain.sh`（state root 绑定后接线 `if ! …; then emit_launch …` 结构 + EXIT trap + `R17_ART_ROOT` 测试重定向支持；chain-run 调用与重定向行字节不动）、governance 测试 SHELLS 增补。
 
@@ -136,14 +136,16 @@ R16 C2 matched main D3 原值与 FAIL 判定保留；C1/C3 参数、κ=1.5、pai
 
 ### 6.2 测试与回归
 
-- 专项：`test_curriculum261_r17_supervision_unit.py` 39 项全绿（WSL 真实模块；含两个真实负载缺陷的回归测试：stale 竞态取模、M24 确定性对照）；governance 32 项全绿（SHELLS 增补 r17_monitored_entry.sh 后 LF+bash-n 全过；formal/rt 结构断言零破坏——rt 脚本零改动）。
+- 专项：`test_curriculum261_r17_supervision_unit.py` 35 项全绿（勘误:初稿误记 38/39;验收核验实测 35,JUnit 同数）（WSL 真实模块；含两个真实负载缺陷的回归测试：stale 竞态取模、M24 确定性对照）；governance 32 项全绿（SHELLS 增补 r17_monitored_entry.sh 后 LF+bash-n 全过；formal/rt 结构断言零破坏——rt 脚本零改动）。
 - 全量回归（受监护执行，M02 真实接入，最终 run `runs/20260906T163902_6365_38444`）：**1351 tests / 0 errors / 0 failures / 7 skipped（1344 passed），19:09（1163s）**；JUnit 与完整 stdout/stderr 落 run 目录（stderr=真实空文件 0 字节）；任务树全程覆盖（225 个含任务树样本，任务树 RSS 同时峰值 6.07GiB）；该 run 已 build（7 行 manifest）+verify rc=0+验证前篡改反例（追加 1 字节→rc=1 检出→恢复→锚哈希不变→复验 rc=0）。7 项 skip 全部为历史轮次分支上下文跳过（R12-R16 binding 检查在各自 iteration 分支外无效——设计内，与上轮同类）。回归历程本身构成监护迭代证据：第一次被缺陷 6（stale 竞态）保护性误停、第二次被缺陷 7（卷根探测）保护性误停，第三次（全部修复后）完整跑通且任务树数据完整；两次误停 run 的完整事件链作为缺陷证据原样保留。
 - 既有反例不回归：M23 断言 supervision/guest_sampler 源码无执行治理接口/资格面字样；execgov 既有反例（未委派/owner-death/撤销）由既有 governance 套件覆盖（32/32）。
 - M24 前后对照：同输入 fixture 任务裸跑与受监护跑业务输出逐字节一致（"bare-fixture-output-42"，裸跑 sha256 `89ba7658…`）；诊断脚本只读部分（DP+envelope 分析）双运行逐字节等价（排除 written_utc）。
 
-### 6.3 资源报告口径
+### 6.3 资源报告口径（验收勘误后）
 
-各 run 的 summary.json 从已保存原始流计算：采样峰值（task_tree_rss_max_gib 按同时刻）/最低可用内存（win phys_avail/guest MemAvailable min）/commit 峰值/swap/覆盖区间（guest_last_mono/win_last_mono/coverage_gaps）/win parse_errors。无测量的字段不写零；不同 run/阶段/进程峰值不混加。监护自身开销见 §2.2。关键卷依赖：active VHDX 与 swap 在 F:、发布仓库在 F:、应急保存在 C:（LOCALAPPDATA，101.5GiB 空闲）；E 盘非依赖（仅附带记录）。
+- summary.json 当前实现记录：win 侧峰值（win_free_phys_min_gib/win_commit_max_pct）+ 覆盖区间（guest_last_mono/win_last_mono/win_parse_errors/coverage_gaps）+ incidents/stage_marks/telemetry_bytes/双 PID。
+- guest/task 侧峰值**不在 summary 内**，按 §15 要求从已保存遥测原始流独立复算（§6.2 引用的任务树同时峰值 6.07GiB 即由 guest_samples.jsonl 225 个含任务树样本复算得出——验收核验已独立复证）。无测量的字段不写零；不同 run/阶段/进程峰值不混加。
+- 监护自身开销见 §2.2。关键卷依赖：active VHDX 与 swap 在 F:、发布仓库在 F:、应急保存在 C:（LOCALAPPDATA，101.5GiB 空闲）；E 盘非依赖（仅附带记录）。
 
 ---
 
