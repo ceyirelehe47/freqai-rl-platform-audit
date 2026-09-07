@@ -10,6 +10,7 @@ control_path_reliability/receipts/,不在 pytest 内。
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
 import subprocess
@@ -48,17 +49,47 @@ def _perf(free=39.0, ct=38.0, cl=83.0, total=63.0):
             "commit_limit_gb": cl, "phys_total_gb": total}
 
 
-def _win(perf=None, run_id=None, vols=None):
-    line = {"event": "sample", "perf": perf if perf is not None else _perf(),
-            "vols": vols if vols is not None
-            else [{"vol": "C:", "present": True, "free_gb": 100.0}]}
+def _utc_now():
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone.utc).isoformat(
+        timespec="seconds").replace("+00:00", "Z")
+
+
+def _vols_ok():
+    """必需卷完整有效状态(F: required+C: optional;WP3 §6.2)。"""
+    return [{"vol": "F:", "present": True, "free_gb": 100.0,
+             "size_gb": 500.0, "serial": "CFA1", "identity_match": True},
+            {"vol": "C:", "present": True, "free_gb": 200.0,
+             "size_gb": 900.0, "serial": "CCA1", "identity_match": True}]
+
+
+_SEQ = itertools.count(1)
+
+
+def _win(perf=None, run_id=None, vols="default", utc="now", seq="auto",
+         telemetry_writable=True):
+    line = {"event": "sample", "perf": perf if perf is not None else _perf()}
+    if vols == "default":
+        vols = _vols_ok()
+    if vols is not None:
+        line["vols"] = vols
+    if utc == "now":
+        utc = _utc_now()
+    if utc is not None:
+        line["utc"] = utc
+    if seq == "auto":
+        seq = next(_SEQ)
+    if seq is not None:
+        line["seq"] = seq
+    if telemetry_writable is not None:
+        line["telemetry_out_writable"] = telemetry_writable
     if run_id is not None:
         line["run_id"] = run_id
     return line
 
 
 def _guest(avail_kb=39_000_000, total_kb=40_000_000):
-    return {"event": "guest_sample", "utc": "2026-09-07T01:00:00Z",
+    return {"event": "guest_sample", "utc": _utc_now(),
             "meminfo": {"MemTotal": total_kb, "MemAvailable": avail_kb},
             "psi_memory": {"full_avg10": 0.0},
             "vmstat_swap": {"pswpout": 0}}
@@ -930,7 +961,10 @@ class TestDelegationLifecycle:
         lines = [json.dumps({"win": _win(_perf()), "guest": _guest()})
                  for _ in range(60)]
         lines.append(json.dumps({"win": _win(_perf(), vols=[
-            {"vol": "F:", "present": True, "free_gb": 3.0}]),
+            {"vol": "F:", "present": True, "free_gb": 3.0,
+             "serial": "CFA1", "identity_match": True},
+            {"vol": "C:", "present": True, "free_gb": 200.0,
+             "serial": "CCA1", "identity_match": True}]),
             "guest": _guest()}))
         lines += [json.dumps({"win": _win(_perf()),
                               "guest": _guest()}) for _ in range(5)]

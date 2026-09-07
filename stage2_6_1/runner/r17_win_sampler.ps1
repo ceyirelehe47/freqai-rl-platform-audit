@@ -134,9 +134,11 @@ Write-JsonLine @{ event="sampler_start"; utc=(Get-UtcNowIso); pid=$thisPid;
 $start = Get-Date
 $detailCount = 0
 $probeCount = 0
+$seq = 0           # WP3: source sequence (reader rejects dup/regress)
 $lastVmPresent = $true
 while ($true) {
     $now = Get-UtcNowIso
+    $seq = $seq + 1
     $perf = Get-PerfMem
     # 每轮刷新卷表(避免陈旧)
     $allDisks = @()
@@ -182,10 +184,11 @@ while ($true) {
         }
     }
 
-    # ---- 低频可写探测:必要证据实际位置(遥测输出目录+应急目录);
-    #      不探测卷根(非管理员对 C:\ 根无写权,不构成证据不可写) ----
-    $detailCount++
-    $probeCount++
+    # ---- low-freq write probe: actual evidence dirs (telemetry out +
+    #      emergency); NOT volume roots (non-admin has no root write).
+    #      First loop probes immediately ($probeCount starts at 0,
+    #      ++ after the check): admission requires the very first
+    #      sample to carry a real writable result (unknown != true).
     if ($WriteProbeEvery -gt 0 -and ($probeCount % $WriteProbeEvery) -eq 0) {
         $probeTag = "r17_probe_" + $RunId + ".tmp"
         try {
@@ -203,10 +206,12 @@ while ($true) {
             } catch { $script:emWritable = $false }
         } else { $script:emWritable = $null }
     }
+    $detailCount++
+    $probeCount++
 
     $self = Get-Process -Id $thisPid -ErrorAction SilentlyContinue
-    $rec = @{ event="sample"; utc=$now; run_id=$RunId; perf=$perf;
-        vm=$vm; vols=$volState;
+    $rec = @{ event="sample"; utc=$now; run_id=$RunId; seq=$seq;
+        perf=$perf; vm=$vm; vols=$volState;
         telemetry_out_writable=$script:outWritable;
         emergency_writable=$script:emWritable;
         sampler_self_ws_mb=$(if ($self) { [math]::Round($self.WorkingSet64/1MB,1) } else { $null }) }

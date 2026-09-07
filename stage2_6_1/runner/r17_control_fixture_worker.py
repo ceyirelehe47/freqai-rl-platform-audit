@@ -74,6 +74,10 @@ def main() -> int:
         return 0
     if behavior == "early_exit":
         return 7
+    if behavior == "silent_exit":
+        # A01 第一行形态:取得委派 fd 后不写任何身份、以 rc=0
+        # 退出(协调者读到 EOF → identity_pipe_eof;worker 自然退出)
+        return 0
     if behavior == "no_msg":
         time.sleep(90)
         return 0

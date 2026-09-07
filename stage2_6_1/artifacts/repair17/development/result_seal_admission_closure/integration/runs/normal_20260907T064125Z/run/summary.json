@@ -1,0 +1,129 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "bf7fc2972c2c47282bb5688d30e07e78a5c009da0aa39495effc3cc851336f44",
+ "argv": [
+  "python3",
+  "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/result_seal_admission_closure/integration/runs/normal_20260907T064125Z/cf_runner.py",
+  "/home/cryptorl/projects/crypto_rl/src",
+  "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/result_seal_admission_closure/integration/runs/normal_20260907T064125Z/state",
+  "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/result_seal_admission_closure/integration/runs/normal_20260907T064125Z/out"
+ ],
+ "business": {
+  "rc": 1,
+  "signal": null,
+  "protector": {
+   "pgid": 428,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "run-worker_exit-3",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=1",
+   "severity": "WORKER",
+   "first_seen_mono": 4.0,
+   "last_seen_mono": 4.0,
+   "samples": 1,
+   "peak": {
+    "rc": 1,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 38.10995101928711,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.6072673529999975,
+  "win_last_mono": 1.8888338959999942,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 1.895291678999996,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-07T06:41:28Z"
+ },
+ "io": {
+  "submitted": 18,
+  "accepted": 18,
+  "ok": 18,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 18,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "telemetry_bytes": 5221,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:27Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:28Z",
+   "stage": "observation_ready",
+   "note": "ready_after=1.9s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:28Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:28Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:30Z",
+   "stage": "business_exited",
+   "note": "rc=1"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T06:41:30Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 425,
+  "windows": 133728
+ },
+ "written_utc": "2026-09-07T06:41:30Z"
+}

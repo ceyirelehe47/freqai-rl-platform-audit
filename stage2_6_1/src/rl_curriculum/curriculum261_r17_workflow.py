@@ -47,6 +47,12 @@ R17_WORKFLOW_VERSION = "AuthoritativeWorkflow-v1"
 QUALIFY_HANDSHAKE_DEADLINE_S = 30.0
 QUALIFY_HANDSHAKE_MAX_BYTES = 16 * 1024
 QUALIFY_DELEGATION_RC = 98  # 委派协议失败(spawn/握手/token;区别业务 rc)
+#: worker 终止未确认(KILL 后仍存活/不可中断)时的步骤 rc 哨兵:
+#: 真实退出状态未知不能填 0;非零 int(manifest rc 消费方按 int 读);
+#: 避开既有退出码段 2/3/4/5/6/7/93/94/95/96/97/98/99。
+R17_RC_UNCONFIRMED = 92
+#: 收尾子进程(fail-closure)的单次有界预算(串行清理共享,不重开)。
+FAIL_CLOSURE_TIMEOUT_S = 60.0
 
 
 class _DelegationError(RuntimeError):
@@ -525,7 +531,6 @@ def execute_workflow_chain_r17(
     failed_step: str | None = None
     failure_reason = ""
     qualification_terminal_status: str | None = None
-
     # §5.2 监护联动(C11):协调者自行优雅封口的停止接线。
     # 外层监护(登记进程组)发 SIGTERM=带 run/实例关联的停止请求;
     # 协调者终止当前 worker(qualify 委派走 revoke→terminal 既有
@@ -561,10 +566,19 @@ def execute_workflow_chain_r17(
             *(("--rehearsal",) if profile == "rehearsal" else ()),
             *fail_closure_extra,
         ]
-        fc = subprocess.run(fc_argv, cwd=str(project_dir), env=env,
-                            capture_output=True, text=True)
+        # §4.6:收尾子进程有界(串行清理共享预算,不重开);超时保留
+        # 第二失败与未确认状态,不让协调者无期等待、也不外抛破坏
+        # execute "返回不 raise" 合同。
+        try:
+            fc = subprocess.run(fc_argv, cwd=str(project_dir), env=env,
+                                capture_output=True, text=True,
+                                timeout=FAIL_CLOSURE_TIMEOUT_S)
+            text = fc.stdout + fc.stderr
+        except subprocess.TimeoutExpired:
+            text = (f"[fail_closure_timeout>{FAIL_CLOSURE_TIMEOUT_S}s:"
+                    "子进程未确认结束;收尾按未确认保留,不重开]")
         (log_dir / "fail_closure.log").write_text(
-            fc.stdout + fc.stderr, encoding="utf-8")
+            text, encoding="utf-8")
 
     try:
         for step in plan["steps"]:
@@ -625,7 +639,14 @@ def execute_workflow_chain_r17(
                           else "PostconditionError")
                 err_path.write_text(detail + "\n", encoding="utf-8")
             end_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
-            if rc == 0:
+            # WP1 §4.1/§4.3:raw worker rc=0 只是必要条件;协议/取消/
+            # 撤权/终态未证实任一未闭合 → 步骤**有效失败**(raw rc
+            # 保留不改写,链停止,后续步骤零启动)。effective_failure
+            # 在任何 rc 下都计算:rc!=0 时它是控制/协议层的第一
+            # 语义原因(如取消),与进程事实(rc/signal)分层披露。
+            effective_failure = _delegation_step_failure(
+                delegation_summary)
+            if rc == 0 and effective_failure is None:
                 session.record_step_completed(name, rc=rc)
             else:
                 session.record_step_failed(name, rc=rc)
@@ -646,6 +667,13 @@ def execute_workflow_chain_r17(
                 "duration_s": round(time.monotonic() - t0, 3),
                 "rc": rc,
                 "signal": signal_info,
+                # §4.1 四语义层:进程事实(rc/signal)与步骤有效结果
+                # 分开;effective_result=failed 时即使 raw rc=0 链也
+                # 必须停(所有调用者消费同一结论)。
+                "effective_result": (
+                    "completed"
+                    if rc == 0 and effective_failure is None else "failed"),
+                "effective_failure": effective_failure,
                 "stdout_path": str(log_path),
                 "stderr_path": str(err_path),
                 "stdout_sha256": _sha256_file(log_path),
@@ -661,11 +689,13 @@ def execute_workflow_chain_r17(
             with manifest_path.open("a", encoding="utf-8") as mf:
                 mf.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 mf.flush()
-            if rc != 0:
+            if rc != 0 or effective_failure is not None:
                 failed_step = name
                 failure_reason = (
                     f"formal chain step {name} rc={rc}"
                     + (f" signal={signal_info}" if signal_info else "")
+                    + (f"; effective_failure={effective_failure}"
+                       f"(raw rc=0 不构成完整成功证明)" if rc == 0 else "")
                     + ("; PrerequisiteError(前置产物缺失)"
                        if rc == 2 and pre_missing else "")
                     + ("; PostconditionError" if rc == 2 and not pre_missing
@@ -683,6 +713,20 @@ def execute_workflow_chain_r17(
                 signal.signal(_sig, _handler)
             except (OSError, ValueError):
                 pass
+
+    # §4.1 资格状态层:从权威 journal 只读提取本次 qualification
+    # 终态(exposure 前置下 terminal 唯一;无终态=None;reader 失败
+    # 如实标 read_failed,不覆盖链事实)。
+    try:
+        from rl_curriculum.curriculum261_r17_execgov import (
+            journal_entries)
+        for e in reversed(journal_entries()):
+            if e.get("event") == "qualification_terminal":
+                qualification_terminal_status = str(
+                    e.get("status") or "unknown")
+                break
+    except Exception:  # noqa: BLE001 —— reader 失败不推翻链事实
+        qualification_terminal_status = "read_failed"
 
     return {
         "ok": failed_step is None,
@@ -768,7 +812,12 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                             session, delegation, proc, stop_state)
                     except _DelegationCancelled:
                         delegation["cancelled"] = True
-                        _terminate_and_wait(proc)
+                        if not _terminate_and_wait(proc):
+                            # §4.6:终止未确认→退出状态未知,不填 0
+                            delegation["worker_unconfirmed"] = True
+                            rc = R17_RC_UNCONFIRMED
+                        else:
+                            rc = proc.wait()
                     except _DelegationError as exc:
                         # 取消已被接受时的协议失败(EOF/超时等)归因于
                         # 取消:第一原因是"停止请求先到",细节保留
@@ -778,8 +827,15 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                             delegation["cancel_detail"] = str(exc)[:300]
                         else:
                             delegation["protocol_error"] = str(exc)[:500]
-                        _terminate_and_wait(proc)
-                rc = proc.wait()
+                        if not _terminate_and_wait(proc):
+                            delegation["worker_unconfirmed"] = True
+                            rc = R17_RC_UNCONFIRMED
+                        else:
+                            rc = proc.wait()
+                if rc != R17_RC_UNCONFIRMED:
+                    # 正常业务等待:由监护运行时长限制兜底,不是握手
+                    # 30s(§4.6);rc 哨兵路径不再无期限 wait。
+                    rc = proc.wait()
     finally:
         if delegation is not None and spawn_error is not None:
             delegation["spawn_failed"] = spawn_error
@@ -789,9 +845,13 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
         if stop_state is not None:
             stop_state["proc"] = None
         if proc is not None and proc.poll() is None:
-            # wait 未返回的兜底(如 wait 前异常;有界)
-            _terminate_and_wait(proc)
-            rc = proc.wait()
+            # wait 未返回的兜底(如 wait 前异常;有界,无后置无期限)
+            if not _terminate_and_wait(proc):
+                if delegation is not None:
+                    delegation["worker_unconfirmed"] = True
+                rc = R17_RC_UNCONFIRMED
+            else:
+                rc = proc.wait()
     signal_info = None
     if rc < 0:
         signal_info = -rc
@@ -803,23 +863,31 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
 
 
 def _terminate_and_wait(proc: subprocess.Popen,
-                        timeout: float = 10.0) -> None:
-    """受控终止 worker(委派失败/取消;有界等待;§6.4)。"""
+                        timeout: float = 10.0) -> bool:
+    """受控终止 worker(委派失败/取消;有界等待;§6.4/§4.6)。
+
+    返回 True=已确认退出;False=KILL 后仍未确认(不可中断内核
+    I/O 等如实返回未确认,调用者不得再无期限 wait,也不得把未知
+    退出状态填成 0)。
+    """
     try:
         proc.terminate()
     except OSError:
         pass
     try:
         proc.wait(timeout=timeout)
+        return True
     except subprocess.TimeoutExpired:
-        try:
-            proc.kill()
-        except OSError:
-            pass
-        try:
-            proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            pass
+        pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+    try:
+        proc.wait(timeout=timeout)
+        return True
+    except subprocess.TimeoutExpired:
+        return False
 
 
 def _close_fd(delegation: dict[str, Any], key: str) -> None:
@@ -876,13 +944,15 @@ def _qualify_delegation_open(session: "R17ChainSession",
 
 
 def _read_pipe_line(fd: int, *, deadline_mono: float, max_bytes: int,
+                    cancel_fn=None,
                     ) -> bytes | None:
-    """有界读单行(\\n 终结;selectors 复用;§6.2)。
+    """有界读单行(\\n 终结;selectors 复用;§6.2/§4.6)。
 
     返回完整行(不含 \\n);None=EOF(全部写端已关);超时/超长抛
-    _DelegationError。等待循环每轮 ≤0.5s,使调用方能轮询取消与
-    worker 存活;不假设一次 select 的"可读"等于整条消息到达,
-    也不在"可读"后执行仍可能等待换行的无界 readline。
+    _DelegationError。等待循环每轮 ≤0.5s 且**循环内**检查取消
+    (不是只在调用前后):取消观测间隔不超过 0.5s 轮询节拍。
+    不假设一次 select 的"可读"等于整条消息到达,也不在"可读"
+    后执行仍可能等待换行的无界 readline。
     """
     import selectors
 
@@ -891,6 +961,9 @@ def _read_pipe_line(fd: int, *, deadline_mono: float, max_bytes: int,
     sel.register(fd, selectors.EVENT_READ)
     try:
         while b"\n" not in buf:
+            if cancel_fn is not None and cancel_fn():
+                raise _DelegationCancelled(
+                    f"cancelled_in_read(buf={len(buf)}B)")
             remaining = deadline_mono - time.monotonic()
             if remaining <= 0:
                 raise _DelegationError(
@@ -911,8 +984,12 @@ def _read_pipe_line(fd: int, *, deadline_mono: float, max_bytes: int,
         sel.close()
 
 
-def _write_pipe_all(fd: int, data: bytes, *, deadline_mono: float) -> None:
-    """有界写全部字节(短写循环;可写等待;BrokenPipe 上抛)。"""
+def _write_pipe_all(fd: int, data: bytes, *, deadline_mono: float,
+                    cancel_fn=None) -> None:
+    """有界写全部字节(短写循环;可写等待;BrokenPipe 上抛)。
+
+    循环内检查取消(§4.6):取消不得等写完成才被观测。
+    """
     import selectors
 
     sel = selectors.DefaultSelector()
@@ -920,6 +997,8 @@ def _write_pipe_all(fd: int, data: bytes, *, deadline_mono: float) -> None:
     try:
         view = memoryview(data)
         while view:
+            if cancel_fn is not None and cancel_fn():
+                raise _DelegationCancelled("cancelled_in_write")
             remaining = deadline_mono - time.monotonic()
             if remaining <= 0:
                 raise _DelegationError("token_write_deadline_exceeded")
@@ -970,7 +1049,8 @@ def _qualify_delegation_handshake(session: "R17ChainSession",
     if _cancelled():
         raise _DelegationCancelled("supervision_stop_before_identity")
     line = _read_pipe_line(delegation["r_reg"], deadline_mono=deadline,
-                           max_bytes=QUALIFY_HANDSHAKE_MAX_BYTES)
+                           max_bytes=QUALIFY_HANDSHAKE_MAX_BYTES,
+                           cancel_fn=_cancelled)
     if line is None:
         raise _DelegationError(
             f"identity_pipe_eof(worker_rc={proc.poll()})")
@@ -1022,8 +1102,13 @@ def _qualify_delegation_handshake(session: "R17ChainSession",
         {"kind": "grant_token", "token": grant.token,
          "probe_namespace": namespaces[0]}) + "\n"
     try:
+        # §4.6:token 写共用从 spawn 起算的同一 30s 总 deadline,
+        # 不重新获得窗口;循环内消费取消(§4.6:grant 建立后取消
+        # →该 grant 由 close 撤销,不补发)。
         _write_pipe_all(delegation["w_tok"], token_msg.encode("utf-8"),
-                        deadline_mono=time.monotonic() + 10.0)
+                        deadline_mono=deadline, cancel_fn=_cancelled)
+    except _DelegationCancelled:
+        raise
     except (BrokenPipeError, OSError) as exc:
         # grant 已创建但未确认交付:不遗留有效权限(§6.4 close revoke)
         delegation["token_delivery_failed"] = str(exc)[:200]
@@ -1057,8 +1142,13 @@ def _qualify_delegation_close(session: "R17ChainSession",
     proto = delegation.get("protocol_error")
     spawn_fail = delegation.get("spawn_failed")
     token_fail = delegation.get("token_delivery_failed")
-    if not delegation.get("_terminal_committed"):
-        delegation["_terminal_committed"] = True
+    # §4.5 终态三态:not_attempted(无)→ attempting → committed /
+    # unknown。尝试前不设"已成功提交";commit 报错时按权威 journal
+    # 只读核对(journal 已有同 plan_digest 的 terminal → 视为已提交,
+    # 不重复提交);核对不到 → unknown,不让步骤成功。
+    state = delegation.get("_terminal_state")
+    if state is None:
+        delegation["_terminal_state"] = "attempting"
         try:
             if cancelled:
                 session.commit_qualification_terminal(
@@ -1075,6 +1165,11 @@ def _qualify_delegation_close(session: "R17ChainSession",
                 session.commit_qualification_terminal(
                     "failed", digest,
                     note=f"delegation_protocol_error:{proto}")
+            elif delegation.get("worker_unconfirmed"):
+                session.commit_qualification_terminal(
+                    "failed", digest,
+                    note=f"worker_termination_unconfirmed(rc={rc})"
+                    "(退出状态未知不以 rc 改判成功)")
             elif rc == 0:
                 session.commit_qualification_terminal(
                     "completed", digest,
@@ -1087,8 +1182,18 @@ def _qualify_delegation_close(session: "R17ChainSession",
                 session.commit_qualification_terminal(
                     "failed", digest,
                     note=f"verdict=FAIL(worker rc={rc})")
+            delegation["_terminal_state"] = "committed"
         except Exception as exc:  # noqa: BLE001 —— 二次 terminal 等
-            delegation["terminal_error"] = str(exc)[:300]
+            # journal 权威只读核对(不产生第二次 terminal;§4.5)
+            verified = _journal_terminal_verified(session, digest)
+            if verified:
+                delegation["_terminal_state"] = "committed"
+                delegation["terminal_note"] = (
+                    "commit调用报错但journal已有同digest终态"
+                    "(只读核对;不重复提交)")
+            else:
+                delegation["_terminal_state"] = "unknown"
+                delegation["terminal_error"] = str(exc)[:300]
     summary: dict[str, Any] = {
         "cancelled": cancelled,
         "protocol_error": proto,
@@ -1097,12 +1202,56 @@ def _qualify_delegation_close(session: "R17ChainSession",
         "identity_verified": delegation.get("identity_verified"),
         "revoke_error": delegation.get("revoke_error"),
         "terminal_error": delegation.get("terminal_error"),
+        "terminal_state": delegation.get("_terminal_state"),
+        "terminal_note": delegation.get("terminal_note"),
+        "worker_unconfirmed": bool(delegation.get("worker_unconfirmed")),
         "worker_rc": rc, "worker_signal": signal_info,
         "allowed_namespaces": list(delegation["allowed_namespaces"]),
         "grant_hash": getattr(grant, "grant_hash", None),
         "grant_issued": grant is not None,
     }
     return summary
+
+
+def _journal_terminal_verified(session: "R17ChainSession",
+                               plan_digest: str) -> bool:
+    """只读核对 journal 是否已有本 digest 的资格终态(A04:写已
+    落盘但调用报错时,以权威记录判定,不重复提交也不把未知强判)。"""
+    try:
+        from rl_curriculum.curriculum261_r17_execgov import (
+            journal_entries)
+        for e in reversed(journal_entries()):
+            if e.get("event") == "qualification_terminal" and \
+                    e.get("plan_digest") == plan_digest:
+                return True
+        return False
+    except Exception:  # noqa: BLE001 —— 核对失败=未能证实
+        return False
+
+
+def _delegation_step_failure(summary: dict[str, Any] | None) -> str | None:
+    """WP1 §4.1:qualify 步骤的有效成功条件(raw rc=0 只是必要条件)。
+
+    返回 None=有效成功;否则返回失败原因(判定序与 close 的第一
+    失败原因一致:cancelled > spawn_failed > protocol_error >
+    worker_unconfirmed > revoke_error > terminal 未证实)。
+    任何一项未闭合(含 unknown)都不得让步骤成功。
+    """
+    if not isinstance(summary, dict):
+        return None
+    if summary.get("cancelled"):
+        return "delegation_cancelled"
+    if summary.get("spawn_failed"):
+        return "delegation_spawn_failed"
+    if summary.get("protocol_error"):
+        return "delegation_protocol_error"
+    if summary.get("worker_unconfirmed"):
+        return "worker_termination_unconfirmed"
+    if summary.get("revoke_error"):
+        return "grant_revoke_failed"
+    if summary.get("terminal_state") != "committed":
+        return "qualification_terminal_unconfirmed"
+    return None
 
 
 expected_formal_log_prefix = expected_formal_log_prefix_r17

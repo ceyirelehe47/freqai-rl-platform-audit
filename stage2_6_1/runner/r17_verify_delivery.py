@@ -367,6 +367,20 @@ def cmd_verify(args: argparse.Namespace) -> int:
                         f"evidence_incomplete: 角色 "
                         f"{item.get('role')} 登记后缺失"
                         f"({item.get('path')})")
+                if isinstance(item, dict) and item.get("live_writers"):
+                    # §5.5:写者未确认关闭的文件不得按完整证据验收
+                    problems.append(
+                        f"evidence_incomplete: 角色 "
+                        f"{item.get('role')} 写者未确认关闭"
+                        f"(live_writers;最终哈希不确定)")
+            # WP2 §5.5:验证器消费完成性——文件哈希一致不能覆盖
+            # 写入未完成/失败/未关闭(缺 evidence_complete 的旧记录
+            # 按 v2 合同应为 true;非 v2 不在此路径)。
+            if rr.get("evidence_complete") is not True:
+                problems.append(
+                    "evidence_incomplete: run_record."
+                    "evidence_complete!=true(缺件/写动作失败/"
+                    "封口未确认/io 丢关键)")
     # 7) 回执(独立输出区;manifest/原文件只读)
     receipt = {
         "schema": "r17-delivery-verify-receipt-v1",

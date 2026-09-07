@@ -67,10 +67,19 @@ POLICY: dict[str, Any] = {
     # B1/WP1:启动资源准入(工程准入条件,不是课程 gate;就绪=数据有效,
     # 准入=资源够开始重任务;两道判定分开记录)。首样本新鲜度=两个
     # 核心采样周期。
+    # WP3(result-seal):必需依赖集合从本机部署映射固定(F=活跃项目/
+    # WSL/swap/发布路径所在卷;C=登记的应急备用,失效可如实降级不
+    # 阻断)——不以样本里恰好出现哪些卷决定哪些资源"必需"。
     "startup_admission": {
         "win_free_min_gib": 8.0, "win_commit_max_pct": 90.0,
         "guest_avail_min_gib": 4.0, "keyvol_min_free_gib": 20.0,
-        "first_sample_max_age_s": 10.0},
+        "first_sample_max_age_s": 10.0,
+        "keyvol_required": ("F:",),   # 必需:缺记录/present=false/
+        #  identity 不符/free unknown/writable false 均拒绝
+        "keyvol_optional": ("C:",),   # 登记的应急备用:缺失降级记录
+        #  跨 OS UTC 墙钟比较容差(旧日志重放防护;样本 utc 早于
+        #  supervisor 启动-容差 → 不刷新有效状态)
+        "source_utc_tolerance_s": 300.0},
     "cooldown_reminder_s": 60.0,
     "recover": {"win_free_ge_gib": 10.0, "win_commit_lt_pct": 85.0,
                 "guest_memavail_ge_gib": 6.0, "sustain_s": 30.0},
@@ -477,12 +486,37 @@ def _finite_num(v) -> bool:
         and v == v and v not in (float("inf"), float("-inf"))
 
 
+def _parse_utc_iso(value: Any):
+    """ISO UTC 解析(容错 'Z' 后缀);失败/非字符串返回 None。
+
+    跨 OS UTC 墙钟比较只用于"旧日志重放"防护(样本生成时间远早于
+    本 run 启动),配 startup_admission.source_utc_tolerance_s 容差;
+    不建立时间同步服务(§6.3)。
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    import datetime as _dtm
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = _dtm.datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_dtm.timezone.utc)
+    return dt
+
+
 def validate_win_sample(line: dict | None, *, run_id: str | None = None,
                         ) -> tuple[bool, str]:
-    """host 资源样本有效性:身份+结构+数值范围(§4.1)。
+    """host 资源样本有效性:身份+结构+数值范围(§4.1/§6.3)。
 
     解析成功/来源已启动/有效资源样本三层分开;就绪只认最后一层。
     零可用内存是**有效但危险**的数据(不误记缺测后放行,交给策略)。
+    WP3:live 保护输入必须绑定本次 run 与源序号(run_id 匹配+utc
+    生成时刻+seq 非负整数)——缺失这些字段的旧格式只能由历史只读
+    reader 解释,不得作为当前 live 准入的兼容后门(§6.3)。
     返回 (ok, reason);reason 词表供就绪拒绝与摘要披露。
     """
     if not isinstance(line, dict):
@@ -492,6 +526,12 @@ def validate_win_sample(line: dict | None, *, run_id: str | None = None,
     if run_id is not None and line.get("run_id") not in (None, run_id):
         # 无 run_id 的行(旧格式)宽容;带错 run_id 的行拒绝(错误运行身份)
         return False, "run_id_mismatch"
+    utc = line.get("utc")
+    if not isinstance(utc, str) or not utc.strip():
+        return False, "utc_missing"
+    seq = line.get("seq")
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 0:
+        return False, "seq_invalid"
     perf = line.get("perf")
     if not isinstance(perf, dict):
         return False, "perf_missing"
@@ -544,11 +584,17 @@ class WinSampleReader:
 
     B1 修复:saw_any(首条可解析行,诊断用)与 saw_valid(首条**有效
     资源样本**,就绪屏障消费)分层;start-only/空 sample/坏数值行
-    不能证明观测能力。last_valid_mono 供新鲜度判定(不把文件
-    mtime 或读取时刻当生成时刻:以本进程读到有效行的单调时刻计)。
+    不能证明观测能力。
+    WP3 修复(§6.3/§6.4):同源序号重复消费不增加有效样本数、不
+    刷新 last_valid;序号回退(来源重启迹象)不沿用;样本生成时间
+    (utc)早于本 run 启动-容差的旧日志重放不进入有效状态;接收
+    时刻(last_valid_mono)与源生成时刻(last_valid_src_utc)分开
+    记录——读取延迟/积压不延长生成时间。
     """
 
-    def __init__(self, path: Path, run_id: str | None = None):
+    def __init__(self, path: Path, run_id: str | None = None, *,
+                 started_iso: str | None = None,
+                 predates_tolerance_s: float | None = None):
         self.path = path
         self.run_id = run_id
         self.offset = 0
@@ -560,7 +606,26 @@ class WinSampleReader:
         self.saw_valid = False  # 首条通过 validate_win_sample 的样本
         self.last_valid: dict | None = None
         self.last_valid_mono: float | None = None
+        self.last_valid_src_utc: str | None = None
+        self.duplicate_seq = 0
+        self.seq_regressions = 0
+        self.stale_replayed = 0
+        self._seen_seq: set[int] = set()
+        self._max_seq: int | None = None
+        dt = _parse_utc_iso(started_iso)
+        self._predates_cutoff = (
+            dt.timestamp() - float(predates_tolerance_s)
+            if dt is not None and predates_tolerance_s is not None
+            else None)
         self._buf = b""
+
+    def _predates_run(self, utc_field: Any) -> bool:
+        if self._predates_cutoff is None:
+            return False
+        dt = _parse_utc_iso(utc_field)
+        if dt is None:
+            return True  # 有效样本必带 utc;不可解析=不可信时间基线
+        return dt.timestamp() < self._predates_cutoff
 
     def read_new(self) -> list[dict]:
         try:
@@ -593,13 +658,27 @@ class WinSampleReader:
         if out:
             self.last_lines = out[-8:]
             self.saw_any = True
-        # 有效性分层:只有通过校验的 sample 行刷新有效首样本状态
+        # 有效性分层:只有通过校验的 sample 行刷新有效首样本状态;
+        # 重复序号/序号回退/早于 run 启动的旧日志不刷新(§6.4)
         for obj in out:
             ok, reason = validate_win_sample(obj, run_id=self.run_id)
             if ok:
+                seq = obj.get("seq")
+                if seq in self._seen_seq:
+                    self.duplicate_seq += 1
+                    continue
+                if self._max_seq is not None and seq < self._max_seq:
+                    self.seq_regressions += 1
+                    continue
+                if self._predates_run(obj.get("utc")):
+                    self.stale_replayed += 1
+                    continue
+                self._seen_seq.add(seq)
+                self._max_seq = seq
                 self.saw_valid = True
                 self.last_valid = obj
                 self.last_valid_mono = time.monotonic()
+                self.last_valid_src_utc = obj.get("utc")
             elif obj.get("event") == "sample":
                 self.invalid_samples += 1
                 if len(self.invalid_reasons) < 16:
@@ -826,41 +905,66 @@ class Protector:
 class BoundedIOWriter:
     """控制路径与可能阻塞的 I/O 的小型隔离(§5.2;不建平台)。
 
-    - submit(fn, critical):非阻塞投递(queue.put_nowait);队列满
-      → 立即返回 False(critical 事件丢失计入 dropped_critical,
-      由主循环触发 PROTECTION_UNAVAILABLE——关键证据持续不可写
-      时不得继续计算)。
-    - 单一守护写线程顺序执行提交的写动作:日志/stdout/应急写
-      卡住只卡这一个线程,保护轮询(信号/升级/退出确认)不受影响。
-    - drain(timeout):有界等待已投递事件全部执行(finalize 用;
-      超时如实报 pending,不无限 join,不假装已持久化)。
-    - 状态分层:pending(已排队)/executed(已尝试执行)/dropped
-      (队列满丢弃)/dropped_critical——排队≠已递交≠已持久化。
+    WP2(result-seal)修复:每个被接受的动作有**完整生命周期**
+    queued → in_flight → ok / failed;回调抛错不是成功(异常上抛
+    计 failed,有界保留失败摘要:动作角色+错误);drain 等待已接受
+    动作**全部成功完成**,不以 queue.empty 判完成——queue.get 取走
+    ≠写入完成(在途动作必须等待,超时返回未确认);seal() 后新提交
+    被拒(rejected_after_seal 计数,不伪装成功处理)。
+    不变量:accepted = queued + in_flight + ok + failed;
+    rejected_after_seal 在 accepted 之外单独计(§5.1)。
     """
 
     def __init__(self, maxsize: int = 1024):
         import queue as _queue
         self._q: "queue.Queue" = _queue.Queue(maxsize=maxsize)
         self._lock = threading.Lock()
-        self._stats = {"submitted": 0, "executed": 0, "dropped": 0,
-                       "dropped_critical": 0, "io_stuck": False}
+        self._stats = {"submitted": 0, "accepted": 0, "ok": 0,
+                       "failed": 0, "in_flight": 0, "executed": 0,
+                       "dropped": 0, "dropped_critical": 0,
+                       "rejected_after_seal": 0, "io_stuck": False}
+        self._failures: list[dict[str, Any]] = []  # 有界失败摘要
+        self._sealed = False
         self._thread = threading.Thread(
             target=self._loop, name="r17-io-writer", daemon=True)
         self._thread.start()
 
     def _loop(self) -> None:
         while True:
-            fn = self._q.get()
-            try:
-                fn()
-            except BaseException:  # noqa: BLE001 —— 写线程永不死亡
-                pass
+            act = self._q.get()
+            ok = False
+            err: str | None = None
             with self._lock:
-                self._stats["executed"] += 1
+                self._stats["in_flight"] += 1
+            try:
+                act["fn"]()
+                ok = True
+            except BaseException as exc:  # noqa: BLE001 —— 写线程
+                err = f"{type(exc).__name__}:{exc}"[:200]  # 永不死亡
+            with self._lock:
+                self._stats["in_flight"] -= 1
+                if ok:
+                    self._stats["ok"] += 1
+                else:
+                    self._stats["failed"] += 1
+                    if len(self._failures) < 32:
+                        self._failures.append({
+                            "role": act.get("role") or "",
+                            "critical": bool(act.get("critical")),
+                            "error": err})
+                self._stats["executed"] = (self._stats["ok"] +
+                                           self._stats["failed"])
+            self._q.task_done()
 
-    def submit(self, fn, *, critical: bool = False) -> bool:
+    def submit(self, fn, *, critical: bool = False,
+               role: str = "") -> bool:
+        with self._lock:
+            if self._sealed:
+                self._stats["rejected_after_seal"] += 1
+                return False
+        act = {"fn": fn, "critical": critical, "role": role}
         try:
-            self._q.put_nowait(fn)
+            self._q.put_nowait(act)
         except Exception:  # noqa: BLE001 —— queue.Full
             with self._lock:
                 self._stats["dropped"] += 1
@@ -869,26 +973,42 @@ class BoundedIOWriter:
             return False
         with self._lock:
             self._stats["submitted"] += 1
+            self._stats["accepted"] += 1
         return True
 
     def drain(self, timeout: float) -> int:
-        """有界等待积压清空;返回剩余 pending 数(>0=写入未完成)。"""
+        """有界等待已接受动作全部**成功完成**(§5.2)。
+
+        返回未完成数(在途/排队/失败之和;>0=封口未达成——失败
+        同样不能宣称完成)。队列为空但仍有在途动作时必须等待,
+        超时如实返回;不无限 join,不清空队列把未完成变完成。
+        """
         deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
+        while True:
             with self._lock:
-                if self._q.empty():
-                    return 0
+                live = self._q.qsize() + self._stats["in_flight"]
+                if live == 0:
+                    return self._stats["failed"]
+            if time.monotonic() >= deadline:
+                with self._lock:
+                    live = self._q.qsize() + self._stats["in_flight"]
+                    if live:
+                        self._stats["io_stuck"] = True
+                    return live + self._stats["failed"]
             time.sleep(0.02)
+
+    def seal(self) -> None:
+        """封口边界:此后新提交被拒(已接受动作照常执行/可 drain;
+        §5.2/§5.3——成功发布后不得再有迟写)。"""
         with self._lock:
-            pending = self._q.qsize()
-            if pending:
-                self._stats["io_stuck"] = True
-            return pending
+            self._sealed = True
 
     def stats(self) -> dict[str, Any]:
         with self._lock:
             out = dict(self._stats)
-        out["pending"] = self._q.qsize()
+            out["failures"] = list(self._failures)
+            out["queued"] = self._q.qsize()
+        out["pending"] = out["queued"]
         return out
 
 
@@ -952,6 +1072,8 @@ class Supervisor:
         # B2:异步 I/O 执行单元(控制路径永不同步等待日志/告警写)
         self.iow = BoundedIOWriter()
         self._io_lost_critical_seen = 0
+        # WP2:分批封口状态(drain 未确认数;0=alerts 批全部成功)
+        self._io_drain_unconfirmed = 0
         # B4:leader 退出后的残留核验状态
         self._desc_check_done = False
         self._residual_handled = False
@@ -1073,13 +1195,18 @@ class Supervisor:
 
     # ---------------- 基础 IO(B2:全部经有界队列,控制路径不等待) --
     def _log_sync(self, obj: dict[str, Any]) -> None:
-        """alerts.jsonl 追加写(在 I/O 执行线程内运行)。"""
+        """alerts.jsonl 追加写(在 I/O 执行线程内运行)。
+
+        失败计数保留在 Supervisor 属性(摘要披露),同时**上抛**让
+        writer 计 failed——回调吞错不是成功(§5.1)。
+        """
         try:
             with self.alerts_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(obj, ensure_ascii=False,
                                     separators=(",", ":")) + "\n")
         except OSError:
             self.log_failures += 1
+            raise
 
     def log(self, obj: dict[str, Any]) -> None:
         obj = dict(obj)
@@ -1087,7 +1214,8 @@ class Supervisor:
         obj.setdefault("mono", round(time.monotonic() - self.t0, 1))
         obj.setdefault("run_id", self.run_id)
         self.iow.submit(lambda: self._log_sync(obj),
-                        critical=obj.get("severity") == "CRITICAL")
+                        critical=obj.get("severity") == "CRITICAL",
+                        role="alerts")
 
     def safe_log(self, obj: dict[str, Any]) -> None:
         """尽力而为日志:投递失败计数并继续(不阻断保护路径)。"""
@@ -1097,8 +1225,10 @@ class Supervisor:
         try:
             print(f"{tag} {line}", flush=True)
         except (BrokenPipeError, OSError, ValueError):
-            # ValueError: 已关闭流;BrokenPipe:消费者离开;均只计数
+            # ValueError: 已关闭流;BrokenPipe:消费者离开;计数保留
+            # 在 Supervisor 属性,同时上抛让 writer 计 failed(§5.1)
             self.stdout_failures += 1
+            raise
 
     def stdout_line(self, tag: str, obj: dict[str, Any]) -> None:
         """递交面:宿主后台任务输出(TaskOutput 周期接收=模式 B)。
@@ -1112,7 +1242,7 @@ class Supervisor:
         obj.setdefault("run_id", self.run_id)
         line = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
         self.iow.submit(lambda: self._stdout_sync(tag, line),
-                        critical=tag == "R17ALERT")
+                        critical=tag == "R17ALERT", role="stdout")
 
     # ---------------- 递交 ----------------
     def deliver(self, action: str, incident: Incident,
@@ -1292,8 +1422,11 @@ class Supervisor:
         self.win_proc = subprocess.Popen(
             argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             start_new_session=True)
-        self.win_reader = WinSampleReader(self.win_path_guest,
-                                          run_id=self.run_id)
+        self.win_reader = WinSampleReader(
+            self.win_path_guest, run_id=self.run_id,
+            started_iso=self._started_utc,
+            predates_tolerance_s=self.policy["startup_admission"][
+                "source_utc_tolerance_s"])
         self.win_sampler_started = True
         self.log({"event": "win_sampler_started",
                   "interop_pid": self.win_proc.pid,
@@ -1446,7 +1579,8 @@ class Supervisor:
         也不以恒真条件放开目录检查。目录未知/不可写:事件只能留在
         内存中的告警流与 stderr(如实缺失,不伪造成功)。
         """
-        self.iow.submit(lambda: self._emergency_sync(obj), critical=True)
+        self.iow.submit(lambda: self._emergency_sync(obj),
+                        critical=True, role="emergency")
 
     # ---------------- 摘要与 run_record ----------------
     def write_summary(self) -> dict[str, Any]:
@@ -1497,6 +1631,21 @@ class Supervisor:
                                   "run_id": self.run_id,
                                   "summary": summary})
         return summary
+
+    def _evidence_ok(self, missing: list[str]) -> bool:
+        """§5.4:文件存在≠证据完整。完整=必需角色全 present + 写入
+        封口干净(drain 未确认=0、无失败写动作、无关键丢弃)。"""
+        if missing:
+            return False
+        if self._io_drain_unconfirmed:
+            return False
+        st = self.iow.stats() if self.iow else {}
+        if st.get("failed") or st.get("io_stuck") or \
+                st.get("queued") or st.get("in_flight"):
+            return False
+        if st.get("dropped_critical"):
+            return False
+        return True
 
     def finalize_run_record(self) -> Path:
         """run_record.json(schema v2;build 必需集合来源;原子写)。
@@ -1557,17 +1706,47 @@ class Supervisor:
             "policy": {"id": self.policy["policy_id"],
                        "sha256": policy_digest(self.policy)},
             "required": required,
-            "evidence_complete": not missing,
+            "evidence_complete": self._evidence_ok(missing) and
+            not writers_live,
             "missing_roles": missing,
             "io": self.iow.stats() if self.iow else None,
             "finalized": True,
         }
-        self._evidence_complete = not missing
+        self._evidence_complete = rec["evidence_complete"]
         tmp = self.run_dir / ".run_record.tmp"
         tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1),
                        encoding="utf-8")
         tmp.replace(self.run_dir / "run_record.json")
         return self.run_dir / "run_record.json"
+
+    def _observe_business_exit(self) -> None:
+        """业务退出观察(幂等):记录真实 rc/signal 与 business_exited。
+
+        同一轮主循环内,退出条件块的 poll 可能先于下一轮监控段
+        看到退出(TERM 后即死形态);break 前必须经本方法取得真实
+        rc——任务树消失不等于已取得退出码,取得前不 break(§7.2),
+        不能因观察时序把真实 rc 丢成 None。
+        """
+        if self.biz_proc is None or self.biz_proc.poll() is None:
+            return
+        rc = self.biz_proc.returncode
+        self.biz_rc = rc
+        self.biz_signal = f"SIG{-rc}" if rc < 0 else None
+        if not self._business_end_logged:
+            self._business_end_logged = True
+            patterns = self._scan_business_stderr()
+            self.log({"event": "business_exited", "rc": rc,
+                      "stderr_patterns": patterns})
+            self.stdout_line("R17LOG", {"event": "business_exited",
+                                        "rc": rc})
+            if rc != 0:
+                trig = {"kind": "worker_exit", "severity": "WORKER",
+                        "detail": f"业务进程 rc={rc}" +
+                        (f";stderr 尾部含 {patterns}"
+                         if patterns else ""),
+                        "metrics": {"rc": rc, "patterns": patterns}}
+                self.handle_triggers([trig])
+            self.mark_stage("business_exited", f"rc={rc}")
 
     # ---------------- 主循环 ----------------
     def run(self) -> int:
@@ -1590,7 +1769,7 @@ class Supervisor:
         win_started = self.start_win_sampler()
         self.guest_sampler = GuestSampler(
             emit=lambda rec: self._emit_guest(rec), interval=5.0,
-            detail_interval=30.0)
+            detail_interval=30.0, run_id=self.run_id)
         # 样本回放模式(测试输入源):不启动线程,由文件喂样本
         replay = self.args.samples_source.startswith("file:") if \
             self.args.samples_source else False
@@ -1716,27 +1895,10 @@ class Supervisor:
                             self.obs_ready_at_mono + grace:
                         st = 0.0
                     stale_map[src] = st
-            # ---- 业务退出监控 ----
-            if self.biz_proc is not None and self.biz_proc.poll() is not None:
-                rc = self.biz_proc.returncode
-                self.biz_rc = rc
-                self.biz_signal = f"SIG{-rc}" if rc < 0 else None
-                if not self._business_end_logged:
-                    self._business_end_logged = True
-                    patterns = self._scan_business_stderr()
-                    self.log({"event": "business_exited", "rc": rc,
-                              "stderr_patterns": patterns})
-                    self.stdout_line("R17LOG", {"event": "business_exited",
-                                                "rc": rc})
-                    if rc != 0:
-                        trig = {"kind": "worker_exit", "severity": "WORKER",
-                                "detail": f"业务进程 rc={rc}" +
-                                (f";stderr 尾部含 {patterns}"
-                                 if patterns else ""),
-                                "metrics": {"rc": rc,
-                                            "patterns": patterns}}
-                        self.handle_triggers([trig])
-                    self.mark_stage("business_exited", f"rc={rc}")
+            # ---- 业务退出监控(WP2/§7.2:rc 观察与退出条件统一;
+            # 同轮竞态下退出条件块的 poll 可能先看到退出——两处
+            # 都经幂等观察方法,真实 rc 不得因 break 时序丢失) ----
+            self._observe_business_exit()
             # ---- 保护轮询(B2:控制动作零 I/O;日志在动作后递交) ----
             if self.protector:
                 self.protector.poll(mono)
@@ -1773,6 +1935,10 @@ class Supervisor:
             # ---- B4:退出条件(正常 leader 退出≠任务树结束;§7.1) ----
             biz_done = self.biz_proc is not None and \
                 self.biz_proc.poll() is not None
+            if biz_done:
+                # 同轮竞态:此处 poll 先看到退出时,统一经幂等观察
+                # 取得真实 rc(不能因 break 时序把 rc 丢成 None)
+                self._observe_business_exit()
             prot_pending = self.protector is not None and \
                 self.protector.requested_at is not None and \
                 self.protector.terminal_at is None
@@ -2014,16 +2180,19 @@ class Supervisor:
     # ---------------- B1/WP1:启动资源准入 ----------------
     def admission_check(self, win: dict | None,
                         guest: dict | None) -> tuple[bool, str]:
-        """有效≠可开始重任务:就绪通过后再做工程资源准入(§4.2)。
+        """有效≠可开始重任务:就绪通过后再做工程资源准入(§4.2/§6)。
 
-        默认新重任务要求:win 可用内存≥8GiB、commit<90%、guest
-        MemAvailable≥4GiB、关键输出卷 present 且 free≥20GiB、
-        未命中 300GiB 存储上限。缺某侧有效数据时按"不可判定"拒绝
-        (不放宽准入);零可用内存=有效但危险→同样拒绝。这是工程
-        准入条件,不是课程 gate;不为了开始任务临时放宽。
+        WP3(result-seal)修复:按**必需依赖集合**(keyvol_required,
+        从部署映射固定;不以样本里恰好出现哪些卷决定必需)逐项要求
+        完整有效状态——缺记录/present=false/free unknown/身份不核
+        实/必要输出不可写/存储用量 unknown 均拒绝(unknown≠安全);
+        登记的应急备用卷(C:)缺失只降级记录不阻断;非必需卷(如 E)
+        离线不产生任何阻断。零可用内存=有效但危险→同样拒绝。
+        这是工程准入条件,不是课程 gate;不为了开始任务临时放宽。
         """
         sa = self.policy["startup_admission"]
         reasons: list[str] = []
+        optional_degraded: list[str] = []
         ok, _ = validate_win_sample(win, run_id=getattr(
             self.win_reader, "run_id", None) if self.win_reader else None)
         if not ok:
@@ -2039,15 +2208,56 @@ class Supervisor:
             if pct >= sa["win_commit_max_pct"]:
                 reasons.append(
                     f"win_commit {pct:.1f}%>={sa['win_commit_max_pct']}%")
+            # ---- 必需卷:每项完整有效状态(§6.2 表) ----
             vols = win.get("vols") or []
-            present = [v for v in vols
-                       if isinstance(v, dict) and v.get("present")]
-            if present and min(v.get("free_gb", 0) for v in present) < \
-                    sa["keyvol_min_free_gib"]:
-                low = min((v.get("free_gb", 0) for v in present),
-                          default=None)
-                reasons.append(
-                    f"keyvol_free {low}GiB<{sa['keyvol_min_free_gib']}GiB")
+            by_vol: dict[str, dict] = {}
+            for v in vols:
+                if not isinstance(v, dict):
+                    reasons.append("vol_record_invalid")
+                    continue
+                key = str(v.get("vol") or "").strip().upper()
+                if not key:
+                    reasons.append("vol_record_invalid:no_vol_key")
+                    continue
+                if key in by_vol:
+                    # 必要卷重复/冲突记录:拒绝,不任选有利一条
+                    reasons.append(f"vol_duplicate:{key}")
+                    continue
+                by_vol[key] = v
+            for req in sa["keyvol_required"]:
+                v = by_vol.get(req)
+                if v is None:
+                    reasons.append(f"required_vol_missing:{req}")
+                    continue
+                if not v.get("present"):
+                    reasons.append(f"required_vol_absent:{req}")
+                    continue
+                free = v.get("free_gb")
+                if not _finite_num(free):
+                    reasons.append(f"required_vol_free_unknown:{req}")
+                elif free < sa["keyvol_min_free_gib"]:
+                    reasons.append(
+                        f"keyvol_free {req} {free:.1f}GiB"
+                        f"<{sa['keyvol_min_free_gib']}GiB")
+                if v.get("identity_match") is not True:
+                    reasons.append(
+                        f"required_vol_identity_unverified:{req}")
+            for opt in sa["keyvol_optional"]:
+                v = by_vol.get(opt)
+                if not isinstance(v, dict) or not v.get("present"):
+                    # 登记的应急备用:如实降级,不擅自升级为阻断
+                    optional_degraded.append(opt)
+            # ---- 必要输出可写性(运行用户对实际必要目录;§6.1) ----
+            # win 侧:遥测输出目录探针(ps1 首样本即带;unknown≠true)
+            if win.get("telemetry_out_writable") is not True:
+                reasons.append("telemetry_out_unwritable_or_unknown")
+            # Linux 侧:本 run 目录探针(写自己的已登记测试文件后删)
+            probe = self.run_dir / ".admission_probe"
+            try:
+                probe.write_text("probe", encoding="utf-8")
+                probe.unlink()
+            except OSError:
+                reasons.append("run_dir_unwritable")
         gok, _ = validate_guest_sample(guest)
         if not gok:
             reasons.append("guest_sample_invalid")
@@ -2057,16 +2267,29 @@ class Supervisor:
                 reasons.append(
                     f"guest_avail {avail:.1f}GiB"
                     f"<{sa['guest_avail_min_gib']}GiB")
+        # ---- 时间基线(§6.3):旧日志重放不得通过 ----
+        tol = sa["source_utc_tolerance_s"]
+        for name, rec in (("win", win), ("guest", guest)):
+            if not isinstance(rec, dict):
+                continue
+            u = _parse_utc_iso(rec.get("utc"))
+            started = _parse_utc_iso(self._started_utc)
+            if u is not None and started is not None and \
+                    (started - u).total_seconds() > tol:
+                reasons.append(f"{name}_sample_predates_run")
+        # ---- Linux 根卷使用量:unknown=不可判定,拒绝(§6.2) ----
         try:
             used = self._storage_used_gib()
-        except Exception:  # noqa: BLE001 —— df 失败按不可判拒绝
+        except Exception:  # noqa: BLE001 —— 查询失败按不可判拒绝
             used = None
-        if used is not None and used >= self.policy["storage"][
-                "ceiling_gib"]:
+        if used is None:
+            reasons.append("storage_unknown")
+        elif used >= self.policy["storage"]["ceiling_gib"]:
             reasons.append(
                 f"storage {used:.1f}GiB>=ceiling"
                 f"{self.policy['storage']['ceiling_gib']}GiB")
         self.admission = {"ok": not reasons, "reasons": reasons,
+                          "optional_degraded": optional_degraded,
                           "checked_utc": utc_now_iso()}
         return not reasons, ";".join(reasons) or "ok"
 
@@ -2140,10 +2363,15 @@ class Supervisor:
         self.log({"event": "supervisor_end",
                   "incidents": len(self.incidents),
                   "business_rc": self.biz_rc})
-        self.iow.drain(15.0)
+        # §5.3 分批封口:producer 已停(samplers/protector 内存日志
+        # 已 flush);drain(15) 确认 alerts 批**全部成功完成**——
+        # 在途/失败/超时都算未确认,进入 evidence_complete 判定,
+        # 不签"完成"字样。
+        self._io_drain_unconfirmed = self.iow.drain(15.0)
         summary = self.write_summary()
-        self.iow.drain(5.0)
         rr = self.finalize_run_record()
+        # 递交通知(独立后置位置;stdout 非交付文件,不追加已封口
+        # alerts/summary)先于 seal 提交,保证退出通知尽力送达。
         self.stdout_line("R17LOG", {"event": "supervisor_end",
                                     "run_dir": str(self.run_dir),
                                     "incidents": len(self.incidents),
@@ -2151,6 +2379,9 @@ class Supervisor:
                                     "summary": str(self.run_dir /
                                                    "summary.json"),
                                     "run_record": str(rr)})
+        # §5.2/§5.3 封口边界:run_record 哈希之后拒绝一切新提交
+        # (迟到写入被拒并计数,不改动已封口文件;不伪装成功处理)。
+        self.iow.seal()
 
 
 def main() -> int:

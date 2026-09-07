@@ -35,6 +35,8 @@ def _find_runner_dir() -> Path:
 RUNNER_DIR = _find_runner_dir()
 sys.path.insert(0, str(RUNNER_DIR))
 
+from itertools import count as _it_count
+
 from r17_guest_sampler import (  # noqa: E402
     PAGE_SIZE, GuestSampler, parse_proc_stat, parse_statm, proc_table,
     task_tree)
@@ -46,8 +48,34 @@ requires_linux = pytest.mark.skipif(
     os.name == "nt", reason="监护执行面只在 Linux/WSL 跑")
 
 
-def _win(perf=None, vols=None):
-    return {"event": "sample", "perf": perf, "vols": vols or []}
+_WIN_SEQ = _it_count()
+
+
+def _utc_now_plus(offset_s: int = 0) -> str:
+    import datetime as _dt
+    t = (_dt.datetime.now(_dt.timezone.utc) +
+         _dt.timedelta(seconds=offset_s))
+    return t.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _vols_ok():
+    """必需卷完整有效状态(F: required+C: optional;WP3 §6.2)。"""
+    return [{"vol": "F:", "present": True, "free_gb": 100.0,
+             "size_gb": 500.0, "serial": "CFA1", "identity_match": True},
+            {"vol": "C:", "present": True, "free_gb": 200.0,
+             "size_gb": 900.0, "serial": "CCA1", "identity_match": True}]
+
+
+def _win(perf=None, vols=None, telemetry_writable=True):
+    n = next(_WIN_SEQ)
+    line = {"event": "sample", "perf": perf if perf is not None
+            else _perf(),
+            "utc": _utc_now_plus(n % 30),
+            "seq": n,
+            "vols": vols if vols is not None else _vols_ok()}
+    if telemetry_writable is not None:
+        line["telemetry_out_writable"] = telemetry_writable
+    return line
 
 
 def _perf(free=39.0, ct=38.0, cl=83.0):
@@ -55,17 +83,16 @@ def _perf(free=39.0, ct=38.0, cl=83.0):
             "commit_limit_gb": cl, "phys_total_gb": 63.0}
 
 
-from itertools import count as _it_count
-
 _GUEST_SEQ = _it_count()
 
 
 def _guest(avail_kb=39_000_000, psi=0.0, pswpout=0):
     # B1:有效 guest 样本需 MemTotal/MemAvailable(kB)与 utc 身份;
-    # utc 按调用序号递增(重复调用=新样本,供持续窗口累计)
+    # utc 动态生成且按调用序号递增(重复调用=新样本,供持续窗口
+    # 累计;WP3 时间基线:固定旧日期会被 predates 防护拒收)
     n = next(_GUEST_SEQ)
     return {"event": "guest_sample",
-            "utc": f"2026-09-07T00:{n // 60:02d}:{n % 60:02d}Z",
+            "utc": _utc_now_plus(n % 30),
             "meminfo": {"MemTotal": 40_000_000,
                         "MemAvailable": avail_kb},
             "psi_memory": {"full_avg10": psi},
@@ -629,12 +656,12 @@ class TestSupervisorE2E:
         samples.write_text(
             json.dumps({"win": _win(_perf(), [
                 {"vol": "F:", "present": True,
-                 "free_gb": 100.0,
-                 "writable": True}]),
+                 "free_gb": 100.0, "serial": "CFA1",
+                 "identity_match": True}]),
                 "guest": _guest()}) + "\n" +
             json.dumps({"win": _win(_perf(), [
                 {"vol": "F:", "present": True, "free_gb": 3.0,
-                 "writable": True}]),
+                 "serial": "CFA1", "identity_match": True}]),
                 "guest": _guest()}) + "\n" +
             json.dumps({"win": _win(_perf()), "guest": _guest()}) + "\n",
             encoding="utf-8")
@@ -650,7 +677,9 @@ class TestSupervisorE2E:
         assert '"event":"sigterm_sent"' in alerts
         summary = json.loads(
             (run_dir / "summary.json").read_text(encoding="utf-8"))
-        assert summary["business"]["rc"] < 0
+        assert summary["business"]["rc"] < 0, (
+            "biz_rc 未记录(竞态);supervisor stdout 尾部: "
+            + proc.stdout[-1500:])
         assert not summary["stop_requested_reasons"] is False
         # marker 无消费者测试的反向:这里 marker 即被消费(停止已执行)
         assert summary["business"]["protector"]["term_sent"] is True

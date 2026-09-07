@@ -3628,7 +3628,9 @@ def cmd_real_artifact_rehearsal(args: argparse.Namespace) -> int:
     covered: dict[str, Any] = {}
     for step in plan["steps"]:
         rec = records_by_step.get(step["name"], {})
-        step_ok = rec.get("rc") == 0
+        # WP1:有效结果优先(旧记录无 effective_result 时按 rc 兼容)
+        step_ok = rec.get("rc") == 0 and \
+            rec.get("effective_result", "completed") == "completed"
         ins_ok = all(v is not None for v in
                      (rec.get("input_artifacts") or {}).values())
         outs_ok = all(v is not None for v in
@@ -3812,6 +3814,12 @@ def cmd_verify_formal_logs(args: argparse.Namespace) -> int:
                 problems.append(f"步骤 {r.get('step')} 缺字段 {key}")
         if int(r.get("rc", 1)) != 0:
             problems.append(f"步骤 {r.get('step')} rc!=0")
+        elif r.get("effective_result", "completed") != "completed":
+            # WP1 §4.2:raw rc=0 但协议/撤权/终态未闭合的有效失败
+            # 同样构成问题(旧记录无该字段时按 rc 兼容)。
+            problems.append(
+                f"步骤 {r.get('step')} effective_failure="
+                f"{r.get('effective_failure')}(raw rc=0 不构成成功)")
     result = {"format": "cur261-r17-formal-log-verify-v2",
               "workflow_graph_digest": r17_workflow_graph_digest(),
               "expected_steps": expected, "actual_steps": steps,

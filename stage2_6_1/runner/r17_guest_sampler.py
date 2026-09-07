@@ -262,13 +262,18 @@ class GuestSampler(threading.Thread):
     def __init__(self, emit, interval: float = 5.0,
                  detail_interval: float = 30.0,
                  pgids: set[int] | None = None,
-                 root_pids: set[int] | None = None):
+                 root_pids: set[int] | None = None,
+                 run_id: str | None = None):
         super().__init__(daemon=True, name="r17-guest-sampler")
         self.emit = emit
         self.interval = interval
         self.detail_interval = detail_interval
         self.pgids = pgids or set()
         self.root_pids = root_pids or set()
+        # WP3 §6.3:live 样本身份(绑定本次 run+源序号;同 seq 重复
+        # 消费不增加有效样本数)
+        self.run_id = run_id
+        self._seq = 0
         self._stop_event = threading.Event()
         self._last_detail = -1e9
         # 实例身份:pid -> starttime_ticks(PID 复用检测)
@@ -286,15 +291,18 @@ class GuestSampler(threading.Thread):
 
     def _sample(self, mono: float) -> dict:
         t0 = time.monotonic()
+        self._seq += 1
         rec: dict = {
             "event": "guest_sample", "utc": utc_now_iso(),
-            "mono": round(mono, 3),
+            "mono": round(mono, 3), "seq": self._seq,
             "meminfo": read_meminfo(),
             "psi_memory": read_psi("/proc/pressure/memory"),
             "psi_cpu": read_psi("/proc/pressure/cpu"),
             "psi_io": read_psi("/proc/pressure/io"),
             "vmstat_swap": read_vmstat_swap(),
         }
+        if self.run_id is not None:
+            rec["run_id"] = self.run_id
         table = proc_table()
         if self.pgids or self.root_pids:
             pids = task_tree(table, self.pgids, self.root_pids)
