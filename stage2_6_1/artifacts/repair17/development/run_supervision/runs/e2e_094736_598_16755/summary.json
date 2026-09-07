@@ -1,0 +1,141 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "e2e_094736_598_16755",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "e8d6bcd40d42720dd4c8aa294ce54c9a55198b5956571039a974ae332659ec74",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 90"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 7502,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "keyvol: 关键卷 F: 可用 3.0GiB < 5.0GiB"
+ ],
+ "incidents": [
+  {
+   "incident_id": "e2e_094736_598-keyvol-0",
+   "kind": "keyvol",
+   "detail": "关键卷 F: 可用 3.0GiB < 5.0GiB",
+   "severity": "CRITICAL",
+   "first_seen_mono": 0.5,
+   "last_seen_mono": 0.5,
+   "samples": 1,
+   "peak": {
+    "vol": "F:",
+    "present": true,
+    "free_gb": 3.0,
+    "writable": true
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "e2e_094736_598-worker_exit-0",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 0.5,
+   "last_seen_mono": 0.5,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.4774085550000109,
+  "win_last_mono": 0.4774085550000109,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.4169894479998675,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "checked_utc": "2026-09-07T01:47:36Z"
+ },
+ "io": {
+  "submitted": 22,
+  "executed": 22,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "io_stuck": false,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "telemetry_bytes": 3372,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.4s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:47:36Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 7500,
+  "windows": null
+ },
+ "written_utc": "2026-09-07T01:47:37Z"
+}

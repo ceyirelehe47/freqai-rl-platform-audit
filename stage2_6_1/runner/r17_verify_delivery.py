@@ -93,8 +93,9 @@ def cmd_build(args: argparse.Namespace) -> int:
     if not isinstance(required, list) or not required:
         raise UsageError("run_record.required 缺失或为空")
     # S5(v2):缺件保留为缺件——build 允许组包(清单反映现实),
-    # 但 evidence_incomplete 如实透传,verify 据此 FAIL;不得以
-    # 跳过/external/optional 恢复完整。
+    # 但 evidence_incomplete 如实透传,verify 据此 FAIL;缺口集合
+    # 记入交付锚(B5:清单反映现实,不以跳过/external/optional 恢复
+    # 完整)。
     missing_roles = [str(i.get("role"))
                      for i in required if isinstance(i, dict)
                      and str(i.get("status", "present")) != "present"
@@ -156,6 +157,9 @@ def cmd_build(args: argparse.Namespace) -> int:
         "run_record_sha256": rr_sha,
         "root": str(root), "built_utc": utc_now(),
         "git_commit": None, "manifest_blob_id": None,
+        # B5:运行前登记但结束时缺失的角色集合(清单反映现实;
+        # verify 对 v2 缺件 FAIL evidence_incomplete)
+        "missing_roles": missing_roles,
     }
     anchor_out.parent.mkdir(parents=True, exist_ok=True)
     anchor_out.write_text(json.dumps(anchor, ensure_ascii=False, indent=1),

@@ -29,6 +29,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,20 @@ from rl_curriculum.curriculum261_r15_workflow import (
 )
 
 R17_WORKFLOW_VERSION = "AuthoritativeWorkflow-v1"
+
+#: B3/WP3:资格握手协议保护参数(工程协议时限,非领域/统计参数;
+#: 失败后不得临时延长——§6.2)。
+QUALIFY_HANDSHAKE_DEADLINE_S = 30.0
+QUALIFY_HANDSHAKE_MAX_BYTES = 16 * 1024
+QUALIFY_DELEGATION_RC = 98  # 委派协议失败(spawn/握手/token;区别业务 rc)
+
+
+class _DelegationError(RuntimeError):
+    """委派协议失败(阶段+原因入 delegation 记录;不静默)。"""
+
+
+class _DelegationCancelled(RuntimeError):
+    """停止请求先于授权/响应被接受(取消语义;§6.3)。"""
 
 #: rehearsal 专属链外尾步(继承 R15 语义)。
 R17_REHEARSAL_ONLY_TAIL: tuple[str, ...] = ("fail-closure-rehearsal",)
@@ -593,13 +608,15 @@ def execute_workflow_chain_r17(
             # "已开始但失败";§9.4 状态语义)
             session.record_step_started(name)
             if rc == 0:
-                rc, signal_info = _run_step_subprocess(
-                    argv, cwd=str(project_dir), env=env,
-                    log_path=log_path, err_path=err_path,
-                    step=name, session=session, plan=plan,
-                    profile=profile, out_dir=out_dir,
-                    stop_state=stop_state)
+                rc, signal_info, delegation_summary = \
+                    _run_step_subprocess(
+                        argv, cwd=str(project_dir), env=env,
+                        log_path=log_path, err_path=err_path,
+                        step=name, session=session, plan=plan,
+                        profile=profile, out_dir=out_dir,
+                        stop_state=stop_state)
             else:
+                delegation_summary = None
                 # 前置/后置条件失败:零字节真实文件仍要存在(§8.4)
                 log_path.write_text("", encoding="utf-8")
                 detail = ("PrerequisiteError: 缺少前置产物 "
@@ -637,6 +654,8 @@ def execute_workflow_chain_r17(
                 "stderr_bytes": err_path.stat().st_size,
                 "input_artifacts": in_shas,
                 "output_artifacts": out_shas,
+                # B3:qualify 委派生命周期摘要(无 token 明文)
+                "delegation": delegation_summary,
             }
             records.append(rec)
             with manifest_path.open("a", encoding="utf-8") as mf:
@@ -682,7 +701,7 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                          plan: dict[str, Any], profile: str,
                          out_dir: Path,
                          stop_state: dict[str, Any] | None = None,
-                         ) -> tuple[int, int | None]:
+                         ) -> tuple[int, int | None, dict[str, Any] | None]:
     """流式 raw logs 的步骤 subprocess(§8.4);qualify 走委派协议。
 
     stdout/stderr 直接重定向到已打开的文件句柄:数据经 OS 管道
@@ -690,50 +709,146 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
     保留在文件中。stop_state(监护联动)登记当前 proc:协调者
     收到停止信号时先 terminate worker(self 委派路径的 revoke/
     terminal 既有逻辑随后按真实 rc/signal 收口)。
+
+    B3/WP3 修复:
+    - spawn 成功后父进程**立即关闭**自己不使用的 pipe 端
+      (w_reg/r_tok)——EOF 依赖全部写端关闭;父持有 w_reg 会使
+      worker 死后 r_reg 永无 EOF,readline 无限阻塞(pipe(7));
+    - 握手经 selectors 有界等待(30s 总 deadline、16KiB 上限;
+      处理 EOF/半行/坏 JSON/超长/worker 退出/已接受取消);
+    - spawn 失败、握手异常、取消、正常完成全部经同一 fd 清理
+      (幂等 _close_fd;引用置 None 防 FD 复用误关)。
+    返回 (rc, signal_info, delegation_summary);qualify 之外
+    步骤的第三项为 None。
     """
     pass_fds: tuple[int, ...] = ()
     extra_args: list[str] = []
-    delegation = None
+    delegation: dict[str, Any] | None = None
     if step == "qualify":
         delegation = _qualify_delegation_open(
             session, plan, profile, out_dir)
-        pass_fds = delegation["pass_fds"]
+        pass_fds = tuple(fd for fd in delegation["pass_fds"]
+                         if fd is not None)
         extra_args = ["--await-delegation",
                       str(delegation["write_fd"]),
                       str(delegation["read_fd"])]
-    with open(log_path, "wb", buffering=0) as lf, \
-            open(err_path, "wb", buffering=0) as ef:
-        proc = subprocess.Popen(
-            [*argv, *extra_args], cwd=cwd, env=env,
-            stdout=lf, stderr=ef, pass_fds=pass_fds)
+    proc: subprocess.Popen | None = None
+    rc = QUALIFY_DELEGATION_RC
+    spawn_error: str | None = None
+    try:
+        with open(log_path, "wb", buffering=0) as lf, \
+                open(err_path, "wb", buffering=0) as ef:
+            try:
+                proc = subprocess.Popen(
+                    [*argv, *extra_args], cwd=cwd, env=env,
+                    stdout=lf, stderr=ef, pass_fds=pass_fds)
+            except OSError as exc:
+                # 不提前 return:统一经 close 收口(terminal 必须提交;
+                # exposure 已持久化的失败阶段如实记录)
+                spawn_error = str(exc)[:300]
+                proc = None
+            if proc is not None:
+                # §6.1:父进程只保留 r_reg(读身份)/w_tok(写 token);
+                # worker 端 fd 的所有权在 worker,父端多余副本立即失效
+                if delegation is not None:
+                    _close_fd(delegation, "w_reg")
+                    _close_fd(delegation, "r_tok")
+                if stop_state is not None:
+                    stop_state["proc"] = proc
+                    # 竞态:等待登记期间已收到停止请求 → 立即补发
+                    if stop_state.get("requested") and \
+                            proc.poll() is None:
+                        try:
+                            proc.terminate()
+                        except OSError:
+                            pass
+                if delegation is not None:
+                    try:
+                        _qualify_delegation_handshake(
+                            session, delegation, proc, stop_state)
+                    except _DelegationCancelled:
+                        delegation["cancelled"] = True
+                        _terminate_and_wait(proc)
+                    except _DelegationError as exc:
+                        # 取消已被接受时的协议失败(EOF/超时等)归因于
+                        # 取消:第一原因是"停止请求先到",细节保留
+                        if stop_state is not None and \
+                                stop_state.get("requested"):
+                            delegation["cancelled"] = True
+                            delegation["cancel_detail"] = str(exc)[:300]
+                        else:
+                            delegation["protocol_error"] = str(exc)[:500]
+                        _terminate_and_wait(proc)
+                rc = proc.wait()
+    finally:
+        if delegation is not None and spawn_error is not None:
+            delegation["spawn_failed"] = spawn_error
+        for key in ("r_reg", "w_reg", "r_tok", "w_tok"):
+            if delegation is not None:
+                _close_fd(delegation, key)
         if stop_state is not None:
-            stop_state["proc"] = proc
-            # 竞态:等待登记期间已收到停止请求 → 立即补发
-            if stop_state.get("requested") and proc.poll() is None:
-                try:
-                    proc.terminate()
-                except OSError:
-                    pass
-        if delegation is not None:
-            _qualify_delegation_handshake(session, delegation, proc)
-        rc = proc.wait()
-    if stop_state is not None:
-        stop_state["proc"] = None
+            stop_state["proc"] = None
+        if proc is not None and proc.poll() is None:
+            # wait 未返回的兜底(如 wait 前异常;有界)
+            _terminate_and_wait(proc)
+            rc = proc.wait()
     signal_info = None
     if rc < 0:
         signal_info = -rc
+    summary = None
     if delegation is not None:
-        _qualify_delegation_close(session, delegation, rc,
-                                  signal_info)
-    return rc, signal_info
+        summary = _qualify_delegation_close(
+            session, delegation, rc, signal_info)
+    return rc, signal_info, summary
+
+
+def _terminate_and_wait(proc: subprocess.Popen,
+                        timeout: float = 10.0) -> None:
+    """受控终止 worker(委派失败/取消;有界等待;§6.4)。"""
+    try:
+        proc.terminate()
+    except OSError:
+        pass
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except OSError:
+            pass
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            pass
+
+
+def _close_fd(delegation: dict[str, Any], key: str) -> None:
+    """幂等关闭并使引用失效(防 FD 数值复用被旧 finally 误关)。"""
+    fd = delegation.get(key)
+    if fd is not None:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        delegation[key] = None
 
 
 def _qualify_delegation_open(session: "R17ChainSession",
                              plan: dict[str, Any], profile: str,
                              out_dir: Path) -> dict[str, Any]:
-    """qualify 委派准备:exposure 先行 + 双向 pipe(§6.3 顺序)。"""
+    """qualify 委派准备:exposure 先行 + 双向 pipe(§6.3 顺序)。
+
+    B3:exposure 的不可逆语义保留——后续 spawn/握手失败不退回
+    "未开始",失败阶段记录在 delegation。允许的 namespace 集合由
+    本次工程 profile/计划导出(plan.qualify_grant_namespaces 显式
+    子集;缺省=正式资格 namespace 集合)——worker 消息只能请求
+    该范围的子集,不能以自报列表扩大授权。
+    """
     from rl_curriculum.curriculum261_r17_registry import (
         qualification_r17_digest_path,
+    )
+    from rl_curriculum.curriculum261_r17_execgov import (
+        R17_FORMAL_QUALIFICATION_NAMESPACES,
     )
 
     if profile != "rehearsal":
@@ -745,70 +860,249 @@ def _qualify_delegation_open(session: "R17ChainSession",
         digest = "rehearsal"
         session.open_qualification_window(
             digest, note="qualify step delegation(rehearsal)")
+    allowed = tuple(plan.get("qualify_grant_namespaces")
+                    or R17_FORMAL_QUALIFICATION_NAMESPACES)
     r_reg, w_reg = os.pipe()   # worker → 协调者:实例身份
     r_tok, w_tok = os.pipe()   # 协调者 → worker:授权 token
     return {"r_reg": r_reg, "w_reg": w_reg, "r_tok": r_tok,
             "w_tok": w_tok, "pass_fds": (w_reg, r_tok),
             "write_fd": w_reg, "read_fd": r_tok,
             "plan_digest": digest, "grant": None,
-            "profile": profile}
+            "allowed_namespaces": allowed,
+            "profile": profile, "spawn_mono": None,
+            "cancelled": False, "protocol_error": None,
+            "spawn_failed": None, "token_delivery_failed": None,
+            "identity_verified": None, "revoke_error": None}
+
+
+def _read_pipe_line(fd: int, *, deadline_mono: float, max_bytes: int,
+                    ) -> bytes | None:
+    """有界读单行(\\n 终结;selectors 复用;§6.2)。
+
+    返回完整行(不含 \\n);None=EOF(全部写端已关);超时/超长抛
+    _DelegationError。等待循环每轮 ≤0.5s,使调用方能轮询取消与
+    worker 存活;不假设一次 select 的"可读"等于整条消息到达,
+    也不在"可读"后执行仍可能等待换行的无界 readline。
+    """
+    import selectors
+
+    buf = b""
+    sel = selectors.DefaultSelector()
+    sel.register(fd, selectors.EVENT_READ)
+    try:
+        while b"\n" not in buf:
+            remaining = deadline_mono - time.monotonic()
+            if remaining <= 0:
+                raise _DelegationError(
+                    f"handshake_deadline_exceeded(buf={len(buf)}B)")
+            events = sel.select(timeout=min(remaining, 0.5))
+            if not events:
+                continue
+            chunk = os.read(fd, 4096)
+            if not chunk:
+                return None  # EOF:全部写端已关(worker 退出等)
+            buf += chunk
+            if len(buf) > max_bytes:
+                raise _DelegationError(
+                    f"identity_message_oversized(>{max_bytes}B)")
+        line, _ = buf.split(b"\n", 1)
+        return line
+    finally:
+        sel.close()
+
+
+def _write_pipe_all(fd: int, data: bytes, *, deadline_mono: float) -> None:
+    """有界写全部字节(短写循环;可写等待;BrokenPipe 上抛)。"""
+    import selectors
+
+    sel = selectors.DefaultSelector()
+    sel.register(fd, selectors.EVENT_WRITE)
+    try:
+        view = memoryview(data)
+        while view:
+            remaining = deadline_mono - time.monotonic()
+            if remaining <= 0:
+                raise _DelegationError("token_write_deadline_exceeded")
+            events = sel.select(timeout=min(remaining, 0.5))
+            if not events:
+                continue
+            n = os.write(fd, view)
+            view = view[n:]
+    finally:
+        sel.close()
+
+
+def _proc_start_ticks(pid: int) -> int | None:
+    try:
+        with open(f"/proc/{pid}/stat") as fh:
+            text = fh.read()
+        rp = text.rindex(")")
+        return int(text[rp + 2:].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
 
 
 def _qualify_delegation_handshake(session: "R17ChainSession",
                                   delegation: dict[str, Any],
-                                  proc: subprocess.Popen) -> None:
-    """读取 worker 身份 → 发放绑定该身份的授权 → 下发 token。"""
-    import json as _json
+                                  proc: subprocess.Popen,
+                                  stop_state: dict[str, Any] | None,
+                                  ) -> None:
+    """读取 worker 身份 → 核对实际实例 → 发放绑定授权 → 下发 token。
 
-    with open(delegation["r_reg"], "r", encoding="utf-8") as fh:
-        line = fh.readline()
-    msg = _json.loads(line)
-    if msg.get("kind") != "executor_identity":
-        raise RuntimeError(
-            f"委派协议:worker 首消息类型异常 {msg.get('kind')!r}")
+    B3/WP3 修复(§6.2/§6.3):
+    - 身份接收与授权响应共用从 spawn 起算的 **30s 总 deadline**
+      (部分字节不重置);消息 ≤16KiB;EOF/半行/坏 JSON/超长均
+      有定义;
+    - 身份不只信自报:PID 必须等于实际 spawn 的 proc.pid,
+      starttime 与 /proc 实测一致;已退出的 worker 不能领 grant;
+    - namespace 集合只能请求既定范围子集(空/超范围=拒绝);
+    - grant 前、响应前重查取消与 worker 存活;取消先被接受时
+      不新建 grant、不发送 token;token 写失败(BrokenPipe)=
+      grant 已建未确认交付→由 close 统一 revoke,不补发。
+    """
+    delegation["spawn_mono"] = time.monotonic()
+    deadline = delegation["spawn_mono"] + QUALIFY_HANDSHAKE_DEADLINE_S
+
+    def _cancelled() -> bool:
+        return bool(stop_state is not None and
+                    stop_state.get("requested"))
+
+    if _cancelled():
+        raise _DelegationCancelled("supervision_stop_before_identity")
+    line = _read_pipe_line(delegation["r_reg"], deadline_mono=deadline,
+                           max_bytes=QUALIFY_HANDSHAKE_MAX_BYTES)
+    if line is None:
+        raise _DelegationError(
+            f"identity_pipe_eof(worker_rc={proc.poll()})")
+    try:
+        msg = json.loads(line.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise _DelegationError(f"identity_bad_json:{exc}") from exc
+    if not isinstance(msg, dict) or msg.get("kind") != "executor_identity":
+        bad_kind = msg.get("kind") if isinstance(msg, dict) else type(
+            msg).__name__
+        raise _DelegationError(f"identity_bad_kind:{bad_kind!r}")
+    ident = msg.get("identity")
     namespaces = tuple(msg.get("namespaces") or ())
+    # 身份核对:自报 PID=实际 spawn PID;starttime 与 /proc 实测一致
+    claimed_pid = ident.get("pid") if isinstance(ident, dict) else None
+    actual_ticks = _proc_start_ticks(proc.pid)
+    identity_verified = bool(
+        isinstance(ident, dict) and claimed_pid == proc.pid and
+        ident.get("starttime") and actual_ticks is not None and
+        int(ident["starttime"]) == actual_ticks and
+        proc.poll() is None)
+    delegation["identity_verified"] = identity_verified
+    if not identity_verified:
+        raise _DelegationError(
+            f"identity_mismatch(spawn_pid={proc.pid},"
+            f"claimed_pid={claimed_pid},claimed_start="
+            f"{ident.get('starttime') if isinstance(ident, dict) else None},"
+            f"actual_start={actual_ticks},alive={proc.poll() is None})")
+    allowed = tuple(delegation["allowed_namespaces"])
     if not namespaces:
-        raise RuntimeError("委派协议:worker 未声明授权 namespace 范围")
+        raise _DelegationError("namespaces_empty")
+    extra = [ns for ns in namespaces if ns not in allowed]
+    if extra:
+        raise _DelegationError(f"namespaces_out_of_scope:{extra[:3]}")
+    # grant 前:重查取消与 worker 存活(§6.3)
+    if _cancelled():
+        raise _DelegationCancelled("supervision_stop_before_grant")
+    if proc.poll() is not None:
+        raise _DelegationError("worker_exited_before_grant")
     grant = session.issue_generation_grant(
         namespaces=namespaces,
-        delegate_executor_identity=msg["identity"],
+        delegate_executor_identity=ident,
         channel="controlled_pipe")
     delegation["grant"] = grant
-    with open(delegation["w_tok"], "w", encoding="utf-8") as fh:
-        fh.write(_json.dumps(
-            {"kind": "grant_token", "token": grant.token,
-             "probe_namespace": namespaces[0]}) + "\n")
-        fh.flush()
+    # grant 已建、响应前:取消 → 该 grant 由 close 撤销,不补发
+    if _cancelled():
+        raise _DelegationCancelled("supervision_stop_after_grant")
+    token_msg = json.dumps(
+        {"kind": "grant_token", "token": grant.token,
+         "probe_namespace": namespaces[0]}) + "\n"
+    try:
+        _write_pipe_all(delegation["w_tok"], token_msg.encode("utf-8"),
+                        deadline_mono=time.monotonic() + 10.0)
+    except (BrokenPipeError, OSError) as exc:
+        # grant 已创建但未确认交付:不遗留有效权限(§6.4 close revoke)
+        delegation["token_delivery_failed"] = str(exc)[:200]
+        raise _DelegationError(
+            f"token_delivery_failed:{exc}") from exc
 
 
 def _qualify_delegation_close(session: "R17ChainSession",
                               delegation: dict[str, Any], rc: int,
-                              signal_info: int | None) -> None:
-    """worker 结束:revoke → 持权提交 qualification terminal(§6.3)。"""
+                              signal_info: int | None) -> dict[str, Any]:
+    """worker 结束:revoke → 持权提交 qualification terminal(§6.3)。
+
+    B3/WP3 修复(§6.4):
+    - revoke 失败不被 except:pass 吞掉——保留 revoke_error 事实
+      并采取既有失权措施,不写成完全成功;
+    - 第一失败原因优先(cancelled > protocol_error > spawn_failed
+      > token_delivery_failed > worker rc);取消后 worker 恰好
+      rc=0 不改判成功(failed/cancelled);
+    - terminal 幂等(重复 close/重复取消无第二次 terminal);
+    - fd 清理由 _run_step_subprocess finally 统一完成(全路径)。
+    返回 delegation summary(不含 token 明文)。
+    """
     grant = delegation.get("grant")
     if grant is not None:
         try:
             session.revoke_generation_grant(grant)
-        except Exception:  # noqa: BLE001 —— revoke 失败也要尝试终态
-            pass
+        except Exception as exc:  # noqa: BLE001 —— 保留失败事实再终态
+            delegation["revoke_error"] = str(exc)[:300]
     digest = delegation["plan_digest"]
-    if rc == 0:
-        session.commit_qualification_terminal(
-            "completed", digest, note="verdict=PASS(worker rc=0)")
-    elif signal_info is not None:
-        session.commit_qualification_terminal(
-            "crashed", digest,
-            note=f"worker killed by signal {signal_info}")
-    else:
-        session.commit_qualification_terminal(
-            "failed", digest, note=f"verdict=FAIL(worker rc={rc})")
-    for key in ("r_reg", "w_reg", "r_tok", "w_tok"):
-        fd = delegation.get(key)
-        if fd is not None:
-            try:
-                os.close(fd)
-            except OSError:
-                pass
+    cancelled = bool(delegation.get("cancelled"))
+    proto = delegation.get("protocol_error")
+    spawn_fail = delegation.get("spawn_failed")
+    token_fail = delegation.get("token_delivery_failed")
+    if not delegation.get("_terminal_committed"):
+        delegation["_terminal_committed"] = True
+        try:
+            if cancelled:
+                session.commit_qualification_terminal(
+                    "failed", digest,
+                    note=f"cancelled;worker_rc={rc}"
+                    + (f";signal={signal_info}" if signal_info else "")
+                    + "(已取消运行不以 worker rc 改判成功)")
+            elif spawn_fail:
+                session.commit_qualification_terminal(
+                    "failed", digest,
+                    note=f"delegation_spawn_failed:{spawn_fail}"
+                    "(exposure 已持久化;失败阶段保留,不退回未开始)")
+            elif proto:
+                session.commit_qualification_terminal(
+                    "failed", digest,
+                    note=f"delegation_protocol_error:{proto}")
+            elif rc == 0:
+                session.commit_qualification_terminal(
+                    "completed", digest,
+                    note="verdict=PASS(worker rc=0)")
+            elif signal_info is not None:
+                session.commit_qualification_terminal(
+                    "crashed", digest,
+                    note=f"worker killed by signal {signal_info}")
+            else:
+                session.commit_qualification_terminal(
+                    "failed", digest,
+                    note=f"verdict=FAIL(worker rc={rc})")
+        except Exception as exc:  # noqa: BLE001 —— 二次 terminal 等
+            delegation["terminal_error"] = str(exc)[:300]
+    summary: dict[str, Any] = {
+        "cancelled": cancelled,
+        "protocol_error": proto,
+        "spawn_failed": spawn_fail,
+        "token_delivery_failed": token_fail,
+        "identity_verified": delegation.get("identity_verified"),
+        "revoke_error": delegation.get("revoke_error"),
+        "terminal_error": delegation.get("terminal_error"),
+        "worker_rc": rc, "worker_signal": signal_info,
+        "allowed_namespaces": list(delegation["allowed_namespaces"]),
+        "grant_hash": getattr(grant, "grant_hash", None),
+        "grant_issued": grant is not None,
+    }
+    return summary
 
 
 expected_formal_log_prefix = expected_formal_log_prefix_r17

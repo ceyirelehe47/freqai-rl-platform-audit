@@ -1,0 +1,118 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run_a_A",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "8b94bd7490d7e0f3a859d1e89d1f0bbc6a4686fb10b0efc581cca95d9b155dc9",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 30"
+ ],
+ "business": {
+  "rc": null,
+  "signal": null,
+  "protector": {
+   "pgid": 405,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "keyvol: 关键卷 F: 可用 3.0GiB < 5.0GiB"
+ ],
+ "incidents": [
+  {
+   "incident_id": "run_a_A-keyvol-0",
+   "kind": "keyvol",
+   "detail": "关键卷 F: 可用 10.0GiB < 20.0GiB",
+   "severity": "CRITICAL",
+   "first_seen_mono": 0.7,
+   "last_seen_mono": 0.8,
+   "samples": 5,
+   "peak": {
+    "vol": "F:",
+    "present": true,
+    "free_gb": 10.0
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 2
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.7973280120000936,
+  "win_last_mono": 0.7973280120000936,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.5154015770000342,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "checked_utc": "2026-09-07T01:31:50Z"
+ },
+ "io": {
+  "submitted": 19,
+  "executed": 19,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "io_stuck": false,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "telemetry_bytes": 3368,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:31:50Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:31:50Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.5s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:31:50Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:31:50Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T01:31:50Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 403,
+  "windows": null
+ },
+ "written_utc": "2026-09-07T01:31:50Z"
+}

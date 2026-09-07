@@ -55,9 +55,19 @@ def _perf(free=39.0, ct=38.0, cl=83.0):
             "commit_limit_gb": cl, "phys_total_gb": 63.0}
 
 
+from itertools import count as _it_count
+
+_GUEST_SEQ = _it_count()
+
+
 def _guest(avail_kb=39_000_000, psi=0.0, pswpout=0):
+    # B1:有效 guest 样本需 MemTotal/MemAvailable(kB)与 utc 身份;
+    # utc 按调用序号递增(重复调用=新样本,供持续窗口累计)
+    n = next(_GUEST_SEQ)
     return {"event": "guest_sample",
-            "meminfo": {"MemAvailable": avail_kb},
+            "utc": f"2026-09-07T00:{n // 60:02d}:{n % 60:02d}Z",
+            "meminfo": {"MemTotal": 40_000_000,
+                        "MemAvailable": avail_kb},
             "psi_memory": {"full_avg10": psi},
             "vmstat_swap": {"pswpout": pswpout}}
 
@@ -614,8 +624,14 @@ class TestSupervisorE2E:
         return proc, run_dir
 
     def test_m10_critical_stops_business_without_agent(self, tmp_path):
+        # 首条(启动准入消费)卷余量充足;低卷 CRITICAL 由后续样本触发
         samples = tmp_path / "s.jsonl"
         samples.write_text(
+            json.dumps({"win": _win(_perf(), [
+                {"vol": "F:", "present": True,
+                 "free_gb": 100.0,
+                 "writable": True}]),
+                "guest": _guest()}) + "\n" +
             json.dumps({"win": _win(_perf(), [
                 {"vol": "F:", "present": True, "free_gb": 3.0,
                  "writable": True}]),
@@ -1185,7 +1201,8 @@ class TestWiringClosure:
         sup = self._sup(tmp_path)
         sample = {
             "event": "guest_sample", "utc": "2026-09-06T18:00:00Z",
-            "meminfo": {"MemAvailable": 1.5 * 1024 * 1024},
+            "meminfo": {"MemTotal": 2 * 1024 * 1024,
+                        "MemAvailable": 1.5 * 1024 * 1024},
             "psi_memory": {"full_avg10": 5.0},
             "vmstat_swap": {"pswpout": 100},
             "tasks_total_rss_kb": 3 * 1024 * 1024,
@@ -1215,7 +1232,8 @@ class TestWiringClosure:
         sup = self._sup(tmp_path)
         sample = {"event": "guest_sample",
                   "utc": "2026-09-06T18:00:00Z",
-                  "meminfo": {"MemAvailable": 1.5 * 1024 * 1024},
+                  "meminfo": {"MemTotal": 2 * 1024 * 1024,
+                              "MemAvailable": 1.5 * 1024 * 1024},
                   "psi_memory": {"full_avg10": 5.0},
                   "vmstat_swap": {"pswpout": 7}}
         sup._emit_guest(sample)
@@ -1265,6 +1283,7 @@ class TestWiringClosure:
         assert sup.telemetry_capped
         assert "telemetry_budget" in sup.incidents
         assert sup.stop_requested_reasons, "预算耗尽必须调度停止"
+        sup.iow.drain(5)  # B2:alerts 异步落盘,断言前有界排空
         alerts_txt = sup.alerts_path.read_text(encoding="utf-8")
         assert "telemetry_budget_exceeded" in alerts_txt
 
@@ -1298,6 +1317,7 @@ class TestWiringClosure:
                 mono_fn=time.monotonic)
             prot.request_stop("c07")
             assert prot.term_sent_at is not None
+            prot.flush_logs()  # B2:控制日志在动作后递交
             time.sleep(0.4)
             # 组内仍有忽略 TERM 的成员:leader 退出不误报树消失
             assert prot.poll(time.monotonic()) is False
@@ -1389,6 +1409,7 @@ class TestWiringClosure:
         assert inc.delivered_count == 2
         assert inc.stopped_requested
         assert sup.stop_requested_reasons
+        sup.iow.drain(5)  # B2:alerts 异步落盘
         alerts = sup.alerts_path.read_text(encoding="utf-8")
         assert '"action":"escalate"' in alerts, \
             "升级告警被冷却吞掉(S4)"
@@ -1418,6 +1439,7 @@ class TestWiringClosure:
         assert sup.stop_requested_reasons, "IO 失败不得阻止停止意图"
         inc = sup.incidents["win_commit"]
         assert inc.stopped_requested
+        sup.iow.drain(5)  # B2:失败在 I/O 线程执行/计数,断言前排空
         assert sup.log_failures > 0
         assert sup.stdout_failures > 0
 

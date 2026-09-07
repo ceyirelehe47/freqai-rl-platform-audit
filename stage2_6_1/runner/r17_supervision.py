@@ -64,6 +64,13 @@ POLICY: dict[str, Any] = {
                 "unit": "df -BK used KiB -> GiB(1024^3)"},
     "keyvol": {"warn_below_gib": 20.0, "crit_below_gib": 5.0},
     "observation": {"stale_warn_s": 15.0, "stale_crit_s": 30.0},
+    # B1/WP1:启动资源准入(工程准入条件,不是课程 gate;就绪=数据有效,
+    # 准入=资源够开始重任务;两道判定分开记录)。首样本新鲜度=两个
+    # 核心采样周期。
+    "startup_admission": {
+        "win_free_min_gib": 8.0, "win_commit_max_pct": 90.0,
+        "guest_avail_min_gib": 4.0, "keyvol_min_free_gib": 20.0,
+        "first_sample_max_age_s": 10.0},
     "cooldown_reminder_s": 60.0,
     "recover": {"win_free_ge_gib": 10.0, "win_commit_lt_pct": 85.0,
                 "guest_memavail_ge_gib": 6.0, "sustain_s": 30.0},
@@ -463,16 +470,96 @@ class PolicyEngine:
         return False
 
 
+# ------------------------------------------------ 有效样本判定(B1/WP1)
+def _finite_num(v) -> bool:
+    """有限数值(bool 不是数值;NaN/Inf 拒绝)。"""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) \
+        and v == v and v not in (float("inf"), float("-inf"))
+
+
+def validate_win_sample(line: dict | None, *, run_id: str | None = None,
+                        ) -> tuple[bool, str]:
+    """host 资源样本有效性:身份+结构+数值范围(§4.1)。
+
+    解析成功/来源已启动/有效资源样本三层分开;就绪只认最后一层。
+    零可用内存是**有效但危险**的数据(不误记缺测后放行,交给策略)。
+    返回 (ok, reason);reason 词表供就绪拒绝与摘要披露。
+    """
+    if not isinstance(line, dict):
+        return False, "not_object"
+    if line.get("event") != "sample":
+        return False, f"not_sample_event:{line.get('event')}"
+    if run_id is not None and line.get("run_id") not in (None, run_id):
+        # 无 run_id 的行(旧格式)宽容;带错 run_id 的行拒绝(错误运行身份)
+        return False, "run_id_mismatch"
+    perf = line.get("perf")
+    if not isinstance(perf, dict):
+        return False, "perf_missing"
+    need = ("phys_avail_gb", "phys_total_gb",
+            "commit_total_gb", "commit_limit_gb")
+    for k in need:
+        if not _finite_num(perf.get(k)):
+            return False, f"perf_invalid:{k}"
+    if perf["phys_total_gb"] <= 0 or perf["commit_limit_gb"] <= 0:
+        return False, "perf_invalid:denominator"
+    if perf["phys_avail_gb"] < 0 or perf["commit_total_gb"] < 0:
+        return False, "perf_invalid:negative"
+    # 单位/范围合理性(5% 容差):GiB 口径下可用>总量即单位错位
+    if perf["phys_avail_gb"] > perf["phys_total_gb"] * 1.05:
+        return False, "perf_invalid:avail_gt_total"
+    if perf["commit_total_gb"] > perf["commit_limit_gb"] * 1.05:
+        return False, "perf_invalid:commit_gt_limit"
+    # 必要输出卷检查有本次有效结果(只验在场的卷记录结构)
+    vols = line.get("vols")
+    if vols is not None and not isinstance(vols, list):
+        return False, "vols_invalid"
+    return True, "ok"
+
+
+def validate_guest_sample(rec: dict | None) -> tuple[bool, str]:
+    """guest 资源样本有效性(§4.1):MemTotal/MemAvailable 有限、
+    单位一致(kB)、0≤可用≤总量;utc 身份字段在场。"""
+    if not isinstance(rec, dict):
+        return False, "not_object"
+    if rec.get("event") != "guest_sample":
+        return False, f"not_sample_event:{rec.get('event')}"
+    if not rec.get("utc"):
+        return False, "utc_missing"
+    mi = rec.get("meminfo")
+    if not isinstance(mi, dict):
+        return False, "meminfo_missing"
+    mt, ma = mi.get("MemTotal"), mi.get("MemAvailable")
+    if not _finite_num(mt) or not _finite_num(ma):
+        return False, "meminfo_invalid"
+    if mt <= 0:
+        return False, "meminfo_invalid:total"
+    if ma < 0 or ma > mt * 1.05:
+        return False, "meminfo_invalid:range"
+    return True, "ok"
+
+
 # ------------------------------------------------------- win 样本读取
 class WinSampleReader:
-    """增量读取 win jsonl(容忍 UTF-8 BOM/半行;解析失败计数不静默)。"""
+    """增量读取 win jsonl(容忍 UTF-8 BOM/半行;解析失败计数不静默)。
 
-    def __init__(self, path: Path):
+    B1 修复:saw_any(首条可解析行,诊断用)与 saw_valid(首条**有效
+    资源样本**,就绪屏障消费)分层;start-only/空 sample/坏数值行
+    不能证明观测能力。last_valid_mono 供新鲜度判定(不把文件
+    mtime 或读取时刻当生成时刻:以本进程读到有效行的单调时刻计)。
+    """
+
+    def __init__(self, path: Path, run_id: str | None = None):
         self.path = path
+        self.run_id = run_id
         self.offset = 0
         self.parse_errors = 0
+        self.invalid_samples = 0
+        self.invalid_reasons: list[str] = []
         self.last_lines: list[dict] = []
-        self.saw_any = False  # S2:首有效行旗标(就绪屏障消费)
+        self.saw_any = False    # 首条可解析 JSON 行(含 sampler_start)
+        self.saw_valid = False  # 首条通过 validate_win_sample 的样本
+        self.last_valid: dict | None = None
+        self.last_valid_mono: float | None = None
         self._buf = b""
 
     def read_new(self) -> list[dict]:
@@ -506,6 +593,17 @@ class WinSampleReader:
         if out:
             self.last_lines = out[-8:]
             self.saw_any = True
+        # 有效性分层:只有通过校验的 sample 行刷新有效首样本状态
+        for obj in out:
+            ok, reason = validate_win_sample(obj, run_id=self.run_id)
+            if ok:
+                self.saw_valid = True
+                self.last_valid = obj
+                self.last_valid_mono = time.monotonic()
+            elif obj.get("event") == "sample":
+                self.invalid_samples += 1
+                if len(self.invalid_reasons) < 16:
+                    self.invalid_reasons.append(reason)
         return out
 
 
@@ -546,6 +644,10 @@ class Protector:
         self.samples = samples
         self.identity_mismatch = False
         self._kill_ineffective_reported = False
+        # B2:控制路径(request_stop/poll)零 I/O——日志只入内存
+        # pending 列表,由调用方在控制动作之后经 flush_logs() 递交
+        # (丢失窗口=调用方 flush 周期;evidence 如实可查)。
+        self.pending_logs: list[dict[str, Any]] = []
 
     # ---- 实例身份(/proc/<pid>/stat 的 pgrp+starttime) ----
     def _proc_identity(self, pid: int) -> tuple[int, int] | None:
@@ -581,11 +683,24 @@ class Protector:
         return bool(self._member_pids())
 
     def _safe_log(self, rec: dict[str, Any]) -> None:
-        # 保护路径上的日志尽力而为:写盘失败不得阻止信号/升级
-        try:
-            self.log(rec)
-        except Exception:  # noqa: BLE001
-            pass
+        # B2:控制路径零 I/O——只入内存列表(append 不做任何文件/
+        # 管道操作);flush_logs() 由控制动作之后的调用方执行。
+        self.pending_logs.append(rec)
+
+    def flush_logs(self) -> int:
+        """把积压控制日志递交至 log 回调(返回条数;幂等)。
+
+        回调本身仍应非阻塞(Supervisor.log=异步投递);本方法只在
+        控制动作完成后由主循环/finalize 调用。
+        """
+        n = len(self.pending_logs)
+        while self.pending_logs:
+            rec = self.pending_logs.pop(0)
+            try:
+                self.log(rec)
+            except Exception:  # noqa: BLE001 —— 递交失败不阻断后续
+                pass
+        return n
 
     def request_stop(self, reason: str) -> dict[str, Any]:
         if self.requested_at is not None:
@@ -602,14 +717,18 @@ class Protector:
                             "unconfirmed"})
             return self.status()
         self.requested_at = self.mono()
-        self._safe_log({"event": "stop_requested", "utc": utc_now_iso(),
-                        "reason": reason, "pgid": self.pgid})
+        # B2/WP2 修复:控制动作先于任何日志 I/O——_safe_log 不得在
+        # 信号发送前执行(日志写盘阻塞时信号被无限延迟;try/except
+        # 只能处理返回的异常,不能中断未返回的写)。_safe_log 本身
+        # 已是异步投递(见 Supervisor.log),这里再固定顺序合同。
         try:
             self._signal(signal.SIGTERM)
             self.term_sent_at = self.mono()
             self._safe_log({"event": "sigterm_sent", "utc": utc_now_iso(),
                             "pgid": self.pgid,
                             "note": "已向登记进程组发送(killpg)"})
+            self._safe_log({"event": "stop_requested", "utc": utc_now_iso(),
+                            "reason": reason, "pgid": self.pgid})
         except ProcessLookupError:
             self.terminal_at = self.mono()
             self._safe_log({"event": "already_gone", "utc": utc_now_iso()})
@@ -638,6 +757,7 @@ class Protector:
         if self._alive():
             if self.kill_sent_at is None and self.term_sent_at is not None \
                     and mono - self.term_sent_at >= self.coop:
+                # B2:升级同样先发信号、后记日志(控制链不等待 I/O)
                 try:
                     self._signal(signal.SIGKILL)
                     self.kill_sent_at = self.mono()
@@ -702,6 +822,76 @@ class Protector:
                 "survivors": self.survivors[:32]}
 
 
+# ------------------------------------------------- 异步 I/O(B2/WP2)
+class BoundedIOWriter:
+    """控制路径与可能阻塞的 I/O 的小型隔离(§5.2;不建平台)。
+
+    - submit(fn, critical):非阻塞投递(queue.put_nowait);队列满
+      → 立即返回 False(critical 事件丢失计入 dropped_critical,
+      由主循环触发 PROTECTION_UNAVAILABLE——关键证据持续不可写
+      时不得继续计算)。
+    - 单一守护写线程顺序执行提交的写动作:日志/stdout/应急写
+      卡住只卡这一个线程,保护轮询(信号/升级/退出确认)不受影响。
+    - drain(timeout):有界等待已投递事件全部执行(finalize 用;
+      超时如实报 pending,不无限 join,不假装已持久化)。
+    - 状态分层:pending(已排队)/executed(已尝试执行)/dropped
+      (队列满丢弃)/dropped_critical——排队≠已递交≠已持久化。
+    """
+
+    def __init__(self, maxsize: int = 1024):
+        import queue as _queue
+        self._q: "queue.Queue" = _queue.Queue(maxsize=maxsize)
+        self._lock = threading.Lock()
+        self._stats = {"submitted": 0, "executed": 0, "dropped": 0,
+                       "dropped_critical": 0, "io_stuck": False}
+        self._thread = threading.Thread(
+            target=self._loop, name="r17-io-writer", daemon=True)
+        self._thread.start()
+
+    def _loop(self) -> None:
+        while True:
+            fn = self._q.get()
+            try:
+                fn()
+            except BaseException:  # noqa: BLE001 —— 写线程永不死亡
+                pass
+            with self._lock:
+                self._stats["executed"] += 1
+
+    def submit(self, fn, *, critical: bool = False) -> bool:
+        try:
+            self._q.put_nowait(fn)
+        except Exception:  # noqa: BLE001 —— queue.Full
+            with self._lock:
+                self._stats["dropped"] += 1
+                if critical:
+                    self._stats["dropped_critical"] += 1
+            return False
+        with self._lock:
+            self._stats["submitted"] += 1
+        return True
+
+    def drain(self, timeout: float) -> int:
+        """有界等待积压清空;返回剩余 pending 数(>0=写入未完成)。"""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            with self._lock:
+                if self._q.empty():
+                    return 0
+            time.sleep(0.02)
+        with self._lock:
+            pending = self._q.qsize()
+            if pending:
+                self._stats["io_stuck"] = True
+            return pending
+
+    def stats(self) -> dict[str, Any]:
+        with self._lock:
+            out = dict(self._stats)
+        out["pending"] = self._q.qsize()
+        return out
+
+
 # ----------------------------------------------------------- supervisor
 class Supervisor:
     def __init__(self, args: argparse.Namespace):
@@ -755,33 +945,118 @@ class Supervisor:
         self.log_failures = 0
         # S2:就绪屏障状态
         self.obs_ready_at_mono: float | None = None
+        # B1:样本有效性/启动准入记录
+        self.invalid_guest_samples = 0
+        self.invalid_guest_reasons: list[str] = []
+        self.admission: dict[str, Any] | None = None
+        # B2:异步 I/O 执行单元(控制路径永不同步等待日志/告警写)
+        self.iow = BoundedIOWriter()
+        self._io_lost_critical_seen = 0
+        # B4:leader 退出后的残留核验状态
+        self._desc_check_done = False
+        self._residual_handled = False
+        self.residual_unconfirmed = False
+        self._evidence_complete: bool | None = None
+        # B5:启动前意图校验结果(_declare_expected 填充)
+        self._startup_reject: str | None = None
         # S5:运行前登记必需产物角色(缺件保留为缺件,绝不从清单移除)
         self.expected: list[dict[str, Any]] = self._declare_expected()
 
-    # ---------------- S5:必需角色运行前登记 ----------------
+    # ---------------- S5/B5:必需角色运行前登记 ----------------
+    @staticmethod
+    def _resolve_junit(argv: list[str]) -> tuple[str | None, str]:
+        """从业务 argv 解析 JUnit 输出路径;返回 (path, form)。
+
+        支持形态:元素级等号(--junitxml=P,含空格路径)、元素级分离
+        (--junitxml P)。bash -c 串内只有等号形态可可靠解析;串内
+        分离形态不可靠 → 返回 ambiguous_bash_c(调用方要求显式登记,
+        而不是写万能 shell 解析器)。
+        """
+        for i, a in enumerate(argv):
+            if not isinstance(a, str):
+                continue
+            if a == "--junitxml" and i + 1 < len(argv) and \
+                    isinstance(argv[i + 1], str) and \
+                    not argv[i + 1].startswith("-"):
+                return argv[i + 1], "element_split"
+            if a.startswith("--junitxml="):
+                return a.split("=", 1)[1], "element_eq"
+        joined = " ".join(a for a in argv if isinstance(a, str))
+        m = re.search(r"--junitxml=(\S+)", joined)
+        if m and m.group(1):
+            return m.group(1), "embedded_eq"
+        if re.search(r"--junitxml(?:\s|$)", joined):
+            return None, "ambiguous_bash_c"
+        return None, "absent"
+
     def _declare_expected(self) -> list[dict[str, Any]]:
         """按运行意图声明必要输出角色与预期路径(任何业务启动之前)。
 
         核心角色:双采样流/alerts/业务 stdout+stderr/summary/junit。
-        pytest 的 --junitxml 从业务 argv 解析;其它 task_kind 可经
-        --expect-artifact role=path 显式登记(可重复)。
+        B5/WP5 修复:task_kind=pytest 的 JUnit 是**类型必需角色**——
+        由任务类型决定,不靠 --junitxml 字符串解析运气:元素级等号/
+        分离两形态都识别;解析不出(bash -c 串内分离形态/缺失)时
+        启动前拒绝(rc=2,零 spawn),除非 --expect-artifact
+        junit_xml=PATH 显式登记;显式登记与 argv 解析冲突同样拒绝。
         """
-        exp: list[dict[str, Any]] = [
-            {"role": "telemetry_guest", "path": self.guest_path},
-            {"role": "telemetry_win", "path": self.win_path_guest},
+        exp: list[dict[str, Any]] = []
+        # replay(显式测试输入源,生产入口不暴露)下双采样流由回放
+        # 输入文件替代,不登记为人造缺件;生产路径登记不变。
+        replay = str(getattr(self.args, "samples_source", "") or "")\
+            .startswith("file:")
+        if not replay:
+            exp += [
+                {"role": "telemetry_guest", "path": self.guest_path},
+                {"role": "telemetry_win", "path": self.win_path_guest},
+            ]
+        exp += [
             {"role": "alerts", "path": self.alerts_path},
             {"role": "business_stdout", "path": self.biz_stdout},
             {"role": "business_stderr", "path": self.biz_stderr},
             {"role": "summary", "path": self.run_dir / "summary.json"},
         ]
         argv = list(self.args.argv)
-        # --junitxml 可作为独立元素,也可能嵌在 bash -c 的命令串内
-        # (全量回归真实形态);两种形态都登记(第一个命中)。
-        m = re.search(r"--junitxml=(\S+)", " ".join(
-            a for a in argv if isinstance(a, str)))
-        if m and m.group(1):
+        junit_path, junit_form = self._resolve_junit(argv)
+        declared = {}
+        for spec in (getattr(self.args, "expect_artifact", None) or []):
+            try:
+                role, p = spec.split("=", 1)
+            except ValueError:
+                continue
+            if role and p:
+                declared[role] = p
+                # junit_xml 显式登记映射到规范必需角色(不再是
+                # declared: 前缀的任意项;§8.1)
+                exp.append({"role": "junit_xml" if role == "junit_xml"
+                            else f"declared:{role}",
+                            "path": Path(p).resolve()})
+        if self.args.task_kind == "pytest":
+            dj = declared.get("junit_xml")
+            if junit_path is None and junit_form == "ambiguous_bash_c":
+                self._startup_reject = (
+                    "junit_ambiguous_bash_c: pytest 的 JUnit 输出无法"
+                    "从 bash -c 串内分离参数形态可靠解析;请改用"
+                    "--junitxml=<path> 等号形态或 --expect-artifact "
+                    "junit_xml=<path> 显式登记(启动前拒绝;零 spawn)")
+            elif junit_path is None and dj is None:
+                self._startup_reject = (
+                    "junit_missing: task_kind=pytest 的必需角色"
+                    " junit_xml 无法从业务 argv 确定(等号/分离形态"
+                    "均未命中);用 --junitxml <path> 或"
+                    " --expect-artifact junit_xml=<path> 显式登记"
+                    "(启动前拒绝;零 spawn)")
+            elif junit_path is not None and dj is not None and \
+                    Path(junit_path).resolve() != Path(dj).resolve():
+                self._startup_reject = (
+                    f"junit_conflict: argv 解析({junit_path})与显式"
+                    f"登记({dj})不一致(启动前拒绝;零 spawn)")
+            elif junit_path is not None:
+                exp.append({"role": "junit_xml",
+                            "path": Path(junit_path).resolve()})
+        elif junit_path is not None:
+            # 非 pytest 任务传了 --junitxml:仍登记(有输出即证据)
             exp.append({"role": "junit_xml",
-                        "path": Path(m.group(1)).resolve()})
+                        "path": Path(junit_path).resolve()})
         if self.args.task_kind == "c3diag":
             # C3 固定坐标诊断的业务交付(--out <path>)
             for i, a in enumerate(argv):
@@ -794,53 +1069,60 @@ class Supervisor:
                     exp.append({"role": "c3_diagnosis",
                                 "path": Path(p).resolve()})
                     break
-        for spec in (getattr(self.args, "expect_artifact", None) or []):
-            try:
-                role, p = spec.split("=", 1)
-            except ValueError:
-                continue
-            if role and p:
-                exp.append({"role": f"declared:{role}",
-                            "path": Path(p).resolve()})
         return exp
 
-    # ---------------- 基础 IO ----------------
+    # ---------------- 基础 IO(B2:全部经有界队列,控制路径不等待) --
+    def _log_sync(self, obj: dict[str, Any]) -> None:
+        """alerts.jsonl 追加写(在 I/O 执行线程内运行)。"""
+        try:
+            with self.alerts_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(obj, ensure_ascii=False,
+                                    separators=(",", ":")) + "\n")
+        except OSError:
+            self.log_failures += 1
+
     def log(self, obj: dict[str, Any]) -> None:
         obj = dict(obj)
         obj.setdefault("utc", utc_now_iso())
         obj.setdefault("mono", round(time.monotonic() - self.t0, 1))
         obj.setdefault("run_id", self.run_id)
-        with self.alerts_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(obj, ensure_ascii=False,
-                                separators=(",", ":")) + "\n")
+        self.iow.submit(lambda: self._log_sync(obj),
+                        critical=obj.get("severity") == "CRITICAL")
 
     def safe_log(self, obj: dict[str, Any]) -> None:
-        """尽力而为日志:写盘失败计数并继续(不阻断保护路径)。"""
-        try:
-            self.log(obj)
-        except OSError:
-            self.log_failures += 1
+        """尽力而为日志:投递失败计数并继续(不阻断保护路径)。"""
+        self.log(obj)
 
-    def stdout_line(self, tag: str, obj: dict[str, Any]) -> None:
-        """递交面:宿主后台任务输出(TaskOutput 周期接收=模式 B)。
-
-        stdout 关闭/慢消费者(BrokenPipe/OSError)只计数,不抛出——
-        递交失败不得阻断判定与保护(§5.3)。
-        """
-        obj = dict(obj)
-        obj.setdefault("utc", utc_now_iso())
-        obj.setdefault("run_id", self.run_id)
-        line = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    def _stdout_sync(self, tag: str, line: str) -> None:
         try:
             print(f"{tag} {line}", flush=True)
         except (BrokenPipeError, OSError, ValueError):
             # ValueError: 已关闭流;BrokenPipe:消费者离开;均只计数
             self.stdout_failures += 1
 
+    def stdout_line(self, tag: str, obj: dict[str, Any]) -> None:
+        """递交面:宿主后台任务输出(TaskOutput 周期接收=模式 B)。
+
+        B2 修复:print 经 I/O 执行线程——stdout 管道写满且消费者
+        不再读时,阻塞的只是写线程(递交 pending 如实记录),判定
+        与保护轮询不等待它(§5.3)。
+        """
+        obj = dict(obj)
+        obj.setdefault("utc", utc_now_iso())
+        obj.setdefault("run_id", self.run_id)
+        line = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+        self.iow.submit(lambda: self._stdout_sync(tag, line),
+                        critical=tag == "R17ALERT")
+
     # ---------------- 递交 ----------------
     def deliver(self, action: str, incident: Incident,
                 metrics: dict[str, Any]) -> None:
-        """尽力而为递交:任何 IO 失败不得回滚/阻断已调度的保护。"""
+        """尽力而为递交:任何 IO 失败不得回滚/阻断已调度的保护。
+
+        delivered_count 在**投递成功入队**时递增(=投递尝试);排队
+        ≠已持久化≠工具呈现——落盘/递交由 I/O 线程执行,状态经
+        iow.stats() 与 alerts 文件分别可查(§5.2)。
+        """
         now = time.monotonic() - self.t0
         incident.last_delivered_mono = now
         incident.delivered_count += 1
@@ -851,13 +1133,7 @@ class Supervisor:
             "note": "停止请求由本地策略执行,不等待模型回复" if
             incident.severity == "CRITICAL" else "当前任务继续",
         }
-        try:
-            self.log({"event": "alert_delivered", **payload})
-        except OSError:
-            self.log_failures += 1
-            self.stdout_line("R17LOG", {
-                "event": "alert_log_write_failed", "run_id": self.run_id,
-                "incident_id": incident.id})
+        self.log({"event": "alert_delivered", **payload})
         # 通道递交=写入宿主持久化任务输出(stdout);接收=Agent 工具读取
         self.stdout_line("R17ALERT", payload)
 
@@ -1016,7 +1292,8 @@ class Supervisor:
         self.win_proc = subprocess.Popen(
             argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             start_new_session=True)
-        self.win_reader = WinSampleReader(self.win_path_guest)
+        self.win_reader = WinSampleReader(self.win_path_guest,
+                                          run_id=self.run_id)
         self.win_sampler_started = True
         self.log({"event": "win_sampler_started",
                   "interop_pid": self.win_proc.pid,
@@ -1138,15 +1415,8 @@ class Supervisor:
                     self.guest_sampler = None
 
     # ---------------- 应急兜底 ----------------
-    def emergency_write(self, obj: dict[str, Any]) -> None:
-        """C: 独立故障域兜底(§7-15;§5.3 修复)。
-
-        只写启动时实际解析并验证的当前用户应急目录
-        (start_win_sampler 记录的 emergency_win_dir,对应 ps1 侧
-        $env:LOCALAPPDATA);不遍历 C:\\Users 尝试逐用户写文件,
-        也不以恒真条件放开目录检查。目录未知/不可写:事件只能留在
-        内存中的告警流与 stderr(如实缺失,不伪造成功)。
-        """
+    def _emergency_sync(self, obj: dict[str, Any]) -> None:
+        # 在 I/O 执行线程内运行;只写启动时解析的当前用户目录
         try:
             import sys as _sys
             print("R17EMERG " + json.dumps(obj, ensure_ascii=False,
@@ -1167,6 +1437,17 @@ class Supervisor:
         except OSError:
             return
 
+    def emergency_write(self, obj: dict[str, Any]) -> None:
+        """C: 独立故障域兜底(§7-15;§5.3 修复;B2:经 I/O 线程)。
+
+        只写启动时实际解析并验证的当前用户应急目录
+        (start_win_sampler 记录的 emergency_win_dir,对应 ps1 侧
+        $env:LOCALAPPDATA);不遍历 C:\\Users 尝试逐用户写文件,
+        也不以恒真条件放开目录检查。目录未知/不可写:事件只能留在
+        内存中的告警流与 stderr(如实缺失,不伪造成功)。
+        """
+        self.iow.submit(lambda: self._emergency_sync(obj), critical=True)
+
     # ---------------- 摘要与 run_record ----------------
     def write_summary(self) -> dict[str, Any]:
         summary = {
@@ -1185,6 +1466,9 @@ class Supervisor:
                 "win_last_mono": self.last_win_line_mono,
                 "win_parse_errors": self.win_reader.parse_errors
                 if self.win_reader else None,
+                "win_invalid_samples": self.win_reader.invalid_samples
+                if self.win_reader else None,
+                "guest_invalid_samples": self.invalid_guest_samples,
                 "coverage_gaps": self.guest_sampler.coverage_gaps
                 if self.guest_sampler else None,
                 "obs_ready_at_mono": self.obs_ready_at_mono,
@@ -1192,6 +1476,10 @@ class Supervisor:
                 "stdout_failures": self.stdout_failures,
                 "log_failures": self.log_failures,
             },
+            "admission": self.admission,
+            "io": self.iow.stats() if self.iow else None,
+            "residual_unconfirmed": self.residual_unconfirmed,
+            "startup_rejected": self._startup_reject,
             "telemetry_bytes": self.telemetry_bytes(),
             "stage_marks": self.stage_marks,
             "emergency_win_dir": self.emergency_win_dir,
@@ -1221,11 +1509,21 @@ class Supervisor:
         required = []
         root = self.run_dir.parent.parent  # run_supervision 根
         missing: list[str] = []
+        # §7.2:业务流最终哈希必须在写入者退出后计算;停止完成未证实
+        # (残留组仍可能写 stdout/stderr)时如实标 live_writers,不能
+        # hash 一次便宜布原始流固定。
+        writers_live = self.residual_unconfirmed or (
+            self.protector is not None and
+            self.protector.requested_at is not None and
+            self.protector.terminal_at is None)
         for item in self.expected:
             p = Path(item["path"])
             entry = {"role": item["role"],
                      "path": str(p.relative_to(root)).replace("\\", "/")
                      if p.is_relative_to(root) else str(p)}
+            if item["role"] in ("business_stdout", "business_stderr") \
+                    and writers_live:
+                entry["live_writers"] = True
             if not p.is_file():
                 entry["status"] = "missing"
                 missing.append(item["role"])
@@ -1261,8 +1559,10 @@ class Supervisor:
             "required": required,
             "evidence_complete": not missing,
             "missing_roles": missing,
+            "io": self.iow.stats() if self.iow else None,
             "finalized": True,
         }
+        self._evidence_complete = not missing
         tmp = self.run_dir / ".run_record.tmp"
         tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1),
                        encoding="utf-8")
@@ -1277,6 +1577,15 @@ class Supervisor:
         self.log({"event": "supervisor_start",
                   "policy_sha256": policy_digest(self.policy),
                   "argv": list(self.args.argv)})
+        # B5:启动前意图校验(pytest 必需角色不可确定/冲突)→零 spawn
+        # 拒绝本请求(记录与封口照常;业务文件保持不存在)。
+        if self._startup_reject:
+            self.log({"event": "startup_rejected",
+                      "reason": self._startup_reject})
+            self.stdout_line("R17LOG", {"event": "startup_rejected",
+                                        "reason": self._startup_reject})
+            self.finalize()
+            return 2
         # 观测自动启动(WP1:不依赖手工开采样器)
         win_started = self.start_win_sampler()
         self.guest_sampler = GuestSampler(
@@ -1285,12 +1594,11 @@ class Supervisor:
         # 样本回放模式(测试输入源):不启动线程,由文件喂样本
         replay = self.args.samples_source.startswith("file:") if \
             self.args.samples_source else False
+        replay_records = self._load_replay() if replay else []
         if not replay:
             self.guest_sampler.start()
         self.mark_stage("observation_starting")
-        # ---- S2:就绪屏障(非固定 sleep;有界等待) -------------------
-        # 必要 host/guest 有效首样本就绪才启动业务;到期只拒绝本请求
-        # 并关闭自己的采样器,绝不"先 spawn 再等 60s 看看"。
+        # ---- S2/B1:就绪屏障(有效首样本;非固定 sleep;有界等待) ----
         ready, not_ready_detail = self._wait_observation_ready(
             replay=replay, win_started=win_started,
             deadline_s=float(getattr(self.args, "obs_ready_deadline",
@@ -1299,7 +1607,8 @@ class Supervisor:
             self.log({"event": "observation_not_ready",
                       "detail": not_ready_detail,
                       "note": "核心观测不可用:拒绝启动业务(有界就绪"
-                      "等待超时/采样器失败);只关闭本请求采样器"})
+                      "等待超时/采样器失败/无有效首样本);只关闭本请求"
+                      "采样器"})
             self.stdout_line("R17LOG", {"event": "observation_not_ready",
                                         "detail": not_ready_detail})
             self._shutdown_samplers_only()
@@ -1309,21 +1618,62 @@ class Supervisor:
         self.obs_ready_at_mono = time.monotonic() - self.t0
         self.mark_stage("observation_ready",
                         f"ready_after={self.obs_ready_at_mono:.1f}s")
-        self.mark_stage("business_spawn")
-        self.spawn_business()
-        max_s = self.policy["default_max_seconds"]
-        last_budget_check = 0.0
-        last_storage_check = 0.0
-        last_poll_mono = time.monotonic()
-        # 信号:supervisor 自身被停→走收尾
+        # ---- B1:启动资源准入(有效≠可开始重任务;§4.2) --------------
+        first_win = first_guest = None
+        if replay:
+            for rec in replay_records:
+                if first_win is None and rec.get("win"):
+                    first_win = rec["win"]
+                if first_guest is None and rec.get("guest"):
+                    first_guest = rec["guest"]
+                if first_win is not None and first_guest is not None:
+                    break
+        else:
+            first_win = self.win_reader.last_valid \
+                if self.win_reader else None
+            first_guest = self._guest_snapshot()
+        admitted, admission_detail = self.admission_check(
+            first_win, first_guest)
+        if not admitted:
+            self.log({"event": "startup_admission_denied",
+                      "detail": admission_detail,
+                      "note": "首样本有效但资源不足工程准入线:拒绝"
+                      "启动重任务(本请求按既定准入结束,不自动重开)"})
+            self.stdout_line("R17LOG", {
+                "event": "startup_admission_denied",
+                "detail": admission_detail})
+            self._shutdown_samplers_only()
+            self.finalize()
+            self.exit_code = 94  # 资源准入不足(拒绝本请求)
+            return self.exit_code
+        self.mark_stage("startup_admitted", admission_detail)
+        # 信号:supervisor 自身被停→受控收尾。B4 修复:注册提前到
+        # spawn 之前——任何时点(含 spawn 与注册之间的微窗口)到达的
+        # 停止请求都有受控行为;spawn 前已收到=拒绝启动业务。
+        self._external_stop_sig: int | None = None
+
         def _sig(sig, frame):
+            self._external_stop_sig = sig
             self.log({"event": "supervisor_signal", "sig": sig})
             if self.protector and self.biz_proc and \
                     self.biz_proc.poll() is None:
                 self.protector.request_stop(f"supervisor_signal_{sig}")
         signal.signal(signal.SIGTERM, _sig)
         signal.signal(signal.SIGINT, _sig)
-        replay_records = self._load_replay() if replay else []
+        if self._external_stop_sig is not None:
+            self.log({"event": "supervisor_stop_before_spawn",
+                      "sig": self._external_stop_sig,
+                      "note": "停止请求先于业务启动:拒绝启动并收尾"})
+            self._shutdown_samplers_only()
+            self.finalize()
+            self.exit_code = 4
+            return self.exit_code
+        self.mark_stage("business_spawn")
+        self.spawn_business()
+        max_s = self.policy["default_max_seconds"]
+        last_budget_check = 0.0
+        last_storage_check = 0.0
+        last_poll_mono = time.monotonic()
         replay_idx = 0
         while True:
             mono = time.monotonic() - self.t0
@@ -1387,9 +1737,11 @@ class Supervisor:
                                             "patterns": patterns}}
                         self.handle_triggers([trig])
                     self.mark_stage("business_exited", f"rc={rc}")
-            # ---- 保护轮询 ----
+            # ---- 保护轮询(B2:控制动作零 I/O;日志在动作后递交) ----
             if self.protector:
                 self.protector.poll(mono)
+                if self.protector.pending_logs:
+                    self.protector.flush_logs()
             # ---- 判定 ----
             storage_used = None
             if mono - last_storage_check >= 60:
@@ -1407,19 +1759,81 @@ class Supervisor:
             if mono - last_budget_check >= 30:
                 last_budget_check = mono
                 self.budget_check()
-            # ---- 退出条件 ----
+            # ---- B2:关键事件投递丢失=证据链断,粘性保护(§5.2) ----
+            io_stats = self.iow.stats()
+            if io_stats["dropped_critical"] > self._io_lost_critical_seen:
+                self._io_lost_critical_seen = io_stats["dropped_critical"]
+                self.handle_triggers([{
+                    "kind": "io_evidence_lost", "severity":
+                    "PROTECTION_UNAVAILABLE",
+                    "detail": f"关键事件队列溢出丢弃 "
+                    f"{io_stats['dropped_critical']} 条(证据无法保存;"
+                    "保护性中止;不静默丢事件后继续)",
+                    "metrics": dict(io_stats)}])
+            # ---- B4:退出条件(正常 leader 退出≠任务树结束;§7.1) ----
             biz_done = self.biz_proc is not None and \
                 self.biz_proc.poll() is not None
             prot_pending = self.protector is not None and \
                 self.protector.requested_at is not None and \
                 self.protector.terminal_at is None
+            # 保护停止长期未证实(业务拒死/KILL 无效/身份不符):
+            # 无论 leader 是否退出,诊断控制流都必须有界退出
+            # (§7.2;不无限 continue 等有人手动关 WSL)。
+            if prot_pending and self.biz_proc is not None:
+                since_req = mono - (self.protector.requested_at or 0)
+                if since_req > self.policy["coop_exit_window_s"] + 10 + 25:
+                    self.residual_unconfirmed = \
+                        bool(self.protector._member_pids())
+                    if self.biz_proc.poll() is not None:
+                        self.biz_rc = self.biz_proc.returncode
+                    break
             if biz_done and not prot_pending:
-                break
-            if biz_done and prot_pending:
-                # 停止请求下业务已退但终态未证实:再等合作窗+10s
+                if self.protector is None:
+                    break
+                if not self._desc_check_done:
+                    self._desc_check_done = True
+                    self._desc_check_at = mono
+                members = self.protector._member_pids()
+                if not members:
+                    break  # 登记组确认全部结束:正常收尾
+                # leader 退出但登记组仍有活成员:residual 异常+有界收尾
+                if not self._residual_handled:
+                    self._residual_handled = True
+                    self._desc_check_at = mono
+                    self.safe_log({
+                        "event": "residual_task_after_leader_exit",
+                        "leader_rc": self.biz_rc,
+                        "members": members[:32],
+                        "note": "leader 退出≠任务树结束:受控清理登记组"
+                        "(TERM→合作窗→KILL);rc=0 不代表整体成功"})
+                    self.handle_triggers([{
+                        "kind": "residual_task", "severity": "CRITICAL",
+                        "detail": f"leader rc={self.biz_rc} 退出后登记组"
+                        f"仍有 {len(members)} 个活成员(有限收尾)",
+                        "metrics": {"members": len(members)}}])
+                    # 实际清理:直接对登记组发停止(业务 leader 已退,
+                    # 常规 handle_triggers 分支不覆盖此形态)
+                    self.protector.request_stop(
+                        "residual_task_after_leader_exit")
+                prot_pending = self.protector.requested_at is not None \
+                    and self.protector.terminal_at is None
+            if biz_done and prot_pending and self.protector is not None:
+                # 停止请求下业务已退:合作窗+确认窗后仍无终态=有界退出
+                # (停止已请求、完成未证实:如实记录,拒绝下一重任务,
+                # 不无限 continue 等有人手动关 WSL;§7.2)
+                since_req = mono - (self.protector.requested_at or 0)
+                hard_cap = self.policy["coop_exit_window_s"] + 10 + 25
                 if self.protector.kill_sent_at is None and \
-                        mono - (self.protector.requested_at or 0) > \
-                        self.policy["coop_exit_window_s"] + 10:
+                        since_req > self.policy["coop_exit_window_s"] + 10:
+                    break
+                if self.protector.kill_sent_at is not None and \
+                        mono - self.protector.kill_sent_at > 10 + 15:
+                    self.residual_unconfirmed = \
+                        bool(self.protector._member_pids())
+                    break
+                if since_req > hard_cap:
+                    self.residual_unconfirmed = \
+                        bool(self.protector._member_pids())
                     break
             if mono >= max_s:
                 self.handle_triggers([{
@@ -1436,7 +1850,28 @@ class Supervisor:
             time.sleep(min(sleep_for, 5.0))
         # ---- 收尾 ----
         self.finalize()
-        return self.exit_code
+        return self.control_outcome()
+
+    def control_outcome(self) -> int:
+        """外层退出码与结果维度一致(§7.3;不重写业务 rc,但业务失败/
+        保护中止/监护失败/残留未确认/证据不完整不得返回 0)。"""
+        if self.exit_code:
+            return self.exit_code  # 93 观测未就绪/94 准入不足/2 意图拒绝
+        # 完成未证实(树仍在/身份不明)优先于"发生过保护"——残留
+        # 风险是更强的"禁止下一重任务"信号(§7.2)
+        if self.residual_unconfirmed:
+            return 5
+        if self.stop_requested_reasons and self.protector is not None \
+                and self.protector.requested_at is not None:
+            return 4  # 保护性中止(含 residual 受控清理且已证实)
+        io = self.iow.stats() if self.iow else {}
+        if io.get("dropped_critical"):
+            return 6  # 关键证据事件丢失
+        if self._evidence_complete is False:
+            return 6  # 必需证据不完整
+        if self.biz_rc not in (0, None):
+            return self.biz_rc if self.biz_rc > 0 else 128 - self.biz_rc
+        return 0
 
     def _load_replay(self) -> list[dict]:
         path = Path(self.args.samples_source.split("file:", 1)[1])
@@ -1460,6 +1895,13 @@ class Supervisor:
                                   "run_id": self.run_id})
             return
         if rec.get("event") == "guest_sample":
+            # B1:无效样本落盘保留诊断,但不刷新有效快照与新鲜度
+            ok, reason = validate_guest_sample(rec)
+            if not ok:
+                self.invalid_guest_samples += 1
+                if len(self.invalid_guest_reasons) < 16:
+                    self.invalid_guest_reasons.append(reason)
+                return
             with self._guest_lock:
                 self._guest_latest = rec
             self.last_guest_mono = time.monotonic() - self.t0
@@ -1470,24 +1912,50 @@ class Supervisor:
             return self._guest_latest
 
     def _pump_win_lines(self, mono: float) -> dict | None:
-        """增量读 win 流并处理行内事件;返回最新样本行(或 None)。"""
+        """增量读 win 流并处理行内事件;返回最新有效样本(或 None)。
+
+        B1 修复:无效 sample 行(坏数值/错误身份)不进入判定输入,
+        不刷新失联计时;重复 sampler_start=来源重启,如实记录。
+        """
         win_latest: dict | None = None
         if not self.win_reader:
             return None
+        seen_start_pids: set[int] = set()
         for line in self.win_reader.read_new():
-            if line.get("event") == "sample":
+            ev = line.get("event")
+            if ev == "sample":
+                ok, _reason = validate_win_sample(
+                    line, run_id=self.win_reader.run_id)
+                if not ok:
+                    continue  # 无效:不作为判定输入(reader 已计数)
                 win_latest = line
                 self.last_win_line_mono = mono
-            elif line.get("event") == "sampler_start":
-                self.win_pid_windows = line.get("pid")
-                self.log({"event": "win_sampler_ready",
-                          "windows_pid": self.win_pid_windows})
-            elif line.get("event") in ("vol_missing",
-                                       "evidence_write_failed",
-                                       "guest_vm_gone"):
+            elif ev == "sampler_start":
+                pid = line.get("pid")
+                if pid is not None:
+                    if seen_start_pids and pid not in seen_start_pids:
+                        # 同一流内新 sampler_start 且 pid 不同=来源重启
+                        self.safe_log({
+                            "event": "win_sampler_restarted",
+                            "old_pid": max(seen_start_pids),
+                            "new_pid": pid,
+                            "note": "host 采样来源重启:有效性时间线"
+                            "按新实例重新建立(§4.3)"})
+                    seen_start_pids.add(pid)
+                if self.win_pid_windows is not None and \
+                        pid != self.win_pid_windows:
+                    self.win_pid_windows = pid
+                    self.safe_log({"event": "win_sampler_ready",
+                                   "windows_pid": pid})
+                elif self.win_pid_windows is None:
+                    self.win_pid_windows = pid
+                    self.log({"event": "win_sampler_ready",
+                              "windows_pid": pid})
+            elif ev in ("vol_missing", "evidence_write_failed",
+                        "guest_vm_gone"):
                 # host 侧事件(Guest 不可见):升级递交
                 self.handle_triggers([{
-                    "kind": f"win_{line['event']}",
+                    "kind": f"win_{ev}",
                     "severity": "CRITICAL",
                     "detail": json.dumps(line, ensure_ascii=False)[:300],
                     "metrics": line}])
@@ -1495,30 +1963,112 @@ class Supervisor:
 
     def _wait_observation_ready(self, *, replay: bool, win_started: bool,
                                 deadline_s: float) -> tuple[bool, str]:
-        """S2 就绪屏障:必要 host/guest 有效首样本齐备才放行业务。
+        """S2/B1 就绪屏障:必要 host/guest **有效**首样本齐备才放行。
 
-        replay(文件回放)直接就绪;win 采样器启动失败 → 不就绪。
-        guest 线程抛异常/首样本解析失败不算就绪;到期=拒绝本请求。
+        B1 修复:就绪不再消费 saw_any(任意可解析 JSON)——
+        sampler_start/空 sample/坏数值行不能证明观测能力;host 需要
+        validate_win_sample 通过(含 run 身份),guest 快照需要
+        validate_guest_sample 通过;首样本还须新鲜(距本次就绪窗口
+        内的产生时刻不超过两个核心采样周期)。replay(文件回放,
+        显式测试输入源)直接就绪;win 采样器启动失败→不就绪;到期
+        =拒绝本请求(零业务 spawn)。
         """
         if replay:
             return True, "replay"
+        max_age = self.policy["startup_admission"][
+            "first_sample_max_age_s"]
         deadline = time.monotonic() + deadline_s
+        detail = ["?"]
         while time.monotonic() < deadline:
             if not win_started:
                 return False, "win_sampler_start_failed"
             self._pump_win_lines(time.monotonic() - self.t0)
-            guest_ok = self._guest_snapshot() is not None
-            win_ok = self.win_reader is not None and self.win_reader.saw_any
-            if guest_ok and win_ok:
-                return True, "both_sources_first_sample"
+            reader = self.win_reader
+            win_ok = bool(reader is not None and reader.saw_valid)
+            if win_ok and reader.last_valid_mono is not None and \
+                    time.monotonic() - reader.last_valid_mono > max_age:
+                win_ok = False  # 唯一有效样本已陈旧:不充当就绪证据
+            guest_snap = self._guest_snapshot()
+            guest_ok, _ = validate_guest_sample(guest_snap)
+            if guest_ok and self.last_guest_mono is not None and \
+                    time.monotonic() - self.t0 - self.last_guest_mono \
+                    > max_age:
+                guest_ok = False
+            if win_ok and guest_ok:
+                return True, "both_sources_first_valid_sample"
+            missing = []
+            if not reader or not reader.saw_any:
+                missing.append("win_no_lines")
+            elif not win_ok:
+                missing.append(
+                    "win_no_valid_sample" if not reader.saw_valid
+                    else "win_stale")
+            if guest_snap is None:
+                missing.append("guest_no_sample")
+            elif not guest_ok:
+                missing.append("guest_invalid_or_stale")
+            detail = missing
             time.sleep(0.2)
-        missing = []
-        if not (self.win_reader is not None and self.win_reader.saw_any):
-            missing.append("win")
-        if self._guest_snapshot() is None:
-            missing.append("guest")
-        return False, "ready_deadline_exceeded:" + "+".join(missing or
-                                                            ["?"])
+        return False, "ready_deadline_exceeded:" + "+".join(detail)
+
+    # ---------------- B1/WP1:启动资源准入 ----------------
+    def admission_check(self, win: dict | None,
+                        guest: dict | None) -> tuple[bool, str]:
+        """有效≠可开始重任务:就绪通过后再做工程资源准入(§4.2)。
+
+        默认新重任务要求:win 可用内存≥8GiB、commit<90%、guest
+        MemAvailable≥4GiB、关键输出卷 present 且 free≥20GiB、
+        未命中 300GiB 存储上限。缺某侧有效数据时按"不可判定"拒绝
+        (不放宽准入);零可用内存=有效但危险→同样拒绝。这是工程
+        准入条件,不是课程 gate;不为了开始任务临时放宽。
+        """
+        sa = self.policy["startup_admission"]
+        reasons: list[str] = []
+        ok, _ = validate_win_sample(win, run_id=getattr(
+            self.win_reader, "run_id", None) if self.win_reader else None)
+        if not ok:
+            reasons.append("win_sample_invalid")
+        else:
+            perf = win["perf"]
+            if perf["phys_avail_gb"] < sa["win_free_min_gib"]:
+                reasons.append(
+                    f"win_free {perf['phys_avail_gb']:.1f}GiB"
+                    f"<{sa['win_free_min_gib']}GiB")
+            pct = 100.0 * perf["commit_total_gb"] / \
+                perf["commit_limit_gb"]
+            if pct >= sa["win_commit_max_pct"]:
+                reasons.append(
+                    f"win_commit {pct:.1f}%>={sa['win_commit_max_pct']}%")
+            vols = win.get("vols") or []
+            present = [v for v in vols
+                       if isinstance(v, dict) and v.get("present")]
+            if present and min(v.get("free_gb", 0) for v in present) < \
+                    sa["keyvol_min_free_gib"]:
+                low = min((v.get("free_gb", 0) for v in present),
+                          default=None)
+                reasons.append(
+                    f"keyvol_free {low}GiB<{sa['keyvol_min_free_gib']}GiB")
+        gok, _ = validate_guest_sample(guest)
+        if not gok:
+            reasons.append("guest_sample_invalid")
+        else:
+            avail = guest["meminfo"]["MemAvailable"] / 1024 / 1024
+            if avail < sa["guest_avail_min_gib"]:
+                reasons.append(
+                    f"guest_avail {avail:.1f}GiB"
+                    f"<{sa['guest_avail_min_gib']}GiB")
+        try:
+            used = self._storage_used_gib()
+        except Exception:  # noqa: BLE001 —— df 失败按不可判拒绝
+            used = None
+        if used is not None and used >= self.policy["storage"][
+                "ceiling_gib"]:
+            reasons.append(
+                f"storage {used:.1f}GiB>=ceiling"
+                f"{self.policy['storage']['ceiling_gib']}GiB")
+        self.admission = {"ok": not reasons, "reasons": reasons,
+                          "checked_utc": utc_now_iso()}
+        return not reasons, ";".join(reasons) or "ok"
 
     def _shutdown_samplers_only(self) -> None:
         """就绪失败时的自我收尾:只关本请求的采样器,无业务可停。"""
@@ -1582,11 +2132,17 @@ class Supervisor:
             self.guest_sampler = None
         self.stop_win_sampler()
         # 顺序合同:全部 alerts 写入(含 supervisor_end)必须先于
-        # run_record 的哈希计算——否则清单记录与文件矛盾(build 拒绝)
+        # run_record 的哈希计算——否则清单记录与文件矛盾(build 拒绝)。
+        # B2:alerts 经异步 I/O 线程落盘 → 写 supervisor_end 后**有界
+        # drain**;写线程卡住时如实记 pending(不无限等,不假持久化)。
+        if self.protector and self.protector.pending_logs:
+            self.protector.flush_logs()
         self.log({"event": "supervisor_end",
                   "incidents": len(self.incidents),
                   "business_rc": self.biz_rc})
+        self.iow.drain(15.0)
         summary = self.write_summary()
+        self.iow.drain(5.0)
         rr = self.finalize_run_record()
         self.stdout_line("R17LOG", {"event": "supervisor_end",
                                     "run_dir": str(self.run_dir),
@@ -1646,7 +2202,10 @@ def main() -> int:
                 {"action": "open", "severity": "CRITICAL",
                  "kind": "supervisor_crash", "detail": str(exc)[:300]},
                 ensure_ascii=False)
-            print(f"R17ALERT {crash_alert}", flush=True)
+            try:  # crash 路径的递交也尽力而为(stdout 可能已坏)
+                print(f"R17ALERT {crash_alert}", flush=True)
+            except (BrokenPipeError, OSError, ValueError):
+                pass
             try:
                 sup.finalize()
             except Exception:

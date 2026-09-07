@@ -251,14 +251,21 @@ def run_final_qualification_r17(out_dir: Path,
 
 
 def _worker_delegate(write_fd: int, read_fd: int,
-                     grant_namespaces: tuple[str, ...]) -> None:
+                     grant_namespaces: tuple[str, ...],
+                     *, deadline_s: float = 30.0) -> None:
     """pipe 委派协议 worker 侧:注册身份 → 接收并激活 token。
 
-    消息均为单行 JSON(write 由 worker 发起;read 阻塞等待协调者
+    消息均为单行 JSON(write 由 worker 发起;read 有界等待协调者
     下发)。token 只在内存+env;identity 由 /proc 事实构成——
     fork/spawn 出身的进程身份不同,无法冒充。
+
+    B3/WP3 修复(§6.2):等待 token 不再用无界 readline——selectors
+    有界等待(deadline、16KiB、EOF、坏 JSON 均有定义);协调者
+    不下发/读端关闭时 worker 有界失败,不悬挂管道。
     """
     import os as _os
+    import selectors
+    import time as _time
 
     from rl_curriculum.curriculum261_r17_execgov import (
         R17_EXECUTOR_TOKEN_ENV, executor_identity, verify_executor_token,
@@ -267,12 +274,47 @@ def _worker_delegate(write_fd: int, read_fd: int,
     ident = executor_identity()
     msg = json.dumps({"kind": "executor_identity", "identity": ident,
                       "namespaces": list(grant_namespaces)})
-    with open(write_fd, "w", encoding="utf-8") as fh:
-        fh.write(msg + "\n")
-        fh.flush()
-    with open(read_fd, "r", encoding="utf-8") as fh:
-        line = fh.readline()
-    grant_msg = json.loads(line)
+    # 写身份:短写循环+有界(阻塞 fd 的一次性小消息,10s 上界)
+    view = memoryview((msg + "\n").encode("utf-8"))
+    w_deadline = _time.monotonic() + 10.0
+    sel_w = selectors.DefaultSelector()
+    sel_w.register(write_fd, selectors.EVENT_WRITE)
+    try:
+        while view:
+            if _time.monotonic() > w_deadline:
+                raise RuntimeError("委派协议:身份写入超时(fail closed)")
+            if not sel_w.select(timeout=min(max(w_deadline - _time.monotonic(), 0), 0.5)):
+                continue
+            n = _os.write(write_fd, view)
+            view = view[n:]
+    finally:
+        sel_w.close()
+    # 读 token:有界单行(selectors;EOF/超时/超长/坏 JSON)
+    deadline = _time.monotonic() + deadline_s
+    buf = b""
+    sel_r = selectors.DefaultSelector()
+    sel_r.register(read_fd, selectors.EVENT_READ)
+    try:
+        while b"\n" not in buf:
+            remaining = deadline - _time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError(
+                    "委派协议:等待授权 token 超时(fail closed;"
+                    "协调者未下发;不无限等待)")
+            if not sel_r.select(timeout=min(remaining, 0.5)):
+                continue
+            chunk = _os.read(read_fd, 4096)
+            if not chunk:
+                raise RuntimeError(
+                    "委派协议:授权通道 EOF(协调者关闭/未下发;"
+                    "fail closed)")
+            buf += chunk
+            if len(buf) > 16 * 1024:
+                raise RuntimeError("委派协议:token 消息超长(fail closed)")
+        line, _ = buf.split(b"\n", 1)
+    finally:
+        sel_r.close()
+    grant_msg = json.loads(line.decode("utf-8"))
     if grant_msg.get("kind") != "grant_token":
         raise RuntimeError(
             f"协调者下发消息类型异常:{grant_msg.get('kind')!r}"
