@@ -536,8 +536,12 @@ def execute_workflow_chain_r17(
     # 协调者终止当前 worker(qualify 委派走 revoke→terminal 既有
     # 路径)、在步骤边界停止新增步骤,并作为唯一 journal writer
     # 按 fail-closure→abort→release 封口。监护器不写 journal。
+    # terminated(RSA-03):停止请求**实际终止过当前 worker**(信号
+    # 送达)的事实标志——用于把"授权后取消、worker 捕获 TERM 后
+    # exit 0"归因为取消(不以 rc=0 改判成功);worker 自然退出后
+    # 才到达的停止请求不置位(那是步骤边界停止,不是本步取消)。
     stop_state: dict[str, Any] = {"requested": False, "signal": None,
-                                  "proc": None}
+                                  "proc": None, "terminated": False}
 
     def _on_supervision_stop(signum, frame):  # noqa: ANN001
         stop_state["requested"] = True
@@ -546,6 +550,7 @@ def execute_workflow_chain_r17(
         if proc is not None and proc.poll() is None:
             try:
                 proc.terminate()
+                stop_state["terminated"] = True
             except OSError:
                 pass
 
@@ -804,6 +809,7 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                             proc.poll() is None:
                         try:
                             proc.terminate()
+                            stop_state["terminated"] = True
                         except OSError:
                             pass
                 if delegation is not None:
@@ -836,6 +842,22 @@ def _run_step_subprocess(argv: list[str], *, cwd: str, env: dict,
                     # 正常业务等待:由监护运行时长限制兜底,不是握手
                     # 30s(§4.6);rc 哨兵路径不再无期限 wait。
                     rc = proc.wait()
+                    # RSA-03:授权后取消归因——停止请求实际终止过
+                    # worker(terminated)而 worker 捕获信号后以 rc=0
+                    # 退出时,取消是退出的第一原因:raw rc 保留,
+                    # 委派标记 cancelled(close 不再写 completed)。
+                    # 只在委派步骤且尚未标记取消时补置(不覆盖握手
+                    # 期已写入的取消/协议语义)。
+                    if delegation is not None and \
+                            not delegation.get("cancelled") and \
+                            stop_state is not None and \
+                            stop_state.get("requested") and \
+                            stop_state.get("terminated"):
+                        delegation["cancelled"] = True
+                        delegation["cancel_detail"] = (
+                            "supervision_stop_after_grant("
+                            "worker 被停止请求终止后 exit;"
+                            f"raw rc={rc} 保留;不以 rc=0 改判成功)")
     finally:
         if delegation is not None and spawn_error is not None:
             delegation["spawn_failed"] = spawn_error
@@ -1149,53 +1171,67 @@ def _qualify_delegation_close(session: "R17ChainSession",
     state = delegation.get("_terminal_state")
     if state is None:
         delegation["_terminal_state"] = "attempting"
+        # RSA-03:先按判定序决定意图状态(cancelled > spawn_failed >
+        # protocol_error > worker_unconfirmed > revoke_error > worker
+        # rc;§4.5),再统一提交——恢复分支才能把 journal **内容**
+        # 与意图核对,不以"存在 terminal"强判已提交成功。
+        if cancelled:
+            intended, note = "failed", (
+                f"cancelled;worker_rc={rc}"
+                + (f";signal={signal_info}" if signal_info else "")
+                + "(已取消运行不以 worker rc 改判成功)")
+        elif spawn_fail:
+            intended, note = "failed", (
+                f"delegation_spawn_failed:{spawn_fail}"
+                "(exposure 已持久化;失败阶段保留,不退回未开始)")
+        elif proto:
+            intended, note = "failed", (
+                f"delegation_protocol_error:{proto}")
+        elif delegation.get("worker_unconfirmed"):
+            intended, note = "failed", (
+                f"worker_termination_unconfirmed(rc={rc})"
+                "(退出状态未知不以 rc 改判成功)")
+        elif delegation.get("revoke_error"):
+            # RSA-03:撤权失败≠已生效(§4.4)——授权可能仍在效,
+            # 不得在 revoke_error 未闭合时提交资格成功;worker
+            # rc 事实保留在 note(整链失败原因=grant_revoke_failed)
+            intended, note = "failed", (
+                f"grant_revoke_failed:{delegation['revoke_error']}"
+                f";worker_rc={rc}"
+                "(授权未确认撤销:不以 worker rc 宣称资格成功)")
+        elif rc == 0:
+            intended, note = "completed", "verdict=PASS(worker rc=0)"
+        elif signal_info is not None:
+            intended, note = "crashed", (
+                f"worker killed by signal {signal_info}")
+        else:
+            intended, note = "failed", f"verdict=FAIL(worker rc={rc})"
         try:
-            if cancelled:
-                session.commit_qualification_terminal(
-                    "failed", digest,
-                    note=f"cancelled;worker_rc={rc}"
-                    + (f";signal={signal_info}" if signal_info else "")
-                    + "(已取消运行不以 worker rc 改判成功)")
-            elif spawn_fail:
-                session.commit_qualification_terminal(
-                    "failed", digest,
-                    note=f"delegation_spawn_failed:{spawn_fail}"
-                    "(exposure 已持久化;失败阶段保留,不退回未开始)")
-            elif proto:
-                session.commit_qualification_terminal(
-                    "failed", digest,
-                    note=f"delegation_protocol_error:{proto}")
-            elif delegation.get("worker_unconfirmed"):
-                session.commit_qualification_terminal(
-                    "failed", digest,
-                    note=f"worker_termination_unconfirmed(rc={rc})"
-                    "(退出状态未知不以 rc 改判成功)")
-            elif rc == 0:
-                session.commit_qualification_terminal(
-                    "completed", digest,
-                    note="verdict=PASS(worker rc=0)")
-            elif signal_info is not None:
-                session.commit_qualification_terminal(
-                    "crashed", digest,
-                    note=f"worker killed by signal {signal_info}")
-            else:
-                session.commit_qualification_terminal(
-                    "failed", digest,
-                    note=f"verdict=FAIL(worker rc={rc})")
+            session.commit_qualification_terminal(
+                intended, digest, note=note)
             delegation["_terminal_state"] = "committed"
+            delegation["_terminal_status"] = intended
         except Exception as exc:  # noqa: BLE001 —— 二次 terminal 等
-            # journal 权威只读核对(不产生第二次 terminal;§4.5)
-            verified = _journal_terminal_verified(session, digest)
-            if verified:
+            # journal 权威只读核对(不产生第二次 terminal;§4.5);
+            # RSA-03:核对**内容与会话身份**——恢复的是"已确认写入"
+            # (terminal_state=committed)与真实状态(terminal_status),
+            # 不是"存在即成功":journal 里的 failed/crashed 事实不因
+            # 本次尝试提交 completed 而变成成功。
+            found = _journal_terminal_lookup(session, digest)
+            if found is not None:
                 delegation["_terminal_state"] = "committed"
+                delegation["_terminal_status"] = str(
+                    found.get("status") or "unknown")
                 delegation["terminal_note"] = (
-                    "commit调用报错但journal已有同digest终态"
-                    "(只读核对;不重复提交)")
+                    f"commit调用报错但journal已有本会话同digest终态"
+                    f"status={delegation['_terminal_status']}"
+                    "(只读核对;以journal内容为准,不重复提交)")
             else:
                 delegation["_terminal_state"] = "unknown"
                 delegation["terminal_error"] = str(exc)[:300]
     summary: dict[str, Any] = {
         "cancelled": cancelled,
+        "cancel_detail": delegation.get("cancel_detail"),
         "protocol_error": proto,
         "spawn_failed": spawn_fail,
         "token_delivery_failed": token_fail,
@@ -1203,6 +1239,7 @@ def _qualify_delegation_close(session: "R17ChainSession",
         "revoke_error": delegation.get("revoke_error"),
         "terminal_error": delegation.get("terminal_error"),
         "terminal_state": delegation.get("_terminal_state"),
+        "terminal_status": delegation.get("_terminal_status"),
         "terminal_note": delegation.get("terminal_note"),
         "worker_unconfirmed": bool(delegation.get("worker_unconfirmed")),
         "worker_rc": rc, "worker_signal": signal_info,
@@ -1213,20 +1250,33 @@ def _qualify_delegation_close(session: "R17ChainSession",
     return summary
 
 
-def _journal_terminal_verified(session: "R17ChainSession",
-                               plan_digest: str) -> bool:
-    """只读核对 journal 是否已有本 digest 的资格终态(A04:写已
-    落盘但调用报错时,以权威记录判定,不重复提交也不把未知强判)。"""
+def _journal_terminal_lookup(session: "R17ChainSession",
+                             plan_digest: str) -> dict[str, Any] | None:
+    """只读核对 journal 是否已有**本会话**本 digest 的资格终态
+    (A04:写已落盘但调用报错时,以权威记录判定,不重复提交也不把
+    未知强判)。
+
+    RSA-03:核对事件/plan_digest/**会话身份**(owner==session_hash)
+    三重匹配并返回事件本身——调用方据 status 内容判定资格结果;
+    存在性布尔不区分 failed/crashed/completed,不能替代内容核对。
+    任何读取/身份异常=未能证实,返回 None(fail-closed)。
+    """
     try:
         from rl_curriculum.curriculum261_r17_execgov import (
             journal_entries)
+        owner = getattr(session, "session_hash", None)
+        if owner is None:
+            # 会话无身份属性=无法核对归属:宁可 unknown,不匹配
+            # 他人 terminal(fail-closed)
+            return None
         for e in reversed(journal_entries()):
             if e.get("event") == "qualification_terminal" and \
-                    e.get("plan_digest") == plan_digest:
-                return True
-        return False
+                    e.get("plan_digest") == plan_digest and \
+                    e.get("owner") == owner:
+                return e
+        return None
     except Exception:  # noqa: BLE001 —— 核对失败=未能证实
-        return False
+        return None
 
 
 def _delegation_step_failure(summary: dict[str, Any] | None) -> str | None:
@@ -1234,8 +1284,14 @@ def _delegation_step_failure(summary: dict[str, Any] | None) -> str | None:
 
     返回 None=有效成功;否则返回失败原因(判定序与 close 的第一
     失败原因一致:cancelled > spawn_failed > protocol_error >
-    worker_unconfirmed > revoke_error > terminal 未证实)。
+    worker_unconfirmed > revoke_error > terminal 未证实/内容不符)。
     任何一项未闭合(含 unknown)都不得让步骤成功。
+
+    RSA-03:terminal **内容**核对——恢复/journal 中的终态不是
+    completed 时,raw rc=0 不得构成步骤成功(存在 committed 的
+    failed/crashed 事实=资格未成功)。内容不符判定限定 worker
+    rc==0 窗口:rc!=0 的记录其失败原因已由进程事实+前序判定给
+    出,不为 crashed 记录贴内容不符标签(第一失败原因语义保持)。
     """
     if not isinstance(summary, dict):
         return None
@@ -1251,6 +1307,9 @@ def _delegation_step_failure(summary: dict[str, Any] | None) -> str | None:
         return "grant_revoke_failed"
     if summary.get("terminal_state") != "committed":
         return "qualification_terminal_unconfirmed"
+    if summary.get("worker_rc") == 0 and \
+            summary.get("terminal_status") not in (None, "completed"):
+        return "qualification_terminal_content_mismatch"
     return None
 
 

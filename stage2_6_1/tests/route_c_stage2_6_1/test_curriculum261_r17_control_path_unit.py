@@ -264,10 +264,12 @@ class TestValidReadiness:
         sup.win_reader = WinSampleReader(sup.win_path_guest,
                                          run_id=sup.run_id)
         # 有效行 + NaN 坏数值行(json.loads 接受 NaN 字面量)+
-        # 末尾半行(留缓冲)
+        # 末尾半行(留缓冲);RSA-02:reader 绑定 run 身份后样本
+        # 必须带 run_id(缺失=live 旧格式后门,拒绝)
         sup.win_path_guest.write_bytes(
-            json.dumps(_win(_perf())).encode() + b"\n" +
-            json.dumps(_win(_perf(free=float("nan")))).encode() + b"\n" +
+            json.dumps(_win(_perf(), run_id=sup.run_id)).encode() + b"\n" +
+            json.dumps(_win(_perf(free=float("nan")),
+                            run_id=sup.run_id)).encode() + b"\n" +
             b'{"event":"sam')
         lines = sup.win_reader.read_new()
         assert len(lines) == 2
@@ -283,7 +285,8 @@ class TestValidReadiness:
         time.sleep(0.02)
         with sup.win_path_guest.open("ab") as fh:
             fh.write(b"\n" +
-                     json.dumps(_win(_perf(free=-1.0))).encode() + b"\n")
+                     json.dumps(_win(_perf(free=-1.0),
+                                     run_id=sup.run_id)).encode() + b"\n")
         lines = sup.win_reader.read_new()
         assert len(lines) == 1 and sup.win_reader.invalid_samples == 2
         assert sup.win_reader.parse_errors == 1  # 半行终结成坏行
@@ -573,10 +576,15 @@ class TestResidualClosure:
             json.dumps({"win": _win(_perf()), "guest": _guest()}) + "\n",
             encoding="utf-8")
         sup = _sup(tmp_path, argv=["--", "bash", "-c",
-                                   'trap "" TERM; exec sleep 60'],
+                                   'trap "" TERM; exec sleep 90'],
                    samples_source=f"file:{samples}")
         sup.policy["coop_exit_window_s"] = 0.5
         sup.policy["default_max_seconds"] = 60
+        # 业务存活 90s>max_s 60s(留 30s 余量):run_timeout 必然先于
+        # 自然退出触发停止——TERM 被 trap 忽略(exec 保留 SIG_IGN),
+        # coop 后 KILL,写入者确认/未证实由实现机器决定。
+        # (旧写法 sleep 60 与 max_s 贴线,replay 路径的启动耗时
+        # 波动即翻转胜负——时序脆弱,不测这种偶然)
         try:
             rc = sup.run()
             # 忽略 TERM 的业务:KILL 后确认;若实现机器上即时 reap

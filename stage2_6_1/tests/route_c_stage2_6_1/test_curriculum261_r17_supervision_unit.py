@@ -1228,8 +1228,11 @@ class TestWiringClosure:
     # ---------------- S1:真实采样进入判定与摘要 ----------------
     def test_c03_guest_snapshot_reaches_engine_and_peaks(self, tmp_path):
         sup = self._sup(tmp_path)
+        # RSA-02:live guest 样本需 run_id+seq 身份与新鲜 utc
+        # (固定旧日期会被 predates 防护拒收)
         sample = {
-            "event": "guest_sample", "utc": "2026-09-06T18:00:00Z",
+            "event": "guest_sample", "utc": _utc_now_plus(0),
+            "run_id": "run", "seq": 1,
             "meminfo": {"MemTotal": 2 * 1024 * 1024,
                         "MemAvailable": 1.5 * 1024 * 1024},
             "psi_memory": {"full_avg10": 5.0},
@@ -1259,8 +1262,10 @@ class TestWiringClosure:
     def test_c03_same_sample_not_counted_twice(self, tmp_path):
         """同一快照重复消费不增加窗口有效样本数(空白不算持续)。"""
         sup = self._sup(tmp_path)
+        # RSA-02:run_id+seq 身份与新鲜 utc(固定旧日期会被拒收)
         sample = {"event": "guest_sample",
-                  "utc": "2026-09-06T18:00:00Z",
+                  "utc": _utc_now_plus(0),
+                  "run_id": "run", "seq": 1,
                   "meminfo": {"MemTotal": 2 * 1024 * 1024,
                               "MemAvailable": 1.5 * 1024 * 1024},
                   "psi_memory": {"full_avg10": 5.0},
@@ -1275,7 +1280,7 @@ class TestWiringClosure:
         eng.evaluate(12.0, None, snap, None, None, None)
         assert eng.g_mem_crit.count == 1
         # 新样本到达(新 utc):计数 +1
-        s2 = dict(sample, utc="2026-09-06T18:00:05Z")
+        s2 = dict(sample, utc=_utc_now_plus(5), seq=2)
         eng.evaluate(13.0, None, s2, None, None, None)
         assert eng.g_mem_crit.count == 2
 

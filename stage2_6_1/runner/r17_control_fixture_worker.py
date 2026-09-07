@@ -10,6 +10,8 @@ pipe。行为由 R17_CF_BEHAVIOR 选择(默认 normal):
   normal            注册→有界等 token→verify→exit 0
   verify_grant      同 normal+二次非生成式权限核验→exit 0
   sleep_cancel      token 后长睡眠(可被协调者取消)
+  term_exit0        token 后打印标记并捕获 TERM→exit 0(RSA-03:
+                     授权后取消、worker 捕获信号优雅退出形态)
   ignore_cancel     token 后忽略 TERM 长睡眠(升级路径)
   early_exit        注册前 rc=7 退出
   half_line         写半行(无换行)后退出
@@ -128,6 +130,19 @@ def main() -> int:
         except OSError:
             pass
         time.sleep(30)  # 存活供核对;由协调者受控终止
+        return 0
+    if behavior == "term_exit0":
+        # RSA-03 授权后取消形态:先装 TERM 处理器(消除与协调者
+        # 停止信号的安装竞态),再走真实注册/接收路径拿 token;
+        # 打印标记供测试观测时序,等待停止请求→优雅 exit 0
+        import signal as _signal
+
+        def _graceful(signum, frame):
+            sys.exit(0)
+        _signal.signal(_signal.SIGTERM, _graceful)
+        _real_delegate(write_fd, read_fd)
+        print("CF_TOKEN_RECEIVED", file=sys.stderr, flush=True)
+        time.sleep(30)
         return 0
     # normal / verify_grant / sleep_cancel / ignore_cancel:
     # 真实 worker 注册+接收代码路径

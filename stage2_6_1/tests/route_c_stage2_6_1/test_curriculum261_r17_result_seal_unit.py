@@ -158,6 +158,16 @@ elif mode in ("cancel_read", "cancel_grant"):
             os.kill(os.getpid(), _sig.SIGTERM)
         return line
     wf._read_pipe_line = _read
+elif mode == "cancel_after_grant":
+    # RSA-03:token 已写完(授权+交付都完成)之后才注入停止请求
+    # ——worker 捕获 TERM 优雅 exit 0,验证取消归因不丢失
+    import signal as _sig
+    _real_write = wf._write_pipe_all
+
+    def _write(fd, data, **kw):
+        _real_write(fd, data, **kw)
+        os.kill(os.getpid(), _sig.SIGTERM)
+    wf._write_pipe_all = _write
 elif mode == "fc_timeout":
     import subprocess as _sp
     _real_run = wf.subprocess.run
@@ -417,6 +427,7 @@ class TestJudgmentTableCF:
         assert rec["effective_failure"] is None
         d = rec["delegation"]
         assert d["terminal_state"] == "committed"
+        assert d["terminal_status"] == "completed"
         assert d["revoke_error"] is None and d["cancelled"] is False
         term = self._terms(events)
         assert len(term) == 1 and term[0]["status"] == "completed"
@@ -437,6 +448,12 @@ class TestJudgmentTableCF:
         assert rec["effective_failure"] == "grant_revoke_failed"
         assert "revoke 持久化失败" in (rec["delegation"]["revoke_error"]
                                        or "")
+        # RSA-03:资格终态内容与链结果一致——撤权失败不得写 completed
+        term = self._terms(events)
+        assert term and term[0]["status"] == "failed", \
+            "revoke_error 未闭合时 qualification 不得是 completed"
+        assert "grant_revoke_failed" in term[0].get("note", "")
+        assert rec["delegation"]["terminal_status"] == "failed"
         assert not any(e.get("step") == "fixture_never"
                        for e in events)
 
@@ -466,6 +483,7 @@ class TestJudgmentTableCF:
         assert rec["effective_result"] == "completed"
         d = rec["delegation"]
         assert d["terminal_state"] == "committed"
+        assert d["terminal_status"] == "completed"
         assert d["terminal_note"]
         # 唯一 terminal(无重复提交)
         assert len(self._terms(events)) == 1
@@ -707,21 +725,349 @@ class TestSampleIdentityAndAdmission:
         assert rd.last_valid["seq"] == 3
 
     def test_a19_terminal_verify_readonly_fails_closed(self, tmp_path):
-        """A19 支撑:journal 读取异常→只读核对 fail-closed(False),
-        不产生假 committed。"""
+        """A19 支撑:journal 读取异常→只读核对 fail-closed(None),
+        不产生假 committed;无会话身份同样 fail-closed。"""
         import rl_curriculum.curriculum261_r17_execgov as eg
         import rl_curriculum.curriculum261_r17_workflow as wf
 
         class _BrokenSession:
-            pass
+            session_hash = "s1"
         real = eg.journal_entries
 
         def broken(*a, **kw):
             raise RuntimeError("reader down (cf)")
         eg.journal_entries = broken
         try:
-            assert wf._journal_terminal_verified(
-                _BrokenSession(), "d1") is False
+            assert wf._journal_terminal_lookup(
+                _BrokenSession(), "d1") is None
         finally:
             eg.journal_entries = real
+        # 无会话身份=无法核对归属:宁可 unknown,不匹配他人 terminal
+        class _NoIdentitySession:
+            pass
+        assert wf._journal_terminal_lookup(
+            _NoIdentitySession(), "d1") is None
 
+
+
+# ================================================= RSA-01 writer 原子边界
+@requires_linux
+class TestRSA01WriterAtomicBoundary:
+    """独立审查 §3:队列交接/计数/seal 的并发边界确定性回归。"""
+
+    def test_rsa01_get_handoff_gap_drain_waits(self):
+        """queue.get 完成→in_flight 计数之间存在真实调度空窗:
+        drain 的完整性证明不得依赖 qsize+in_flight 相加(旧实现
+        在空窗内 drain=0 假完成,文件此后仍被写)。"""
+        iow = BoundedIOWriter()
+        done = threading.Event()
+        assert iow.submit(lambda: done.set(), role="probe") is True
+        # 重演写线程的真实交错:get 已完成、计数尚未发生。
+        # 有界 get(E-01):写线程抢先取走动作时显式失败,不挂起
+        import queue as _queue_mod
+        try:
+            act = iow._q.get(timeout=5.0)
+        except _queue_mod.Empty:
+            pytest.fail("写线程抢先取走动作,测试交错未建立(非假绿)")
+        st = iow.stats()
+        assert st["queued"] == 0 and st["in_flight"] == 0
+        assert st["accepted"] == 1  # 已接受(旧实现两计数都不含它)
+        assert iow.drain(0.25) > 0, \
+            "get 交接空窗内 drain 必须等待已接受动作(单一计数口径)"
+        # 交还写线程正常执行(恢复不变量;测试不改生产计数路径)
+        iow._q.put(act)
+        assert done.wait(5.0)
+        assert iow.drain(5.0) == 0
+
+    def test_rsa01_submit_seal_race_counts_pending(self, tmp_path):
+        """submit 已通过 sealed 检查、尚未入队计数时并发 seal+drain:
+        该动作必须已计入待完成集合(旧实现 drain=0 假完成后文件
+        仍被迟写,封口方既未纳入也未拒绝)。"""
+        iow = BoundedIOWriter()
+        target = tmp_path / "late.txt"
+        barrier = threading.Barrier(2, timeout=10)
+        late_gate = threading.Event()
+        real_put = iow._q.put_nowait
+
+        def hooked_put(act):
+            # submit 持 writer 锁、已通过 sealed 检查、put 之前
+            barrier.wait()               # 与主线程的 seal 交错
+            late_gate.wait(10)           # 保持暂停直到主线程观测完
+            return real_put(act)
+        iow._q.put_nowait = hooked_put
+
+        def producer():
+            iow.submit(lambda: target.write_text("v1", encoding="utf-8"),
+                       role="file")
+        t = threading.Thread(target=producer)
+        t.start()
+        barrier.wait()                   # producer 在锁内暂停
+        # seal 与 drain 各起线程(新实现二者阻塞等 writer 锁,排在
+        # submit 临界区之后;主线程只做观测,不调用阻塞 API——
+        # 否则主线程先卡在锁上,观测窗口丢失)
+        st_thread = threading.Thread(target=iow.seal)
+        st_thread.start()
+        result: list[int] = []
+
+        def _drain():
+            result.append(iow.drain(5.0))
+        dt = threading.Thread(target=_drain)
+        dt.start()
+        time.sleep(0.3)
+        # 新实现:动作已计入 pending(即使尚未入队),seal/drain 排在
+        # submit 之后,drain 必须仍在等待;
+        # 旧实现:qsize+in_flight=0,drain 已返回 0(假完成)
+        assert not result, \
+            "通过 sealed 检查的 submit 未计入待完成集合前,drain 不得宣称完成"
+        late_gate.set()
+        dt.join(10)
+        t.join(10)
+        st_thread.join(10)
+        assert result and result[0] == 0, "释放后动作完成,drain 真实清零"
+        assert target.read_text(encoding="utf-8") == "v1"
+        st = iow.stats()
+        assert st["accepted"] == 1
+        assert st["rejected_after_seal"] == 0  # 属于封口前批次,未被拒
+
+    def test_rsa01_run_record_io_is_final_state(self, tmp_path):
+        """§5.3 事前封口:seal→drain→哈希/summary/run_record——
+        run_record 内嵌 io 即最终封口态(修复"写入时点态"勘误);
+        封口后应急写入同步直走,不产生 rejected_after_seal 假象。"""
+        sup = _sup(tmp_path)
+        sup.expected = [{"role": "alerts",
+                         "path": str(sup.alerts_path)}]
+        (sup.run_dir / "alerts").mkdir(parents=True, exist_ok=True)
+        sup.alerts_path.write_text("", encoding="utf-8")
+        sup.log({"event": "pre_finalize"})
+        sup.finalize()
+        rr = json.loads(
+            (sup.run_dir / "run_record.json").read_text(
+                encoding="utf-8"))
+        final = sup.iow.stats()
+        assert rr["io"]["accepted"] == final["accepted"]
+        assert rr["io"]["ok"] == final["ok"]
+        assert rr["io"]["failed"] == final["failed"]
+        assert rr["io"]["rejected_after_seal"] == \
+            final["rejected_after_seal"]
+        assert rr["evidence_complete"] is True
+        assert sup.iow.is_sealed() is True
+        # 封口后应急:submit 被 sealed 拒绝(如实计数)后同步直写
+        # ——不伪装入队,run_record 封口快照不被迟事件污染
+        before = sup.iow.stats()["rejected_after_seal"]
+        sup.emergency_write({"event": "post_seal_emergency"})
+        st = sup.iow.stats()
+        assert st["rejected_after_seal"] == before + 1, \
+            "封口后提交被拒必须如实计数(不静默)"
+        assert st["accepted"] == final["accepted"], \
+            "同步兜底不得伪装成入队成功"
+
+
+# ================================================= RSA-02 有效样本输出边界
+@requires_linux
+class TestRSA02SampleBoundary:
+    """独立审查 §4:reader 拒绝结果贯穿真实消费者(pump/失联判定)。"""
+
+    def test_rsa02_pump_rejected_lines_do_not_refresh_liveness(
+            self, tmp_path):
+        """reader 拒绝(重复 seq/旧 utc)的样本不得经 pump 重新成为
+        "刚收到的有效数据"刷新失联计时(旧实现 pump 对返回值重做
+        弱校验后放行,掩盖真实断流)。"""
+        sup = _sup(tmp_path)
+        sup.win_reader = WinSampleReader(
+            sup.win_path_guest, run_id=sup.run_id,
+            started_iso=_utc_now(), predates_tolerance_s=300.0)
+        sup.win_path_guest.write_text(
+            json.dumps(_win(run_id=sup.run_id, seq=5)) + "\n",
+            encoding="utf-8")
+        first = sup._pump_win_lines(10.0)
+        assert first is not None and first["seq"] == 5
+        assert sup.last_win_line_mono == 10.0
+        # 追加同 seq 重复 + 早于 run 的重放:reader 拒绝
+        with sup.win_path_guest.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(_win(run_id=sup.run_id, seq=5,
+                                     perf=_perf(free=1.0))) + "\n")
+            fh.write(json.dumps(_win(
+                run_id=sup.run_id, seq=6,
+                utc="2020-01-01T00:00:00Z")) + "\n")
+        second = sup._pump_win_lines(20.0)
+        assert second is None, "被拒样本不得成为判定输入"
+        assert sup.last_win_line_mono == 10.0, \
+            "被拒样本不得刷新失联计时(旧实现刷新到 20)"
+        assert sup.win_reader.duplicate_seq == 1
+        assert sup.win_reader.stale_replayed == 1
+        assert sup.win_reader.new_valid == []
+        # 新有效样本(seq=7)到达:正常刷新(拒绝不误伤真实数据)
+        with sup.win_path_guest.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(_win(run_id=sup.run_id, seq=7)) + "\n")
+        third = sup._pump_win_lines(30.0)
+        assert third is not None and third["seq"] == 7
+        assert sup.last_win_line_mono == 30.0
+
+    def test_rsa02_non_object_json_no_crash(self, tmp_path):
+        """合法 JSON null/标量行:解析成功但非对象——计解析错误、
+        不入返回(旧实现 reader 的 obj.get 抛 AttributeError)。"""
+        p = tmp_path / "win.jsonl"
+        p.write_text("null\n" + "[1,2]\n" +
+                     json.dumps(_win(seq=1)) + "\n", encoding="utf-8")
+        rd = WinSampleReader(p, run_id=None)
+        out = rd.read_new()           # 不得抛
+        assert len(out) == 1 and out[0]["event"] == "sample"
+        assert rd.parse_errors == 2
+        assert rd.saw_valid is True
+        # pump 消费同样不炸(事件循环 isinstance 纵深防御)
+        sup = _sup(tmp_path)
+        sup.win_reader = WinSampleReader(sup.win_path_guest,
+                                         run_id=sup.run_id)
+        sup.win_path_guest.write_text("null\n", encoding="utf-8")
+        assert sup._pump_win_lines(1.0) is None
+
+    def test_rsa02_live_reader_requires_run_id(self):
+        """live reader 绑定 run 身份后,缺失 run_id 的旧格式拒绝
+        (历史解释只在只读 reader run_id=None)。"""
+        ok, reason = validate_win_sample(_win(), run_id="THIS")
+        assert not ok and reason == "run_id_missing"
+
+    def test_rsa02_guest_identity_and_seq_gate(self, tmp_path):
+        """guest 生产侧闭合:_emit_guest 只让通过 run_id+seq+新鲜
+        utc 全部闸门的样本刷新有效快照与失联计时。"""
+        sup = _sup(tmp_path)
+
+        def rec(seq, run_id="run", utc="now"):
+            g = _guest()
+            g["run_id"] = run_id
+            g["seq"] = seq
+            if utc != "now":
+                g["utc"] = utc
+            return g
+        sup._emit_guest(rec(1))
+        snap1 = sup._guest_snapshot()
+        assert snap1 and snap1["seq"] == 1
+        t1 = sup.last_guest_mono
+        assert t1 is not None
+        # 同 seq 重复:不刷新(重复消费不增加有效样本)
+        sup._emit_guest(dict(snap1, utc=_utc_now()))
+        assert sup._guest_snapshot() is snap1
+        assert sup.guest_duplicate_seq == 1
+        assert sup.last_guest_mono == t1
+        # 序号回退:不刷新
+        sup._emit_guest(rec(0))
+        assert sup._guest_snapshot() is snap1
+        assert sup.guest_seq_regressions == 1
+        # 早于 run 启动的旧 utc:不刷新(重放)
+        sup._emit_guest(rec(3, utc="2020-01-01T00:00:00Z"))
+        assert sup._guest_snapshot() is snap1
+        assert sup.guest_stale_replayed == 1
+        # 缺失 run_id(live 旧格式后门):无效样本计数
+        sup._emit_guest(rec(4, run_id=None))
+        assert sup._guest_snapshot() is snap1
+        assert sup.invalid_guest_samples == 1
+        # 新有效样本:正常刷新
+        sup._emit_guest(rec(5))
+        snap2 = sup._guest_snapshot()
+        assert snap2 and snap2["seq"] == 5
+        assert sup.last_guest_mono >= t1
+
+
+# ================================================= RSA-03 终态内容一致
+@requires_linux
+class TestRSA03TerminalContent:
+    """独立审查 §5:终态内容/撤权/授权后取消与有效结果一致。"""
+
+    SYNC = Path.home() / "projects" / "crypto_rl"
+    SRC = SYNC / "src"
+    RUNNER = SYNC / "stage2_6_1_runner"
+
+    def _run_chain(self, tmp_path, behavior, mode="normal", timeout=120):
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        state = tmp_path / "state"
+        out = tmp_path / "out"
+        script = tmp_path / "cf_runner.py"
+        script.write_text(CF_RUNNER_SCRIPT, encoding="utf-8")
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(self.SRC) + os.pathsep + str(self.RUNNER),
+            CURRICULUM261_R17_STATE_ROOT=str(state),
+            R17_CF_BEHAVIOR=behavior,
+            R17_CF_NAMESPACES="cf_ns_a")
+        proc = subprocess.run(
+            [sys.executable, str(script), str(self.SRC), str(state),
+             str(out), behavior, mode],
+            capture_output=True, text=True, timeout=timeout, env=env,
+            cwd=str(self.SYNC))
+        journal = state / "r17_execution_journal.jsonl"
+        events = [json.loads(l) for l in
+                  journal.read_text(encoding="utf-8").splitlines() if l
+                  ] if journal.is_file() else []
+        mf = out / "manifest.jsonl"
+        mlines = [json.loads(l) for l in
+                  mf.read_text(encoding="utf-8").splitlines() if l
+                  ] if mf.is_file() else []
+        return proc, events, mlines, out
+
+    @staticmethod
+    def _terms(events):
+        return [e for e in events
+                if e["event"] == "qualification_terminal"]
+
+    def test_rsa03_cancel_after_grant_worker_exit0_not_completed(
+            self, tmp_path):
+        """授权+token 交付完成后停止请求到达,worker 捕获 TERM 优雅
+        exit 0:取消归因不丢失——raw rc=0 保留,资格终态 failed,
+        步骤有效失败(旧实现正常 wait 路径不消费 stop_state→写
+        completed)。"""
+        proc, events, mlines, _out = self._run_chain(
+            tmp_path, "term_exit0", mode="cancel_after_grant")
+        assert '"ok": false' in proc.stdout, proc.stdout + proc.stderr
+        rec = mlines[0]
+        assert rec["rc"] == 0, "worker 优雅退出的 raw rc 保留(不改写)"
+        d = rec["delegation"]
+        assert d["cancelled"] is True
+        assert "supervision_stop_after_grant" in (d.get("cancel_detail")
+                                                  or "")
+        assert rec["effective_result"] == "failed"
+        assert rec["effective_failure"] == "delegation_cancelled"
+        term = self._terms(events)
+        assert term and term[0]["status"] == "failed", \
+            "授权后取消不得写 completed"
+        assert "cancelled" in term[0].get("note", "")
+        assert not any(e.get("step") == "fixture_never"
+                       for e in events)
+
+    def test_rsa03_lookup_verifies_content_and_owner(self, monkeypatch):
+        """只读核对返回事件内容并核对会话身份:他人 terminal 不匹配
+        (存在性布尔不区分 failed/completed,不能替代内容核对)。"""
+        import rl_curriculum.curriculum261_r17_execgov as eg
+        import rl_curriculum.curriculum261_r17_workflow as wf
+
+        class _S1:
+            session_hash = "s1"
+
+        class _S2:
+            session_hash = "s2"
+        fake = [{"event": "qualification_terminal",
+                 "plan_digest": "d1", "status": "failed",
+                 "owner": "s1", "note": "cf"}]
+        monkeypatch.setattr(eg, "journal_entries",
+                            lambda **kw: list(fake))
+        e = wf._journal_terminal_lookup(_S1(), "d1")
+        assert e is not None and e["status"] == "failed"
+        assert wf._journal_terminal_lookup(_S2(), "d1") is None, \
+            "他人会话的 terminal 不得被本会话恢复"
+
+    def test_rsa03_step_failure_content_mismatch_rc0_only(self):
+        """终态内容不符判定限定 rc=0 假成功窗口:crashed 记录的第一
+        失败原因仍是进程事实,不贴内容不符标签。"""
+        import rl_curriculum.curriculum261_r17_workflow as wf
+        base = {"cancelled": False, "spawn_failed": None,
+                "protocol_error": None, "worker_unconfirmed": False,
+                "revoke_error": None, "terminal_state": "committed"}
+        # rc=0+journal 恢复出 failed:假成功窗口→内容不符
+        s = dict(base, terminal_status="failed", worker_rc=0)
+        assert wf._delegation_step_failure(s) == \
+            "qualification_terminal_content_mismatch"
+        # rc=-15(crashed):进程事实已是第一失败原因,不贴 mismatch
+        s2 = dict(base, terminal_status="crashed", worker_rc=-15)
+        assert wf._delegation_step_failure(s2) is None
+        # 旧 summary 无 terminal_status 字段:宽容不判(增量兼容)
+        s3 = dict(base, worker_rc=0)
+        assert wf._delegation_step_failure(s3) is None

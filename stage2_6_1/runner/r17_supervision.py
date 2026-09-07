@@ -523,9 +523,15 @@ def validate_win_sample(line: dict | None, *, run_id: str | None = None,
         return False, "not_object"
     if line.get("event") != "sample":
         return False, f"not_sample_event:{line.get('event')}"
-    if run_id is not None and line.get("run_id") not in (None, run_id):
-        # 无 run_id 的行(旧格式)宽容;带错 run_id 的行拒绝(错误运行身份)
-        return False, "run_id_mismatch"
+    if run_id is not None:
+        rid = line.get("run_id")
+        if rid is None:
+            # RSA-02:live 消费绑定 run 身份时,缺失 run_id 的旧格式
+            # 拒绝——历史解释只在只读 reader(run_id=None;§6.3),
+            # 不得作为 live 准入/判定的兼容后门
+            return False, "run_id_missing"
+        if rid != run_id:
+            return False, "run_id_mismatch"
     utc = line.get("utc")
     if not isinstance(utc, str) or not utc.strip():
         return False, "utc_missing"
@@ -556,15 +562,30 @@ def validate_win_sample(line: dict | None, *, run_id: str | None = None,
     return True, "ok"
 
 
-def validate_guest_sample(rec: dict | None) -> tuple[bool, str]:
+def validate_guest_sample(rec: dict | None, *, run_id: str | None = None,
+                          ) -> tuple[bool, str]:
     """guest 资源样本有效性(§4.1):MemTotal/MemAvailable 有限、
-    单位一致(kB)、0≤可用≤总量;utc 身份字段在场。"""
+    单位一致(kB)、0≤可用≤总量;utc 身份字段在场。
+
+    RSA-02:live 消费(调用方传 run_id)时与 win 侧同款身份闭合——
+    run_id 必须匹配且 seq 为非负整数(GuestSampler 已生产该字段);
+    缺省 run_id=None 保持历史只读宽容,不给回放/诊断面加后门。
+    """
     if not isinstance(rec, dict):
         return False, "not_object"
     if rec.get("event") != "guest_sample":
         return False, f"not_sample_event:{rec.get('event')}"
     if not rec.get("utc"):
         return False, "utc_missing"
+    if run_id is not None:
+        rid = rec.get("run_id")
+        if rid is None:
+            return False, "run_id_missing"
+        if rid != run_id:
+            return False, "run_id_mismatch"
+        seq = rec.get("seq")
+        if not isinstance(seq, int) or isinstance(seq, bool) or seq < 0:
+            return False, "seq_invalid"
     mi = rec.get("meminfo")
     if not isinstance(mi, dict):
         return False, "meminfo_missing"
@@ -610,6 +631,11 @@ class WinSampleReader:
         self.duplicate_seq = 0
         self.seq_regressions = 0
         self.stale_replayed = 0
+        # RSA-02:有效样本输出边界——read_new 每次调用重置,只含
+        # 通过 validate+seq 去重/回退+predates 全部闸门的样本;
+        # 判定输入(pump/策略/失联计时/summary)只消费本列表,
+        # 不得对原始行重做较弱校验后当有效输入
+        self.new_valid: list[dict] = []
         self._seen_seq: set[int] = set()
         self._max_seq: int | None = None
         dt = _parse_utc_iso(started_iso)
@@ -652,14 +678,25 @@ class WinSampleReader:
             text = raw.lstrip(b"\xef\xbb\xbf").decode("utf-8", "replace")
             try:
                 obj = json.loads(text)
-                out.append(obj)
             except ValueError:
                 self.parse_errors += 1
+                continue
+            if not isinstance(obj, dict):
+                # RSA-02:合法 JSON 但非对象(null/标量/数组)不是可
+                # 消费的行——计解析错误、不入返回(下游 line.get 的
+                # AttributeError 根因修复;诊断计数如实保留)
+                self.parse_errors += 1
+                continue
+            out.append(obj)
         if out:
             self.last_lines = out[-8:]
             self.saw_any = True
-        # 有效性分层:只有通过校验的 sample 行刷新有效首样本状态;
-        # 重复序号/序号回退/早于 run 启动的旧日志不刷新(§6.4)
+        # 有效性分层(RSA-02:拒绝结果即输出边界):只有通过校验+
+        # seq 去重/回退+predates 全部闸门的样本进入 new_valid 与
+        # 有效首样本状态;重复序号/序号回退/早于 run 启动的旧日志
+        # 不刷新(§6.4)。返回值 out 仍含全部可解析 dict 行(诊断/
+        # 事件面),但消费面不得把其中被拒的 sample 行当有效输入。
+        self.new_valid = []
         for obj in out:
             ok, reason = validate_win_sample(obj, run_id=self.run_id)
             if ok:
@@ -679,6 +716,7 @@ class WinSampleReader:
                 self.last_valid = obj
                 self.last_valid_mono = time.monotonic()
                 self.last_valid_src_utc = obj.get("utc")
+                self.new_valid.append(obj)
             elif obj.get("event") == "sample":
                 self.invalid_samples += 1
                 if len(self.invalid_reasons) < 16:
@@ -913,6 +951,18 @@ class BoundedIOWriter:
     被拒(rejected_after_seal 计数,不伪装成功处理)。
     不变量:accepted = queued + in_flight + ok + failed;
     rejected_after_seal 在 accepted 之外单独计(§5.1)。
+
+    RSA-01 修复(独立审查 §3):队列交接必须原子。
+    - queue.get() 完成→in_flight+=1 之间存在空窗(两个计数都不含
+      该动作),qsize()+in_flight 相加构造不出完整性证明——drain
+      改用单一计数口径 pending = accepted - ok - failed(与队列
+      内部互斥/线程调度无关,任何已接受未完成动作必然计入);
+    - submit 的 sealed 检查→put→accepted 计数三段可被 seal+drain
+      插入(通过检查的动作既未计入待完成集合也未被拒绝,封口后
+      仍写文件)——三步合入同一锁临界区:通过 sealed 检查的动作
+      必然已计入 accepted(put_nowait 非阻塞,持锁安全;与 Queue
+      内部锁无嵌套死锁:唯一锁序=writer 锁→queue 锁)。
+    in_flight/queued 保留为诊断维度,不参与 drain 判定。
     """
 
     def __init__(self, maxsize: int = 1024):
@@ -958,23 +1008,34 @@ class BoundedIOWriter:
 
     def submit(self, fn, *, critical: bool = False,
                role: str = "") -> bool:
+        # RSA-01:sealed 检查/入队/accepted 计数同一临界区——
+        # 通过 sealed 检查的动作立即计入待完成集合(pending),并发的
+        # seal/drain 必然看到它(等待其完成),不存在"未计入也未拒绝"
+        # 的迟交(put_nowait 非阻塞,持锁安全)。
+        act = {"fn": fn, "critical": critical, "role": role}
         with self._lock:
             if self._sealed:
                 self._stats["rejected_after_seal"] += 1
                 return False
-        act = {"fn": fn, "critical": critical, "role": role}
-        try:
-            self._q.put_nowait(act)
-        except Exception:  # noqa: BLE001 —— queue.Full
-            with self._lock:
+            try:
+                self._q.put_nowait(act)
+            except Exception:  # noqa: BLE001 —— queue.Full
                 self._stats["dropped"] += 1
                 if critical:
                     self._stats["dropped_critical"] += 1
-            return False
-        with self._lock:
+                return False
             self._stats["submitted"] += 1
             self._stats["accepted"] += 1
         return True
+
+    def _pending_locked(self) -> int:
+        """已接受未完成数(单一计数口径;RSA-01)。
+
+        accepted-ok-failed 与队列内部状态无关:get→in_flight 计数
+        空窗、submit 计数窗内的动作都必然已被 accepted 覆盖。
+        """
+        return (self._stats["accepted"] - self._stats["ok"]
+                - self._stats["failed"])
 
     def drain(self, timeout: float) -> int:
         """有界等待已接受动作全部**成功完成**(§5.2)。
@@ -986,15 +1047,14 @@ class BoundedIOWriter:
         deadline = time.monotonic() + timeout
         while True:
             with self._lock:
-                live = self._q.qsize() + self._stats["in_flight"]
-                if live == 0:
+                if self._pending_locked() == 0:
                     return self._stats["failed"]
             if time.monotonic() >= deadline:
                 with self._lock:
-                    live = self._q.qsize() + self._stats["in_flight"]
-                    if live:
+                    pending = self._pending_locked()
+                    if pending:
                         self._stats["io_stuck"] = True
-                    return live + self._stats["failed"]
+                    return pending + self._stats["failed"]
             time.sleep(0.02)
 
     def seal(self) -> None:
@@ -1002,6 +1062,10 @@ class BoundedIOWriter:
         §5.2/§5.3——成功发布后不得再有迟写)。"""
         with self._lock:
             self._sealed = True
+
+    def is_sealed(self) -> bool:
+        with self._lock:
+            return self._sealed
 
     def stats(self) -> dict[str, Any]:
         with self._lock:
@@ -1068,6 +1132,18 @@ class Supervisor:
         # B1:样本有效性/启动准入记录
         self.invalid_guest_samples = 0
         self.invalid_guest_reasons: list[str] = []
+        # RSA-02:guest 側同款身份/序號閘(live 消費閉合)——重複
+        # seq/回退/早於 run 的 utc 不刷新有效快照與失聯計時
+        self.guest_duplicate_seq = 0
+        self.guest_seq_regressions = 0
+        self.guest_stale_replayed = 0
+        self._guest_seen_seq: set[int] = set()
+        self._guest_max_seq: int | None = None
+        _dt0 = _parse_utc_iso(self._started_utc)
+        self._guest_predates_cutoff = (
+            _dt0.timestamp() - float(
+                self.policy["startup_admission"]["source_utc_tolerance_s"])
+            if _dt0 is not None else None)
         self.admission: dict[str, Any] | None = None
         # B2:异步 I/O 执行单元(控制路径永不同步等待日志/告警写)
         self.iow = BoundedIOWriter()
@@ -1549,7 +1625,8 @@ class Supervisor:
 
     # ---------------- 应急兜底 ----------------
     def _emergency_sync(self, obj: dict[str, Any]) -> None:
-        # 在 I/O 执行线程内运行;只写启动时解析的当前用户目录
+        # I/O 执行线程内运行(seal 后应急回退时在调用者线程);
+        # 只写启动时解析的当前用户目录
         try:
             import sys as _sys
             print("R17EMERG " + json.dumps(obj, ensure_ascii=False,
@@ -1578,9 +1655,15 @@ class Supervisor:
         $env:LOCALAPPDATA);不遍历 C:\\Users 尝试逐用户写文件,
         也不以恒真条件放开目录检查。目录未知/不可写:事件只能留在
         内存中的告警流与 stderr(如实缺失,不伪造成功)。
+
+        RSA-01:批次已封口(seal 后)时 submit 被拒——应急通道回退为
+        同步直写(异常路径上的一次受控 I/O,不静默丢弃);队列满
+        (dropped)仍走既有保护触发路径,不在此放大。
         """
-        self.iow.submit(lambda: self._emergency_sync(obj),
-                        critical=True, role="emergency")
+        if not self.iow.submit(lambda: self._emergency_sync(obj),
+                               critical=True, role="emergency") and \
+                self.iow.is_sealed():
+            self._emergency_sync(obj)
 
     # ---------------- 摘要与 run_record ----------------
     def write_summary(self) -> dict[str, Any]:
@@ -1602,6 +1685,16 @@ class Supervisor:
                 if self.win_reader else None,
                 "win_invalid_samples": self.win_reader.invalid_samples
                 if self.win_reader else None,
+                # RSA-02:拒绝结果贯穿摘要(同一 reader/emit 闸计数)
+                "win_duplicate_seq": self.win_reader.duplicate_seq
+                if self.win_reader else None,
+                "win_seq_regressions": self.win_reader.seq_regressions
+                if self.win_reader else None,
+                "win_stale_replayed": self.win_reader.stale_replayed
+                if self.win_reader else None,
+                "guest_duplicate_seq": self.guest_duplicate_seq,
+                "guest_seq_regressions": self.guest_seq_regressions,
+                "guest_stale_replayed": self.guest_stale_replayed,
                 "guest_invalid_samples": self.invalid_guest_samples,
                 "coverage_gaps": self.guest_sampler.coverage_gaps
                 if self.guest_sampler else None,
@@ -1642,6 +1735,11 @@ class Supervisor:
         st = self.iow.stats() if self.iow else {}
         if st.get("failed") or st.get("io_stuck") or \
                 st.get("queued") or st.get("in_flight"):
+            return False
+        # RSA-01:完成性以 accepted==ok+failed 为准(单一计数口径;
+        # queued/in_flight 是诊断冗余,一致性核对是独立防线)。
+        if st.get("accepted", 0) != (st.get("ok", 0)
+                                     + st.get("failed", 0)):
             return False
         if st.get("dropped_critical"):
             return False
@@ -1765,14 +1863,18 @@ class Supervisor:
                                         "reason": self._startup_reject})
             self.finalize()
             return 2
-        # 观测自动启动(WP1:不依赖手工开采样器)
-        win_started = self.start_win_sampler()
+        # 观测自动启动(WP1:不依赖手工开采样器)。replay(显式测试
+        # 输入源,生产入口不暴露)不启动生产采样器、不创建
+        # win_reader——样本由回放文件喂,live run 身份绑定不作用于
+        # 回放输入(RSA-02:_declare_expected 同款 replay 判定,
+        # telemetry_win 角色亦不登记)
+        replay = self.args.samples_source.startswith("file:") if \
+            self.args.samples_source else False
+        win_started = False if replay else self.start_win_sampler()
         self.guest_sampler = GuestSampler(
             emit=lambda rec: self._emit_guest(rec), interval=5.0,
             detail_interval=30.0, run_id=self.run_id)
         # 样本回放模式(测试输入源):不启动线程,由文件喂样本
-        replay = self.args.samples_source.startswith("file:") if \
-            self.args.samples_source else False
         replay_records = self._load_replay() if replay else []
         if not replay:
             self.guest_sampler.start()
@@ -2062,12 +2164,32 @@ class Supervisor:
             return
         if rec.get("event") == "guest_sample":
             # B1:无效样本落盘保留诊断,但不刷新有效快照与新鲜度
-            ok, reason = validate_guest_sample(rec)
+            # RSA-02:live 身份闭合(run_id+seq;与 reader 同款闸)——
+            # 重复 seq/序号回退/早于 run 启动的 utc 不刷新有效快照
+            # 与失联计时,判定面只消费同一验证结果
+            ok, reason = validate_guest_sample(rec, run_id=self.run_id)
             if not ok:
                 self.invalid_guest_samples += 1
                 if len(self.invalid_guest_reasons) < 16:
                     self.invalid_guest_reasons.append(reason)
                 return
+            seq = rec.get("seq")
+            if seq in self._guest_seen_seq:
+                self.guest_duplicate_seq += 1
+                return
+            if self._guest_max_seq is not None and seq < self._guest_max_seq:
+                self.guest_seq_regressions += 1
+                return
+            u = _parse_utc_iso(rec.get("utc"))
+            if self._guest_predates_cutoff is not None and (
+                    u is None or
+                    u.timestamp() < self._guest_predates_cutoff):
+                # 不可解析时间基线=不可信(与 win 侧 _predates_run
+                # 同语义);早于本 run 启动-容差=旧日志重放
+                self.guest_stale_replayed += 1
+                return
+            self._guest_seen_seq.add(seq)
+            self._guest_max_seq = seq
             with self._guest_lock:
                 self._guest_latest = rec
             self.last_guest_mono = time.monotonic() - self.t0
@@ -2082,20 +2204,23 @@ class Supervisor:
 
         B1 修复:无效 sample 行(坏数值/错误身份)不进入判定输入,
         不刷新失联计时;重复 sampler_start=来源重启,如实记录。
+        RSA-02 修复:sample 行的有效性**唯一**由 reader 的闸门
+        (validate+seq 去重/回退+predates)决定,输出边界=reader.
+        new_valid——本方法不再对 sample 行重做较弱校验(旧行为把
+        reader 已拒的重复/回退/旧时间样本重新当"刚收到的有效
+        数据"刷新失联计时,掩盖真实断流)。事件行(sampler_start/
+        vol_missing 等)仍从 read_new 返回值处理。
         """
-        win_latest: dict | None = None
         if not self.win_reader:
             return None
         seen_start_pids: set[int] = set()
+        win_latest: dict | None = None
         for line in self.win_reader.read_new():
             ev = line.get("event")
             if ev == "sample":
-                ok, _reason = validate_win_sample(
-                    line, run_id=self.win_reader.run_id)
-                if not ok:
-                    continue  # 无效:不作为判定输入(reader 已计数)
-                win_latest = line
-                self.last_win_line_mono = mono
+                # 有效性与拒绝计数都在 reader(同一验证结果);
+                # 本分支仅显式跳过,防止未来在此重加弱校验
+                continue
             elif ev == "sampler_start":
                 pid = line.get("pid")
                 if pid is not None:
@@ -2125,6 +2250,10 @@ class Supervisor:
                     "severity": "CRITICAL",
                     "detail": json.dumps(line, ensure_ascii=False)[:300],
                     "metrics": line}])
+        # 判定输入/失联计时只消费 reader 的有效样本边界(RSA-02)
+        for line in self.win_reader.new_valid:
+            win_latest = line
+            self.last_win_line_mono = mono
         return win_latest
 
     def _wait_observation_ready(self, *, replay: bool, win_started: bool,
@@ -2363,25 +2492,29 @@ class Supervisor:
         self.log({"event": "supervisor_end",
                   "incidents": len(self.incidents),
                   "business_rc": self.biz_rc})
-        # §5.3 分批封口:producer 已停(samplers/protector 内存日志
-        # 已 flush);drain(15) 确认 alerts 批**全部成功完成**——
-        # 在途/失败/超时都算未确认,进入 evidence_complete 判定,
-        # 不签"完成"字样。
-        self._io_drain_unconfirmed = self.iow.drain(15.0)
-        summary = self.write_summary()
-        rr = self.finalize_run_record()
-        # 递交通知(独立后置位置;stdout 非交付文件,不追加已封口
-        # alerts/summary)先于 seal 提交,保证退出通知尽力送达。
+        # 递交通知(独立后置位置;stdout 非交付文件)在封口**之前**
+        # 入队:通知内容只引用确定路径(run_record/summary 路径在
+        # 运行前即固定),不承诺"已写完"——它属于本批待完成动作,
+        # 由随后的 drain 覆盖;管道写满只卡写线程,drain 超时如实
+        # 计未确认(§5.3)。
         self.stdout_line("R17LOG", {"event": "supervisor_end",
                                     "run_dir": str(self.run_dir),
                                     "incidents": len(self.incidents),
                                     "business_rc": self.biz_rc,
                                     "summary": str(self.run_dir /
                                                    "summary.json"),
-                                    "run_record": str(rr)})
-        # §5.2/§5.3 封口边界:run_record 哈希之后拒绝一切新提交
-        # (迟到写入被拒并计数,不改动已封口文件;不伪装成功处理)。
+                                    "run_record": str(self.run_dir /
+                                                      "run_record.json")})
+        # §5.3 分批封口(RSA-01:事前封口边界):producer 已停、最后
+        # 一条 alerts/退出通知已入队——**先 seal**(此后任何新 submit
+        # 被拒,不进入本批),**再 drain(15)** 确认已接受动作全部
+        # 成功完成。只有封口+清空之后的 io 状态才是终态:哈希/
+        # summary/run_record 消费终态计数,run_record 内嵌 io 即
+        # 最终封口态(修复"写入时点态"勘误)。
         self.iow.seal()
+        self._io_drain_unconfirmed = self.iow.drain(15.0)
+        self.write_summary()
+        self.finalize_run_record()
 
 
 def main() -> int:

@@ -249,3 +249,89 @@ Stage 2.6.2：不变，C3 PPO Branch D独立开放
 - 正式 verify：`rc=0, rows=8, problems=0`（回执 `verify_receipts/verify_20260907T071128Z.json`）。
 - 冷读（独立目录 `cold_read_final/`，脱离开发绝对路径）：`rc=0, rows=8, problems=0`（`verify_20260907T071129Z.json`）。
 - git blob：`manifest_blob_id=6f007cbfe6a640e39661ed34aefb5b529b2208e7`（`anchors/final.anchor.blob.txt`）。
+
+## 12. 续轮：独立审查否决与 RSA-01/02/03 修复闭环（R17 冻结前开发第二轮）
+
+### 12.1 独立审查结论与本轮范围
+
+独立审查（`R17_Result_Seal_Admission_Independent_Review.md`，2026-09-07，固定 `227374c`）否决了本轮 §11 的"全部 PASS"结论：**开发验收未通过，R17 冻结前开发继续**（不是新增正式统计 FAIL）。三个未闭合点与审查 §7 给定的修复范围：
+
+- **RSA-01** writer 计数转移与 seal 竞态：queue.get 完成→in_flight 计数的空窗、submit 三段式与 seal 的空窗、finalize 缺事前封口边界；
+- **RSA-02** reader 拒绝结果未传到真实消费者：被拒样本仍出现在 read_new 返回值、pump 重做弱校验后刷新失联计时；
+- **RSA-03** 终态内容不一致：revoke_error 未闭合仍可写 completed、只读恢复只核对"存在"不核对"是什么状态"、授权后取消（worker 捕获 TERM exit 0）不归因为取消。
+
+审查确认有效的部分保留不动：A01 协议失败阻断链、必需 F 卷准入、身份读写有界。审查 §6 的补充观察（正常业务 wait 依赖外层监护而非统一期限、rc=92 哨兵与"raw rc 原样保留"的表述差异）作为边界披露记入 12.7，不在本轮修改面内。
+
+影响范围审查（subagent，按全局约定先行）结论：三项设计可行；采纳其调整点——退出通知保持入队（seal 前进入批次，避免同步 print 的无界阻塞）、emergency 用"submit 被拒且已 sealed"回退同步直写、guest 校验条件式闭合（live 在 `_emit_guest`，admission/回放保持历史宽容）、terminal 内容不符判定限定 worker_rc==0 窗口、terminate 信号实际送达才置取消标志。
+
+### 12.2 RSA-01：writer 接受/交接/完成/封口原子边界（runner/r17_supervision.py）
+
+- **drain 单一计数口径**：`pending = accepted - ok - failed` 取代 `qsize()+in_flight` 相加——与队列内部互斥、线程调度无关，get→计数空窗内的动作必然已被 accepted 覆盖；`_pending_locked()` 为唯一判定来源。
+- **submit 全临界区**：sealed 检查→put_nowait→accepted 计数合入同一 writer 锁临界区（put_nowait 非阻塞；唯一锁序 writer→queue，无嵌套死锁）。通过 sealed 检查的动作立即计入待完成集合，并发的 seal/drain 必然看到它——不存在"未计入也未拒绝"的迟交。
+- **finalize 事前封口**（§5.3 顺序修正）：producer 停→supervisor_end 日志+退出通知入队（通知只引用运行前即固定的确定路径，属本批待完成动作）→ **seal** → **drain(15)** → write_summary → finalize_run_record。哈希消费终态计数，**run_record 内嵌 io 即最终封口态**（同时闭合上轮勘误②"写入时点态"）。
+- **emergency 回退**：seal 后 submit 被拒（rejected_after_seal 如实计数）→ `_emergency_sync` 同步直写（异常路径受控 I/O，不静默丢弃）；队列满仍走 dropped_critical 保护路径。
+- **_evidence_ok 独立防线**：新增 `accepted == ok + failed` 一致性核验（queued/in_flight 保留为诊断维度）。
+
+### 12.3 RSA-02：有效样本输出边界贯穿真实消费者（同文件）
+
+- **reader 输出边界**：`WinSampleReader.new_valid` 每次 read_new 重置，只含通过 validate+seq 去重/回退+predates 全部闸门的样本；read_new 返回值仍含全部可解析 dict 行（诊断/事件面）。
+- **pump 只消费边界**：`_pump_win_lines` 对 sample 行显式跳过（有效性唯一由 reader 决定），win_latest 与 `last_win_line_mono` 只从 new_valid 刷新——被拒的重复/回退/旧时间样本不再经弱校验"复活"为有效输入（审查 P3 两场景的正反例见 12.6）。
+- **null 行根因修复**：合法 JSON 但非对象（null/标量/数组）计 parse_errors、不入返回（旧实现 reader 的 `obj.get` 抛 AttributeError）。
+- **win run_id 严格化**：reader 绑定 run 身份时缺失 run_id 的旧格式拒绝（`run_id_missing`）——历史解释只在只读 reader（run_id=None）与回放输入源。
+- **guest 条件闭合**：`validate_guest_sample(rec, run_id=...)` 在传 run_id 时要求 run_id 匹配+seq 非负整数；`_emit_guest`（live 唯一交接点）传 self.run_id 并维护 guest 侧 seq 去重/回退/predates 闸——重复 seq、序号回退、早于 run 启动的 utc 不刷新 `_guest_latest` 与 `last_guest_mono`。
+- **replay 不启动生产采样器**：`--samples-source file:`（显式测试输入源）下不再调用 start_win_sampler、不创建 win_reader——与 `_declare_expected` 不登记 telemetry_win 的既有 replay 判定一致；live run 身份绑定不作用于回放输入。
+- **摘要贯穿**：summary.coverage 新增 win_duplicate_seq/win_seq_regressions/win_stale_replayed/guest_duplicate_seq/guest_seq_regressions/guest_stale_replayed（同一 reader/emit 闸计数）。
+
+### 12.4 RSA-03：资格终态内容一致（src/rl_curriculum/curriculum261_r17_workflow.py）
+
+- **revoke_error 不入 completed**：close 的意图状态判定序（cancelled > spawn_failed > protocol_error > worker_unconfirmed > **revoke_error** > worker rc）重构为"先决定意图状态再统一提交"；撤权失败时提交 `failed`（note 携带 `grant_revoke_failed:<错误>;worker_rc=<rc>`）——`revoke_error != null && qualification_terminal=completed` 的矛盾态不再可能。
+- **只读恢复核对内容与身份**：`_journal_terminal_verified`（存在性布尔）→ `_journal_terminal_lookup`（返回事件 dict）：核对 event/plan_digest/**owner==session.session_hash** 三重匹配；无会话身份属性=无法核对归属→fail-closed None。恢复出的真实 status 记入 `_terminal_status`，summary 新增 `terminal_status` 字段（正常路径也填提交的状态）。
+- **步骤判定消费内容**：`_delegation_step_failure` 在 terminal_state==committed 后新增内容核验——`worker_rc==0 且 terminal_status 非 None 且非 completed` → `qualification_terminal_content_mismatch`（限定 rc=0 假成功窗口；crashed 记录的第一失败原因仍是进程事实，不贴内容不符标签）。
+- **授权后取消归因**：stop_state 新增 `terminated` 标志（terminate 信号实际送达才置位）；`_run_step_subprocess` 正常 wait 返回后，委派步骤且未标记取消时若 `requested and terminated` → `delegation["cancelled"]=True`+`cancel_detail`（进入 summary）——worker 捕获 TERM 优雅 exit 0 不再写 completed；worker 自然退出后才到达的停止请求不置位（那是步骤边界停止）。
+
+### 12.5 附带修复与夹具升级
+
+- **worker 行为面**（r17_control_fixture_worker.py）：新增 `term_exit0`（先装 TERM 处理器消除安装竞态，再走真实注册/接收路径，token 后打印标记等待停止→优雅 exit 0）；CF 注入新增 `cancel_after_grant` 模式（token 写完成后向协调者自身注入 SIGTERM）。
+- **delegation summary** 补 `cancel_detail` 字段（此前两处设置点均未暴露到 summary）。
+- **t18 时序脆弱性修复**（test_curriculum261_r17_control_path_unit.py）：`sleep 60` 凑 `max_s=60` 贴线——旧实现 replay 路径 powershell interop 查询把 spawn 推迟约 0.8s 使 run_timeout 稳定先触发；本轮 replay 跳过该查询后 60s 贴线竞态翻向自然退出（stash 旧代码复跑确认归因）。改为 `sleep 90`（30s 余量），测试不再依赖启动耗时的偶然延时。
+- **夹具升级**：control_path t04 三处 win 样本补 run_id（live reader 绑定后缺失即拒）；supervision_unit c03 两处内联 guest 样本补 run_id+seq+动态 utc（固定旧日期会被 predates 闸拒收）。
+- **A19 更新**：`_journal_terminal_verified(...) is False` → `_journal_terminal_lookup(...) is None`，并补"无会话身份=fail-closed"断言。
+
+### 12.6 续轮测试与交付数据
+
+- **新增 10 项测试**（test_curriculum261_r17_result_seal_unit.py）：
+  - TestRSA01WriterAtomicBoundary 3 项：get 交接空窗 drain 等待（手动重演写线程 get 后计数前的真实交错，旧实现 qsize+in_flight=0 假完成）；submit/seal 竞态（barrier 确定性交错：submit 持锁过 sealed 检查后暂停，seal/drain 线程化观测 `assert not result`——旧实现 drain 立即返回 0）；run_record io 终态一致+封口后应急如实计数（rejected_after_seal+1 且 accepted 不变）。
+  - TestRSA02SampleBoundary 4 项：pump 拒绝样本不刷新失联计时（重复 seq=5 + 旧 utc 重放后 `last_win_line_mono` 不变、new_valid 空，seq=7 到达正常刷新——审查 P3 两场景的正反例）；null/标量行不炸且计 parse_errors；live reader 缺 run_id 拒绝；guest 身份/序号/新鲜度全闸（重复/回退/旧 utc/缺 run_id 不刷新快照，新样本正常）。
+  - TestRSA03TerminalContent 3 项：授权后取消端到端（cancel_after_grant+term_exit0：raw rc=0 保留、cancelled=True、cancel_detail 含 supervision_stop_after_grant、effective_failure=delegation_cancelled、journal terminal=failed、后续零启动）；lookup 内容+会话身份核对（他人 terminal 不匹配）；内容不符判定限 rc=0（crashed 不贴标签、旧 summary 无字段宽容）。
+  - 既有断言强化：a03 增加 journal `status=="failed"`+note 含 grant_revoke_failed+terminal_status 断言；a02/a04b 增加 terminal_status=="completed"。
+- **专项稳定性**：三测试文件（control_path+supervision+result_seal）145 项连跑 2 轮全绿（157.30s/158.19s）；t18 单独复跑 2 次通过（62.39s/62.21s）。
+- **候选全量回归**（monitored_entry 真实监护面，run `full_regression/runs/final_20260907T111521`）：`1454 passed, 7 skipped, 23 warnings in 1306.29s`；JUnit `total=1461 failures=0 errors=0 skipped=7`（上轮 1451 → +10 新增）；MONITORED 业务 rc=0；`evidence_complete=true`、`missing_roles=[]`、io `accepted=17 ok=17 failed=0 in_flight=0 queued=0`（accepted==ok+failed 终态一致核验通过）；无 stop 请求、无拒绝样本（真实 ps1 出样 seq 单调：duplicate/regression/stale 全 0）。
+- **资源复算**（`rsa_closure/resource_recompute.json`，已关闭原始流 vs summary）：guest MemAvailable 最低 33.976 GiB、win phys_avail 最低 31.449 GiB、commit 峰值 56.24%、任务树 RSS 同刻求和峰值 6.066 GiB、采样器自身 RSS 24.4 MB——四项与 summary 在线值一致。
+- **交付锚**（`rsa_closure/`，--root=full_regression 即 run_record 相对路径基准）：build 8 行；篡改反例（guest_samples.jsonl 追加 1 字节）verify rc≠0 检出、恢复后哈希一致；正式 verify `rc=0 rows=8 problems=0`；冷读（独立目录）`rc=0 rows=8 problems=0`；`manifest_blob_id=ca4418f4d440464be4defee35937b668bb36188c`。
+
+### 12.7 剩余边界披露（审查 §6 对应项，本轮未修改）
+
+- 正常授权后的 worker 等待仍是无 timeout 的 `proc.wait()`，由外层监护运行时长限制兜底（§4.6 的分层设计：握手 30s 有界、正常业务计算用运行时长限制）——这不是统一结束期限，长跑 worker 依赖监护停止链。
+- `R17_RC_UNCONFIRMED=92` 是"退出未确认"哨兵而非进程真实退出码；"raw rc 原样保留"的准确表述为：**真实已知 rc 原样保留，未确认退出以 92 哨兵显式区分**（不与 2/3/4/5/6/7/93-99 及 -15 冲突）。
+- `BoundedIOWriter.stats()` 的 `pending` 字段=queued（qsize，诊断快照），与 drain 的 pending（accepted-ok-failed，判定口径）同名不同义；schema 保持增量兼容未改名，消费方以 run_record io 的 accepted/ok/failed 三元组为准。
+- 新鲜度判定口径：win 失联计时（last_win_line_mono）以**接收时刻**刷新，样本**生成时刻**（utc，跨 OS 墙钟容差 300s）只用于 predates 重放防护——本 run 内早期积压记录（生成后延迟到达）仍会刷新接收计时；该口径已如实记录（last_valid_src_utc 分开保存），未建立生成时刻新鲜度闸。
+- MONITORED 控制台逐字输出（R17LOG 行）持久化于交付 run 的 supervisor stdout 通道与脚本日志，JUnit/summary/run_record 为权威佐证（与上轮 §7.3 披露同口径）。
+- **验收勘误 E-02（边缘形态披露）**：`_on_supervision_stop` 的 `proc.poll() is None` 检查与 `proc.terminate()` 之间存在极小窗口——worker 恰在此窗口自然退出且未被 reap 时，terminate 对已退出进程成功返回 → `terminated=True` → rc=0 会被保守归因 cancelled（把自然成功误判为取消）。方向保守（不会把失败判成功），本轮以披露记录，未改变判定。
+- **验收勘误 E-01（测试稳健性，已应用）**：`test_rsa01_get_handoff_gap_drain_waits` 的主线程手动 `get()` 已改为 `get(timeout=5)`+Empty 显式 fail——写线程抢先取走唯一动作时测试明确失败而非挂起。
+
+### 12.8 续轮结论与停点（不变）
+
+三个 RSA 未闭合点全部修复并有确定性回归覆盖；候选全量 1461 项零失败；交付锚/篡改反例/冷读全过。**R17 冻结前开发候选（第二轮）交付，等待独立审查**。固定停点与上轮 §11 一致，逐字保留：本轮不创建最终 Commit A/B、不签发正式许可、不启动真实 formal、不读取新的正式 design/calibration/holdout/final 数据、不清除或重置已终结正式身份、不换 root 恢复机会、不自动创建 R18；完整 fresh rt3 的 C3 结构拒绝、R16 C2 D3 统计 FAIL、C3 PPO Branch D 三者不因监护修复互相解除；Stage 2.6.1 尚未通过。
+
+## 附录 D：续轮变更清单（相对 227374c）
+
+| 文件 | 变更 |
+|---|---|
+| `stage2_6_1/runner/r17_supervision.py` | BoundedIOWriter（submit 全临界区/drain 单一口径/is_sealed）、_evidence_ok 一致性核验、emergency 回退、finalize 事前封口顺序；WinSampleReader.new_valid+null 行过滤；validate_win_sample run_id 严格化；validate_guest_sample 条件闭合；_emit_guest 全闸；_pump_win_lines 消费边界；replay 不启动生产采样器；summary.coverage 六字段 |
+| `stage2_6_1/src/rl_curriculum/curriculum261_r17_workflow.py` | close 意图状态重构（revoke_error→failed）+_terminal_status；_journal_terminal_lookup（内容+owner）；_delegation_step_failure 内容核验（限 rc=0）；stop_state.terminated 与授权后取消归因；summary 增 cancel_detail/terminal_status |
+| `stage2_6_1/runner/r17_control_fixture_worker.py` | term_exit0 行为（先装 handler 再真实 delegate） |
+| `stage2_6_1/tests/.../test_curriculum261_r17_result_seal_unit.py` | CF 增 cancel_after_grant 模式；新增 3 测试类 10 项；a02/a03/a04b/A19 断言强化 |
+| `stage2_6_1/tests/.../test_curriculum261_r17_control_path_unit.py` | t04 三处 run_id；t18 sleep 60→90（时序脆弱性） |
+| `stage2_6_1/tests/.../test_curriculum261_r17_supervision_unit.py` | c03 两处内联样本补 run_id+seq+动态 utc |
+| `stage2_6_1/artifacts/.../tools/rsa_closure_delivery.sh` | 新增：续轮交付锚脚本（build/篡改反例/verify/冷读/blob，--root=full_regression） |
+| `stage2_6_1/artifacts/.../rsa_closure/` | 新增：续轮交付（manifest 8 行/anchors/verify 回执/冷读/资源复算/blob ca4418f4） |
