@@ -81,7 +81,7 @@ producer 停止(samplers stop;protector.flush_logs)
 ```
 
 - `evidence_complete = 必需角色全 present 且 drain 未确认=0 且 io 无 failed/io_stuck/queued/in_flight/dropped_critical 且 writers_live=False`（§5.4：文件存在≠证据完整；live_writers 与 evidence_complete 互斥）。
-- summary 中的 io 快照标明封口边界时点（run_record 内嵌的 io 为最终封口态）。
+- summary/run_record 中的 io 快照为其各自**写入时点**的封口态（run_record 写于退出通知 R17LOG 提交与 seal() 之前，故封口终态比 run_record 内嵌值多 1——t22 实测 run_record io=25、seal 后终态 26；run_record 不追改，差异以 anchors 与冷读回执为准）。
 
 ### 5.3 验证器消费完成性（`r17_verify_delivery.py`）
 
@@ -115,7 +115,7 @@ verify 新增两条 FAIL 路径（build 仍允许生成诊断包）：逐项 `li
 - `admission_check` 对 win/guest 样本做 predates 检查（旧时间戳拒绝）。
 - GuestSampler 增 run_id+seq（live 样本绑定本次 run 与源序号）。
 - ps1 采样器 sample 行增 `seq`（sampler_start 起单调）。
-- 附带修复：ps1 上一轮遗留的中文注释在无 BOM UTF-8 下被 PowerShell 按 ANSI 误读导致解析失败——本轮新增注释改 ASCII（原有注释字节未动）。
+- 附带修复：ps1（无 BOM）中本轮新增/移动的中文注释行被 PowerShell 按 ANSI 误读后产生了解析敏感字符（手动探针实测 `ParserError: 245 行意外的 }`，见 tools/ps1_manual_probe.sh 输出记录于本节集成过程）；将探测段新增注释改为 ASCII 后 ps1 恢复出样（同一探针实测 seq=1/telemetry_out_writable=true 首样本即带）。既有其余中文注释行未破坏解析、字节未动（勘误修订：验收指出本句原表述与 diff 不符——diff 中探测段两行中文注释被 ASCII 版替换；063719Z 集成 run 的 win_no_lines 现场保留，逐字节根因未定位，归因以上述探针实测为限）。
 
 ### 6.3 A14–A18 实测
 
@@ -133,7 +133,11 @@ A14（4 形态拒绝+零 spawn）、A15（identity 不符/重复卷记录拒绝�
 
 `tools/a22_alert_pause_resume.sh` + 回执 `t22_alert_pause/agent_receipt_a22.md`：真实后台任务输出（模式 B 等价）；keyvol WARNING（mono 2.2，"当前任务继续"）→ 同 incident 同秒 escalate CRITICAL（mono 2.5，"停止请求由本地策略执行，不等待模型回复"）→ TERM → business rc=-15 → `SUPERVISOR_RC=4`；**Agent 停读 14 秒**（零读取调用）期间全部保护动作完成，恢复后首读回放全部未决递交行（与落盘 alerts.jsonl 逐行交叉一致）；25/25 写动作 ok、0 dropped。
 
-### 7.3 顺带竞态修复（旧已知形态）
+### 7.3 证据等级披露
+
+- §7.1/§8 的 `MONITORED_RC=0`、§7.3 的 `14/14 稳定` 等控制台逐字输出未持久化为独立文件（结论由 run_record business rc=0、JUnit、alerts 流、tools 脚本与 rejected.jsonl 审计间接支撑；m10 竞态现场保留于 diagnostics/m10_flaky/run_1）。
+
+### 7.4 顺带竞态修复（旧已知形态）
 
 m10（联合负载下 ~2/9 失败）根因：TERM 后业务即死时，退出条件块的 poll 先于下一轮监控段看到退出 → break 时 `biz_rc` 丢失为 None（与上轮 T21 场景 A 勘误同根因）。修复：`_observe_business_exit()` 幂等统一退出观察（监控段与退出条件块两处调用，真实 rc 不因 break 时序丢失）——修复后 14/14 稳定。
 
@@ -153,7 +157,7 @@ m10（联合负载下 ~2/9 失败）根因：TERM 后业务即死时，退出条
 
 | 分项 | 结论 | 依据 |
 |---|---|---|
-| 结果判定一致性 | PASS | §3 判定表 A01–A08；三文件 135 项+新文件 28 项全绿 |
+| 结果判定一致性 | PASS | §3 判定表 A01–A08；r17 专项三文件合计 135 项全绿（=control_path 47+supervision 60+result_seal 28，新文件已含其中） |
 | 有界取消与清理 | PASS | §4 四点；A05–A07 |
 | 在途写入与封口 | PASS | §5；A09–A13 |
 | 资源准入与新鲜度 | PASS | §6；A14–A18+集成真实准入 |
@@ -202,7 +206,7 @@ Stage 2.6.2：不变，C3 PPO Branch D独立开放
 | A20 | 既有 T19/T20/C14 | control_path/supervision_unit |
 | A21 | 既有 verify 篡改系列 + 新增 a10/a13 verify FAIL | 多文件 |
 | A22 | t22_alert_pause 真实接收+回执 | t22_alert_pause/ |
-| A23 | 既有 T22（11 项） | control_path_unit |
+| A23 | 既有 T22（TestFormalAdmissionIsolation+Unit 共 11 项） | supervision_unit（勘误修订：原误记 control_path_unit） |
 | A24 | 集成正常链+全量回归+交付锚冷读 | integration/full_regression |
 
 ## 附录 B：变更文件清单
@@ -226,7 +230,7 @@ Stage 2.6.2：不变，C3 PPO Branch D独立开放
 - 命令：`r17_monitored_entry.sh pytest --max-seconds 3000 -- python3 -m pytest tests/route_c_stage2_6_1 -q --junitxml=<run>/junit.xml`（串行；R17_RUN_DIR 预指定；launch_evidence 登记实际执行内容）。
 - Run：`full_regression/runs/final_20260907T064708`。
 - stdout：`1444 passed, 7 skipped, 23 warnings in 1204.17s`；JUnit 汇总 `total=1451 failures=0 errors=0 skipped=7`（上轮 1423 → 本轮 +28 项新增测试）；`MONITORED_RC=0`；业务 rc=0。
-- 7 项 skip 均为既有条件跳过（requires_linux 在非 WSL 主机侧收集时跳过等，与上轮口径一致）。
+- 7 项 skip 与上轮逐名一致（勘误修订构成：5 项 ancestry binding（非 repairNN 分支）+ 2 项 r16 governance 条件跳过；无 requires_linux 跳过——全部测试在 WSL 内执行）。
 
 ### C.2 资源复算（已关闭原始流重算 vs 在线 summary，`full_regression/resource_recompute.json`）
 
