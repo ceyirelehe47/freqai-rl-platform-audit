@@ -1,0 +1,21 @@
+{
+ "probe": "rcf02_signal_deadlock",
+ "repo": "/mnt/f/trading/freqai-rl-audit",
+ "holding_lock_seen_at": 1788786728.4612591,
+ "sigterm_sent": true,
+ "child_exit": 0,
+ "handler_returned": true,
+ "probe_result": "NOT_REPRODUCED",
+ "note": "handler 已能返回/子进程有界退出(停止链由正常控制路径消费)",
+ "child_output": [
+  "R17LOG {\"event\":\"supervisor_start\",\"run_dir\":\"/tmp/r17_probe_work2/rcf02/run\",\"policy\":\"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea\",\"utc\":\"2026-09-07T13:12:08Z\",\"run_id\":\"run\"}",
+  "PROBE_HOLDING_LOCK",
+  "R17LOG {\"event\":\"business_started\",\"pid\":453,\"pgid\":453,\"argv\":[\"bash\",\"-c\",\"sleep 30\"],\"utc\":\"2026-09-07T13:12:08Z\",\"run_id\":\"run\"}",
+  "R17ALERT {\"action\":\"open\",\"severity\":\"PROTECTION_UNAVAILABLE\",\"incident\":{\"incident_id\":\"run-supervisor_external_stop-8\",\"kind\":\"supervisor_external_stop\",\"detail\":\"supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)\",\"severity\":\"PROTECTION_UNAVAILABLE\",\"first_seen_mono\":8.0,\"last_seen_mono\":8.0,\"samples\":1,\"peak\":{\"sig\":15},\"recovered\":false,\"stopped_requested\":true,\"delivered_count\":1},\"metrics\":{\"sig\":15},\"run_dir\":\"/tmp/r17_probe_work2/rcf02/run\",\"note\":\"当前任务继续\",\"utc\":\"2026-09-07T13:12:16Z\",\"run_id\":\"run\"}",
+  "R17LOG {\"event\":\"business_exited\",\"rc\":-15,\"utc\":\"2026-09-07T13:12:16Z\",\"run_id\":\"run\"}",
+  "R17ALERT {\"action\":\"worker_event\",\"severity\":\"WORKER\",\"kind\":\"worker_exit\",\"detail\":\"业务进程 rc=-15\",\"metrics\":{\"rc\":-15,\"patterns\":[]},\"run_dir\":\"/tmp/r17_probe_work2/rcf02/run\",\"utc\":\"2026-09-07T13:12:16Z\",\"run_id\":\"run\"}",
+  "R17LOG {\"event\":\"supervisor_end\",\"run_dir\":\"/tmp/r17_probe_work2/rcf02/run\",\"incidents\":2,\"business_rc\":-15,\"summary\":\"/tmp/r17_probe_work2/rcf02/run/summary.json\",\"run_record\":\"/tmp/r17_probe_work2/rcf02/run/run_record.json\",\"utc\":\"2026-09-07T13:12:16Z\",\"run_id\":\"run\"}",
+  "PROBE_RUN_RC=4"
+ ]
+}
+rcf02_exit=0

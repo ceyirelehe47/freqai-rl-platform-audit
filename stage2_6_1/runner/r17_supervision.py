@@ -611,6 +611,12 @@ class WinSampleReader:
     (utc)早于本 run 启动-容差的旧日志重放不进入有效状态;接收
     时刻(last_valid_mono)与源生成时刻(last_valid_src_utc)分开
     记录——读取延迟/积压不延长生成时间。
+    WP1 修复(RCF-01):本次有效批次(new_valid)的生命周期在任何
+    可能失败的 stat/open/read 之前建立——读取失败的提前返回维持
+    "本轮没有接受新样本"事实,上一批 new_valid 不得残留被 pump
+    继续消费(旧行为:失败读取持续刷新失联计时,掩盖真实断流,
+    15/30s 失联保护失效);读取失败保留有界诊断(操作类别/计数,
+    不充当样本、不刷新任何有效性)。
     """
 
     def __init__(self, path: Path, run_id: str | None = None, *,
@@ -631,6 +637,13 @@ class WinSampleReader:
         self.duplicate_seq = 0
         self.seq_regressions = 0
         self.stale_replayed = 0
+        # WP1(RCF-01):读取失败有界诊断(§4.2)——类别+计数;只描述
+        # 事实,不充当样本、不刷新有效性/身份/失联计时
+        self.read_failures = 0
+        self.read_failure_consecutive = 0
+        self.read_failure_last_op: str | None = None
+        self.read_failure_last_utc: str | None = None
+        self.read_failure_last_err: str | None = None
         # RSA-02:有效样本输出边界——read_new 每次调用重置,只含
         # 通过 validate+seq 去重/回退+predates 全部闸门的样本;
         # 判定输入(pump/策略/失联计时/summary)只消费本列表,
@@ -653,10 +666,35 @@ class WinSampleReader:
             return True  # 有效样本必带 utc;不可解析=不可信时间基线
         return dt.timestamp() < self._predates_cutoff
 
+    def _note_read_failure(self, op: str, exc: OSError) -> None:
+        """有界读取失败诊断(§4.2):操作类别+异常类名+计数。
+
+        只记事实:不得刷新样本生成身份/有效序号/last_valid_mono/
+        pump 有效时间/低资源持续窗口的有效样本数;read_new 被调用
+        本身也不代表"来源仍健康"。错误字符串只保留异常类名(有界,
+        不携带可能无界的路径/OS 文本)。
+        """
+        self.read_failures += 1
+        self.read_failure_consecutive += 1
+        self.read_failure_last_op = op
+        self.read_failure_last_utc = utc_now_iso()
+        self.read_failure_last_err = type(exc).__name__
+
     def read_new(self) -> list[dict]:
+        # WP1(RCF-01):本次有效批次在所有可能失败的 stat/open/read
+        # 之前重建——两个提前返回出口都交付"本轮零新样本",旧批次
+        # 不残留(旧行为:read_new 返回后 pump 继续消费上批 new_valid,
+        # 失败读取刷新有效性,失联判定被掩盖)。
+        self.new_valid = []
         try:
             size = self.path.stat().st_size
-        except OSError:
+        except OSError as exc:
+            self._note_read_failure("stat", exc)
+            # 来源身份可能改变(消失/重建):重置游标与半行缓冲,
+            # 不得把旧半行拼接到另一个来源的内容(§4.3);重读的
+            # 旧行由 seq 身份闸拒收,不获得新有效性
+            self.offset = 0
+            self._buf = b""
             return []
         if size < self.offset:
             self.offset = 0  # 文件被重建(不应发生):从头读,不丢告警
@@ -665,8 +703,14 @@ class WinSampleReader:
             with self.path.open("rb") as fh:
                 fh.seek(self.offset)
                 data = fh.read()
-        except OSError:
+        except OSError as exc:
+            self._note_read_failure("read", exc)
+            self.offset = 0
+            self._buf = b""
             return []
+        # stat/open/read 成功(含 EOF 无新行与截断重置分支——两者
+        # 与读取失败是不同事实,均不产生失败诊断)
+        self.read_failure_consecutive = 0
         self.offset += len(data)
         self._buf += data
         lines = self._buf.split(b"\n")
@@ -696,7 +740,7 @@ class WinSampleReader:
         # 有效首样本状态;重复序号/序号回退/早于 run 启动的旧日志
         # 不刷新(§6.4)。返回值 out 仍含全部可解析 dict 行(诊断/
         # 事件面),但消费面不得把其中被拒的 sample 行当有效输入。
-        self.new_valid = []
+        # (new_valid 的生命周期已上提到方法开头——WP1/RCF-01)
         for obj in out:
             ok, reason = validate_win_sample(obj, run_id=self.run_id)
             if ok:
@@ -1157,6 +1201,13 @@ class Supervisor:
         self._evidence_complete: bool | None = None
         # B5:启动前意图校验结果(_declare_expected 填充)
         self._startup_reject: str | None = None
+        # WP2(RCF-02):外部停止意图(handler 只登记;正常控制路径
+        # 消费)。必须在 __init__ 初始化——finalize/write_summary 存在
+        # 不经 run() 的直接调用面(测试),懒初始化会 AttributeError。
+        self._external_stop_sig: int | None = None
+        self._external_stop_consumed = False
+        # WP1(RCF-01):首次读取失败告警只发一次(有界)
+        self._win_read_failure_logged = False
         # S5:运行前登记必需产物角色(缺件保留为缺件,绝不从清单移除)
         self.expected: list[dict[str, Any]] = self._declare_expected()
 
@@ -1692,6 +1743,21 @@ class Supervisor:
                 if self.win_reader else None,
                 "win_stale_replayed": self.win_reader.stale_replayed
                 if self.win_reader else None,
+                # WP1(RCF-01):读取失败有界诊断(事实面;不充当样本)
+                "win_read_failures": self.win_reader.read_failures
+                if self.win_reader else None,
+                "win_read_failure_consecutive":
+                    self.win_reader.read_failure_consecutive
+                    if self.win_reader else None,
+                "win_read_failure_last_op":
+                    self.win_reader.read_failure_last_op
+                    if self.win_reader else None,
+                "win_read_failure_last_utc":
+                    self.win_reader.read_failure_last_utc
+                    if self.win_reader else None,
+                "win_read_failure_last_err":
+                    self.win_reader.read_failure_last_err
+                    if self.win_reader else None,
                 "guest_duplicate_seq": self.guest_duplicate_seq,
                 "guest_seq_regressions": self.guest_seq_regressions,
                 "guest_stale_replayed": self.guest_stale_replayed,
@@ -1707,6 +1773,9 @@ class Supervisor:
             "io": self.iow.stats() if self.iow else None,
             "residual_unconfirmed": self.residual_unconfirmed,
             "startup_rejected": self._startup_reject,
+            # WP2(RCF-02):外部停止意图事实(handler 只登记;null=从未)
+            "external_stop_sig": self._external_stop_sig,
+            "external_stop_consumed": self._external_stop_consumed,
             "telemetry_bytes": self.telemetry_bytes(),
             "stage_marks": self.stage_marks,
             "emergency_win_dir": self.emergency_win_dir,
@@ -1847,7 +1916,87 @@ class Supervisor:
             self.mark_stage("business_exited", f"rc={rc}")
 
     # ---------------- 主循环 ----------------
+    def _sig_external(self, sig, frame) -> None:
+        """TERM/INT handler:只登记停止意图(§5.2 纯属性赋值)。
+
+        RCF-02 修复:旧 handler 先 self.log(→iow.submit→writer 普通
+        Lock)再 request_stop——主线程持锁时被信号打断,handler 在
+        主线程执行,重入同锁即同线程死锁(handler 永不返回,停止
+        与保护停摆;已实测复现)。本 handler 零 log/零锁/零 I/O/零
+        进程操作;停止原因保留首次信号(重复信号不覆盖原因,粘性)。
+        派发由正常控制路径消费(run 早期检查/主循环每轮检查)。
+        """
+        if self._external_stop_sig is None:
+            self._external_stop_sig = sig
+
+    def _consume_external_stop(self) -> None:
+        """正常控制路径消费外部停止意图(§5.3):粘性,只消费一次。
+
+        停止调度(log/handle_triggers/request_stop)全部发生在正常
+        上下文——无重入风险。走既有 PROTECTION_UNAVAILABLE 链:
+        stop_requested_reasons+request_stop(业务活跃)或 no_live_
+        task(阻止后续步骤);业务不活跃时保护链无从派发,外部停止
+        仍必须是非成功收尾(exit_code=4,修补"业务自然退出后 TERM
+        落到 rc=0"的既有洞)。
+        """
+        sig = self._external_stop_sig
+        if sig is None or self._external_stop_consumed:
+            return
+        self._external_stop_consumed = True
+        self.log({"event": "supervisor_signal", "sig": sig,
+                  "note": "外部停止意图由正常控制路径消费(handler "
+                          "只登记;停止调度在此发生)"})
+        self.handle_triggers([{
+            "kind": "supervisor_external_stop",
+            "severity": "PROTECTION_UNAVAILABLE",
+            "detail": f"supervisor 收到信号 {sig}:停止本 run 已登记"
+                      f"任务(正常控制路径派发)",
+            "metrics": {"sig": sig}}])
+        if not (self.protector and
+                self.protector.requested_at is not None):
+            # 业务未启动/已退出:无保护链可派发;外部停止=非成功收尾
+            self.exit_code = 4
+
+    def _external_stop_early_window(self, note: str) -> None:
+        """早窗口(启动拒绝/就绪屏障/准入)外部停止:零业务启动已由
+        调用分支保证;停止事实入日志,整体 exit_code=4(外部停止不
+        是成功收尾,不与拒绝码 2/93/94 竞争语义)。"""
+        sig = self._external_stop_sig
+        if sig is None:
+            return
+        self._external_stop_consumed = True
+        self.log({"event": "supervisor_signal", "sig": sig, "note": note})
+
     def run(self) -> int:
+        """注册信号 handler(只登记意图)并驱动 _run_body;结束恢复
+        旧 handler(不留给下一次调用/测试;§5.4)。
+
+        RCF-02 修复:注册提前到 run() 最开头——旧位置在就绪屏障与
+        准入之后,注册前窗口(含 supervisor_start 日志/屏障等待)的
+        TERM/INT 以默认行为直接杀死进程,受控收尾/finalize 永不
+        执行(已实测 exit=-15)。signal.signal 仅主线程可用,非主
+        线程调用(测试形态)降级为不注册。
+        """
+        self._external_stop_sig = None
+        self._external_stop_consumed = False
+        old_term = old_int = None
+        try:
+            old_term = signal.signal(signal.SIGTERM, self._sig_external)
+            old_int = signal.signal(signal.SIGINT, self._sig_external)
+        except ValueError:
+            old_term = old_int = None
+        try:
+            return self._run_body()
+        finally:
+            for signum, old in ((signal.SIGTERM, old_term),
+                                (signal.SIGINT, old_int)):
+                if old is not None:
+                    try:
+                        signal.signal(signum, old)
+                    except ValueError:
+                        pass
+
+    def _run_body(self) -> int:
         self.stdout_line("R17LOG", {"event": "supervisor_start",
                                     "run_dir": str(self.run_dir),
                                     "policy": policy_digest(self.policy)})
@@ -1861,8 +2010,14 @@ class Supervisor:
                       "reason": self._startup_reject})
             self.stdout_line("R17LOG", {"event": "startup_rejected",
                                         "reason": self._startup_reject})
+            # 外部停止在拒绝收尾窗口到达:零业务启动不变,停止事实
+            # 记录,exit_code=4(非成功收尾)优先于拒绝码 2
+            self._external_stop_early_window(
+                "启动拒绝收尾期间收到外部停止:零业务启动;受控收尾")
+            if self._external_stop_consumed:
+                self.exit_code = 4
             self.finalize()
-            return 2
+            return self.exit_code if self.exit_code else 2
         # 观测自动启动(WP1:不依赖手工开采样器)。replay(显式测试
         # 输入源,生产入口不暴露)不启动生产采样器、不创建
         # win_reader——样本由回放文件喂,live run 身份绑定不作用于
@@ -1892,9 +2047,13 @@ class Supervisor:
                       "采样器"})
             self.stdout_line("R17LOG", {"event": "observation_not_ready",
                                         "detail": not_ready_detail})
+            # 就绪屏障期间外部停止(handler 已注册):零业务启动不变,
+            # 停止事实记录,exit_code=4 优先于 93
+            self._external_stop_early_window(
+                "就绪屏障期间收到外部停止:拒绝启动业务;受控收尾")
             self._shutdown_samplers_only()
             self.finalize()
-            self.exit_code = 93  # 观测未就绪(拒绝本请求)
+            self.exit_code = 4 if self._external_stop_consumed else 93
             return self.exit_code
         self.obs_ready_at_mono = time.monotonic() - self.t0
         self.mark_stage("observation_ready",
@@ -1923,34 +2082,30 @@ class Supervisor:
             self.stdout_line("R17LOG", {
                 "event": "startup_admission_denied",
                 "detail": admission_detail})
+            # 准入窗口外部停止:零业务启动不变,exit_code=4 优先于 94
+            self._external_stop_early_window(
+                "启动准入拒绝收尾期间收到外部停止:零业务启动;受控收尾")
             self._shutdown_samplers_only()
             self.finalize()
-            self.exit_code = 94  # 资源准入不足(拒绝本请求)
+            self.exit_code = 4 if self._external_stop_consumed else 94
             return self.exit_code
         self.mark_stage("startup_admitted", admission_detail)
-        # 信号:supervisor 自身被停→受控收尾。B4 修复:注册提前到
-        # spawn 之前——任何时点(含 spawn 与注册之间的微窗口)到达的
-        # 停止请求都有受控行为;spawn 前已收到=拒绝启动业务。
-        self._external_stop_sig: int | None = None
-
-        def _sig(sig, frame):
-            self._external_stop_sig = sig
-            self.log({"event": "supervisor_signal", "sig": sig})
-            if self.protector and self.biz_proc and \
-                    self.biz_proc.poll() is None:
-                self.protector.request_stop(f"supervisor_signal_{sig}")
-        signal.signal(signal.SIGTERM, _sig)
-        signal.signal(signal.SIGINT, _sig)
+        # B4:spawn 前停止检查(handler 已在 run() 开头注册,窗口覆盖
+        # supervisor_start/就绪屏障/准入全程)——先于业务启动=拒绝
+        # 启动并收尾,零业务 spawn。
         if self._external_stop_sig is not None:
-            self.log({"event": "supervisor_stop_before_spawn",
-                      "sig": self._external_stop_sig,
-                      "note": "停止请求先于业务启动:拒绝启动并收尾"})
+            self._external_stop_early_window(
+                "停止请求先于业务启动:拒绝启动并收尾(零业务 spawn)")
             self._shutdown_samplers_only()
             self.finalize()
             self.exit_code = 4
             return self.exit_code
         self.mark_stage("business_spawn")
         self.spawn_business()
+        # spawn 与登记衔接窗口补做停止(§5.3:不丢失该窗口里的信号;
+        # handler 不再直接派发,由正常控制路径在此/主循环消费)
+        if self._external_stop_sig is not None:
+            self._consume_external_stop()
         max_s = self.policy["default_max_seconds"]
         last_budget_check = 0.0
         last_storage_check = 0.0
@@ -1958,6 +2113,14 @@ class Supervisor:
         replay_idx = 0
         while True:
             mono = time.monotonic() - self.t0
+            # ---- WP2(RCF-02):外部停止意图消费(正常控制路径) ----
+            # handler 只登记;每轮节拍(1s;replay 0.05s)在此派发实际
+            # 停止(PEP 475:sleep 被信号中断执行 handler 后恢复,不
+            # 影响本轮消费)。粘性:只消费一次;重复信号不新建第二条
+            # 停止链(request_stop 幂等/合作窗不重开)。
+            if self._external_stop_sig is not None and \
+                    not self._external_stop_consumed:
+                self._consume_external_stop()
             # ---- 样本获取 ----
             win_latest = self._pump_win_lines(mono)
             if replay:
@@ -2254,6 +2417,20 @@ class Supervisor:
         for line in self.win_reader.new_valid:
             win_latest = line
             self.last_win_line_mono = mono
+        # WP1(RCF-01):首次读取失败有界告警(只发一次,正常控制上下
+        # 文——非 handler);事实与失联语义分离:读取失败不刷新有效
+        # 时间,stale 从最后真实有效样本继续累计(15/30s 判定可达)
+        if self.win_reader.read_failure_consecutive and \
+                not self._win_read_failure_logged:
+            self._win_read_failure_logged = True
+            self.safe_log({
+                "event": "win_read_failure",
+                "op": self.win_reader.read_failure_last_op,
+                "err": self.win_reader.read_failure_last_err,
+                "consecutive": self.win_reader.read_failure_consecutive,
+                "total": self.win_reader.read_failures,
+                "note": "win 遥测读取失败:本次有效批次为空;失联计时"
+                        "不被读取失败刷新(15/30s 判定继续累计)"})
         return win_latest
 
     def _wait_observation_ready(self, *, replay: bool, win_started: bool,
@@ -2275,6 +2452,11 @@ class Supervisor:
         deadline = time.monotonic() + deadline_s
         detail = ["?"]
         while time.monotonic() < deadline:
+            # WP2(RCF-02):屏障等待期间外部停止——提前退出(不睡满
+            # 整个就绪窗口才处理停止意图);零业务启动语义由调用分支
+            # 保证,detail 标记供 run() 区分 exit_code=4
+            if self._external_stop_sig is not None:
+                return False, "external_stop"
             if not win_started:
                 return False, "win_sampler_start_failed"
             self._pump_win_lines(time.monotonic() - self.t0)
@@ -2562,13 +2744,19 @@ def main() -> int:
                     sup.protector:
                 sup.protector.request_stop(f"supervisor_crash:{exc}")
         finally:
-            crash_alert = json.dumps(
-                {"action": "open", "severity": "CRITICAL",
-                 "kind": "supervisor_crash", "detail": str(exc)[:300]},
-                ensure_ascii=False)
-            try:  # crash 路径的递交也尽力而为(stdout 可能已坏)
-                print(f"R17ALERT {crash_alert}", flush=True)
-            except (BrokenPipeError, OSError, ValueError):
+            # WP2(RCF-02 同族):crash 告警递交不再用同步 print——
+            # stdout 管道写满且消费者不读时,except 分支本身会卡死,
+            # 保护收尾(finalize/停止升级)永不发生。改经异步写线程
+            # (阻塞只卡写线程;finalize 的 drain 有界,超时如实计
+            # 未确认);必须在 finalize(seal)之前入队,seal 后 submit
+            # 被拒——stdout 尽力而为,stderr/emergency 同步兜底已有,
+            # 信息不丢(§5.3)。
+            try:
+                sup.stdout_line("R17ALERT", {
+                    "action": "open", "severity": "CRITICAL",
+                    "kind": "supervisor_crash",
+                    "detail": str(exc)[:300]})
+            except Exception:
                 pass
             try:
                 sup.finalize()

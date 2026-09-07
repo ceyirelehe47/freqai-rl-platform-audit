@@ -1,0 +1,38 @@
+{
+ "probe": "rcf01_read_failure",
+ "repo": "/mnt/f/trading/freqai-rl-audit",
+ "healthy": {
+  "returned_sample": true,
+  "new_valid_len": 2,
+  "last_win_line_mono": 10.0
+ },
+ "form_a_file_gone": {
+  "read_new_returned_sample": false,
+  "new_valid_after_failure": 0,
+  "last_win_line_mono": 10.0,
+  "reproduced": false
+ },
+ "form_b_path_is_dir": {
+  "read_new_returned_sample": false,
+  "new_valid_after_failure": 0,
+  "last_win_line_mono": 22.0,
+  "reproduced": false
+ },
+ "stale_masking": {
+  "last_win_line_mono_series": [
+   22.0,
+   22.0,
+   22.0,
+   22.0,
+   22.0,
+   22.0
+  ],
+  "max_stale_s_observed": 58.0,
+  "warn_threshold_s": 15.0,
+  "crit_threshold_s": 30.0,
+  "reproduced": false,
+  "note": "旧实现:失败读取每轮刷新有效性,stale 永不达到15/30s 门槛(host 失联保护被掩盖)"
+ },
+ "probe_result": "NOT_REPRODUCED"
+}
+rcf01_exit=0

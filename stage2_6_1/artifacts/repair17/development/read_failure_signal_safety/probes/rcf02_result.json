@@ -1,0 +1,15 @@
+{
+ "probe": "rcf02_signal_deadlock",
+ "repo": "/home/cryptorl/r17_probe_snapshot",
+ "holding_lock_seen_at": 1788785816.4046285,
+ "sigterm_sent": true,
+ "child_exit": "killed_by_probe_watchdog",
+ "handler_returned": false,
+ "probe_result": "REPRODUCED",
+ "note": "SIGTERM 后 50s 子进程未退出:handler 内 log 重入 writer Lock 同线程死锁,停止意图无人消费(handler_did_not_return)",
+ "child_output": [
+  "R17LOG {\"event\":\"supervisor_start\",\"run_dir\":\"/home/cryptorl/r17_probe_work/rcf02/run\",\"policy\":\"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea\",\"utc\":\"2026-09-07T12:56:56Z\",\"run_id\":\"run\"}",
+  "PROBE_HOLDING_LOCK"
+ ]
+}
+rcf02_exit=0

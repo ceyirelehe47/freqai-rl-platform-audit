@@ -1,0 +1,38 @@
+{
+ "probe": "rcf01_read_failure",
+ "repo": "/home/cryptorl/r17_probe_snapshot",
+ "healthy": {
+  "returned_sample": true,
+  "new_valid_len": 2,
+  "last_win_line_mono": 10.0
+ },
+ "form_a_file_gone": {
+  "read_new_returned_sample": true,
+  "new_valid_after_failure": 2,
+  "last_win_line_mono": 20.0,
+  "reproduced": true
+ },
+ "form_b_path_is_dir": {
+  "read_new_returned_sample": true,
+  "new_valid_after_failure": 1,
+  "last_win_line_mono": 30.0,
+  "reproduced": true
+ },
+ "stale_masking": {
+  "last_win_line_mono_series": [
+   30.0,
+   40.0,
+   50.0,
+   60.0,
+   70.0,
+   80.0
+  ],
+  "max_stale_s_observed": 0.0,
+  "warn_threshold_s": 15.0,
+  "crit_threshold_s": 30.0,
+  "reproduced": true,
+  "note": "旧实现:失败读取每轮刷新有效性,stale 永不达到15/30s 门槛(host 失联保护被掩盖)"
+ },
+ "probe_result": "REPRODUCED"
+}
+rcf01_exit=0

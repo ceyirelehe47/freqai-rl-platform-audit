@@ -1,0 +1,149 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "final_20260907T134710",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "541c14fe1409f94735e1ed294b2c705c412f592e705a4b9e4a28c64664f5b958",
+ "argv": [
+  "/home/cryptorl/miniforge3/envs/crypto-rl/bin/python",
+  "-m",
+  "pytest",
+  "tests/route_c_stage2_6_1",
+  "-q",
+  "--no-header",
+  "-p",
+  "no:cacheprovider",
+  "--junitxml=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/read_failure_signal_safety/full_regression/runs/final_20260907T134710/junit.xml"
+ ],
+ "business": {
+  "rc": 1,
+  "signal": null,
+  "protector": {
+   "pgid": 466,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "final_20260907-worker_exit-1170",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=1",
+   "severity": "WORKER",
+   "first_seen_mono": 1170.6,
+   "last_seen_mono": 1170.6,
+   "samples": 1,
+   "peak": {
+    "rc": 1,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 35.35661315917969,
+  "task_tree_rss_max_gib": 4.399238586425781,
+  "task_cpu_max_delta_s": 10.77,
+  "win_free_phys_min_gib": 15.93,
+  "win_commit_max_pct": 79.16
+ },
+ "coverage": {
+  "guest_last_mono": 1166.885170494,
+  "win_last_mono": 1167.466289709,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 6,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-07T13:47:14Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 2.016619461999994,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-07T13:47:15Z"
+ },
+ "io": {
+  "submitted": 20,
+  "accepted": 20,
+  "ok": 20,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 20,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "telemetry_bytes": 519182,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T13:47:13Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T13:47:15Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T13:47:15Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T13:47:15Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:05:43Z",
+   "stage": "business_exited",
+   "note": "rc=1"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:05:43Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 463,
+  "windows": 125880
+ },
+ "written_utc": "2026-09-07T14:05:43Z"
+}

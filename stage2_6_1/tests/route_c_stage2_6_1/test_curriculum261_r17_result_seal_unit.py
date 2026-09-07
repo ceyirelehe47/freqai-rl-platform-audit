@@ -755,29 +755,60 @@ class TestSampleIdentityAndAdmission:
 class TestRSA01WriterAtomicBoundary:
     """独立审查 §3:队列交接/计数/seal 的并发边界确定性回归。"""
 
-    def test_rsa01_get_handoff_gap_drain_waits(self):
+    def test_rsa01_get_handoff_gap_drain_waits(self, tmp_path,
+                                               monkeypatch):
         """queue.get 完成→in_flight 计数之间存在真实调度空窗:
         drain 的完整性证明不得依赖 qsize+in_flight 相加(旧实现
-        在空窗内 drain=0 假完成,文件此后仍被写)。"""
+        在空窗内 drain=0 假完成,文件此后仍被写)。
+
+        T01(§6 确定性交错):真实写线程是业务动作的**唯一消费者**——
+        经标准库 queue.Queue 属性注入(BoundedIOWriter.__init__ 内
+        局部 `import queue` 解析到同一模块对象,生效;生产入口不暴
+        露注入通道)在写线程**已取走动作、尚未执行/计数交接**的确
+        定点暂停。测试线程只观察 drain 并释放屏障,不与写线程竞争
+        队列所有权(旧版:测试线程直接 get 抢同一动作,交错不受控)。
+        补丁窗口内本进程只有 BoundedIOWriter 构造队列。"""
+        import queue as _qmod
+        taken = threading.Event()
+        gate = threading.Event()
+
+        class _PausingQueue(_qmod.Queue):
+            def get(self, *a, **kw):
+                act = super().get(*a, **kw)
+                if not taken.is_set():
+                    taken.set()
+                    gate.wait(10.0)  # 有界:断言失败也不永久停泊写线程
+                return act
+
+        monkeypatch.setattr(_qmod, "Queue", _PausingQueue)
         iow = BoundedIOWriter()
+        target = tmp_path / "handoff.txt"
         done = threading.Event()
-        assert iow.submit(lambda: done.set(), role="probe") is True
-        # 重演写线程的真实交错:get 已完成、计数尚未发生。
-        # 有界 get(E-01):写线程抢先取走动作时显式失败,不挂起
-        import queue as _queue_mod
-        try:
-            act = iow._q.get(timeout=5.0)
-        except _queue_mod.Empty:
-            pytest.fail("写线程抢先取走动作,测试交错未建立(非假绿)")
+
+        def _write_and_signal():
+            target.write_text("v1", encoding="utf-8")
+            done.set()
+
+        assert iow.submit(_write_and_signal, role="probe") is True
+        # 交接空窗:真实写线程已取走动作(queued=0),尚未执行/计数
+        assert taken.wait(5.0), "写线程未取走动作(测试交错未建立)"
         st = iow.stats()
         assert st["queued"] == 0 and st["in_flight"] == 0
         assert st["accepted"] == 1  # 已接受(旧实现两计数都不含它)
-        assert iow.drain(0.25) > 0, \
-            "get 交接空窗内 drain 必须等待已接受动作(单一计数口径)"
-        # 交还写线程正常执行(恢复不变量;测试不改生产计数路径)
-        iow._q.put(act)
+        assert st["ok"] == 0 and st["failed"] == 0
+        # drain 在交接空窗内必须等待已接受动作(单一计数口径),
+        # 不依赖队列内部状态;等待经观测线程,不阻塞断言路径
+        result: list[int] = []
+        dt = threading.Thread(
+            target=lambda: result.append(iow.drain(5.0)))
+        dt.start()
+        time.sleep(0.3)
+        assert not result, "交接空窗内 drain 不得宣称完成"
+        gate.set()
+        dt.join(10)
+        assert result and result[0] == 0, "释放后动作完成,drain 真实清零"
         assert done.wait(5.0)
-        assert iow.drain(5.0) == 0
+        assert target.read_text(encoding="utf-8") == "v1"
 
     def test_rsa01_submit_seal_race_counts_pending(self, tmp_path):
         """submit 已通过 sealed 检查、尚未入队计数时并发 seal+drain:
