@@ -4,7 +4,7 @@
 **日期：** 2026-09-07
 **性质：** R17 冻结前开发续轮（非 R18；不创建最终 Implementation Freeze A / Results B；无真实正式运行）
 **接手 SHA：** `501bf159948da14f951be21a8436323bf2561b53`
-**交付 SHA：** `{{DELIVERY_SHA}}`
+**交付 SHA：** `5453fdadb3fb804b22fadf0531e28387fafebf30`（manifest 入库提交；git blob 登记 `f9e6e7367d0cb85dedfda9b7f48e0d5b6132a5df`，anchor 更新随勘误提交）
 **独立审查结论引用：** `R17_Read_Failure_Signal_Safety_Independent_Review.md`（RSS-01/02/03）
 
 ---
