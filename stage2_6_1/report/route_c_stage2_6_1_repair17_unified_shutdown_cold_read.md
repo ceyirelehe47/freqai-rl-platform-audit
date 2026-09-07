@@ -135,6 +135,7 @@ C 的位置与前置：`finalize()` 内 `write_summary→finalize_run_record`（
 - `test_u04b`/部分探针使用缩短工程预算（`finalize_window_s=4` 等，用例内标注）；至少一个组合测试（u02）保留真实策略身份（coop=30s+KILL 升级实测）。
 - WSL unshare 隔离为进程级（user+mount namespace+tmpfs 遮蔽 /mnt）；不影响宿主文件系统；副本置于家目录（/mnt 之外）以保证隔离时可达。
 - 全量计数为本轮实测，不复用上轮 1469。
+- 独立验收（A-G 全 PASS，结论 ACCEPT）3 条非阻断观察如实披露：① `run_supervision/rejected/rejected.jsonl` 本轮有审计 append（开发面拒绝登记的公共审计追加，延续前轮惯例）；② probe 复演在 WSL 家目录留下的一次性工作目录（r17u_probe_*）验收后已清理（保留接手快照 `~/r17u_snap_handover` 供后续轮复演）；③ 主 run 的一次性冷读副本根位于 WSL 家目录（按隔离模型设计不入仓库；仓库内核验面=回执+delivery_closure 归档副本——验收方独立复算归档副本 8/8 哈希与 manifest 全匹配）。
 
 ## 8. 交付锚
 
