@@ -157,7 +157,7 @@
 - WP0 隔离快照：`wp0_isolation/`；本轮全部执行工具脚本（同步/复现/探针/收集/收尾/冷读）：`tools/`。
 - 旧证据（supervision_closure、run_supervision、blocker_diagnosis、误触归档、失败 run）原字节保留；本轮诊断 run 已移至 `diagnostics/`（repro_m12_*）不混入上轮交付区。`run_supervision/rejected/rejected.jsonl` 为 append-only 拒绝日志：本轮 M16/T22 重跑追加 7 行 rejected_concurrent（2026-09-07 时间戳，逐行含 run_id/task_kind），历史 15 行逐字节未动。
 - 本轮 E2E 测试运行产物（run_supervision/runs/ 下 e2e_* 与 M12/M01 等 run 目录、launch_evidence）按既有传统一并入库（上轮同款）。
-- 提交链：`0d53be6` →（本轮提交，见 git log；提交消息含固定标记 `R17 development / control-path reliability / pre-freeze / formal quarantined`）。
+- 提交链：`0d53be6` → `43b70d2`（本轮；推送 origin/route-c-stage2-6-1-repair17；提交消息含固定标记 `R17 development / control-path reliability / pre-freeze / formal quarantined`）。
 
 ## 10. 正式边界（本轮）
 
