@@ -1009,6 +1009,11 @@ class TestDelegationLifecycle:
                    if e["event"] == "chain_iteration_aborted"]
         assert aborted
         assert seq[-1] == "chain_released"
+        # U05:取消后哨兵零启动(未发生步骤不伪造)
+        assert not [e for e in events
+                    if e["event"] == "chain_step_started"
+                    and e.get("step") == "fixture_never"], \
+            "保护性中止后哨兵零启动"
         writers = {e.get("writer") for e in events if "writer" in e}
         assert writers <= {"chain_session_owner"}
         # terminal 后新授权请求被拒+同 state 二次准入拒
@@ -1017,3 +1022,78 @@ class TestDelegationLifecycle:
              str(tmp_path / "out2"), "normal", "normal"],
             capture_output=True, text=True, timeout=60, env=env)
         assert rc2.returncode != 0, "已终结 iteration 不得重新准入"
+
+    def test_t14b_supervisor_crash_stops_coordinator_after_grant(
+            self, tmp_path):
+        """U05:授权完成后 supervisor 主循环异常(crash 路径,非保护
+        停止)——统一收尾同样驱动工程链:真实取消/撤权/terminal/
+        哨兵零启动/唯一 writer/二次准入拒。注入只经测试 wrapper
+        (生产入口无注入通道)。"""
+        state = tmp_path / "state"
+        out = tmp_path / "out"
+        script = tmp_path / "cf_runner.py"
+        script.write_text(CF_RUNNER_SCRIPT, encoding="utf-8")
+        # 测试 wrapper:第 N 次 pump 调用(≈授权完成后)注入 crash
+        wrapper = tmp_path / "sup_crash_wrapper.py"
+        wrapper.write_text(
+            "import os, sys\n"
+            "sys.path.insert(0, os.environ['R17U_RUNNER_DIR'])\n"
+            "import r17_supervision as rs\n"
+            "real_pump = rs.Supervisor._pump_win_lines\n"
+            "calls = {'n': 0}\n"
+            "def boom(self, mono):\n"
+            "    calls['n'] += 1\n"
+            "    if calls['n'] >= 120:  # ≈6s(授权 ~3s 完成后)\n"
+            "        raise RuntimeError('t14b 注入:supervisor crash')\n"
+            "    return real_pump(self, mono)\n"
+            "rs.Supervisor._pump_win_lines = boom\n"
+            "sys.argv = ['r17_supervision.py'] + sys.argv[1:]\n"
+            "sys.exit(rs.main())\n", encoding="utf-8")
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(self.SRC) + os.pathsep + str(self.RUNNER),
+            CURRICULUM261_R17_STATE_ROOT=str(state),
+            R17_CF_DEADLINE="30", R17_CF_BEHAVIOR="sleep_cancel",
+            R17_CF_NAMESPACES="cf_ns_a",
+            R17U_RUNNER_DIR=str(self.RUNNER))
+        samples = tmp_path / "s.jsonl"
+        lines = [json.dumps({"win": _win(_perf()), "guest": _guest()})
+                 for _ in range(80)]
+        samples.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        journal = state / "r17_execution_journal.jsonl"
+        sup_dir = tmp_path / "sup_run"
+        sup = subprocess.run(
+            [sys.executable, str(wrapper),
+             "--run-dir", str(sup_dir), "--task-kind", "engineering",
+             "--max-seconds", "120",
+             "--samples-source", f"file:{samples}",
+             "--", sys.executable, str(script), str(self.SRC),
+             str(state), str(out), "sleep_cancel", "normal"],
+            capture_output=True, text=True, timeout=150, env=env,
+            cwd=str(self.SYNC))
+        assert sup.returncode == 3, \
+            f"crash 形态外层 rc=3,实际 {sup.returncode} " \
+            f"{sup.stdout[-400:]}"
+        events = self._events(journal)
+        seq = [e["event"] for e in events]
+        assert seq.count("grant_issued") >= 1, "停止前授权已完成"
+        assert seq.count("grant_revoked") >= 1
+        term = [e for e in events
+                if e["event"] == "qualification_terminal"]
+        assert term and term[0].get("status") in ("failed", "crashed"), \
+            "未确认终止不得伪造成 completed"
+        assert "chain_iteration_aborted" in seq
+        assert seq[-1] == "chain_released"
+        # 哨兵零启动(未发生步骤不伪造)
+        assert not [e for e in events
+                    if e["event"] == "chain_step_started"
+                    and e.get("step") == "fixture_never"], \
+            "取消后哨兵零启动"
+        writers = {e.get("writer") for e in events if "writer" in e}
+        assert writers <= {"chain_session_owner"}
+        # 同 state 二次准入拒
+        rc2 = subprocess.run(
+            [sys.executable, str(script), str(self.SRC), str(state),
+             str(tmp_path / "out2"), "normal", "normal"],
+            capture_output=True, text=True, timeout=60, env=env)
+        assert rc2.returncode != 0

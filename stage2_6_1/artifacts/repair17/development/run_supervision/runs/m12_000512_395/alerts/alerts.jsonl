@@ -1,0 +1,16 @@
+{"event":"supervisor_start","policy_sha256":"e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b","argv":["bash","-c","sleep 120"],"utc":"2026-09-07T16:05:12Z","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:12Z","stage":"observation_starting","note":"","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:12Z","stage":"observation_ready","note":"ready_after=0.0s","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:12Z","stage":"startup_admitted","note":"ok","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:12Z","stage":"business_spawn","note":"","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"business_started","argv":["bash","-c","sleep 120"],"pid":628,"pgid":628,"cwd":"(inherit)","utc":"2026-09-07T16:05:12Z","mono":0.0,"run_id":"m12_000512_395"}
+{"event":"supervisor_signal","sig":15,"note":"外部停止意图由正常控制路径消费(handler 只登记;停止调度在此发生)","utc":"2026-09-07T16:05:16Z","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"alert_delivered","action":"open","severity":"PROTECTION_UNAVAILABLE","incident":{"incident_id":"m12_000512_395-supervisor_external_stop-3","kind":"supervisor_external_stop","detail":"supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)","severity":"PROTECTION_UNAVAILABLE","first_seen_mono":3.9,"last_seen_mono":3.9,"samples":1,"peak":{"sig":15},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{"sig":15},"run_dir":"/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/run_supervision/runs/m12_000512_395","note":"当前任务继续","utc":"2026-09-07T16:05:16Z","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"sigterm_sent","utc":"2026-09-07T16:05:16Z","pgid":628,"note":"已向登记进程组发送(killpg)","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"stop_requested","utc":"2026-09-07T16:05:16Z","reason":"supervisor_external_stop: supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)","pgid":628,"mono":3.9,"run_id":"m12_000512_395"}
+{"event":"task_tree_gone","utc":"2026-09-07T16:05:16Z","note":"按进程组成员扫描确认(非仅 leader 退出)","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"business_exited","rc":-15,"stderr_patterns":[],"utc":"2026-09-07T16:05:16Z","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"worker_event","kind":"worker_exit","detail":"业务进程 rc=-15","metrics":{"rc":-15,"patterns":[]},"utc":"2026-09-07T16:05:16Z","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:16Z","stage":"business_exited","note":"rc=-15","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"stage_mark","utc":"2026-09-07T16:05:16Z","stage":"finalize_begin","note":"","mono":3.9,"run_id":"m12_000512_395"}
+{"event":"supervisor_end","incidents":2,"business_rc":-15,"utc":"2026-09-07T16:05:16Z","mono":3.9,"run_id":"m12_000512_395"}

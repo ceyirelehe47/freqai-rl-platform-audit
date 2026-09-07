@@ -1206,6 +1206,12 @@ class Supervisor:
         # 不经 run() 的直接调用面(测试),懒初始化会 AttributeError。
         self._external_stop_sig: int | None = None
         self._external_stop_consumed = False
+        # WP2(stop-cutoff):停止接受截止点 C 的状态面。sig_count 由
+        # handler 纯自增(首个信号粘性+总数可判"C 后新到");C 只在
+        # finalize 的 write_summary 紧前越过(原始证据即将固定)。
+        self._external_stop_sig_count = 0
+        self._external_stop_count_at_cutoff: int | None = None
+        self._stop_cutoff_reached = False
         # WP1(RCF-01):首次读取失败告警只发一次(有界)
         self._win_read_failure_logged = False
         # S5:运行前登记必需产物角色(缺件保留为缺件,绝不从清单移除)
@@ -1776,6 +1782,11 @@ class Supervisor:
             # WP2(RCF-02):外部停止意图事实(handler 只登记;null=从未)
             "external_stop_sig": self._external_stop_sig,
             "external_stop_consumed": self._external_stop_consumed,
+            # WP2(stop-cutoff):信号总数(写入时刻;供工具/冷读核对
+            # "C 后事件"归属——C 在本方法末尾越过,summary 是 C 的
+            # 前置件,故 summary 内不记 C 状态;C 后事件由独立的
+            # post_cutoff_signal.json 承载)
+            "external_stop_sig_count": self._external_stop_sig_count,
             "telemetry_bytes": self.telemetry_bytes(),
             "stage_marks": self.stage_marks,
             "emergency_win_dir": self.emergency_win_dir,
@@ -1928,6 +1939,9 @@ class Supervisor:
         """
         if self._external_stop_sig is None:
             self._external_stop_sig = sig
+        # WP2(stop-cutoff):计数允许区分"C 前已消费的信号"与
+        # "C 之后新到的事件"(首个信号粘性不覆盖;纯自增,零 I/O)。
+        self._external_stop_sig_count += 1
 
     def _consume_external_stop(self) -> None:
         """正常控制路径消费外部停止意图(§5.3):粘性,只消费一次。
@@ -1955,7 +1969,9 @@ class Supervisor:
         if not (self.protector and
                 self.protector.requested_at is not None):
             # 业务未启动/已退出:无保护链可派发;外部停止=非成功收尾
-            self.exit_code = 4
+            # (不覆盖更早已定的拒绝码;外部停止与 2/93/94 不竞争语义)
+            if not self.exit_code:
+                self.exit_code = 4
 
     def _external_stop_early_window(self, note: str) -> None:
         """早窗口(启动拒绝/就绪屏障/准入)外部停止:零业务启动已由
@@ -1967,34 +1983,215 @@ class Supervisor:
         self._external_stop_consumed = True
         self.log({"event": "supervisor_signal", "sig": sig, "note": note})
 
+    # ---------------- WP1/WP2:统一收尾与截止点 ----------------
+    def _install_signal_handlers(self):
+        """注册最小停止意图 handler(可重入;返回恢复凭据)。
+
+        嵌套安装(run 直调方一层、CLI main 一层)时各存各的旧值,
+        恢复链保持正确:内层恢复到外层安装的 handler,外层最终恢复
+        到真正的旧 handler。非主线程调用(测试形态)降级返回 None,
+        不注册——非主线程形态不作为生产验收替代品(§4.4)。
+        """
+        try:
+            old_term = signal.signal(signal.SIGTERM, self._sig_external)
+            old_int = signal.signal(signal.SIGINT, self._sig_external)
+        except ValueError:
+            return None
+        return (old_term, old_int)
+
+    def _restore_signal_handlers(self, token) -> None:
+        if token is None:
+            return
+        for signum, old in ((signal.SIGTERM, token[0]),
+                            (signal.SIGINT, token[1])):
+            if old is not None:
+                try:
+                    signal.signal(signum, old)
+                except ValueError:
+                    pass
+
+    def _consume_external_stop_sealed(self) -> None:
+        """原始流 seal 之后的 C 前消费(§5.3:封口后不重开原始流)。
+
+        此处不能再走完整消费链(log/alert 会向已 seal 的 writer 提交
+        动作而被拒)——结果层消费:置 consumed+exit_code=4;事实由
+        随后的 summary 元数据承载(尚未发布)。"""
+        if self._external_stop_sig is None or self._external_stop_consumed:
+            return
+        self._external_stop_consumed = True
+        if not self.exit_code:
+            self.exit_code = 4
+
+    def _terminal_state_confirmed(self) -> bool:
+        """终态确认=直接业务 rc 已取得 且 登记组无活成员(§4.2)。
+
+        leader 退出、TERM 已发送、单次扫描未见 PID——任何单项都不
+        单独替代这两项事实。"""
+        if self.biz_proc is not None and self.biz_proc.poll() is None:
+            return False  # leader 仍活(rc 未取得)
+        if self.protector is not None:
+            if self.protector.requested_at is not None:
+                if self.protector.terminal_at is not None:
+                    return True
+                return not bool(self.protector._member_pids())
+            return True  # 从未请求停止且 leader 已退/未启动
+        return True
+
+    def _terminal_shutdown(self, reason: str) -> None:
+        """终止性收尾(异常路径与 CLI 共享;§4.1/4.2/4.3)。
+
+        正常路径的停止/升级/核验由主循环驱动同一 Protector 规则;
+        本方法只在"进入终止性处理"后使用:不重跑刚抛错的采样/策略/
+        报告逻辑,保留首个失败事实,推进已登记停止(合作窗满自动升级
+        KILL),以共享剩余预算(policy.finalize_window_s=120s,自进入
+        本方法起算;不因重复异常/重复信号重开)驱动到终态确认或预算
+        尽(预算尽=完成未确认,如实置 residual_unconfirmed,不写成
+        安全完成)。证据封口统一经 finalize(C 检查点在 finalize 内,
+        与正常路径共享同一封口算法)。"""
+        deadline = time.monotonic() + self.policy["finalize_window_s"]
+        try:
+            if self.biz_proc is not None and self.protector is not None \
+                    and self.protector.requested_at is None:
+                self.protector.request_stop(reason)
+            while time.monotonic() < deadline:
+                mono = time.monotonic() - self.t0
+                if self.protector is not None:
+                    self.protector.poll(mono)
+                    if self.protector.pending_logs:
+                        self.protector.flush_logs()
+                self._observe_business_exit()
+                if self._terminal_state_confirmed():
+                    return
+                time.sleep(0.2)
+            # 预算尽:完成未确认(残留身份保留;外层非零;下一重任务
+            # 被既有入口阻断;不填 raw rc=0,不写成安全完成)
+            if self.protector is not None:
+                self.residual_unconfirmed = \
+                    bool(self.protector._member_pids())
+            try:
+                self.emergency_write({
+                    "event": "terminal_shutdown_budget_exhausted",
+                    "run_id": self.run_id, "reason": reason,
+                    "survivors": (self.protector.survivors[:32]
+                                  if self.protector else [])})
+            except Exception:
+                pass
+        finally:
+            # §4.5:清理段每步独立兜底——再次抛错不中断可独立执行的
+            # 其余步骤,记录第二失败,不递归再入一轮无预算 finalize。
+            try:
+                if self.protector is not None and \
+                        self.protector.pending_logs:
+                    self.protector.flush_logs()
+            except Exception:
+                pass
+            try:
+                self.finalize()
+            except Exception as exc2:
+                try:
+                    self.emergency_write({
+                        "event": "terminal_shutdown_second_failure",
+                        "run_id": self.run_id,
+                        "error": str(exc2)[:300],
+                        "note": "封口阶段第二失败;原失败事实不覆盖"})
+                except Exception:
+                    pass
+
+    def _handle_fatal_exception(self, exc: Exception) -> None:
+        """run 体内的致命异常统一收尾(§4.5:保护先于通知;第二失败
+        不丢原失败、不递归再入一轮收尾)。
+
+        顺序合同:crash 事实记录(emergency 同步兜底)→ 通知入队
+        (异步,不阻塞保护)→ 统一终止收尾(停止/升级/核验/封口)。
+        每段独立 try/except:任何一段再抛错都继续推进可独立执行的
+        下一段,原始异常不被覆盖。"""
+        import traceback
+        tb = traceback.format_exc()
+        try:
+            self.log({"event": "supervisor_crash",
+                      "error": str(exc), "traceback": tb[:4000]})
+            self.emergency_write({"event": "supervisor_crash",
+                                  "run_id": self.run_id,
+                                  "error": str(exc)})
+        except Exception:
+            pass
+        try:
+            # 通知必须在 finalize(seal)之前入队(§5.3);stdout 尽力
+            # 而为,stderr/emergency 同步兜底已有,信息不丢。
+            self.stdout_line("R17ALERT", {
+                "action": "open", "severity": "CRITICAL",
+                "kind": "supervisor_crash",
+                "detail": str(exc)[:300]})
+        except Exception:
+            pass
+        # 统一收尾自身再失败:保留原失败,记录第二失败,不递归收尾
+        try:
+            self._terminal_shutdown(f"supervisor_crash:{exc}")
+        except Exception as exc2:
+            try:
+                self.emergency_write({
+                    "event": "fatal_shutdown_second_failure",
+                    "run_id": self.run_id,
+                    "error": str(exc2)[:300]})
+            except Exception:
+                pass
+
+    def _record_post_cutoff_signal(self) -> None:
+        """C 之后到达的信号=截止后事件(§5.3):只追加到独立后置
+        回执,不修改已被哈希固定的 summary/run_record。"""
+        if not self._stop_cutoff_reached:
+            return
+        base = self._external_stop_count_at_cutoff
+        # 防御兜底:C 设点两赋值间隙的漏网形态(consumed 仍 False)
+        if base is not None and self._external_stop_sig is not None \
+                and not self._external_stop_consumed:
+            pass  # 落入下面的 count 比较(此时必然>base,正常记录)
+        elif base is None or self._external_stop_sig_count <= base:
+            return
+        try:
+            rec = {"schema": "r17-post-cutoff-signal-v1",
+                   "run_id": self.run_id,
+                   "utc": utc_now_iso(),
+                   "sig_count_total": self._external_stop_sig_count,
+                   "sig_count_at_cutoff": base,
+                   "first_sig": self._external_stop_sig,
+                   "note": "停止接受截止点 C 之后到达的信号;"
+                           "结果已固定,本回执不改写任何封口原件"}
+            (self.run_dir / "post_cutoff_signal.json").write_text(
+                json.dumps(rec, ensure_ascii=False, indent=1),
+                encoding="utf-8")
+        except OSError:
+            self.emergency_write({
+                "event": "post_cutoff_signal_write_failed",
+                "run_id": self.run_id})
+
     def run(self) -> int:
-        """注册信号 handler(只登记意图)并驱动 _run_body;结束恢复
-        旧 handler(不留给下一次调用/测试;§5.4)。
+        """注册信号 handler(只登记意图)并驱动 _run_body。
 
         RCF-02 修复:注册提前到 run() 最开头——旧位置在就绪屏障与
         准入之后,注册前窗口(含 supervisor_start 日志/屏障等待)的
         TERM/INT 以默认行为直接杀死进程,受控收尾/finalize 永不
         执行(已实测 exit=-15)。signal.signal 仅主线程可用,非主
         线程调用(测试形态)降级为不注册。
+
+        WP1(unified-shutdown):致命异常在 run 体内统一收尾——直接
+        调用 run() 与 CLI main() 获得同一任务清理保证(§4.1);handler
+        由最外层责任域(main 的 token)覆盖到异常收尾完成。结束后
+        记录 C 后事件回执并恢复 handler(不留给下一次调用/测试)。
         """
         self._external_stop_sig = None
         self._external_stop_consumed = False
-        old_term = old_int = None
+        self._external_stop_sig_count = 0
+        token = self._install_signal_handlers()
         try:
-            old_term = signal.signal(signal.SIGTERM, self._sig_external)
-            old_int = signal.signal(signal.SIGINT, self._sig_external)
-        except ValueError:
-            old_term = old_int = None
-        try:
-            return self._run_body()
+            try:
+                return self._run_body()
+            except Exception as exc:  # 统一收尾(run 直调=CLI 同保证)
+                self._handle_fatal_exception(exc)
+                return 3
         finally:
-            for signum, old in ((signal.SIGTERM, old_term),
-                                (signal.SIGINT, old_int)):
-                if old is not None:
-                    try:
-                        signal.signal(signum, old)
-                    except ValueError:
-                        pass
+            self._record_post_cutoff_signal()
+            self._restore_signal_handlers(token)
 
     def _run_body(self) -> int:
         self.stdout_line("R17LOG", {"event": "supervisor_start",
@@ -2658,6 +2855,12 @@ class Supervisor:
         self._finalize_done = True
         self.finalizing = True
         self.mark_stage("finalize_begin")
+        # WP2(stop-cutoff)检查点①(finalize 开始;原始流仍可写):
+        # 收尾窗口已登记的停止意图在此消费——截止点 C 之前的停止
+        # 属于本次 run,参与最终结果(§5.1)。
+        if self._external_stop_sig is not None and \
+                not self._external_stop_consumed:
+            self._consume_external_stop()
         # 有限收尾窗:等 guest 采样线程最后一轮
         if self.guest_sampler:
             self.guest_sampler.stop()
@@ -2687,6 +2890,12 @@ class Supervisor:
                                                    "summary.json"),
                                     "run_record": str(self.run_dir /
                                                       "run_record.json")})
+        # WP2(stop-cutoff)检查点②(seal 前;原始流最后可写位置):
+        # 上一检查点与 seal 之间(采样器停止/drain 前通知递交)到达
+        # 的意图仍可走完整消费链。
+        if self._external_stop_sig is not None and \
+                not self._external_stop_consumed:
+            self._consume_external_stop()
         # §5.3 分批封口(RSA-01:事前封口边界):producer 已停、最后
         # 一条 alerts/退出通知已入队——**先 seal**(此后任何新 submit
         # 被拒,不进入本批),**再 drain(15)** 确认已接受动作全部
@@ -2695,8 +2904,31 @@ class Supervisor:
         # 最终封口态(修复"写入时点态"勘误)。
         self.iow.seal()
         self._io_drain_unconfirmed = self.iow.drain(15.0)
+        # WP2(stop-cutoff)检查点③(seal 后、summary 前):原始流已
+        # 封口,不能为补一条日志解封——结果层消费(§5.3:截止点前
+        # late-stop 由尚未发布的收尾元数据记录)。
+        self._consume_external_stop_sealed()
         self.write_summary()
         self.finalize_run_record()
+        # WP2(stop-cutoff)检查点④(C 前最后判定;紧邻 C):③→结果
+        # 发布完成期间主线程同步执行中到达的信号仍属本次 run
+        # (§5.1:检查、截止点与已固定结果之间不得存在"先看到没有
+        # 停止,随后停止已登记,却仍发布未经重新判定的成功"的空窗)。
+        # 此时 summary/run_record 尚为"发布前候选"——按 §5.2 候选
+        # 可在发布前废弃:消费后重写,使元数据与最终结果共享同一
+        # 事实(原始流不重写;哈希以重写后的最终件为准)。
+        if self._external_stop_sig is not None and \
+                not self._external_stop_consumed:
+            self._consume_external_stop_sealed()
+            self.write_summary()
+            self.finalize_run_record()
+        # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法
+        # 顺序内成立:任务树核验/producer 停止/seal+drain/原始证据
+        # 固定。C 后到达的信号由 _record_post_cutoff_signal 记入
+        # 独立后置回执,不改写任何已固定原件。
+        self._external_stop_count_at_cutoff = \
+            self._external_stop_sig_count
+        self._stop_cutoff_reached = True
 
 
 def main() -> int:
@@ -2730,39 +2962,25 @@ def main() -> int:
         print("ERROR: 缺业务命令(-- <argv...>)", file=sys.stderr)
         return 2
     sup = Supervisor(args)
+    # WP1(unified-shutdown):handler 由最外层责任域(main)持有,
+    # 覆盖 sup.run() 内部安装、其异常统一收尾与 finalize 全程;
+    # run() 自身再装一层(嵌套 token)保证直调场景同样受保护。
+    token = sup._install_signal_handlers()
     try:
         return sup.run()
-    except Exception as exc:  # 不静默消掉监护自身缺陷
+    except Exception:  # run 自身收尾失败的最后防线(§4.5)
         import traceback
         tb = traceback.format_exc()
         try:
-            sup.log({"event": "supervisor_crash", "error": str(exc),
-                     "traceback": tb[:4000]})
-            sup.emergency_write({"event": "supervisor_crash",
-                                 "run_id": sup.run_id, "error": str(exc)})
-            if sup.biz_proc and sup.biz_proc.poll() is None and \
-                    sup.protector:
-                sup.protector.request_stop(f"supervisor_crash:{exc}")
-        finally:
-            # WP2(RCF-02 同族):crash 告警递交不再用同步 print——
-            # stdout 管道写满且消费者不读时,except 分支本身会卡死,
-            # 保护收尾(finalize/停止升级)永不发生。改经异步写线程
-            # (阻塞只卡写线程;finalize 的 drain 有界,超时如实计
-            # 未确认);必须在 finalize(seal)之前入队,seal 后 submit
-            # 被拒——stdout 尽力而为,stderr/emergency 同步兜底已有,
-            # 信息不丢(§5.3)。
-            try:
-                sup.stdout_line("R17ALERT", {
-                    "action": "open", "severity": "CRITICAL",
-                    "kind": "supervisor_crash",
-                    "detail": str(exc)[:300]})
-            except Exception:
-                pass
-            try:
-                sup.finalize()
-            except Exception:
-                pass
+            sup.emergency_write({"event": "supervisor_outer_crash",
+                                 "run_id": sup.run_id,
+                                 "traceback": tb[:4000]})
+            sup.finalize()
+        except Exception:
+            pass
         return 3
+    finally:
+        sup._restore_signal_handlers(token)
 
 
 if __name__ == "__main__":

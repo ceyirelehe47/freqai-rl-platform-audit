@@ -1,0 +1,132 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "final_20260907T140907",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "541c14fe1409f94735e1ed294b2c705c412f592e705a4b9e4a28c64664f5b958",
+ "argv": [
+  "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+  "-m",
+  "pytest",
+  "tests/route_c_stage2_6_1",
+  "-q",
+  "--no-header",
+  "-p",
+  "no:cacheprovider",
+  "--junitxml=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/read_failure_signal_safety/full_regression/runs/final_20260907T140907/junit.xml"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 458,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [],
+ "peaks": {
+  "guest_memavail_min_gib": 33.9595832824707,
+  "task_tree_rss_max_gib": 6.06610107421875,
+  "task_cpu_max_delta_s": 11.36,
+  "win_free_phys_min_gib": 31.365,
+  "win_commit_max_pct": 56.06
+ },
+ "coverage": {
+  "guest_last_mono": 1424.481449187,
+  "win_last_mono": 1423.9222888939998,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 6,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-07T14:09:11Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 2.0532411209999992,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-07T14:09:12Z"
+ },
+ "io": {
+  "submitted": 18,
+  "accepted": 18,
+  "ok": 18,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 18,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "telemetry_bytes": 617653,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:09:10Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:09:12Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.1s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:09:12Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:09:12Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:31:37Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T14:31:37Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 455,
+  "windows": 132716
+ },
+ "written_utc": "2026-09-07T14:31:37Z"
+}

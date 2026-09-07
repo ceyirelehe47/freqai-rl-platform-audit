@@ -570,24 +570,28 @@ class TestSignalSafeStop:
         assert summary["business"]["rc"] == -signal.SIGTERM
 
     def test_s05c_stop_during_finalize_no_reentry(self, tmp_path):
-        """S05c:finalize(supervisor_end 已入队/seal 前窗口)中的停止
-        ——不重入第二次 finalize,不解封流;停止事实保留在 summary。"""
+        """S05c/L01:finalize(supervisor_end 已入队/seal 前窗口)中的
+        停止——截止点 C 之前登记的停止参与最终结果:raw rc=0 保留
+        不改写,outer rc=4,消费一次、不重入 finalize、不解封流。"""
         rc, lines, run_dir = _run_child(
             tmp_path, "s05c", expect_marker="PROBE_HOLDING_LOCK",
             sig=signal.SIGTERM, max_wait=60)
-        assert any("PROBE_RUN_RC=0" in ln for ln in lines), \
-            "业务自然成功不被停止改写(handler 只留痕)"
+        assert any("PROBE_RUN_RC=4" in ln for ln in lines), \
+            "C 前停止必须使整体非成功(业务 raw rc 不被改写,run 非普通成功)"
         summary = _load(run_dir / "summary.json")
         assert summary["external_stop_sig"] == signal.SIGTERM
-        assert summary["external_stop_consumed"] is False, \
-            "finalize 窗口的信号只留事实,不重开停止链"
+        assert summary["external_stop_consumed"] is True, \
+            "finalize 窗口(C 前)的停止由收尾检查点消费"
+        assert summary["business"]["rc"] == 0, "业务原始成功事实保留"
+        assert summary["external_stop_sig_count"] >= 1
         alerts = (run_dir / "alerts" / "alerts.jsonl").read_text(
             encoding="utf-8")
         assert alerts.count('"supervisor_end"') == 1, "finalize 不重入"
 
     def test_s06a_supervisor_exception_bounded_shutdown(self, tmp_path):
-        """S06a:supervisor 主循环异常——不先卡在同步 print(已移除);
-        登记业务有界 TERM;真实异常/原始 rc/残留状态可核查。"""
+        """S06a/U01:supervisor 主循环异常——统一收尾真正驱动到终态:
+        TERM 响应形态下 supervisor 自己观察业务退出码、确认任务树
+        结束后返回;handler 覆盖收尾;真实异常/原始 rc 可核查。"""
         rc, lines, run_dir = _run_child(
             tmp_path, "s06a", expect_marker=None, max_wait=60)
         assert any("PROBE_RUN_RC=3" in ln for ln in lines), \
@@ -597,9 +601,12 @@ class TestSignalSafeStop:
             encoding="utf-8")
         assert "supervisor_crash" in alerts
         summary = _load(run_dir / "summary.json")
-        # 登记业务有界处理:crash 收尾不等业务退出(rc 可能未观察到,
-        # 如实保留 None),TERM 已实际发送是可核查事实
-        assert summary["business"]["protector"]["term_sent"] is True
+        prot = summary["business"]["protector"]
+        assert prot["term_sent"] is True
+        assert prot["terminal_confirmed"] is True, \
+            "异常后停止链由被测 supervisor 驱动到终态确认"
+        assert summary["business"]["rc"] == -signal.SIGTERM, \
+            "异常收尾必须实际观察业务退出码(不再是 None)"
 
     def test_s06b_supervisor_exception_blocked_alert_still_bounded(
             self, tmp_path):
@@ -612,6 +619,8 @@ class TestSignalSafeStop:
         assert rc == 3
         summary = _load(run_dir / "summary.json")
         assert summary["business"]["protector"]["term_sent"] is True
+        assert summary["business"]["rc"] == -signal.SIGTERM, \
+            "通知持续阻塞不改变停止/升级/退出观察责任(§4.5)"
         rr = _load(run_dir / "run_record.json")
         assert rr["evidence_complete"] is False, \
             "writer 未完成不得签完整(阻塞只被有界等待,不被假完成)"

@@ -1,0 +1,160 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "m12_000512_395",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 120"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 628,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "supervisor_external_stop: supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)"
+ ],
+ "incidents": [
+  {
+   "incident_id": "m12_000512_395-supervisor_external_stop-3",
+   "kind": "supervisor_external_stop",
+   "detail": "supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)",
+   "severity": "PROTECTION_UNAVAILABLE",
+   "first_seen_mono": 3.9,
+   "last_seen_mono": 3.9,
+   "samples": 1,
+   "peak": {
+    "sig": 15
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "m12_000512_395-worker_exit-3",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 3.9,
+   "last_seen_mono": 3.9,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.02437511599998743,
+  "win_last_mono": 0.02437511599998743,
+  "win_parse_errors": null,
+  "win_invalid_samples": null,
+  "win_duplicate_seq": null,
+  "win_seq_regressions": null,
+  "win_stale_replayed": null,
+  "win_read_failures": null,
+  "win_read_failure_consecutive": null,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.0034927059999745325,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-07T16:05:12Z"
+ },
+ "io": {
+  "submitted": 22,
+  "accepted": 22,
+  "ok": 22,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 22,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "external_stop_sig": 15,
+ "external_stop_consumed": true,
+ "external_stop_sig_count": 1,
+ "telemetry_bytes": 3002,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:12Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:12Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:12Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:12Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:16Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-07T16:05:16Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": null,
+ "win_pids": {
+  "interop": null,
+  "windows": null
+ },
+ "written_utc": "2026-09-07T16:05:16Z"
+}

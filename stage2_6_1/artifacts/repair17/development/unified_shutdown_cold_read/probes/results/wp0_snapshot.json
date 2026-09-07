@@ -1,0 +1,24 @@
+{
+  "probe": "wp0_handover_snapshot",
+  "captured_utc": "2026-09-07T15:50:00Z",
+  "head": "501bf159948da14f951be21a8436323bf2561b53",
+  "parent": "4a3c6a87872774c6cdc80c3168378b211a119eca",
+  "remote_branch_sha": "501bf159948da14f951be21a8436323bf2561b53",
+  "branch": "route-c-stage2-6-1-repair17",
+  "worktree_clean": true,
+  "blob_supervisor": "b03afa204ac69b8190d2323e8260b969eb806b91",
+  "blob_old_finalize_delivery_sh": "305199a2a23560764da111addd200ecd0b12830f",
+  "supervisor_md5": "abac56f2d7516170a33555aaa3d19bdc",
+  "wsl_development_tree": "~/projects/crypto_rl (r17_sync 同步;src/tests/runner 三面)",
+  "handover_snapshot": "~/r17u_snap_handover (md5 abac56f2 与发布树一致)",
+  "live_registered_tasks": "pgrep 无 pytest/r17_supervision/r17_chain 存活",
+  "formal_state": "formal 目录只读确认为空(无活动正式许可;历史终结身份隔离保持,本轮不触碰)",
+  "storage": "F: 活跃 USB SSD, df 可用 ~1.2T(300GiB 门槛余量充足)",
+  "import_source_probes": "三个反例 probe 均 sys.path 指向 ~/r17u_snap_handover(接手版冻结快照)",
+  "repro_results": {
+    "rss01_exception_shutdown": "results/rss01_result.json reproduced=true (main rc=3 时业务 leader+子孙存活/term_sent=true/kill_sent=false/biz_rc=None/邻居存活)",
+    "rss02_late_stop": "results/rss02_result.json reproduced_any=true (finalize_begin/drain/pre_summary 三边界全部 run_rc=0+sig=15+consumed=false+biz_rc=0)",
+    "rss03_cold_read": "results/rss03_result.json reproduced=true (旧冷读副本零 run 字节;verify --root=原 full_regression rc=0;payload 根 rc=1)"
+  },
+  "policy_note": "POLICY.finalize_window_s=120.0 现仅用于 win sampler MaxSeconds 推算;本轮将其作为统一终止收尾共享预算消费(不放宽,不加新阈值)"
+}
