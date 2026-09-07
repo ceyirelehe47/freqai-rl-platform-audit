@@ -49,7 +49,7 @@
 ### B1 有效就绪（r17_supervision.py）
 - 新增 `validate_win_sample`/`validate_guest_sample`/`_finite_num`（身份+结构+数值范围；零可用内存=有效但危险）；`WinSampleReader` 增 `run_id/saw_valid/last_valid(_mono)/invalid_samples`（saw_any 保留为诊断层）；`_emit_guest` 无效样本落盘但不进有效快照；`_pump_win_lines` 无效行不刷新新鲜度、重复 sampler_start=来源重启事件；`_wait_observation_ready` 只认**有效首样本**+新鲜度（≤2 核心周期）；新增 `admission_check`（run() 在就绪后、spawn 前调用，不过→rc=94 零 spawn）。
 - 旧反例（真实模块实测）：sampler_start/空 perf 行使 `saw_any=True`→旧行为放行就绪（T01 断言 `not ok` 在旧代码必失败）；无启动资源准入。
-- 层级：真实模块（reader/屏障/准入全为生产代码路径）+ run 级（rc=93/94、business 文件不存在）。
+- 层级：真实模块（reader/屏障/准入全为生产代码路径）+ run 级（rc=93/94、business 文件不存在）；已知边缘：win 样本无 vols 字段时 keyvol 准入线不检查（validate 允许 vols=None；真实 ps1 采样总带 vols，回放输入可构造该形态——按跳过而非不可判定拒绝，如实披露）。
 
 ### B2 阻塞 I/O 保护（r17_supervision.py）
 - 新增 `BoundedIOWriter`（有界队列 1024+单一守护写线程；submit 非阻塞、drain 有界、stats 分层 pending/executed/dropped/dropped_critical/io_stuck）；`Supervisor.log/stdout_line/deliver/emergency_write` 全部经队列（排队≠已持久化≠已递交）；`Protector._safe_log` 改内存 pending 列表（控制动作零 I/O），主循环节拍与 finalize 经 `flush_logs()` 递交；request_stop/poll 顺序=先信号后日志；关键事件队列满丢→主循环触发 `io_evidence_lost`(PROTECTION_UNAVAILABLE) 粘性保护；finalize 顺序合同保留（supervisor_end→drain(15)→summary→drain(5)→run_record 哈希）。
@@ -60,13 +60,13 @@
 - FD 所有权：Popen 成功后父进程立即 `_close_fd(w_reg/r_tok)`（幂等+引用置 None 防 FD 复用误关）——旧行为父持有 worker 写端，worker 死后 r_reg 永无 EOF，`readline` 无限阻塞（pipe(7)）；全结束路径（spawn 失败/握手异常/取消/正常）统一 finally 清理。
 - 有界握手：`_read_pipe_line`/`_write_pipe_all`（selectors；spawn 起算 30s 总 deadline、16KiB、EOF/半行/坏 JSON/超长/短写/BrokenPipe 均有定义）；`_qualify_delegation_handshake` 身份核对=自报 PID==实际 spawn PID 且 starttime 与 /proc 实测一致且仍存活；namespace 只能请求 plan 导出范围（`qualify_grant_namespaces`，缺省正式集合）的子集；grant 前/响应前重查取消（stop_state）与存活。
 - 取消语义：取消先被接受→不新建 grant/不发送 token；grant 建后取消/写失败→close 统一 revoke（不补发）；取消已接受时的协议失败归因取消（cancel_detail 保留）；worker 侧 `_worker_delegate`（final.py）同样 selectors 有界化（EOF/超时/超长 fail closed，不再无界 readline）。
-- 阶段准确清理：`_qualify_delegation_close` revoke 失败保留 `revoke_error`（不再 except:pass 吞掉）；第一失败原因优先（cancelled>protocol_error>spawn_failed>token_delivery_failed>rc）；取消后 worker rc=0 不改判成功；terminal 幂等（`_terminal_committed`）；delegation summary（无 token 明文）入 manifest qualify 行。
+- 阶段准确清理：`_qualify_delegation_close` revoke 失败保留 `revoke_error`（不再 except:pass 吞掉）；第一失败原因优先（代码判定序：cancelled>spawn_failed>protocol_error>worker rc；token_delivery_failed 无独立分支，以 protocol_error 形态进入该优先级；各失败类互斥故顺序无行为差异）；取消后 worker rc=0 不改判成功；terminal 幂等（`_terminal_committed`）；delegation summary（无 token 明文）入 manifest qualify 行。
 - 旧反例：T10 四形态在旧实现=readline 永悬挂（half_line EOF 因父持 w_reg 不到来/no_msg 无期限）；T09 early_exit 旧实现悬挂（EOF 不来）。新结果全部有界失败+阶段记录。
 - 层级：真实协调者（execute_workflow_chain_r17+R17ChainSession+真实 journal/grant 机制）+独立 worker 进程（r17_control_fixture_worker.py，CONTROL_FIXTURE_TEST；normal 路径复用真实 `_worker_delegate`）；T14 为真实 supervisor→协调者→委派全链。
 
 ### B4 正常退出核验后代（r17_supervision.py）
 - run() 退出条件重写：biz_done 后仍 `_member_pids()` 核验登记组；残留→`residual_task_after_leader_exit` 事实+CRITICAL 事件+直接 `request_stop`（受控清理 TERM→合作窗→KILL）；**保护停止长期未证实（业务拒死/KILL 无效）时无条件有界退出**（coop+10+25 硬上界；旧实现 kill_ineffective 后无限 continue 到 max_s）；`residual_unconfirmed` 如实记录；业务流哈希在写入者未证实退出时标 `live_writers`（§7.2）。
-- `control_outcome()`：外层 rc 维度=93 观测未就绪/94 准入不足/2 意图拒绝/5 完成未证实（优先）/4 保护性中止/6 证据不完整(io 丢关键或 evidence_complete=False)/业务 rc 透传（非零）——leader rc=0+残留、业务 rc=7 等不再返回 0。
+- `control_outcome()`：外层 rc 维度=93 观测未就绪/94 准入不足/2 意图拒绝/5 完成未证实（优先）/4 保护性中止/6 证据不完整(io 丢关键或 evidence_complete=False)/业务 rc 透传（正值；负值（信号形态）转换为 128+|rc| POSIX 形态，如 -15→143）——leader rc=0+残留、业务 rc=7 等不再返回 0。
 - 信号 handler 注册提前到 spawn 之前（M12 偶发根因：TERM 在注册前到达=默认死亡不收业务）；spawn 前已收到停止→拒绝启动（rc=4）。
 - 旧反例：WP0 残留 interop 桥（8h54m）即"父正常退出+后代残留"的现成活证据；T17 旧实现 61s 无限循环（KILL 被拒后依赖 biz_done 永不满足）→ 新 41s 有界退出 rc=5。
 - 层级：真实进程组（leader/子/孙/邻近无关进程）+run 级 rc。
@@ -155,7 +155,7 @@
 - 冷读回执：交付集合复制到独立目录（/tmp，脱离开发绝对路径）后 verify rc=0、rows=8（verify_20260907T015435Z.json）。
 - T21 真实接收回执：`t21_alert_reception/agent_receipt_t21.md`（两场景 R17ALERT 逐字内容+工具句柄+UTC+真实 rc）。
 - WP0 隔离快照：`wp0_isolation/`；本轮全部执行工具脚本（同步/复现/探针/收集/收尾/冷读）：`tools/`。
-- 旧证据（supervision_closure、run_supervision、blocker_diagnosis、误触归档、失败 run）原字节保留；本轮诊断 run 已移至 `diagnostics/`（repro_m12_*）不混入上轮交付区。`run_supervision/rejected/rejected.jsonl` 为 append-only 拒绝日志：本轮 M16/T22 重跑追加 7 行 rejected_concurrent（2026-09-07 时间戳，逐行含 run_id/task_kind），历史 15 行逐字节未动。
+- 旧证据（supervision_closure、run_supervision、blocker_diagnosis、误触归档、失败 run）原字节保留；本轮诊断 run 已移至 `diagnostics/`（repro_m12_*）不混入上轮交付区。`run_supervision/rejected/rejected.jsonl` 为 append-only 拒绝日志：本轮 M16/T22 重跑追加 7 行 rejected_concurrent（2026-09-07 时间戳，逐行含 run_id/task_kind），历史 17 行逐字节未动（0d53be6 基线实测 17 行，45d073a 同为 17 行；本轮追加 7 行后共 24 行）。
 - 本轮 E2E 测试运行产物（run_supervision/runs/ 下 e2e_* 与 M12/M01 等 run 目录、launch_evidence）按既有传统一并入库（上轮同款）。
 - 提交链：`0d53be6` → `43b70d2`（本轮；推送 origin/route-c-stage2-6-1-repair17；提交消息含固定标记 `R17 development / control-path reliability / pre-freeze / formal quarantined`）。
 

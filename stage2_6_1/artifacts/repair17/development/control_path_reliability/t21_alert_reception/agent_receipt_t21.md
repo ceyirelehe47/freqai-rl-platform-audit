@@ -10,7 +10,7 @@
 1. `R17ALERT {"action":"open","severity":"WARNING",...,"kind":"keyvol","detail":"关键卷 F: 可用 10.0GiB < 20.0GiB",...,"delivered_count":1}` utc=2026-09-07T01:31:50Z
 2. `R17ALERT {"action":"escalate","severity":"CRITICAL",...,"stopped_requested":true,"delivered_count":2,...,"note":"停止请求由本地策略执行,不等待模型回复"}` utc=2026-09-07T01:31:50Z（与 open 同秒=冷却期内升级，未被 60s 冷却吞掉）
 
-落盘交叉（run 目录 alerts.jsonl 15 行）：`stop_requested` + `sigterm_sent` 均在场；summary business rc=-15；incident keyvol delivered=2；run_record evidence_complete=True。io 队列 submitted=19/executed=19/dropped=0。
+落盘交叉（run 目录 alerts.jsonl 15 行）：`stop_requested` + `sigterm_sent` 均在场；summary business rc 未记录（None：TERM 后任务树确认消失先于主循环观察到业务退出码，无 business_exited 事件；外层为保护性中止语义 rc=4）；incident keyvol delivered=2；run_record evidence_complete=True。rc=-15 的落盘事实属场景B（run_b_B summary business rc=-15）。io 队列 submitted=19/executed=19/dropped=0。
 注：启动命令内联的 `SUPERVISOR_RC=0` 为 wsl.exe 复合命令拆参假象（`$?` 被拆）；真实退出码以场景B 脚本文件方式确认。
 
 ## 场景B（run_b_B）：停读回放
