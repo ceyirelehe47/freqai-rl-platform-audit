@@ -1,0 +1,18 @@
+{"event":"supervisor_start","policy_sha256":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","argv":["bash","-c","sleep 8"],"utc":"2026-09-08T11:34:48Z","mono":0.0,"run_id":"run"}
+{"event":"win_sampler_started","interop_pid":394,"out_guest":"/home/cryptorl/r17fc_dev/run_fc2/run/telemetry/win_samples.jsonl","emergency_win_dir":"/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency","max_seconds":21780,"utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:48Z","stage":"observation_starting","note":"","mono":0.4,"run_id":"run"}
+{"event":"win_read_failure","op":"stat","err":"FileNotFoundError","consecutive":1,"total":1,"note":"win 遥测读取失败:本次有效批次为空;失联计时不被读取失败刷新(15/30s 判定继续累计)","utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"telemetry_budget_reduce","bytes":1927,"budget":1,"action":"detail_interval 翻倍","utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"telemetry_budget_exceeded","bytes":1927,"budget":1,"note":"核心证据无法继续保存:保护性中止(采样停写保留前缀;缺测区间如实记录)","utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"stop_requested_no_live_task","reason":"telemetry_budget: 遥测达预算 1927B ≥ 1B;核心证据无法继续保存,保护性中止(保留前缀)","note":"业务已结束/未启动:阻止新增步骤","utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"alert_delivered","action":"open","severity":"PROTECTION_UNAVAILABLE","incident":{"incident_id":"run-telemetry_budget-0","kind":"telemetry_budget","detail":"遥测达预算 1927B ≥ 1B;核心证据无法继续保存,保护性中止(保留前缀)","severity":"PROTECTION_UNAVAILABLE","first_seen_mono":0.4,"last_seen_mono":0.4,"samples":1,"peak":{"bytes":1927,"budget":1},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{"bytes":1927,"budget":1},"run_dir":"/home/cryptorl/r17fc_dev/run_fc2/run","note":"当前任务继续","utc":"2026-09-08T11:34:48Z","mono":0.4,"run_id":"run"}
+{"event":"win_sampler_ready","windows_pid":136972,"utc":"2026-09-08T11:34:50Z","mono":1.7,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:50Z","stage":"observation_ready","note":"ready_after=1.7s","mono":1.7,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:50Z","stage":"startup_admitted","note":"ok","mono":1.7,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:50Z","stage":"business_spawn","note":"","mono":1.7,"run_id":"run"}
+{"event":"business_started","argv":["bash","-c","sleep 8"],"pid":421,"pgid":421,"cwd":"(inherit)","utc":"2026-09-08T11:34:50Z","mono":1.7,"run_id":"run"}
+{"event":"business_exited","rc":0,"stderr_patterns":[],"utc":"2026-09-08T11:34:58Z","mono":9.8,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:58Z","stage":"business_exited","note":"rc=0","mono":9.8,"run_id":"run"}
+{"event":"stage_mark","utc":"2026-09-08T11:34:58Z","stage":"finalize_begin","note":"","mono":9.8,"run_id":"run"}
+{"event":"win_sampler_stopped","interop_pid":394,"windows_pid":136972,"utc":"2026-09-08T11:34:58Z","mono":9.8,"run_id":"run"}
+{"event":"supervisor_end","incidents":1,"business_rc":0,"utc":"2026-09-08T11:34:58Z","mono":9.8,"run_id":"run"}

@@ -23,6 +23,14 @@
 用法(经 r17_monitored_entry.sh;测试可直跑):
   r17_supervision.py --run-dir <dir> --task-kind <kind> \
       [--max-seconds N] [--samples-source file:...] -- <argv...>
+
+外层退出码(control_outcome;run() 返回值):
+  0 成功 / 2 意图拒绝 / 3 crash / 4 外部停止(保护性中止) /
+  5 残留未证实 / 6 证据丢失或发布失败 /
+  7 控制能力失效(WP1 fc-integrity:截止边界前提/掩码取得/还原
+    无法证明——run 非成功,停止归属无法认证;summary/run_record
+    的 control_failures 为同一事实) /
+  93 观测未就绪 / 94 准入不足
 """
 from __future__ import annotations
 
@@ -1296,13 +1304,32 @@ class Supervisor:
         self._guest_close_state: dict[str, Any] | None = None
         self._win_close_state: dict[str, Any] | None = None
         self._io_close_state: dict[str, Any] | None = None
+        # WP2-A(fail-closed):guest 写者生命周期三态分界——
+        # never_started(False)/started_unconfirmed(True 且无确认
+        # 关闭记录)/confirmed_exited(True 且 close_state.joined)。
+        # None 引用不再同时代表"没有写者"与"曾有写者、引用丢了":
+        # 曾启动而无关闭记录=未知,按仍有活写者处理。
+        self._guest_ever_started = False
         # WP1(stop-cutoff):临界区线程前提核验结果(所有存活线程屏蔽
         # TERM/INT 才有"屏蔽中到达=必然解除后执行"的挂起边界;S1)。
         self._cutoff_premise_ok: bool | None = None
         self._cutoff_premise_detail: str | None = None
+        # WP1(fc-integrity):控制能力失败事实(粘性列表;非空=run
+        # 非成功,外层 rc=7)——必要截止边界的前提(掩码取得/线程
+        # 屏蔽核验/掩码还原)无法证明或失败时登记;summary/run_
+        # record/control_outcome/verifier 消费同一事实(与
+        # evidence_complete 正交:证据可以完整地记录一次控制失败)。
+        self._control_failures: list[dict[str, Any]] = []
+        # WP1(fc-integrity):C 是否经前提核验认证——前提失败时不
+        # 建立"已认证 C"(不伪造成功 C;post_cutoff 回执只在认证
+        # 后生成,停止归属如实记为无法认证)。
+        self._cutoff_certified = False
         # WP1(publication):对外完成件的发布状态(C 决定之后才发布;
         # 发布失败=run 非成功,不允许沿用旧完成件或候选冒充)。
         self._summary_publish_failed = False
+        # WP2-B(fail-closed):发布失败的粘性细节(阶段/错误;只记首次,
+        # 不因重入清除)——run_record/summary/诊断消费同一事实。
+        self._summary_publish_failure: dict[str, Any] | None = None
         self._run_record_publish_failed = False
         self._rr_candidate_entries: list[dict[str, Any]] | None = None
         # WP1-B(shared-budget):整个 run 一份收尾预算——首次进入终止性
@@ -1809,9 +1836,13 @@ class Supervisor:
                     "detail": f"遥测达预算 {b}B ≥ {budget}B;核心证据"
                     "无法继续保存,保护性中止(保留前缀)",
                     "metrics": {"bytes": b, "budget": budget}}])
+                # WP2-A(SPSC-02A):只请求停止,**不清引用**——已启动
+                # 写者的关闭事实由共享收尾(finalize join 段)确认;
+                # 旧 stop() 后立即置 None 会让 budget 出口绕过写者
+                # 关闭(句柄丢失=未知被掩盖,evidence 误报完整)。
+                # stop 幂等(Event.set),finalize 段重复请求无副作用。
                 if self.guest_sampler:
                     self.guest_sampler.stop()
-                    self.guest_sampler = None
 
     # ---------------- 应急兜底 ----------------
     def _emergency_sync(self, obj: dict[str, Any]) -> None:
@@ -1916,9 +1947,13 @@ class Supervisor:
             "startup_rejected": self._startup_reject,
             # WP2-B(sampler-quiescence):必要流写者的关闭确认事实
             # (§6.1 表:请求/等待/真实退出三状态分列;未确认≠已停止)。
+            # WP2-A:guest=None 仅代表从未启动——曾启动而无关闭记录
+            # 记 {"ever_started": true}(未知不被 None 掩盖)。
             "writers": {
                 "guest": dict(self._guest_close_state)
-                if self._guest_close_state else None,
+                if self._guest_close_state else (
+                    {"ever_started": True}
+                    if self._guest_ever_started else None),
                 "win": dict(self._win_close_state)
                 if self._win_close_state else None,
                 "io": dict(self._io_close_state)
@@ -1931,9 +1966,12 @@ class Supervisor:
             # WP1(publication):发布状态(C 后单次发布;失败=非成功)
             "publication": {
                 "summary_failed": self._summary_publish_failed,
+                "summary_failure": dict(self._summary_publish_failure)
+                if self._summary_publish_failure else None,
                 "run_record_failed": self._run_record_publish_failed,
                 "cutoff_premise_ok": self._cutoff_premise_ok,
                 "cutoff_premise_detail": self._cutoff_premise_detail,
+                "control_failures": list(self._control_failures),
             },
             # WP2(RCF-02):外部停止意图事实(handler 只登记;null=从未)
             "external_stop_sig": self._external_stop_sig,
@@ -1970,20 +2008,50 @@ class Supervisor:
     def write_summary(self) -> dict[str, Any]:
         """发布 summary.json(停止决定 C 之后才调用;C 前候选为私有)。
 
-        WP1(P02/SFB-01):发布失败必须实际影响结果——OSError 落
-        _summary_publish_failed(完整性判定与 control_outcome 消费,
-        run 整体非成功),不吞掉失败后沿用旧文件/旧成功记录;候选
-        dict 照常返回供诊断(emergency 载荷)。
+        WP2-B(SPSC-02B/fc-integrity):发布走同目录私有临时文件完整
+        写入+关闭后经 os.replace 替换——部分写入/flush/close/替换
+        失败都不再在最终路径留下半份内容(失败临时件保留为诊断
+        残片,不在 required 角色中冒充成品;S3:成功替换提供原子
+        可见性,不扩大为掉电持久化证明)。最终路径已有文件=运行
+        唯一性冲突,拒绝覆盖/复用旧件。发布失败落 _summary_publish_
+        failed(粘性;_evidence_ok/control_outcome/run_record 同一
+        消费),不吞掉失败后沿用旧文件/旧成功记录;候选 dict 照常
+        返回供诊断(emergency 载荷)。
         """
         summary = self._build_summary()
-        try:
-            (self.run_dir / "summary.json").write_text(
-                json.dumps(summary, ensure_ascii=False, indent=1),
-                encoding="utf-8")
-        except OSError:
+        target = self.run_dir / "summary.json"
+        tmp = self.run_dir / ".summary.json.tmp"
+        if target.exists():
+            # 本 run 的发布目标已有文件:不允许覆盖(已有运行唯一性;
+            # 残片/旧件都不能被新发布顶替或冒充)
             self._summary_publish_failed = True
+            self._summary_publish_failure = self._summary_publish_failure \
+                or {"stage": "target_exists",
+                    "target": str(target)}
             self.emergency_write({"event": "summary_write_failed",
                                   "run_id": self.run_id,
+                                  "stage": "target_exists",
+                                  "summary": summary})
+            return summary
+        try:
+            payload = json.dumps(summary, ensure_ascii=False, indent=1)
+            with tmp.open("w", encoding="utf-8") as fh:
+                fh.write(payload)
+                fh.flush()
+            tmp.replace(target)
+        except OSError as exc:
+            # 失败临时件保留为明确诊断残片(私有名,不进必需集合);
+            # 已知发布失败后,最终路径上的任何字节都不再构成有效
+            # 已发布角色(run_record 侧记 publish_failed)
+            self._summary_publish_failed = True
+            self._summary_publish_failure = self._summary_publish_failure \
+                or {"stage": "write_or_replace",
+                    "error": f"{type(exc).__name__}:{exc}"[:160]}
+            self.emergency_write({"event": "summary_write_failed",
+                                  "run_id": self.run_id,
+                                  "stage": "write_or_replace",
+                                  "error": f"{type(exc).__name__}:{exc}"
+                                  [:160],
                                   "summary": summary})
         return summary
 
@@ -1992,13 +2060,23 @@ class Supervisor:
         封口干净(drain 未确认=0、无失败写动作、无关键丢弃)+ 必要
         原始流的所有可能写入者均已确认不能再修改它(§6.4:业务进程
         组、guest/Windows 采样器、I/O 写线程三组关闭事实同一判定面;
-        采样写者存活/未知时不得为流声明最终不可变身份,SFB-03)。"""
+        采样写者存活/未知时不得为流声明最终不可变身份,SFB-03)。
+        WP2-B(fail-closed):已知必要发布失败=必要结果证据不完整
+        ——即使最终路径上有字节可读、哈希可算(残片/旧件不能抵消
+        已知失败;标志在本 run 内粘性,不因重入清除)。"""
         if missing:
+            return False
+        if self._summary_publish_failed:
             return False
         if self._io_drain_unconfirmed:
             return False
-        if self._guest_close_state is not None and \
-                self._guest_close_state.get("alive_after_join"):
+        # WP2-A(fail-closed):三态消费——已启动写者缺少关闭记录时
+        # 按未知处理(None 不掩盖"曾有写者";join 返回值/停止请求/
+        # daemon 都不是退出证明,S2)
+        if self._guest_close_state is not None:
+            if self._guest_close_state.get("alive_after_join"):
+                return False
+        elif self._guest_ever_started:
             return False
         if self._win_close_state is not None and \
                 self._win_close_state.get("unconfirmed"):
@@ -2024,15 +2102,24 @@ class Supervisor:
         分角色写者映射:业务 leader+登记后代→business_*;guest 采样
         线程(emit 同步写 telemetry_guest)→telemetry_guest;win 采样
         进程(AppendAllText 直写 telemetry_win)→telemetry_win;I/O
-        写线程→alerts。"""
+        写线程→alerts。
+        WP2-A(fail-closed):declared:<role>(--expect-artifact 显式
+        登记的规范角色)继承同名角色的写者映射——登记通道不改变
+        该流的写者事实。"""
+        if role.startswith("declared:"):
+            role = role.split(":", 1)[1]
         if role in ("business_stdout", "business_stderr"):
             return self.residual_unconfirmed or (
                 self.protector is not None and
                 self.protector.requested_at is not None and
                 self.protector.terminal_at is None)
         if role == "telemetry_guest":
-            return bool(self._guest_close_state is not None and
-                        self._guest_close_state.get("alive_after_join"))
+            if self._guest_close_state is not None:
+                return bool(
+                    self._guest_close_state.get("alive_after_join"))
+            # WP2-A:曾启动而无关闭记录=未知,按仍可能写处理
+            # (未启动=False,不误拒 replay/零启动形态)
+            return self._guest_ever_started
         if role == "telemetry_win":
             return bool(self._win_close_state is not None and
                         self._win_close_state.get("unconfirmed"))
@@ -2135,6 +2222,10 @@ class Supervisor:
                                   "bytes": p.stat().st_size})
                 required.append(entry)
         # summary 条目:发布时序在 run_record 之前,现算(哈希真实)
+        # WP2-B(fail-closed):已知发布失败→status="publish_failed"
+        # (必要角色无效,verify 据此 FAIL)——最终路径上有字节也不
+        # 登记 present(残片/旧件不能抵消已知失败;目标非文件仍记
+        # missing,两者都是非完整交付)。
         for item in self.expected:
             if item["role"] != "summary":
                 continue
@@ -2144,7 +2235,12 @@ class Supervisor:
                      if p.is_relative_to(root) else str(p)}
             if self._writer_live_for_role("summary"):
                 entry["live_writers"] = True
-            if not p.is_file():
+            if self._summary_publish_failed:
+                entry["status"] = "publish_failed"
+                if self._summary_publish_failure:
+                    entry["failure"] = dict(self._summary_publish_failure)
+                missing.append("summary")
+            elif not p.is_file():
                 entry["status"] = "missing"
                 missing.append("summary")
             else:
@@ -2156,9 +2252,13 @@ class Supervisor:
                     entry["status"] = "unreadable"
                     missing.append("summary")
             required.append(entry)
+        # WP2-A:guest=None 仅代表从未启动(三态生命周期);
+        # 曾启动而无关闭记录记 {"ever_started": true}。
         writers_block = {
             "guest": dict(self._guest_close_state)
-            if self._guest_close_state else None,
+            if self._guest_close_state else (
+                {"ever_started": True}
+                if self._guest_ever_started else None),
             "win": dict(self._win_close_state)
             if self._win_close_state else None,
             "io": dict(self._io_close_state)
@@ -2184,6 +2284,11 @@ class Supervisor:
             "evidence_complete": self._evidence_ok(missing) and
             not self._any_live_writer(),
             "missing_roles": missing,
+            # WP1(fc-integrity):控制失败事实独立于 evidence_complete
+            # (证据可完整记录一次控制失败;verify 按 control_failures
+            # 非空拒绝"完整运行通过",读者不得把失败证据读成成功)。
+            "control_failures": [dict(c) for c in self._control_failures],
+            "cutoff_certified": self._cutoff_certified,
             "writers": writers_block,
             "io": self.iow.stats() if self.iow else None,
             "finalized": True,
@@ -2595,6 +2700,9 @@ class Supervisor:
         已删除——C 的 sigmask 临界区保证:未消费的登记必然被临界区
         内的最后判定看到并消费(参与结果),不可能落到 C 之后还保持
         未消费。此处只承载真正的 C 后新到信号(count>base)。
+        WP1(fc-integrity):前提失败时 C 未建立(_stop_cutoff_reached
+        保持 False)——不生成本回执("C 后"无法证明,不硬写时间
+        顺序);已登记停止事实由 summary/run_record 如实记录。
         """
         if not self._stop_cutoff_reached:
             return
@@ -2642,14 +2750,18 @@ class Supervisor:
         self._finalize_budget_reason = None
         self._finalize_budget_notes = []
         self._shutdown_step_failures = {}
-        # WP2-B/WP1:写者关闭状态/截止点前提/发布状态同一重置面
-        # (每个 run 一份;直调面由 __init__ 初始化兜底)。
+        # WP2-B/WP1:写者关闭状态/截止点前提/发布状态/控制失败事实
+        # 同一重置面(每个 run 一份;直调面由 __init__ 初始化兜底)。
         self._guest_close_state = None
         self._win_close_state = None
         self._io_close_state = None
+        self._guest_ever_started = False
         self._cutoff_premise_ok = None
         self._cutoff_premise_detail = None
+        self._control_failures = []
+        self._cutoff_certified = False
         self._summary_publish_failed = False
+        self._summary_publish_failure = None
         self._run_record_publish_failed = False
         self._rr_candidate_entries = None
         token = self._install_signal_handlers()
@@ -2669,7 +2781,10 @@ class Supervisor:
         新线程继承创建线程掩码:主线程先 block、再 start、再恢复——
         采样线程终身屏蔽,信号只经主线程 handler 登记路径处理(与
         BoundedIOWriter 同一机制;掩码能力不可用时记录事实,截止点
-        前提核验如实消费)。"""
+        前提核验如实消费)。
+        WP2-A(fail-closed):start 即置 _guest_ever_started——三态
+        生命周期(never_started/started_unconfirmed/confirmed_exited)
+        的分界点;此后 None 引用不再能冒充"从未有过写者"。"""
         if self.guest_sampler is None:
             return
         old_mask = None
@@ -2683,6 +2798,7 @@ class Supervisor:
             old_mask = None
         try:
             self.guest_sampler.start()
+            self._guest_ever_started = True
         finally:
             if old_mask is not None:
                 try:
@@ -2979,9 +3095,16 @@ class Supervisor:
 
     def control_outcome(self) -> int:
         """外层退出码与结果维度一致(§7.3;不重写业务 rc,但业务失败/
-        保护中止/监护失败/残留未确认/证据不完整不得返回 0)。"""
+        保护中止/监护失败/残留未确认/证据不完整不得返回 0)。
+        WP1(fc-integrity):控制能力失效(截止边界前提/掩码取得/还原
+        无法证明)→7——run 非成功,不依赖是否碰巧收到信号;现有
+        0/2/3/4/5/6/93/94 语义不变,7 为本轮新增的专用控制失败码
+        (退出码表同步登记;summary/run_record.control_failures 是
+        同一事实的记录面)。"""
         if self.exit_code:
             return self.exit_code  # 93 观测未就绪/94 准入不足/2 意图拒绝
+        if self._control_failures:
+            return 7  # 控制能力失效:停止归属无法认证/掩码面异常
         # 完成未证实(树仍在/身份不明)优先于"发生过保护"——残留
         # 风险是更强的"禁止下一重任务"信号(§7.2)
         if self.residual_unconfirmed:
@@ -3475,8 +3598,11 @@ class Supervisor:
         # 屏蔽期间信号挂起、解除后 handler 才执行"只在全部线程屏蔽
         # 时成立(任一未屏蔽线程可 tripped 信号,Python handler 将在
         # 主线程下一字节码边界执行,与主线程掩码无关;S1/signal(7))。
-        # 前提失败不静默降级到旧竞态:临界区后的保守分支处理(无法
-        # 证明为 C 后的信号按已登记停止参与结果)。
+        # WP1(fc-integrity,SPSC-01):前提不能证明时**不建立已认证
+        # C**——旧"解除后 sleep(0.05) 保守复核再移动基线"分支已
+        # 删除(固定延时给不出"之后不会再登记"的机制保证,S1);能力
+        # 失效登记为控制失败(run 非成功,rc=7;停止归属如实记为
+        # 无法认证,不伪造成功 C,也不把未知归属硬写成时间顺序)。
         # 临界边界内零 I/O、零进程等待、零普通锁(S1);/proc 逐线程
         # 读为前提核验的最小能力面,失败按前提未证实处理(失败关闭)。
         old_mask = None
@@ -3485,11 +3611,11 @@ class Supervisor:
                 signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGINT})
         except (ValueError, OSError) as exc:
             # 平台不支持(非主线程/无 sigmask 面):如实记录;与前提
-            # 失败同等保守处理(不能宣称挂起边界成立)
+            # 失败同等处理(不能宣称挂起边界成立,run 非成功)
             self.log({"event": "cutoff_mask_unavailable",
                       "error": str(exc)[:200],
                       "note": "pthread_sigmask 边界不可用;挂起边界"
-                              "不成立,按前提失败保守处理"})
+                              "不成立,按控制能力失效处理"})
             self._cutoff_premise_ok = False
             self._cutoff_premise_detail = f"mask_unavailable:{exc}"[:120]
         if old_mask is not None:
@@ -3501,48 +3627,50 @@ class Supervisor:
             self.log({"event": "cutoff_thread_premise_failed",
                       "detail": self._cutoff_premise_detail,
                       "note": "存在未屏蔽 TERM/INT 的存活线程(或核验"
-                              "不可用):挂起边界不成立;最后判定推迟到"
-                              "解除屏蔽后的保守复核(窗口内登记无法"
-                              "证明为 C 后,按停止参与结果,不降级为旧"
-                              "竞态)"})
-        # 最后判定:前提成立时在临界区内做(挂起边界已逐线程核验);
-        # 前提失败时不在此做——未屏蔽线程可在判定后的任意字节码
-        # 边界 tripped 信号(反例A),临界区内判定不可靠,推迟到解除
-        # 后的保守复核点。
-        if self._cutoff_premise_ok and \
-                self._external_stop_sig is not None and \
-                not self._external_stop_consumed:
-            self._consume_external_stop_sealed()
-        # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法顺序
-        # 内成立:任务树核验/producer 停止/seal+drain/写者关闭/原始
-        # 内容候选固定。
-        self._external_stop_count_at_cutoff = \
-            self._external_stop_sig_count
-        self._stop_cutoff_reached = True
+                              "不可用):挂起边界不成立;本 run 停止归属"
+                              "无法认证,登记控制能力失效(run 非成功,"
+                              "不伪造成功 C)"})
+            self._control_failures.append({
+                "kind": "cutoff_capability_unavailable",
+                "detail": self._cutoff_premise_detail,
+                "external_stop_sig": self._external_stop_sig,
+                "external_stop_sig_count":
+                    self._external_stop_sig_count,
+                "note": "截止点边界的线程前提无法证明;停止归属"
+                        "无法认证,run 按控制失败终结"})
+        # 最后判定与 C 只在前提成立时建立(已认证 C);前提失败时
+        # 已登记的停止事实保持原样进入结果层(summary/record 如实
+        # 记录 sig/consumed 状态),不消费、不生成 post_cutoff 回执
+        # (无法证明 C 后),也不再以任何固定延时复核。
+        if self._cutoff_premise_ok:
+            if self._external_stop_sig is not None and \
+                    not self._external_stop_consumed:
+                self._consume_external_stop_sealed()
+            # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法
+            # 顺序内成立:任务树核验/producer 停止/seal+drain/写者
+            # 关闭/原始内容候选固定。
+            self._external_stop_count_at_cutoff = \
+                self._external_stop_sig_count
+            self._stop_cutoff_reached = True
+            self._cutoff_certified = True
         if old_mask is not None:
             try:
                 # 解除屏蔽:待决信号立即递送(全线程屏蔽前提成立时,
                 # handler 登记必然发生在 C 之后,count>base → 后置
                 # 回执,不参与已固定结果)。
                 signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
-            except (ValueError, OSError):
-                pass
-        if not self._cutoff_premise_ok:
-            # 保守复核(临界区外,允许短等待):给挂起/在途信号一个
-            # 确定性执行窗口,窗口内出现的登记无法证明属于 C 后
-            # ——按已登记停止参与本 run 结果(§4.2:能力不足不成功
-            # 降级;正确归因,不改写 C 决策本身)。基线更新到复核后:
-            # 其后的计数才是可证明的 C 后(后置回执)。
-            time.sleep(0.05)
-            if self._external_stop_sig is not None and \
-                    not self._external_stop_consumed:
-                self._consume_external_stop_sealed()
-                self.log({"event": "cutoff_signal_conservatively_consumed",
-                          "sig_count": self._external_stop_sig_count,
-                          "note": "线程前提不成立期间的信号登记无法"
-                                  "证明为 C 后:保守按停止参与结果"})
-            self._external_stop_count_at_cutoff = \
-                self._external_stop_sig_count
+            except (ValueError, OSError) as exc:
+                # 还原失败不得静默吞成"已恢复"(C02):如实登记控制
+                # 失败——即使 C 已建立,掩码面残留异常仍是非成功
+                self.log({"event": "cutoff_mask_restore_failed",
+                          "error": str(exc)[:200],
+                          "note": "sigmask 还原失败:信号面状态异常,"
+                                  "登记控制失败(run 非成功)"})
+                self._control_failures.append({
+                    "kind": "cutoff_mask_restore_failed",
+                    "detail": f"{type(exc).__name__}:{exc}"[:160],
+                    "note": "临界区屏蔽未确认恢复;run 按控制失败"
+                            "终结"})
         # WP1(publication):对外发布只在停止决定之后——同一决定、
         # 单次发布:先 summary(其哈希被 run_record 引用),后 run_record
         # (完成判据)。C 前不存在对外完成件;发布失败=run 非成功

@@ -1,0 +1,94 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "run",
+ "task_kind": "fixture",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 1"
+ ],
+ "started_utc": "2026-09-08T12:01:54Z",
+ "ended_utc": "2026-09-08T12:01:55Z",
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "pgid": 429
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea"
+ },
+ "required": [
+  {
+   "role": "alerts",
+   "path": "run_fix3b/run/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "a6e98ab67640f4aad06c7042359b04e1de160dd6b0d5a6e2d6f449ac7bc5ea3e",
+   "bytes": 1287
+  },
+  {
+   "role": "business_stdout",
+   "path": "run_fix3b/run/business/stdout.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "business_stderr",
+   "path": "run_fix3b/run/business/stderr.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "summary",
+   "path": "run_fix3b/run/summary.json",
+   "status": "publish_failed",
+   "failure": {
+    "stage": "write_or_replace",
+    "error": "OSError:[Errno 5] Input/output error"
+   }
+  }
+ ],
+ "evidence_complete": false,
+ "missing_roles": [
+  "summary"
+ ],
+ "control_failures": [],
+ "cutoff_certified": true,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": false,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": null
+  },
+  "win": null,
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 14,
+  "accepted": 14,
+  "ok": 14,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 14,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 1,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}

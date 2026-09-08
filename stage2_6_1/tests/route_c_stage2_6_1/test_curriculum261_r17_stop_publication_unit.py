@@ -69,6 +69,29 @@ def _load(p):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
+def _build_and_verify(base: Path, run_dir: Path):
+    """S03(fc-integrity):真实 build+verify 消费 run_record——成功
+    reader 是否拒绝控制失败/发布失败/写者未知包(root=run_supervision
+    根=base 的父目录,与 run_record 内相对路径基准一致)。"""
+    rr = run_dir / "run_record.json"
+    root = base.parent
+    man = base / "fcv_manifest.jsonl"
+    anchor = base / "fcv_anchor.json"
+    b = subprocess.run(
+        [sys.executable, str(RUNNER_DIR / "r17_verify_delivery.py"),
+         "build", "--run-record", str(rr), "--manifest-out", str(man),
+         "--anchor-out", str(anchor), "--root", str(root)],
+        capture_output=True, text=True, timeout=120)
+    if b.returncode != 0:
+        return b.returncode, [b.stdout, b.stderr]
+    v = subprocess.run(
+        [sys.executable, str(RUNNER_DIR / "r17_verify_delivery.py"),
+         "verify", "--root", str(root), "--manifest", str(man),
+         "--anchor-file", str(anchor), "--run-record", str(rr)],
+        capture_output=True, text=True, timeout=120)
+    return v.returncode, [v.stdout, v.stderr]
+
+
 def _utc():
     return _dt.datetime.now(_dt.timezone.utc).isoformat(
         timespec="seconds").replace("+00:00", "Z")
@@ -184,13 +207,18 @@ if mode in ("s01a", "s03a"):
 # ---- settrace 定位(S 组) ----
 target_line = None
 if mode in ("s01a",):
-    key = "_external_stop_count_at_cutoff"
+    # WP1(fc-integrity):C 赋值行只在前提成立分支可达;s01a 的前提
+    # 必然失败(辅助线程在场)——观察点改为**前提失败登记行**(仍在
+    # sigmask 临界区内,主线程已 block):此刻发真实 TERM,验证
+    # 信号不被"outer=0"漏接(能力失效=run 非成功,不依赖时序运气)
+    key = '"event": "cutoff_thread_premise_failed"'
     with open(os.path.join(probe_dir, "r17_supervision.py"),
               encoding="utf-8") as fh:
         for i, ln in enumerate(fh, 1):
-            if target_line is None and key in ln and ln.rstrip().endswith("\\"):
+            if key in ln:
                 target_line = i
-    assert target_line is not None, "C 赋值行未定位"
+                break
+    assert target_line is not None, "前提失败登记行未定位"
     print("PROBE_TARGET_LINE=%d" % target_line, flush=True)
     fired = {"v": False}
     def _local(frame, event, arg):
@@ -428,17 +456,18 @@ def _kv(lines):
 class TestS01UnshieldedThreadParticipates:
     def test_s01a_unshielded_thread_signal_at_cutoff_participates(
             self, tmp_path):
-        """S01:真实 supervisor/writer;测试创建的未屏蔽后台线程在场;
-        C 赋值语句处发真实 TERM——handler 在临界区内实际登记(经未
-        屏蔽线程路由),不能被 outer=0 漏接:前提核验失败→保守复核
-        消费→rc=4;辅助线程不被误杀;无伪 C 后回执。"""
+        """S01(fc-integrity 语义迁移):未屏蔽后台线程在场,前提核验失败
+        登记行(仍处 sigmask 临界区内)发真实 TERM——不能被 outer=0
+        漏接:能力失效→run 非成功(rc=7,不依赖信号时序运气;旧
+        "保守复核消费→rc=4"已被 WP0 反例 FC-1b 推翻——50ms 窗口的
+        消费是调度运气,不是机制保证);信号登记如实、不伪造 C、
+        无伪 C 后回执;辅助线程不被误杀。"""
         rc, lines, run_dir, base = _run_sp_child(tmp_path, "s01a")
         kv = _kv(lines)
         assert "PROBE_SIGNAL_SENT" in lines
         assert "sp-probe-aux" in kv.get("PROBE_THREADS_AT_C", "")
-        assert rc == 4, f"临界区内经未屏蔽线程登记的停止必须参与结果," \
-                        f"实际 rc={rc};{lines[-6:]}"
-        assert kv.get("PROBE_CONSUMED") == "True"
+        assert rc == 7, f"能力失效=run 非成功(信号参与与否不改变该" \
+                        f"结论),实际 rc={rc};{lines[-6:]}"
         assert kv.get("PROBE_PREMISE_OK") == "False"
         assert kv.get("PROBE_AUX_ALIVE") == "True", "不误杀无关线程"
         # 前提失败发生在 seal 之后:alerts 批已封口拒绝新动作(既有
@@ -447,9 +476,14 @@ class TestS01UnshieldedThreadParticipates:
         assert summary["publication"]["cutoff_premise_ok"] is False
         assert "unshielded_threads" in (
             summary["publication"]["cutoff_premise_detail"] or "")
-        assert summary["external_stop_consumed"] is True
+        cfs = summary["publication"]["control_failures"]
+        assert cfs and cfs[0]["kind"] == "cutoff_capability_unavailable"
+        # 信号登记如实(双分支:handler 落在发布前/后均合法——
+        # 停止归属无法认证,不硬写时间顺序);未被消费成假 C
+        assert summary["external_stop_sig"] in (None, signal.SIGTERM)
+        assert summary["external_stop_consumed"] is False
         assert not (run_dir / "post_cutoff_signal.json").exists(), \
-            "保守消费的信号不得伪称 C 后事件"
+            "C 未建立:不得伪称 C 后事件回执"
 
 @requires_linux
 class TestS02PendingSignalRouting:
@@ -483,35 +517,53 @@ class TestS02PendingSignalRouting:
 class TestS03PremiseFailureFailClosed:
     def test_s03a_unshielded_thread_no_signal_normal_success(
             self, tmp_path):
-        """S03:未屏蔽线程在场但无信号——前提失败如实记录,保守复核
-        无增量,正常成功不受影响(不把所有运行一律拒绝);线程不被
-        误杀;掩码/handler 恢复。"""
+        """S03a(fc-integrity 预期纠正):未屏蔽线程在场但无信号——前提
+        不能证明时 run 必须非成功(rc=7),控制失败事实实际进入
+        summary/run_record/verifier 读取路径;证据可完整记录一次失败
+        (evidence_complete 与控制失败正交);线程不被误杀。
+        旧断言(rc==0 正常成功)已被 WP0 反例 FC-1a 推翻——"能力失效
+        后仅经 50ms 复核即可成功降级"正是 SPSC-01 缺陷本身。"""
         rc, lines, run_dir, base = _run_sp_child(tmp_path, "s03a")
         kv = _kv(lines)
-        assert rc == 0, f"无信号时正常成功,实际 {rc};{lines[-6:]}"
+        assert rc == 7, f"能力失效+无信号:run 非成功,实际 {rc};" \
+                        f"{lines[-6:]}"
         assert kv.get("PROBE_PREMISE_OK") == "False"
         assert kv.get("PROBE_AUX_ALIVE") == "True"
         summary = _load(run_dir / "summary.json")
         assert summary["publication"]["cutoff_premise_ok"] is False
         assert "unshielded_threads" in (
             summary["publication"]["cutoff_premise_detail"] or "")
-        assert summary["publication"]["cutoff_premise_detail"]
+        cfs = summary["publication"]["control_failures"]
+        assert cfs and cfs[0]["kind"] == "cutoff_capability_unavailable"
         rr = _load(run_dir / "run_record.json")
         assert rr["finalized"] is True
-        assert rr["evidence_complete"] is True
+        assert rr["evidence_complete"] is True, \
+            "失败经过与文件完整固定:证据完整性独立于控制成败"
+        assert rr["control_failures"] and \
+            rr["control_failures"][0]["kind"] == \
+            "cutoff_capability_unavailable"
+        # 成功 reader(verifier)拒绝把控制失败记录当完整运行交付
+        vrc, vout = _build_and_verify(base, run_dir)
+        assert vrc == 1, f"verify 必须拒绝 control_failures 非空的包," \
+                         f"实际 {vrc};{vout[-4:]}"
 
     def test_s03b_sigmask_unavailable_fail_closed(self, tmp_path):
-        """S03:pthread_sigmask 能力失败(patch 构造前)——不宣称挂起
-        边界成立(前提失败记录);无信号时正常成功;handler 恢复。"""
+        """S03b(fc-integrity 预期纠正):pthread_sigmask 能力失败(patch
+        构造前)——不宣称挂起边界成立,同样 run 非成功(rc=7)+控制
+        失败进记录面+verifier 拒绝;旧 rc==0 断言同理被推翻。"""
         rc, lines, run_dir, base = _run_sp_child(tmp_path, "s03b")
         kv = _kv(lines)
-        assert rc == 0, f"能力失败+无信号:正常成功,实际 {rc}"
+        assert rc == 7, f"能力失败+无信号:run 非成功,实际 {rc}"
         assert kv.get("PROBE_PREMISE_OK") == "False"
         assert "mask_unavailable" in kv.get("PROBE_PREMISE_DETAIL", "")
         summary = _load(run_dir / "summary.json")
         assert summary["publication"]["cutoff_premise_ok"] is False
         assert "mask_unavailable" in (
             summary["publication"]["cutoff_premise_detail"] or "")
+        rr = _load(run_dir / "run_record.json")
+        assert rr["control_failures"], "掩码能力失败必须进记录面"
+        vrc, vout = _build_and_verify(base, run_dir)
+        assert vrc == 1, f"verify 必须拒绝,实际 {vrc};{vout[-4:]}"
 
 
 # ================================================= P:发布边界

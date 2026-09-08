@@ -1,0 +1,111 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "run",
+ "task_kind": "fixture",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 8"
+ ],
+ "started_utc": "2026-09-08T12:00:27Z",
+ "ended_utc": "2026-09-08T12:00:52Z",
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "pgid": 414
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "d7dbdaf7a6a14314bf5bb4df011a839e919f565a12962551bf2ba4cbe29ae320"
+ },
+ "required": [
+  {
+   "role": "telemetry_guest",
+   "path": "run_fix2/run/telemetry/guest_samples.jsonl",
+   "live_writers": true,
+   "status": "present",
+   "sha256": "303ca62769f964476d6a4d576f482c3efb1be97ef77c75cf2e3bf2e7f1345bf4",
+   "bytes": 1052
+  },
+  {
+   "role": "telemetry_win",
+   "path": "run_fix2/run/telemetry/win_samples.jsonl",
+   "status": "present",
+   "sha256": "49063f7c1423dae55ef8360a39ec416210be112811281eab8f93e3e1e4cef1a4",
+   "bytes": 3986
+  },
+  {
+   "role": "alerts",
+   "path": "run_fix2/run/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "4ffc26c07ba1ea35041d0083902dfff3affb84d88714df72b1b0bb04b08c886b",
+   "bytes": 3616
+  },
+  {
+   "role": "business_stdout",
+   "path": "run_fix2/run/business/stdout.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "business_stderr",
+   "path": "run_fix2/run/business/stderr.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "summary",
+   "path": "run_fix2/run/summary.json",
+   "status": "present",
+   "sha256": "2ec8b215e218087e3c23accefd70a1c334c47e426a216c4ff7e21ee76ac14d6f",
+   "bytes": 4866
+  }
+ ],
+ "evidence_complete": false,
+ "missing_roles": [],
+ "control_failures": [],
+ "cutoff_certified": true,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": false,
+   "alive_after_join": true,
+   "thread_ident": 138518446474944
+  },
+  "win": {
+   "stop_requested": true,
+   "interop_pid": 387,
+   "waited": true,
+   "exited": true,
+   "unconfirmed": false
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 25,
+  "accepted": 25,
+  "ok": 25,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 25,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}

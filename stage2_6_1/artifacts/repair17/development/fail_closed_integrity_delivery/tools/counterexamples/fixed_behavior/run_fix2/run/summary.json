@@ -1,0 +1,217 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "d7dbdaf7a6a14314bf5bb4df011a839e919f565a12962551bf2ba4cbe29ae320",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 8"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 414,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "telemetry_budget: 遥测达预算 1924B ≥ 1B;核心证据无法继续保存,保护性中止(保留前缀)"
+ ],
+ "incidents": [
+  {
+   "incident_id": "run-telemetry_budget-0",
+   "kind": "telemetry_budget",
+   "detail": "遥测达预算 1924B ≥ 1B;核心证据无法继续保存,保护性中止(保留前缀)",
+   "severity": "PROTECTION_UNAVAILABLE",
+   "first_seen_mono": 0.4,
+   "last_seen_mono": 0.4,
+   "samples": 1,
+   "peak": {
+    "bytes": 1924,
+    "budget": 1
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 38.040950775146484,
+  "task_tree_rss_max_gib": 0.0,
+  "win_free_phys_min_gib": 35.964,
+  "win_commit_max_pct": 50.22
+ },
+ "coverage": {
+  "guest_last_mono": 0.4083563140000024,
+  "win_last_mono": 7.867742115999988,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 6,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-08T12:00:29Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": 0,
+  "obs_ready_at_mono": 1.8074824079999985,
+  "telemetry_capped": true,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T12:00:29Z"
+ },
+ "io": {
+  "submitted": 25,
+  "accepted": 25,
+  "ok": 25,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 25,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": false,
+   "alive_after_join": true,
+   "thread_ident": 138518446474944
+  },
+  "win": {
+   "stop_requested": true,
+   "interop_pid": 387,
+   "waited": true,
+   "exited": true,
+   "unconfirmed": false
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "summary_failure": null,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded",
+  "control_failures": []
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 0.4084797769999966,
+  "establish_reason": "stop_accept:telemetry_budget",
+  "remaining_at_write": 95.514,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "stop_accept:telemetry_budget"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 110.539,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_sampler_join",
+    "requested": 10.0,
+    "remaining": 95.537,
+    "allowed": 10.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 95.536,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 95.515,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 8654,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:28Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:29Z",
+   "stage": "observation_ready",
+   "note": "ready_after=1.8s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:29Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:29Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:37Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:00:37Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 387,
+  "windows": 135460
+ },
+ "written_utc": "2026-09-08T12:00:52Z"
+}

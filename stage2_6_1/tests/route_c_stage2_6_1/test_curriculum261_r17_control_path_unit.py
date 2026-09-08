@@ -458,17 +458,21 @@ class TestBlockingProtection:
 
     def test_t07_summary_write_failure_emergency(self, tmp_path):
         """summary 落盘失败:应急兜底尝试,不抛出,run_record 照常
-        封口(summary 缺件如实 missing)。"""
+        封口。fc-integrity 语义:目标路径被占(目录占位)→发布失败
+        (publish_failed,目标非文件不登记 present);残片/占位不能
+        冒充有效已发布角色。"""
         sup = _sup(tmp_path)
         sum_dir = tmp_path / "run" / "summary.json"
         sum_dir.parent.mkdir(parents=True, exist_ok=True)
-        sum_dir.mkdir()  # 占位:write_text 将抛 IsADirectoryError
+        sum_dir.mkdir()  # 占位:发布目标被目录占用(运行唯一性冲突)
         summary = sup.write_summary()  # 不得抛出
         assert summary["run_id"] == "run"
+        assert sup._summary_publish_failed is True
+        assert sup._summary_publish_failure["stage"] == "target_exists"
         rr = sup.finalize_run_record()
         rec = json.loads(rr.read_text(encoding="utf-8"))
         roles = {r["role"]: r for r in rec["required"]}
-        assert roles["summary"]["status"] == "missing"
+        assert roles["summary"]["status"] == "publish_failed"
         assert rec["evidence_complete"] is False
 
 
@@ -553,14 +557,14 @@ class TestResidualClosure:
 
     def test_t18_finalize_and_outcome_idempotent(self, tmp_path):
         """重复 finalize/重复 control_outcome 幂等:不产生第二个
-        run_record/重复释放形态。"""
+        run_record/重复释放形态。summary 由 finalize 内的发布动作
+        自行完成(不预置占位文件——预置=发布目标被占,fc-integrity
+        语义下为发布失败而非可覆盖)。"""
         # replay 形态:必需集合不含双采样流(回放输入替代,§8.2)
         sup = _sup(tmp_path, samples_source="file:test")
         sup.biz_rc = 0
         for p in (sup.alerts_path, sup.biz_stdout, sup.biz_stderr):
             p.write_text("x\n", encoding="utf-8")
-        (tmp_path / "run" / "summary.json").write_text(
-            "{}", encoding="utf-8")
         sup.finalize()
         rr1 = (tmp_path / "run" / "run_record.json").read_bytes()
         sup.finalize()
