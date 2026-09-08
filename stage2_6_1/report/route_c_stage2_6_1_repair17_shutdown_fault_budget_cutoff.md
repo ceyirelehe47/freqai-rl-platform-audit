@@ -30,7 +30,7 @@
 
 ## 3. 实现(最小修改;不新建平台)
 
-执行面变更仅 `stage2_6_1/runner/r17_supervision.py`(+219/−41 行)与新增测试文件;`curriculum261_r17_workflow.py` 零改动(src/rl_curriculum 无任何模块 import supervisor——影响面审查确认)。
+执行面变更仅 `stage2_6_1/runner/r17_supervision.py`(git numstat +217/−41 行;主体提交消息误记 +219,以 numstat 为准)与新增测试文件;`curriculum261_r17_workflow.py` 零改动(src/rl_curriculum 无任何模块 import supervisor——影响面审查确认)。
 
 ### 3.1 WP1-A 二次错误隔离
 
@@ -61,7 +61,7 @@
 | 探针 | 结果 |
 |---|---|
 | P1 | rc=3;KILL 发生(sigkill_sent=true);业务组在 supervisor 返回前结束 |
-| P2 | budget=5.0s;停止后剩 2.786s→win join 实际 2.776s(≤剩余);drain 请求 0.0(剩余耗尽,零剩余不变无期限);总链 5.001s(≤预算+容差) |
+| P2 | budget=5.0s;停止后剩 2.786s→win join 实际 2.787s(≤剩余+节拍容差);drain 请求 0.0(剩余耗尽,零剩余不变无期限);总链 5.001s(≤预算+容差) |
 | P3-pre(临界区进入行执行前发 TERM,等 handler 完成) | rc=4;consumed=True;count_at_cutoff=1;summary 重写承载 external_stop_sig=15;无伪 C 后回执 |
 | P3-in(C 标记赋值行,屏蔽中发 TERM) | rc=0;consumed=False;count_at_cutoff=0;独立回执 sig_count_total=1>base=0;summary/封口件无改写 |
 
@@ -124,7 +124,7 @@ F01 保留真实合作窗口 30 秒、业务先证明 TERM 忽略已安装(READY
 
 ## 10. 领域合同与正式状态保持
 
-Route C 六项环境合同、fee/reward/action/execution/ledger、八个生产特征与 position slot、`RouteCFeaturePreprocessing-v2`、`PolicyVisibleReferenceCanonicalization-v1`、`PolicyVisibleSupervisedLabel-v1`、`C2MatchedLadderBlock-v1`、`GenerationInvocationEnvelope`、main/holdout routing、C1/C3 参数、pair-cluster 与 κ=1.5、`max_attempts=5`、C2 候选表、Global K joint-null 等全部不改。rt3_calibration_main_r17/c3_cost/D0/pair52 结构拒绝、R16 C2 matched D3 统计失败、C3 PPO Branch D 三项独立问题保持原状态(完整 fresh rt3 继续 BLOCKED)。本轮无新正式许可/运行/数据;历史误触、接受与终结事实原样保留;未清理任何历史失败 namespace 或 exposure;run_supervision/rejected 拒绝记录按既有规则追加(本轮测试期间 2 条单例拒绝为真实记录)。
+Route C 六项环境合同、fee/reward/action/execution/ledger、八个生产特征与 position slot、`RouteCFeaturePreprocessing-v2`、`PolicyVisibleReferenceCanonicalization-v1`、`PolicyVisibleSupervisedLabel-v1`、`C2MatchedLadderBlock-v1`、`GenerationInvocationEnvelope`、main/holdout routing、C1/C3 参数、pair-cluster 与 κ=1.5、`max_attempts=5`、C2 候选表、Global K joint-null 等全部不改。rt3_calibration_main_r17/c3_cost/D0/pair52 结构拒绝、R16 C2 matched D3 统计失败、C3 PPO Branch D 三项独立问题保持原状态(完整 fresh rt3 继续 BLOCKED)。本轮无新正式许可/运行/数据;历史误触、接受与终结事实原样保留;未清理任何历史失败 namespace 或 exposure;run_supervision/rejected 拒绝记录按既有规则追加(本轮测试与全量期间共 3 条 rejected_concurrent 为真实记录:02:02:19Z/02:42:09Z/03:07:11Z,均为既有单例测试固定形态)。
 
 ## 11. 结论
 
@@ -137,3 +137,7 @@ Route C 六项环境合同、fee/reward/action/execution/ledger、八个生产�
 | 正式边界 | 保持:无新正式面;历史隔离不变 |
 
 **本轮:R17 冻结前开发候选交付,等待独立审查。**
+
+## 12. 独立验收结论(2026-09-08,验收 agent 只读核查)
+
+**ACCEPT**(A 实现语义/B 测试有效性/C WP0 证据链/D 全量与外层 rc/E 冷读/F 报告如实性/G git 卫生七项全 PASS;复现与闭合探针快照 blob 分别核对为接手 383e573 与交付 9e1a207)。非阻断观察 4 条:(1) rejected.jsonl 计数 2→3(已勘误 §10);(2) P2 闭合 win join 2.776→2.787s 笔误(已勘误 §4);(3) 变更行数 +219→+217(numstat 口径,已勘误 §3;已推送提交消息不改);(4) `_terminal_shutdown`/`finalize` 内 `if prot.pending_logs:` 属性访问未包入 `_shutdown_step`(普通列表属性实际不抛错的理论缝隙,留待后续轮收窄,如实记录)。
