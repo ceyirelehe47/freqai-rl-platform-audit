@@ -4,7 +4,7 @@
 日期：2026-09-08
 仓库：`ceyirelehe47/freqai-rl-platform-audit`，分支 `route-c-stage2-6-1-repair17`
 接手 SHA：`029f1ff6d0ec90ec6cebac458431b8326989142f`（parent `6cea807c…`，ancestry 核对通过）
-交付 SHA：`{{DELIVERY_SHA}}`
+交付 SHA：`9d4ffb4`
 性质：R17 冻结前开发续轮（非 R18；不创建最终 A/B；真实正式许可/formal/新正式业务数据/
 qualification exposure 全程禁止；历史已终结正式身份继续隔离）
 
