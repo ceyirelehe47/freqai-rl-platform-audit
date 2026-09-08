@@ -1207,24 +1207,11 @@ class Supervisor:
         self._external_stop_sig: int | None = None
         self._external_stop_consumed = False
         # WP2(stop-cutoff):停止接受截止点 C 的状态面。sig_count 由
-        # handler 纯自增(首个信号粘性+总数可判"C 后新到");C 在
-        # finalize 尾部 sigmask 临界区内越过(原始证据已固定之后)。
+        # handler 纯自增(首个信号粘性+总数可判"C 后新到");C 只在
+        # finalize 的 write_summary 紧前越过(原始证据即将固定)。
         self._external_stop_sig_count = 0
         self._external_stop_count_at_cutoff: int | None = None
         self._stop_cutoff_reached = False
-        # WP1-B(shared-budget):整个 run 一份收尾预算——首次进入终止性
-        # 处理(异常路径)或正常收尾(finalize/早拒绝)时建立绝对单调
-        # deadline,此后停止/升级/核验/辅助停止/drain/发布所有受控等待
-        # 只消费剩余时间,不再各自获得全额 timeout(§5.1/5.2)。run()
-        # 开头随 external stop 状态一起重置(每个 run 一份;同一 run 内
-        # 重复进入收尾方法复用同一 deadline,不重开)。
-        self._finalize_deadline: float | None = None
-        self._finalize_budget_est_at: float | None = None
-        self._finalize_budget_reason: str | None = None
-        self._finalize_budget_notes: list[dict[str, Any]] = []
-        # WP1-A(secondary-failure):终止收尾循环内各步骤的二次错误
-        # 有界登记(每步骤保留首错误与计数;不生成无界 traceback)。
-        self._shutdown_step_failures: dict[str, dict[str, Any]] = {}
         # WP1(RCF-01):首次读取失败告警只发一次(有界)
         self._win_read_failure_logged = False
         # S5:运行前登记必需产物角色(缺件保留为缺件,绝不从清单移除)
@@ -1582,9 +1569,6 @@ class Supervisor:
         return True
 
     def stop_win_sampler(self) -> None:
-        # WP1-B:辅助采样器停止也属于收尾链——建立/复用本 run 唯一
-        # 预算,等待只消费剩余时间(§5.1:辅助采样与写者关闭阶段)。
-        self._ensure_finalize_budget("stop_win_sampler")
         if self.win_proc is None:
             return
         pid = self.win_proc.pid
@@ -1592,16 +1576,11 @@ class Supervisor:
             os.kill(pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
-        wait_allow = self._bounded_wait(10.0, "win_sampler_join")
         try:
-            self.win_proc.wait(timeout=wait_allow)
+            self.win_proc.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.log({"event": "win_sampler_stop_timeout",
-                      "interop_pid": pid,
-                      "budget_remaining_s":
-                          round(self._finalize_remaining(), 3),
-                      "note": "停止已请求、完成未确认(受控等待只"
-                              "消费剩余预算;不无限等)"})
+                      "interop_pid": pid})
         self.log({"event": "win_sampler_stopped",
                   "interop_pid": pid,
                   "windows_pid": self.win_pid_windows})
@@ -1803,25 +1782,11 @@ class Supervisor:
             # WP2(RCF-02):外部停止意图事实(handler 只登记;null=从未)
             "external_stop_sig": self._external_stop_sig,
             "external_stop_consumed": self._external_stop_consumed,
-            # WP2(stop-cutoff):信号总数(写入时刻;C 的判定/标记在
-            # finalize 尾部 sigmask 临界区内越过,summary 是 C 的前置
-            # 件,故 summary 内不记 C 状态;C 后事件由独立的
+            # WP2(stop-cutoff):信号总数(写入时刻;供工具/冷读核对
+            # "C 后事件"归属——C 在本方法末尾越过,summary 是 C 的
+            # 前置件,故 summary 内不记 C 状态;C 后事件由独立的
             # post_cutoff_signal.json 承载)
             "external_stop_sig_count": self._external_stop_sig_count,
-            # WP1-B(shared-budget):本 run 唯一收尾预算的可核验事实
-            # (§5.3:一次起点、各阶段请求/剩余/允许、写入时剩余)。
-            "finalize_budget": {
-                "window_s": self.policy["finalize_window_s"],
-                "established_at_mono": self._finalize_budget_est_at,
-                "establish_reason": self._finalize_budget_reason,
-                "remaining_at_write":
-                    round(self._finalize_remaining(), 3),
-                "notes": list(self._finalize_budget_notes),
-            },
-            # WP1-A(secondary-failure):收尾二次错误有界事实
-            "shutdown_step_failures": {
-                k: dict(v) for k, v in
-                self._shutdown_step_failures.items()},
             "telemetry_bytes": self.telemetry_bytes(),
             "stage_marks": self.stage_marks,
             "emergency_win_dir": self.emergency_win_dir,
@@ -2057,80 +2022,6 @@ class Supervisor:
         if not self.exit_code:
             self.exit_code = 4
 
-    # ---------------- WP1-A/WP1-B:二次错误隔离与共享收尾预算 ----------------
-    def _ensure_finalize_budget(self, reason: str) -> float:
-        """建立/复用本 run 唯一的收尾 deadline(§5.1:一次建立、一直
-        复用)。
-
-        首次进入终止性处理(_terminal_shutdown)或正常收尾(finalize/
-        早拒绝)时建立绝对单调 deadline;此后重复进入任何收尾方法
-        (第二异常、重复信号、CLI 兜底)复用同一 deadline,不重新计时。
-        建立点先于可能失败/阻塞的诊断(§5.1:首次终止事实与 deadline
-        的建立放在诊断之前)。
-        """
-        if self._finalize_deadline is None:
-            self._finalize_deadline = (
-                time.monotonic() + self.policy["finalize_window_s"])
-            self._finalize_budget_est_at = time.monotonic() - self.t0
-            self._finalize_budget_reason = reason
-            self._finalize_budget_notes.append({
-                "phase": "budget_established", "requested":
-                    self.policy["finalize_window_s"], "remaining":
-                    self.policy["finalize_window_s"], "reason": reason})
-        return self._finalize_deadline
-
-    def _finalize_remaining(self) -> float:
-        """当前剩余收尾预算(秒;未建立时返回全额窗口——防御,正常
-        调用面都先经 _ensure_finalize_budget)。"""
-        if self._finalize_deadline is None:
-            return float(self.policy["finalize_window_s"])
-        return max(0.0, self._finalize_deadline - time.monotonic())
-
-    def _bounded_wait(self, cap_s: float, phase: str) -> float:
-        """受控等待上限 = min(该阶段原上限, 当前剩余预算)(§5.2)。
-
-        零剩余返回 0.0(不转换成 None/默认值/无期限等待)。记录一次
-        (阶段, 原上限, 剩余, 实际允许)有界预算事实,供 summary/测试
-        核验(§5.3);不做高频追踪。
-        """
-        rem = self._finalize_remaining()
-        allow = min(float(cap_s), rem)
-        if len(self._finalize_budget_notes) < 64:
-            self._finalize_budget_notes.append({
-                "phase": phase, "requested": float(cap_s),
-                "remaining": round(rem, 3), "allowed": round(allow, 3)})
-        return allow
-
-    def _shutdown_step(self, name: str, fn, default=None):
-        """终止收尾循环内单步执行兜底(§4.1:第二失败不放弃仍然可
-        执行的保护)。
-
-        该步抛错被有界吸收(每步骤保留首错误与计数;首条经 emergency
-        同步落盘,后续只累计),返回 default——调用方继续推进不依赖该
-        步的其余控制(poll/升级/核验)。不要求错误步骤本身恢复:永久
-        错误可以一直失败,但不能连带禁用不依赖它的控制(§4.1)。
-        """
-        try:
-            return fn()
-        except Exception as exc:  # noqa: BLE001 —— 有界吸收,不弃控制
-            rec = self._shutdown_step_failures.get(name)
-            if rec is None:
-                rec = {"count": 0, "first_error": str(exc)[:300],
-                       "first_error_type": type(exc).__name__,
-                       "first_at_mono": round(time.monotonic() - self.t0, 3)}
-                self._shutdown_step_failures[name] = rec
-                try:
-                    self.emergency_write({
-                        "event": "terminal_shutdown_step_failure",
-                        "run_id": self.run_id, "step": name,
-                        "error": str(exc)[:300],
-                        "note": "收尾步骤二次失败被隔离;不依赖该步的"
-                                "控制继续执行"})
-                except Exception:
-                    pass
-            rec["count"] += 1
-            return default
-
     def _terminal_state_confirmed(self) -> bool:
         """终态确认=直接业务 rc 已取得 且 登记组无活成员(§4.2)。
 
@@ -2156,17 +2047,8 @@ class Supervisor:
         本方法起算;不因重复异常/重复信号重开)驱动到终态确认或预算
         尽(预算尽=完成未确认,如实置 residual_unconfirmed,不写成
         安全完成)。证据封口统一经 finalize(C 检查点在 finalize 内,
-        与正常路径共享同一封口算法)。
-
-        WP1-A(secondary-failure):循环内每步(poll/flush_logs/退出
-        观察/终态核验)独立兜底——日志 flush 或退出观察再次抛错只
-        有界登记该步失败,信号控制(poll→合作窗满→KILL)与成员核验
-        继续执行(§4.1:不因非必要诊断失败放弃仍然可执行的保护;
-        实际 poll/退出读取一次失败=本轮未知而非已退出,预算内下轮
-        重读)。
-        """
-        deadline = self._ensure_finalize_budget(
-            f"terminal_shutdown:{reason}")
+        与正常路径共享同一封口算法)。"""
+        deadline = time.monotonic() + self.policy["finalize_window_s"]
         try:
             if self.biz_proc is not None and self.protector is not None \
                     and self.protector.requested_at is None:
@@ -2174,27 +2056,18 @@ class Supervisor:
             while time.monotonic() < deadline:
                 mono = time.monotonic() - self.t0
                 if self.protector is not None:
-                    prot = self.protector
-                    self._shutdown_step("poll", lambda: prot.poll(mono))
-                    if prot.pending_logs:
-                        self._shutdown_step("flush_logs",
-                                            prot.flush_logs)
-                self._shutdown_step("observe_exit",
-                                    self._observe_business_exit)
-                if self._shutdown_step("state_confirmed",
-                                       self._terminal_state_confirmed,
-                                       default=False):
+                    self.protector.poll(mono)
+                    if self.protector.pending_logs:
+                        self.protector.flush_logs()
+                self._observe_business_exit()
+                if self._terminal_state_confirmed():
                     return
                 time.sleep(0.2)
             # 预算尽:完成未确认(残留身份保留;外层非零;下一重任务
-            # 被既有入口阻断;不填 raw rc=0,不写成安全完成)。
-            # 残留核验自身失败≠无残留:未确认保持未确认(default=True)。
-            residual = self._shutdown_step(
-                "residual_scan",
-                lambda: bool(self.protector._member_pids())
-                if self.protector else False,
-                default=True)
-            self.residual_unconfirmed = bool(residual)
+            # 被既有入口阻断;不填 raw rc=0,不写成安全完成)
+            if self.protector is not None:
+                self.residual_unconfirmed = \
+                    bool(self.protector._member_pids())
             try:
                 self.emergency_write({
                     "event": "terminal_shutdown_budget_exhausted",
@@ -2265,17 +2138,15 @@ class Supervisor:
 
     def _record_post_cutoff_signal(self) -> None:
         """C 之后到达的信号=截止后事件(§5.3):只追加到独立后置
-        回执,不修改已被哈希固定的 summary/run_record。
-
-        WP2(cutoff-closure):旧"有信号且未消费就算 C 后"的防御兜底
-        已删除——C 的 sigmask 临界区保证:未消费的登记必然被临界区
-        内的最后判定看到并消费(参与结果),不可能落到 C 之后还保持
-        未消费。此处只承载真正的 C 后新到信号(count>base)。
-        """
+        回执,不修改已被哈希固定的 summary/run_record。"""
         if not self._stop_cutoff_reached:
             return
         base = self._external_stop_count_at_cutoff
-        if base is None or self._external_stop_sig_count <= base:
+        # 防御兜底:C 设点两赋值间隙的漏网形态(consumed 仍 False)
+        if base is not None and self._external_stop_sig is not None \
+                and not self._external_stop_consumed:
+            pass  # 落入下面的 count 比较(此时必然>base,正常记录)
+        elif base is None or self._external_stop_sig_count <= base:
             return
         try:
             rec = {"schema": "r17-post-cutoff-signal-v1",
@@ -2311,13 +2182,6 @@ class Supervisor:
         self._external_stop_sig = None
         self._external_stop_consumed = False
         self._external_stop_sig_count = 0
-        # WP1-B:收尾预算与停止状态同一重置面——每个 run() 一份;
-        # 同一 run 内所有收尾入口共享(重复进入不重开,L01)。
-        self._finalize_deadline = None
-        self._finalize_budget_est_at = None
-        self._finalize_budget_reason = None
-        self._finalize_budget_notes = []
-        self._shutdown_step_failures = {}
         token = self._install_signal_handlers()
         try:
             try:
@@ -2991,34 +2855,25 @@ class Supervisor:
         self._finalize_done = True
         self.finalizing = True
         self.mark_stage("finalize_begin")
-        # WP1-B:正常路径进入收尾时建立本 run 预算;若已由异常路径
-        # (_terminal_shutdown)或早拒绝(stop_win_sampler)建立,复用
-        # 同一 deadline——从正常循环转入异常处理不重新开始窗口,
-        # 重复调用不续期(§5.1)。
-        self._ensure_finalize_budget("finalize")
         # WP2(stop-cutoff)检查点①(finalize 开始;原始流仍可写):
         # 收尾窗口已登记的停止意图在此消费——截止点 C 之前的停止
         # 属于本次 run,参与最终结果(§5.1)。
         if self._external_stop_sig is not None and \
                 not self._external_stop_consumed:
             self._consume_external_stop()
-        # 有限收尾窗:等 guest 采样线程最后一轮(只消费剩余预算)
+        # 有限收尾窗:等 guest 采样线程最后一轮
         if self.guest_sampler:
             self.guest_sampler.stop()
             if self.guest_sampler.is_alive():  # replay 模式未启动线程
-                self.guest_sampler.join(
-                    timeout=self._bounded_wait(15.0, "guest_join"))
+                self.guest_sampler.join(timeout=15)
             self.guest_sampler = None
         self.stop_win_sampler()
         # 顺序合同:全部 alerts 写入(含 supervisor_end)必须先于
         # run_record 的哈希计算——否则清单记录与文件矛盾(build 拒绝)。
         # B2:alerts 经异步 I/O 线程落盘 → 写 supervisor_end 后**有界
         # drain**;写线程卡住时如实记 pending(不无限等,不假持久化)。
-        # WP1-A:收尾内的日志递交属诊断依赖,非发布步骤——再次失败
-        # 只隔离记录,封口(seal/summary/run_record)继续(§4.1 表行5:
-        # 诊断失败不弃可执行的清理;发布失败不签完整交付是另一事实)。
         if self.protector and self.protector.pending_logs:
-            self._shutdown_step("flush_logs", self.protector.flush_logs)
+            self.protector.flush_logs()
         self.log({"event": "supervisor_end",
                   "incidents": len(self.incidents),
                   "business_rc": self.biz_rc})
@@ -3048,63 +2903,32 @@ class Supervisor:
         # summary/run_record 消费终态计数,run_record 内嵌 io 即
         # 最终封口态(修复"写入时点态"勘误)。
         self.iow.seal()
-        self._io_drain_unconfirmed = self.iow.drain(
-            self._bounded_wait(15.0, "io_drain"))
+        self._io_drain_unconfirmed = self.iow.drain(15.0)
         # WP2(stop-cutoff)检查点③(seal 后、summary 前):原始流已
         # 封口,不能为补一条日志解封——结果层消费(§5.3:截止点前
         # late-stop 由尚未发布的收尾元数据记录)。
         self._consume_external_stop_sealed()
         self.write_summary()
         self.finalize_run_record()
-        # WP2(stop-cutoff):停止决策边界 C——pthread_sigmask 临界区
-        # 关闭"最后检查已判定、C 尚未建立"的登记窗口(§6.2)。
-        # 顺序合同:[屏蔽 TERM/INT] → 最后判定(有意向未消费→结果层
-        # 消费,纯内存赋值) → C 两赋值 → [解除屏蔽]。
-        # 边界保证:Python handler 的登记要么发生在临界区前(被最后
-        # 判定看到,参与本 run 结果),要么只能在解除屏蔽后(必然在
-        # C 之后,由独立后置回执承载,不改写已固定原件)。待决 OS 信号
-        # 在主线程屏蔽期间挂起、解除后立即执行 handler(CPython 信号
-        # 处理只在主解释器主线程;pthread_sigmask 作用于调用线程=
-        # finalize 的主线程),不存在"handler 在检查后、C 前登记却被
-        # C 基线吞掉"的中间态(§6.2:不以连续赋值/GIL 原子性为论证)。
-        # 临界边界内零 I/O、零进程等待、零普通锁(S1);结果层消费
-        # _consume_external_stop_sealed 本身只做内存赋值(2013 契约)。
-        # 临界区内决定的消费在其后(剩余预算内)发布——候选重写机制
-        # 与旧检查点④一致;发布失败走既有失败路径,不回改 C 决策。
-        cutoff_pending_rewrite = False
-        old_mask = None
-        try:
-            old_mask = signal.pthread_sigmask(
-                signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGINT})
-        except (ValueError, OSError) as exc:
-            # 平台不支持(非主线程/无 sigmask 面):如实记录,退化为
-            # 顺序判定→C(窗口收窄为两赋值间隙;Linux 主路径已关闭)
-            self.log({"event": "cutoff_mask_unavailable",
-                      "error": str(exc)[:200],
-                      "note": "pthread_sigmask 边界不可用;C 顺序退化"
-                              "为检查→标记(两赋值间隙窗口保留)"})
+        # WP2(stop-cutoff)检查点④(C 前最后判定;紧邻 C):③→结果
+        # 发布完成期间主线程同步执行中到达的信号仍属本次 run
+        # (§5.1:检查、截止点与已固定结果之间不得存在"先看到没有
+        # 停止,随后停止已登记,却仍发布未经重新判定的成功"的空窗)。
+        # 此时 summary/run_record 尚为"发布前候选"——按 §5.2 候选
+        # 可在发布前废弃:消费后重写,使元数据与最终结果共享同一
+        # 事实(原始流不重写;哈希以重写后的最终件为准)。
         if self._external_stop_sig is not None and \
                 not self._external_stop_consumed:
             self._consume_external_stop_sealed()
-            cutoff_pending_rewrite = True
-        # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法顺序
-        # 内成立:任务树核验/producer 停止/seal+drain/原始证据固定。
+            self.write_summary()
+            self.finalize_run_record()
+        # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法
+        # 顺序内成立:任务树核验/producer 停止/seal+drain/原始证据
+        # 固定。C 后到达的信号由 _record_post_cutoff_signal 记入
+        # 独立后置回执,不改写任何已固定原件。
         self._external_stop_count_at_cutoff = \
             self._external_stop_sig_count
         self._stop_cutoff_reached = True
-        if old_mask is not None:
-            try:
-                # 解除屏蔽:待决信号立即递送,handler 登记必然发生在
-                # C 之后(count>base → 后置回执,不参与已固定结果)。
-                signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
-            except (ValueError, OSError):
-                pass
-        # C 决策后的发布(§6.4:先准备候选、C 决策后发布):临界区内
-        # 决定的消费在此重写 summary/run_record(私有 tmp→原子替换),
-        # 使元数据与最终结果共享同一事实;原始流不解封。
-        if cutoff_pending_rewrite:
-            self.write_summary()
-            self.finalize_run_record()
 
 
 def main() -> int:

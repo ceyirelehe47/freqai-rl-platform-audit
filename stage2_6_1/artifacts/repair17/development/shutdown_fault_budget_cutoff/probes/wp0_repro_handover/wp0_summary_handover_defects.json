@@ -1,0 +1,93 @@
+{
+ "note": "接手快照 56f4d00 三缺陷复现(2026-09-08T01:47Z 轮;每探针原始 child_stdout/result 见子目录)",
+ "probe_p1": {
+  "probe": "P1-second-failure",
+  "child_rc": 3,
+  "watchdog_used": false,
+  "biz_leader_pid": 408,
+  "business_group_alive_after_return": true,
+  "alive_members": [
+   408,
+   409
+  ],
+  "sigterm_sent": true,
+  "sigkill_sent": false,
+  "crash_marker": true,
+  "observe_fail_marker": true,
+  "defect_confirmed": true,
+  "notes": [
+   "p1: test-watchdog killpg(408) 已执行"
+  ]
+ },
+ "probe_p2": {
+  "probe": "P2-shared-budget",
+  "child_rc": 0,
+  "watchdog_used": false,
+  "timeline": [
+   {
+    "phase": "terminal_shutdown_enter",
+    "t": 388.969578393,
+    "reason": "supervisor_crash:probe-injected pump failure"
+   },
+   {
+    "phase": "stop_win_sampler_enter",
+    "t": 391.183612406
+   },
+   {
+    "phase": "stop_win_sampler_exit",
+    "t": 401.183857979
+   },
+   {
+    "phase": "drain_enter",
+    "t": 401.183948539,
+    "timeout_requested": 15.0
+   },
+   {
+    "phase": "drain_exit",
+    "t": 401.204117701
+   },
+   {
+    "phase": "terminal_shutdown_exit",
+    "t": 401.205341398
+   }
+  ],
+  "analysis": {
+   "budget_s": 5.0,
+   "terminal_shutdown_spend_s": 12.236,
+   "remaining_at_stop_win_sampler_s": 2.786,
+   "stop_win_sampler_spend_s": 10.0,
+   "stop_win_sampler_requested_s": 10,
+   "remaining_at_drain_s": -7.214,
+   "drain_requested_s": 15.0,
+   "total_finalize_chain_spend_s": 12.235
+  },
+  "win_sampler_stop_timeout_event": true,
+  "defect_confirmed": true,
+  "notes": []
+ },
+ "probe_p3": {
+  "probe": "P3-final-window",
+  "child_rc": 0,
+  "watchdog_used": false,
+  "signal_sent_marker": true,
+  "handler_registered_before_cutoff_store": true,
+  "sup_external_stop_sig": "15",
+  "sup_sig_count": "1",
+  "sup_consumed": "False",
+  "cutoff_reached": "True",
+  "post_cutoff_signal_json_exists": "True",
+  "post_cutoff_receipt": {
+   "schema": "r17-post-cutoff-signal-v1",
+   "run_id": "run",
+   "utc": "2026-09-08T01:47:48Z",
+   "sig_count_total": 1,
+   "sig_count_at_cutoff": 0,
+   "first_sig": 15,
+   "note": "停止接受截止点 C 之后到达的信号;结果已固定,本回执不改写任何封口原件"
+  },
+  "summary_external_stop_sig": null,
+  "summary_external_stop_consumed": false,
+  "defect_confirmed": true,
+  "notes": []
+ }
+}

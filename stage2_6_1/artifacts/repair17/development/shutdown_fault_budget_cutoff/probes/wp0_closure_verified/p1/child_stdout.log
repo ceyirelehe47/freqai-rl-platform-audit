@@ -1,0 +1,11 @@
+R17LOG {"event":"supervisor_start","run_dir":"/home/cryptorl/r17u2_wpo/p1/run","policy":"bf7fc2972c2c47282bb5688d30e07e78a5c009da0aa39495effc3cc851336f44","utc":"2026-09-08T02:47:49Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":398,"pgid":398,"argv":["/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python","/home/cryptorl/r17u2_wpo/p1/biz_ignore_term.py","/home/cryptorl/r17u2_wpo/p1/biz_ready.marker"],"utc":"2026-09-08T02:47:49Z","run_id":"run"}
+PROBE_INJECT_CRASH
+R17EMERG {"event":"supervisor_crash","run_id":"run","error":"probe-injected pump failure"}
+R17ALERT {"action":"open","severity":"CRITICAL","kind":"supervisor_crash","detail":"probe-injected pump failure","utc":"2026-09-08T02:47:49Z","run_id":"run"}
+PROBE_INJECT_OBSERVE_FAIL
+R17EMERG {"event":"terminal_shutdown_step_failure","run_id":"run","step":"observe_exit","error":"probe: observe failure before escalation","note":"收尾步骤二次失败被隔离;不依赖该步的控制继续执行"}
+R17LOG {"event":"business_exited","rc":-9,"utc":"2026-09-08T02:48:19Z","run_id":"run"}
+R17ALERT {"action":"worker_event","severity":"WORKER","kind":"worker_exit","detail":"业务进程 rc=-9","metrics":{"rc":-9,"patterns":[]},"run_dir":"/home/cryptorl/r17u2_wpo/p1/run","utc":"2026-09-08T02:48:19Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/home/cryptorl/r17u2_wpo/p1/run","incidents":1,"business_rc":-9,"summary":"/home/cryptorl/r17u2_wpo/p1/run/summary.json","run_record":"/home/cryptorl/r17u2_wpo/p1/run/run_record.json","utc":"2026-09-08T02:48:19Z","run_id":"run"}
+PROBE_RUN_RC=3

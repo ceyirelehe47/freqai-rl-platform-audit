@@ -1,0 +1,11 @@
+R17LOG {"event":"supervisor_start","run_dir":"/home/cryptorl/r17u2_wpo/p2/run","policy":"f89a3af952a4a512f4b2581d51ccd18b3c9a80ecda0be812eb8932499ef2719a","utc":"2026-09-08T02:48:20Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":410,"pgid":410,"argv":["/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python","/home/cryptorl/r17u2_wpo/p2/biz_ignore_term.py","/home/cryptorl/r17u2_wpo/p2/biz_ready.marker"],"utc":"2026-09-08T02:48:20Z","run_id":"run"}
+PROBE_INJECT_CRASH
+R17EMERG {"event":"supervisor_crash","run_id":"run","error":"probe-injected pump failure"}
+R17ALERT {"action":"open","severity":"CRITICAL","kind":"supervisor_crash","detail":"probe-injected pump failure","utc":"2026-09-08T02:48:20Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":-9,"utc":"2026-09-08T02:48:22Z","run_id":"run"}
+R17ALERT {"action":"worker_event","severity":"WORKER","kind":"worker_exit","detail":"业务进程 rc=-9","metrics":{"rc":-9,"patterns":[]},"run_dir":"/home/cryptorl/r17u2_wpo/p2/run","utc":"2026-09-08T02:48:22Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/home/cryptorl/r17u2_wpo/p2/run","incidents":1,"business_rc":-9,"summary":"/home/cryptorl/r17u2_wpo/p2/run/summary.json","run_record":"/home/cryptorl/r17u2_wpo/p2/run/run_record.json","utc":"2026-09-08T02:48:25Z","run_id":"run"}
+PROBE_RUN_RC=3
+PROBE_TIMELINE=[{"phase": "terminal_shutdown_enter", "t": 1830.51448437, "reason": "supervisor_crash:probe-injected pump failure"}, {"phase": "stop_win_sampler_enter", "t": 1832.727720301}, {"phase": "stop_win_sampler_exit", "t": 1835.514961388}, {"phase": "drain_enter", "t": 1835.515043956, "timeout_requested": 0.0}, {"phase": "drain_exit", "t": 1835.515048573}, {"phase": "terminal_shutdown_exit", "t": 1835.516555422}]
+PROBE_BUDGET=5.0

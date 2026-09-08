@@ -1,0 +1,112 @@
+{
+ "started_utc": "2026-09-08T02:47:49Z",
+ "handover_sha": "56f4d0060a4f3960700b7b32c4b58e4d1cb96dfc",
+ "supervisor_snapshot": "/home/cryptorl/r17u2_wpo/snapshot/r17_supervision.py",
+ "probe_p1": {
+  "probe": "P1-second-failure",
+  "child_rc": 3,
+  "watchdog_used": false,
+  "biz_leader_pid": 398,
+  "business_group_alive_after_return": false,
+  "alive_members": [],
+  "sigterm_sent": true,
+  "sigkill_sent": true,
+  "crash_marker": true,
+  "observe_fail_marker": true,
+  "defect_confirmed": false,
+  "notes": []
+ },
+ "probe_p2": {
+  "probe": "P2-shared-budget",
+  "child_rc": 0,
+  "watchdog_used": false,
+  "timeline": [
+   {
+    "phase": "terminal_shutdown_enter",
+    "t": 1830.51448437,
+    "reason": "supervisor_crash:probe-injected pump failure"
+   },
+   {
+    "phase": "stop_win_sampler_enter",
+    "t": 1832.727720301
+   },
+   {
+    "phase": "stop_win_sampler_exit",
+    "t": 1835.514961388
+   },
+   {
+    "phase": "drain_enter",
+    "t": 1835.515043956,
+    "timeout_requested": 0.0
+   },
+   {
+    "phase": "drain_exit",
+    "t": 1835.515048573
+   },
+   {
+    "phase": "terminal_shutdown_exit",
+    "t": 1835.516555422
+   }
+  ],
+  "analysis": {
+   "budget_s": 5.0,
+   "terminal_shutdown_spend_s": 5.002,
+   "remaining_at_stop_win_sampler_s": 2.787,
+   "stop_win_sampler_spend_s": 2.787,
+   "stop_win_sampler_requested_s": 10,
+   "remaining_at_drain_s": -0.001,
+   "drain_requested_s": 0.0,
+   "total_finalize_chain_spend_s": 5.001
+  },
+  "win_sampler_stop_timeout_event": true,
+  "defect_confirmed": false,
+  "notes": []
+ },
+ "probe_p3": {
+  "pre": {
+   "probe": "P3-pre_cutoff_consumed",
+   "child_rc": 4,
+   "watchdog_used": false,
+   "signal_sent_marker": true,
+   "handler_registered_before_cutoff_store": true,
+   "sup_external_stop_sig": "15",
+   "sup_sig_count": "1",
+   "sup_consumed": "True",
+   "count_at_cutoff": "1",
+   "post_cutoff_signal_json_exists": "False",
+   "post_cutoff_receipt": {},
+   "summary_external_stop_sig": 15,
+   "summary_external_stop_consumed": true,
+   "closure_verdict": true,
+   "defect_confirmed": false,
+   "notes": []
+  },
+  "in": {
+   "probe": "P3-in_cutoff_receipt",
+   "child_rc": 0,
+   "watchdog_used": false,
+   "signal_sent_marker": true,
+   "handler_registered_before_cutoff_store": false,
+   "sup_external_stop_sig": "15",
+   "sup_sig_count": "1",
+   "sup_consumed": "False",
+   "count_at_cutoff": "0",
+   "post_cutoff_signal_json_exists": "True",
+   "post_cutoff_receipt": {
+    "schema": "r17-post-cutoff-signal-v1",
+    "run_id": "run",
+    "utc": "2026-09-08T02:48:27Z",
+    "sig_count_total": 1,
+    "sig_count_at_cutoff": 0,
+    "first_sig": 15,
+    "note": "停止接受截止点 C 之后到达的信号;结果已固定,本回执不改写任何封口原件"
+   },
+   "summary_external_stop_sig": null,
+   "summary_external_stop_consumed": false,
+   "closure_verdict": true,
+   "defect_confirmed": false,
+   "notes": []
+  }
+ },
+ "finished_utc": "2026-09-08T02:48:28Z"
+}

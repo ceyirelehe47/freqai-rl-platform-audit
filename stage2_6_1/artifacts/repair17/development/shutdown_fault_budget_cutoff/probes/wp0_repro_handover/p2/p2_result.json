@@ -1,0 +1,46 @@
+{
+ "probe": "P2-shared-budget",
+ "child_rc": 0,
+ "watchdog_used": false,
+ "timeline": [
+  {
+   "phase": "terminal_shutdown_enter",
+   "t": 388.969578393,
+   "reason": "supervisor_crash:probe-injected pump failure"
+  },
+  {
+   "phase": "stop_win_sampler_enter",
+   "t": 391.183612406
+  },
+  {
+   "phase": "stop_win_sampler_exit",
+   "t": 401.183857979
+  },
+  {
+   "phase": "drain_enter",
+   "t": 401.183948539,
+   "timeout_requested": 15.0
+  },
+  {
+   "phase": "drain_exit",
+   "t": 401.204117701
+  },
+  {
+   "phase": "terminal_shutdown_exit",
+   "t": 401.205341398
+  }
+ ],
+ "analysis": {
+  "budget_s": 5.0,
+  "terminal_shutdown_spend_s": 12.236,
+  "remaining_at_stop_win_sampler_s": 2.786,
+  "stop_win_sampler_spend_s": 10.0,
+  "stop_win_sampler_requested_s": 10,
+  "remaining_at_drain_s": -7.214,
+  "drain_requested_s": 15.0,
+  "total_finalize_chain_spend_s": 12.235
+ },
+ "win_sampler_stop_timeout_event": true,
+ "defect_confirmed": true,
+ "notes": []
+}

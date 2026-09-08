@@ -1,0 +1,187 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "e2e_100217_3197_92075",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b",
+ "argv": [
+  "bash",
+  "-c",
+  "sleep 90"
+ ],
+ "business": {
+  "rc": -15,
+  "signal": "SIG15",
+  "protector": {
+   "pgid": 3221,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "keyvol: 关键卷 F: 可用 3.0GiB < 5.0GiB"
+ ],
+ "incidents": [
+  {
+   "incident_id": "e2e_100217_319-keyvol-0",
+   "kind": "keyvol",
+   "detail": "关键卷 F: 可用 3.0GiB < 5.0GiB",
+   "severity": "CRITICAL",
+   "first_seen_mono": 0.1,
+   "last_seen_mono": 0.1,
+   "samples": 1,
+   "peak": {
+    "vol": "F:",
+    "present": true,
+    "free_gb": 3.0,
+    "serial": "CFA1",
+    "identity_match": true
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  },
+  {
+   "incident_id": "e2e_100217_319-worker_exit-0",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=-15",
+   "severity": "WORKER",
+   "first_seen_mono": 0.1,
+   "last_seen_mono": 0.1,
+   "samples": 1,
+   "peak": {
+    "rc": -15,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.0739949459999707,
+  "win_last_mono": 0.0739949459999707,
+  "win_parse_errors": null,
+  "win_invalid_samples": null,
+  "win_duplicate_seq": null,
+  "win_seq_regressions": null,
+  "win_stale_replayed": null,
+  "win_read_failures": null,
+  "win_read_failure_consecutive": null,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.0029316150000227026,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [
+   "C:"
+  ],
+  "checked_utc": "2026-09-08T02:02:17Z"
+ },
+ "io": {
+  "submitted": 21,
+  "accepted": 21,
+  "ok": 21,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 21,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 0.14448111299998345,
+  "establish_reason": "finalize",
+  "remaining_at_write": 119.919,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 2911,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "business_exited",
+   "note": "rc=-15"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T02:02:17Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": null,
+ "win_pids": {
+  "interop": null,
+  "windows": null
+ },
+ "written_utc": "2026-09-08T02:02:18Z"
+}
