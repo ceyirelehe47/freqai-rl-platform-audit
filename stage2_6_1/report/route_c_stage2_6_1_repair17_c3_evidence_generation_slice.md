@@ -4,7 +4,7 @@
 **性质：** R17 冻结前开发轮(pre-freeze / formal quarantined)。不是 R18;不创建
 最终 Implementation Freeze A / Results B;不运行真实 formal。
 **接手 SHA：** `3b3067cb6fd8800e58a1dd0e36f1a9a2012c36f0`(parent `9d4ffb4`)
-**交付 SHA：** 【待提交回填】
+**交付 SHA：** `9e1355c`（主提交；本行回填于第二提交，见 git log）
 **报告日期：** 2026-09-09
 
 ---
