@@ -11,7 +11,7 @@
 | 接手 SHA | `56f4d0060a4f3960700b7b32c4b58e4d1cb96dfc`(=origin HEAD,无新提交,工作树干净) |
 | 接手 supervisor blob | `383e573bd2918b3b2522ae9e07c4b0b536681dc2` |
 | vendor pin | `52bc96f4480b1a0da6a9b455bd00b17fbb6786a5` |
-| 交付 SHA | `<DELIVERY_SHA>`(见 §9) |
+| 交付 SHA | `c23b5f0b08fefe2ed322bf1d1b464a2ce2f4acde`(见 §9) |
 | 环境 | WSL `CryptoRL-Ubuntu-24.04`/`cryptorl`;conda `freqtrade-rl`,Python 3.11.16;执行树 `~/projects/crypto_rl` |
 | import 来源 | 接手验证:`stage2_6_1_runner/r17_supervision.py`(发布树快照与执行树逐字节一致) |
 | 历史基线(不作本轮结果) | 上轮 `final_20260907T163430`:1486 passed/7 skipped/1408.57s |
@@ -120,7 +120,7 @@ F01 保留真实合作窗口 30 秒、业务先证明 TERM 忽略已安装(READY
 ## 9. Git
 
 - 提交标记:`R17 development / shutdown-fault-budget-cutoff / pre-freeze / formal quarantined`
-- 接手 `56f4d006` → 交付 `<DELIVERY_SHA>`(完整新增父链见 git log;不 amend/squash/force-push)。
+- 接手 `56f4d006` → 交付 `c23b5f0b08fefe2ed322bf1d1b464a2ce2f4acde`(完整新增父链见 git log;不 amend/squash/force-push)。
 
 ## 10. 领域合同与正式状态保持
 
