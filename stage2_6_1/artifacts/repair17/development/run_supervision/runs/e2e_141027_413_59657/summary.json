@@ -1,0 +1,197 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "e2e_141027_413_59657",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b",
+ "argv": [
+  "python3",
+  "-c",
+  "import sys; sys.stderr.write('PairGenerationError: too_few_distractors\\n');sys.exit(7)"
+ ],
+ "business": {
+  "rc": 7,
+  "signal": null,
+  "protector": {
+   "pgid": 8369,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "e2e_141027_413-worker_exit-0",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=7;stderr 尾部含 ['PairGenerationError']",
+   "severity": "WORKER",
+   "first_seen_mono": 0.1,
+   "last_seen_mono": 0.1,
+   "samples": 1,
+   "peak": {
+    "rc": 7,
+    "patterns": [
+     "PairGenerationError"
+    ]
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.02254793899987817,
+  "win_last_mono": 0.02254793899987817,
+  "win_parse_errors": null,
+  "win_invalid_samples": null,
+  "win_duplicate_seq": null,
+  "win_seq_regressions": null,
+  "win_stale_replayed": null,
+  "win_read_failures": null,
+  "win_read_failure_consecutive": null,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.0033139160000246193,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T06:10:27Z"
+ },
+ "io": {
+  "submitted": 16,
+  "accepted": 16,
+  "ok": 16,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 16,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": false,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": null
+  },
+  "win": null,
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded"
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 0.09173482899996088,
+  "establish_reason": "finalize",
+  "remaining_at_write": 119.882,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 119.939,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 1888,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "business_exited",
+   "note": "rc=7"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:10:27Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": null,
+ "win_pids": {
+  "interop": null,
+  "windows": null
+ },
+ "written_utc": "2026-09-08T06:10:28Z"
+}

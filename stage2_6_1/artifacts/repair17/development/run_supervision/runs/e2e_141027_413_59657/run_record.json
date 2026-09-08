@@ -1,0 +1,88 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "e2e_141027_413_59657",
+ "task_kind": "fixture",
+ "argv": [
+  "python3",
+  "-c",
+  "import sys; sys.stderr.write('PairGenerationError: too_few_distractors\\n');sys.exit(7)"
+ ],
+ "started_utc": "2026-09-08T06:10:27Z",
+ "ended_utc": "2026-09-08T06:10:28Z",
+ "business": {
+  "rc": 7,
+  "signal": null,
+  "pgid": 8369
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b"
+ },
+ "required": [
+  {
+   "role": "alerts",
+   "path": "runs/e2e_141027_413_59657/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "095067bd9da4819a4cc8603f6ebafdd4cef17bd86f5ef80116101951c32d8025",
+   "bytes": 1888
+  },
+  {
+   "role": "business_stdout",
+   "path": "runs/e2e_141027_413_59657/business/stdout.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "business_stderr",
+   "path": "runs/e2e_141027_413_59657/business/stderr.log",
+   "status": "present",
+   "sha256": "a8e45da45e01a36a9f29bfed329d7793d892cdfb0b7824ffb016d131847089dc",
+   "bytes": 41
+  },
+  {
+   "role": "summary",
+   "path": "runs/e2e_141027_413_59657/summary.json",
+   "status": "present",
+   "sha256": "3cb9899ca8a14e9fcffe8ba9aa4b3f6f41ecd8ec297c02d21a3ffb089ba21aa5",
+   "bytes": 4340
+  }
+ ],
+ "evidence_complete": true,
+ "missing_roles": [],
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": false,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": null
+  },
+  "win": null,
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 16,
+  "accepted": 16,
+  "ok": 16,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 16,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}

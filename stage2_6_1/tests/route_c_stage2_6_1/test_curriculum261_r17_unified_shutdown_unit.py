@@ -491,12 +491,15 @@ class TestL02EventBarriers:
     @pytest.mark.parametrize("mode,mark", [
         ("l02a", "finalize_begin"),
         ("l02b", "drain"),
-        ("l02c", "pre_summary"),
     ])
     def test_l02_pre_cutoff_barriers_consume(self, tmp_path, mode, mark):
-        """L02:明确事件屏障(finalize 开始/drain/结果提交前)注入的
-        停止——C 前意图决定最终结果:raw rc=0 保留、outer rc=4、
-        消费一次;不靠 stdout 次数或长 sleep。"""
+        """L02:明确事件屏障(finalize 开始/drain)注入的停止——
+        C 前意图决定最终结果:raw rc=0 保留、outer rc=4、消费一次;
+        不靠 stdout 次数或长 sleep。
+
+        stop-publication 轮勘误:l02c(pre_summary)从本参数化移除——
+        发布时序移到停止决定 C 之后,该屏障点的信号已是真正的 C 后
+        事件(见 test_l02c_publish_is_post_cutoff_receipt)。"""
         rc, lines, run_dir = _run_child(
             tmp_path, mode, expect_marker=f"PROBE_FIRED_AT={mark}",
             max_wait=60)
@@ -505,6 +508,28 @@ class TestL02EventBarriers:
         summary = _load(run_dir / "summary.json")
         assert summary["external_stop_consumed"] is True
         assert summary["business"]["rc"] == 0, "业务原始事实不改写"
+
+    def test_l02c_publish_is_post_cutoff_receipt(self, tmp_path):
+        """L02c(stop-publication 轮迁移):summary 发布屏障已在停止
+        决定 C **之后**——屏障点注入的 TERM 是 C 后事件:不改已决定的
+        结果(业务成功保持成功)、独立回执承载;对照 l02a/l02b(C 前
+        屏障仍消费参与结果)。旧断言(该屏障消费→rc=4)随'发布先于
+        决定'的缺陷一并废除。"""
+        rc, lines, run_dir = _run_child(
+            tmp_path, "l02c",
+            expect_marker="PROBE_FIRED_AT=pre_summary", max_wait=60)
+        assert any("PROBE_RUN_RC=0" in ln for ln in lines), \
+            "发布时点已在 C 后:屏障信号不倒改已决定的结果"
+        summary = _load(run_dir / "summary.json")
+        assert summary["external_stop_consumed"] is False
+        assert summary["business"]["rc"] == 0
+        post = run_dir / "post_cutoff_signal.json"
+        assert post.is_file(), "C 后事件有独立回执"
+        rec = _load(post)
+        assert rec["sig_count_total"] >= 1
+        rr = _load(run_dir / "run_record.json")
+        assert rr["finalized"] is True
+        assert rr["evidence_complete"] is True
 
     def test_l02d_post_cutoff_receipt_only(self, tmp_path):
         """L02/L03:finalize 完全返回(C 已越过)之后的信号——不改已

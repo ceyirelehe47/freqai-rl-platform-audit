@@ -1,0 +1,108 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "run",
+ "task_kind": "fixture",
+ "argv": [
+  "bash",
+  "-c",
+  "echo cold_read_ok"
+ ],
+ "started_utc": "2026-09-08T06:21:48Z",
+ "ended_utc": "2026-09-08T06:21:51Z",
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "pgid": 424
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea"
+ },
+ "required": [
+  {
+   "role": "telemetry_guest",
+   "path": "src_pkg/run/telemetry/guest_samples.jsonl",
+   "status": "present",
+   "sha256": "ccedb306f36bc17aa5cb34d01630a0b40c73b81cb26a477d7d04f25fdeaa7cae",
+   "bytes": 1135
+  },
+  {
+   "role": "telemetry_win",
+   "path": "src_pkg/run/telemetry/win_samples.jsonl",
+   "status": "present",
+   "sha256": "6edd6c3d4e3fe533b727ee081c0fd36f5ad41818d66cf305743f1f86cef8be23",
+   "bytes": 1040
+  },
+  {
+   "role": "alerts",
+   "path": "src_pkg/run/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "2f9dc407f4643612201ed2f814c2283857eb78ef38212e78afe3d7288dc5fa7e",
+   "bytes": 2098
+  },
+  {
+   "role": "business_stdout",
+   "path": "src_pkg/run/business/stdout.log",
+   "status": "present",
+   "sha256": "48cbea1d0d95e47799f2a192133dad1f2e9de7afdbebfba67bd5d44c616ca75a",
+   "bytes": 13
+  },
+  {
+   "role": "business_stderr",
+   "path": "src_pkg/run/business/stderr.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "summary",
+   "path": "src_pkg/run/summary.json",
+   "status": "present",
+   "sha256": "1181760087947f5e3b7aff9e12d8bd50065f6457e95b17350e5662b0df9b89ea",
+   "bytes": 4173
+  }
+ ],
+ "evidence_complete": true,
+ "missing_roles": [],
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 124278032824000
+  },
+  "win": {
+   "stop_requested": true,
+   "interop_pid": 418,
+   "waited": true,
+   "exited": true,
+   "unconfirmed": false
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 18,
+  "accepted": 18,
+  "ok": 18,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 18,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}

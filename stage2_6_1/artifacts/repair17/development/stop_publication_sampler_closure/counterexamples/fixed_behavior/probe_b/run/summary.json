@@ -1,0 +1,195 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "b2a5bcf1756649ce218755ea8a0aa97d0db084965189b6384d1c1196d2410dad",
+ "argv": [
+  "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+  "/home/cryptorl/r17sp_work/runs/b2/biz_coop.py"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 386,
+   "requested": true,
+   "term_sent": true,
+   "kill_sent": false,
+   "terminal_confirmed": true,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [
+  "supervisor_external_stop: supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)"
+ ],
+ "incidents": [
+  {
+   "incident_id": "run-supervisor_external_stop-0",
+   "kind": "supervisor_external_stop",
+   "detail": "supervisor 收到信号 15:停止本 run 已登记任务(正常控制路径派发)",
+   "severity": "PROTECTION_UNAVAILABLE",
+   "first_seen_mono": 0.3,
+   "last_seen_mono": 0.3,
+   "samples": 1,
+   "peak": {
+    "sig": 15
+   },
+   "recovered": false,
+   "stopped_requested": true,
+   "delivered_count": 1
+  }
+ ],
+ "peaks": {
+  "win_free_phys_min_gib": 39.0,
+  "win_commit_max_pct": 45.78,
+  "guest_memavail_min_gib": 37.19329833984375,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 1.0306513559999928,
+  "win_last_mono": 1.0306513559999928,
+  "win_parse_errors": null,
+  "win_invalid_samples": null,
+  "win_duplicate_seq": null,
+  "win_seq_regressions": null,
+  "win_stale_replayed": null,
+  "win_read_failures": null,
+  "win_read_failure_consecutive": null,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 0.0020861649999943666,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T05:17:00Z"
+ },
+ "io": {
+  "submitted": 20,
+  "accepted": 20,
+  "ok": 20,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 20,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": false,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": null
+  },
+  "win": null,
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded"
+ },
+ "external_stop_sig": 15,
+ "external_stop_consumed": true,
+ "external_stop_sig_count": 1,
+ "finalize_budget": {
+  "window_s": 5.0,
+  "established_at_mono": 0.2568900339999942,
+  "establish_reason": "stop_accept:supervisor_external_stop",
+  "remaining_at_write": 2.964,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 5.0,
+    "remaining": 5.0,
+    "reason": "stop_accept:supervisor_external_stop"
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 2.985,
+    "allowed": 2.985
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 2.965,
+    "allowed": 2.965
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 2733,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:00Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:00Z",
+   "stage": "observation_ready",
+   "note": "ready_after=0.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:00Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:00Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:02Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:17:02Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": null,
+ "win_pids": {
+  "interop": null,
+  "windows": null
+ },
+ "written_utc": "2026-09-08T05:17:02Z"
+}

@@ -103,6 +103,17 @@ def policy_digest(policy: dict[str, Any] | None = None) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(1 << 20)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
 # ---------------------------------------------------------------- 事件
 class Incident:
     """同 run 同原因的一段持续异常(去重/升级/恢复;§7.2)。"""
@@ -1009,6 +1020,9 @@ class BoundedIOWriter:
     in_flight/queued 保留为诊断维度,不参与 drain 判定。
     """
 
+    # close() 的哨兵对象(不算已接受动作,不进 accepted 计数)
+    _CLOSE_SENTINEL = object()
+
     def __init__(self, maxsize: int = 1024):
         import queue as _queue
         self._q: "queue.Queue" = _queue.Queue(maxsize=maxsize)
@@ -1016,16 +1030,43 @@ class BoundedIOWriter:
         self._stats = {"submitted": 0, "accepted": 0, "ok": 0,
                        "failed": 0, "in_flight": 0, "executed": 0,
                        "dropped": 0, "dropped_critical": 0,
-                       "rejected_after_seal": 0, "io_stuck": False}
+                       "rejected_after_seal": 0, "io_stuck": False,
+                       "closed": False, "thread_joined": False}
         self._failures: list[dict[str, Any]] = []  # 有界失败摘要
         self._sealed = False
-        self._thread = threading.Thread(
-            target=self._loop, name="r17-io-writer", daemon=True)
-        self._thread.start()
+        # WP1(stop-cutoff/SFB-01):受控线程从第一条指令起屏蔽 TERM/INT
+        # ——pthread_sigmask 只作用于调用线程,新线程继承创建线程掩码;
+        # 先在创建线程(主线程)屏蔽、再 spawn、再恢复,写线程终身屏蔽。
+        # 信号只应经主线程 handler 登记路径处理;未屏蔽受控线程会让
+        # 信号绕过截止点临界区的挂起边界(S1/signal(7):进程级信号投递
+        # 给任一未屏蔽线程,CPython C handler 在接收线程 tripped 后,
+        # Python handler 在主线程下一字节码边界执行——与主线程掩码无关)。
+        # 掩码能力不可用(非 POSIX 线程形态)时记录事实,截止点前提检查
+        # (Supervisor._cutoff_thread_premise)会如实消费该状态。
+        self.thread_shielded = False
+        old_mask = None
+        try:
+            old_mask = signal.pthread_sigmask(
+                signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGINT})
+            self.thread_shielded = True
+        except (ValueError, OSError, AttributeError):
+            old_mask = None
+        try:
+            self._thread = threading.Thread(
+                target=self._loop, name="r17-io-writer", daemon=True)
+            self._thread.start()
+        finally:
+            if old_mask is not None:
+                try:
+                    signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
+                except (ValueError, OSError):
+                    pass
 
     def _loop(self) -> None:
         while True:
             act = self._q.get()
+            if act is self._CLOSE_SENTINEL:
+                return  # 正常有界退出路径(哨兵;不算写动作)
             ok = False
             err: str | None = None
             with self._lock:
@@ -1106,6 +1147,41 @@ class BoundedIOWriter:
         §5.2/§5.3——成功发布后不得再有迟写)。"""
         with self._lock:
             self._sealed = True
+
+    def close(self, timeout: float) -> bool:
+        """WP2-B/SFB-01:写线程可验证结束路径。
+
+        前置:已 seal(封口后才有资格结束;未 seal 时先补 seal,防直调
+        遗漏)。哨兵经同一把锁入队(绕过 submit 的 sealed 拒绝——哨兵
+        不是写动作,不计 accepted/pending);写线程处理完队列中既有
+        动作后消费哨兵退出。join(timeout) 后用 is_alive() 判真实退出
+        (join 超时返回值恒为 None,不是结束证据;S3)。返回 joined。
+        超时未退出:保留线程事实(stats.thread_joined=False),调用方
+        的完整性判定消费该状态,不得把"已放弃等待"当"写者已关闭"。
+        """
+        with self._lock:
+            self._sealed = True
+            if not self._stats["closed"]:
+                # put(block=False) 而非 put_nowait:哨兵不是写动作,
+                # 不应经过外部对 put_nowait 的动作观测挂钩(挂钩假设
+                # 载荷是动作 dict);与 queue.Full 语义一致,持锁安全。
+                # 队列满时哨兵入队失败:closed 保持 False(关闭请求
+                # 未送达),线程不会退出——join 如实未确认(验收观察②:
+                # fail-closed 且不中断收尾,完整性判定消费 alive_after)。
+                try:
+                    self._q.put(self._CLOSE_SENTINEL, block=False)
+                    self._stats["closed"] = True
+                except Exception:  # noqa: BLE001 —— queue.Full
+                    pass
+        if not self._thread.is_alive():
+            with self._lock:
+                self._stats["thread_joined"] = True
+            return True
+        self._thread.join(timeout=max(0.0, timeout))
+        joined = not self._thread.is_alive()
+        with self._lock:
+            self._stats["thread_joined"] = joined
+        return joined
 
     def is_sealed(self) -> bool:
         with self._lock:
@@ -1212,6 +1288,23 @@ class Supervisor:
         self._external_stop_sig_count = 0
         self._external_stop_count_at_cutoff: int | None = None
         self._stop_cutoff_reached = False
+        # WP2-B(sampler-quiescence):必要原始流写者的关闭确认状态——
+        # "动作已发送/等待已返回/写入者已退出"是三个事实,只有最后一项
+        # 能支撑流的最终不可变身份(§6.1 表)。未确认(None 字段/False)
+        # 时该流不得进入完整证据判定;句柄与身份保留,不用置 None 掩盖
+        # 存活(SFB-03)。
+        self._guest_close_state: dict[str, Any] | None = None
+        self._win_close_state: dict[str, Any] | None = None
+        self._io_close_state: dict[str, Any] | None = None
+        # WP1(stop-cutoff):临界区线程前提核验结果(所有存活线程屏蔽
+        # TERM/INT 才有"屏蔽中到达=必然解除后执行"的挂起边界;S1)。
+        self._cutoff_premise_ok: bool | None = None
+        self._cutoff_premise_detail: str | None = None
+        # WP1(publication):对外完成件的发布状态(C 决定之后才发布;
+        # 发布失败=run 非成功,不允许沿用旧完成件或候选冒充)。
+        self._summary_publish_failed = False
+        self._run_record_publish_failed = False
+        self._rr_candidate_entries: list[dict[str, Any]] | None = None
         # WP1-B(shared-budget):整个 run 一份收尾预算——首次进入终止性
         # 处理(异常路径)或正常收尾(finalize/早拒绝)时建立绝对单调
         # deadline,此后停止/升级/核验/辅助停止/drain/发布所有受控等待
@@ -1461,6 +1554,13 @@ class Supervisor:
                 inc.stopped_requested = True
                 reason = f"{kind}: {tg['detail']}"
                 self.stop_requested_reasons.append(reason)
+                # WP2-A(SFB-02):第一次接受终止决定、准备请求停止时就
+                # 建立本 run 唯一总 deadline——先于诊断与 Protector.
+                # request_stop(§5.1:建立点必须早于第一次实际停止请求;
+                # 随后业务合作退出/sampler 关闭/drain/发布全部只消费
+                # 剩余时间,转异常与重复停止不续期)。WARNING 不进入
+                # 本分支,不建立终止预算。
+                self._ensure_finalize_budget(f"stop_accept:{kind}")
                 if self.protector and self.biz_proc and \
                         self.biz_proc.poll() is None:
                     self.protector.request_stop(reason)
@@ -1593,18 +1693,30 @@ class Supervisor:
         except ProcessLookupError:
             pass
         wait_allow = self._bounded_wait(10.0, "win_sampler_join")
+        # WP2-B(SFB-03):所等候句柄=启动本 run 采样器的 interop 进程,
+        # ps1 由该进程 -File 直跑并以 AppendAllText 写 OutFile(无子
+        # 写进程)——wait 返回即实际写者退出。timeout 不能生成"已停止"
+        # 事实:超时/退出核验不可用时记录"已请求、未确认",必要遥测
+        # 流的可变性保留(完整性判定消费 _win_close_state,不写 stopped)。
+        self._win_close_state = {
+            "stop_requested": True, "interop_pid": pid,
+            "waited": False, "exited": False, "unconfirmed": True}
         try:
             self.win_proc.wait(timeout=wait_allow)
+            self._win_close_state.update(
+                {"waited": True, "exited": True, "unconfirmed": False})
+            self.log({"event": "win_sampler_stopped",
+                      "interop_pid": pid,
+                      "windows_pid": self.win_pid_windows})
         except subprocess.TimeoutExpired:
-            self.log({"event": "win_sampler_stop_timeout",
+            self._win_close_state.update({"waited": True})
+            self.log({"event": "win_sampler_stop_unconfirmed",
                       "interop_pid": pid,
                       "budget_remaining_s":
                           round(self._finalize_remaining(), 3),
                       "note": "停止已请求、完成未确认(受控等待只"
-                              "消费剩余预算;不无限等)"})
-        self.log({"event": "win_sampler_stopped",
-                  "interop_pid": pid,
-                  "windows_pid": self.win_pid_windows})
+                              "消费剩余预算;不无限等;不得记录为已停"
+                              "止;telemetry_win 流不进入完整证据判定)"})
 
     # ---------------- 业务任务 ----------------
     def spawn_business(self) -> int:
@@ -1744,7 +1856,9 @@ class Supervisor:
             self._emergency_sync(obj)
 
     # ---------------- 摘要与 run_record ----------------
-    def write_summary(self) -> dict[str, Any]:
+    def _build_summary(self) -> dict[str, Any]:
+        """summary 纯构建(无 I/O;WP1:候选在停止决定 C 之前于内存/
+        私有面准备,发布在 C 之后,由 write_summary 承担)。"""
         summary = {
             "schema": "r17-supervision-summary-v1",
             "run_id": self.run_id, "policy_id": self.policy["policy_id"],
@@ -1800,6 +1914,27 @@ class Supervisor:
             "io": self.iow.stats() if self.iow else None,
             "residual_unconfirmed": self.residual_unconfirmed,
             "startup_rejected": self._startup_reject,
+            # WP2-B(sampler-quiescence):必要流写者的关闭确认事实
+            # (§6.1 表:请求/等待/真实退出三状态分列;未确认≠已停止)。
+            "writers": {
+                "guest": dict(self._guest_close_state)
+                if self._guest_close_state else None,
+                "win": dict(self._win_close_state)
+                if self._win_close_state else None,
+                "io": dict(self._io_close_state)
+                if self._io_close_state else None,
+                "business_live": self.residual_unconfirmed or (
+                    self.protector is not None and
+                    self.protector.requested_at is not None and
+                    self.protector.terminal_at is None),
+            },
+            # WP1(publication):发布状态(C 后单次发布;失败=非成功)
+            "publication": {
+                "summary_failed": self._summary_publish_failed,
+                "run_record_failed": self._run_record_publish_failed,
+                "cutoff_premise_ok": self._cutoff_premise_ok,
+                "cutoff_premise_detail": self._cutoff_premise_detail,
+            },
             # WP2(RCF-02):外部停止意图事实(handler 只登记;null=从未)
             "external_stop_sig": self._external_stop_sig,
             "external_stop_consumed": self._external_stop_consumed,
@@ -1830,11 +1965,23 @@ class Supervisor:
                          "windows": self.win_pid_windows},
             "written_utc": utc_now_iso(),
         }
+        return summary
+
+    def write_summary(self) -> dict[str, Any]:
+        """发布 summary.json(停止决定 C 之后才调用;C 前候选为私有)。
+
+        WP1(P02/SFB-01):发布失败必须实际影响结果——OSError 落
+        _summary_publish_failed(完整性判定与 control_outcome 消费,
+        run 整体非成功),不吞掉失败后沿用旧文件/旧成功记录;候选
+        dict 照常返回供诊断(emergency 载荷)。
+        """
+        summary = self._build_summary()
         try:
             (self.run_dir / "summary.json").write_text(
                 json.dumps(summary, ensure_ascii=False, indent=1),
                 encoding="utf-8")
         except OSError:
+            self._summary_publish_failed = True
             self.emergency_write({"event": "summary_write_failed",
                                   "run_id": self.run_id,
                                   "summary": summary})
@@ -1842,10 +1989,22 @@ class Supervisor:
 
     def _evidence_ok(self, missing: list[str]) -> bool:
         """§5.4:文件存在≠证据完整。完整=必需角色全 present + 写入
-        封口干净(drain 未确认=0、无失败写动作、无关键丢弃)。"""
+        封口干净(drain 未确认=0、无失败写动作、无关键丢弃)+ 必要
+        原始流的所有可能写入者均已确认不能再修改它(§6.4:业务进程
+        组、guest/Windows 采样器、I/O 写线程三组关闭事实同一判定面;
+        采样写者存活/未知时不得为流声明最终不可变身份,SFB-03)。"""
         if missing:
             return False
         if self._io_drain_unconfirmed:
+            return False
+        if self._guest_close_state is not None and \
+                self._guest_close_state.get("alive_after_join"):
+            return False
+        if self._win_close_state is not None and \
+                self._win_close_state.get("unconfirmed"):
+            return False
+        if self._io_close_state is not None and \
+                self._io_close_state.get("alive_after"):
             return False
         st = self.iow.stats() if self.iow else {}
         if st.get("failed") or st.get("io_stuck") or \
@@ -1860,35 +2019,59 @@ class Supervisor:
             return False
         return True
 
-    def finalize_run_record(self) -> Path:
-        """run_record.json(schema v2;build 必需集合来源;原子写)。
+    def _writer_live_for_role(self, role: str) -> bool:
+        """WP2-B(§6.4):该必要角色原始流是否仍有未确认关闭的写入者。
+        分角色写者映射:业务 leader+登记后代→business_*;guest 采样
+        线程(emit 同步写 telemetry_guest)→telemetry_guest;win 采样
+        进程(AppendAllText 直写 telemetry_win)→telemetry_win;I/O
+        写线程→alerts。"""
+        if role in ("business_stdout", "business_stderr"):
+            return self.residual_unconfirmed or (
+                self.protector is not None and
+                self.protector.requested_at is not None and
+                self.protector.terminal_at is None)
+        if role == "telemetry_guest":
+            return bool(self._guest_close_state is not None and
+                        self._guest_close_state.get("alive_after_join"))
+        if role == "telemetry_win":
+            return bool(self._win_close_state is not None and
+                        self._win_close_state.get("unconfirmed"))
+        if role == "alerts":
+            return bool(self._io_close_state is not None and
+                        self._io_close_state.get("alive_after"))
+        return False
 
-        S5 修复(WP4):必需集合来自**运行前登记**(_declare_expected),
-        不随现存文件缩小——缺件保留为 status="missing";真实空文件
-        是 present+bytes=0;finalized=记录已封口,evidence_complete
-        另行判定,缺件交付=不完整(verify 据此 FAIL)。
+    def _any_live_writer(self) -> bool:
+        """任一必要角色存在未确认写者(evidence_complete 的同源输入)。"""
+        return any(self._writer_live_for_role(item["role"])
+                   for item in self.expected)
+
+    def _prepare_run_record_entries(self) -> tuple[list[dict[str, Any]],
+                                                   list[str]]:
+        """WP1(publication):run_record 必需角色条目的候选计算(C 前)。
+
+        大文件哈希按 1MiB 分段、在写者关闭确认之后计算并缓存为私有
+        候选(§4.3:C 前可在私有面准备摘要与原始文件哈希;候选不是
+        完成件);summary 角色发布时序在 C 之后,其条目由
+        finalize_run_record 发布时现算(不进候选)。live_writers=True
+        的流:哈希只是当时截取的诊断快照,不构成最终不可变身份。
         """
-        required = []
         root = self.run_dir.parent.parent  # run_supervision 根
+        entries: list[dict[str, Any]] = []
         missing: list[str] = []
-        # §7.2:业务流最终哈希必须在写入者退出后计算;停止完成未证实
-        # (残留组仍可能写 stdout/stderr)时如实标 live_writers,不能
-        # hash 一次便宜布原始流固定。
-        writers_live = self.residual_unconfirmed or (
-            self.protector is not None and
-            self.protector.requested_at is not None and
-            self.protector.terminal_at is None)
         for item in self.expected:
+            role = item["role"]
+            if role == "summary":
+                continue  # 发布时序在 run_record 之后,现算
             p = Path(item["path"])
-            entry = {"role": item["role"],
+            entry = {"role": role,
                      "path": str(p.relative_to(root)).replace("\\", "/")
                      if p.is_relative_to(root) else str(p)}
-            if item["role"] in ("business_stdout", "business_stderr") \
-                    and writers_live:
+            if self._writer_live_for_role(role):
                 entry["live_writers"] = True
             if not p.is_file():
                 entry["status"] = "missing"
-                missing.append(item["role"])
+                missing.append(role)
             else:
                 h = hashlib.sha256()
                 n = 0
@@ -1904,8 +2087,87 @@ class Supervisor:
                                   "sha256": h.hexdigest(), "bytes": n})
                 except OSError:
                     entry["status"] = "unreadable"
+                    missing.append(role)
+            entries.append(entry)
+        return entries, missing
+
+    def finalize_run_record(self) -> Path:
+        """run_record.json(schema v2;build 必需集合来源;原子写)。
+
+        S5 修复(WP4):必需集合来自**运行前登记**(_declare_expected),
+        不随现存文件缩小——缺件保留为 status="missing";真实空文件
+        是 present+bytes=0;finalized=记录已封口,evidence_complete
+        另行判定,缺件交付=不完整(verify 据此 FAIL)。
+
+        WP1(publication):本方法只在停止决定 C **之后**发布(私有候选
+        条目→决定→同一决定发布;C 前不存在 finalized=true 的对外完成
+        件)。summary 角色条目在发布时现算(它由紧前的 summary 发布
+        产生);其余角色消费 C 前候选哈希(写者已确认关闭的流在候选
+        之后不再变化;未确认流标 live_writers,哈希仅为诊断快照)。
+        """
+        root = self.run_dir.parent.parent  # run_supervision 根
+        if self._rr_candidate_entries is not None:
+            required = [dict(e) for e in self._rr_candidate_entries]
+            missing = [e["role"] for e in required
+                       if e.get("status") in ("missing", "unreadable")]
+        else:
+            # 防御直调面(未走 finalize 顺序):现算非 summary 角色
+            # (summary 条目统一由下方现算段生成——验收观察①:防御
+            # 分支若不跳过会与现算段重复登记该角色)
+            required = []
+            missing = []
+            for item in self.expected:
+                if item["role"] == "summary":
+                    continue
+                p = Path(item["path"])
+                entry = {"role": item["role"],
+                         "path": str(p.relative_to(root))
+                         .replace("\\", "/")
+                         if p.is_relative_to(root) else str(p)}
+                if self._writer_live_for_role(item["role"]):
+                    entry["live_writers"] = True
+                if not p.is_file():
+                    entry["status"] = "missing"
                     missing.append(item["role"])
+                else:
+                    entry.update({"status": "present",
+                                  "sha256": _file_sha256(p),
+                                  "bytes": p.stat().st_size})
+                required.append(entry)
+        # summary 条目:发布时序在 run_record 之前,现算(哈希真实)
+        for item in self.expected:
+            if item["role"] != "summary":
+                continue
+            p = Path(item["path"])
+            entry = {"role": "summary",
+                     "path": str(p.relative_to(root)).replace("\\", "/")
+                     if p.is_relative_to(root) else str(p)}
+            if self._writer_live_for_role("summary"):
+                entry["live_writers"] = True
+            if not p.is_file():
+                entry["status"] = "missing"
+                missing.append("summary")
+            else:
+                try:
+                    entry.update({"status": "present",
+                                  "sha256": _file_sha256(p),
+                                  "bytes": p.stat().st_size})
+                except OSError:
+                    entry["status"] = "unreadable"
+                    missing.append("summary")
             required.append(entry)
+        writers_block = {
+            "guest": dict(self._guest_close_state)
+            if self._guest_close_state else None,
+            "win": dict(self._win_close_state)
+            if self._win_close_state else None,
+            "io": dict(self._io_close_state)
+            if self._io_close_state else None,
+            "business_live": self.residual_unconfirmed or (
+                self.protector is not None and
+                self.protector.requested_at is not None and
+                self.protector.terminal_at is None),
+        }
         rec = {
             "schema": "r17-run-record-v2",
             "run_id": self.run_id,
@@ -1920,16 +2182,32 @@ class Supervisor:
                        "sha256": policy_digest(self.policy)},
             "required": required,
             "evidence_complete": self._evidence_ok(missing) and
-            not writers_live,
+            not self._any_live_writer(),
             "missing_roles": missing,
+            "writers": writers_block,
             "io": self.iow.stats() if self.iow else None,
             "finalized": True,
         }
         self._evidence_complete = rec["evidence_complete"]
         tmp = self.run_dir / ".run_record.tmp"
-        tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1),
-                       encoding="utf-8")
-        tmp.replace(self.run_dir / "run_record.json")
+        try:
+            tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1),
+                           encoding="utf-8")
+            tmp.replace(self.run_dir / "run_record.json")
+        except OSError as exc:
+            # WP1(P02):发布失败实际影响结果——不沿用旧完成件、不伪造
+            # finalized;失败事实落 emergency,run 整体非成功(无合法
+            # 完成记录;正常流程经 raise→run 统一收尾→外层 3,直调/
+            # summary 失败面经 control_outcome 发布失败/证据不完整路径
+            # 返回 6——两个出口都是非成功,验收观察③注)。
+            self._run_record_publish_failed = True
+            self._evidence_complete = False
+            self.emergency_write({
+                "event": "run_record_publish_failed",
+                "run_id": self.run_id,
+                "error": f"{type(exc).__name__}:{exc}"[:200],
+                "note": "完成记录发布失败:本 run 无合法完成件"})
+            raise
         return self.run_dir / "run_record.json"
 
     def _observe_business_exit(self) -> None:
@@ -2015,6 +2293,10 @@ class Supervisor:
         sig = self._external_stop_sig
         if sig is None:
             return
+        # WP2-A(SFB-02):早窗口也是"第一次接受终止决定"——先建立
+        # 总预算再消费,随后的 samplers-only 清理与 finalize 只消费
+        # 剩余时间(§5.1:覆盖早拒绝后的辅助清理入口)。
+        self._ensure_finalize_budget("stop_accept:supervisor_external_stop")
         self._external_stop_consumed = True
         self.log({"event": "supervisor_signal", "sig": sig, "note": note})
 
@@ -2263,6 +2545,48 @@ class Supervisor:
             except Exception:
                 pass
 
+    def _cutoff_thread_premise(self) -> tuple[bool, str]:
+        """WP1(SFB-01):截止点临界区的线程前提核验。
+
+        "主线程屏蔽期间信号必然挂起、解除后 handler 才执行"只在一个
+        条件下成立:进程内**所有**存活线程都屏蔽了 TERM/INT(S1:
+        pthread_sigmask 每线程独立;任一未屏蔽线程收到进程级信号即
+        tripped,Python handler 将在主线程下一字节码边界执行——与主
+        线程掩码无关)。受控线程(r17-io-writer/r17-guest-sampler)在
+        创建时经掩码继承终身屏蔽;本方法在临界区内(主线程已 block)
+        读 /proc/self/task/*/status 逐线程核验 SigBlk,发现未屏蔽
+        线程即前提失败(§4.2:能力/前提不可用不成功降级——保守语义
+        由 finalize 的临界区后分支处理)。读 /proc 失败同样视为前提
+        未证实(失败关闭,不误报前提成立)。
+        """
+        sig_bit = (1 << (signal.SIGTERM - 1)) | \
+                  (1 << (signal.SIGINT - 1))
+        try:
+            task_dir = Path("/proc/self/task")
+            tids = [p.name for p in task_dir.iterdir()]
+        except OSError as exc:
+            return False, f"proc_task_unreadable:{type(exc).__name__}"
+        unshielded = []
+        for tid in tids:
+            try:
+                text = (task_dir / tid / "status").read_text()
+            except OSError:
+                # 线程恰好退出:不再是信号投递候选,不算前提破坏
+                continue
+            for ln in text.splitlines():
+                if ln.startswith("SigBlk:"):
+                    try:
+                        blk = int(ln.split(":", 1)[1].strip(), 16)
+                    except ValueError:
+                        return False, f"sigblk_parse_failed:{tid}"
+                    if not (blk & sig_bit) == sig_bit:
+                        unshielded.append(tid)
+                    break
+        if unshielded:
+            return False, "unshielded_threads:" + ",".join(
+                sorted(unshielded)[:8])
+        return True, "all_threads_shielded"
+
     def _record_post_cutoff_signal(self) -> None:
         """C 之后到达的信号=截止后事件(§5.3):只追加到独立后置
         回执,不修改已被哈希固定的 summary/run_record。
@@ -2318,6 +2642,16 @@ class Supervisor:
         self._finalize_budget_reason = None
         self._finalize_budget_notes = []
         self._shutdown_step_failures = {}
+        # WP2-B/WP1:写者关闭状态/截止点前提/发布状态同一重置面
+        # (每个 run 一份;直调面由 __init__ 初始化兜底)。
+        self._guest_close_state = None
+        self._win_close_state = None
+        self._io_close_state = None
+        self._cutoff_premise_ok = None
+        self._cutoff_premise_detail = None
+        self._summary_publish_failed = False
+        self._run_record_publish_failed = False
+        self._rr_candidate_entries = None
         token = self._install_signal_handlers()
         try:
             try:
@@ -2328,6 +2662,33 @@ class Supervisor:
         finally:
             self._record_post_cutoff_signal()
             self._restore_signal_handlers(token)
+
+    def _start_guest_sampler_shielded(self) -> None:
+        """WP1(SFB-01):guest 采样线程从第一条指令起屏蔽 TERM/INT。
+
+        新线程继承创建线程掩码:主线程先 block、再 start、再恢复——
+        采样线程终身屏蔽,信号只经主线程 handler 登记路径处理(与
+        BoundedIOWriter 同一机制;掩码能力不可用时记录事实,截止点
+        前提核验如实消费)。"""
+        if self.guest_sampler is None:
+            return
+        old_mask = None
+        try:
+            old_mask = signal.pthread_sigmask(
+                signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGINT})
+        except (ValueError, OSError, AttributeError):
+            self.log({"event": "guest_sampler_shield_unavailable",
+                      "note": "pthread_sigmask 不可用:采样线程未屏蔽;"
+                              "截止点前提核验将如实报告"})
+            old_mask = None
+        try:
+            self.guest_sampler.start()
+        finally:
+            if old_mask is not None:
+                try:
+                    signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
+                except (ValueError, OSError):
+                    pass
 
     def _run_body(self) -> int:
         self.stdout_line("R17LOG", {"event": "supervisor_start",
@@ -2365,7 +2726,7 @@ class Supervisor:
         # 样本回放模式(测试输入源):不启动线程,由文件喂样本
         replay_records = self._load_replay() if replay else []
         if not replay:
-            self.guest_sampler.start()
+            self._start_guest_sampler_shielded()
         self.mark_stage("observation_starting")
         # ---- S2/B1:就绪屏障(有效首样本;非固定 sleep;有界等待) ----
         ready, not_ready_detail = self._wait_observation_ready(
@@ -2625,6 +2986,9 @@ class Supervisor:
         # 风险是更强的"禁止下一重任务"信号(§7.2)
         if self.residual_unconfirmed:
             return 5
+        if self._summary_publish_failed or \
+                self._run_record_publish_failed:
+            return 6  # WP1(P02):结果发布失败=无合法完成件,非成功
         if self.stop_requested_reasons and self.protector is not None \
                 and self.protector.requested_at is not None:
             return 4  # 保护性中止(含 residual 受控清理且已证实)
@@ -3002,13 +3366,37 @@ class Supervisor:
         if self._external_stop_sig is not None and \
                 not self._external_stop_consumed:
             self._consume_external_stop()
-        # 有限收尾窗:等 guest 采样线程最后一轮(只消费剩余预算)
-        if self.guest_sampler:
-            self.guest_sampler.stop()
-            if self.guest_sampler.is_alive():  # replay 模式未启动线程
-                self.guest_sampler.join(
-                    timeout=self._bounded_wait(15.0, "guest_join"))
-            self.guest_sampler = None
+        # 有限收尾窗:等 guest 采样线程最后一轮(只消费剩余预算)。
+        # WP2-B(SFB-03):join 超时返回值恒为 None,不是结束证据——
+        # join 后用 is_alive() 判真实退出;未确认退出时**保留句柄与
+        # 身份**(不置 None 掩盖存活),关闭状态进 _guest_close_state
+        # 供完整性判定消费(必要遥测流不进入完整证据);replay 模式
+        # 线程未启动(ident is None)不 join,单独记录。
+        if self.guest_sampler is not None:
+            gs = self.guest_sampler
+            gs.stop()
+            started = gs.ident is not None
+            if gs.is_alive():
+                gs.join(timeout=self._bounded_wait(15.0, "guest_join"))
+            alive_after = bool(gs.is_alive())
+            self._guest_close_state = {
+                "stop_requested": True, "started": started,
+                "joined": not alive_after,
+                "alive_after_join": alive_after,
+                "thread_ident": gs.ident,
+            }
+            if alive_after:
+                # 在途 emit 写动作不受 stop 标志取消;句柄保留,
+                # 不强杀线程、不改 daemon 冒充关闭(S3)
+                self.log({"event": "guest_sampler_stop_unconfirmed",
+                          "thread_ident": gs.ident,
+                          "budget_remaining_s":
+                              round(self._finalize_remaining(), 3),
+                          "note": "停止已请求、join 超时未确认退出;"
+                                  "telemetry_guest 流不进入完整证据判定;"
+                                  "句柄保留,不置 None"})
+            else:
+                self.guest_sampler = None
         self.stop_win_sampler()
         # 顺序合同:全部 alerts 写入(含 supervisor_end)必须先于
         # run_record 的哈希计算——否则清单记录与文件矛盾(build 拒绝)。
@@ -3050,61 +3438,120 @@ class Supervisor:
         self.iow.seal()
         self._io_drain_unconfirmed = self.iow.drain(
             self._bounded_wait(15.0, "io_drain"))
-        # WP2(stop-cutoff)检查点③(seal 后、summary 前):原始流已
+        # WP2(stop-cutoff)检查点③(seal 后、临界区前):原始流已
         # 封口,不能为补一条日志解封——结果层消费(§5.3:截止点前
         # late-stop 由尚未发布的收尾元数据记录)。
         self._consume_external_stop_sealed()
-        self.write_summary()
-        self.finalize_run_record()
+        # WP2-B(SFB-03)/WP1:写线程可验证关闭(哨兵+有界 join)——
+        # alerts 流的最终写入者退出确认;未确认时保留线程事实
+        # (_io_close_state.alive_after=True),完整性判定据此拒绝
+        # 完整证据(§6.5:证据已静止≠写者已关闭,两维度分别记录)。
+        io_joined = self.iow.close(
+            self._bounded_wait(5.0, "io_writer_join"))
+        self._io_close_state = {
+            "close_requested": True, "joined": io_joined,
+            "alive_after": not io_joined,
+            "thread_shielded": getattr(self.iow, "thread_shielded", False)}
+        if not io_joined:
+            self.log({"event": "io_writer_stop_unconfirmed",
+                      "budget_remaining_s":
+                          round(self._finalize_remaining(), 3),
+                      "note": "哨兵已发、join 超时未确认退出;alerts 流"
+                              "不进入完整证据判定"})
+        # WP1(publication/SFB-01):C 前私有候选——必需角色哈希在各自
+        # 写者关闭确认之后计算(§7.2 顺序合同)并缓存为私有候选;
+        # summary 角色发布时序在 run_record 之前,发布时现算。候选
+        # 不是完成件:此时刻权威路径上不存在 finalized=true 的
+        # run_record,也不存在已公开的 summary(§4.3/P01)。
+        self._rr_candidate_entries, _cand_missing = \
+            self._prepare_run_record_entries()
         # WP2(stop-cutoff):停止决策边界 C——pthread_sigmask 临界区
         # 关闭"最后检查已判定、C 尚未建立"的登记窗口(§6.2)。
-        # 顺序合同:[屏蔽 TERM/INT] → 最后判定(有意向未消费→结果层
-        # 消费,纯内存赋值) → C 两赋值 → [解除屏蔽]。
-        # 边界保证:Python handler 的登记要么发生在临界区前(被最后
-        # 判定看到,参与本 run 结果),要么只能在解除屏蔽后(必然在
-        # C 之后,由独立后置回执承载,不改写已固定原件)。待决 OS 信号
-        # 在主线程屏蔽期间挂起、解除后立即执行 handler(CPython 信号
-        # 处理只在主解释器主线程;pthread_sigmask 作用于调用线程=
-        # finalize 的主线程),不存在"handler 在检查后、C 前登记却被
-        # C 基线吞掉"的中间态(§6.2:不以连续赋值/GIL 原子性为论证)。
-        # 临界边界内零 I/O、零进程等待、零普通锁(S1);结果层消费
-        # _consume_external_stop_sealed 本身只做内存赋值(2013 契约)。
-        # 临界区内决定的消费在其后(剩余预算内)发布——候选重写机制
-        # 与旧检查点④一致;发布失败走既有失败路径,不回改 C 决策。
-        cutoff_pending_rewrite = False
+        # 顺序合同:[核验线程前提+屏蔽 TERM/INT] → 最后判定(有意向
+        # 未消费→结果层消费,纯内存赋值) → C 两赋值 → [解除屏蔽]。
+        # 边界保证的前提(SFB-01 修复):受控线程(r17-io-writer/
+        # r17-guest-sampler)创建时经掩码继承终身屏蔽 TERM/INT,临界
+        # 区内经 _cutoff_thread_premise 逐线程核验 SigBlk——"主线程
+        # 屏蔽期间信号挂起、解除后 handler 才执行"只在全部线程屏蔽
+        # 时成立(任一未屏蔽线程可 tripped 信号,Python handler 将在
+        # 主线程下一字节码边界执行,与主线程掩码无关;S1/signal(7))。
+        # 前提失败不静默降级到旧竞态:临界区后的保守分支处理(无法
+        # 证明为 C 后的信号按已登记停止参与结果)。
+        # 临界边界内零 I/O、零进程等待、零普通锁(S1);/proc 逐线程
+        # 读为前提核验的最小能力面,失败按前提未证实处理(失败关闭)。
         old_mask = None
         try:
             old_mask = signal.pthread_sigmask(
                 signal.SIG_BLOCK, {signal.SIGTERM, signal.SIGINT})
         except (ValueError, OSError) as exc:
-            # 平台不支持(非主线程/无 sigmask 面):如实记录,退化为
-            # 顺序判定→C(窗口收窄为两赋值间隙;Linux 主路径已关闭)
+            # 平台不支持(非主线程/无 sigmask 面):如实记录;与前提
+            # 失败同等保守处理(不能宣称挂起边界成立)
             self.log({"event": "cutoff_mask_unavailable",
                       "error": str(exc)[:200],
-                      "note": "pthread_sigmask 边界不可用;C 顺序退化"
-                              "为检查→标记(两赋值间隙窗口保留)"})
-        if self._external_stop_sig is not None and \
+                      "note": "pthread_sigmask 边界不可用;挂起边界"
+                              "不成立,按前提失败保守处理"})
+            self._cutoff_premise_ok = False
+            self._cutoff_premise_detail = f"mask_unavailable:{exc}"[:120]
+        if old_mask is not None:
+            # 前提核验(此时主线程已 block;受控线程应经掩码继承处于
+            # 屏蔽态)——逐线程核验 SigBlk,任何未屏蔽存活线程即失败
+            self._cutoff_premise_ok, self._cutoff_premise_detail = \
+                self._cutoff_thread_premise()
+        if not self._cutoff_premise_ok:
+            self.log({"event": "cutoff_thread_premise_failed",
+                      "detail": self._cutoff_premise_detail,
+                      "note": "存在未屏蔽 TERM/INT 的存活线程(或核验"
+                              "不可用):挂起边界不成立;最后判定推迟到"
+                              "解除屏蔽后的保守复核(窗口内登记无法"
+                              "证明为 C 后,按停止参与结果,不降级为旧"
+                              "竞态)"})
+        # 最后判定:前提成立时在临界区内做(挂起边界已逐线程核验);
+        # 前提失败时不在此做——未屏蔽线程可在判定后的任意字节码
+        # 边界 tripped 信号(反例A),临界区内判定不可靠,推迟到解除
+        # 后的保守复核点。
+        if self._cutoff_premise_ok and \
+                self._external_stop_sig is not None and \
                 not self._external_stop_consumed:
             self._consume_external_stop_sealed()
-            cutoff_pending_rewrite = True
         # WP2:C 越过——run 的取消接受关闭。前置条件已在本方法顺序
-        # 内成立:任务树核验/producer 停止/seal+drain/原始证据固定。
+        # 内成立:任务树核验/producer 停止/seal+drain/写者关闭/原始
+        # 内容候选固定。
         self._external_stop_count_at_cutoff = \
             self._external_stop_sig_count
         self._stop_cutoff_reached = True
         if old_mask is not None:
             try:
-                # 解除屏蔽:待决信号立即递送,handler 登记必然发生在
-                # C 之后(count>base → 后置回执,不参与已固定结果)。
+                # 解除屏蔽:待决信号立即递送(全线程屏蔽前提成立时,
+                # handler 登记必然发生在 C 之后,count>base → 后置
+                # 回执,不参与已固定结果)。
                 signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
             except (ValueError, OSError):
                 pass
-        # C 决策后的发布(§6.4:先准备候选、C 决策后发布):临界区内
-        # 决定的消费在此重写 summary/run_record(私有 tmp→原子替换),
-        # 使元数据与最终结果共享同一事实;原始流不解封。
-        if cutoff_pending_rewrite:
-            self.write_summary()
-            self.finalize_run_record()
+        if not self._cutoff_premise_ok:
+            # 保守复核(临界区外,允许短等待):给挂起/在途信号一个
+            # 确定性执行窗口,窗口内出现的登记无法证明属于 C 后
+            # ——按已登记停止参与本 run 结果(§4.2:能力不足不成功
+            # 降级;正确归因,不改写 C 决策本身)。基线更新到复核后:
+            # 其后的计数才是可证明的 C 后(后置回执)。
+            time.sleep(0.05)
+            if self._external_stop_sig is not None and \
+                    not self._external_stop_consumed:
+                self._consume_external_stop_sealed()
+                self.log({"event": "cutoff_signal_conservatively_consumed",
+                          "sig_count": self._external_stop_sig_count,
+                          "note": "线程前提不成立期间的信号登记无法"
+                                  "证明为 C 后:保守按停止参与结果"})
+            self._external_stop_count_at_cutoff = \
+                self._external_stop_sig_count
+        # WP1(publication):对外发布只在停止决定之后——同一决定、
+        # 单次发布:先 summary(其哈希被 run_record 引用),后 run_record
+        # (完成判据)。C 前不存在对外完成件;发布失败=run 非成功
+        # (control_outcome→6;无合法完成记录或明确的非成功/不完整
+        # 终结证据),不沿用旧文件、不回改 C 决策、不重试覆写(§4.3)。
+        # summary 发布失败仍发布 run_record(summary 条目 missing →
+        # evidence_complete=false,作为明确的非成功终结证据)。
+        self.write_summary()
+        self.finalize_run_record()
 
 
 def main() -> int:

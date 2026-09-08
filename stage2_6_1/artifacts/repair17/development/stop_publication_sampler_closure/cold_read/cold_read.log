@@ -1,0 +1,14 @@
+== 1. 正常已关闭包(真实采样器;业务=快速成功) ==
+supervisor rc=0 (stdout 见 /home/cryptorl/r17sp_coldread/sup_stdout.log)
+run_record: finalized+evidence_complete+三组写者确认关闭 OK
+== 2. build(run_record→manifest+anchor;root=supervisor 祖父层) ==
+build: 7 行 -> /home/cryptorl/r17sp_coldread/src_pkg/manifest.jsonl
+anchor(交付集合外): /home/cryptorl/r17sp_coldread/src_pkg/anchor.json
+== 3. 复制交付集合到新根(隔离;不回读原件) ==
+== 4. 新根只读 verify ==
+{"rc": 0, "rows": 7, "problems": 0, "receipt": "/home/cryptorl/r17sp_coldread/receipts/verify_20260908T062152Z.json"}
+verify(新根只读) rc=0
+== 5. 负例(一次性副本;操作后不恢复) ==
+负例a(缺件) verify 如实失败 OK
+负例b(篡改) verify 如实失败 OK
+== cold_read_sp: ALL OK ==

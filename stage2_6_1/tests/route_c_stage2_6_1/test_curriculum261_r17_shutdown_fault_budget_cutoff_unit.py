@@ -347,10 +347,12 @@ if mode.startswith("c0") or mode.startswith("c1"):
             if mode in ("c01_pre", "c02_dual", "c04"):
                 if "old_mask = signal.pthread_sigmask(" in ln:
                     target_line = i
-            else:
-                if "_external_stop_count_at_cutoff" in ln \
-                        and ln.rstrip().endswith("\\"):
-                    target_line = i
+            elif target_line is None and \
+                    "_external_stop_count_at_cutoff" in ln \
+                    and ln.rstrip().endswith("\\"):
+                # 第一个匹配=C 赋值语句行(stop-publication 轮新增的
+                # 保守分支含同款文本,仅在前提失败路径执行,不可作目标)
+                target_line = i
     assert target_line is not None, "C 边界目标行未定位"
     print("PROBE_TARGET_LINE=%d" % target_line, flush=True)
     fired = {"v": False}
@@ -367,7 +369,10 @@ if mode.startswith("c0") or mode.startswith("c1"):
                     time.sleep(0.05)
             elif mode == "c02_in_repeat":
                 # 两种不同信号在屏蔽中各自挂起(S1:同类标准信号
-                # 不保证逐个排队,不以重复同号信号断言计数)
+                # 不保证逐个排队,不以重复同号信号断言计数)。
+                # stop-publication 轮:受控线程已掩码继承屏蔽+临界区
+                # 前提核验,"屏蔽中发送=挂起到解除后"是核验过的线程
+                # 事实,不再是调度偶然(旧断言预设已被反例A推翻)。
                 os.kill(os.getpid(), signal.SIGTERM)
                 os.kill(os.getpid(), signal.SIGINT)
             else:  # c01_in
@@ -380,14 +385,17 @@ if mode.startswith("c0") or mode.startswith("c1"):
         return None
     sys.settrace(_global)
 
-# ---- c04:临界区消费决定后的发布失败(第二次 write_summary 抛) ----
+# ---- c04:停止决定 C 之后的首发布失败(write_summary 抛) ----
 if mode == "c04":
+    # stop-publication 轮勘误:发布只有一次且在 C 之后——旧"第二次
+    # 重写失败"场景已随 cutoff_pending_rewrite 覆写路径删除;等价
+    # 迁移为"C 已决定、临界区消费后的首次发布失败"。
     real_ws = Supervisor.write_summary
     ws_calls = {"n": 0}
     def hooked_ws(self2):
         ws_calls["n"] += 1
-        if ws_calls["n"] >= 2:
-            print("PROBE_REWRITE_FAIL", flush=True)
+        if ws_calls["n"] >= 1:
+            print("PROBE_PUBLISH_FAIL", flush=True)
             raise RuntimeError("probe: publish after cutoff failed")
         return real_ws(self2)
     Supervisor.write_summary = hooked_ws
@@ -685,12 +693,23 @@ class TestSharedShutdownBudget:
             and dr[0]["allowed"] <= remaining_at_sws + 0.3, \
             "drain 请求被钳制到剩余预算"
         evs = _event_names(run_dir)
-        assert "win_sampler_stop_timeout" in evs, \
-            "辅助任务等待如实超时记录"
+        # stop-publication 轮勘误:事件改名 win_sampler_stop_timeout→
+        # win_sampler_stop_unconfirmed——超时不再随后无条件记 stopped,
+        # "已请求、未确认"是独立于"已停止"的事实(SFB-03)。
+        assert "win_sampler_stop_unconfirmed" in evs, \
+            "辅助任务等待如实超时记录(未确认,非已停止)"
+        summary_writers = summary.get("writers") or {}
+        assert summary_writers.get("win", {}).get("unconfirmed") is True, \
+            "win 关闭状态进 summary.writers(同源事实)"
 
     def test_b02_deadline_reused_across_repeated_shutdown(self, tmp_path):
         """B02(缩窗):TERM→停止中 crash→重复调用收尾——deadline
-        身份与起点不变,合作窗不重发,finalize 不重入,首因保留。"""
+        身份与起点不变,合作窗不重发,finalize 不重入,首因保留。
+
+        stop-publication 轮勘误:预算起点断言从"较晚的
+        terminal_shutdown 才建立"改为第一次停止的实际起点——TERM
+        被正常控制路径接受(handle_triggers)时即以 stop_accept:*
+        建立,crash 转异常收尾复用同一 deadline(SFB-02)。"""
         rc, lines, kv, run_dir = _run_sfb_child(tmp_path, "b02")
         assert rc == 3
         assert kv.get("PROBE_REPEAT_DEADLINE_SAME") == "True"
@@ -698,7 +717,7 @@ class TestSharedShutdownBudget:
         assert kv.get("PROBE_BUDGET_NOTES") == "1", \
             "重复收尾不重新建立预算"
         assert kv.get("PROBE_EST_REASON", "").startswith(
-            "'terminal_shutdown"), kv.get("PROBE_EST_REASON")
+            "'stop_accept:"), kv.get("PROBE_EST_REASON")
         evs = _event_names(run_dir)
         assert evs.count("supervisor_end") == 1, \
             "finalize 幂等(不递归收尾)"
@@ -708,7 +727,11 @@ class TestSharedShutdownBudget:
     def test_b03_exhausted_budget_zero_remaining_no_infinite_wait(
             self, tmp_path):
         """B03(缩窗 1.2s):停止阶段耗尽预算——后续等待零剩余不为
-        无期限;未确认如实;外层有界失败。"""
+        无期限;未确认如实;外层有界失败。
+
+        stop-publication 轮勘误:不再只检查 timeout 事件——采样写者
+        的实际存活状态与 evidence_complete/外层结果同源断言(任务书
+        §7 B03 纠正):win 未确认关闭 → evidence_complete=false。"""
         rc, lines, kv, run_dir = _run_sfb_child(tmp_path, "b03")
         assert rc == 3
         tl = json.loads(kv["PROBE_TIMELINE"])
@@ -727,7 +750,20 @@ class TestSharedShutdownBudget:
         fb = summary["finalize_budget"]
         assert fb["remaining_at_write"] <= 0.6
         evs = _event_names(run_dir)
-        assert "win_sampler_stop_timeout" in evs
+        assert "win_sampler_stop_unconfirmed" in evs
+        # W03:超时不能生成"已停止"事实——确认版 stopped 事件不得出现
+        assert "win_sampler_stopped" not in evs, \
+            "win 采样器未确认退出时不得记录 stopped(SFB-03)"
+        # 写者实际状态与完整性同源:win 未确认 → 完整证据不成立
+        writers = summary.get("writers") or {}
+        assert writers.get("win", {}).get("unconfirmed") is True
+        rr = _load(run_dir / "run_record.json")
+        assert rr["evidence_complete"] is False, \
+            "采样写者未确认关闭时不得签完整证据(SFB-03)"
+        assert (rr.get("writers") or {}).get("win", {}) \
+            .get("unconfirmed") is True, \
+            "run_record.writers 与 summary 同源(replay 模式无" \
+            "telemetry_win 角色,关闭状态经 writers 块承载)"
 
 
 # ------------------------------------------------ C:停止决策边界
@@ -752,7 +788,15 @@ class TestCutoffBoundary:
 
     def test_c01_in_cutoff_signal_is_post_cutoff_receipt(self, tmp_path):
         """C01(反例):临界区内(C 标记赋值行,TERM/INT 已屏蔽)发真实
-        TERM——handler 只能在 C 后执行:独立回执,结果/封口件不改。"""
+        TERM——handler 只能在 C 后执行:独立回执,结果/封口件不改。
+
+        stop-publication 轮勘误:旧断言预设"屏蔽中发送=C 后"在真实
+        多线程下不成立(反例A:writer 线程未屏蔽接收,tripped 后
+        handler 在主线程下一字节码边界执行,与主线程掩码无关)。
+        修复后该预设有核验过的线程前提:受控线程掩码继承终身屏蔽+
+        临界区 /proc 逐线程 SigBlk 核验,挂起边界真实成立。summary
+        断言同步更新:发布时序移到 C 之后,C 后信号如实出现在发布
+        时点快照(sig 记录、consumed=False 不参与结果)。"""
         rc, lines, kv, run_dir = _run_sfb_child(
             tmp_path, "c01_in", biz_ignore=False)
         assert rc == 0, "真 C 后事件不改写成功结果"
@@ -763,8 +807,15 @@ class TestCutoffBoundary:
         assert receipt["sig_count_at_cutoff"] == 0
         assert receipt["sig_count_total"] == 1
         summary = _load(run_dir / "summary.json")
-        assert summary["external_stop_sig"] is None
+        # 发布在 C 之后:C 后到达的信号如实出现在发布时点快照,
+        # 但 consumed=False(不参与本 run 结果)
+        assert summary["external_stop_sig"] == signal.SIGTERM
+        assert summary["external_stop_consumed"] is False
+        assert summary["external_stop_sig_count"] == 1
         assert summary["business"]["rc"] == 0
+        # stop-publication 轮:线程前提核验事实(受控线程掩码继承
+        # 后,临界区内信号挂起到解除后才登记是有核验前提的)
+        assert summary["publication"]["cutoff_premise_ok"] is True
 
     def test_c02_dual_signals_before_cutoff_first_wins(self, tmp_path):
         """C02:临界区前 TERM+INT 双登记——首因粘性、计数=2、同一
@@ -792,7 +843,14 @@ class TestCutoffBoundary:
         assert receipt["sig_count_total"] >= 2
         assert receipt["sig_count_at_cutoff"] == 0
         summary = _load(run_dir / "summary.json")
-        assert summary["external_stop_sig"] is None
+        # 发布时序在 C 之后:解除后逐个登记的信号如实进快照,
+        # consumed=False(不参与本 run 结果;stop-publication 轮勘误)。
+        # 同批挂起的 TERM/INT 解除后投递顺序不保证,首信号粘性由
+        # 实际执行顺序决定(S1),不作逐个排序断言。
+        assert summary["external_stop_sig"] in (
+            signal.SIGTERM, signal.SIGINT)
+        assert summary["external_stop_consumed"] is False
+        assert summary["external_stop_sig_count"] >= 2
         assert kv.get("PROBE_RUN_RC") == "0"
 
     def test_c02_mask_and_handler_restored(self, tmp_path):
@@ -810,15 +868,23 @@ class TestCutoffBoundary:
 
     def test_c04_publish_failure_after_cutoff_keeps_failure(self,
                                                              tmp_path):
-        """C04:C 已决定、临界区消费后的重写发布失败——外层仍非
-        成功(不因 cutoff 已建立而返回成功);消费决定不被撤销。"""
+        """C04:C 已决定、临界区消费后的首次发布失败(write_summary
+        抛)——外层仍非成功(不因 cutoff 已建立而返回成功);消费决定
+        不被撤销。
+
+        stop-publication 轮勘误:发布只有一次且在 C 之后——旧"第二次
+        重写失败"场景随 cutoff_pending_rewrite 覆写路径删除,等价迁移
+        为首次发布失败(旧缺陷:成功件先公开再覆写,重写失败才暴露;
+        新顺序下不存在可失败的'第二次')。"""
         rc, lines, kv, run_dir = _run_sfb_child(
             tmp_path, "c04", biz_ignore=False)
         assert rc == 3, f"发布失败外层 rc=3,实际 {rc};{lines[-6:]}"
-        assert any("PROBE_REWRITE_FAIL" in ln for ln in lines)
+        assert any("PROBE_PUBLISH_FAIL" in ln for ln in lines)
         assert kv.get("PROBE_CONSUMED") == "True", \
             "临界区消费决定已做出(不被发布失败撤销)"
         assert kv.get("PROBE_POST_CUTOFF_FILE") == "False"
+        assert not (run_dir / "run_record.json").exists(), \
+            "summary 发布失败后不发布完成记录(无合法完成件)"
 
 
 # ------------------------------------------------ L:出口一致性

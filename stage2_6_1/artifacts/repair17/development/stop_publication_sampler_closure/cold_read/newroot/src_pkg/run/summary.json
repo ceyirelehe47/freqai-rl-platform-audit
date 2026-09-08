@@ -1,0 +1,194 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea",
+ "argv": [
+  "bash",
+  "-c",
+  "echo cold_read_ok"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 424,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [],
+ "peaks": {
+  "guest_memavail_min_gib": 37.90266418457031,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.4704854990000058,
+  "win_last_mono": 1.691242138999769,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 5,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-08T06:21:49Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 1.6915065939997476,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T06:21:50Z"
+ },
+ "io": {
+  "submitted": 18,
+  "accepted": 18,
+  "ok": 18,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 18,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 124278032824000
+  },
+  "win": {
+   "stop_requested": true,
+   "interop_pid": 418,
+   "waited": true,
+   "exited": true,
+   "unconfirmed": false
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded"
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 2.8099672990001636,
+  "establish_reason": "finalize",
+  "remaining_at_write": 119.977,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_sampler_join",
+    "requested": 10.0,
+    "remaining": 120.0,
+    "allowed": 10.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 119.998,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 119.978,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 4273,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:49Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:50Z",
+   "stage": "observation_ready",
+   "note": "ready_after=1.7s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:50Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:50Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:51Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T06:21:51Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 418,
+  "windows": 115624
+ },
+ "written_utc": "2026-09-08T06:21:51Z"
+}

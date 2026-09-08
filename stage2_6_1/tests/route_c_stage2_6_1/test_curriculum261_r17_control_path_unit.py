@@ -1097,3 +1097,108 @@ class TestDelegationLifecycle:
              str(tmp_path / "out2"), "normal", "normal"],
             capture_output=True, text=True, timeout=60, env=env)
         assert rc2.returncode != 0
+
+    def test_i01_stop_then_diagnostic_error_same_budget(self, tmp_path):
+        """I01(stop-publication 轮):实际 supervisor→工程 coordinator→
+        已授权无数据 worker,正常停止(CRITICAL 样本)后再注入一次
+        诊断错误(finalize 内 flush_logs 抛)——同一 run 唯一预算
+        (第一次停止接受时建立,注入不重建/不续期);诊断错误被
+        _shutdown_step 隔离(不弃控制);工程链撤权/terminal/哨兵
+        零启动与采样关闭结果一致;无正式数据。"""
+        state = tmp_path / "state"
+        out = tmp_path / "out"
+        script = tmp_path / "cf_runner.py"
+        script.write_text(CF_RUNNER_SCRIPT, encoding="utf-8")
+        wrapper = tmp_path / "sup_i01_wrapper.py"
+        wrapper.write_text(
+            "import os, sys\n"
+            "sys.path.insert(0, os.environ['R17U_RUNNER_DIR'])\n"
+            "import r17_supervision as rs\n"
+            # 停止后进入 finalize 时塞一条 pending 日志:使收尾内的\n"
+            # flush_logs 必然被调用(主循环已清空正常 pending),注入\n"
+            # 精确落在 _shutdown_step(flush_logs) 的隔离路径\n"
+            "real_fin = rs.Supervisor.finalize\n"
+            "def hooked_fin(self2):\n"
+            "    if self2.stop_requested_reasons \\\n"
+            "            and self2.protector is not None:\n"
+            "        self2.protector.pending_logs.append(\n"
+            "            {'event': 'i01_probe_pending'})\n"
+            "    return real_fin(self2)\n"
+            "rs.Supervisor.finalize = hooked_fin\n"
+            "real_flush = rs.Protector.flush_logs\n"
+            "thrown = {'v': False}\n"
+            "def hooked_flush(self):\n"
+            "    if not thrown['v'] and any(\n"
+            "            e.get('event') == 'i01_probe_pending'\n"
+            "            for e in self.pending_logs):\n"
+            "        thrown['v'] = True\n"
+            "        print('PROBE_I01_DIAG_ERROR', flush=True)\n"
+            "        raise RuntimeError('i01 注入:停止后收尾诊断错误')\n"
+            "    return real_flush(self)\n"
+            "rs.Protector.flush_logs = hooked_flush\n"
+            "sys.argv = ['r17_supervision.py'] + sys.argv[1:]\n"
+            "sys.exit(rs.main())\n", encoding="utf-8")
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(self.SRC) + os.pathsep + str(self.RUNNER),
+            CURRICULUM261_R17_STATE_ROOT=str(state),
+            R17_CF_DEADLINE="30", R17_CF_BEHAVIOR="sleep_cancel",
+            R17_CF_NAMESPACES="cf_ns_a",
+            R17U_RUNNER_DIR=str(self.RUNNER))
+        samples = tmp_path / "s.jsonl"
+        lines = [json.dumps({"win": _win(_perf()), "guest": _guest()})
+                 for _ in range(60)]
+        # 授权完成后注入 keyvol CRITICAL(正常停止触发)
+        lines.append(json.dumps({"win": _win(_perf(), vols=[
+            {"vol": "F:", "present": True, "free_gb": 3.0,
+             "serial": "CFA1", "identity_match": True},
+            {"vol": "C:", "present": True, "free_gb": 200.0,
+             "serial": "CCA1", "identity_match": True}]),
+            "guest": _guest()}))
+        lines += [json.dumps({"win": _win(_perf()),
+                              "guest": _guest()}) for _ in range(5)]
+        samples.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        journal = state / "r17_execution_journal.jsonl"
+        sup_dir = tmp_path / "sup_run"
+        sup = subprocess.run(
+            [sys.executable, str(wrapper),
+             "--run-dir", str(sup_dir), "--task-kind", "engineering",
+             "--max-seconds", "120",
+             "--samples-source", f"file:{samples}",
+             "--", sys.executable, str(script), str(self.SRC),
+             str(state), str(out), "sleep_cancel", "normal"],
+            capture_output=True, text=True, timeout=150, env=env,
+            cwd=str(self.SYNC))
+        assert "PROBE_I01_DIAG_ERROR" in sup.stdout, \
+            f"诊断错误注入未命中;stdout 尾={sup.stdout[-400:]}"
+        assert sup.returncode == 4, \
+            f"诊断错误被隔离:停止语义保持 rc=4,实际 {sup.returncode}"
+        # 同一 run 唯一预算:第一次停止接受时建立,注入不重建
+        summary = json.loads(
+            (sup_dir / "summary.json").read_text(encoding="utf-8"))
+        fb = summary["finalize_budget"]
+        est = [n for n in fb["notes"]
+               if n["phase"] == "budget_established"]
+        assert len(est) == 1, "一次建立(注入与收尾不重开)"
+        assert fb["establish_reason"].startswith("stop_accept:")
+        ssf = summary.get("shutdown_step_failures") or {}
+        assert any("flush" in k for k in ssf), \
+            f"诊断错误被 _shutdown_step 隔离记录,实际 {sorted(ssf)}"
+        events = self._events(journal)
+        seq = [e["event"] for e in events]
+        assert seq.count("grant_issued") >= 1
+        assert seq.count("grant_revoked") >= 1
+        term = [e for e in events
+                if e["event"] == "qualification_terminal"]
+        assert term and term[0].get("status") in ("failed", "crashed")
+        assert seq[-1] == "chain_released"
+        assert not [e for e in events
+                    if e["event"] == "chain_step_started"
+                    and e.get("step") == "fixture_never"], \
+            "停止后哨兵零启动"
+        writers = {e.get("writer") for e in events if "writer" in e}
+        assert writers <= {"chain_session_owner"}
+        rr = json.loads(
+            (sup_dir / "run_record.json").read_text(encoding="utf-8"))
+        assert rr["evidence_complete"] is True, \
+            "隔离的诊断错误不破坏完整证据(与采样/写者关闭正交)"

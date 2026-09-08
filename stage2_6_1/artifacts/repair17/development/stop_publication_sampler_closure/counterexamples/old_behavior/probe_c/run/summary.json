@@ -1,0 +1,157 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea",
+ "argv": [
+  "bash",
+  "-c",
+  "echo probe_c_ok"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 407,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [],
+ "peaks": {
+  "guest_memavail_min_gib": 37.99360656738281,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 0.659151382999994,
+  "win_last_mono": 2.491192721999994,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 8,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-08T05:04:30Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 2.4913891279999945,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T05:04:31Z"
+ },
+ "io": {
+  "submitted": 18,
+  "accepted": 18,
+  "ok": 18,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 18,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 3.4986623469999927,
+  "establish_reason": "finalize",
+  "remaining_at_write": 104.978,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_sampler_join",
+    "requested": 10.0,
+    "remaining": 105.0,
+    "allowed": 10.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 104.998,
+    "allowed": 15.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 6396,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:29Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:31Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.5s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:31Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:31Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:32Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T05:04:32Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 401,
+  "windows": 38040
+ },
+ "written_utc": "2026-09-08T05:04:47Z"
+}
