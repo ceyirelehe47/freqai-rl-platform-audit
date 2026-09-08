@@ -1,0 +1,13 @@
+== [1/5] build 固定集合 ==
+build: 8 行 -> /home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/manifest.jsonl
+anchor(交付集合外): /home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/anchor.json
+== [2/5] 物理复制到新根 ==
+{"rc": 0, "dest": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/coldcopy", "files": 8, "bytes": 1073098}
+== [3/5] 双原根隔离冷读 ==
+{"rc": 0, "rows": 8, "problems": 0, "receipt": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/coldcopy/receipts_inner/verify_20260908T171559Z.json"}
+{"schema": "r17-cold-read-isolated-fc-v1", "copy_root": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/coldcopy", "verify_rc": 0, "payload_readonly_unchanged": true, "isolation": {"method": "unshare --user --map-root-user --mount + tmpfs over /mnt AND /home/cryptorl/projects", "original_root_visible": {"mnt_f": "no", "projects": "no"}, "verifier_cwd": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/coldcopy", "verifier_argv_note": "/usr/bin/python3 ['-c'] "}, "rc": 0}
+isolated_rc=0
+== [4/5] 负例(缺件/篡改) ==
+{"schema": "r17-cold-read-negative-fc-v1", "n1_missing_copy": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/neg_missing_20260908T171559Z", "n1_isolated_verify_rc": 1, "n2_tamper_copy": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z/neg_tamper_20260908T171559Z", "n2_isolated_verify_rc": 1, "n3_control_failure_copy": null, "n3_isolated_verify_rc": null, "rc": 0, "note": "缺件/篡改/控制失败包都必须在只见新根时失败(内容错误,不是脚本崩溃或隔离权限错误;不补读/不重算/不重建清单)"}
+== [5/5] 汇总 ==
+{"schema": "r17-fc-cold-read-pipeline-v1", "work": "/home/cryptorl/r17c3eg_cold/cold_read_20260908T171557Z", "isolated_rc": 0, "negative_rc": 0, "rc": 0}
