@@ -4,7 +4,7 @@
 - 日期：2026-09-09
 - 分支：`route-c-stage2-6-1-repair17`
 - 接手 HEAD：`24eaa81cf36b1bfa8755145ba56d1996653e9d50`
-- 本轮交付提交：`<TO_FILL_COMMIT>`
+- 本轮交付提交：`525c2cf0456ebacc482561c1fddc1c6e02ba1e0d`
 - 旧 reader（接手版）：git blob `93d0172b6428b1710ebc21900247473b5a4d3e64` = 字节 sha256 `9869ea6ccc319e7ebf6ad85cf3b70e669fcf59baeb11e46dc730aa8198853886`
 - 本轮候选 reader：git blob `c553c38aec251d23f8555c0adc55266e586002c0` = 字节 sha256 `7a5ccc19b4e3ade4dd0e6b64861ae425cdb631c181149458a51f4ccbb52141dd`
 - 候选由交接包《R17_Receipt_Implementation_and_Agent_Test_Pack》的 `implementation/receipt_block.py`（inline sha256 `554134fa3f6b3b80a34e0c4e6b95e5d3c7cc570450361e1d504082765a5a8f28`）经 `apply_implementation.py --apply` 生成；生成 patch sha256 `02ce429d8a55de4cb6102e130dc01d295c7dca778ff96c31e5b76aff164f0aa6`
