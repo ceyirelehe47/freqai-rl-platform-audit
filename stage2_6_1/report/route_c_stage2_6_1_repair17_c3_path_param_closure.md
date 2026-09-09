@@ -227,4 +227,4 @@ rc=1(完整 ok=false JSON,不崩溃)。不用旧包/历史回执补认。
 | 受监护全量原件 | `stage2_6_1/artifacts/repair17/development/run_supervision/runs/c3ppc_full_20260909/`(stdout/junit/run_record/summary/telemetry/alerts) |
 | 本轮报告 | `stage2_6_1/report/route_c_stage2_6_1_repair17_c3_path_param_closure.md` |
 
-- 交付 SHA:(主提交后回填)
+- 交付 SHA:`5f3b8c0e16839d3670727e50ea4bc77cccf9f5d4`
