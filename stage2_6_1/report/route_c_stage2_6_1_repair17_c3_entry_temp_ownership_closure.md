@@ -119,3 +119,16 @@
 - 反例/翻转：`…/counterexamples/old_reader_counterexamples_v6.json`、`fixed_reader_flip_v6.json`（v5 版保留）
 - 全量 run：`…/run_supervision/runs/c3eto_full_20260909_r3/`（含 r2 失败痕迹）
 - 汇总：`…/verification_v6/aggregate/`
+
+## 7. 独立验收结论（subagent，2026-09-09）
+
+只读审查四分项全部 **PASS**，整体 **ACCEPT**：
+
+1. **WP1 语义 PASS**：原末端条目在"严格解析原父目录 + 原末端名"上不跟随 lstat（L644-650，旧 target.parent 倒推已替换）；先 `os.lstat` 原始未折叠路径（仅 FileNotFoundError 放行）再 `realpath(strict=True)`，仅 ENOENT 剥离且 `..` 即拒、悬空祖先 lstat 区分拒绝、剥离后现存祖先必须 S_ISDIR；全文件无 `strict=False`/`ALLOW_MISSING` 实码；`ReportTargetRejected`→rc=2 且准入先于一切写入。
+2. **WP2 语义 PASS**：`O_EXCL|O_NOFOLLOW` 成功+fstat 记录身份才取得清理责任；创建失败清理块整体跳过；`_receipt_remove_owned` 仅删身份未变的本次普通文件（ESTALE 拒绝）；primary 与 cleanup_errors 分列、close 错误不覆盖写错误；发布后清理失败撤下本次同身份候选、rc=6 不打印 verdict。
+3. **证据链自洽 PASS**：三反例旧字节 true（9869ea6c）/新字节 false（7a5ccc19）；冷读五负例、四夹具、语义 PASS、run r3 run_record/junit/stdout/summary/alerts 哈希登记全部吻合（tests=1723/failures=0/skipped=7）；aggregate 六类全过；r2 失败痕迹确认无 run_record。
+4. **报告诚实性 PASS**：路线切换、v5 留档哈希、发布树 src 306 文件子集、r1/r2 痕迹、作者侧证据（Python 3.13.5）与本轮验收证据（3.11.16）区分、1716=1689−27+54 算术，均与磁盘事实一一对应。
+
+边界核验：基线→交付 diff 非 artifacts 改动仅 3 文件（reader 单 hunk 341 行全落回执块、新测试 509 行 54 项、报告），生成路径/生产组件零改动，无 Freeze A/Results B/fresh rt3/正式身份越界。
+
+观察项（不影响判定）：`runs/c3eto_full_20260909_r3/telemetry/win_samples.jsonl` 存在 seal 后遥测追加与行尾归一化痕迹（登记哈希 f502a49f / 提交版 9e1375c5 / 工作树 49bd05d7 三态）；报告仅声明 junit/stdout 哈希一致（属实），未就该文件作不实声明。
