@@ -1,0 +1,103 @@
+{
+ "format": "r17rdd-m01-finite-exhaustive-v1",
+ "written_utc": "2026-09-09T02:57:12Z",
+ "space": {
+  "n_outcomes": 8,
+  "probabilities": [
+   0.1,
+   0.2,
+   0.05,
+   0.15,
+   0.1,
+   0.2,
+   0.1,
+   0.1
+  ],
+  "S": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "D": [
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "A": [
+   1,
+   2,
+   3
+  ],
+  "m": 5,
+  "n_enumerated_prefixes": 37448
+ },
+ "checks": {
+  "conditioning_on_D": {
+   "ok": true,
+   "formula": "P(X∈A|D)=P(A∩D)/(1-q)",
+   "q": 0.4,
+   "1_over_1_minus_q": 1.6666666666666667,
+   "value": 0.33333333333333337,
+   "exhaustive_value": 0.33333333333333337,
+   "wrong_1_over_q_value": 0.5,
+   "wrong_minus_correct": 0.16666666666666663
+  },
+  "conditional_normalization": {
+   "ok": true,
+   "sum_over_D_scaled": 1.0
+  },
+  "first_pass_partition_measure": {
+   "ok": true,
+   "exhaustive_total_measure": 0.9999999999999872
+  },
+  "first_pass_P_J_le_m": {
+   "ok": true,
+   "exhaustive": 0.9975699999999983,
+   "formula_1_minus_1p_pow_m": 0.99757
+  },
+  "first_pass_joint": {
+   "ok": true,
+   "exhaustive": 0.5700400000000012,
+   "formula_sum_j_1p_j_minus_1_PAS": 0.57004
+  },
+  "first_pass_conditional_output": {
+   "ok": true,
+   "exhaustive": 0.5714285714285736,
+   "formula_P_AS_over_p": 0.5714285714285714
+  },
+  "success_output_is_P_given_S": {
+   "ok": true,
+   "exhaustive_per_value_conditional": {
+    "1": 0.2857142857142873,
+    "2": 0.07142857142857183,
+    "3": 0.21428571428571394,
+    "4": 0.14285714285714365,
+    "5": 0.2857142857142873
+   },
+   "formula_P_given_S": {
+    "1": 0.2857142857142857,
+    "2": 0.07142857142857142,
+    "3": 0.21428571428571425,
+    "4": 0.14285714285714285,
+    "5": 0.2857142857142857
+   },
+   "outside_S_all_zero": true
+  }
+ },
+ "boundaries": {
+  "p_equals_0": "S 为空 → P(J≤m)=0,成功条件分布未定义(不能写 0/0;任何'必然输出'论断非法)",
+  "p_equals_1": "S 为全空间 → J=1 恒成立,P(X_J∈A|J≤m)=P(A∩S)/p=P(A)"
+ },
+ "d0_reference": {
+  "q_zero_distractor": 0.21153571482930775,
+  "q_pow_5_independent_model": 0.00042356348415488205,
+  "correct_renormalization_1_over_1_minus_q": 1.2682882646783589,
+  "wrong_1_over_q": 4.727334109074296,
+  "note": "条件化在 ≥1 对 distractor(D 的补事件)上,分母 1-q≈0.7885;旧报告 §6.3 写 1/q 是对'零 distractor'事件错误归一,数值相差约 3.73 倍"
+ },
+ "verdict": "PASS"
+}

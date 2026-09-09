@@ -1,0 +1,132 @@
+{
+ "format": "r17-c3-engineering-slice-readback-v2",
+ "engineering_only": true,
+ "readback_verdict": "FAIL",
+ "n_problems": 7,
+ "problems": [
+  {
+   "check": "detail_identity_cross_coord",
+   "where": "D1/p0@line3",
+   "expected": "pairs/D1_p0.json",
+   "actual": "pairs/D0_p0.json"
+  },
+  {
+   "check": "detail_file_reused",
+   "where": "D1/p0@line3",
+   "expected": "one detail file per request",
+   "actual": "also used by D0/p0@line1"
+  },
+  {
+   "check": "detail_field_identity",
+   "where": "D1/p0@line3:coord",
+   "expected": "D1/p0",
+   "actual": "D0/p0"
+  },
+  {
+   "check": "detail_pair_record_identity",
+   "where": "D1/p0@line3:pair_record.rung",
+   "expected": "D1",
+   "actual": "D0"
+  },
+  {
+   "check": "evaluation_episode_identity",
+   "where": "D1/p0@line3:A",
+   "expected": {
+    "rung": "D1",
+    "pair": 0
+   },
+   "actual": {
+    "rung": "D0",
+    "pair": 0
+   }
+  },
+  {
+   "check": "evaluation_episode_identity",
+   "where": "D1/p0@line3:B",
+   "expected": {
+    "rung": "D1",
+    "pair": 0
+   },
+   "actual": {
+    "rung": "D0",
+    "pair": 0
+   }
+  },
+  {
+   "check": "detail_env_coordinate_identity",
+   "where": "D1/p0@line3",
+   "expected": "D1/p0 in every envelope",
+   "actual": "foreign: ['D0/p0']"
+  }
+ ],
+ "checks": {
+  "source_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_readback_decision_delivery/verification/tmp_semantic_mismatch/engineering_slice",
+  "index_rows_n": 8,
+  "detail_digest": {
+   "D0/p0@line1": true,
+   "D0/p1@line2": true,
+   "D1/p0@line3": true,
+   "D1/p1@line4": true,
+   "D2/p0@line5": true,
+   "D2/p1@line6": true,
+   "D3/p0@line7": true,
+   "D3/p1@line8": true
+  },
+  "p52_n_envelopes": 5,
+  "accepted_coords": [
+   "D0/p0",
+   "D0/p1",
+   "D1/p0",
+   "D1/p1",
+   "D2/p0",
+   "D2/p1",
+   "D3/p0",
+   "D3/p1"
+  ],
+  "rejected_coords": [],
+  "source_snapshot_identical": true
+ },
+ "expected_contract": {
+  "namespace": "preplan_calibration_main_r17",
+  "family": "c3_cost",
+  "requests": [
+   [
+    "D0",
+    0
+   ],
+   [
+    "D0",
+    1
+   ],
+   [
+    "D1",
+    0
+   ],
+   [
+    "D1",
+    1
+   ],
+   [
+    "D2",
+    0
+   ],
+   [
+    "D2",
+    1
+   ],
+   [
+    "D3",
+    0
+   ],
+   [
+    "D3",
+    1
+   ]
+  ],
+  "max_attempts": 5,
+  "negative_control_required": true,
+  "p52_envelope_source": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+ },
+ "reader_sha256": "dfb36445bf991e1846bd19676f941439f87b11acc4bcd2c2bc044431519b2798",
+ "read_utc": "2026-09-09T03:02:55Z"
+}
