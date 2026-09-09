@@ -13,8 +13,11 @@ find "$R/stage2_6_1/tests" -name '*.py' | while read -r f; do
   tr -d '\r' < "$f" > "$D/tests/route_c_stage2_6_1/$(basename "$f")"
 done
 # runner 执行面同样同步到 WSL 本地文件系统(§8.2:真实 Linux
-# checkout;不从 /mnt/f drvfs 执行 shell/python)
-find "$R/stage2_6_1/runner" -maxdepth 1 \( -name '*.sh' -o -name '*.py' \) | while read -r f; do
+# checkout;不从 /mnt/f drvfs 执行 shell/python)。
+# 原生采样器伴生件(.ps1/.cs)按补丁包 README_AGENT §2.3"部署同步
+# 必须覆盖,不能因 .cs 扩展名漏掉"一并入同步面;WSL 侧仅为只读
+# 副本(供源码断言测试与部署哈希核对),执行仍走 Windows 侧 runner。
+find "$R/stage2_6_1/runner" -maxdepth 1 \( -name '*.sh' -o -name '*.py' -o -name '*.ps1' -o -name '*.cs' \) | while read -r f; do
   tr -d '\r' < "$f" > "$D/stage2_6_1_runner/$(basename "$f")"
   chmod +x "$D/stage2_6_1_runner/$(basename "$f")" 2>/dev/null || true
 done

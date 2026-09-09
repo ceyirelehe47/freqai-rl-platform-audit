@@ -22,12 +22,16 @@ param(
     [int]$DetailEvery = 6,
     [string]$Volumes = "C:,F:",
     [string]$EmergencyDir = "",
-    [int]$WriteProbeEvery = 6
+    [int]$WriteProbeEvery = 6,
+    [Parameter(Mandatory=$true)][string]$ControlDirectory,
+    [Parameter(Mandatory=$true)][string]$InstanceToken
 )
 
 $ErrorActionPreference = "Continue"
 $thisPid = $PID
 $utf8nb = New-Object System.Text.UTF8Encoding($false)
+. (Join-Path $PSScriptRoot 'r17_win_sampler_lifecycle.ps1')
+Initialize-R17SamplerLifecycle
 $script:emergencyAvailable = $false
 if ($EmergencyDir -ne "") {
     try {
@@ -42,7 +46,7 @@ function Write-JsonLine([object]$obj) {
     try {
         $line = $obj | ConvertTo-Json -Compress -Depth 6
         [System.IO.File]::AppendAllText($OutFile, $line + "`n", $utf8nb)
-    } catch { }
+    } catch { $script:r17TelemetryWriteFailed = $true }
 }
 
 function Write-Emergency([object]$obj) {
@@ -125,7 +129,7 @@ foreach ($v in $volList) {
     else { $volIdentity[$v] = "unavailable" }
 }
 
-Write-JsonLine @{ event="sampler_start"; utc=(Get-UtcNowIso); pid=$thisPid;
+Write-JsonLine @{ event="sampler_start"; utc=(Get-UtcNowIso); pid=$thisPid; creation_filetime=$script:r17Creation; token=$InstanceToken;
     run_id=$RunId; interval_s=$IntervalSeconds; max_seconds=$MaxSeconds;
     volumes=$volList; vol_identity=$volIdentity;
     n_disks=@($allDisks).Count;
@@ -136,7 +140,9 @@ $detailCount = 0
 $probeCount = 0
 $seq = 0           # WP3: source sequence (reader rejects dup/regress)
 $lastVmPresent = $true
+try {
 while ($true) {
+    if (Test-R17SamplerStop) { $script:r17StopReason='stop_requested'; break }
     $now = Get-UtcNowIso
     $seq = $seq + 1
     $perf = Get-PerfMem
@@ -226,6 +232,7 @@ while ($true) {
             }
         $rec["heavy_procs"] = $heavy
     }
+    if (Test-R17SamplerStop) { $script:r17StopReason='stop_requested'; break }
     Write-JsonLine $rec
 
     # ---- 关键卷事故事件(E 不在清单时不产生任何事件) ----
@@ -242,9 +249,14 @@ while ($true) {
     }
 
     if (((Get-Date) - $start).TotalSeconds -ge $MaxSeconds) {
-        Write-JsonLine @{ event="sampler_end"; utc=(Get-UtcNowIso);
-            reason="max_seconds" }
+        $script:r17StopReason = 'max_seconds'
         break
     }
-    Start-Sleep -Seconds $IntervalSeconds
+    if (Wait-R17SamplerInterval $IntervalSeconds) {
+        $script:r17StopReason = 'stop_requested'
+        break
+    }
+}
+} finally {
+    Complete-R17SamplerLifecycle
 }

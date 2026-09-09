@@ -1648,102 +1648,108 @@ class Supervisor:
             return None
 
     def start_win_sampler(self) -> bool:
+        from r17_native_sampler import NativeSamplerControl
         ps = self._find_powershell()
-        if not ps:
-            self.log({"event": "win_sampler_unavailable",
-                      "reason": "interop powershell 不可达;host 保护条件"
-                      "降级为不可判(已登记)"})
-            self.stdout_line("R17LOG", {"event": "win_observation_degraded",
-                                        "reason": "no_powershell_interop"})
-            return False
         ps1_guest = Path(self.args.win_sampler_ps1)
-        if not ps1_guest.is_file():
-            self.log({"event": "win_sampler_unavailable",
-                      "reason": f"ps1 不存在: {ps1_guest}"
-                      "(.ps1 须在发布仓库 Windows 侧路径)"})
+        controller_guest = ps1_guest.with_name('r17_win_sampler_control.ps1')
+        companion = [controller_guest, ps1_guest.with_name('r17_win_sampler_lifecycle.ps1'),
+                     ps1_guest.with_name('r17_win_process.cs')]
+        if not ps or not ps1_guest.is_file() or not all(p.is_file() for p in companion):
+            self.log({'event': 'win_sampler_unavailable',
+                      'reason': 'native sampler/control implementation incomplete or PowerShell unavailable'})
             return False
+        control_dir = self.run_dir / 'native_sampler'
         ps1_win = self._wslpath(ps1_guest)
         out_win = self._wslpath(self.win_path_guest)
-        if not ps1_win or not out_win:
-            self.log({"event": "win_sampler_unavailable",
-                      "reason": "wslpath 解析失败"})
+        control_win = self._wslpath(control_dir)
+        controller_win = self._wslpath(controller_guest)
+        if not all((ps1_win, out_win, control_win, controller_win)):
+            self.log({'event': 'win_sampler_unavailable', 'reason': 'native control path conversion failed'})
             return False
-        # 应急目录:宿主 LOCALAPPDATA(独立故障域;一次 interop 查询+缓存;
-        # §5.3:只在启动时解析一次,emergency_write 只写该目录)。
-        # 两种形态:win 形式传 ps1 参数;guest 形式供本进程写。
-        self.emergency_win_dir_win: str | None = None
+        # Resolve auxiliary paths only at startup, not inside the shared shutdown budget.
+        self.emergency_win_dir_win = None
         try:
-            r = subprocess.run([ps, "-NoProfile", "-Command",
-                                "$env:LOCALAPPDATA"],
+            r = subprocess.run([ps, '-NoProfile', '-Command', '$env:LOCALAPPDATA'],
                                capture_output=True, timeout=30, check=True)
-            la = r.stdout.decode("utf-8", "replace").strip().rstrip("\\")
+            la = r.stdout.decode('utf-8', 'replace').strip().rstrip('\\')
             la_guest = self._wslpath_win2guest(la)
-            self.emergency_win_dir_win = la + "\\r17_supervision_emergency"
-            self.emergency_win_dir = (
-                str(Path(la_guest) / "r17_supervision_emergency")
-                if la_guest else None)
+            self.emergency_win_dir_win = la + '\\r17_supervision_emergency'
+            self.emergency_win_dir = str(Path(la_guest) / 'r17_supervision_emergency') if la_guest else None
         except (OSError, subprocess.SubprocessError):
             self.emergency_win_dir = None
-        max_s = int(self.policy["default_max_seconds"]
-                    + self.policy["finalize_window_s"] + 60)
-        argv = [ps, "-NoProfile", "-ExecutionPolicy", "Bypass",
-                "-File", ps1_win, "-RunId", self.run_id,
-                "-OutFile", out_win, "-MaxSeconds", str(max_s),
-                "-Volumes", self.args.win_volumes, "-IntervalSeconds", "5"]
+        self._native_win = NativeSamplerControl(
+            self.run_id, control_dir, self.win_path_guest, out_win, control_win, ps,
+            controller_win, int(self.policy['telemetry_budget_bytes']))
+        # Declared before spawn, retained as missing on failures. Do not shrink required.
+        self.expected.extend(self._native_win.required())
+        max_s = int(self.policy['default_max_seconds'] + self.policy['finalize_window_s'] + 60)
+        argv = [ps, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1_win,
+                '-RunId', self.run_id, '-OutFile', out_win, '-MaxSeconds', str(max_s),
+                '-Volumes', self.args.win_volumes, '-IntervalSeconds', '5',
+                '-ControlDirectory', control_win, '-InstanceToken', self._native_win.token]
         if self.emergency_win_dir_win:
-            argv += ["-EmergencyDir", self.emergency_win_dir_win]
-        self.win_proc = subprocess.Popen(
-            argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            start_new_session=True)
-        self.win_reader = WinSampleReader(
-            self.win_path_guest, run_id=self.run_id,
-            started_iso=self._started_utc,
-            predates_tolerance_s=self.policy["startup_admission"][
-                "source_utc_tolerance_s"])
+            argv += ['-EmergencyDir', self.emergency_win_dir_win]
+        # Conservative lifecycle fact set before Popen: an ambiguous startup cannot look never-started.
         self.win_sampler_started = True
-        self.log({"event": "win_sampler_started",
-                  "interop_pid": self.win_proc.pid,
-                  "out_guest": str(self.win_path_guest),
-                  "emergency_win_dir": self.emergency_win_dir,
-                  "max_seconds": max_s})
-        return True
+        self._win_close_state = {'started': True, 'unconfirmed': True,
+                                 'native_exit_confirmed': False, 'exited': False}
+        self.win_proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
+                                         stderr=subprocess.DEVNULL, start_new_session=True)
+        self.win_reader = WinSampleReader(
+            self.win_path_guest, run_id=self.run_id, started_iso=self._started_utc,
+            predates_tolerance_s=self.policy['startup_admission']['source_utc_tolerance_s'])
+        self.log({'event': 'win_sampler_started', 'interop_pid': self.win_proc.pid,
+                  'out_guest': str(self.win_path_guest), 'control_dir': str(control_dir),
+                  'max_seconds': max_s, 'native_confirmation_required': True})
+        try:
+            ident = self._native_win.wait_identity(
+                time.monotonic() + min(15.0, float(getattr(self.args, 'obs_ready_deadline', 30) or 30)),
+                cancelled=lambda: self._external_stop_sig is not None)
+            self.win_pid_windows = ident['pid']
+            self.log({'event': 'win_sampler_native_identity', 'windows_pid': ident['pid'],
+                      'creation_filetime': ident['creation_filetime'],
+                      'token': ident['token'], 'run_id': self.run_id})
+            return True
+        except (OSError, ValueError, TypeError, RuntimeError) as exc:
+            self.log({'event': 'win_sampler_identity_unconfirmed', 'error': str(exc)[:300]})
+            return False
 
     def stop_win_sampler(self) -> None:
-        # WP1-B:辅助采样器停止也属于收尾链——建立/复用本 run 唯一
-        # 预算,等待只消费剩余时间(§5.1:辅助采样与写者关闭阶段)。
-        self._ensure_finalize_budget("stop_win_sampler")
-        if self.win_proc is None:
+        self._ensure_finalize_budget('stop_win_sampler')
+        if not getattr(self, 'win_sampler_started', False) and self.win_proc is None:
             return
-        pid = self.win_proc.pid
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        wait_allow = self._bounded_wait(10.0, "win_sampler_join")
-        # WP2-B(SFB-03):所等候句柄=启动本 run 采样器的 interop 进程,
-        # ps1 由该进程 -File 直跑并以 AppendAllText 写 OutFile(无子
-        # 写进程)——wait 返回即实际写者退出。timeout 不能生成"已停止"
-        # 事实:超时/退出核验不可用时记录"已请求、未确认",必要遥测
-        # 流的可变性保留(完整性判定消费 _win_close_state,不写 stopped)。
-        self._win_close_state = {
-            "stop_requested": True, "interop_pid": pid,
-            "waited": False, "exited": False, "unconfirmed": True}
-        try:
-            self.win_proc.wait(timeout=wait_allow)
-            self._win_close_state.update(
-                {"waited": True, "exited": True, "unconfirmed": False})
-            self.log({"event": "win_sampler_stopped",
-                      "interop_pid": pid,
-                      "windows_pid": self.win_pid_windows})
-        except subprocess.TimeoutExpired:
-            self._win_close_state.update({"waited": True})
-            self.log({"event": "win_sampler_stop_unconfirmed",
-                      "interop_pid": pid,
-                      "budget_remaining_s":
-                          round(self._finalize_remaining(), 3),
-                      "note": "停止已请求、完成未确认(受控等待只"
-                              "消费剩余预算;不无限等;不得记录为已停"
-                              "止;telemetry_win 流不进入完整证据判定)"})
+        # This fact is written before any fallible call. Interop.wait can NEVER set native_exited.
+        native = getattr(self, '_native_win', None)
+        if native is None:
+            self._win_close_state = {'started': True, 'stop_requested': False,
+                'exited': False, 'native_exit_confirmed': False, 'unconfirmed': True,
+                'errors': ['native lifecycle identity unavailable; refusing bare-PID termination']}
+        else:
+            allowed = self._bounded_wait(30.0, 'win_native_stop_confirm')
+            self._win_close_state = native.close(min(self._finalize_deadline,
+                                                     time.monotonic() + allowed))
+        state = self._win_close_state
+        state['interop_pid'] = self.win_proc.pid if self.win_proc else None
+        # Reap the transport after native handling. Transport death is not native exit evidence.
+        if self.win_proc is not None:
+            try:
+                if self.win_proc.poll() is None:
+                    self.win_proc.terminate()
+                self.win_proc.wait(timeout=self._bounded_wait(1.0, 'win_interop_reap'))
+                state['interop_exited'] = True
+            except (OSError, subprocess.SubprocessError) as exc:
+                state['interop_exited'] = False
+                state['interop_reap_error'] = f'{type(exc).__name__}: {exc}'[:200]
+        self.log({'event': ('win_sampler_stopped' if not state.get('unconfirmed', True)
+                            else 'win_sampler_stop_unconfirmed'),
+                  'interop_pid': state.get('interop_pid'),
+                  'windows_pid': state.get('windows_pid', self.win_pid_windows),
+                  'creation_filetime': state.get('creation_filetime'),
+                  'native_exit_confirmed': state.get('native_exit_confirmed', False),
+                  'terminal_verified': state.get('terminal_verified', False),
+                  'forced': state.get('forced', False),
+                  'errors': state.get('errors', []),
+                  'budget_remaining_s': round(self._finalize_remaining(), 3)})
 
     # ---------------- 业务任务 ----------------
     def spawn_business(self) -> int:
@@ -2064,6 +2070,12 @@ class Supervisor:
         WP2-B(fail-closed):已知必要发布失败=必要结果证据不完整
         ——即使最终路径上有字节可读、哈希可算(残片/旧件不能抵消
         已知失败;标志在本 run 内粘性,不因重入清除)。"""
+        if getattr(self, 'win_sampler_started', False):
+            native_close = self._win_close_state or {}
+            if (native_close.get('native_exit_confirmed') is not True or
+                    native_close.get('terminal_verified') is not True or
+                    native_close.get('unconfirmed') is not False):
+                return False
         if missing:
             return False
         if self._summary_publish_failed:
@@ -2106,6 +2118,14 @@ class Supervisor:
         WP2-A(fail-closed):declared:<role>(--expect-artifact 显式
         登记的规范角色)继承同名角色的写者映射——登记通道不改变
         该流的写者事实。"""
+        native_role = role.split(':', 1)[1] if role.startswith('declared:') else role
+        if native_role == 'telemetry_win' or native_role.startswith('native_sampler_'):
+            if not getattr(self, 'win_sampler_started', False):
+                return False
+            native_close = self._win_close_state or {}
+            return not (native_close.get('native_exit_confirmed') is True and
+                        native_close.get('terminal_verified') is True and
+                        native_close.get('unconfirmed') is False)
         if role.startswith("declared:"):
             role = role.split(":", 1)[1]
         if role in ("business_stdout", "business_stderr"):
