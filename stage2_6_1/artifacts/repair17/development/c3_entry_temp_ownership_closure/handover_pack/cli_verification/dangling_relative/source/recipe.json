@@ -1,0 +1,130 @@
+{
+ "format": "r17-c3-engineering-slice-recipe-v1",
+ "engineering_only": true,
+ "purpose": "engineering generation-to-evaluation slice; NOT a formal workflow, NOT a calibration corpus, NOT qualification evidence",
+ "namespace": "preplan_calibration_main_r17",
+ "family": "c3_cost",
+ "requests": [
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D0",
+   "pair_index": 0
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D0",
+   "pair_index": 1
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D1",
+   "pair_index": 0
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D1",
+   "pair_index": 1
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D2",
+   "pair_index": 0
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D2",
+   "pair_index": 1
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D3",
+   "pair_index": 0
+  },
+  {
+   "namespace": "preplan_calibration_main_r17",
+   "family": "c3_cost",
+   "rung": "D3",
+   "pair_index": 1
+  }
+ ],
+ "n_requests": 8,
+ "max_attempts": 5,
+ "attempts_policy": "existing first_pass, max 5 (API unchanged)",
+ "rung_params": {
+  "D0": {
+   "alpha_bps": 70.0,
+   "payoff_bars": 1,
+   "vol_bps": 18.0,
+   "cue_rate": 0.2,
+   "mixture": [
+    0.6,
+    0.25,
+    0.15
+   ],
+   "distractor_rate": 0.015
+  },
+  "D1": {
+   "alpha_bps": 62.0,
+   "payoff_bars": 1,
+   "vol_bps": 18.0,
+   "cue_rate": 0.21,
+   "mixture": [
+    0.46,
+    0.32,
+    0.22
+   ],
+   "distractor_rate": 0.025
+  },
+  "D2": {
+   "alpha_bps": 54.0,
+   "payoff_bars": 1,
+   "vol_bps": 18.0,
+   "cue_rate": 0.22,
+   "mixture": [
+    0.34,
+    0.35,
+    0.31
+   ],
+   "distractor_rate": 0.04
+  },
+  "D3": {
+   "alpha_bps": 46.0,
+   "payoff_bars": 1,
+   "vol_bps": 18.0,
+   "cue_rate": 0.23,
+   "mixture": [
+    0.14,
+    0.36,
+    0.5
+   ],
+   "distractor_rate": 0.06
+  }
+ },
+ "reference_defaults": {
+  "margin": 1.1,
+  "any_signal_s": 0.22
+ },
+ "generator_identity": {
+  "module": "rl_curriculum.curriculum261_c3",
+  "source_file_stem": "curriculum261_c3",
+  "source_sha256": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+  "class": "rl_curriculum.curriculum261_c3.C3CostAwareGenerator",
+  "family": "c3_cost",
+  "family_version": "cur261-c3-v4",
+  "fingerprint": "g-0fad084e33886f0a979d04f75969b061428fe10079a0f7e5a7dc6b3989dbefaa"
+ },
+ "negative_control": {
+  "namespace": "rt3_calibration_main_r17",
+  "family": "c3_cost",
+  "rung": "D0",
+  "pair_index": 52
+ },
+ "frozen_utc": "2026-09-08T16:45:45Z"
+}

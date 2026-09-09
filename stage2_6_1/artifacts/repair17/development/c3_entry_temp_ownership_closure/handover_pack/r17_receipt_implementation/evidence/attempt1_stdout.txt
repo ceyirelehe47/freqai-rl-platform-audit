@@ -1,0 +1,157 @@
+................................................F....                    [100%]
+=================================== FAILURES ===================================
+_____________ test_candidate_update_cannot_follow_a_terminal_link ______________
+
+mod = <module 'r17_receipt_under_test' from '/mnt/data/r17_receipt_implementation/implementation/receipt_block.py'>
+roots = (PosixPath('/tmp/pytest-of-root/pytest-0/test_candidate_update_cannot_f0/source'), PosixPath('/tmp/pytest-of-root/pyte...idate_update_cannot_f0/receipts'), PosixPath('/tmp/pytest-of-root/pytest-0/test_candidate_update_cannot_f0/elsewhere'))
+
+    def test_candidate_update_cannot_follow_a_terminal_link(mod, roots):
+        source, out, other = roots
+        owned = other / 'owned.json'
+        oid = mod._atomic_write_receipt(owned, {'v': 1})
+        link = out / 'r.json'
+        link.symlink_to(owned)
+        before = tree(source.parent)
+        with pytest.raises(mod.ReceiptWriteError):
+            mod._atomic_write_receipt(link, {'v': 2}, owned_id=oid)
+>       assert tree(source.parent) == before
+E       assert {'.': (16832,...ctory>'), ...} == {'.': (16832,...ctory>'), ...}
+E         
+E         Omitting 7 identical items, use -vv to show
+E         Differing items:
+E         {'receipts': (16877, 28, 1311886, 1788953631669028910, '<directory>')} != {'receipts': (16877, 28, 1311886, 1788953631668525140, '<directory>')}
+E         
+E         Full diff:
+E           {
+E               '.': (
+E                   16832,
+E                   28,
+E                   1311881,
+E                   1788953631668140255,
+E                   '<directory>',
+E               ),
+E               'elsewhere': (
+E                   16877,
+E                   28,
+E                   1311887,
+E                   1788953631668473865,
+E                   '<directory>',
+E               ),
+E               'elsewhere/owned.json': (
+E                   33152,
+E                   28,
+E                   1311888,
+E                   1788953631668473865,
+E                   b'{\n "v": 1\n}',
+E               ),
+E               'receipts': (
+E                   16877,
+E                   28,
+E                   1311886,
+E         -         1788953631668525140,
+E         ?                      ^^^ -
+E         +         1788953631669028910,
+E         ?                     +++ ^
+E                   '<directory>',
+E               ),
+E               'receipts/r.json': (
+E                   41471,
+E                   28,
+E                   1311889,
+E                   1788953631668525140,
+E                   '/tmp/pytest-of-root/pytest-0/test_candidate_update_cannot_f0/elsewhere/owned.json',
+E               ),
+E               'source': (
+E                   16877,
+E                   28,
+E                   1311883,
+E                   1788953631668140255,
+E                   '<directory>',
+E               ),
+E               'source/child': (
+E                   16877,
+E                   28,
+E                   1311885,
+E                   1788953631668140255,
+E                   '<directory>',
+E               ),
+E               'source/recipe.json': (
+E                   33188,
+E                   28,
+E                   1311884,
+E                   1788953631668140255,
+E                   b'{"keep": true}',
+E               ),
+E           }
+
+mnt/data/r17_receipt_implementation/tests/test_curriculum261_r17_receipt_entry_cleanup_unit.py:407: AssertionError
+=========================== short test summary info ============================
+FAILED mnt/data/r17_receipt_implementation/tests/test_curriculum261_r17_receipt_entry_cleanup_unit.py::test_candidate_update_cannot_follow_a_terminal_link - assert {'.': (16832,...ctory>'), ...} == {'.': (16832,...ctory>'), ...}
+  
+  Omitting 7 identical items, use -vv to show
+  Differing items:
+  {'receipts': (16877, 28, 1311886, 1788953631669028910, '<directory>')} != {'receipts': (16877, 28, 1311886, 1788953631668525140, '<directory>')}
+  
+  Full diff:
+    {
+        '.': (
+            16832,
+            28,
+            1311881,
+            1788953631668140255,
+            '<directory>',
+        ),
+        'elsewhere': (
+            16877,
+            28,
+            1311887,
+            1788953631668473865,
+            '<directory>',
+        ),
+        'elsewhere/owned.json': (
+            33152,
+            28,
+            1311888,
+            1788953631668473865,
+            b'{\n "v": 1\n}',
+        ),
+        'receipts': (
+            16877,
+            28,
+            1311886,
+  -         1788953631668525140,
+  ?                      ^^^ -
+  +         1788953631669028910,
+  ?                     +++ ^
+            '<directory>',
+        ),
+        'receipts/r.json': (
+            41471,
+            28,
+            1311889,
+            1788953631668525140,
+            '/tmp/pytest-of-root/pytest-0/test_candidate_update_cannot_f0/elsewhere/owned.json',
+        ),
+        'source': (
+            16877,
+            28,
+            1311883,
+            1788953631668140255,
+            '<directory>',
+        ),
+        'source/child': (
+            16877,
+            28,
+            1311885,
+            1788953631668140255,
+            '<directory>',
+        ),
+        'source/recipe.json': (
+            33188,
+            28,
+            1311884,
+            1788953631668140255,
+            b'{"keep": true}',
+        ),
+    }
+1 failed, 52 passed in 0.20s

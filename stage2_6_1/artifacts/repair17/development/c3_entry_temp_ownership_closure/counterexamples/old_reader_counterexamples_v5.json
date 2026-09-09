@@ -1,0 +1,76 @@
+{
+ "schema": "r17-c3-entry-temp-old-counterexamples-v1",
+ "reader": "/tmp/c3eto_old_reader_v5/runner/r17_c3_engineering_slice.py",
+ "reader_sha256": "9869ea6ccc319e7ebf6ad85cf3b70e669fcf59baeb11e46dc730aa8198853886",
+ "orig_slice": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_evidence_generation_slice/engineering_slice",
+ "p52": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json",
+ "cases": {
+  "ce1_crossdir_dangling_end_link": {
+   "scenario": "CE1 cross-dir dangling end link: receipts/result.json -> ../elsewhere/missing.json",
+   "report_arg": "/tmp/c3eto_ce1_ddihxkgc/case/receipts/result.json",
+   "rc": 0,
+   "stdout_tail": "readback_verdict: PASS\nn_problems: 0\nreport: /tmp/c3eto_ce1_ddihxkgc/case/elsewhere/missing.json\n",
+   "stderr_tail": "",
+   "missing_target_created": true,
+   "link_entry_after": [
+    "symlink",
+    "../elsewhere/missing.json"
+   ],
+   "tree_changed": {
+    "elsewhere/missing.json": [
+     null,
+     [
+      "file",
+      "37f00d733c4208de53e3fd3c5adacf6357f16195d36d5f4042a7ea72adf9dce2",
+      2428
+     ]
+    ]
+   },
+   "old_defect_reproduced": true
+  },
+  "ce2_notdir_ancestor": {
+   "scenario": "CE2 ordinary file as path ancestor",
+   "variant_a": {
+    "report_arg": "/tmp/c3eto_ce2_lu9u9hgb/case/f/../new_receipt_a.json",
+    "rc": 0,
+    "stderr_tail": "",
+    "sibling_created_after_collapse": true
+   },
+   "variant_b": {
+    "report_arg": "/tmp/c3eto_ce2_lu9u9hgb/case/f/new_receipt_b.json",
+    "rc": 6,
+    "stderr_tail": "receipt write failed: 回执写失败: FileExistsError: [Errno 17] File exists: '/tmp/c3eto_ce2_lu9u9hgb/case/f' (目标: /tmp/c3eto_ce2_lu9u9hgb/case/f/new_receipt_b.json)\n",
+    "under_file_created": false,
+    "file_f_still_file": true
+   },
+   "old_defect_reproduced": true
+  },
+  "ce3_temp_collision_deletes_foreign": {
+   "scenario": "CE3 forced temp-name collision with foreign object; cleanup deletes objects the call never created",
+   "variant_a_plain_file": {
+    "tmp_path": "/tmp/c3eto_ce3_zik0kpg2/out_a/.result.json.64818.20260909T120000000000.tmp",
+    "error": "ReceiptWriteError: 回执写失败: FileExistsError: [Errno 17] File exists: '/tmp/c3eto_ce3_zik0kpg2/out_a/.result.json.64818.20260909T120000000000.tmp' (目标: /tmp/c3eto_ce3_zik0kpg2/out_a/result.json)",
+    "foreign_before": [
+     "b557d4243544856c97b4d7af9d65903cc99b7e9e9f1f53814f0c0fa82f84cafc",
+     [
+      2096,
+      503308,
+      24,
+      1788953201974510411
+     ]
+    ],
+    "foreign_after": null,
+    "foreign_deleted_by_failed_create": true,
+    "final_target_created": false
+   },
+   "variant_b_link_entry": {
+    "tmp_path": "/tmp/c3eto_ce3_zik0kpg2/out_b/.result.json.64818.20260909T120000000000.tmp",
+    "error": "ReceiptWriteError: 回执写失败: FileExistsError: [Errno 17] File exists: '/tmp/c3eto_ce3_zik0kpg2/out_b/.result.json.64818.20260909T120000000000.tmp' (目标: /tmp/c3eto_ce3_zik0kpg2/out_b/result.json)",
+    "link_after": null,
+    "victim_intact": true,
+    "final_target_created": false
+   },
+   "old_defect_reproduced": true
+  }
+ }
+}

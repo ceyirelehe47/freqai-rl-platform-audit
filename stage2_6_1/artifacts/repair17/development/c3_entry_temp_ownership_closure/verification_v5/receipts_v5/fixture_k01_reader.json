@@ -1,0 +1,126 @@
+{
+ "format": "r17-c3-engineering-slice-readback-v5",
+ "engineering_only": true,
+ "readback_verdict": "FAIL",
+ "n_problems": 1,
+ "problems": [
+  {
+   "check": "envelope_base_params_required_keys",
+   "where": "D0/p0@line1:env0:A",
+   "expected": {
+    "required": [
+     "alpha_bps",
+     "payoff_bars",
+     "vol_bps",
+     "cue_rate",
+     "mixture",
+     "distractor_rate"
+    ],
+    "note": "必要课程键必须存在(固定合同,与 recipe 是否缺键无关)"
+   },
+   "actual": {
+    "missing": [
+     "alpha_bps"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "source_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/tmp_fixture_k01/payload/engineering_slice",
+  "index_rows_n": 8,
+  "detail_digest": {
+   "D0/p0@line1": true,
+   "D0/p1@line2": true,
+   "D1/p0@line3": true,
+   "D1/p1@line4": true,
+   "D2/p0@line5": true,
+   "D2/p1@line6": true,
+   "D3/p0@line7": true,
+   "D3/p1@line8": true
+  },
+  "envelope_digest": {
+   "D0/p0@line1:env0": true,
+   "D0/p1@line2:env0": true,
+   "D1/p0@line3:env0": true,
+   "D1/p1@line4:env0": true,
+   "D2/p0@line5:env0": true,
+   "D2/p1@line6:env0": true,
+   "D3/p0@line7:env0": true,
+   "D3/p1@line8:env0": true
+  },
+  "p52_n_envelopes": 5,
+  "p52_orig_call_digest_recomputed": true,
+  "p52_identity_body": {
+   "env0": true,
+   "env1": true,
+   "env2": true,
+   "env3": true,
+   "env4": true
+  },
+  "accepted_coords": [
+   "D0/p0",
+   "D0/p1",
+   "D1/p0",
+   "D1/p1",
+   "D2/p0",
+   "D2/p1",
+   "D3/p0",
+   "D3/p1"
+  ],
+  "rejected_coords": [],
+  "source_snapshot_identical": true
+ },
+ "expected_contract": {
+  "namespace": "preplan_calibration_main_r17",
+  "family": "c3_cost",
+  "requests": [
+   [
+    "D0",
+    0
+   ],
+   [
+    "D0",
+    1
+   ],
+   [
+    "D1",
+    0
+   ],
+   [
+    "D1",
+    1
+   ],
+   [
+    "D2",
+    0
+   ],
+   [
+    "D2",
+    1
+   ],
+   [
+    "D3",
+    0
+   ],
+   [
+    "D3",
+    1
+   ]
+  ],
+  "max_attempts": 5,
+  "negative_control_required": true,
+  "p52_envelope_source": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/tmp_fixture_k01/payload/p52_envelope/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+ },
+ "report_target_admission": {
+  "report_path": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/receipts_v5/fixture_k01_reader.json",
+  "confirmed_target": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/receipts_v5/fixture_k01_reader.json",
+  "protect_roots": [
+   "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/tmp_fixture_k01/payload/engineering_slice",
+   "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_entry_temp_ownership_closure/verification_v5/tmp_fixture_k01/payload/p52_envelope/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+  ],
+  "admitted": true,
+  "note": "写前准入已通过;确认目标(含临时件父目录)不与只读输入重叠且本次调用前不存在;全部写入消费该确认目标,发布只创建不替换"
+ },
+ "reader_sha256": "559fd51cb6775502bd7deff95bb779a6d3a75b5ccac8fef3c51be5fd2f0b0e1c",
+ "read_utc": "2026-09-09T11:26:35Z"
+}

@@ -1,0 +1,42 @@
+{
+ "schema": "c3-eto-cold-read-v5",
+ "isolated": {
+  "unshare_rc": 0,
+  "verify_rc": 0,
+  "reader_rc": 0,
+  "semantic_receipt_ok": true,
+  "payload_snapshot_identical": true,
+  "ok": true
+ },
+ "negatives": {
+  "neg_p01_rc": 2,
+  "neg_p01_missing_created": "no",
+  "neg_p01_link_intact": "yes",
+  "neg_p03a_rc": 2,
+  "neg_p03b_rc": 2,
+  "neg_p03_sibling_created": "no",
+  "neg_p03_under_created": "no",
+  "neg_t01": {
+   "rc": 0,
+   "error": "ReceiptWriteError",
+   "foreign_bytes_unchanged": "yes",
+   "final_target_not_created": "yes"
+  },
+  "neg_p06_rc": 2,
+  "neg_k01": {
+   "verifier": 0,
+   "reader": 1,
+   "problem_checks": [
+    "envelope_base_params_required_keys"
+   ]
+  },
+  "ok": {
+   "neg_p01_crossdir_dangling_rejected_no_target_created": true,
+   "neg_p03_notdir_ancestor_both_forms_rejected": true,
+   "neg_t01_collision_keeps_foreign_object": true,
+   "neg_p06_symlink_dotdot_rejected_zero_changes": true,
+   "neg_k01_missing_key_verifier0_reader1": true
+  }
+ },
+ "ok": true
+}

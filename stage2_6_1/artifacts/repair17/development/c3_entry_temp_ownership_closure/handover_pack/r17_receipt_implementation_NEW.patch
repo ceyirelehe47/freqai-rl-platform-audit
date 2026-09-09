@@ -1,0 +1,897 @@
+diff --git a/stage2_6_1/runner/r17_c3_engineering_slice.py b/stage2_6_1/runner/r17_c3_engineering_slice.py
+--- a/stage2_6_1/runner/r17_c3_engineering_slice.py
++++ b/stage2_6_1/runner/r17_c3_engineering_slice.py
+@@ -527,149 +527,266 @@
+         return f"<canonical-error:{type(exc).__name__}:{exc}>"
+ 
+ 
+-# ---------------------------------------- 回执写入隔离(WP2,写前准入)
++# ---------------------------------------- 回执入口与临时件所有权
++# This block is inserted into r17_c3_engineering_slice.py without adding a
++# runtime dependency. Its imports also permit testing the exact block alone.
++import errno as _receipt_errno
++import stat as _receipt_stat
++import json
++import os
++from datetime import datetime, timezone
++from pathlib import Path
++
++
+ class ReportTargetRejected(Exception):
+-    """回执/临时件目标与只读输入重叠(准入拒绝;零源写入)。"""
++    """回执目标未通过写前准入；不得为本次回执创建任何对象。"""
+ 
+ 
+ class ReceiptWriteError(Exception):
+-    """回执目标已通过准入但落盘失败(不输出完成 PASS)。"""
++    """写入/发布/清理失败；保留首个错误及所有后续清理错误。"""
++
++    def __init__(self, message, *, primary_error=None, cleanup_errors=(),
++                 temporary_path=None, published_path=None):
++        super().__init__(message)
++        self.primary_error = primary_error
++        self.cleanup_errors = tuple(cleanup_errors)
++        self.temporary_path = temporary_path
++        self.published_path = published_path
++
++
++def _receipt_absolute(p: Path) -> Path:
++    """固定相对路径基准，保留尚未经过文件系统解析的 '..'。"""
++    raw = os.fspath(p)
++    if not isinstance(raw, str) or not raw or '\x00' in raw:
++        raise ReportTargetRejected(f"非法回执/输入路径: {raw!r}")
++    path = Path(raw)
++    return path if path.is_absolute() else Path.cwd() / path
+ 
+ 
+ def _resolve_target_strict(p: Path) -> Path:
+-    """按真实文件系统语义解析目标(检查与写入共用的唯一语义)。
+-
+-    - 相对路径以进程 cwd 一次采样为基准,工作目录差异不改变解析结果
+-      所指的实际位置;
+-    - realpath 逐组件解析已存在部分的符号链接,不对"链接后再 .."
+-      做词法折叠 —— alias/.. 与 OS 打开该路径时落在同一位置
+-      (abspath/normpath 会先消掉 alias/.. 得出另一个目录,禁止);
+-    - 不存在部分原样拼接在已解析祖先之后;
+-    - 解析失败(权限/循环等 OSError)按歧义拒绝,不静默改写到
+-      另一个位置后返回成功。
++    """严格解析现存部分，只允许普通、向下的新建后缀。
++
++    不使用 strict=False，也不依赖 ALLOW_MISSING 的版本存在性。
++    先让标准库严格解析完整路径；只有 ENOENT 才逐级剥离缺失的
++    普通末端组件，再将该后缀接到严格确认的现存目录上。现存但
++    无法解析的链接、缺失后缀中的 '..'、ENOTDIR/EACCES/ELOOP 等
++    均拒绝。不是自行实现链接展开，也不词法消除链接后的 '..'。
+     """
+-    if not p.is_absolute():
+-        p = Path(os.getcwd()) / p
++    original = _receipt_absolute(p)
++    probe = original
++    missing: list[str] = []
+     try:
+-        return Path(os.path.realpath(p, strict=False))
+-    except OSError as exc:
++        # Ask the kernel about the original, uncollapsed path first. This
++        # prevents a library's canonicalization from hiding ENOTDIR at
++        # e.g. file/../new, including across Python maintenance versions.
++        try:
++            os.lstat(original)
++        except FileNotFoundError:
++            pass
++        while True:
++            try:
++                resolved = Path(os.path.realpath(probe, strict=True))
++            except FileNotFoundError:
++                if probe.parent == probe or probe.name in ('', '.', '..'):
++                    raise ReportTargetRejected(
++                        f"缺失祖先/后缀无法可靠解析: {original}")
++                # Strict resolution can fail because an EXISTING link is
++                # dangling. That is not an ordinary missing component.
++                try:
++                    os.lstat(probe)
++                except FileNotFoundError:
++                    missing.append(probe.name)
++                    probe = probe.parent
++                    continue
++                raise ReportTargetRejected(
++                    f"现存条目无法严格解析(悬空祖先等): {probe}")
++            if missing:
++                st = os.stat(resolved)
++                if not _receipt_stat.S_ISDIR(st.st_mode):
++                    raise NotADirectoryError(
++                        _receipt_errno.ENOTDIR,
++                        '新建后缀的现存祖先不是目录', str(resolved))
++            return resolved.joinpath(*reversed(missing))
++    except (OSError, ValueError, RuntimeError) as exc:
+         raise ReportTargetRejected(
+-            f"目标路径无法可靠解析(拒绝而非改写): {p} "
+-            f"({type(exc).__name__}: {exc})") from exc
++            f"路径解析失败，拒绝写入: {original}; "
++            f"{type(exc).__name__}(errno={getattr(exc, 'errno', None)}): "
++            f"{exc}") from exc
++
++
++def _receipt_lstat_or_missing(path: Path):
++    """只把 FileNotFoundError 当成缺失；其他错误不得吞成 False。"""
++    try:
++        return os.lstat(path)
++    except FileNotFoundError:
++        return None
++    except (OSError, ValueError) as exc:
++        raise ReportTargetRejected(
++            f"无法确认目录条目: {path}; "
++            f"{type(exc).__name__}(errno={getattr(exc, 'errno', None)}): "
++            f"{exc}") from exc
+ 
+ 
+ def _assert_report_target_safe(report_path: Path,
+                                protect_roots: list) -> Path:
+-    """写前准入:返回确认后的回执最终路径(本次调用的唯一写入目标)。
+-
+-    后续创建目录/打开临时件/发布/存在性检查与回执输出全部消费该
+-    确认结果 —— 检查目标与实际使用目标是同一个对象。规则:
+-
+-    1. 目标、目标父目录(临时件所在)与全部保护根按真实文件系统
+-       语义解析(见 _resolve_target_strict);确认目标或其父目录
+-       落在任何保护根之内即拒绝(真实父子关系,非字符串前缀;
+-       同名前缀兄弟目录不受影响);
+-    2. 本次调用开始前已存在的最终目标一律拒绝(任何形态:有效
+-       JSON/空文件/普通文件/目录/链接条目;lexists 判定)——
+-       已有显式目标不覆盖,新结果另存;
+-    3. 词法最终组件是符号链接条目(即使其目标不存在/在保护外)
+-       拒绝,不跟随写入;
+-    4. 固定名临时件链接指向只读输入时拒绝(fail closed)。
+-
+-    无法安全确定时一律拒绝。本函数在任何创建目录/打开临时件/写入
+-    之前调用;目标可以不存在,但其可确认的祖先参与第 1 条判定
+-    (经链接解析落在源内的新嵌套目标同样在此被拒)。
++    """原末端条目不跟随检查；所有写入消费返回的同一确认目标。
++
++    静态路径/链接及普通 I/O 故障范围。并非抵御管理员在准入后
++    并发替换祖先目录的通用沙箱。原末端任何条目存在都拒绝，即使
++    它是跨目录悬空链接。允许指向健康安全目录的父目录链接。
+     """
+-    target = _resolve_target_strict(report_path)
+-    target_dir = _resolve_target_strict(report_path.parent)
+-    for prot in protect_roots:
+-        prot_r = _resolve_target_strict(Path(prot))
+-        for t, label in ((target, "report"), (target_dir, "report_dir")):
+-            if t == prot_r or prot_r in t.parents:
+-                raise ReportTargetRejected(
+-                    f"{label} 目标位于只读输入之内: {t} ⊆ {prot_r}")
+-    # 本次调用前已存在的最终目标:一律拒绝,不覆盖已有结果
+-    if os.path.lexists(target):
++    raw = _receipt_absolute(report_path)
++    if raw.name in ('', '.', '..'):
++        raise ReportTargetRejected(f"回执需要新文件名: {raw}")
++
++    # Resolve the ORIGINAL PARENT, not the symlink target's parent. This
++    # preserves the identity of the terminal directory entry for lstat.
++    parent = _resolve_target_strict(raw.parent)
++    parent_st = _receipt_lstat_or_missing(parent)
++    if parent_st is not None and not _receipt_stat.S_ISDIR(parent_st.st_mode):
+         raise ReportTargetRejected(
+-            f"回执最终目标本次调用前已存在(已有显式目标不覆盖,"
+-            f"新结果请另存): {target}")
+-    # 词法最终组件是链接条目(含悬空):不跟随写入
+-    final_entry = (target.parent / report_path.name
+-                   if report_path.name else target)
+-    if final_entry != target and os.path.islink(final_entry):
++            f"回执父目录不是目录(ENOTDIR): {parent}")
++    target = parent / raw.name
++    if _receipt_lstat_or_missing(target) is not None:
+         raise ReportTargetRejected(
+-            f"回执最终目标是符号链接条目(不跟随写入,悬空同样"
+-            f"拒绝): {final_entry}")
+-    # 预置的固定名临时件链接:安全写从不使用固定 .tmp 名,但仍明确
+-    # 拒绝"目标目录内已存在指向输入的固定名链接"(fail closed)。
+-    fixed_tmp = report_path.with_suffix(report_path.suffix + ".tmp")
+-    if fixed_tmp.is_symlink():
+-        link_real = Path(os.path.realpath(fixed_tmp))
+-        for prot in protect_roots:
+-            prot_r = _resolve_target_strict(Path(prot))
+-            if link_real == prot_r or prot_r in link_real.parents:
+-                raise ReportTargetRejected(
+-                    f"固定名临时件是指向只读输入的链接: "
+-                    f"{fixed_tmp} -> {link_real}")
++            f"回执原末端条目已存在(链接含悬空同样拒绝，不覆盖): {target}")
++
++    protected = [_resolve_target_strict(Path(p)) for p in protect_roots]
++    for prot in protected:
++        if (target == prot or prot in target.parents
++                or parent == prot or prot in parent.parents):
++            raise ReportTargetRejected(
++                f"回执目标/临时件父目录位于只读输入内: {target} ⊆ {prot}")
++
++    # Preserve the earlier contract for a pre-set fixed .tmp link. The
++    # writer itself uses another exclusively created name.
++    fixed_tmp = target.with_suffix(target.suffix + '.tmp')
++    tmp_st = _receipt_lstat_or_missing(fixed_tmp)
++    if tmp_st is not None and _receipt_stat.S_ISLNK(tmp_st.st_mode):
++        raise ReportTargetRejected(
++            f"固定名临时件已是链接(不跟随、不清理): {fixed_tmp}")
+     return target
++
++
++def _receipt_remove_owned(path: Path, identity: tuple) -> None:
++    """只能删除本次创建且文件身份未改变的普通文件；缺失可接受。"""
++    try:
++        st = os.lstat(path)
++    except FileNotFoundError:
++        return
++    if (not _receipt_stat.S_ISREG(st.st_mode)
++            or (st.st_dev, st.st_ino) != tuple(identity)):
++        raise OSError(_receipt_errno.ESTALE,
++                      '本次对象的文件身份已改变，拒绝清理', str(path))
++    os.unlink(path)
+ 
+ 
+ def _atomic_write_receipt(path: Path, payload: dict,
+                           owned_id: tuple | None = None) -> tuple:
+-    """回执专用安全写:只创建不替换;或仅更新本次独占的未完成候选。
+-
+-    path 必须是 _assert_report_target_safe 返回的确认目标(所有
+-    mkdir/临时件/发布都作用在确认位置)。
+-
+-    - owned_id=None(首次发布):在目标父目录写唯一临时名(open 'x',
+-      不跟随预置链接),以 os.link(tmp, path) 原子创建最终目标 ——
+-      目标已存在时 FileExistsError,绝不替换既有文件(与
+-      os.replace 的本质区别);发布后删除临时件,返回新目标的
+-      (st_dev, st_ino) 供本次调用后续更新做所有权核对。
+-    - owned_id=(dev, ino)(更新本次未完成候选):仅当目标当前文件
+-      身份与 owned_id 一致才 os.replace(tmp, path);不一致(目标被
+-      外部更换)抛 ReceiptWriteError,不覆盖 —— 不把"先检查过目标
+-      不存在"当作后续无条件覆盖任意新出现目标的保证。
+-    - 失败清理只删除本次确实创建并拥有的临时件,不触碰任何其他
+-      对象;不回退写入任何未准入位置。
++    """只创建最终结果；更新仅限调用方传入的本次候选所有权。
++
++    路径必须来自共享准入的 confirmed。临时件只有在 os.open 的
++    O_EXCL 创建实际成功后才取得清理责任；包装/写入/flush/fsync/
++    close/发布失败分别保留。清理失败不遮盖初始错误。若发布后
++    清理失败，尝试撤下本次发布且身份仍一致的候选，避免遗留可被
++    误读为成功的本次回执；绝不回滚/删除其他调用的既有目标。
+     """
++    path = Path(path)
++    tmp = None
++    fd = None
++    stream = None
++    temp_created = False
++    temp_id = None
++    published = False
++    primary = None
++    cleanup_errors = []
++
+     try:
+         path.parent.mkdir(parents=True, exist_ok=True)
+-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+-        tmp = path.with_name(f".{path.name}.{os.getpid()}.{stamp}.tmp")
++        stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
++        tmp = path.with_name(f'.{path.name}.{os.getpid()}.{stamp}.tmp')
++        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
++        flags |= getattr(os, 'O_CLOEXEC', 0) | getattr(os, 'O_NOFOLLOW', 0)
++        fd = os.open(tmp, flags, 0o600)
++        temp_created = True  # ownership starts HERE, never at name choice
++        st = os.fstat(fd)
++        temp_id = (st.st_dev, st.st_ino)
++        stream = os.fdopen(fd, 'w', encoding='utf-8')
++        fd = None  # successfully transferred descriptor ownership
++        stream.write(json.dumps(payload, ensure_ascii=False, indent=1))
++        stream.flush()
++        os.fsync(stream.fileno())
++    except BaseException as exc:
++        primary = exc
++    finally:
++        # Do not let a close error replace a write/fsync error.
++        if stream is not None:
++            try:
++                stream.close()
++            except BaseException as exc:
++                cleanup_errors.append(exc)
++        if fd is not None:
++            try:
++                os.close(fd)
++            except BaseException as exc:
++                cleanup_errors.append(exc)
++
++    if primary is None and not cleanup_errors:
+         try:
+-            with open(tmp, "x", encoding="utf-8") as fh:
+-                fh.write(json.dumps(payload, ensure_ascii=False, indent=1))
+-                fh.flush()
+-                os.fsync(fh.fileno())
+             if owned_id is None:
+-                try:
+-                    os.link(tmp, path)
+-                except FileExistsError as exc:
+-                    raise ReceiptWriteError(
+-                        f"回执最终目标已存在(只创建不替换): {path}"
+-                    ) from exc
++                os.link(tmp, path)  # final-name collision never replaces it
+             else:
+-                st = os.stat(path)
+-                if (st.st_dev, st.st_ino) != tuple(owned_id):
+-                    raise ReceiptWriteError(
+-                        f"回执目标文件身份与本次候选不符(不覆盖): "
+-                        f"{path}")
++                st = os.lstat(path)
++                if (not _receipt_stat.S_ISREG(st.st_mode)
++                        or (st.st_dev, st.st_ino) != tuple(owned_id)):
++                    raise OSError(_receipt_errno.ESTALE,
++                                  '回执目标不属于本次候选，拒绝替换', str(path))
+                 os.replace(tmp, path)
+-        finally:
++            published = True
++        except BaseException as exc:
++            primary = exc
++
++    if temp_created:
++        if temp_id is None:
++            # Creation succeeded but identity capture failed: retaining an
++            # explicitly unconfirmed temporary is safer than deleting an
++            # unverified pathname. The primary fstat error is kept.
++            cleanup_errors.append(OSError(
++                _receipt_errno.ESTALE, '无法确认临时件身份，未删除', str(tmp)))
++        else:
+             try:
+-                os.unlink(tmp)
+-            except FileNotFoundError:
+-                pass
+-        st = os.stat(path)
+-        return (st.st_dev, st.st_ino)
+-    except ReceiptWriteError:
+-        raise
+-    except OSError as exc:
+-        raise ReceiptWriteError(
+-            f"回执写失败: {type(exc).__name__}: {exc} "
+-            f"(目标: {path})") from exc
+-
++                _receipt_remove_owned(tmp, temp_id)
++            except BaseException as exc:
++                cleanup_errors.append(exc)
++
++    if primary is not None or cleanup_errors:
++        if published and temp_id is not None:
++            try:
++                _receipt_remove_owned(path, temp_id)
++                published = False
++            except BaseException as exc:
++                cleanup_errors.append(exc)
++        details = []
++        if primary is not None:
++            details.append(f'initial={type(primary).__name__}: {primary}')
++        details.extend(f'cleanup={type(e).__name__}: {e}' for e in cleanup_errors)
++        message = (f'回执写入未完成: {path}; ' + '; '.join(details)
++                   + f'; temporary={tmp}; candidate_still_published={published}')
++        # Preserve process-level interrupts, but still perform owned cleanup.
++        if primary is not None and not isinstance(primary, Exception):
++            if cleanup_errors and hasattr(primary, 'add_note'):
++                primary.add_note(message)
++            raise primary
++        for exc in cleanup_errors:
++            if not isinstance(exc, Exception):
++                if hasattr(exc, 'add_note'):
++                    exc.add_note(message)
++                raise exc
++        err = ReceiptWriteError(
++            message, primary_error=primary, cleanup_errors=cleanup_errors,
++            temporary_path=tmp, published_path=path if published else None)
++        raise err from (primary if primary is not None else cleanup_errors[0])
++    return temp_id
+ 
+ class _Problems:
+     """读回问题收集器:同一必需条件只在本列表里判定一次。"""
+diff --git a/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_receipt_entry_cleanup_unit.py b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_receipt_entry_cleanup_unit.py
+new file mode 100644
+--- /dev/null
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_receipt_entry_cleanup_unit.py
+@@ -0,0 +1,509 @@
++"""R17 receipt entry/cleanup regressions.
++
++Default: import the actual repository reader. For the author's standalone
++implementation tests only, R17_RECEIPT_TEST_MODULE points to the exact inline
++replacement block. This never substitutes the production cleanup branches.
++"""
++from __future__ import annotations
++
++import errno
++import importlib.util
++import json
++import os
++from pathlib import Path
++from datetime import datetime, timezone
++
++import pytest
++
++
++@pytest.fixture(scope='module')
++def mod():
++    override = os.environ.get('R17_RECEIPT_TEST_MODULE')
++    root = Path(__file__).resolve().parents[2]
++    candidates = ([Path(override)] if override else [
++        root / 'runner' / 'r17_c3_engineering_slice.py',
++        root / 'stage2_6_1_runner' / 'r17_c3_engineering_slice.py',
++        root / 'stage2_6_1' / 'runner' / 'r17_c3_engineering_slice.py',
++    ])
++    path = next((p for p in candidates if p.is_file()), None)
++    assert path is not None, f'Reader/implementation missing: {candidates}'
++    spec = importlib.util.spec_from_file_location('r17_receipt_under_test', path)
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++@pytest.fixture
++def roots(tmp_path):
++    source = tmp_path / 'source'
++    source.mkdir()
++    (source / 'recipe.json').write_text('{"keep": true}', encoding='utf-8')
++    (source / 'child').mkdir()
++    out = tmp_path / 'receipts'
++    out.mkdir()
++    other = tmp_path / 'elsewhere'
++    other.mkdir()
++    return source, out, other
++
++
++def state(path):
++    """Observe content/type/mtime/identity, deliberately not atime."""
++    st = path.lstat()
++    payload = (os.readlink(path) if path.is_symlink() else
++               path.read_bytes() if path.is_file() else '<directory>')
++    return (st.st_mode, st.st_dev, st.st_ino, st.st_mtime_ns, payload)
++
++
++def tree(root):
++    return {str(p.relative_to(root)): state(p)
++            for p in [root, *sorted(root.rglob('*'))]}
++
++
++@pytest.mark.parametrize('kind', [
++    'json', 'empty', 'plain', 'directory', 'hardlink',
++    'link_existing_same', 'link_existing_cross',
++    'link_dangling_same', 'link_dangling_cross', 'link_chain', 'link_self',
++])
++def test_existing_terminal_entry_always_rejected(mod, roots, kind):
++    source, out, other = roots
++    target = out / 'result.json'
++    if kind in ('json', 'empty', 'plain'):
++        target.write_text({'json':'{}','empty':'','plain':'KEEP'}[kind])
++    elif kind == 'directory':
++        target.mkdir()
++    elif kind == 'hardlink':
++        os.link(source / 'recipe.json', target)
++    elif kind == 'link_self':
++        target.symlink_to('result.json')
++    elif kind == 'link_chain':
++        (other / 'middle').symlink_to('missing.json')
++        target.symlink_to(other / 'middle')
++    else:
++        victim = (other if kind.endswith('cross') else out) / 'victim.json'
++        if 'existing' in kind:
++            victim.write_text('KEEP')
++        target.symlink_to(victim)
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(target, [source])
++    assert tree(source.parent) == before
++    assert not (other / 'missing.json').exists()
++
++
++def test_terminal_link_under_symlink_parent_relative(mod, roots, monkeypatch):
++    source, out, other = roots
++    (source.parent / 'out_alias').symlink_to(out)
++    (out / 'r.json').symlink_to(other / 'missing.json')
++    monkeypatch.chdir(source.parent)
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(Path('out_alias/r.json'), [source])
++    assert tree(source.parent) == before
++
++
++@pytest.mark.parametrize('suffix', ['recipe.json', 'new/deep/r.json'])
++def test_symlink_dotdot_into_protected_source(mod, roots, suffix):
++    source, out, other = roots
++    (out / 'alias').symlink_to(source / 'child')
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(out / 'alias' / '..' / suffix, [source])
++    assert tree(source.parent) == before
++
++
++@pytest.mark.parametrize('tail', ['new.json', '../new.json', '../../new.json'])
++def test_non_directory_ancestor_is_not_folded_away(mod, roots, tail):
++    source, out, other = roots
++    (out / 'file').write_text('NOT A DIRECTORY')
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected) as info:
++        mod._assert_report_target_safe(out / 'file' / tail, [source])
++    assert 'NotADirectory' in str(info.value) or 'ENOTDIR' in str(info.value)
++    assert tree(source.parent) == before
++
++
++@pytest.mark.parametrize('kind', ['loop', 'dangling', 'missing_dotdot'])
++def test_bad_ancestor_not_treated_as_creatable(mod, roots, kind):
++    source, out, other = roots
++    if kind == 'loop':
++        (out / 'a').symlink_to('b')
++        (out / 'b').symlink_to('a')
++        target = out / 'a' / 'r.json'
++    elif kind == 'dangling':
++        (out / 'a').symlink_to(other / 'absent')
++        target = out / 'a' / 'r.json'
++    else:
++        target = out / 'missing' / '..' / 'r.json'
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(target, [source])
++    assert tree(source.parent) == before
++
++
++@pytest.mark.parametrize('code', [errno.EACCES, errno.EIO, errno.ELOOP,
++                                  errno.ENOTDIR, errno.ENAMETOOLONG])
++def test_realpath_errno_fail_closed(mod, roots, monkeypatch, code):
++    source, out, other = roots
++    before = tree(source.parent)
++    real = mod.os.path.realpath
++    def fault(path, *, strict=False):
++        if str(path).startswith(str(out)):
++            assert strict is True
++            raise OSError(code, 'injected resolver failure', str(path))
++        return real(path, strict=strict)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os.path, 'realpath', fault)
++        with pytest.raises(mod.ReportTargetRejected) as info:
++            mod._assert_report_target_safe(out / 'new.json', [source])
++        assert f'errno={code}' in str(info.value)
++    assert tree(source.parent) == before
++
++
++def test_lstat_access_failure_not_false_missing(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'new.json'
++    real = mod.os.lstat
++    def fault(path, *args, **kwargs):
++        if Path(path) == target:
++            raise PermissionError(errno.EACCES, 'lstat denied', str(path))
++        return real(path, *args, **kwargs)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'lstat', fault)
++        with pytest.raises(mod.ReportTargetRejected):
++            mod._assert_report_target_safe(target, [source])
++    assert not target.exists()
++
++
++@pytest.mark.parametrize('kind', ['absolute', 'relative', 'nested', 'parent_link',
++                                  'prefix_sibling'])
++def test_healthy_external_target_uses_confirmed_path(mod, roots, monkeypatch, kind):
++    source, out, other = roots
++    target = out / 'new.json'
++    if kind == 'relative':
++        monkeypatch.chdir(source.parent)
++        target = Path('receipts/new.json')
++    elif kind == 'nested':
++        target = out / 'new' / 'deep' / 'r.json'
++    elif kind == 'parent_link':
++        (source.parent / 'alias').symlink_to(out)
++        target = source.parent / 'alias' / 'new.json'
++    elif kind == 'prefix_sibling':
++        target = source.with_name('source-backup') / 'r.json'
++    before = tree(source)
++    confirmed = mod._assert_report_target_safe(target, [source])
++    tid = mod._atomic_write_receipt(confirmed, {'PASS': True})
++    assert confirmed.is_absolute()
++    assert json.loads(confirmed.read_text()) == {'PASS': True}
++    assert (confirmed.stat().st_dev, confirmed.stat().st_ino) == tid
++    assert tree(source) == before
++
++
++def test_external_input_and_extra_protect_root(mod, roots):
++    source, out, other = roots
++    original = other / 'p52.json'
++    original.write_text('KEEP')
++    for target, protections in [
++        (original, [source, original]),
++        (other / 'new.json', [source, other]),
++    ]:
++        before = tree(source.parent)
++        with pytest.raises(mod.ReportTargetRejected):
++            mod._assert_report_target_safe(target, protections)
++        assert tree(source.parent) == before
++
++
++def test_preexisting_fixed_tmp_link_is_preserved(mod, roots):
++    source, out, other = roots
++    target = out / 'r.json'
++    fixed = out / 'r.json.tmp'
++    fixed.symlink_to(source / 'recipe.json')
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(target, [source])
++    assert tree(source.parent) == before
++
++
++def test_second_invocation_cannot_own_first_receipt(mod, roots):
++    source, out, other = roots
++    target = mod._assert_report_target_safe(out / 'r.json', [source])
++    mod._atomic_write_receipt(target, {'first': True})
++    before = state(target)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(out / 'r.json', [source])
++    assert state(target) == before
++    next_path = mod._assert_report_target_safe(out / 'next.json', [source])
++    mod._atomic_write_receipt(next_path, {'second': True})
++    assert state(target) == before
++
++
++class FixedClock:
++    @classmethod
++    def now(cls, tz=None):
++        return datetime(2026, 9, 9, 12, 0, 0, 123456, tzinfo=timezone.utc)
++
++
++def fixed_temp(mod, target, monkeypatch):
++    monkeypatch.setattr(mod, 'datetime', FixedClock)
++    stamp = FixedClock.now().strftime('%Y%m%dT%H%M%S%f')
++    return target.with_name(f'.{target.name}.{os.getpid()}.{stamp}.tmp')
++
++
++@pytest.mark.parametrize('kind', ['regular', 'directory', 'dangling_link', 'live_link'])
++def test_true_exclusive_create_collision_never_unlinks_foreign(mod, roots,
++                                                              monkeypatch, kind):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    if kind == 'regular':
++        tmp.write_text('PREEXISTING_FOREIGN_TEMP')
++    elif kind == 'directory':
++        tmp.mkdir()
++    else:
++        victim = other / 'missing.json'
++        if kind == 'live_link':
++            victim.write_text('KEEP TARGET')
++        tmp.symlink_to(victim)
++    before = tree(source.parent)
++    with pytest.raises(mod.ReceiptWriteError) as info:
++        mod._atomic_write_receipt(target, {'PASS': True})
++    assert isinstance(info.value.primary_error, FileExistsError)
++    assert tree(source.parent) == before
++    assert not target.exists()
++
++
++def test_os_open_failure_creates_no_cleanup_ownership(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    original = mod.os.open
++    unlinked = []
++    real_unlink = mod.os.unlink
++    def fail_open(path, *args, **kwargs):
++        if Path(path) == tmp:
++            raise PermissionError(errno.EACCES, 'create denied', str(path))
++        return original(path, *args, **kwargs)
++    def watch_unlink(path, *args, **kwargs):
++        unlinked.append(str(path))
++        return real_unlink(path, *args, **kwargs)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'open', fail_open)
++        m.setattr(mod.os, 'unlink', watch_unlink)
++        with pytest.raises(mod.ReceiptWriteError):
++            mod._atomic_write_receipt(target, {'x': 1})
++    assert unlinked == []
++    assert not tmp.exists() and not target.exists()
++
++
++def test_fdopen_failure_closes_owned_fd_and_removes_temp(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    observed = []
++    def fail_wrap(fd, *args, **kwargs):
++        observed.append(fd)
++        raise OSError(errno.EIO, 'wrap failed')
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'fdopen', fail_wrap)
++        with pytest.raises(mod.ReceiptWriteError) as info:
++            mod._atomic_write_receipt(target, {'x': 1})
++    assert 'wrap failed' in str(info.value)
++    assert not tmp.exists() and not target.exists()
++    with pytest.raises(OSError) as err:
++        os.fstat(observed[0])
++    assert err.value.errno == errno.EBADF
++
++
++class FaultyStream:
++    def __init__(self, stream, stages):
++        self.stream, self.stages = stream, stages
++    def write(self, text):
++        if 'write' in self.stages:
++            self.stream.write('{')
++            raise OSError(errno.ENOSPC, 'write failed')
++        return self.stream.write(text)
++    def flush(self):
++        if 'flush' in self.stages:
++            raise OSError(errno.EIO, 'flush failed')
++        return self.stream.flush()
++    def fileno(self):
++        return self.stream.fileno()
++    def close(self):
++        self.stream.close()
++        if 'close' in self.stages:
++            raise OSError(errno.EIO, 'close failed')
++
++
++@pytest.mark.parametrize('stage', ['write', 'flush', 'fsync', 'close', 'encode'])
++def test_after_creation_failure_cleans_own_temp(mod, roots, monkeypatch, stage):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    before_source = tree(source)
++    real_fdopen = mod.os.fdopen
++    with monkeypatch.context() as m:
++        if stage in ('write', 'flush', 'close'):
++            m.setattr(mod.os, 'fdopen', lambda *a, **kw:
++                        FaultyStream(real_fdopen(*a, **kw), {stage}))
++        if stage == 'fsync':
++            def fail_sync(fd):
++                raise OSError(errno.EIO, 'fsync failed')
++            m.setattr(mod.os, 'fsync', fail_sync)
++        with pytest.raises(mod.ReceiptWriteError):
++            mod._atomic_write_receipt(target, {'bad': {1}} if stage == 'encode'
++                                      else {'x': 1})
++    assert not tmp.exists() and not target.exists()
++    assert tree(source) == before_source
++
++
++def test_write_and_close_errors_both_preserved(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    real_fdopen = mod.os.fdopen
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'fdopen', lambda *a, **kw:
++                    FaultyStream(real_fdopen(*a, **kw), {'write', 'close'}))
++        with pytest.raises(mod.ReceiptWriteError) as info:
++            mod._atomic_write_receipt(target, {'x': 1})
++    assert 'write failed' in str(info.value.primary_error)
++    assert any('close failed' in str(e) for e in info.value.cleanup_errors)
++    assert not tmp.exists() and not target.exists()
++
++
++def test_final_name_collision_preserves_existing_and_cleans_temp(mod, roots,
++                                                               monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    target.write_text('OLD')
++    before = state(target)
++    tmp = fixed_temp(mod, target, monkeypatch)
++    with pytest.raises(mod.ReceiptWriteError) as info:
++        mod._atomic_write_receipt(target, {'x': 1})
++    assert isinstance(info.value.primary_error, FileExistsError)
++    assert state(target) == before
++    assert not tmp.exists()
++
++
++def test_candidate_update_and_foreign_replacement(mod, roots):
++    source, out, other = roots
++    target = out / 'r.json'
++    one = mod._atomic_write_receipt(target, {'v': 1})
++    two = mod._atomic_write_receipt(target, {'v': 2}, owned_id=one)
++    assert json.loads(target.read_text()) == {'v': 2}
++    foreign = other / 'foreign.json'
++    foreign.write_text('FOREIGN')
++    os.replace(foreign, target)
++    before = state(target)
++    with pytest.raises(mod.ReceiptWriteError):
++        mod._atomic_write_receipt(target, {'v': 3}, owned_id=two)
++    assert state(target) == before
++    assert not list(out.glob('*.tmp'))
++
++
++def test_candidate_update_cannot_follow_a_terminal_link(mod, roots):
++    source, out, other = roots
++    owned = other / 'owned.json'
++    oid = mod._atomic_write_receipt(owned, {'v': 1})
++    link = out / 'r.json'
++    link.symlink_to(owned)
++    before_link, before_owned = state(link), state(owned)
++    before_source = tree(source)
++    with pytest.raises(mod.ReceiptWriteError):
++        mod._atomic_write_receipt(link, {'v': 2}, owned_id=oid)
++    # The low-level writer may create/clean its OWN temp, changing the
++    # external output directory mtime. Input/link/target data cannot change.
++    assert state(link) == before_link and state(owned) == before_owned
++    assert tree(source) == before_source
++    assert not list(out.glob('*.tmp'))
++
++
++def test_initial_and_temp_cleanup_error_preserved(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    real_unlink = mod.os.unlink
++    first = OSError(errno.EIO, 'FIRST fsync failure')
++    def fail_sync(fd):
++        raise first
++    def fail_temp_unlink(path, *args, **kwargs):
++        if Path(path) == tmp:
++            raise PermissionError(errno.EACCES, 'SECOND cleanup failure')
++        return real_unlink(path, *args, **kwargs)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'fsync', fail_sync)
++        m.setattr(mod.os, 'unlink', fail_temp_unlink)
++        with pytest.raises(mod.ReceiptWriteError) as info:
++            mod._atomic_write_receipt(target, {'x': 1})
++    assert info.value.primary_error is first
++    assert info.value.__cause__ is first
++    assert any('SECOND' in str(e) for e in info.value.cleanup_errors)
++    assert tmp.exists() and not target.exists()
++    assert str(tmp) in str(info.value)
++    tmp.unlink()  # test-only restoration, after observing product behavior
++
++
++def test_cleanup_only_failure_withdraws_own_published_candidate(mod, roots,
++                                                              monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    real_unlink = mod.os.unlink
++    def fail_temp(path, *args, **kwargs):
++        if Path(path) == tmp:
++            raise OSError(errno.EIO, 'temp cleanup failed')
++        return real_unlink(path, *args, **kwargs)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'unlink', fail_temp)
++        with pytest.raises(mod.ReceiptWriteError) as info:
++            mod._atomic_write_receipt(target, {'readback_verdict': 'PASS'})
++    assert info.value.primary_error is None
++    assert info.value.cleanup_errors
++    assert info.value.published_path is None
++    assert not target.exists() and tmp.exists()
++    tmp.unlink()
++
++
++def test_cleanup_cannot_delete_replaced_temp(mod, roots, monkeypatch):
++    source, out, other = roots
++    target = out / 'r.json'
++    tmp = fixed_temp(mod, target, monkeypatch)
++    real_link = mod.os.link
++    foreign = other / 'foreign.tmp'
++    foreign.write_text('FOREIGN')
++    fid = (foreign.stat().st_dev, foreign.stat().st_ino)
++    def replace_temp_at_publication(src, dst, *args, **kwargs):
++        # Deterministic I/O-boundary fault, not a racing background thread.
++        result = real_link(src, dst, *args, **kwargs)
++        os.replace(foreign, src)
++        return result
++    with monkeypatch.context() as m:
++        m.setattr(mod.os, 'link', replace_temp_at_publication)
++        with pytest.raises(mod.ReceiptWriteError):
++            mod._atomic_write_receipt(target, {'x': 1})
++    assert tmp.read_text() == 'FOREIGN'
++    assert (tmp.stat().st_dev, tmp.stat().st_ino) == fid
++    assert not target.exists()
++
++
++def test_invalid_nul_rejected_before_writes(mod, roots):
++    source, out, other = roots
++    before = tree(source.parent)
++    with pytest.raises(mod.ReportTargetRejected):
++        mod._assert_report_target_safe(out / '\x00bad.json', [source])
++    assert tree(source.parent) == before
++
++
++def test_kernel_non_directory_precedes_library_folding(mod, roots, monkeypatch):
++    source, out, other = roots
++    (out / 'file').write_text('KEEP')
++    raw_parent = out / 'file' / '..'
++    real = mod.os.path.realpath
++    def folding_library(path, *, strict=False):
++        if Path(path) == raw_parent:
++            return str(out)
++        return real(path, strict=strict)
++    with monkeypatch.context() as m:
++        m.setattr(mod.os.path, 'realpath', folding_library)
++        with pytest.raises(mod.ReportTargetRejected):
++            mod._assert_report_target_safe(raw_parent / 'new.json', [source])
++    assert not (out / 'new.json').exists()

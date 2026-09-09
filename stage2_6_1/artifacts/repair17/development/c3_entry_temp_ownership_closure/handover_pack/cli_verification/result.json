@@ -1,0 +1,274 @@
+{
+  "scope": "actual checkout reader CLI, saved-data copies only",
+  "python": "3.11.16 | packaged by conda-forge | (main, Aug 21 2026, 22:44:51) [GCC 14.4.0]",
+  "reader": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+  "reader_sha256": "7a5ccc19b4e3ade4dd0e6b64861ae425cdb631c181149458a51f4ccbb52141dd",
+  "original_evidence_unchanged": true,
+  "cases": [
+    {
+      "case": "healthy",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/healthy/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/healthy/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/healthy/receipts/new.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/healthy",
+      "expected_rc": 0,
+      "actual_rc": 0,
+      "all_objects_unchanged": false,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "dangling_cross_directory",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/dangling_cross_directory/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/dangling_cross_directory/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/dangling_cross_directory/receipts/result.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/dangling_cross_directory",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "dangling_relative",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/dangling_relative/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/dangling_relative/p52.json",
+        "--report",
+        "receipts/result.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/dangling_relative",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "parent_and_terminal_links",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/parent_and_terminal_links/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/parent_and_terminal_links/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/parent_and_terminal_links/alias/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/parent_and_terminal_links",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "source_dotdot_existing",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_existing/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_existing/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_existing/receipts/alias/../recipe.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/source_dotdot_existing",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "source_dotdot_missing",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_missing/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_missing/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/source_dotdot_missing/receipts/alias/../new/deep/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/source_dotdot_missing",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "not_directory",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/not_directory/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/not_directory/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/not_directory/receipts/file/new.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/not_directory",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "not_directory_dotdot",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/not_directory_dotdot/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/not_directory_dotdot/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/not_directory_dotdot/receipts/file/../new.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/not_directory_dotdot",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "loop_ancestor",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/loop_ancestor/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/loop_ancestor/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/loop_ancestor/receipts/a/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/loop_ancestor",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "existing_receipt",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/receipts/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/existing_receipt",
+      "expected_rc": 0,
+      "actual_rc": 0,
+      "all_objects_unchanged": false,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "existing_receipt",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/existing_receipt/receipts/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/existing_receipt",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "healthy_parent_link",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/healthy_parent_link/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/healthy_parent_link/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/healthy_parent_link/alias/new.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/healthy_parent_link",
+      "expected_rc": 0,
+      "actual_rc": 0,
+      "all_objects_unchanged": false,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "healthy_nested_new",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/healthy_nested_new/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/healthy_nested_new/p52.json",
+        "--report",
+        "/tmp/r17_receipt_cli_NEW/healthy_nested_new/receipts/new/deep/r.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/healthy_nested_new",
+      "expected_rc": 0,
+      "actual_rc": 0,
+      "all_objects_unchanged": false,
+      "source_unchanged": true,
+      "ok": true
+    },
+    {
+      "case": "default_report_inside_input",
+      "argv": [
+        "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+        "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+        "--readback",
+        "/tmp/r17_receipt_cli_NEW/default_report_inside_input/source",
+        "--p52-envelope",
+        "/tmp/r17_receipt_cli_NEW/default_report_inside_input/p52.json"
+      ],
+      "cwd": "/tmp/r17_receipt_cli_NEW/default_report_inside_input/source",
+      "expected_rc": 2,
+      "actual_rc": 2,
+      "all_objects_unchanged": true,
+      "source_unchanged": true,
+      "ok": true
+    }
+  ],
+  "ok": true
+}
