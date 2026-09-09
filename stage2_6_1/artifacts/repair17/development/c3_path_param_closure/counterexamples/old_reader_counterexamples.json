@@ -1,0 +1,303 @@
+{
+ "schema": "r17-c3-path-param-old-counterexamples-v1",
+ "reader": "/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_c3_engineering_slice.py",
+ "reader_sha256": "f4a5e20a32f46c76ce22a90fc0ebc896f1830c59f843c94f516409ca375d9d0b",
+ "orig_slice": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_evidence_generation_slice/engineering_slice",
+ "p52": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json",
+ "cases": {
+  "path01_symlink_dotdot": {
+   "scenario": "PATH-01 symlink+.. report target is in-source recipe.json (absolute path, CLI)",
+   "report_arg": "/tmp/c3pp_ce1_ghmdx3_7/case/outside/alias/../recipe.json",
+   "rc": 1,
+   "stdout_tail": "readback_verdict: FAIL\nn_problems: 1\nreport: /tmp/c3pp_ce1_ghmdx3_7/case/outside/alias/../recipe.json\n",
+   "stderr_tail": "",
+   "source_recipe_sha_before": "5239ec83c52bfee946dd1ee00bdbc7f2c2d066aa1993f01ecdd001cf8a67a478",
+   "source_recipe_sha_after": "00df15153f6c12fc8a5a5c56dd8c37d851e1599b89b5f5b71a6775060f40cc2e",
+   "source_recipe_identity_before": [
+    2096,
+    503038,
+    2718,
+    1788885945554587100
+   ],
+   "source_recipe_identity_after": [
+    2096,
+    503038,
+    2475,
+    1788937678254464115
+   ],
+   "tree_changed_paths": [],
+   "tree_changed_files": {
+    "source/recipe.json": [
+     [
+      "file",
+      "5239ec83c52bfee946dd1ee00bdbc7f2c2d066aa1993f01ecdd001cf8a67a478",
+      2718
+     ],
+     [
+      "file",
+      "00df15153f6c12fc8a5a5c56dd8c37d851e1599b89b5f5b71a6775060f40cc2e",
+      2475
+     ]
+    ]
+   },
+   "receipt_if_overwritten": {
+    "format": "r17-c3-engineering-slice-readback-v3",
+    "engineering_only": true,
+    "readback_verdict": "FAIL",
+    "n_problems": 1,
+    "problems": [
+     {
+      "check": "source_readonly_final",
+      "where": "source_dir snapshot (after receipt write)",
+      "expected": "identical before/after-final",
+      "actual": {
+       "before_keys": 13,
+       "after_final_keys": 13
+      }
+     }
+    ],
+    "checks": {
+     "source_dir": "/tmp/c3pp_ce1_ghmdx3_7/case/source",
+     "index_rows_n": 8,
+     "detail_digest": {
+      "D0/p0@line1": true,
+      "D0/p1@line2": true,
+      "D1/p0@line3": true,
+      "D1/p1@line4": true,
+      "D2/p0@line5": true,
+      "D2/p1@line6": true,
+      "D3/p0@line7": true,
+      "D3/p1@line8": true
+     },
+     "envelope_digest": {
+      "D0/p0@line1:env0": true,
+      "D0/p1@line2:env0": true,
+      "D1/p0@line3:env0": true,
+      "D1/p1@line4:env0": true,
+      "D2/p0@line5:env0": true,
+      "D2/p1@line6:env0": true,
+      "D3/p0@line7:env0": true,
+      "D3/p1@line8:env0": true
+     },
+     "p52_n_envelopes": 5,
+     "p52_orig_call_digest_recomputed": true,
+     "p52_identity_body": {
+      "env0": true,
+      "env1": true,
+      "env2": true,
+      "env3": true,
+      "env4": true
+     },
+     "accepted_coords": [
+      "D0/p0",
+      "D0/p1",
+      "D1/p0",
+      "D1/p1",
+      "D2/p0",
+      "D2/p1",
+      "D3/p0",
+      "D3/p1"
+     ],
+     "rejected_coords": [],
+     "source_snapshot_identical": false
+    },
+    "expected_contract": {
+     "namespace": "preplan_calibration_main_r17",
+     "family": "c3_cost",
+     "requests": [
+      [
+       "D0",
+       0
+      ],
+      [
+       "D0",
+       1
+      ],
+      [
+       "D1",
+       0
+      ],
+      [
+       "D1",
+       1
+      ],
+      [
+       "D2",
+       0
+      ],
+      [
+       "D2",
+       1
+      ],
+      [
+       "D3",
+       0
+      ],
+      [
+       "D3",
+       1
+      ]
+     ],
+     "max_attempts": 5,
+     "negative_control_required": true,
+     "p52_envelope_source": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+    },
+    "report_target_admission": {
+     "report_path": "/tmp/c3pp_ce1_ghmdx3_7/case/outside/alias/../recipe.json",
+     "protect_roots": [
+      "/tmp/c3pp_ce1_ghmdx3_7/case/source",
+      "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+     ],
+     "admitted": true,
+     "note": "写前准入已通过;目标及临时件不与只读输入重叠"
+    },
+    "reader_sha256": "f4a5e20a32f46c76ce22a90fc0ebc896f1830c59f843c94f516409ca375d9d0b",
+    "read_utc": "2026-09-09T07:07:58Z"
+   },
+   "old_defect_reproduced": true
+  },
+  "path02_existing_receipt_replaced": {
+   "scenario": "PATH-02 pre-existing external receipt target (plain JSON file) replaced by os.replace",
+   "rc": 0,
+   "stdout_tail": "readback_verdict: PASS\nn_problems: 0\nreport: /tmp/c3pp_ce2_td1vbctk/outside/receipt_old.json\n",
+   "stderr_tail": "",
+   "old_sha_before": "4535ee67f85a3798377fcdcf4ec547b13dd54790ccdb7c0865ed3104924d45c0",
+   "old_sha_after": "efab982d9897b383cf9b80771de0be5139be3f756bc7d15038814429567222b0",
+   "old_identity_before": [
+    2096,
+    503041,
+    59,
+    1788937678624209469
+   ],
+   "old_identity_after": [
+    2096,
+    503042,
+    2242,
+    1788937678768374471
+   ],
+   "receipt_now": {
+    "format": "r17-c3-engineering-slice-readback-v3",
+    "engineering_only": true,
+    "readback_verdict": "PASS",
+    "n_problems": 0,
+    "problems": [],
+    "checks": {
+     "source_dir": "/tmp/c3pp_ce2_td1vbctk/case/slice",
+     "index_rows_n": 8,
+     "detail_digest": {
+      "D0/p0@line1": true,
+      "D0/p1@line2": true,
+      "D1/p0@line3": true,
+      "D1/p1@line4": true,
+      "D2/p0@line5": true,
+      "D2/p1@line6": true,
+      "D3/p0@line7": true,
+      "D3/p1@line8": true
+     },
+     "envelope_digest": {
+      "D0/p0@line1:env0": true,
+      "D0/p1@line2:env0": true,
+      "D1/p0@line3:env0": true,
+      "D1/p1@line4:env0": true,
+      "D2/p0@line5:env0": true,
+      "D2/p1@line6:env0": true,
+      "D3/p0@line7:env0": true,
+      "D3/p1@line8:env0": true
+     },
+     "p52_n_envelopes": 5,
+     "p52_orig_call_digest_recomputed": true,
+     "p52_identity_body": {
+      "env0": true,
+      "env1": true,
+      "env2": true,
+      "env3": true,
+      "env4": true
+     },
+     "accepted_coords": [
+      "D0/p0",
+      "D0/p1",
+      "D1/p0",
+      "D1/p1",
+      "D2/p0",
+      "D2/p1",
+      "D3/p0",
+      "D3/p1"
+     ],
+     "rejected_coords": [],
+     "source_snapshot_identical": true
+    },
+    "expected_contract": {
+     "namespace": "preplan_calibration_main_r17",
+     "family": "c3_cost",
+     "requests": [
+      [
+       "D0",
+       0
+      ],
+      [
+       "D0",
+       1
+      ],
+      [
+       "D1",
+       0
+      ],
+      [
+       "D1",
+       1
+      ],
+      [
+       "D2",
+       0
+      ],
+      [
+       "D2",
+       1
+      ],
+      [
+       "D3",
+       0
+      ],
+      [
+       "D3",
+       1
+      ]
+     ],
+     "max_attempts": 5,
+     "negative_control_required": true,
+     "p52_envelope_source": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+    },
+    "report_target_admission": {
+     "report_path": "/tmp/c3pp_ce2_td1vbctk/outside/receipt_old.json",
+     "protect_roots": [
+      "/tmp/c3pp_ce2_td1vbctk/case/slice",
+      "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json"
+     ],
+     "admitted": true,
+     "note": "写前准入已通过;目标及临时件不与只读输入重叠"
+    },
+    "reader_sha256": "f4a5e20a32f46c76ce22a90fc0ebc896f1830c59f843c94f516409ca375d9d0b",
+    "read_utc": "2026-09-09T07:07:58Z"
+   },
+   "old_defect_reproduced": true
+  },
+  "param01_missing_required_key_pass": {
+   "scenario": "PARAM-01 base_params.A drops alpha_bps (envelope digest recomputed by authority; index detail_sha256 resynced)",
+   "rc": 0,
+   "verdict": "PASS",
+   "envelope_digest_checks": {
+    "D0/p0@line1:env0": true,
+    "D0/p1@line2:env0": true,
+    "D1/p0@line3:env0": true,
+    "D1/p1@line4:env0": true,
+    "D2/p0@line5:env0": true,
+    "D2/p1@line6:env0": true,
+    "D3/p0@line7:env0": true,
+    "D3/p1@line8:env0": true
+   },
+   "problem_checks": [],
+   "stdout_tail": "readback_verdict: PASS\nn_problems: 0\nreport: /tmp/c3pp_ce3_rzx52zhr/outside/receipt.json\n",
+   "old_defect_reproduced": true
+  }
+ }
+}

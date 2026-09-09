@@ -1064,7 +1064,7 @@ class TestI01HealthReadbackV3:
         assert rb.returncode == 0, rb.stderr
         doc = _load(report)
         assert doc["readback_verdict"] == "PASS"
-        assert doc["format"] == "r17-c3-engineering-slice-readback-v3"
+        assert doc["format"] == "r17-c3-engineering-slice-readback-v4"
         # 八坐标每条 envelope digest 复算全 True
         for where, ok in doc["checks"]["envelope_digest"].items():
             assert ok is True, where
@@ -1522,3 +1522,479 @@ class TestP05WriteFailureSafePath:
         doc = _load(report)
         assert "index_order_exact" in _checks(doc)
         assert doc["readback_verdict"] == "FAIL"
+
+
+# ================= 路径检查与使用一致 / 回执不覆盖(v4 新增)
+def _dir_set(root: Path) -> list:
+    return sorted(str(p.relative_to(root)) for p in root.rglob("*")
+                  if p.is_dir())
+
+
+class TestPD01SymlinkDotdotConsistency:
+    """矩阵 P01/P02:目录 symlink 后接 .. 的组合目标(abspath 词法折叠
+    会得出另一个目录)——CLI 与直接函数都在写前拒绝,源文件与源目录
+    集合均零改动;经链接解析落入源内的"原先不存在的新嵌套目标"同样
+    在创建任何源内目录/临时件之前被拒绝。"""
+
+    def _mk(self, tmp_path: Path) -> Path:
+        case = tmp_path / "case"
+        (case / "outside").mkdir(parents=True)
+        shutil.copytree(_orig_slice_dir(), case / "source")
+        (case / "source" / "child").mkdir(exist_ok=True)
+        os.symlink("../source/child", case / "outside" / "alias")
+        return case
+
+    def test_recipe_target_cli_absolute(self, tmp_path):
+        case = self._mk(tmp_path)
+        before = _tree_stat(case / "source")
+        dirs = _dir_set(case)
+        rb = _run_readback(
+            case / "source",
+            case / "outside" / "alias" / ".." / "recipe.json")
+        assert rb.returncode == 2
+        assert _tree_stat(case / "source") == before
+        assert _dir_set(case) == dirs
+        assert json.loads((case / "source" / "recipe.json").read_text(
+            encoding="utf-8"))["format"] == \
+            "r17-c3-engineering-slice-recipe-v1"
+        # 拒绝理由指向解析后的真实目标(源内),不是词法折叠的外部位置
+        assert str(case / "source" / "recipe.json") in rb.stderr
+        assert not any(p.name.endswith(".tmp")
+                       for p in case.rglob("*") if p.is_file())
+
+    def test_recipe_target_direct_function(self, tmp_path, slice_mod):
+        case = self._mk(tmp_path)
+        before = _tree_stat(case / "source")
+        with pytest.raises(slice_mod.ReportTargetRejected):
+            slice_mod.readback(
+                case / "source",
+                case / "outside" / "alias" / ".." / "recipe.json",
+                _orig_envelope())
+        assert _tree_stat(case / "source") == before
+
+    def test_historical_receipt_via_link(self, tmp_path):
+        case = self._mk(tmp_path)
+        before = _tree_stat(case / "source")
+        rb = _run_readback(
+            case / "source",
+            case / "outside" / "alias" / ".." / "readback_report.json")
+        assert rb.returncode == 2
+        assert _tree_stat(case / "source") == before
+
+    def test_new_nested_target_rejected_before_create(self, tmp_path):
+        case = self._mk(tmp_path)
+        before = _tree_stat(case / "source")
+        dirs = _dir_set(case)
+        rb = _run_readback(
+            case / "source",
+            case / "outside" / "alias" / ".." / "new" / "deep" / "r.json")
+        assert rb.returncode == 2
+        assert _tree_stat(case / "source") == before
+        assert _dir_set(case) == dirs
+        assert not (case / "source" / "new").exists()
+
+
+class TestPD03RelativeLinkProtectRoot:
+    """矩阵 P03:相对组合路径、链接父目录、额外 protect-root 与源外
+    p52 依据——同一真实路径判定;实际写入落在准入确认位置。"""
+
+    def _run_rel(self, cwd: Path, args: list):
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(_src_dir())
+        return subprocess.run(
+            [sys.executable, str(_slice_script()), *args],
+            capture_output=True, text=True, timeout=300, env=env,
+            cwd=str(cwd))
+
+    def test_relative_combination_same_verdict(self, tmp_path):
+        case = tmp_path / "case"
+        (case / "outside").mkdir(parents=True)
+        shutil.copytree(_orig_slice_dir(), case / "source")
+        (case / "source" / "child").mkdir(exist_ok=True)
+        os.symlink("../source/child", case / "outside" / "alias")
+        before = _tree_stat(case / "source")
+        rb = self._run_rel(
+            case, ["--readback", "source", "--p52-envelope",
+                   str(_orig_envelope()),
+                   "--report", "outside/alias/../recipe.json"])
+        assert rb.returncode == 2
+        assert _tree_stat(case / "source") == before
+
+    def test_report_dir_symlink_lands_in_real_location(self, tmp_path):
+        """回执目录本身是链接:准入按解析后真实位置判定与落地,
+        stdout 的 report 路径即确认目标。"""
+        case = _copy_orig(tmp_path)
+        real = tmp_path / "real_receipts"
+        real.mkdir()
+        os.symlink("real_receipts", tmp_path / "linked_receipts")
+        report = tmp_path / "linked_receipts" / "r.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 0, rb.stderr
+        assert (real / "r.json").is_file()
+        doc = _load(real / "r.json")
+        adm = doc["report_target_admission"]
+        assert adm["confirmed_target"] == str((real / "r.json").resolve())
+        assert f"report: {adm['confirmed_target']}" in rb.stdout
+
+    def test_extra_protect_root_covers_link_target(self, tmp_path):
+        case = tmp_path / "case"
+        (case / "outside").mkdir(parents=True)
+        shutil.copytree(_orig_slice_dir(), case / "source")
+        (case / "source" / "child").mkdir(exist_ok=True)
+        os.symlink("../source/child", case / "outside" / "alias")
+        before = _tree_stat(case / "source")
+        rb = self._run_rel(
+            case, ["--readback", "source", "--p52-envelope",
+                   str(_orig_envelope()),
+                   "--protect-root", ".",
+                   "--report", "outside/alias/../source/recipe.json"])
+        assert rb.returncode == 2
+        assert _tree_stat(case / "source") == before
+
+    def test_p52_evidence_via_link_untouched(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        envs = tmp_path / "envs"
+        envs.mkdir()
+        env_copy = envs / "p52.json"
+        shutil.copyfile(_orig_envelope(), env_copy)
+        os.symlink("..", envs / "up")
+        b0 = env_copy.read_bytes()
+        rb = self._run_rel(
+            envs, ["--readback", str(case), "--p52-envelope", "p52.json",
+                   "--report", "up/envs/p52.json"])
+        assert rb.returncode == 2
+        assert env_copy.read_bytes() == b0
+
+
+class TestPD04ExistingTargetNoClobber:
+    """矩阵 P04:本次调用前已存在的外部显式目标一律拒绝(有效 JSON/
+    空文件/普通文件/目录);连续调用不覆盖,旧字节/mtime/身份不变;
+    新目标可正常完成。"""
+
+    def test_existing_json_receipt_rejected(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        old = receipts / "r.json"
+        old.write_text('{"format": "historical", "keep": true}',
+                       encoding="utf-8")
+        b0, st0 = old.read_bytes(), old.stat()
+        rb = _run_readback(case, old)
+        assert rb.returncode == 2
+        assert old.read_bytes() == b0
+        st1 = old.stat()
+        assert (st1.st_ino, st1.st_mtime_ns) == (st0.st_ino, st0.st_mtime_ns)
+        assert not any(p.name.endswith(".tmp")
+                       for p in receipts.iterdir())
+
+    @pytest.mark.parametrize("content", [b"", b"plain text not json\n"])
+    def test_existing_empty_and_plain_rejected(self, tmp_path, content):
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        old = receipts / "r.json"
+        old.write_bytes(content)
+        rb = _run_readback(case, old)
+        assert rb.returncode == 2
+        assert old.read_bytes() == content
+
+    def test_existing_directory_target_rejected(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        as_dir = receipts / "as_dir"
+        as_dir.mkdir(parents=True)
+        rb = _run_readback(case, as_dir)
+        assert rb.returncode == 2
+        assert as_dir.is_dir()
+
+    def test_first_ok_second_rejected_third_new_ok(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        r1 = receipts / "first.json"
+        rb1 = _run_readback(case, r1)
+        assert rb1.returncode == 0, rb1.stderr
+        b1, st1 = r1.read_bytes(), r1.stat()
+        rb2 = _run_readback(case, r1)
+        assert rb2.returncode == 2
+        st2 = r1.stat()
+        assert (r1.read_bytes(), st2.st_ino, st2.st_mtime_ns) == \
+            (b1, st1.st_ino, st1.st_mtime_ns)
+        r3 = receipts / "third.json"
+        rb3 = _run_readback(case, r3)
+        assert rb3.returncode == 0, rb3.stderr
+        assert not any(p.name.endswith(".tmp")
+                       for p in receipts.iterdir())
+
+
+class TestPD05LinkEntries:
+    """矩阵 P05:最终 symlink/悬空链接条目不视为可覆盖、不跟随截断
+    (硬链接别名与预置临时件链接分别由 P02/P03 覆盖)。"""
+
+    def test_final_symlink_rejected_no_follow(self, tmp_path):
+        if os.name == "nt":
+            pytest.skip("symlink 需要 Linux")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        victim = tmp_path / "elsewhere.json"
+        victim.write_text("KEEP", encoding="utf-8")
+        link = receipts / "r.json"
+        link.symlink_to(victim)
+        b0 = victim.read_bytes()
+        rb = _run_readback(case, link)
+        assert rb.returncode == 2
+        assert victim.read_bytes() == b0
+        assert link.is_symlink()
+
+    def test_dangling_symlink_rejected(self, tmp_path):
+        if os.name == "nt":
+            pytest.skip("symlink 需要 Linux")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        link = receipts / "r.json"
+        link.symlink_to(receipts / "no_such_file.json")
+        rb = _run_readback(case, link)
+        assert rb.returncode == 2
+        assert link.is_symlink()
+        assert not (receipts / "no_such_file.json").exists()
+
+
+class TestPD07LandingFailureOwnership:
+    """矩阵 P07:只创建不替换的落地约束与本次候选所有权(函数级);
+    chmod 落地失败路径由 P05 覆盖。"""
+
+    def test_create_only_never_replaces_existing(self, tmp_path, slice_mod):
+        target = tmp_path / "r.json"
+        target.write_text("OLD", encoding="utf-8")
+        with pytest.raises(slice_mod.ReceiptWriteError):
+            slice_mod._atomic_write_receipt(target, {"a": 1})
+        assert target.read_text(encoding="utf-8") == "OLD"
+        assert not any(p.name.endswith(".tmp")
+                       for p in tmp_path.iterdir())
+
+    def test_owned_update_replaces_only_owned_candidate(self, tmp_path,
+                                                        slice_mod):
+        target = tmp_path / "r.json"
+        tid = slice_mod._atomic_write_receipt(target, {"v": 1})
+        tid2 = slice_mod._atomic_write_receipt(target, {"v": 2},
+                                               owned_id=tid)
+        assert json.loads(target.read_text(encoding="utf-8"))["v"] == 2
+        assert os.stat(target).st_ino == tid2[1]  # 返回值即当前候选身份
+        # 外部换掉文件(新 inode 的替换,非同 inode 截断)后,旧所有权
+        # 更新必须拒绝且不覆盖
+        outsider = tmp_path / "outsider.json"
+        outsider.write_text('{"v": 99}', encoding="utf-8")
+        os.replace(outsider, target)
+        with pytest.raises(slice_mod.ReceiptWriteError):
+            slice_mod._atomic_write_receipt(target, {"v": 3},
+                                            owned_id=tid2)
+        assert json.loads(target.read_text(encoding="utf-8"))["v"] == 99
+        assert not any(p.name.endswith(".tmp")
+                       for p in tmp_path.iterdir())
+
+
+# ================= 必要参数完整性(v4 新增)
+_RUNGS = ("D0", "D1", "D2", "D3")
+_REQ_KEYS = ("alpha_bps", "payoff_bars", "vol_bps",
+             "cue_rate", "mixture", "distractor_rate")
+
+
+def _tamper_env(case: Path, coord: str, fn) -> None:
+    """对副本 detail 内全部 envelope 应用 fn,按生产权威 canonical
+    合同重算该条 digest,并同步索引行 detail_sha256 —— 摘要自洽,
+    使读回只剩参数语义差异(内部/外层哈希校验均成立)。"""
+    _, stable_digest, auth_body, env_prefix, _ = _authority()
+    det = case / "pairs" / f"{coord.replace('/', '_')}.json"
+    doc = json.loads(det.read_text(encoding="utf-8"))
+    for e in doc["attempt_envelopes"]:
+        fn(e)
+        e["digest"] = stable_digest(auth_body(e), env_prefix)
+    det.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    _resync_row_digest(case, coord)
+
+
+def _missing_problems(doc: dict, suffix: str) -> list:
+    """取 envelope_base_params_required_keys 且 where 以 suffix 结尾
+    的 problem 载荷(missing 键列表)。"""
+    return [p["actual"]["missing"] for p in doc["problems"]
+            if p["check"] == "envelope_base_params_required_keys"
+            and p["where"].endswith(suffix)]
+
+
+class TestK01RequiredKeysMissing:
+    """矩阵 K01:逐项删除 A/B 必要课程键(side 非空,digest 权威重算、
+    索引详情哈希同步)——digest/详情校验成立但参数完整性明确失败并
+    定位缺键;覆盖四个 rung、两侧、六个键(标量与 mixture)。"""
+
+    def _expect_missing(self, case: Path, report: Path,
+                        where_suffix: str) -> dict:
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        # 内部摘要与外层详情哈希均成立:拒绝来自参数层
+        assert all(doc["checks"]["envelope_digest"].values())
+        assert all(v is True for v in doc["checks"]["detail_digest"].values())
+        assert _missing_problems(doc, where_suffix)
+        return doc
+
+    def test_scalar_key_side_a_each_rung(self, tmp_path):
+        for i, rung in enumerate(_RUNGS):
+            case = _copy_orig(tmp_path / f"rung{i}")
+            report = tmp_path / f"receipts" / f"k1a_{rung}.json"
+            report.parent.mkdir(exist_ok=True)
+            _tamper_env(case, f"{rung}/p0",
+                        lambda e: e["base_params"]["A"].pop("alpha_bps"))
+            line = 2 * i + 1  # 索引行号:D<p>/p0 占奇数行
+            doc = self._expect_missing(
+                case, report, f"{rung}/p0@line{line}:env0:A")
+            assert any(m == ["alpha_bps"]
+                       for m in _missing_problems(
+                           doc, f"{rung}/p0@line{line}:env0:A"))
+
+    def test_all_six_keys_side_b(self, tmp_path):
+        for i, key in enumerate(_REQ_KEYS):
+            case = _copy_orig(tmp_path / f"key{i}")
+            report = tmp_path / "receipts" / f"k1b_{i}.json"
+            report.parent.mkdir(exist_ok=True)
+            _tamper_env(case, "D0/p1",
+                        lambda e, k=key: e["base_params"]["B"].pop(k))
+            doc = self._expect_missing(case, report, "D0/p1@line2:env0:B")
+            assert any(m == [key]
+                       for m in _missing_problems(
+                           doc, "D0/p1@line2:env0:B"))
+
+    def test_mixture_list_key_missing(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _tamper_env(case, "D2/p0",
+                    lambda e: e["base_params"]["A"].pop("mixture"))
+        report = tmp_path / "receipts" / "k1mix.json"
+        report.parent.mkdir(exist_ok=True)
+        doc = self._expect_missing(case, report, "D2/p0@line5:env0:A")
+        assert any(m == ["mixture"]
+                   for m in _missing_problems(doc, "D2/p0@line5:env0:A"))
+
+
+class TestK02MissingNullAdditions:
+    """矩阵 K02:两侧同缺、键置 null(是不一致不是缺失)、仅剩合法
+    附加键(非空字典不等于完备);缺失与不一致正确区分,不补默认值。"""
+
+    def test_both_sides_missing_same_key(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _tamper_env(case, "D0/p0", lambda e: (
+            e["base_params"]["A"].pop("cue_rate"),
+            e["base_params"]["B"].pop("cue_rate")))
+        report = tmp_path / "receipts" / "k2a.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert _missing_problems(doc, "D0/p0@line1:env0:A") == [["cue_rate"]]
+        assert _missing_problems(doc, "D0/p0@line1:env0:B") == [["cue_rate"]]
+
+    def test_null_value_is_mismatch_not_missing(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _tamper_env(case, "D0/p0",
+                    lambda e: e["base_params"]["A"].update(vol_bps=None))
+        report = tmp_path / "receipts" / "k2b.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert not _missing_problems(doc, "D0/p0@line1:env0:A")
+        mism = [p for p in doc["problems"]
+                if p["check"] == "envelope_base_params_matches_rung"
+                and p["where"].endswith("D0/p0@line1:env0:A")]
+        assert mism and mism[0]["actual"]["mismatched"] == ["vol_bps"]
+
+    def test_only_additional_keys_left(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        # 移除六键后 side 仍非空(仅剩 pair_variant 等合法附加键)
+        _tamper_env(case, "D1/p0", lambda e: [
+            e["base_params"]["A"].pop(k) for k in _REQ_KEYS])
+        report = tmp_path / "receipts" / "k2c.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        # missing 按冻结常量声明顺序列出全部六键
+        assert any(m == list(_REQ_KEYS)
+                   for m in _missing_problems(doc, "D1/p0@line3:env0:A"))
+
+
+class TestK03RecipeRequiredKeys:
+    """矩阵 K03:recipe 缺必要键或与 envelope 同时删键以缩小必要集合
+    ——依据固定合同拒绝;健康旧 recipe 不受影响(I01 已覆盖)。"""
+
+    def test_recipe_rung_missing_key(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _rewrite_json(case / "recipe.json",
+                      lambda d: d["rung_params"]["D0"].pop(
+                          "distractor_rate"))
+        report = tmp_path / "receipts" / "k3a.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        probs = [p for p in doc["problems"]
+                 if p["check"] == "recipe_rung_params_required_keys"]
+        assert probs and probs[0]["actual"]["missing"] == ["distractor_rate"]
+        # envelope 侧健康(六键齐全)不产生缺键误报
+        assert not _missing_problems(doc, ":A")
+        assert not _missing_problems(doc, ":B")
+
+    def test_recipe_and_envelope_both_drop(self, tmp_path):
+        """双方同时删键不能缩小必要集合:envelope 侧按冻结常量照报。"""
+        case = _copy_orig(tmp_path)
+        _rewrite_json(case / "recipe.json",
+                      lambda d: d["rung_params"]["D0"].pop("cue_rate"))
+        _tamper_env(case, "D0/p0",
+                    lambda e: e["base_params"]["A"].pop("cue_rate"))
+        report = tmp_path / "receipts" / "k3b.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert any(p["check"] == "recipe_rung_params_required_keys"
+                   and p["actual"]["missing"] == ["cue_rate"]
+                   for p in doc["problems"])
+        assert _missing_problems(doc, "D0/p0@line1:env0:A") == [["cue_rate"]]
+        assert all(doc["checks"]["envelope_digest"].values())
+
+    def test_recipe_rung_object_absent(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _rewrite_json(case / "recipe.json",
+                      lambda d: d["rung_params"].pop("D2"))
+        report = tmp_path / "receipts" / "k3c.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert any(p["check"] == "recipe_rung_params_present"
+                   and p["where"].endswith("rung_params[D2]")
+                   for p in doc["problems"])
+        # envelope 侧必要键存在性不受 recipe 缺失影响
+        assert not _missing_problems(doc, ":A")
+
+
+class TestK04ValueChangeMismatch:
+    """矩阵 K04:参数值改变(摘要自洽)→ 非零且定位键;健康合法展开
+    与原负收益不受影响(I01/I06 已覆盖不重复)。"""
+
+    def test_mixture_value_changed(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        _tamper_env(case, "D0/p0", lambda e: e["base_params"]["A"].update(
+            mixture=[0.61, 0.24, 0.15]))
+        report = tmp_path / "receipts" / "k4a.json"
+        report.parent.mkdir(exist_ok=True)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert all(doc["checks"]["envelope_digest"].values())
+        mism = [p for p in doc["problems"]
+                if p["check"] == "envelope_base_params_matches_rung"
+                and p["where"].endswith("D0/p0@line1:env0:A")]
+        assert mism and "mixture" in mism[0]["actual"]["mismatched"]
+        assert not _missing_problems(doc, "D0/p0@line1:env0:A")

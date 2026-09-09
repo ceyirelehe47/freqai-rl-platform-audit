@@ -1,0 +1,38 @@
+{
+ "schema": "c3-pp-cold-read-v4",
+ "isolated": {
+  "unshare_rc": 0,
+  "verify_rc": 0,
+  "reader_rc": 0,
+  "semantic_receipt_ok": true,
+  "payload_snapshot_identical": true,
+  "ok": true
+ },
+ "negatives": {
+  "neg_p01_rc": 2,
+  "neg_p02_rc": 2,
+  "neg_p04_rc": 2,
+  "neg_k01": {
+   "verifier": 0,
+   "reader": 1,
+   "problem_checks": [
+    "envelope_base_params_required_keys"
+   ]
+  },
+  "neg_k02": {
+   "verifier": 0,
+   "reader": 1,
+   "problem_checks": [
+    "envelope_base_params_matches_rung"
+   ]
+  },
+  "ok": {
+   "neg_p01_symlink_dotdot_rc2_zero_changes": true,
+   "neg_p02_new_nested_rc2_no_dir_created": true,
+   "neg_p04_existing_receipt_not_clobbered": true,
+   "neg_k01_missing_key_verifier0_reader1": true,
+   "neg_k02_null_value_verifier0_reader1": true
+  }
+ },
+ "ok": true
+}

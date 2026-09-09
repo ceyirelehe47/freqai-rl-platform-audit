@@ -1,0 +1,79 @@
+{
+ "schema": "r17-c3-path-param-old-counterexamples-v1",
+ "reader": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+ "reader_sha256": "9869ea6ccc319e7ebf6ad85cf3b70e669fcf59baeb11e46dc730aa8198853886",
+ "orig_slice": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_evidence_generation_slice/engineering_slice",
+ "p52": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json",
+ "cases": {
+  "path01_symlink_dotdot": {
+   "scenario": "PATH-01 symlink+.. report target is in-source recipe.json (absolute path, CLI)",
+   "report_arg": "/tmp/c3pp_ce1_ihx9xgod/case/outside/alias/../recipe.json",
+   "rc": 2,
+   "stdout_tail": "",
+   "stderr_tail": "report target rejected (no source writes performed): report 目标位于只读输入之内: /tmp/c3pp_ce1_ihx9xgod/case/source/recipe.json ⊆ /tmp/c3pp_ce1_ihx9xgod/case/source\n",
+   "source_recipe_sha_before": "5239ec83c52bfee946dd1ee00bdbc7f2c2d066aa1993f01ecdd001cf8a67a478",
+   "source_recipe_sha_after": "5239ec83c52bfee946dd1ee00bdbc7f2c2d066aa1993f01ecdd001cf8a67a478",
+   "source_recipe_identity_before": [
+    2096,
+    503031,
+    2718,
+    1788885945554587100
+   ],
+   "source_recipe_identity_after": [
+    2096,
+    503031,
+    2718,
+    1788885945554587100
+   ],
+   "tree_changed_paths": [],
+   "tree_changed_files": {},
+   "receipt_if_overwritten": null,
+   "old_defect_reproduced": false
+  },
+  "path02_existing_receipt_replaced": {
+   "scenario": "PATH-02 pre-existing external receipt target (plain JSON file) replaced by os.replace",
+   "rc": 2,
+   "stdout_tail": "",
+   "stderr_tail": "report target rejected (no source writes performed): 回执最终目标本次调用前已存在(已有显式目标不覆盖,新结果请另存): /tmp/c3pp_ce2_sykq97gy/outside/receipt_old.json\n",
+   "old_sha_before": "4535ee67f85a3798377fcdcf4ec547b13dd54790ccdb7c0865ed3104924d45c0",
+   "old_sha_after": "4535ee67f85a3798377fcdcf4ec547b13dd54790ccdb7c0865ed3104924d45c0",
+   "old_identity_before": [
+    2096,
+    503034,
+    59,
+    1788938220451714414
+   ],
+   "old_identity_after": [
+    2096,
+    503034,
+    59,
+    1788938220451714414
+   ],
+   "receipt_now": {
+    "format": "historical-receipt",
+    "payload": "DO NOT TOUCH"
+   },
+   "old_defect_reproduced": false
+  },
+  "param01_missing_required_key_pass": {
+   "scenario": "PARAM-01 base_params.A drops alpha_bps (envelope digest recomputed by authority; index detail_sha256 resynced)",
+   "rc": 1,
+   "verdict": "FAIL",
+   "envelope_digest_checks": {
+    "D0/p0@line1:env0": true,
+    "D0/p1@line2:env0": true,
+    "D1/p0@line3:env0": true,
+    "D1/p1@line4:env0": true,
+    "D2/p0@line5:env0": true,
+    "D2/p1@line6:env0": true,
+    "D3/p0@line7:env0": true,
+    "D3/p1@line8:env0": true
+   },
+   "problem_checks": [
+    "envelope_base_params_required_keys"
+   ],
+   "stdout_tail": "readback_verdict: FAIL\nn_problems: 1\nreport: /tmp/c3pp_ce3_nhda0_pk/outside/receipt.json\n",
+   "old_defect_reproduced": false
+  }
+ }
+}
