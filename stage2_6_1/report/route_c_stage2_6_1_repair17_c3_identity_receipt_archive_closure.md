@@ -4,7 +4,7 @@
 **轮次性质** R17 冻结前普通开发续轮(pre-freeze;formal quarantined);不是 R18,不建立最终 Implementation Freeze A / Results B
 **接手 SHA** `759598800d1a1b22b282a6c916c88d914cb2d623`(直接 parent `6645002ca1dca9db3d03f7fc701b54bce377cfd9`)
 **基线核对** fetch 后 HEAD=接手 SHA,工作树无已跟踪修改;reader blob=`74af51fc…`、envelope 权威模块 blob=`bcad1188…`、slice 测试 blob=`93b039b6…` 与任务书附录逐一相符;部署树 reader/测试与工作树逐字节一致(同步后 sha256 复核)
-**交付 SHA** `<TO_BE_FILLED>`(主提交;本行由勘误提交回填)
+**交付 SHA** `baa798996e8d8fe97cf4be9d5443c48b860b595a`(主提交;本行为回填勘误提交)
 
 ---
 
