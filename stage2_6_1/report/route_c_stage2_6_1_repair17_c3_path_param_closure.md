@@ -227,4 +227,31 @@ rc=1(完整 ok=false JSON,不崩溃)。不用旧包/历史回执补认。
 | 受监护全量原件 | `stage2_6_1/artifacts/repair17/development/run_supervision/runs/c3ppc_full_20260909/`(stdout/junit/run_record/summary/telemetry/alerts) |
 | 本轮报告 | `stage2_6_1/report/route_c_stage2_6_1_repair17_c3_path_param_closure.md` |
 
-- 交付 SHA:`5f3b8c0e16839d3670727e50ea4bc77cccf9f5d4`
+- 交付 SHA:`5f3b8c0e16839d3670727e50ea4bc77cccf9f5d4`(主提交)+报告回填 `3ee2e672e2f5b0b17adf8c0e33cae2d85c678d8f`;独立验收 **ACCEPT** 后追加本节(见 §12)
+
+---
+
+## 12. 独立验收结论(subagent,只读)
+
+四分项全部 PASS,整体 **ACCEPT**,无致命缺陷:
+
+- **A 三缺陷真实性与修复翻转 PASS**:从 git blob 取出接手版 reader
+  (sha256 `f4a5e20a`)重跑本轮反例脚本,三缺陷全部复现;对部署树
+  新版(`9869ea6a`)重跑同脚本,三 case 全部不再复现(rc=2/2/1),
+  与交付留档逐项一致;`git diff` 12 个 hunk 全部落在路径准入/回执/
+  参数/docstring 区,生成路径四函数(`run_slice`/`run_p52_negative`/
+  `freeze_recipe`/`_atomic_write`)函数体逐字节一致。
+- **B 测试与全量数字 PASS**:slice unit 独立重跑 108 passed(65.04s);
+  部署树/git blob/工作树三处测试文件 sha256 一致;全量 stdout 末行
+  1662/7、junit 1669/0/7、junit sha256 与 run_record 登记一致;
+  1662−1635=27=108−81 计数自洽。
+- **C v4 包与冷读/汇总 PASS**:manifest 18 行独立逐字节重算全部
+  匹配;冷读五负例全过;E05 三例重跑 POS=0/NEG1=1/NEG2=1 且产物
+  与提交版本字节一致(重跑幂等)。
+- **D 旧轮零改动+远端 PASS**:四个旧轮目录 diff 零匹配;远端指针
+  =`3ee2e67`,关键 blob 远端可读与本地一致。
+
+遗留观察(非缺陷,无需行动):工作区存在跨轮累积的历史未提交文件与
+监护 run 目录(旧失败日志与监护历史按纪律不清除);验收过程中
+wsl.exe 直传 `$?`/`$VAR` 的跨层展开假象(已改 stdin 脚本方式复核,
+属验收方法问题);E05 重跑幂等无仓库可见差异。
