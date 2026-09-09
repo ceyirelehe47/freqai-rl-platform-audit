@@ -1,0 +1,59 @@
+{
+ "schema": "r17-telemetry-win-forensics-manifest-v1",
+ "task_doc": "README_AGENT_CHECK.md (sha256 c0617a8b, commit 97fef93)",
+ "check_runs": [
+  {
+   "object": "worktree",
+   "argv": [
+    "--root run_supervision",
+    "--record runs/c3eto_full_20260909_r3/run_record.json",
+    "--telemetry-hints"
+   ],
+   "rc": 1,
+   "stdout": "outputs/check_worktree.json",
+   "interpreter": "freqtrade-rl Python 3.11.16"
+  },
+  {
+   "object": "gitblob_export_6d98f5b",
+   "argv": [
+    "--root gitblob_r3_export",
+    "--record runs/c3eto_full_20260909_r3/run_record.json",
+    "--telemetry-hints"
+   ],
+   "rc": 1,
+   "stdout": "outputs/check_gitblob.json",
+   "interpreter": "freqtrade-rl Python 3.11.16"
+  },
+  {
+   "object": "sealed_copy",
+   "status": "not_found",
+   "note": "登记 f502a49f/264179 完整副本经全盘搜索不存在,缺口如实保留"
+  }
+ ],
+ "probe_runs": [
+  "runs/c3eto_sampler_probe_20260909 (startup_rejected 痕迹)",
+  "runs/c3eto_sampler_probe_20260909b (完整探针:stopped 事件下写者真死,与 r3 相反)"
+ ],
+ "audit_tool": "tools/r17_audit_run_bytes_equiv.py (audit_run_bytes.py 未随包交付的等价只读实现)",
+ "core_facts": {
+  "registered": {
+   "bytes": 264179,
+   "sha256": "f502a49f3dc8b785c87419b84c1009e72ece754dd3131b53ea113242410db4dc"
+  },
+  "commit_blob_6d98f5b": {
+   "bytes": 309550,
+   "git_blob": "327a99c5c80194e833acac8b0c03a1a309785aea",
+   "lines": 391
+  },
+  "worktree_final": {
+   "bytes": 848948,
+   "lines": 1069,
+   "last_event": "sampler_end reason=max_seconds utc=2026-09-09T14:03:18.190Z"
+  },
+  "prefix_match": "现存文件前 264179 字节前缀 sha256 == 登记值(seal 后纯追加)",
+  "post_seal_lines": 735,
+  "win_sampler_windows_pid_r3": 135692,
+  "win_sampler_windows_pid_probe_b": 117848,
+  "residual_process_now": "无任何 win_sampler powershell 进程"
+ }
+}
