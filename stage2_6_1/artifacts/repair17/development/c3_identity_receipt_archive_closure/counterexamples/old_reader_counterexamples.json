@@ -1,0 +1,31 @@
+{
+ "provenance": "2026-09-09 第一阶段:接手版 reader(blob 74af51fc/sha256 dfb36445,WSL 部署树实跑)对真实产物隔离副本的旧行为实证;原始输出见本文件 legacy 部分",
+ "legacy_run_utc": "2026-09-09T04:35:00Z(近似;当时部署树 sha=dfb36445)",
+ "reader_sha256_at_run": "dfb36445bf991e1846bd19676f941439f87b11acc4bcd2c2bc044431519b2798",
+ "I02": {
+  "scenario": "三下游(top/log/eval)同 side 一起改为一致新哈希;selected envelope 输出不动;外层 detail_sha256 已更新",
+  "old_reader_rc": 0,
+  "old_reader_verdict": "PASS",
+  "old_reader_n_problems": 0,
+  "defect": "C3-RDD-01A:三处下游互相自洽即通过,未连到 selected envelope 生成证据"
+ },
+ "I03": {
+  "scenario": "selected envelope A 侧 episode_content_hash 改动并按权威合同重算 envelope digest;三下游保留原值;detail_sha256 已更新",
+  "old_reader_rc": 0,
+  "old_reader_verdict": "PASS",
+  "old_reader_n_problems": 0,
+  "defect": "C3-RDD-01A/01B:内部 digest 正确不等于跨层关系正确,旧 reader 未复算也未绑定"
+ },
+ "P01": {
+  "scenario": "--report 指向源目录内历史 readback_report.json",
+  "before_sha256": "484b7fad4403ac6f1a494322b42642f463883004565d0ec2449a46d697f9d26d",
+  "after_sha256": "8ce2fc05af76ce613b2112a10cf64837f5c36bb40966633e40549a1f00f09789",
+  "overwritten": true,
+  "new_file_format": "r17-c3-engineering-slice-readback-v2",
+  "snapshot_claimed_identical": true,
+  "old_reader_rc": 0,
+  "defect": "C3-RDD-02:--report 无路径准入,实际覆盖源内历史回执;after 快照先于回执写入,回执仍自称 source_snapshot_identical=true(双重缺陷)"
+ },
+ "health_control": {"old_reader_rc": 0, "old_reader_verdict": "PASS",
+  "note": "同批健康对照,证明上述反例非环境差异所致"}
+}

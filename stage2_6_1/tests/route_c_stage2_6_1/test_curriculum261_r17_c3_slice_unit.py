@@ -970,3 +970,555 @@ class TestE0xEvidencePackage:
         assert doc["checks"]["detail_digest"]["D1/p0@line3"] is True
         # 旧回执原样(包外新回执;源零写入)
         assert old_report.read_bytes() == old_bytes
+
+
+# ============================== v3:身份绑定(I)与回执写入隔离(P)
+def _tree_stat(root: Path) -> dict:
+    """源树状态(sha256,size,mtime_ns)——P 系断言零源写入用。"""
+    out = {}
+    for p in sorted(root.rglob("*")):
+        if p.is_file():
+            st = p.stat()
+            out[str(p.relative_to(root))] = (
+                hashlib.sha256(p.read_bytes()).hexdigest(),
+                st.st_size, st.st_mtime_ns)
+    return out
+
+
+def _authority():
+    """生产权威 digest 实现(部署树/发布树 src;独立于 reader 薄适配)。"""
+    src = _src_dir()
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    try:
+        from rl_curriculum.curriculum261_generation_envelope import (
+            canonical_json, stable_digest, _digest_body as auth_body,
+            ENVELOPE_DIGEST_PREFIX, CALL_ENVELOPE_DIGEST_PREFIX)
+    except ImportError as exc:
+        pytest.skip(f"权威模块不可用(需生产环境): {exc}")
+    return (canonical_json, stable_digest, auth_body,
+            ENVELOPE_DIGEST_PREFIX, CALL_ENVELOPE_DIGEST_PREFIX)
+
+
+class TestC01CanonicalAdapterVsAuthority:
+    """薄适配与生产权威函数逐对象对照(同进程;序列化边界+真实旧件)。"""
+
+    def _objs(self):
+        nan = float("nan")
+        inf = float("inf")
+        return [
+            None, True, False, 0, 1, -7, 3.5, 1e300, "ascii", "中文🚀",
+            [], {}, [1, "a", None, [2.5]], {"b": 1, "a": {"x": [1, 2]}},
+            {"__sorted_set__": ["a", "b"]},
+            {"f": nan}, {"g": inf}, {"h": -inf},
+            {"deep": [{"nested": [[{"k": "v"}]]}]},
+        ]
+
+    def test_canonical_text_matches_authority(self, slice_mod):
+        canonical_json, _, _, _, _ = _authority()
+        for obj in self._objs():
+            auth = canonical_json(obj)
+            mine = slice_mod._canonical_json_text(obj)
+            assert mine == auth, obj
+            assert mine == slice_mod._canonical_json_text(
+                json.loads(json.dumps(obj))), obj
+
+    def test_digest_matches_authority_on_real_envelopes(self, tmp_path,
+                                                        slice_mod):
+        """健康旧件真实 envelope:薄适配复算==权威 stable_digest。"""
+        canonical_json, stable_digest, auth_body, env_prefix, _ = _authority()
+        case = _copy_orig(tmp_path)
+        doc = json.loads((case / "pairs" / "D0_p0.json").read_text(
+            encoding="utf-8"))
+        for e in doc["attempt_envelopes"]:
+            body = slice_mod._digest_body(e)
+            assert slice_mod._canonical_json_text(body) == canonical_json(
+                auth_body(e))
+            assert slice_mod._recompute_envelope_digest(e) == stable_digest(
+                auth_body(e), env_prefix)
+            assert slice_mod._recompute_envelope_digest(e) == e["digest"]
+
+    def test_non_json_type_rejected(self, slice_mod):
+        with pytest.raises(TypeError):
+            slice_mod._canonical_json_text({1, 2})
+
+    def test_runtime_excluded_from_digest(self, tmp_path, slice_mod):
+        """runtime 是非身份字段:改动不影响复算(不伪装成业务身份)。"""
+        case = _copy_orig(tmp_path)
+        p = case / "pairs" / "D0_p0.json"
+        _rewrite_json(p, lambda d: d["attempt_envelopes"][0][
+            "runtime"].update(pythonhashseed="<tampered-env>"))
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        e = doc["attempt_envelopes"][0]
+        assert slice_mod._recompute_envelope_digest(e) == e["digest"]
+
+
+class TestI01HealthReadbackV3:
+    """I01:健康原件在新 reader 下 PASS;新增检查全 True;旧回归仍拒。"""
+
+    def test_health_pass_with_identity_checks(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        before = _tree_stat(case)
+        report = tmp_path / "receipts" / "health.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 0, rb.stderr
+        doc = _load(report)
+        assert doc["readback_verdict"] == "PASS"
+        assert doc["format"] == "r17-c3-engineering-slice-readback-v3"
+        # 八坐标每条 envelope digest 复算全 True
+        for where, ok in doc["checks"]["envelope_digest"].items():
+            assert ok is True, where
+        # p52 身份体五条全 True
+        for env_i, ok in doc["checks"]["p52_identity_body"].items():
+            assert ok is True, env_i
+        assert doc["checks"]["p52_orig_call_digest_recomputed"] is True
+        assert doc["report_target_admission"]["admitted"] is True
+        assert _tree_stat(case) == before
+
+    def test_old_regressions_still_rejected(self, tmp_path):
+        """乱序索引/缺 p52 负例/跨坐标引用在 v3 仍拒绝。"""
+        # 乱序
+        case = _copy_orig(tmp_path / "a")
+        p = case / "slice_results.jsonl"
+        lines = p.read_text(encoding="utf-8").splitlines()
+        lines[0], lines[1] = lines[1], lines[0]
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        rb = _run_readback(case, tmp_path / "r1.json")
+        assert rb.returncode == 1
+        assert "index_order_exact" in _checks(_load(tmp_path / "r1.json"))
+        # 缺负例
+        case = _copy_orig(tmp_path / "b")
+        (case / "p52_negative.json").unlink()
+        rb = _run_readback(case, tmp_path / "r2.json")
+        assert rb.returncode == 1
+        assert "file_present" in _checks(_load(tmp_path / "r2.json"))
+        # 跨坐标引用(哈希自洽)
+        case = _copy_orig(tmp_path / "c")
+        rows_path = case / "slice_results.jsonl"
+        rows = [json.loads(l) for l in rows_path.read_text(
+            encoding="utf-8").splitlines() if l.strip()]
+        for row in rows:
+            if row["coord"] == "D1/p0":
+                row["detail"] = "D0_p0.json"
+                row["detail_sha256"] = hashlib.sha256(
+                    (case / "pairs" / "D0_p0.json").read_bytes()).hexdigest()
+        rows_path.write_text(
+            "\n".join(json.dumps(r, ensure_ascii=False)
+                      for r in rows) + "\n", encoding="utf-8")
+        rb = _run_readback(case, tmp_path / "r3.json")
+        assert rb.returncode == 1
+        assert "detail_identity_cross_coord" in _checks(
+            _load(tmp_path / "r3.json"))
+
+
+class TestI02DownstreamSelfConsistent:
+    """I02:三下游(top/log/eval)一起改、selected envelope 不动——
+    三个下游互相自洽仍不足以通过(必须在 selected 输出关系处失败)。"""
+
+    def test_all_three_layers_changed_fails(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        new_h = {s: "ce-" + hashlib.sha256(f"i02-{s}".encode()).hexdigest()
+                 for s in ("A", "B")}
+
+        def tweak(doc):
+            doc["episode_hashes"] = dict(new_h)
+            doc["pair_record"]["attempt_log"][
+                "output_episode_hashes"] = dict(new_h)
+            for ep in doc["evaluation"]["episodes"]:
+                ep["episode_hash"] = new_h[ep["side"]]
+
+        _rewrite_json(case / "pairs" / "D0_p0.json", tweak)
+        _resync_row_digest(case, "D0/p0")
+        report = tmp_path / "receipts" / "i02.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        cs = _checks(_load(report))
+        assert "selected_envelope_output_binding" in cs
+        # detail 层外层哈希与三处下游自洽均不构成拒绝依据
+        doc = _load(report)
+        assert doc["checks"]["detail_digest"]["D0/p0@line1"] is True
+
+
+class TestI03SelectedEnvelopeDigestValid:
+    """I03:selected envelope 输出改动且 digest 权威重算、下游原值——
+    内部摘要有效不等于跨层语义正确。"""
+
+    def test_selected_envelope_tampered_digest_valid(self, tmp_path):
+        _, stable_digest, auth_body, env_prefix, _ = _authority()
+        case = _copy_orig(tmp_path)
+
+        def tweak(doc):
+            env = doc["attempt_envelopes"][0]
+            env["event_table"]["A"]["episode_content_hash"] = (
+                "ce-" + hashlib.sha256(b"i03-tampered").hexdigest())
+            env["digest"] = stable_digest(auth_body(env), env_prefix)
+
+        _rewrite_json(case / "pairs" / "D0_p0.json", tweak)
+        _resync_row_digest(case, "D0/p0")
+        report = tmp_path / "receipts" / "i03.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        cs = _checks(doc)
+        assert "selected_envelope_output_binding" in cs
+        # digest 本身复算仍通过(证明不是 digest 检查在拦截)
+        assert doc["checks"]["envelope_digest"]["D0/p0@line1:env0"] is True
+
+
+class TestI04EnvelopeDigestRecompute:
+    """I04:digest 缺失/乱值/body 改不更新——由真实 canonical 复算拒绝;
+    runtime 中性变化不误判。"""
+
+    def _run(self, tmp_path, name, tweak):
+        case = _copy_orig(tmp_path / name)
+        _rewrite_json(case / "pairs" / "D0_p0.json", tweak)
+        _resync_row_digest(case, "D0/p0")
+        report = tmp_path / "receipts" / f"{name}.json"
+        rb = _run_readback(case, report)
+        return rb, _load(report)
+
+    def test_digest_missing(self, tmp_path):
+        rb, doc = self._run(tmp_path, "a", lambda d: d[
+            "attempt_envelopes"][0].pop("digest"))
+        assert rb.returncode == 1
+        assert "envelope_digest_recompute" in _checks(doc)
+
+    def test_digest_wrong_value(self, tmp_path):
+        rb, doc = self._run(tmp_path, "b", lambda d: d[
+            "attempt_envelopes"][0].update(
+            digest="r11env-" + "0" * 64))
+        assert rb.returncode == 1
+        assert "envelope_digest_recompute" in _checks(doc)
+
+    def test_body_changed_without_digest_update(self, tmp_path):
+        rb, doc = self._run(tmp_path, "c", lambda d: d[
+            "attempt_envelopes"][0].update(internal_derived_seed=999999))
+        assert rb.returncode == 1
+        assert "envelope_digest_recompute" in _checks(doc)
+
+    def test_runtime_change_neutral(self, tmp_path):
+        """仅 runtime 差异:digest 复算 match,整体仍 PASS。"""
+        rb, doc = self._run(tmp_path, "d", lambda d: d[
+            "attempt_envelopes"][0]["runtime"].update(
+            pythonhashseed="<other-env>"))
+        assert rb.returncode == 0, rb.stderr
+        assert doc["readback_verdict"] == "PASS"
+        assert doc["checks"]["envelope_digest"]["D0/p0@line1:env0"] is True
+
+
+class TestI05P52InnerIdentitySwap:
+    """I05:p52 顶层正确、内层换 namespace/seed 且 digest 自洽、
+    原因不变——与固定原件身份不符,非零拒绝。"""
+
+    def test_inner_identity_swap_rejected(self, tmp_path):
+        _, stable_digest, auth_body, env_prefix, _ = _authority()
+        case = _copy_orig(tmp_path)
+
+        def tweak(doc):
+            env = doc["attempt_envelopes"][0]
+            env["namespace"] = "rt3_calibration_main_r18"
+            env["seed_derivation_fields"]["namespace"] = \
+                "rt3_calibration_main_r18"
+            env["outer_seed"] = int(env["outer_seed"]) + 1
+            env["digest"] = stable_digest(auth_body(env), env_prefix)
+
+        _rewrite_json(case / "p52_negative.json", tweak)
+        report = tmp_path / "receipts" / "i05.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        cs = _checks(doc)
+        assert "p52_identity_body_match_original" in cs
+        # 顶层坐标与拒绝词表均未变(不是那些检查在拦截)
+        assert "p52_coordinates" not in cs
+        assert "p52_reasons_match_original" not in cs
+        # 换身份的 digest 自洽:双侧复算通过
+        assert doc["checks"]["p52_identity_body"]["env0"] is False
+        prob = [p for p in doc["problems"] if p["check"] ==
+                "p52_identity_body_match_original"][0]
+        assert "namespace" in prob["actual"]["diff_fields"]
+        assert "outer_seed" in prob["actual"]["diff_fields"]
+
+    def test_wrong_seeds_same_reasons_rejected(self, tmp_path):
+        """五条 envelope 全部换 seed、digest 自洽、原因不变:仍拒绝。"""
+        _, stable_digest, auth_body, env_prefix, _ = _authority()
+        case = _copy_orig(tmp_path)
+
+        def tweak(doc):
+            for i, env in enumerate(doc["attempt_envelopes"]):
+                env["internal_derived_seed"] = (
+                    int(env["internal_derived_seed"]) + 1000 + i)
+                env["digest"] = stable_digest(auth_body(env), env_prefix)
+
+        _rewrite_json(case / "p52_negative.json", tweak)
+        report = tmp_path / "receipts" / "i05b.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        assert "p52_identity_body_match_original" in _checks(_load(report))
+
+
+class TestI06ParamsGeneratorBinding:
+    """I06:课程参数/generator 身份与既有来源绑定;健康合法展开不误拒。"""
+
+    def _run(self, tmp_path, name, recipe_tweak=None, detail_tweak=None):
+        case = _copy_orig(tmp_path / name)
+        if recipe_tweak is not None:
+            _rewrite_json(case / "recipe.json", recipe_tweak)
+        if detail_tweak is not None:
+            _rewrite_json(case / "pairs" / "D0_p0.json", detail_tweak)
+            _resync_row_digest(case, "D0/p0")
+        report = tmp_path / "receipts" / f"{name}.json"
+        rb = _run_readback(case, report)
+        return rb, _load(report)
+
+    def test_generator_identity_changed(self, tmp_path):
+        rb, doc = self._run(
+            tmp_path, "a",
+            recipe_tweak=lambda r: r["generator_identity"].update(
+                fingerprint="tampered"))
+        assert rb.returncode == 1
+        assert "envelope_generator_matches_recipe" in _checks(doc)
+
+    def test_rung_params_changed(self, tmp_path):
+        rb, doc = self._run(
+            tmp_path, "b",
+            recipe_tweak=lambda r: r["rung_params"]["D0"].update(
+                alpha_bps=71.0))
+        assert rb.returncode == 1
+        assert "envelope_base_params_matches_rung" in _checks(doc)
+
+    def test_base_params_side_removed(self, tmp_path):
+        rb, doc = self._run(
+            tmp_path, "c",
+            detail_tweak=lambda d: d["attempt_envelopes"][0][
+                "base_params"].pop("A"))
+        assert rb.returncode == 1
+        assert "envelope_base_params_present" in _checks(doc)
+
+    def test_output_hash_removed(self, tmp_path):
+        rb, doc = self._run(
+            tmp_path, "d",
+            detail_tweak=lambda d: d.pop("episode_hashes"))
+        assert rb.returncode == 1
+        cs = _checks(doc)
+        # 顶层缺失:既有缺失检查 + 以 selected envelope 为锚的绑定失败
+        # (selected 侧输出仍在,缺的是下游层,报 binding 而非 present)
+        assert "episode_hash_present" in cs
+        assert "selected_envelope_output_binding" in cs
+
+    def test_legitimate_expansion_not_rejected(self, tmp_path):
+        """健康 A/B 合法展开(base_params 含 rung 之外附加键)不误拒。"""
+        case = _copy_orig(tmp_path / "e")
+        report = tmp_path / "receipts" / "e.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 0, rb.stderr
+        doc = _load(report)
+        cs = _checks(doc)
+        assert not {"envelope_generator_matches_recipe",
+                    "envelope_base_params_matches_rung",
+                    "envelope_base_params_present"} & cs
+
+
+class TestP01ReportInsideSource:
+    """P01:--report 指向源内文件(历史回执/recipe/新嵌套)——CLI 与
+    直接函数都在写入前拒绝;进程退出后源集合/字节/mtime 不变。"""
+
+    def test_report_hits_historical_receipt(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        target = case / "readback_report.json"
+        before = _tree_stat(case)
+        rb = _run_readback(case, target)
+        assert rb.returncode == 2
+        assert _tree_stat(case) == before
+        assert not any(p.name.endswith(".tmp")
+                       for p in case.rglob("*") if p.is_file())
+
+    def test_report_hits_recipe(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        target = case / "recipe.json"
+        before = _tree_stat(case)
+        rb = _run_readback(case, target)
+        assert rb.returncode == 2
+        assert _tree_stat(case) == before
+
+    def test_report_new_nested_file_in_source(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        target = case / "nested" / "new" / "report.json"
+        before = _tree_stat(case)
+        rb = _run_readback(case, target)
+        assert rb.returncode == 2
+        assert _tree_stat(case) == before
+
+    def test_direct_function_call_rejected(self, tmp_path, slice_mod):
+        case = _copy_orig(tmp_path)
+        with pytest.raises(slice_mod.ReportTargetRejected):
+            slice_mod.readback(case, case / "recipe.json",
+                               _orig_envelope())
+
+
+class TestP02ReportOverlapsInputs:
+    """P02:report 与源树外 p52 依据等输入重合;相对路径/链接/别名。"""
+
+    def test_report_equals_p52_envelope_input(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        target = _orig_envelope()
+        before_bytes = target.read_bytes()
+        rb = _run_readback(case, target)
+        assert rb.returncode == 2
+        assert target.read_bytes() == before_bytes
+
+    def test_report_sibling_of_p52_input_allowed(self, tmp_path):
+        """p52 依据是文件级保护:同目录新文件不与输入本身重合
+        (保护集精确不过宽;用副本验证,不写旧 run 目录)。"""
+        case = _copy_orig(tmp_path)
+        env_copy = tmp_path / "envs" / "p52.json"
+        env_copy.parent.mkdir()
+        shutil.copyfile(_orig_envelope(), env_copy)
+        report = env_copy.parent / "receipt.json"
+        rb = _run_readback(case, report, envelope=env_copy)
+        assert rb.returncode == 0, rb.stderr
+        assert report.is_file()
+
+    def test_relative_path_into_source(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        script = _slice_script()
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(_src_dir())
+        rb = subprocess.run(
+            [sys.executable, str(script), "--readback", str(case),
+             "--p52-envelope", str(_orig_envelope()),
+             "--report", os.path.relpath(case / "recipe.json",
+                                         case.parent)],
+            capture_output=True, text=True, timeout=300, env=env,
+            cwd=str(case.parent))
+        assert rb.returncode == 2
+        assert json.loads((case / "recipe.json").read_text(
+            encoding="utf-8"))["format"] == \
+            "r17-c3-engineering-slice-recipe-v1"
+
+    def test_symlink_alias_into_source(self, tmp_path):
+        if os.name == "nt":
+            pytest.skip("symlink 需要 Linux")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        link = receipts / "alias.json"
+        link.symlink_to(case / "recipe.json")
+        before = _tree_stat(case)
+        rb = _run_readback(case, link)
+        assert rb.returncode == 2
+        assert _tree_stat(case) == before
+
+    def test_hardlink_alias_to_input(self, tmp_path):
+        if os.name == "nt":
+            pytest.skip("hardlink 需要同一文件系统(tmp 同盘可行)")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        alias = receipts / "hard.json"
+        os.link(case / "recipe.json", alias)
+        rb = _run_readback(case, alias)
+        assert rb.returncode == 2
+        assert json.loads((case / "recipe.json").read_text(
+            encoding="utf-8"))["format"] == \
+            "r17-c3-engineering-slice-recipe-v1"
+
+
+class TestP03TempLinkNotFollowed:
+    """P03:安全外部回执目录里预置指向输入的固定名 .tmp 链接——
+    独占创建唯一临时名,不跟随不截断。"""
+
+    def test_preset_tmp_link_rejected_not_followed(self, tmp_path):
+        """安全外部回执目录预置指向输入的固定名 .tmp 链接:产品选择
+        fail-closed 明确拒绝(任务书允许"安全独占创建或明确拒绝"二选一),
+        绝不跟随/截断输入;源零改动,链接原样。"""
+        if os.name == "nt":
+            pytest.skip("symlink 需要 Linux")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        report = receipts / "r.json"
+        evil = receipts / (report.name + ".tmp")
+        evil.symlink_to(case / "recipe.json")
+        before = _tree_stat(case)
+        rb = _run_readback(case, report)
+        assert rb.returncode == 2
+        assert "r.json.tmp" in rb.stderr
+        assert evil.is_symlink()  # 预置链接原样未跟随
+        assert _tree_stat(case) == before
+        assert not report.exists()
+
+
+class TestP04DefaultReportCwd:
+    """P04:cwd 在源内省略 report 拒绝;cwd 在外或显式外部路径正常;
+    同名前缀外部兄弟目录不误拒。"""
+
+    def _run_no_report(self, case: Path, cwd: Path):
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(_src_dir())
+        return subprocess.run(
+            [sys.executable, str(_slice_script()), "--readback",
+             str(case), "--p52-envelope", str(_orig_envelope())],
+            capture_output=True, text=True, timeout=300, env=env,
+            cwd=str(cwd))
+
+    def test_cwd_inside_source_rejected(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        before = _tree_stat(case)
+        rb = self._run_no_report(case, case / "pairs")
+        assert rb.returncode == 2
+        assert _tree_stat(case) == before
+
+    def test_cwd_outside_writes_receipt(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        cwd = tmp_path / "outside"
+        cwd.mkdir()
+        rb = self._run_no_report(case, cwd)
+        assert rb.returncode == 0, rb.stderr
+        got = [p for p in cwd.iterdir() if p.name.startswith(
+            "readback_receipt_")]
+        assert len(got) == 1
+
+    def test_sibling_prefix_dir_not_rejected(self, tmp_path):
+        """外部兄弟目录与源同名前缀(slice-backup)不受误拒。"""
+        case = tmp_path / "engineering_slice"
+        shutil.copytree(_orig_slice_dir(), case)
+        sibling = tmp_path / "engineering_slice-backup" / "receipts"
+        sibling.mkdir(parents=True)
+        report = sibling / "r.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 0, rb.stderr
+        assert report.is_file()
+
+
+class TestP05WriteFailureSafePath:
+    """P05:安全回执目标写入失败不输出完成 PASS;错误输入+安全目标
+    正常非零且落盘原因;绝不回退写源目录。"""
+
+    def test_receipt_dir_readonly_write_fails(self, tmp_path):
+        if os.name == "nt" or os.geteuid() == 0:
+            pytest.skip("chmod 阻断需普通用户 Linux")
+        case = _copy_orig(tmp_path)
+        receipts = tmp_path / "receipts"
+        receipts.mkdir()
+        receipts.chmod(0o555)
+        try:
+            rb = _run_readback(case, receipts / "r.json")
+            assert rb.returncode == 6
+            assert "readback_verdict: PASS" not in rb.stdout
+            assert not (receipts / "r.json").exists()
+        finally:
+            receipts.chmod(0o755)
+
+    def test_bad_input_safe_target_receipt_written(self, tmp_path):
+        case = _copy_orig(tmp_path)
+        rows_path = case / "slice_results.jsonl"
+        lines = rows_path.read_text(encoding="utf-8").splitlines()
+        lines[0], lines[1] = lines[1], lines[0]
+        rows_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        report = tmp_path / "receipts" / "r.json"
+        rb = _run_readback(case, report)
+        assert rb.returncode == 1
+        doc = _load(report)
+        assert "index_order_exact" in _checks(doc)
+        assert doc["readback_verdict"] == "FAIL"

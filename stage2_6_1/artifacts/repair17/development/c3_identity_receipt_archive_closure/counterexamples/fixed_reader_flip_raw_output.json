@@ -1,0 +1,56 @@
+{
+ "I02": {
+  "scenario": "三下游(top/log/eval)同 side 一起改为一致新哈希;selected envelope 输出不动;外层 detail_sha256 已更新",
+  "old_reader": {
+   "rc": 1,
+   "stdout_tail": [
+    "readback_verdict: FAIL",
+    "n_problems: 6",
+    "report: /home/cryptorl/tmp_r17irac_ce/receipts/i02_report.json"
+   ],
+   "stderr_tail": []
+  },
+  "expected_after_fix": "FAIL(selected_envelope_output_binding)"
+ },
+ "I03": {
+  "scenario": "selected envelope A 侧 episode_content_hash 改动并按权威合同重算 envelope digest;三下游保留原值;detail_sha256 已更新",
+  "old_reader": {
+   "rc": 1,
+   "stdout_tail": [
+    "readback_verdict: FAIL",
+    "n_problems: 3",
+    "report: /home/cryptorl/tmp_r17irac_ce/receipts/i03_report.json"
+   ],
+   "stderr_tail": []
+  },
+  "digest_recomputed_correctly": true,
+  "expected_after_fix": "FAIL(selected_envelope_output_binding)"
+ },
+ "P01": {
+  "scenario": "--report 指向源目录内历史 readback_report.json",
+  "before_sha256": "484b7fad4403ac6f1a494322b42642f463883004565d0ec2449a46d697f9d26d",
+  "after_sha256": "484b7fad4403ac6f1a494322b42642f463883004565d0ec2449a46d697f9d26d",
+  "overwritten": false,
+  "new_file_format": "r17-c3-engineering-slice-readback-v1",
+  "snapshot_claimed_identical": null,
+  "old_reader": {
+   "rc": 2,
+   "stdout_tail": [],
+   "stderr_tail": [
+    "report target rejected (no source writes performed): report 目标位于只读输入之内: /home/cryptorl/tmp_r17irac_ce/p01/readback_report.json ⊆ /home/cryptorl/tmp_r17irac_ce/p01"
+   ]
+  },
+  "expected_after_fix": "写前拒绝(零源写入,非零退出)"
+ },
+ "health_control": {
+  "old_reader": {
+   "rc": 0,
+   "stdout_tail": [
+    "readback_verdict: PASS",
+    "n_problems: 0",
+    "report: /home/cryptorl/tmp_r17irac_ce/receipts/health_report.json"
+   ],
+   "stderr_tail": []
+  }
+ }
+}

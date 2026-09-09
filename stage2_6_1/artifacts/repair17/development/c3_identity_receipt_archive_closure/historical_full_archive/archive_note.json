@@ -1,0 +1,30 @@
+{
+ "schema": "c3-irac-historical-full-archive-note-v1",
+ "run_id": "c3rdd_full_20260909",
+ "what": "上轮(c3-readback-decision-delivery)受监护全量 run 原件找回与归档",
+ "why": "上轮报告自述 1601 passed/7 skipped、JUnit 1608、OUTER_RC=0,但原件当时从未 git add/commit/push,独立审查在固定 HEAD 7595988 不可达(E01 缺口根因即此,非文件损坏)",
+ "source_path": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/c3rdd_full_20260909/(原目录保持不变,本归档为完整复制)",
+ "generated_utc": "2026-09-09T03:10:58Z(started)/2026-09-09T03:37:26Z(ended)",
+ "original_code_identity": {
+  "run_based_on_commit": "6645002ca1dca9db3d03f7fc701b54bce377cfd9(上轮主提交;报告 SHA 回填 7595988 仅为文档)",
+  "reader_sha256_at_run": "dfb36445bf991e1846bd19676f941439f87b11acc4bcd2c2bc044431519b2798",
+  "argv": ["bash", "/home/cryptorl/r17rdd_full/full_run_ordered.sh",
+           "--junitxml=.../runs/c3rdd_full_20260909/junit.xml"],
+  "launch_scripts_archived": [
+    "launch_scripts/full_entry.sh",
+    "launch_scripts/full_run_ordered.sh"]
+ },
+ "archived_utc": "2026-09-09T04:32:00Z(近似)",
+ "verification": {
+  "required_roles_present": 7,
+  "all_sha256_match_run_record": true,
+  "stdout_tail_line": "1601 passed, 7 skipped, 23 warnings in 1581.65s (0:26:21)",
+  "junit_counts": "1608 total = 1601 passed + 7 skipped",
+  "business_rc": 0,
+  "finalized": true,
+  "evidence_complete": true,
+  "note": "七必需文件(双遥测/告警/stdout/stderr/junit/summary)逐一 sha256 与 run_record 登记值核对一致;run_record 与 summary 同批归档"
+ },
+ "unrecoverable_items": [],
+ "status": "RECOVERED_AND_ARCHIVED(本归档随本轮提交推送后远端可读)"
+}

@@ -1,0 +1,11 @@
+{
+ "provenance": "2026-09-09 第二阶段:同一反例脚本(make_counterexamples.py 未改)对修复后 reader(reader v3)复跑,验证行为翻转;与 old_reader_counterexamples.json 一一对照",
+ "I02": {"rc": 1, "flip": "旧 rc=0(错误 PASS) → 新 rc=1(拒绝)",
+  "problem_check": "selected_envelope_output_binding"},
+ "I03": {"rc": 1, "flip": "旧 rc=0(错误 PASS) → 新 rc=1(拒绝);digest 正确重算不再能绕过跨层绑定",
+  "problem_check": "selected_envelope_output_binding"},
+ "P01": {"rc": 2, "overwritten": false,
+  "before_after_sha256_equal": "484b7fad...==484b7fad...",
+  "flip": "旧 rc=0 且实际覆盖源内历史回执 → 新 rc=2 写前拒绝、零源写入、无回执写出"},
+ "health_control": {"rc": 0, "note": "新检查在健康件上零误报"}
+}

@@ -1,0 +1,30 @@
+{
+ "schema": "c3-irac-cold-read-v3",
+ "isolated": {
+  "unshare_rc": 0,
+  "verify_rc": 0,
+  "reader_rc": 0,
+  "semantic_receipt_ok": true,
+  "payload_snapshot_identical": true,
+  "ok": true
+ },
+ "negatives": {
+  "neg1_missing": 1,
+  "neg2_tamper": 1,
+  "neg3_i02": {
+   "verifier": 0,
+   "reader": 1
+  },
+  "neg4_report": {
+   "rc": 2,
+   "payload_unchanged": true
+  },
+  "ok": {
+   "neg_missing_verify_rc1": true,
+   "neg_tamper_verify_rc1": true,
+   "neg_i02_verifier0_reader1": true,
+   "neg_report_target_rc2_zero_writes": true
+  }
+ },
+ "ok": true
+}
