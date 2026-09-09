@@ -112,6 +112,8 @@ run `c3irac_full_20260909`(r17_monitored_entry kind=pytest,R17 系先跑排序,�
 
 六类必需证据分别消费,缺任一或任一不成立整体 FAIL:本轮 full run_record(finalized/evidence_complete/rc=0 + junit/stdout sha256 与 run_record 登记**逐一相符** + stdout 末行与 junit 总数/跳过/失败自洽 + slice unit 全过)、本轮 stdout、本轮 junit、v3 语义正例(PASS+复算全 True)、v3 冷读 ok(含四负例)、历史归档(七必需文件哈希一致+启动脚本+元数据)。结果:**正例 rc=0(PASS)/ 缺语义回执负例 rc=1(FAIL)/ 缺 junit 负例 rc=1(FAIL)**,与 E05 验收矩阵一致。
 
+独立验收遗留观察的处置:验收 ACCEPT 后按其观察清单修复了 aggregate_v3.py 两处工具层瑕疵——(1) docstring 残留已删除的 `--expect-missing` 参数说明;(2) 缺 junit 负例原以 FileNotFoundError 崩溃形态失败(rc 方向正确但无 ok=false JSON),现优雅记 `"full_junit 缺失"` problems 并产出完整报告。修复后重跑 E05 三例:POS_RC=0/NEG1_RC=1/NEG2_RC=1 行为不变,neg2 产出 ok=false JSON。该修复仅涉 tools 脚本,不触 reader/测试/业务代码。
+
 ## 7. 分项判定
 
 | 分项 | 判定 | 依据 |

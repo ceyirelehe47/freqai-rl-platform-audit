@@ -14,7 +14,9 @@
 
 用法:
   aggregate_v3.py --config <config.json> --out <aggregate_report.json>
-  config 各键指向实际文件;负例用 --expect-missing <key> 构造缺件。
+  config 各键指向实际文件;负例用 sed 把 config 中对应键改为不存在的
+  路径构造缺件(缺任一必需键/路径不存在 → 该项 present=false,ok=false,
+  整体 rc=1,不用其他包成功补认)。
 """
 from __future__ import annotations
 
@@ -42,6 +44,13 @@ def sha256_file(p: Path) -> str:
 def check_full_run(record_path: Path, stdout_path: Path,
                    junit_path: Path) -> tuple[bool, list[str]]:
     probs: list[str] = []
+    # junit/stdout 缺失:优雅记 problems(不崩溃;fail-closed 方向不变)
+    for label, p in (("full_stdout", stdout_path),
+                     ("full_junit", junit_path)):
+        if not p.is_file():
+            probs.append(f"{label} 缺失: {p}")
+    if probs:
+        return False, probs
     rec = json.loads(record_path.read_text(encoding="utf-8"))
     if rec.get("finalized") is not True:
         probs.append("run_record.finalized != True")
