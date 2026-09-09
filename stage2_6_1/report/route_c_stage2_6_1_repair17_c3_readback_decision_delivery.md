@@ -354,4 +354,6 @@ verify 回执齐全)→ **rc=1 FAIL**,缺失子包不被另一子包 rc=0
 | 本轮工具 | `c3_readback_decision_delivery/tools/` |
 
 **接手 SHA**: `797717830543d11b1f674f49f07a7ef0353ea4a1`
-**最终交付 SHA**: {{FINAL_SHA}}
+**最终交付 SHA**: `6645002ca1dca9db3d03f7fc701b54bce377cfd9`(本回填
+提交的 parent;执行候选 reader sha256
+`dfb36445bf991e1846bd19676f941439f87b11acc4bcd2c2bc044431519b2798`)
