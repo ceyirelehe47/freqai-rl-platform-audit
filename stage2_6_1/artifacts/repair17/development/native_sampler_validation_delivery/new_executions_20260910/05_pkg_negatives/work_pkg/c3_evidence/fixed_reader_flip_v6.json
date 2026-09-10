@@ -1,0 +1,78 @@
+{
+ "schema": "r17-c3-entry-temp-old-counterexamples-v1",
+ "reader": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner/r17_c3_engineering_slice.py",
+ "reader_sha256": "7a5ccc19b4e3ade4dd0e6b64861ae425cdb631c181149458a51f4ccbb52141dd",
+ "orig_slice": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/c3_evidence_generation_slice/engineering_slice",
+ "p52": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/blocker_diagnosis/runs/20260906T134324Z_1475/generation_failure_envelopes_calibrate_c3_cost_D0_p52.json",
+ "cases": {
+  "ce1_crossdir_dangling_end_link": {
+   "scenario": "CE1 cross-dir dangling end link: receipts/result.json -> ../elsewhere/missing.json",
+   "report_arg": "/tmp/c3eto_ce1_myqk7kwm/case/receipts/result.json",
+   "rc": 2,
+   "stdout_tail": "",
+   "stderr_tail": "report target rejected (no source writes performed): 回执原末端条目已存在(链接含悬空同样拒绝，不覆盖): /tmp/c3eto_ce1_myqk7kwm/case/receipts/result.json\n",
+   "missing_target_created": false,
+   "link_entry_after": [
+    "symlink",
+    "../elsewhere/missing.json"
+   ],
+   "tree_changed": {},
+   "old_defect_reproduced": false
+  },
+  "ce2_notdir_ancestor": {
+   "scenario": "CE2 ordinary file as path ancestor",
+   "variant_a": {
+    "report_arg": "/tmp/c3eto_ce2_fnchp24l/case/f/../new_receipt_a.json",
+    "rc": 2,
+    "stderr_tail": "report target rejected (no source writes performed): 路径解析失败，拒绝写入: /tmp/c3eto_ce2_fnchp24l/case/f/..; NotADirectoryError(errno=20): [Errno 20] Not a directory: '/tmp/c3eto_ce2_fnchp24l/case/f/..'\n",
+    "sibling_created_after_collapse": false
+   },
+   "variant_b": {
+    "report_arg": "/tmp/c3eto_ce2_fnchp24l/case/f/new_receipt_b.json",
+    "rc": 2,
+    "stderr_tail": "report target rejected (no source writes performed): 回执父目录不是目录(ENOTDIR): /tmp/c3eto_ce2_fnchp24l/case/f\n",
+    "under_file_created": false,
+    "file_f_still_file": true
+   },
+   "old_defect_reproduced": false
+  },
+  "ce3_temp_collision_deletes_foreign": {
+   "scenario": "CE3 forced temp-name collision with foreign object; cleanup deletes objects the call never created",
+   "variant_a_plain_file": {
+    "tmp_path": "/tmp/c3eto_ce3_m30n2rxi/out_a/.result.json.71018.20260909T120000000000.tmp",
+    "error": "ReceiptWriteError: 回执写入未完成: /tmp/c3eto_ce3_m30n2rxi/out_a/result.json; initial=FileExistsError: [Errno 17] File exists: '/tmp/c3eto_ce3_m30n2rxi/out_a/.result.json.71018.20260909T120000000000.tmp'; temporary=/tmp/c3eto_ce3_m30n2rxi/out_a/.result.json.71018.20260909T120000000000.tmp; candidate_still_published=False",
+    "foreign_before": [
+     "b557d4243544856c97b4d7af9d65903cc99b7e9e9f1f53814f0c0fa82f84cafc",
+     [
+      2096,
+      503738,
+      24,
+      1788956863650869009
+     ]
+    ],
+    "foreign_after": [
+     "b557d4243544856c97b4d7af9d65903cc99b7e9e9f1f53814f0c0fa82f84cafc",
+     [
+      2096,
+      503738,
+      24,
+      1788956863650869009
+     ]
+    ],
+    "foreign_deleted_by_failed_create": false,
+    "final_target_created": false
+   },
+   "variant_b_link_entry": {
+    "tmp_path": "/tmp/c3eto_ce3_m30n2rxi/out_b/.result.json.71018.20260909T120000000000.tmp",
+    "error": "ReceiptWriteError: 回执写入未完成: /tmp/c3eto_ce3_m30n2rxi/out_b/result.json; initial=FileExistsError: [Errno 17] File exists: '/tmp/c3eto_ce3_m30n2rxi/out_b/.result.json.71018.20260909T120000000000.tmp'; temporary=/tmp/c3eto_ce3_m30n2rxi/out_b/.result.json.71018.20260909T120000000000.tmp; candidate_still_published=False",
+    "link_after": [
+     "symlink",
+     "/tmp/c3eto_ce3_m30n2rxi/victim_payload.txt"
+    ],
+    "victim_intact": true,
+    "final_target_created": false
+   },
+   "old_defect_reproduced": false
+  }
+ }
+}

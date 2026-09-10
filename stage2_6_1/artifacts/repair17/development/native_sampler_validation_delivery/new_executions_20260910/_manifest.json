@@ -1,0 +1,53 @@
+{
+ "scope": "新执行清单(2026-09-10):全部为只读复验或作用于自建副本(work_pkg)的负例;输出只写本目录;originals/、runs/ 既有目录、full2_pkg/copy_root 原件位置不被写入",
+ "code": "仓库检出(候选代码 29101e0,runner/ 工作树干净;身份见 ../code_identity.json);与 WSL 部署树逐字节一致",
+ "items": {
+  "01_full2_wrapper_rerun": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:44:48.578430+00:00",
+   "key": "full2 强制门禁 wrapper 只读重跑:overall_ok=true(补原始执行未存的 stdout/rc)"
+  },
+  "02_r3_audit_only_rerun": {
+   "rc": "1",
+   "time_utc": "2026-09-10T00:44:49.082359+00:00",
+   "key": "r3 必要字节审计只读重跑:rc=1,telemetry_win 不匹配(记录锚 264179/f502a49f vs 工作树),r3 判定维持 FAIL"
+  },
+  "03_d3_rerun": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:44:50.023008+00:00",
+   "key": "D3 追加副本:LEGACY_STANDALONE_RC=0(ok=true)且 WRAPPER_RC=1(overall_ok=false),退出码显式捕获"
+  },
+  "04_pkg_cold_positive_rerun": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:44:51.472255+00:00",
+   "key": "隔离包冷读正例:rc=0,overall_ok=true"
+  },
+  "05_pkg_negatives": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:44:54.486561+00:00",
+   "key": "work_pkg 工作副本上三篡改负例:缺件 rc=1/追加 rc=1/同长度篡改 rc=1,恢复后 rc=0"
+  },
+  "06_post_seal_observation": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:45:15.639213+00:00",
+   "key": "fg/setsid 封口后观测:双点间隔 11s(>2×5s 采样周期),遥测稳定且 bytes/sha256 与 terminal.json 一致"
+  },
+  "07_archive_integrity": {
+   "rc": "0",
+   "time_utc": "2026-09-10T00:46:18.813774+00:00",
+   "key": "归档完整性:归档副本与原始位置逐文件一致/包内嵌与已跟踪 run 一致/cold_config 零逃逸/工具与补丁 sha 匹配,all_ok=true"
+  }
+ },
+ "incidents": [
+  {
+   "what": "07 首跑 A_full2_pkg_archived_equals_original=false",
+   "cause": "04 以 python3 执行包内 code/r17_verified_aggregate.py,Python 在原始包位置 code/ 下生成了 __pycache__/r17_required_bytes.cpython-312.pyc(新执行副产物,非原件内容;归档副本为重跑前拷贝故干净)",
+   "handling": "删除该自产副产物(仅本次新执行自己创建的文件)后复跑 07,all_ok=true;首跑的 check.json/stdout.log 被复跑覆盖,本条为如实留痕"
+  }
+ ],
+ "not_executed": [
+  "不重跑任何课程/全量(任务书:不得为补一个退出码重跑整套课程)",
+  "不重跑 Windows 原生 smoke(其结构化结果与逐 case controller_rc 已有原件)",
+  "不重跑默认序全量(失败保持失败)"
+ ]
+}

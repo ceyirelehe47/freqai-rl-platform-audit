@@ -1,0 +1,62 @@
+{
+ "scope": "archive integrity checks (read-only, NEW execution 2026-09-10)",
+ "A_copy_root_archived_equals_original": {
+  "same": true,
+  "files": 14
+ },
+ "A_full2_pkg_archived_equals_original": {
+  "same": true,
+  "files": 30
+ },
+ "B_pkg_embedded_telemetry_matches_terminal": {
+  "bytes_ok": true,
+  "sha256_ok": true
+ },
+ "B_pkg_embedded_run_equals_tracked": {
+  "run_record.json": true,
+  "telemetry/win_samples.jsonl": true,
+  "telemetry/guest_samples.jsonl": true,
+  "junit.xml": true,
+  "business/stdout.log": true,
+  "native_sampler/terminal.json": true
+ },
+ "C_cold_config_all_paths_inside_pkg_original_location": true,
+ "C_cold_config_paths_escape_count": 0,
+ "C_neg_append_config_full_run_record": "/mnt/f/trading/r17_native_smoke_logs/copy_root/runs/r17ns_dpos_20260909T170033/run_record.json",
+ "C_neg_append_record_matches_root": true,
+ "D_tools_match_pack_sha256sums": {
+  "windows_smoke.ps1": true,
+  "native_test_writer.ps1": true,
+  "audit_run_bytes.py": true
+ },
+ "D_applied_patch_sha256": "2abf178b021907d21734ac2221c43fd924e9e118b95f2853029b2d89c212caca",
+ "D_applied_patch_is_2abf178b": true,
+ "E_dpos_telemetry_dual": {
+  "runs_original": {
+   "bytes": 11081,
+   "sha256": "4685c0317cdde2e322e39e7aae06f731ee8a4314ef9faba5b3765d728cc0b9c5"
+  },
+  "copy_root_appended": {
+   "bytes": 11178,
+   "sha256": "4094a01f79d317969ab715789a723ae2941c243666e2ae64f273431c7a288ef9"
+  },
+  "copy_root_appended_line": "{\"seq\":9999,\"event\":\"sample\",\"run_id\":\"r17ns_dpos_20260909T170033\",\"utc\":\"2026-09-09T18:00:00Z\"}",
+  "original_is_strict_prefix": true
+ },
+ "F_r3_telemetry_three_states": {
+  "record_anchor": {
+   "bytes": 264179,
+   "sha256": "f502a49f3dc8b785c87419b84c1009e72ece754dd3131b53ea113242410db4dc"
+  },
+  "head_blob": {
+   "bytes": 309550,
+   "sha256": "9e1375c5d18b5f77b1ba464b7e8f7e7ec84d9b0f914fd56815432d7869fecd0a"
+  },
+  "worktree": {
+   "bytes": 848948,
+   "sha256": "e6dfd51ea5adf8b10f9a5b8ef48ae804cb6437910ffa0a44fd031cb626c3f8b4"
+  },
+  "note": "\u5de5\u4f5c\u6811\u589e\u957f\u7cfb r3 \u4e8b\u6545\u767b\u8bb0\u73b0\u8c61;\u672c\u6b21\u4ea4\u4ed8\u4e0d\u63d0\u4ea4\u8be5\u6587\u4ef6,git \u4e2d r3 \u5185\u5bb9\u4fdd\u6301\u539f\u72b6"
+ },
+ "all_ok": true
+}

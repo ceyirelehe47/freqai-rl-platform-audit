@@ -1,0 +1,296 @@
+{
+ "scope": "R17 原生采样器验证证据索引(README_AGENT_EVIDENCE_ONLY 七项与交付物映射)",
+ "archive_time_utc": "2026-09-10T00:49:11.755646+00:00",
+ "code_identity": "code_identity.json",
+ "delivery_root": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery",
+ "items": {
+  "1_windows_smoke": {
+   "originals": [
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/result.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_NEW/result.json",
+     "kind": "四场景结构化结果(全 ok=true,逐 case controller_rc=0)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:07.865516+00:00",
+     "sha256": "4d3e462f515602e061469654075e85037d4a8bd2eb92c5c95ace806508d619bb"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/smoke_stdout.log",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/smoke_stdout.log",
+     "kind": "工具总结行(PASS)重定向原件",
+     "mtime_utc_at_archive": "2026-09-10T00:41:07.938521+00:00",
+     "sha256": "1de5a60fcb5a39235ef79631a86588220865e3a6cf019d4133b53df132de8409"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/smoke_stderr.log",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/smoke_stderr.log",
+     "kind": "stderr 重定向原件(空)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:07.949570+00:00",
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/cooperative",
+     "note": "identity/stop/terminal/native_request/native_confirmation + samples.jsonl;status=absent(win32 87)=合法缺席证明"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/detached",
+     "note": "同上;场景=launcher 先退 sampler 独立存活(launcher_exited_before_stop=true)"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/forced",
+     "note": "无 terminal.json(强制终止无 clean terminal,预期不补造);status=forced_exited,identity_matched=true"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/wrong_creation",
+     "note": "无 stop/terminal(错误创建时间→status=pid_reused,actual_native_alive=true 证明未误杀);含 test_cleanup.json"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/01_windows_smoke/tools",
+     "note": "三件工具副本,sha256 与补丁包 SHA256SUMS 一致(new_executions 07/D 核验)"
+    }
+   ],
+   "command": "powershell -NoProfile -ExecutionPolicy Bypass -File windows_smoke.ps1 -RunnerDirectory F:/trading/freqai-rl-audit/stage2_6_1/runner -TestRoot F:/trading/r17_native_smoke_NEW(由工具参数块 Mandatory RunnerDirectory/TestRoot 与输出路径重构;原始命令行未存文件)",
+   "outer_rc": "未单独存文件;以 result.json ok=true 与 smoke_stdout.log 总结行为准(如实标注)",
+   "gaps": [
+    "外层 powershell 进程 rc 未存文件",
+    "原始命令行未存文件(已按参数块重构并标注)"
+   ]
+  },
+  "2_wsl_fg_setsid": {
+   "originals": [
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/r17ns_fg_20260909T165222",
+     "note": "前台短 run:argv/完整 record/native 五证明/遥测/junit;business.rc=0,evidence_complete=true(本次入库)"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/r17ns_setsid_20260909T165735",
+     "note": "setsid 脱离链短 run:同上;business.rc=0(本次入库)"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_r17ns_setsid.log",
+     "origin_before_archive": "WSL /tmp/r17ns_setsid.log(2026-09-10 抢救)",
+     "kind": "setsid 外层控制台原件:R17LOG 全程 + ENTRY_RC=0",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.260393+00:00",
+     "sha256": "03c504ad873da61a2fc611a150e2b1c7dea00cfd09fd9b31972a4e048ff8d36b"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/launch_c.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/launch_c.sh",
+     "kind": "两链共用启动器(mode=fg|setsid)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.133543+00:00",
+     "sha256": "432583336b687186607f3e36f9470de38ae1a458f19f41d1b5e2dbd9eb09bc92"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/launch_setsid2.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/launch_setsid2.sh",
+     "kind": "setsid 链外层有界等待启动器",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.152874+00:00",
+     "sha256": "907ca6ce3fc9ad7695e9fa250bc13435ebd1bad9106b6cfb4cc27c3fd0ddc15d"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_launch_c2.sh",
+     "origin_before_archive": "WSL /tmp/launch_c2.sh",
+     "kind": "setsid 链实际执行字节(tr 管道落地);与 launch_c.sh 逐字节一致",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.467208+00:00",
+     "sha256": "432583336b687186607f3e36f9470de38ae1a458f19f41d1b5e2dbd9eb09bc92"
+    }
+   ],
+   "auxiliary_runs": [
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/r17ns_direct_test_20260909T165653",
+     "note": "辅助:直连入口短 run,结构同 fg"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/20260909T165107_8126_79958",
+     "note": "辅助:首次调用失败 run(--junitxml 退化为根路径 /junit.xml,54 测试全过但 sessionfinish 写 /junit.xml PermissionError→junit_xml 缺失→evidence_complete=false 即 fail-closed;sampler 停止与封口完整)"
+    }
+   ],
+   "post_seal_observation": {
+    "new_execution": "new_executions_20260910/06_post_seal_observation",
+    "result": "两 run 遥测双点(间隔11s>2×5s 采样周期)稳定且 bytes/sha256 与 terminal.json 一致;末行 sampler_end"
+   },
+   "gaps": [
+    "fg 链外层控制台(含 ENTRY_RC 行)当时仅回显未存文件;fg 完整性以 run_record/business.rc=0/evidence_complete=true/terminal 封口与新执行 06 观测支撑",
+    "首次失败调用的外层 rc 未存文件(现场件 tmp_r17ns_fg_failed_attempt_run_dir_empty.txt 内容为 RUN_DIR= 空值,如实保留)"
+   ],
+   "piped_copy_byte_identical": true
+  },
+  "3_full2_wrapper": {
+   "originals": [
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/aggregate_config_full2.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/aggregate_config_full2.json",
+     "kind": "full2 强制门禁配置(full_run_record 与 --record 指向同一 run_record)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.732905+00:00",
+     "sha256": "aedf2a7822b34b3b1ba0596c51a17b17f9f68224c7c908423ed204a9aea98d77"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/verified_aggregate_full2.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/verified_aggregate_full2.json",
+     "kind": "原始执行输出:overall_ok=true",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.770588+00:00",
+     "sha256": "3d47e5dc9d19db060bb609b1b40d6841b80fc3d0ae73337384d952ff2486d55e"
+    }
+   ],
+   "legacy_identity": "aggregate_v6.py(code_identity.json 登记;包内副本与仓库一致:new_executions 07/B)",
+   "new_execution": {
+    "dir": "new_executions_20260910/01_full2_wrapper_rerun",
+    "rc": 0,
+    "overall_ok": true,
+    "note": "原始 stdout/rc 未存文件;以同 config 字节+候选代码(29101e0 检出)只读重跑补齐 stdout/stderr/rc"
+   },
+   "gaps": [
+    "原始执行的控制台 stdout 与 rc 未存文件(新执行补齐并明确标记,不以新代旧)"
+   ]
+  },
+  "4_negative_and_package": {
+   "originals": [
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/05_copy_root_dpos_appended",
+     "note": "D3 追加副本(原始执行位置 /mnt/f/trading/r17_native_smoke_logs/copy_root 的字节等价归档,07/A 核验 same=true):win_samples.jsonl=原始严格前缀+追加行(11178B vs 11081B)"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/legacy_standalone_neg_append.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/legacy_standalone_neg_append.json",
+     "kind": "legacy 单独运行于追加副本:ok=true(legacy 可 PASS)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.799659+00:00",
+     "sha256": "d32d389e4bdf6e578db1b476516b3c059b843cfd12fd232c790f0e1cc5a1d56b"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/verified_aggregate_neg_append.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/verified_aggregate_neg_append.json",
+     "kind": "wrapper 于追加副本:overall_ok=false(门禁整体拒绝)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.781020+00:00",
+     "sha256": "8fb1af8e51fa0c2aa0e0f05ab3ec0a1b6565772848d852f56bc65e74300d54ee"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/verified_aggregate_neg_append2.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/verified_aggregate_neg_append2.json",
+     "kind": "第二次 wrapper 复核输出(overall_ok=false)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.795613+00:00",
+     "sha256": "8fb1af8e51fa0c2aa0e0f05ab3ec0a1b6565772848d852f56bc65e74300d54ee"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/03_aggregate/aggregate_config_neg_append.json",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/aggregate_config_neg_append.json",
+     "kind": "D3 配置(full_run_record 指向 copy_root,与 --record 一致,07/C)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.745979+00:00",
+     "sha256": "a6eed3226e48c7b49379d67017b827e9bb4779f319757a6de6f6f74a0d750f15"
+    },
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/04_full2_pkg",
+     "note": "隔离交付副本包(30 文件:cold_config 全路径在包内/内嵌完整 run/验证代码/c3 证据/冷读输出 verified_aggregate_cold.json overall_ok=true)"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_neg_audit_last_state.json",
+     "origin_before_archive": "WSL /tmp/neg_audit.json",
+     "kind": "build_pkg 最后一次 audit 输出(恢复后健康态)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.616716+00:00",
+     "sha256": "531c9a62cb4dae2301fba96e31dca1ed854d9ae821d582d117e826051ecb69d7"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/build_pkg.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/build_pkg.sh",
+     "kind": "包构建+冷读+三负例+恢复复核的原始脚本",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.183705+00:00",
+     "sha256": "ba31a92b4faf39c0c5f704ef9278791e21b15d0e4eeead7703a4575b7ddccb2e"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/d3_codes.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/d3_codes.sh",
+     "kind": "D3 原始脚本",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.198653+00:00",
+     "sha256": "ef8215669004e6f8c3c81265d6ca6ffc9fde803d60e9317c8c32512b90cd4f65"
+    }
+   ],
+   "new_executions": [
+    {
+     "dir": "new_executions_20260910/03_d3_rerun",
+     "result": "LEGACY_STANDALONE_RC=0(ok=true) + WRAPPER_RC=1(overall_ok=false) 显式捕获"
+    },
+    {
+     "dir": "new_executions_20260910/04_pkg_cold_positive_rerun",
+     "result": "rc=0 overall_ok=true"
+    },
+    {
+     "dir": "new_executions_20260910/05_pkg_negatives",
+     "result": "缺件 rc=1/追加 rc=1/同长度篡改 rc=1/恢复后 rc=0(在 work_pkg 工作副本上)"
+    }
+   ],
+   "anchor_manifest": "run_record.required 内嵌角色哈希锚 + new_executions 07/A 树级逐文件 sha256 对照(copy_root 14 文件/包 30 文件)",
+   "gaps": [
+    "原始 D3/包负例各步的 rc 值当时仅回显控制台未存文件(新执行 03/04/05 补齐并标记)"
+   ]
+  },
+  "5_full2_entry_rc": {
+   "originals": [
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_r17ns_full2.log",
+     "origin_before_archive": "WSL /tmp/r17ns_full2.log(2026-09-10 抢救)",
+     "kind": "full2 外层控制台原件:supervisor_start→business_exited(rc=0)→supervisor_end(incidents=0)→ENTRY_RC=0",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.367514+00:00",
+     "sha256": "8a1df6dbb6ef0940329919f0e32df50dc5aa481f8b6f0dd2f80676e98cf963ea"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/launch_e_ordered.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/launch_e_ordered.sh",
+     "kind": "捕获脚本(echo ENTRY_RC=$RC;exit $RC)",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.180263+00:00",
+     "sha256": "ba7a0034c07a58c7031f550ee18ec4c5f9b02dac9bfb8f053ffcc62dced33977"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_launch_e2_ordered_as_piped.sh",
+     "origin_before_archive": "WSL /tmp/launch_e2.sh",
+     "kind": "实际管道执行字节;与 launch_e_ordered.sh 逐字节一致",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.564369+00:00",
+     "sha256": "ba7a0034c07a58c7031f550ee18ec4c5f9b02dac9bfb8f053ffcc62dced33977"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/r17ns_full2_20260909T174348/launch_evidence.jsonl",
+     "note": "launcher 侧五事件(含 business_argv 实际命令)"
+    }
+   ],
+   "gaps": [],
+   "piped_copy_byte_identical": true
+  },
+  "6_default_order_failure": {
+   "originals": [
+    {
+     "repo_dir": "stage2_6_1/artifacts/repair17/development/run_supervision/runs/r17ns_full_20260909T170411",
+     "note": "默认字母序全量失败 run(本次入库):junit 316KB/business.stdout 58KB/business.rc=1/evidence_complete=true"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/tmp_r17ns_full.log",
+     "origin_before_archive": "WSL /tmp/r17ns_full.log(2026-09-10 抢救)",
+     "kind": "外层控制台原件:worker_exit 告警(业务 rc=1)+supervisor_end(incidents=1)+ENTRY_RC=1",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.315518+00:00",
+     "sha256": "c3c2f166e5af21cd4ac5db4f124ffd66fcf8efc0f1db007db7935c9edf476cf3"
+    },
+    {
+     "repo_path": "stage2_6_1/artifacts/repair17/development/native_sampler_validation_delivery/originals/02_wsl_chains/launch_e_full.sh",
+     "origin_before_archive": "F:/trading/r17_native_smoke_logs/launch_e_full.sh",
+     "kind": "默认序全量启动器",
+     "mtime_utc_at_archive": "2026-09-10T00:41:08.176741+00:00",
+     "sha256": "87e53c05599f3dfbbe9555fa6c0bf54c6ce8c48aa43659b3f169e0c13f7e0fca"
+    }
+   ],
+   "failure_explanation": "非产品回归:pytest 默认字母序下重计算课程文件先于 R17 系执行,其 OpenMP 线程池未被 SigBlk 屏蔽,触发截止前提守卫 control_outcome=7(unshielded_threads);r3 与 full2 均按既有 full_run_ordered.sh(R17 先跑)机制通过。默认序不重跑,失败不称通过。",
+   "gaps": [
+    "当时廉价复现(13s 复现 4 errors)仅控制台回显,未存文件(如实标注)"
+   ]
+  },
+  "7_index": {
+   "files": [
+    "README.md",
+    "run_index.json",
+    "code_identity.json",
+    "new_executions_20260910/_manifest.json"
+   ]
+  }
+ },
+ "working_tree_notes": {
+  "rejected_jsonl_plus4": "rejected/rejected.jsonl +4 行 rejected_concurrent(真实运行期产物;对应 4 个 scratch run 目录按既有惯例保持未跟踪)",
+  "r3_telemetry_uncommitted": "runs/c3eto_full_20260909_r3/telemetry/win_samples.jsonl 工作树版本(848948B/e6dfd51e...)较 HEAD blob(309550B)增长,系已登记的 r3 事故 seal 后追加;本次交付不提交该文件,git 中 r3 内容保持原状(三态哈希见 new_executions 07/F)",
+  "symlink_T_entries": "c3_entry_temp_ownership_closure 下 7 个 T 状态取证件为 Windows 检出既有形态,不动",
+  "untouched": "其余 e2e_*/m12_*/2026xxxx 未跟踪 scratch 目录一律不入库"
+ }
+}

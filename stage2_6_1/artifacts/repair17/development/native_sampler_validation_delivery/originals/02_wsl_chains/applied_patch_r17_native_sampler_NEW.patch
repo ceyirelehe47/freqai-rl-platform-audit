@@ -1,0 +1,1437 @@
+--- a/stage2_6_1/runner/r17_supervision.py
++++ b/stage2_6_1/runner/r17_supervision.py
+@@ -1648,102 +1648,108 @@
+             return None
+ 
+     def start_win_sampler(self) -> bool:
++        from r17_native_sampler import NativeSamplerControl
+         ps = self._find_powershell()
+-        if not ps:
+-            self.log({"event": "win_sampler_unavailable",
+-                      "reason": "interop powershell 不可达;host 保护条件"
+-                      "降级为不可判(已登记)"})
+-            self.stdout_line("R17LOG", {"event": "win_observation_degraded",
+-                                        "reason": "no_powershell_interop"})
++        ps1_guest = Path(self.args.win_sampler_ps1)
++        controller_guest = ps1_guest.with_name('r17_win_sampler_control.ps1')
++        companion = [controller_guest, ps1_guest.with_name('r17_win_sampler_lifecycle.ps1'),
++                     ps1_guest.with_name('r17_win_process.cs')]
++        if not ps or not ps1_guest.is_file() or not all(p.is_file() for p in companion):
++            self.log({'event': 'win_sampler_unavailable',
++                      'reason': 'native sampler/control implementation incomplete or PowerShell unavailable'})
+             return False
+-        ps1_guest = Path(self.args.win_sampler_ps1)
+-        if not ps1_guest.is_file():
+-            self.log({"event": "win_sampler_unavailable",
+-                      "reason": f"ps1 不存在: {ps1_guest}"
+-                      "(.ps1 须在发布仓库 Windows 侧路径)"})
+-            return False
++        control_dir = self.run_dir / 'native_sampler'
+         ps1_win = self._wslpath(ps1_guest)
+         out_win = self._wslpath(self.win_path_guest)
+-        if not ps1_win or not out_win:
+-            self.log({"event": "win_sampler_unavailable",
+-                      "reason": "wslpath 解析失败"})
++        control_win = self._wslpath(control_dir)
++        controller_win = self._wslpath(controller_guest)
++        if not all((ps1_win, out_win, control_win, controller_win)):
++            self.log({'event': 'win_sampler_unavailable', 'reason': 'native control path conversion failed'})
+             return False
+-        # 应急目录:宿主 LOCALAPPDATA(独立故障域;一次 interop 查询+缓存;
+-        # §5.3:只在启动时解析一次,emergency_write 只写该目录)。
+-        # 两种形态:win 形式传 ps1 参数;guest 形式供本进程写。
+-        self.emergency_win_dir_win: str | None = None
++        # Resolve auxiliary paths only at startup, not inside the shared shutdown budget.
++        self.emergency_win_dir_win = None
+         try:
+-            r = subprocess.run([ps, "-NoProfile", "-Command",
+-                                "$env:LOCALAPPDATA"],
++            r = subprocess.run([ps, '-NoProfile', '-Command', '$env:LOCALAPPDATA'],
+                                capture_output=True, timeout=30, check=True)
+-            la = r.stdout.decode("utf-8", "replace").strip().rstrip("\\")
++            la = r.stdout.decode('utf-8', 'replace').strip().rstrip('\\')
+             la_guest = self._wslpath_win2guest(la)
+-            self.emergency_win_dir_win = la + "\\r17_supervision_emergency"
+-            self.emergency_win_dir = (
+-                str(Path(la_guest) / "r17_supervision_emergency")
+-                if la_guest else None)
++            self.emergency_win_dir_win = la + '\\r17_supervision_emergency'
++            self.emergency_win_dir = str(Path(la_guest) / 'r17_supervision_emergency') if la_guest else None
+         except (OSError, subprocess.SubprocessError):
+             self.emergency_win_dir = None
+-        max_s = int(self.policy["default_max_seconds"]
+-                    + self.policy["finalize_window_s"] + 60)
+-        argv = [ps, "-NoProfile", "-ExecutionPolicy", "Bypass",
+-                "-File", ps1_win, "-RunId", self.run_id,
+-                "-OutFile", out_win, "-MaxSeconds", str(max_s),
+-                "-Volumes", self.args.win_volumes, "-IntervalSeconds", "5"]
++        self._native_win = NativeSamplerControl(
++            self.run_id, control_dir, self.win_path_guest, out_win, control_win, ps,
++            controller_win, int(self.policy['telemetry_budget_bytes']))
++        # Declared before spawn, retained as missing on failures. Do not shrink required.
++        self.expected.extend(self._native_win.required())
++        max_s = int(self.policy['default_max_seconds'] + self.policy['finalize_window_s'] + 60)
++        argv = [ps, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1_win,
++                '-RunId', self.run_id, '-OutFile', out_win, '-MaxSeconds', str(max_s),
++                '-Volumes', self.args.win_volumes, '-IntervalSeconds', '5',
++                '-ControlDirectory', control_win, '-InstanceToken', self._native_win.token]
+         if self.emergency_win_dir_win:
+-            argv += ["-EmergencyDir", self.emergency_win_dir_win]
+-        self.win_proc = subprocess.Popen(
+-            argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+-            start_new_session=True)
++            argv += ['-EmergencyDir', self.emergency_win_dir_win]
++        # Conservative lifecycle fact set before Popen: an ambiguous startup cannot look never-started.
++        self.win_sampler_started = True
++        self._win_close_state = {'started': True, 'unconfirmed': True,
++                                 'native_exit_confirmed': False, 'exited': False}
++        self.win_proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
++                                         stderr=subprocess.DEVNULL, start_new_session=True)
+         self.win_reader = WinSampleReader(
+-            self.win_path_guest, run_id=self.run_id,
+-            started_iso=self._started_utc,
+-            predates_tolerance_s=self.policy["startup_admission"][
+-                "source_utc_tolerance_s"])
+-        self.win_sampler_started = True
+-        self.log({"event": "win_sampler_started",
+-                  "interop_pid": self.win_proc.pid,
+-                  "out_guest": str(self.win_path_guest),
+-                  "emergency_win_dir": self.emergency_win_dir,
+-                  "max_seconds": max_s})
+-        return True
++            self.win_path_guest, run_id=self.run_id, started_iso=self._started_utc,
++            predates_tolerance_s=self.policy['startup_admission']['source_utc_tolerance_s'])
++        self.log({'event': 'win_sampler_started', 'interop_pid': self.win_proc.pid,
++                  'out_guest': str(self.win_path_guest), 'control_dir': str(control_dir),
++                  'max_seconds': max_s, 'native_confirmation_required': True})
++        try:
++            ident = self._native_win.wait_identity(
++                time.monotonic() + min(15.0, float(getattr(self.args, 'obs_ready_deadline', 30) or 30)),
++                cancelled=lambda: self._external_stop_sig is not None)
++            self.win_pid_windows = ident['pid']
++            self.log({'event': 'win_sampler_native_identity', 'windows_pid': ident['pid'],
++                      'creation_filetime': ident['creation_filetime'],
++                      'token': ident['token'], 'run_id': self.run_id})
++            return True
++        except (OSError, ValueError, TypeError, RuntimeError) as exc:
++            self.log({'event': 'win_sampler_identity_unconfirmed', 'error': str(exc)[:300]})
++            return False
+ 
+     def stop_win_sampler(self) -> None:
+-        # WP1-B:辅助采样器停止也属于收尾链——建立/复用本 run 唯一
+-        # 预算,等待只消费剩余时间(§5.1:辅助采样与写者关闭阶段)。
+-        self._ensure_finalize_budget("stop_win_sampler")
+-        if self.win_proc is None:
++        self._ensure_finalize_budget('stop_win_sampler')
++        if not getattr(self, 'win_sampler_started', False) and self.win_proc is None:
+             return
+-        pid = self.win_proc.pid
+-        try:
+-            os.kill(pid, signal.SIGTERM)
+-        except ProcessLookupError:
+-            pass
+-        wait_allow = self._bounded_wait(10.0, "win_sampler_join")
+-        # WP2-B(SFB-03):所等候句柄=启动本 run 采样器的 interop 进程,
+-        # ps1 由该进程 -File 直跑并以 AppendAllText 写 OutFile(无子
+-        # 写进程)——wait 返回即实际写者退出。timeout 不能生成"已停止"
+-        # 事实:超时/退出核验不可用时记录"已请求、未确认",必要遥测
+-        # 流的可变性保留(完整性判定消费 _win_close_state,不写 stopped)。
+-        self._win_close_state = {
+-            "stop_requested": True, "interop_pid": pid,
+-            "waited": False, "exited": False, "unconfirmed": True}
+-        try:
+-            self.win_proc.wait(timeout=wait_allow)
+-            self._win_close_state.update(
+-                {"waited": True, "exited": True, "unconfirmed": False})
+-            self.log({"event": "win_sampler_stopped",
+-                      "interop_pid": pid,
+-                      "windows_pid": self.win_pid_windows})
+-        except subprocess.TimeoutExpired:
+-            self._win_close_state.update({"waited": True})
+-            self.log({"event": "win_sampler_stop_unconfirmed",
+-                      "interop_pid": pid,
+-                      "budget_remaining_s":
+-                          round(self._finalize_remaining(), 3),
+-                      "note": "停止已请求、完成未确认(受控等待只"
+-                              "消费剩余预算;不无限等;不得记录为已停"
+-                              "止;telemetry_win 流不进入完整证据判定)"})
++        # This fact is written before any fallible call. Interop.wait can NEVER set native_exited.
++        native = getattr(self, '_native_win', None)
++        if native is None:
++            self._win_close_state = {'started': True, 'stop_requested': False,
++                'exited': False, 'native_exit_confirmed': False, 'unconfirmed': True,
++                'errors': ['native lifecycle identity unavailable; refusing bare-PID termination']}
++        else:
++            allowed = self._bounded_wait(30.0, 'win_native_stop_confirm')
++            self._win_close_state = native.close(min(self._finalize_deadline,
++                                                     time.monotonic() + allowed))
++        state = self._win_close_state
++        state['interop_pid'] = self.win_proc.pid if self.win_proc else None
++        # Reap the transport after native handling. Transport death is not native exit evidence.
++        if self.win_proc is not None:
++            try:
++                if self.win_proc.poll() is None:
++                    self.win_proc.terminate()
++                self.win_proc.wait(timeout=self._bounded_wait(1.0, 'win_interop_reap'))
++                state['interop_exited'] = True
++            except (OSError, subprocess.SubprocessError) as exc:
++                state['interop_exited'] = False
++                state['interop_reap_error'] = f'{type(exc).__name__}: {exc}'[:200]
++        self.log({'event': ('win_sampler_stopped' if not state.get('unconfirmed', True)
++                            else 'win_sampler_stop_unconfirmed'),
++                  'interop_pid': state.get('interop_pid'),
++                  'windows_pid': state.get('windows_pid', self.win_pid_windows),
++                  'creation_filetime': state.get('creation_filetime'),
++                  'native_exit_confirmed': state.get('native_exit_confirmed', False),
++                  'terminal_verified': state.get('terminal_verified', False),
++                  'forced': state.get('forced', False),
++                  'errors': state.get('errors', []),
++                  'budget_remaining_s': round(self._finalize_remaining(), 3)})
+ 
+     # ---------------- 业务任务 ----------------
+     def spawn_business(self) -> int:
+@@ -2064,6 +2070,12 @@
+         WP2-B(fail-closed):已知必要发布失败=必要结果证据不完整
+         ——即使最终路径上有字节可读、哈希可算(残片/旧件不能抵消
+         已知失败;标志在本 run 内粘性,不因重入清除)。"""
++        if getattr(self, 'win_sampler_started', False):
++            native_close = self._win_close_state or {}
++            if (native_close.get('native_exit_confirmed') is not True or
++                    native_close.get('terminal_verified') is not True or
++                    native_close.get('unconfirmed') is not False):
++                return False
+         if missing:
+             return False
+         if self._summary_publish_failed:
+@@ -2106,6 +2118,14 @@
+         WP2-A(fail-closed):declared:<role>(--expect-artifact 显式
+         登记的规范角色)继承同名角色的写者映射——登记通道不改变
+         该流的写者事实。"""
++        native_role = role.split(':', 1)[1] if role.startswith('declared:') else role
++        if native_role == 'telemetry_win' or native_role.startswith('native_sampler_'):
++            if not getattr(self, 'win_sampler_started', False):
++                return False
++            native_close = self._win_close_state or {}
++            return not (native_close.get('native_exit_confirmed') is True and
++                        native_close.get('terminal_verified') is True and
++                        native_close.get('unconfirmed') is False)
+         if role.startswith("declared:"):
+             role = role.split(":", 1)[1]
+         if role in ("business_stdout", "business_stderr"):
+--- a/stage2_6_1/runner/r17_win_sampler.ps1
++++ b/stage2_6_1/runner/r17_win_sampler.ps1
+@@ -22,12 +22,16 @@
+     [int]$DetailEvery = 6,
+     [string]$Volumes = "C:,F:",
+     [string]$EmergencyDir = "",
+-    [int]$WriteProbeEvery = 6
++    [int]$WriteProbeEvery = 6,
++    [Parameter(Mandatory=$true)][string]$ControlDirectory,
++    [Parameter(Mandatory=$true)][string]$InstanceToken
+ )
+ 
+ $ErrorActionPreference = "Continue"
+ $thisPid = $PID
+ $utf8nb = New-Object System.Text.UTF8Encoding($false)
++. (Join-Path $PSScriptRoot 'r17_win_sampler_lifecycle.ps1')
++Initialize-R17SamplerLifecycle
+ $script:emergencyAvailable = $false
+ if ($EmergencyDir -ne "") {
+     try {
+@@ -42,7 +46,7 @@
+     try {
+         $line = $obj | ConvertTo-Json -Compress -Depth 6
+         [System.IO.File]::AppendAllText($OutFile, $line + "`n", $utf8nb)
+-    } catch { }
++    } catch { $script:r17TelemetryWriteFailed = $true }
+ }
+ 
+ function Write-Emergency([object]$obj) {
+@@ -125,7 +129,7 @@
+     else { $volIdentity[$v] = "unavailable" }
+ }
+ 
+-Write-JsonLine @{ event="sampler_start"; utc=(Get-UtcNowIso); pid=$thisPid;
++Write-JsonLine @{ event="sampler_start"; utc=(Get-UtcNowIso); pid=$thisPid; creation_filetime=$script:r17Creation; token=$InstanceToken;
+     run_id=$RunId; interval_s=$IntervalSeconds; max_seconds=$MaxSeconds;
+     volumes=$volList; vol_identity=$volIdentity;
+     n_disks=@($allDisks).Count;
+@@ -136,7 +140,9 @@
+ $probeCount = 0
+ $seq = 0           # WP3: source sequence (reader rejects dup/regress)
+ $lastVmPresent = $true
++try {
+ while ($true) {
++    if (Test-R17SamplerStop) { $script:r17StopReason='stop_requested'; break }
+     $now = Get-UtcNowIso
+     $seq = $seq + 1
+     $perf = Get-PerfMem
+@@ -226,6 +232,7 @@
+             }
+         $rec["heavy_procs"] = $heavy
+     }
++    if (Test-R17SamplerStop) { $script:r17StopReason='stop_requested'; break }
+     Write-JsonLine $rec
+ 
+     # ---- 关键卷事故事件(E 不在清单时不产生任何事件) ----
+@@ -242,9 +249,14 @@
+     }
+ 
+     if (((Get-Date) - $start).TotalSeconds -ge $MaxSeconds) {
+-        Write-JsonLine @{ event="sampler_end"; utc=(Get-UtcNowIso);
+-            reason="max_seconds" }
++        $script:r17StopReason = 'max_seconds'
+         break
+     }
+-    Start-Sleep -Seconds $IntervalSeconds
+-}
++    if (Wait-R17SamplerInterval $IntervalSeconds) {
++        $script:r17StopReason = 'stop_requested'
++        break
++    }
++}
++} finally {
++    Complete-R17SamplerLifecycle
++}
+--- /dev/null
++++ b/stage2_6_1/runner/r17_native_sampler.py
+@@ -0,0 +1,245 @@
++"""Per-run Windows sampler lifecycle. No business imports or process-name kills.
++
++The interop Popen is only a transport handle. Native exit evidence comes from
++r17_win_sampler_control.ps1, which validates creation time on one native handle.
++A clean terminal acknowledgement PLUS native exit PLUS exact bytes is required.
++"""
++from __future__ import annotations
++
++from datetime import datetime, timedelta, timezone
++import hashlib
++import json
++import ntpath
++import os
++from pathlib import Path
++import re
++import secrets
++import stat
++import subprocess
++import time
++
++PROTOCOL = 'r17-native-sampler-v1'
++JSON_LIMIT = 64 * 1024
++
++
++def _file_identity(st):
++    return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
++
++
++def _load(path: Path):
++    with path.open('rb') as f:
++        data = f.read(JSON_LIMIT + 1)
++    if len(data) > JSON_LIMIT:
++        raise ValueError('control JSON exceeds limit')
++    value = json.loads(data)
++    if not isinstance(value, dict):
++        raise ValueError('control JSON must be an object')
++    return value
++
++
++def _new_json(path: Path, value):
++    """Create a complete control file without replacing existing evidence."""
++    payload = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
++    tmp = path.with_name('.' + path.name + '.' + secrets.token_hex(12) + '.tmp')
++    owned = False
++    try:
++        with tmp.open('xb') as f:
++            owned = True
++            f.write(payload); f.flush(); os.fsync(f.fileno())
++        os.link(tmp, path)  # create-only, works on the supported local/DrvFS volumes
++    finally:
++        if owned:
++            tmp.unlink(missing_ok=True)
++
++
++def _same_win_path(a, b):
++    return (isinstance(a, str) and isinstance(b, str) and
++            ntpath.normcase(ntpath.normpath(a)) == ntpath.normcase(ntpath.normpath(b)))
++
++
++def validate_identity(doc, run_id, token, out_win):
++    if doc.get('protocol') != PROTOCOL or doc.get('run_id') != run_id or doc.get('token') != token:
++        raise ValueError('native identity belongs to another launch')
++    if type(doc.get('pid')) is not int or not 0 < doc['pid'] < 2**32:
++        raise ValueError('native PID invalid')
++    creation = doc.get('creation_filetime')
++    if not isinstance(creation, str) or not re.fullmatch(r'[1-9][0-9]{0,19}', creation) or int(creation) >= 2**64:
++        raise ValueError('native creation time invalid')
++    if not _same_win_path(doc.get('out_file'), out_win):
++        raise ValueError('native identity output path mismatch')
++    return dict(doc)
++
++
++def validate_confirmation(doc, ident):
++    for key in ('protocol', 'run_id', 'token', 'pid', 'creation_filetime'):
++        if doc.get(key) != ident.get(key) or type(doc.get(key)) is not type(ident.get(key)):
++            raise ValueError('native confirmation identity mismatch: ' + key)
++    if doc.get('native_exited') is not True:
++        raise ValueError('native exit unconfirmed: ' + str(doc.get('status')))
++    status = doc.get('status')
++    actual = doc.get('actual_creation_filetime')
++    matched, forced = doc.get('identity_matched'), doc.get('forced')
++    if status in ('exited', 'forced_exited'):
++        if matched is not True or actual != ident['creation_filetime']:
++            raise ValueError('native handle creation time not bound')
++        if forced is not (status == 'forced_exited'):
++            raise ValueError('native force status contradictory')
++    elif status == 'absent':
++        if doc.get('win32_error') != 87 or matched is not False or forced is not False:
++            raise ValueError('absence not certified by native query')
++    elif status == 'pid_reused':
++        if (not isinstance(actual, str) or not actual.isdigit() or int(actual) <= 0 or
++                actual == ident['creation_filetime'] or matched is not False or forced is not False):
++            raise ValueError('PID reuse proof invalid')
++    else:
++        raise ValueError('unknown native confirmation status')
++    return dict(doc)
++
++
++def check_terminal(doc, ident, telemetry: Path, max_bytes: int):
++    validate_identity(doc, ident['run_id'], ident['token'], ident['out_file'])
++    if doc['pid'] != ident['pid'] or doc['creation_filetime'] != ident['creation_filetime']:
++        raise ValueError('terminal belongs to another process instance')
++    if doc.get('clean') is not True or doc.get('reason') not in ('stop_requested', 'max_seconds'):
++        raise ValueError('native terminal did not confirm clean telemetry closure')
++    n, digest = doc.get('bytes'), doc.get('sha256')
++    if type(n) is not int or n < 0 or n > max_bytes:
++        raise ValueError('terminal telemetry size invalid or over budget')
++    if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
++        raise ValueError('terminal telemetry digest invalid')
++    with telemetry.open('rb') as f:
++        st0 = os.fstat(f.fileno())
++        if not stat.S_ISREG(st0.st_mode) or st0.st_size != n:
++            raise ValueError('telemetry size differs from terminal acknowledgement')
++        h, count = hashlib.sha256(), 0
++        # Bounded at the certified size + one byte; never chase a growing file.
++        while count <= n:
++            chunk = f.read(min(1 << 20, n + 1 - count))
++            if not chunk:
++                break
++            h.update(chunk); count += len(chunk)
++        st1 = os.fstat(f.fileno())
++    st2 = telemetry.stat()
++    if count != n or h.hexdigest() != digest or _file_identity(st0) != _file_identity(st1) or _file_identity(st1) != _file_identity(st2):
++        raise ValueError('telemetry changed or hash differs from terminal acknowledgement')
++    return {'bytes': n, 'sha256': digest, 'stable_during_read': True}
++
++
++class NativeSamplerControl:
++    def __init__(self, run_id: str, control_dir: Path, telemetry: Path,
++                 out_win: str, control_win: str, powershell: str,
++                 controller_win: str, max_bytes: int, *, clock=time.monotonic):
++        self.run_id = run_id
++        self.directory = Path(control_dir)
++        self.telemetry = Path(telemetry)
++        self.out_win, self.control_win = out_win, control_win
++        self.powershell, self.controller_win = powershell, controller_win
++        self.max_bytes, self.clock = max_bytes, clock
++        self.token = secrets.token_hex(32)
++        self.identity = None
++        self.result = None
++        self.directory.mkdir(parents=False, exist_ok=False)
++
++    def required(self):
++        return [
++            {'role': 'native_sampler_identity', 'path': self.directory / 'identity.json'},
++            {'role': 'native_sampler_terminal', 'path': self.directory / 'terminal.json'},
++            {'role': 'native_sampler_confirmation', 'path': self.directory / 'native_confirmation.json'},
++        ]
++
++    def refresh_identity(self):
++        doc = validate_identity(_load(self.directory / 'identity.json'), self.run_id,
++                                self.token, self.out_win)
++        if self.identity is not None and self.identity != doc:
++            raise ValueError('native launch identity changed after acceptance')
++        self.identity = doc
++        return doc
++
++    def wait_identity(self, deadline: float, cancelled=lambda: False):
++        while self.clock() < deadline and not cancelled():
++            try:
++                return self.refresh_identity()
++            except FileNotFoundError:
++                time.sleep(min(0.05, max(0.0, deadline - self.clock())))
++        raise TimeoutError('native sampler did not publish launch identity within startup window')
++
++    def _invoke(self, request: dict, deadline: float):
++        request_file = self.directory / 'native_request.json'
++        _new_json(request_file, request)
++        win_request = ntpath.join(self.control_win, 'native_request.json')
++        # No pipe capture: a broken Windows helper cannot block shutdown on full stdout.
++        proc = subprocess.Popen([self.powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
++                                 '-File', self.controller_win, '-RequestFile', win_request],
++                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
++                                start_new_session=True)
++        result_file = self.directory / 'native_confirmation.json'
++        try:
++            while self.clock() < deadline:
++                try:
++                    return _load(result_file)  # atomically published, never later rewritten
++                except FileNotFoundError:
++                    pass
++                time.sleep(min(0.05, max(0.0, deadline - self.clock())))
++            raise TimeoutError('native confirmation deadline expired')
++        finally:
++            # Reap only the CONTROLLER transport. Its exit does not prove sampler exit.
++            try:
++                if proc.poll() is None:
++                    remaining = max(0.0, deadline - self.clock())
++                    if remaining:
++                        proc.wait(timeout=min(0.2, remaining))
++                if proc.poll() is None:
++                    proc.kill()
++                    try: proc.wait(timeout=min(0.2, max(0.0, deadline-self.clock())))
++                    except subprocess.TimeoutExpired: pass
++            except (OSError, subprocess.SubprocessError):
++                pass
++
++    def close(self, deadline: float, *, invoke=None):
++        # One close attempt per run; a retry cannot erase an earlier failure.
++        if self.result is not None:
++            return dict(self.result)
++        state = {'protocol': PROTOCOL, 'stop_requested': False, 'started': True,
++                 'native_exit_confirmed': False, 'exited': False, 'waited': False,
++                 'unconfirmed': True, 'terminal_verified': False, 'errors': [],
++                 'token': self.token, 'run_id': self.run_id}
++        self.result = state  # set before I/O, including error/timeout paths
++        try:
++            if self.clock() >= deadline:
++                raise TimeoutError('no remaining shutdown budget')
++            # Cooperative request failure must not prevent an independent,
++            # instance-bound native stop attempt. Keep the failure sticky.
++            try:
++                _new_json(self.directory / 'stop.json',
++                          {'protocol': PROTOCOL, 'run_id': self.run_id, 'token': self.token})
++                state['stop_requested'] = True
++            except OSError as exc:
++                state['errors'].append(f'stop_request: {type(exc).__name__}: {exc}'[:400])
++            ident = self.refresh_identity()
++            state.update(windows_pid=ident['pid'], creation_filetime=ident['creation_filetime'])
++            remaining = max(0.0, deadline - self.clock())
++            if remaining <= 0:
++                raise TimeoutError('no budget for native process confirmation')
++            budget_ms = int(remaining * 1000)
++            # Reserve force confirmation time instead of consuming all budget cooperatively.
++            request = {k: ident[k] for k in ('protocol','run_id','token','pid','creation_filetime')}
++            request.update(budget_ms=budget_ms,
++                           cooperate_ms=min(8000, budget_ms // 2),
++                           force_wait_ms=min(5000, budget_ms // 3),
++                           expires_utc=(datetime.now(timezone.utc)+timedelta(seconds=remaining)).isoformat())
++            state['waited'] = True
++            reply = (invoke or self._invoke)(request, deadline)
++            if self.clock() > deadline:
++                raise TimeoutError('native confirmation arrived outside shutdown budget')
++            proof = validate_confirmation(reply, ident)
++            state.update(native_exit_confirmed=True, exited=True,
++                         native_status=proof['status'], forced=proof['forced'],
++                         native_proof=proof)
++            # A proof of death alone is not a clean telemetry close (e.g. forced termination).
++            terminal = _load(self.directory / 'terminal.json')
++            observed = check_terminal(terminal, ident, self.telemetry, self.max_bytes)
++            state.update(terminal_verified=True, telemetry=observed,
++                         terminal_reason=terminal['reason'], unconfirmed=bool(state['errors']))
++        except (OSError, ValueError, TypeError, KeyError, RuntimeError) as exc:
++            state['errors'].append(f'{type(exc).__name__}: {exc}'[:400])
++        return dict(state)
+--- /dev/null
++++ b/stage2_6_1/runner/r17_win_process.cs
+@@ -0,0 +1,95 @@
++// Process identity and termination operate on ONE opened native handle.
++// This helper never enumerates processes and never terminates by name.
++using System;
++using System.Diagnostics;
++using System.Runtime.InteropServices;
++namespace R17Sampler {
++    public sealed class Reply {
++        public string Status;
++        public bool NativeExited;
++        public bool IdentityMatched;
++        public bool Forced;
++        public string ActualCreation;
++        public int Error;
++    }
++    public static class Native {
++        [StructLayout(LayoutKind.Sequential)]
++        private struct FT { public uint Low; public uint High; }
++        [DllImport("kernel32.dll", SetLastError=true)]
++        private static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
++        [DllImport("kernel32.dll", SetLastError=true)]
++        private static extern bool GetProcessTimes(IntPtr h, out FT c, out FT e, out FT k, out FT u);
++        [DllImport("kernel32.dll", SetLastError=true)]
++        private static extern uint WaitForSingleObject(IntPtr h, uint timeout);
++        [DllImport("kernel32.dll", SetLastError=true)]
++        private static extern bool TerminateProcess(IntPtr h, uint code);
++        [DllImport("kernel32.dll")]
++        private static extern bool CloseHandle(IntPtr h);
++        [DllImport("kernel32.dll")]
++        private static extern IntPtr GetCurrentProcess();
++        private static ulong Creation(IntPtr h) {
++            FT c,e,k,u;
++            if (!GetProcessTimes(h, out c, out e, out k, out u))
++                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
++            return ((ulong)c.High << 32) | c.Low;
++        }
++        public static string CurrentCreation() {
++            return Creation(GetCurrentProcess()).ToString(System.Globalization.CultureInfo.InvariantCulture);
++        }
++        private static int Remaining(Stopwatch clock, int budgetMs, DateTime expires) {
++            double wall = (expires - DateTime.UtcNow).TotalMilliseconds;
++            return (int)Math.Max(0, Math.Min(budgetMs - clock.Elapsed.TotalMilliseconds, wall));
++        }
++        public static Reply Stop(int pid, string creation, int cooperateMs,
++                                 int forceWaitMs, int budgetMs, string expiresUtc) {
++            var r = new Reply { Status="unconfirmed", ActualCreation="" };
++            var clock = Stopwatch.StartNew();
++            DateTime expires = DateTime.Parse(expiresUtc, System.Globalization.CultureInfo.InvariantCulture,
++                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal);
++            ulong expected;
++            if (pid <= 0 || !UInt64.TryParse(creation, out expected) || expected == 0 ||
++                budgetMs < 0 || cooperateMs < 0 || forceWaitMs < 0) {
++                r.Status="invalid_request"; return r;
++            }
++            if (Remaining(clock,budgetMs,expires) <= 0) { r.Status="deadline_expired"; return r; }
++            // SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE
++            IntPtr h = OpenProcess(0x00101001, false, pid);
++            if (h == IntPtr.Zero) {
++                r.Error = Marshal.GetLastWin32Error();
++                // Only ERROR_INVALID_PARAMETER proves no PID exists. Access denied is UNKNOWN.
++                if (r.Error == 87) { r.Status="absent"; r.NativeExited=true; }
++                else { r.Status="open_failed"; }
++                return r;
++            }
++            try {
++                ulong actual = Creation(h);
++                r.ActualCreation = actual.ToString(System.Globalization.CultureInfo.InvariantCulture);
++                if (actual != expected) {
++                    // PID reuse proves the OLD instance ended; NEVER kill the new instance.
++                    r.Status="pid_reused"; r.NativeExited=true; return r;
++                }
++                r.IdentityMatched = true;
++                uint w = WaitForSingleObject(h, (uint)Math.Min(cooperateMs,Remaining(clock,budgetMs,expires)));
++                if (w == 0) { r.Status="exited"; r.NativeExited=true; return r; }
++                if (w != 258) { r.Status="wait_failed"; r.Error=Marshal.GetLastWin32Error(); return r; }
++                if (Remaining(clock,budgetMs,expires) <= 0 || forceWaitMs == 0) {
++                    r.Status="deadline_expired"; return r;
++                }
++                if (!TerminateProcess(h, 137)) {
++                    r.Error=Marshal.GetLastWin32Error();
++                    // It may have exited between wait and terminate. The SAME handle decides.
++                    if (WaitForSingleObject(h,0) == 0) { r.Status="exited"; r.NativeExited=true; }
++                    else { r.Status="terminate_failed"; }
++                    return r;
++                }
++                r.Forced=true;
++                w = WaitForSingleObject(h,(uint)Math.Min(forceWaitMs,Remaining(clock,budgetMs,expires)));
++                if (w == 0) { r.Status="forced_exited"; r.NativeExited=true; }
++                else { r.Status=w == 258 ? "force_timeout" : "wait_failed"; r.Error=Marshal.GetLastWin32Error(); }
++                return r;
++            } catch (System.ComponentModel.Win32Exception ex) {
++                r.Status="query_failed"; r.Error=ex.NativeErrorCode; return r;
++            } finally { CloseHandle(h); }
++        }
++    }
++}
+--- /dev/null
++++ b/stage2_6_1/runner/r17_win_sampler_lifecycle.ps1
+@@ -0,0 +1,92 @@
++# Dot-sourced by the sampler only. The sampler remains the sole telemetry writer.
++# All protocol files are per-launch, create-only UTF-8 JSON. No stdout protocol.
++$script:r17NativeSource = Join-Path $PSScriptRoot 'r17_win_process.cs'
++$script:r17LifecycleScript = $PSCommandPath
++function Write-R17NewJson([string]$Path, [object]$Value) {
++    $tmp = $Path + "." + [guid]::NewGuid().ToString("N") + ".tmp"
++    $created = $false
++    try {
++        $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes(($Value | ConvertTo-Json -Compress -Depth 10))
++        $f = [System.IO.File]::Open($tmp, [System.IO.FileMode]::CreateNew,
++            [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
++        $created = $true
++        try { $f.Write($bytes, 0, $bytes.Length); $f.Flush($true) } finally { $f.Dispose() }
++        # .NET Framework's two-argument Move refuses an existing destination.
++        [System.IO.File]::Move($tmp, $Path)
++    } finally {
++        if ($created -and [System.IO.File]::Exists($tmp)) { [System.IO.File]::Delete($tmp) }
++    }
++}
++function Initialize-R17SamplerLifecycle {
++    if ($InstanceToken -notmatch '^[a-f0-9]{64}$' -or [string]::IsNullOrWhiteSpace($ControlDirectory)) {
++        throw "Missing per-launch sampler control identity"
++    }
++    if (-not [System.IO.Directory]::Exists($ControlDirectory)) { throw "Control directory not prepared" }
++    Add-Type -Path $script:r17NativeSource -ErrorAction Stop
++    $script:r17Creation = [R17Sampler.Native]::CurrentCreation()
++    $script:r17TelemetryWriteFailed = $false
++    $script:r17FinishDone = $false
++    $script:r17StopReason = 'unexpected_exit'
++    $script:r17OutPath = [System.IO.Path]::GetFullPath($OutFile)
++    # Never append to an old run's file, even if this process started twice.
++    $out = [System.IO.File]::Open($script:r17OutPath,[System.IO.FileMode]::CreateNew,
++        [System.IO.FileAccess]::Write,[System.IO.FileShare]::Read)
++    $out.Dispose()
++    $script:r17Identity = @{
++        protocol='r17-native-sampler-v1'; run_id=$RunId; token=$InstanceToken;
++        pid=$PID; creation_filetime=$script:r17Creation; out_file=$script:r17OutPath;
++        lifecycle_script=$script:r17LifecycleScript; started_utc=[DateTime]::UtcNow.ToString('o')
++    }
++    Write-R17NewJson (Join-Path $ControlDirectory 'identity.json') $script:r17Identity
++}
++function Test-R17SamplerStop {
++    $p = Join-Path $ControlDirectory 'stop.json'
++    if (-not [System.IO.File]::Exists($p)) { return $false }
++    # A broken request never grants authority to a different run. MaxSeconds remains a backstop.
++    try {
++        $s = [System.IO.File]::ReadAllText($p) | ConvertFrom-Json -ErrorAction Stop
++        return ($s.protocol -eq 'r17-native-sampler-v1' -and
++                $s.run_id -ceq $RunId -and $s.token -ceq $InstanceToken)
++    } catch { return $false }
++}
++function Wait-R17SamplerInterval([int]$Seconds) {
++    $until = [System.Diagnostics.Stopwatch]::StartNew()
++    do {
++        if (Test-R17SamplerStop) { return $true }
++        if ($until.Elapsed.TotalSeconds -ge $Seconds) { return $false }
++        Start-Sleep -Milliseconds 100
++    } while ($true)
++}
++function Complete-R17SamplerLifecycle {
++    if ($script:r17FinishDone) { return }
++    $script:r17FinishDone = $true
++    $clean = (-not $script:r17TelemetryWriteFailed) -and ($script:r17StopReason -in @('stop_requested','max_seconds'))
++    $err = $null
++    try {
++        # The LAST telemetry append. Nothing after this function writes telemetry.
++        $end = @{
++            event='sampler_end'; utc=[DateTime]::UtcNow.ToString('o'); run_id=$RunId;
++            token=$InstanceToken; pid=$PID; creation_filetime=$script:r17Creation;
++            reason=$script:r17StopReason
++        }
++        $line = $end | ConvertTo-Json -Compress -Depth 6
++        [System.IO.File]::AppendAllText($script:r17OutPath,$line+"`n",[System.Text.UTF8Encoding]::new($false))
++    } catch { $clean=$false; $err=$_.Exception.Message }
++    $size = $null; $digest = $null
++    try {
++        # AppendAllText has closed its handle. Hash while disallowing another writer.
++        $f = [System.IO.File]::Open($script:r17OutPath,[System.IO.FileMode]::Open,
++            [System.IO.FileAccess]::Read,[System.IO.FileShare]::Read)
++        $sha = [System.Security.Cryptography.SHA256]::Create()
++        try { $size=$f.Length; $digest=([BitConverter]::ToString($sha.ComputeHash($f))).Replace('-','').ToLowerInvariant() }
++        finally { $sha.Dispose(); $f.Dispose() }
++    } catch { $clean=$false; $err=$_.Exception.Message }
++    $terminal = @{
++        protocol='r17-native-sampler-v1'; run_id=$RunId; token=$InstanceToken;
++        pid=$PID; creation_filetime=$script:r17Creation; out_file=$script:r17OutPath;
++        clean=$clean; reason=$script:r17StopReason; bytes=$size; sha256=$digest;
++        finished_utc=[DateTime]::UtcNow.ToString('o'); error=$err
++    }
++    # This is a write-completion acknowledgement, NOT proof that the process exited.
++    Write-R17NewJson (Join-Path $ControlDirectory 'terminal.json') $terminal
++}
+--- /dev/null
++++ b/stage2_6_1/runner/r17_win_sampler_control.ps1
+@@ -0,0 +1,29 @@
++# A bounded native-handle controller, not a process-name killer.
++param([Parameter(Mandatory=$true)][string]$RequestFile)
++$ErrorActionPreference='Stop'
++$request = $null
++try {
++    $request = [System.IO.File]::ReadAllText($RequestFile) | ConvertFrom-Json
++    if ($request.protocol -ne 'r17-native-sampler-v1' -or $request.token -notmatch '^[a-f0-9]{64}$') {
++        throw 'Invalid controller request'
++    }
++    . (Join-Path $PSScriptRoot 'r17_win_sampler_lifecycle.ps1')
++    Add-Type -Path (Join-Path $PSScriptRoot 'r17_win_process.cs') -ErrorAction Stop
++    $r = [R17Sampler.Native]::Stop([int]$request.pid,[string]$request.creation_filetime,
++        [int]$request.cooperate_ms,[int]$request.force_wait_ms,[int]$request.budget_ms,
++        [string]$request.expires_utc)
++    $reply = @{
++        protocol='r17-native-sampler-v1'; run_id=$request.run_id; token=$request.token;
++        pid=$request.pid; creation_filetime=$request.creation_filetime;
++        status=$r.Status; native_exited=$r.NativeExited; identity_matched=$r.IdentityMatched;
++        forced=$r.Forced; actual_creation_filetime=$r.ActualCreation; win32_error=$r.Error;
++        finished_utc=[DateTime]::UtcNow.ToString('o')
++    }
++    # Fixed sibling filename: caller cannot redirect the controller's output.
++    Write-R17NewJson (Join-Path (Split-Path -Parent $RequestFile) 'native_confirmation.json') $reply
++    if ($r.NativeExited) { exit 0 } else { exit 3 }
++} catch {
++    # Do not invent an exit confirmation on errors. Python records missing/invalid proof.
++    [Console]::Error.WriteLine('Native sampler control failed: '+$_.Exception.Message)
++    exit 4
++}
+--- /dev/null
++++ b/stage2_6_1/runner/r17_required_bytes.py
+@@ -0,0 +1,255 @@
++#!/usr/bin/env python3
++"""Read-only supplementary run audit; never repair/re-sign/truncate evidence.
++
++Checks EVERY required file against the existing run_record's size and SHA-256.
++Optional Windows-telemetry hints distinguish append/newline hypotheses, without
++turning a transformed match into an accepted original. No project imports, no
++subprocesses, no process signals, and no output file creation. JSON goes to stdout.
++This is not a replacement for the project's delivery/semantic verifier.
++"""
++from __future__ import annotations
++import argparse
++from collections import Counter
++from datetime import datetime
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import stat
++import sys
++
++CHUNK = 1024 * 1024
++HINT_LIMIT = 32 * CHUNK
++
++
++def sha256(data: bytes) -> str:
++    return hashlib.sha256(data).hexdigest()
++
++
++def identity(s: os.stat_result) -> tuple[int, ...]:
++    return (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
++
++
++def within(root: Path, p: Path) -> bool:
++    return p == root or root in p.parents
++
++
++def observed_file(path: Path, keep_small: bool = False) -> tuple[dict, bytes | None]:
++    """Stream hash a regular file; reject a file that changed during this read."""
++    with path.open('rb') as f:
++        before = os.fstat(f.fileno())
++        if not stat.S_ISREG(before.st_mode):
++            raise ValueError(f'not a regular file: {path}')
++        pieces = [] if keep_small and before.st_size <= HINT_LIMIT else None
++        digest = hashlib.sha256()
++        size = 0
++        while True:
++            chunk = f.read(min(CHUNK, max(1, before.st_size + 1 - size)))
++            if not chunk:
++                break
++            size += len(chunk)
++            digest.update(chunk)
++            if size > before.st_size:
++                break  # growth already proves this is not a sealed object
++            if pieces is not None:
++                if size > HINT_LIMIT:
++                    pieces = None
++                else:
++                    pieces.append(chunk)
++        after = os.fstat(f.fileno())
++    path_after = path.stat()
++    stable = identity(before) == identity(after) == identity(path_after)
++    return ({'bytes': size, 'sha256': digest.hexdigest(),
++             'stable_during_read': stable},
++            b''.join(pieces) if pieces is not None else None)
++
++
++def parse_utc(value):
++    if not isinstance(value, str):
++        return None
++    try:
++        d = datetime.fromisoformat(value.replace('Z', '+00:00'))
++        return d if d.tzinfo is not None else None
++    except ValueError:
++        return None
++
++
++def telemetry_hints(data: bytes, expected_size: int, expected_sha: str,
++                    ended_utc: str | None, run_id: str | None) -> dict:
++    """Hypotheses only: do not write the transformed bytes or change verdict."""
++    lf = data.replace(b'\r\n', b'\n')
++    variants = {'raw': data, 'CRLF_to_LF': lf, 'LF_to_CRLF': lf.replace(b'\n', b'\r\n')}
++    comparisons = {}
++    for label, candidate in variants.items():
++        comparisons[label] = {
++            'transformed_bytes': len(candidate),
++            'whole_matches_record': len(candidate) == expected_size and sha256(candidate) == expected_sha,
++            'prefix_matches_record': len(candidate) >= expected_size and sha256(candidate[:expected_size]) == expected_sha,
++        }
++    ended = parse_utc(ended_utc)
++    counts = Counter()
++    invalid_lines = 0
++    late_count = 0
++    first_late = last_late = None
++    first_utc = last_utc = None
++    for line in data.splitlines():
++        if not line.strip():
++            continue
++        try:
++            obj = json.loads(line)
++            if not isinstance(obj, dict):
++                raise ValueError('non-object')
++        except (ValueError, UnicodeError):
++            invalid_lines += 1
++            continue
++        event = obj.get('event')
++        counts[str(event)] += 1
++        stamp = obj.get('utc')
++        if isinstance(stamp, str):
++            first_utc = first_utc or stamp
++            last_utc = stamp
++        dt = parse_utc(stamp)
++        if event == 'sample' and obj.get('run_id') == run_id and ended and dt and dt > ended:
++            late_count += 1
++            row = {'utc': stamp, 'seq': obj.get('seq'), 'run_id': obj.get('run_id')}
++            first_late = first_late or row
++            last_late = row
++    return {
++        'hypotheses_only_never_accept_transformed_bytes': True,
++        'raw_crlf_count': data.count(b'\r\n'), 'raw_lf_count': data.count(b'\n'),
++        'comparisons': comparisons, 'event_counts': dict(counts),
++        'invalid_json_lines': invalid_lines, 'first_record_utc': first_utc,
++        'last_record_utc': last_utc, 'same_run_sample_rows_after_record_end': late_count,
++        'first_late_sample': first_late, 'last_late_sample': last_late,
++        'time_note': 'Reported clocks only; identify the actual native writer before attributing the cause.'}
++
++
++def audit(root: Path, record_path: Path, hints: bool = False) -> dict:
++    root = root.resolve(strict=True)
++    record_path = record_path.resolve(strict=True)
++    if not root.is_dir() or not within(root, record_path):
++        raise ValueError('record must be inside the declared evidence root')
++    record_meta, rb = observed_file(record_path, True)
++    if rb is None:
++        raise ValueError('run_record exceeds the diagnostic size limit')
++    rec = json.loads(rb)
++    if not isinstance(rec, dict):
++        raise ValueError('run_record is not an object')
++    problems = []
++    rows = rec.get('required')
++    if not isinstance(rows, list) or not rows:
++        raise ValueError('required must be a nonempty list')
++    seen_paths, seen_roles = set(), set()
++    results = []
++    for index, row in enumerate(rows):
++        if not isinstance(row, dict):
++            problems.append(f'required[{index}] is not an object')
++            continue
++        out = {'role': row.get('role'), 'path': row.get('path'), 'ok': False}
++        results.append(out)
++        try:
++            role, rel = row.get('role'), row.get('path')
++            if not isinstance(role, str) or not role or not isinstance(rel, str) or not rel:
++                raise ValueError('role/path must be nonempty strings')
++            if rel in seen_paths or role in seen_roles:
++                raise ValueError('duplicate required role or path')
++            seen_paths.add(rel); seen_roles.add(role)
++            if Path(rel).is_absolute() or '..' in Path(rel).parts:
++                raise ValueError('required path must be root-relative without parent traversal')
++            if row.get('live_writers'):
++                raise ValueError('required file still has an unconfirmed writer')
++            if row.get('status') != 'present':
++                raise ValueError(f"required status is {row.get('status')!r}, not present")
++            n, h = row.get('bytes'), row.get('sha256')
++            if type(n) is not int or n < 0 or not isinstance(h, str) or not re.fullmatch(r'[0-9a-f]{64}', h):
++                raise ValueError('invalid expected bytes or SHA-256')
++            path = (root / rel).resolve(strict=True)
++            if not within(root, path):
++                raise ValueError('required file resolves outside evidence root')
++            actual, data = observed_file(path, hints and role == 'telemetry_win')
++            out.update(expected_bytes=n, expected_sha256=h, actual=actual)
++            out['ok'] = actual['bytes'] == n and actual['sha256'] == h and actual['stable_during_read']
++            if not out['ok']:
++                out['reason'] = 'size/hash mismatch or file changed during read'
++            if hints and role == 'telemetry_win':
++                out['telemetry_hints'] = (telemetry_hints(data, n, h, rec.get('ended_utc'), rec.get('run_id'))
++                                           if data is not None else {'skipped': 'file exceeds 32 MiB hint limit'})
++        except (OSError, ValueError, RuntimeError) as exc:
++            out['reason'] = f'{type(exc).__name__}: {exc}'
++    record_after, _ = observed_file(record_path)
++    record_unchanged = (record_meta['sha256'] == record_after['sha256'] and
++                        record_meta['bytes'] == record_after['bytes'] and
++                        record_meta['stable_during_read'] and record_after['stable_during_read'])
++    if not record_unchanged:
++        problems.append('record changed during audit')
++    ok = not problems and all(r['ok'] for r in results) and len(results) == len(rows)
++    return {'scope': 'supplementary exact-byte audit of every required file; not a qualification verdict',
++            'run_id': rec.get('run_id'), 'record': str(record_path),
++            'record_sha256': record_meta['sha256'], 'record_unchanged': record_unchanged,
++            'declared_evidence_complete': rec.get('evidence_complete'),
++            'task_kind': rec.get('task_kind'), 'control_failures': rec.get('control_failures'),
++            'business_rc': (rec.get('business') or {}).get('rc'),
++            'writers': rec.get('writers'),
++            'declared_finalized': rec.get('finalized'), 'ended_utc': rec.get('ended_utc'),
++            'required_count': len(rows), 'files': results, 'problems': problems,
++            'exact_bytes_ok': ok,
++            'note': 'No source is modified. A prefix/newline hypothesis NEVER repairs the original verdict.'}
++
++
++
++CORE_PYTEST_ROLES = frozenset(('telemetry_guest', 'telemetry_win', 'alerts',
++                             'business_stdout', 'business_stderr', 'junit_xml', 'summary'))
++NATIVE_ROLES = frozenset(('native_sampler_identity', 'native_sampler_terminal',
++                         'native_sampler_confirmation'))
++
++
++def delivery_check(root: Path, record_path: Path) -> dict:
++    report = audit(root, record_path)
++    reasons = []
++    if report['declared_finalized'] is not True:
++        reasons.append('run is not finalized')
++    if report['declared_evidence_complete'] is not True:
++        reasons.append('run declared incomplete evidence')
++    if report['control_failures'] != []:
++        reasons.append('control failures missing or nonempty')
++    if type(report['business_rc']) is not int or report['business_rc'] != 0:
++        reasons.append('business did not return zero')
++    roles = {x.get('role') for x in report['files']}
++    if report['task_kind'] == 'pytest' and not CORE_PYTEST_ROLES <= roles:
++        reasons.append('pytest required role set incomplete')
++    writers = report.get('writers')
++    if not isinstance(writers, dict):
++        reasons.append('writer closure facts missing')
++    else:
++        win = writers.get('win')
++        if not isinstance(win, dict):
++            reasons.append('native sampler closure facts missing')
++        elif win.get('protocol') != 'r17-native-sampler-v1':
++            reasons.append('legacy interop-only closure is not native process confirmation')
++        elif (win.get('native_exit_confirmed') is not True or
++              win.get('terminal_verified') is not True or win.get('unconfirmed') is not False):
++            reasons.append('native sampler not fully closed')
++        if not NATIVE_ROLES <= roles:
++            reasons.append('native identity/terminal/confirmation evidence missing')
++    report['delivery_problems'] = reasons
++    report['delivery_ok'] = report['exact_bytes_ok'] and not reasons
++    return report
++
++def main(argv=None) -> int:
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument('--root', required=True, type=Path)
++    ap.add_argument('--record', required=True, type=Path)
++    ap.add_argument('--telemetry-hints', action='store_true')
++    args = ap.parse_args(argv)
++    try:
++        report = audit(args.root, args.record, args.telemetry_hints)
++        print(json.dumps(report, ensure_ascii=False, indent=2))
++        return 0 if report['exact_bytes_ok'] else 1
++    except (OSError, ValueError, RuntimeError) as exc:
++        print(json.dumps({'exact_bytes_ok': False, 'error': f'{type(exc).__name__}: {exc}'}, ensure_ascii=False))
++        return 2
++
++
++if __name__ == '__main__':
++    sys.exit(main())
+--- /dev/null
++++ b/stage2_6_1/runner/r17_verified_aggregate.py
+@@ -0,0 +1,71 @@
++#!/usr/bin/env python3
++"""Mandatory final gate: every required byte AND the existing semantic aggregate.
++
++Old aggregate scripts/outputs stay immutable. This wrapper calls a selected
++existing aggregate into a NEW private output, and never accepts its PASS alone.
++"""
++from __future__ import annotations
++import argparse
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++
++from r17_required_bytes import delivery_check
++
++
++def main(argv=None):
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument('--root', required=True, type=Path)
++    ap.add_argument('--record', required=True, type=Path)
++    ap.add_argument('--legacy-script', required=True, type=Path)
++    ap.add_argument('--config', required=True, type=Path)
++    ap.add_argument('--out', required=True, type=Path)
++    args = ap.parse_args(argv)
++    target = args.out.absolute()
++    try:
++        if os.path.lexists(target):
++            raise ValueError('new aggregate output required; existing file will not be overwritten')
++        # Output must not land in the raw run tree. Other prior outputs are create-only too.
++        run_root = args.record.resolve(strict=True).parent
++        if target.resolve().is_relative_to(run_root):
++            raise ValueError('aggregate output must be outside the raw run directory')
++        cfg = json.loads(args.config.read_text(encoding='utf-8'))
++        if Path(cfg['full_run_record']).resolve() != args.record.resolve():
++            raise ValueError('legacy aggregate config and byte audit refer to different runs')
++        audit = delivery_check(args.root, args.record)
++        legacy_rc = None; legacy_doc = None
++        # A corrupt raw run never becomes healthy by rehashing it into another manifest.
++        if audit['delivery_ok']:
++            with tempfile.TemporaryDirectory(prefix='r17_aggregate_') as temp:
++                report = Path(temp) / 'legacy.json'
++                proc = subprocess.run([sys.executable, str(args.legacy_script), '--config',
++                                       str(args.config), '--out', str(report)],
++                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
++                                      timeout=60, check=False)
++                legacy_rc = proc.returncode
++                legacy_doc = json.loads(report.read_text()) if report.is_file() else None
++            # Re-check source bytes after the legacy reader. It cannot mask changes.
++            after = delivery_check(args.root, args.record)
++            if after['record_sha256'] != audit['record_sha256']:
++                after['delivery_ok'] = False
++                after['delivery_problems'].append('record changed between validation stages')
++            audit = after
++        ok = (audit['delivery_ok'] and legacy_rc == 0 and isinstance(legacy_doc, dict)
++              and legacy_doc.get('ok') is True)
++        out = {'overall_ok': ok, 'required_bytes': audit, 'legacy_rc': legacy_rc,
++               'legacy': legacy_doc,
++               'note': 'All required raw bytes and native closure must pass; no re-signing or repair.'}
++        target.parent.mkdir(parents=True, exist_ok=True)
++        with target.open('x', encoding='utf-8') as f:
++            json.dump(out, f, ensure_ascii=False, indent=2)
++        print('verified_aggregate=' + ('PASS' if ok else 'FAIL'))
++        return 0 if ok else 1
++    except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError) as exc:
++        print(f'verified aggregate failed: {type(exc).__name__}: {exc}', file=sys.stderr)
++        return 2
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+--- /dev/null
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_native_sampler_unit.py
+@@ -0,0 +1,208 @@
++"""Native lifecycle protocol tests. Windows API execution is a separate host test.
++
++These tests call the implementation module, use real files, and replace only
++native transport replies. They NEVER count interop returncode as native exit.
++"""
++from __future__ import annotations
++import hashlib
++import importlib.util
++import json
++from pathlib import Path
++import sys
++import time
++import pytest
++
++
++def load_module(name):
++    here=Path(__file__).resolve()
++    roots=[here.parent.parent/'implementation',here.parents[2]/'runner',
++           here.parents[2]/'stage2_6_1_runner']
++    root=next(p for p in roots if (p/(name+'.py')).is_file())
++    spec=importlib.util.spec_from_file_location(name,root/(name+'.py'))
++    mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
++    return mod
++
++m=load_module('r17_native_sampler')
++
++
++@pytest.fixture
++def live(tmp_path):
++    log=tmp_path/'win.jsonl'; log.write_bytes(b'{"event":"sampler_end"}\n')
++    session=m.NativeSamplerControl('test-run',tmp_path/'control',log,
++        r'F:\data\win.jsonl',r'F:\data\control','powershell.exe','control.ps1',4096)
++    identity={'protocol':m.PROTOCOL,'run_id':session.run_id,'token':session.token,
++              'pid':1234,'creation_filetime':'133999999999999999','out_file':session.out_win,
++              'started_utc':'2026-09-09T00:00:00Z'}
++    m._new_json(session.directory/'identity.json',identity)
++    session.refresh_identity()
++    return session,identity
++
++
++def terminal(session,identity,**extra):
++    b=session.telemetry.read_bytes()
++    result={**identity,'clean':True,'reason':'stop_requested','bytes':len(b),
++            'sha256':hashlib.sha256(b).hexdigest(),**extra}
++    m._new_json(session.directory/'terminal.json',result)
++
++
++def confirmation(identity,status='exited',**extra):
++    return {k:identity[k] for k in ('protocol','run_id','token','pid','creation_filetime')}|{
++        'native_exited':True,'status':status,'identity_matched':True,'forced':False,
++        'actual_creation_filetime':identity['creation_filetime'],'win32_error':0,**extra}
++
++
++def test_cooperative_terminal_and_real_bytes(live):
++    session,ident=live; terminal(session,ident)
++    result=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(ident))
++    assert result['native_exit_confirmed'] and result['terminal_verified']
++    assert result['unconfirmed'] is False and result['exited'] is True
++    stop=json.loads((session.directory/'stop.json').read_text())
++    assert stop['token']==ident['token'] and stop['run_id']==ident['run_id']
++    assert session.telemetry.read_bytes()==b'{"event":"sampler_end"}\n'
++
++
++@pytest.mark.parametrize('status', ['wait_failed','force_timeout','query_failed','open_failed','deadline_expired'])
++def test_wrapper_exit_does_not_prove_native_exit(live,status):
++    session,ident=live; terminal(session,ident)
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(ident,status,native_exited=False))
++    assert r['unconfirmed'] and not r['native_exit_confirmed']
++    assert r['errors']
++
++
++@pytest.mark.parametrize('field,value', [('token','0'*64),('run_id','old-run'),('pid',4321),
++                                         ('creation_filetime','133888888888888888'),('pid',True)])
++def test_stale_or_foreign_confirmation_rejected(live,field,value):
++    session,ident=live; terminal(session,ident)
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(ident,**{field:value}))
++    assert r['unconfirmed'] and not r['native_exit_confirmed']
++
++
++def test_pid_reuse_is_old_exit_without_terminating_new_instance(live):
++    session,ident=live; terminal(session,ident)
++    reply=confirmation(ident,'pid_reused',identity_matched=False,
++                       actual_creation_filetime='134000000000000000')
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:reply)
++    assert not r['unconfirmed'] and r['forced'] is False
++    assert r['native_status']=='pid_reused'
++
++
++@pytest.mark.parametrize('err', [5,0,123,87])
++def test_absence_requires_specific_native_error(live,err):
++    session,ident=live; terminal(session,ident)
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(
++        ident,'absent',identity_matched=False,actual_creation_filetime='',win32_error=err))
++    assert (not r['unconfirmed']) is (err==87)
++
++
++def test_forced_death_without_terminal_is_not_complete(live):
++    session,ident=live
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(ident,'forced_exited',forced=True))
++    assert r['native_exit_confirmed'] and r['exited']
++    assert r['unconfirmed'] and not r['terminal_verified']
++
++
++@pytest.mark.parametrize('change', ['append','same_length','missing','bad_size','bad_hash','unclean','wrong_token'])
++def test_terminal_and_bytes_must_match(live,change):
++    session,ident=live
++    kwargs={}
++    if change=='bad_size':kwargs['bytes']=999
++    if change=='bad_hash':kwargs['sha256']='0'*64
++    if change=='unclean':kwargs['clean']=False
++    if change=='wrong_token':kwargs['token']='0'*64
++    terminal(session,ident,**kwargs)
++    if change=='append':
++        with session.telemetry.open('ab') as f:f.write(b'{"seq":351}\n')
++    elif change=='same_length':
++        b=session.telemetry.read_bytes();session.telemetry.write_bytes(b'X'+b[1:])
++    elif change=='missing': session.telemetry.unlink()
++    r=session.close(time.monotonic()+5,invoke=lambda req,dl:confirmation(ident))
++    assert r['native_exit_confirmed'] and r['unconfirmed'] and not r['terminal_verified']
++
++
++def test_zero_budget_starts_no_controller(live):
++    session,_=live
++    r=session.close(time.monotonic()-1,invoke=lambda *a:pytest.fail('controller started without budget'))
++    assert r['unconfirmed'] and not (session.directory/'stop.json').exists()
++
++
++def test_same_run_deadline_failure_cannot_be_erased(live):
++    session,ident=live
++    first=session.close(time.monotonic()-1)
++    second=session.close(time.monotonic()+100,invoke=lambda *a:pytest.fail('retry restarted budget'))
++    assert first==second and second['unconfirmed']
++
++
++def test_late_confirmation_never_certifies(live):
++    session,ident=live; terminal(session,ident)
++    now=[10.0]; session.clock=lambda:now[0]
++    def invoke(req,deadline):
++        assert deadline==10.5 and req['budget_ms']==500
++        assert req['cooperate_ms']+req['force_wait_ms']<=500
++        now[0]=10.6;return confirmation(ident)
++    r=session.close(10.5,invoke=invoke)
++    assert r['unconfirmed'] and not r['native_exit_confirmed']
++
++
++@pytest.mark.parametrize('mutation',[{'token':'0'*64},{'pid':True},{'creation_filetime':None},
++                                     {'creation_filetime':0},{'out_file':r'F:\other.json'}])
++def test_launch_identity_validation(live,mutation):
++    s,i=live
++    with pytest.raises(ValueError):m.validate_identity(i|mutation,s.run_id,s.token,s.out_win)
++
++
++def test_identity_changed_after_acceptance(live):
++    s,i=live
++    (s.directory/'identity.json').write_text(json.dumps(i|{'started_utc':'changed'}))
++    with pytest.raises(ValueError,match='changed'):s.refresh_identity()
++
++
++def test_unmatched_creation_cannot_claim_forced_success(live):
++    s,i=live;terminal(s,i)
++    r=s.close(time.monotonic()+3,invoke=lambda *a:confirmation(i,'forced_exited',forced=True,
++                       actual_creation_filetime='134000000000000000'))
++    assert r['unconfirmed'] and not r['native_exit_confirmed']
++
++
++def test_control_file_write_does_not_overwrite_existing(live):
++    s,i=live;target=s.directory/'stop.json';target.write_text('OLD')
++    r=s.close(time.monotonic()+1,invoke=lambda *a:confirmation(i))
++    assert target.read_text()=='OLD' and r['unconfirmed']
++    assert not list(s.directory.glob('*.tmp'))
++
++
++def test_required_contains_native_proofs(live):
++    s,_=live
++    assert {r['role'] for r in s.required()}=={
++        'native_sampler_identity','native_sampler_terminal','native_sampler_confirmation'}
++
++
++def test_transport_exited_without_reply_does_not_return_success(live,monkeypatch):
++    s,i=live
++    class Transport:
++        def poll(self):return 0
++    monkeypatch.setattr(m.subprocess,'Popen',lambda *a,**k:Transport())
++    t=time.monotonic()
++    with pytest.raises(TimeoutError):s._invoke({'protocol':m.PROTOCOL},t+0.06)
++    assert time.monotonic()-t<0.5
++
++
++def test_no_process_name_kill_or_interop_exit_proof_in_native_source():
++    root=Path(m.__file__).parent
++    cs=(root/'r17_win_process.cs').read_text()
++    assert 'TerminateProcess(h, 137)' in cs
++    assert cs.index('actual != expected') < cs.index('TerminateProcess(h, 137)')
++    assert 'finally { CloseHandle(h); }' in cs
++    assert 'Get-Process -Name' not in (root/'r17_win_sampler_control.ps1').read_text()
++
++
++def test_stop_request_write_failure_does_not_skip_native_control(live):
++    s,i=live;terminal(s,i)
++    (s.directory/'stop.json').write_text('OLD_STOP_REQUEST')
++    calls=[]
++    def invoke(request,deadline):
++        calls.append(request)
++        return confirmation(i)
++    r=s.close(time.monotonic()+3,invoke=invoke)
++    assert calls and r['native_exit_confirmed']
++    assert r['unconfirmed'] and r['errors']  # failure is not erased by later proof
++    assert (s.directory/'stop.json').read_text()=='OLD_STOP_REQUEST'
+--- /dev/null
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_required_bytes_unit.py
+@@ -0,0 +1,123 @@
++from __future__ import annotations
++import hashlib
++import importlib.util
++import json
++from pathlib import Path
++import sys
++import pytest
++
++HERE=Path(__file__).resolve()
++ROOT=next(p for p in (HERE.parent.parent/'implementation',HERE.parents[2]/'runner',
++                       HERE.parents[2]/'stage2_6_1_runner') if (p/'r17_required_bytes.py').is_file())
++spec=importlib.util.spec_from_file_location('r17_required_bytes',ROOT/'r17_required_bytes.py')
++m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++
++
++@pytest.fixture
++def run(tmp_path):
++    root=tmp_path/'evidence'; rd=root/'runs'/'r';rd.mkdir(parents=True)
++    roles=sorted(m.CORE_PYTEST_ROLES | m.NATIVE_ROLES)
++    required=[]
++    for role in roles:
++        p=rd/(role+'.txt');p.write_bytes((role+'\n').encode())
++        b=p.read_bytes();required.append({'role':role,'path':str(p.relative_to(root)),
++            'status':'present','bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
++    rec={'run_id':'r','task_kind':'pytest','finalized':True,'evidence_complete':True,
++         'control_failures':[],'business':{'rc':0},'writers':{'win':{
++           'protocol':'r17-native-sampler-v1','native_exit_confirmed':True,
++           'terminal_verified':True,'unconfirmed':False}},'required':required}
++    record=rd/'run_record.json';record.write_text(json.dumps(rec))
++    return root,record,rec
++
++
++def save(record,rec): record.write_text(json.dumps(rec))
++
++
++def test_exact_all_required_healthy(run):
++    root,record,rec=run
++    assert m.audit(root,record)['exact_bytes_ok']
++    assert m.delivery_check(root,record)['delivery_ok']
++
++
++@pytest.mark.parametrize('role',sorted(m.CORE_PYTEST_ROLES | m.NATIVE_ROLES))
++def test_each_required_role_append_is_failure_even_when_pytest_passed(run,role):
++    root,record,rec=run; row=next(x for x in rec['required'] if x['role']==role)
++    with (root/row['path']).open('ab') as f:f.write(b'APPENDED_AFTER_SEAL\n')
++    out=m.delivery_check(root,record)
++    assert not out['delivery_ok'] and not out['exact_bytes_ok']
++    bad=[x['role'] for x in out['files'] if not x['ok']]
++    assert bad==[role]
++
++
++def test_r3_shaped_prefix_match_is_diagnostic_not_pass(run):
++    root,record,rec=run;row=next(x for x in rec['required'] if x['role']=='telemetry_win')
++    original=(root/row['path']).read_bytes()
++    with (root/row['path']).open('ab') as f:f.write(b'{"seq":351}\n')
++    out=m.audit(root,record,hints=True)
++    bad=next(x for x in out['files'] if x['role']=='telemetry_win')
++    assert bad['telemetry_hints']['comparisons']['raw']['prefix_matches_record']
++    assert not out['exact_bytes_ok']
++    assert (root/row['path']).read_bytes()==original+b'{"seq":351}\n'
++
++
++@pytest.mark.parametrize('mode',['missing','same_size','status','live','bad_hash','bad_bytes'])
++def test_required_failures(run,mode):
++    root,record,rec=run;row=next(x for x in rec['required'] if x['role']=='telemetry_win');p=root/row['path']
++    if mode=='missing':p.unlink()
++    if mode=='same_size':p.write_bytes(b'x'*p.stat().st_size)
++    if mode=='status':row['status']='unreadable'
++    if mode=='live':row['live_writers']=True
++    if mode=='bad_hash':row['sha256']=None
++    if mode=='bad_bytes':row['bytes']=True
++    save(record,rec)
++    assert not m.delivery_check(root,record)['delivery_ok']
++
++
++@pytest.mark.parametrize('kind',['empty','duplicate','dropped_role','outside'])
++def test_incomplete_or_ambiguous_required_set(run,kind):
++    root,record,rec=run
++    if kind=='empty':rec['required']=[]
++    if kind=='duplicate':rec['required'].append(dict(rec['required'][0]))
++    if kind=='dropped_role':rec['required']=[r for r in rec['required'] if r['role']!='telemetry_win']
++    if kind=='outside':rec['required'][0]['path']='../elsewhere'
++    save(record,rec)
++    try:out=m.delivery_check(root,record)
++    except ValueError:assert kind=='empty'
++    else:assert not out['delivery_ok']
++
++
++@pytest.mark.parametrize('mutation',[{'exited':True,'unconfirmed':False},
++                                    {'protocol':'r17-native-sampler-v1','native_exit_confirmed':False},
++                                    {'protocol':'r17-native-sampler-v1','native_exit_confirmed':True,
++                                     'terminal_verified':False,'unconfirmed':True}])
++def test_self_reported_legacy_exit_not_enough(run,mutation):
++    root,record,rec=run;rec['writers']['win']=mutation;save(record,rec)
++    assert not m.delivery_check(root,record)['delivery_ok']
++
++
++def test_reads_do_not_mutate_source(run):
++    root,record,rec=run
++    before={str(p):p.read_bytes() for p in root.rglob('*') if p.is_file()}
++    m.delivery_check(root,record)
++    assert before=={str(p):p.read_bytes() for p in root.rglob('*') if p.is_file()}
++
++
++def test_verified_aggregate_cannot_use_legacy_green_to_hide_append(run,tmp_path):
++    import subprocess
++    root,record,rec=run
++    legacy=tmp_path/'legacy.py'
++    legacy.write_text("import sys,json,pathlib\np=pathlib.Path(sys.argv[sys.argv.index('--out')+1]);p.write_text(json.dumps({'ok':True}))\n")
++    config=tmp_path/'config.json';config.write_text(json.dumps({'full_run_record':str(record)}))
++    out=tmp_path/'result.json'
++    cmd=[sys.executable,str(ROOT/'r17_verified_aggregate.py'),'--root',str(root),
++         '--record',str(record),'--legacy-script',str(legacy),'--config',str(config),
++         '--out',str(out)]
++    r=subprocess.run(cmd,capture_output=True,text=True,timeout=5)
++    assert r.returncode==0,r.stderr
++    assert json.loads(out.read_text())['overall_ok'] is True
++    row=next(r for r in rec['required'] if r['role']=='telemetry_win')
++    with (root/row['path']).open('ab') as f:f.write(b'AFTER_SEAL')
++    cmd[-1]=str(tmp_path/'after.json')
++    r=subprocess.run(cmd,capture_output=True,text=True,timeout=5)
++    assert r.returncode==1
++    assert json.loads((tmp_path/'after.json').read_text())['overall_ok'] is False

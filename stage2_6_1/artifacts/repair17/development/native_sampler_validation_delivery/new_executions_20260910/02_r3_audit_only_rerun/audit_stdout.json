@@ -1,0 +1,169 @@
+{
+  "scope": "supplementary exact-byte audit of every required file; not a qualification verdict",
+  "run_id": "c3eto_full_20260909_r3",
+  "record": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/run_supervision/runs/c3eto_full_20260909_r3/run_record.json",
+  "record_sha256": "09ce3a8089b833a54c7b963bc9984d5d17aa534d88339d54b68e5d2c98f747d2",
+  "record_unchanged": true,
+  "declared_evidence_complete": true,
+  "task_kind": "pytest",
+  "control_failures": [],
+  "business_rc": 0,
+  "writers": {
+    "guest": {
+      "stop_requested": true,
+      "started": true,
+      "joined": true,
+      "alive_after_join": false,
+      "thread_ident": 134513002264256
+    },
+    "win": {
+      "stop_requested": true,
+      "interop_pid": 71796,
+      "waited": true,
+      "exited": true,
+      "unconfirmed": false
+    },
+    "io": {
+      "close_requested": true,
+      "joined": true,
+      "alive_after": false,
+      "thread_shielded": true
+    },
+    "business_live": false
+  },
+  "declared_finalized": true,
+  "ended_utc": "2026-09-09T12:59:10Z",
+  "required_count": 7,
+  "files": [
+    {
+      "role": "telemetry_guest",
+      "path": "runs/c3eto_full_20260909_r3/telemetry/guest_samples.jsonl",
+      "ok": true,
+      "expected_bytes": 603251,
+      "expected_sha256": "6cb33d5fa42a15ac048db458a0a7e0143ce527597f96972534783a3f4aadd6cc",
+      "actual": {
+        "bytes": 603251,
+        "sha256": "6cb33d5fa42a15ac048db458a0a7e0143ce527597f96972534783a3f4aadd6cc",
+        "stable_during_read": true
+      }
+    },
+    {
+      "role": "telemetry_win",
+      "path": "runs/c3eto_full_20260909_r3/telemetry/win_samples.jsonl",
+      "ok": false,
+      "expected_bytes": 264179,
+      "expected_sha256": "f502a49f3dc8b785c87419b84c1009e72ece754dd3131b53ea113242410db4dc",
+      "actual": {
+        "bytes": 848948,
+        "sha256": "e6dfd51ea5adf8b10f9a5b8ef48ae804cb6437910ffa0a44fd031cb626c3f8b4",
+        "stable_during_read": true
+      },
+      "reason": "size/hash mismatch or file changed during read",
+      "telemetry_hints": {
+        "hypotheses_only_never_accept_transformed_bytes": true,
+        "raw_crlf_count": 0,
+        "raw_lf_count": 1069,
+        "comparisons": {
+          "raw": {
+            "transformed_bytes": 848948,
+            "whole_matches_record": false,
+            "prefix_matches_record": true
+          },
+          "CRLF_to_LF": {
+            "transformed_bytes": 848948,
+            "whole_matches_record": false,
+            "prefix_matches_record": true
+          },
+          "LF_to_CRLF": {
+            "transformed_bytes": 850017,
+            "whole_matches_record": false,
+            "prefix_matches_record": false
+          }
+        },
+        "event_counts": {
+          "sampler_start": 1,
+          "sample": 1067,
+          "sampler_end": 1
+        },
+        "invalid_json_lines": 0,
+        "first_record_utc": "2026-09-09T12:30:13.011Z",
+        "last_record_utc": "2026-09-09T14:03:18.190Z",
+        "same_run_sample_rows_after_record_end": 734,
+        "first_late_sample": {
+          "utc": "2026-09-09T12:59:12.612Z",
+          "seq": 334,
+          "run_id": "c3eto_full_20260909_r3"
+        },
+        "last_late_sample": {
+          "utc": "2026-09-09T14:03:17.953Z",
+          "seq": 1067,
+          "run_id": "c3eto_full_20260909_r3"
+        },
+        "time_note": "Reported clocks only; identify the actual native writer before attributing the cause."
+      }
+    },
+    {
+      "role": "alerts",
+      "path": "runs/c3eto_full_20260909_r3/alerts/alerts.jsonl",
+      "ok": true,
+      "expected_bytes": 2813,
+      "expected_sha256": "ee9b01fe423775602bf1cb2fc47d15a913619cb2d2912c034675ecc8443f7875",
+      "actual": {
+        "bytes": 2813,
+        "sha256": "ee9b01fe423775602bf1cb2fc47d15a913619cb2d2912c034675ecc8443f7875",
+        "stable_during_read": true
+      }
+    },
+    {
+      "role": "business_stdout",
+      "path": "runs/c3eto_full_20260909_r3/business/stdout.log",
+      "ok": true,
+      "expected_bytes": 8806,
+      "expected_sha256": "06266876aece08864ef4a8632f1beb7902d5b9c6667b2484b8c0a0c3c59a0ee1",
+      "actual": {
+        "bytes": 8806,
+        "sha256": "06266876aece08864ef4a8632f1beb7902d5b9c6667b2484b8c0a0c3c59a0ee1",
+        "stable_during_read": true
+      }
+    },
+    {
+      "role": "business_stderr",
+      "path": "runs/c3eto_full_20260909_r3/business/stderr.log",
+      "ok": true,
+      "expected_bytes": 0,
+      "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stable_during_read": true
+      }
+    },
+    {
+      "role": "junit_xml",
+      "path": "runs/c3eto_full_20260909_r3/junit.xml",
+      "ok": true,
+      "expected_bytes": 278493,
+      "expected_sha256": "1848b25c04331dcd2b8ec3982818266ef9f6ae9011e50bd00f5074b30fc302af",
+      "actual": {
+        "bytes": 278493,
+        "sha256": "1848b25c04331dcd2b8ec3982818266ef9f6ae9011e50bd00f5074b30fc302af",
+        "stable_during_read": true
+      }
+    },
+    {
+      "role": "summary",
+      "path": "runs/c3eto_full_20260909_r3/summary.json",
+      "ok": true,
+      "expected_bytes": 4532,
+      "expected_sha256": "628de3b3df3ba4d0799585c491c19bd0e9afda5e4c005566c6ec5f96675cf0c5",
+      "actual": {
+        "bytes": 4532,
+        "sha256": "628de3b3df3ba4d0799585c491c19bd0e9afda5e4c005566c6ec5f96675cf0c5",
+        "stable_during_read": true
+      }
+    }
+  ],
+  "problems": [],
+  "exact_bytes_ok": false,
+  "note": "No source is modified. A prefix/newline hypothesis NEVER repairs the original verdict."
+}
