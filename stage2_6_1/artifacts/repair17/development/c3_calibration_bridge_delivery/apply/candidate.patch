@@ -1,0 +1,851 @@
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_calibration_bridge.py
+@@ -0,0 +1,344 @@
++#!/usr/bin/env python3
++"""Read-only handoff of the accepted C3 engineering batch to calibration statistics.
++
++This is NOT a scaled calibration, a new sample draw, or a qualification runner.
++The RUN path calls existing R4/R5 statistical primitives. VERIFY is stdlib-only.
++"""
++from __future__ import annotations
++import argparse
++import hashlib
++import math
++from pathlib import Path
++import shutil
++import statistics
++import sys
++
++import r17_c3_reserve_batch as batch
++
++CONTRACT = 'C3CalibrationConsumerBridge-v1-engineering'
++BASELINE = '5607876b213af825d618868ba89cb0705cfdc472'
++INPUT_RUN = 'c3reserve_v1_20260910T050655_93442'
++INPUT_MANIFEST_BLOB = '0ef26c7edd2a3b41aac345a751304fb4df2b75bc'
++POLICIES = tuple(batch.POLICIES)
++BASELINES = ('always_flat', 'always_long', 'c3_cost_ignorant')
++SPLITS = ('main', 'validation')
++RUNGS = tuple(batch.RUNGS)
++KAPPA = 1.5
++BOOTSTRAP_N = 5000
++BOOTSTRAP_SEED = 20260901
++NOT_EVALUATED = ['V2 fit/transform/normalization', 'full-size calibration', 'C1', 'C2',
++                 'supervised learnability', 'formal qualification', 'PPO']
++need = batch.require
++read = batch.read_json
++new = batch.new_json
++meta = batch.file_meta
++snapshot = batch.tree_snapshot
++
++
++def blob(raw: bytes) -> str:
++    return hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
++
++
++def contract() -> dict:
++    return {'version': CONTRACT, 'engineering_only': True,
++            'source_run': INPUT_RUN, 'source_manifest_git_blob': INPUT_MANIFEST_BLOB,
++            'source_contract': batch.CONTRACT, 'input_mode': 'saved_raw_production_observation_evaluation',
++            'pairs_per_split_rung': 2, 'splits': list(SPLITS), 'rungs': list(RUNGS),
++            'policies': list(POLICIES), 'required_baselines': list(BASELINES),
++            'pair_unit': 'mean(A,B), never treat A and B as independent clusters',
++            'difficulty': 'reference_pair - always_flat_pair',
++            'kappa': KAPPA, 'decision': 'strict main AND strict engineering validation; no pooled rescue',
++            'bootstrap': {'resamples': BOOTSTRAP_N, 'seed': BOOTSTRAP_SEED,
++                          'binding': False, 'cold_numerical_replay': False},
++            'new_generation_permitted': False, 'normalization_fit_permitted': False,
++            'formal_calibration_qualified': False, 'ppo_training_permitted': False}
++
++
++def load_input(root: Path, *, test_mode: bool = False) -> tuple[dict, dict, dict]:
++    root = root.resolve(strict=True)
++    identity = meta(root / 'manifest.json')
++    if not test_mode:
++        need(blob((root / 'manifest.json').read_bytes()) == INPUT_MANIFEST_BLOB,
++             'input is not the approved existing batch manifest')
++    verified = batch.verify(root, allow_test_fixture=test_mode)
++    need(verified.get('engineering_batch_complete') is True, 'input batch is incomplete')
++    plan = read(root / 'plan.json')
++    need(plan['runtime']['kind'] == ('test_fixture' if test_mode else 'real_c3'), 'input execution kind mismatch')
++    selection = read(root / 'selection.json')
++    lookup = {q.key: q for q in batch.requests()}
++    rows = {s: [] for s in SPLITS}
++    used = []
++    for key in selection['selected']:
++        need(key in lookup, 'undeclared selected request')
++        q = lookup[key]
++        proof = read(root / 'requests' / (key + '.json'))
++        ev = read(root / 'evaluations' / (key + '.json'))
++        batch.validate_evaluation(q, ev, proof)
++        for row in ev['episodes']:
++            # Explicit whitelist: pair IDs and *_trades are NOT returns.
++            rows[q.split].append({k: row[k] for k in ('rung', 'pair', 'side', 'episode_hash') + POLICIES})
++        used.append({'key': key, 'coordinate': q.coordinate,
++                     'request': meta(root / 'requests' / (key + '.json')),
++                     'evaluation': meta(root / 'evaluations' / (key + '.json'))})
++    validate_rows(rows)
++    need(identity == meta(root / 'manifest.json'), 'input manifest changed during validation')
++    return rows, {'manifest': identity, 'plan_sha256': plan['plan_sha256'],
++                  'selection': meta(root / 'selection.json'), 'selected': used}, verified
++
++
++def validate_rows(rows: dict) -> None:
++    need(set(rows) == set(SPLITS), 'split set mismatch')
++    all_hashes = set()
++    for split in SPLITS:
++        need(len(rows[split]) == 16, 'expected 8 pairs / 16 episodes in each split')
++        seen = set()
++        for row in rows[split]:
++            need(set(row) == set(('rung', 'pair', 'side', 'episode_hash') + POLICIES), 'unexpected/missing row fields')
++            key = (row['rung'], row['pair'], row['side'])
++            need(type(row['pair']) is int and row['pair'] in (0, 1, 2, 3), 'invalid pair coordinate')
++            need(row['rung'] in RUNGS and row['side'] in ('A', 'B') and key not in seen, 'duplicate or invalid episode')
++            seen.add(key)
++            h = row['episode_hash']
++            need(isinstance(h, str) and h.startswith('ce-') and h not in all_hashes, 'duplicate/invalid episode identity')
++            all_hashes.add(h)
++            for p in POLICIES:
++                need(type(row[p]) in (float, int) and math.isfinite(row[p]), 'invalid policy return: ' + p)
++            need(row['always_flat'] == 0.0, 'always-flat contract changed')
++        for rung in RUNGS:
++            ids = {i for r, i, s in seen if r == rung}
++            need(len(ids) == 2 and all((rung, i, s) in seen for i in ids for s in ('A', 'B')), 'broken pair cluster')
++
++
++def sign_counts(rows: dict) -> dict:
++    result = {}
++    for p in POLICIES:
++        values = [r[p] for s in SPLITS for r in rows[s]]
++        result[p] = {'n': len(values), 'negative': sum(v < 0 for v in values),
++                     'positive': sum(v > 0 for v in values), 'zero': sum(v == 0 for v in values)}
++    return {'policies': result, 'n_episodes': 32, 'n_policy_returns': 160,
++            'totals': {k: sum(v[k] for v in result.values()) for k in ('negative', 'positive', 'zero')},
++            'excluded_metadata': ['pair', '*_trades']}
++
++
++def _close(a, b) -> bool:
++    # This tolerance is ONLY numerical cross-checking. Gate comparisons below
++    # use the authoritative reported values and exact >= / >, never this tolerance.
++    return (type(a) in (float, int) and type(b) in (float, int)
++            and math.isfinite(a) and math.isfinite(b)
++            and math.isclose(a, b, rel_tol=1e-10, abs_tol=1e-12))
++
++
++def _stats(values) -> dict:
++    need(len(values) >= 2, 'SE requires at least two pair clusters')
++    sd = statistics.stdev(values)
++    return {'n': len(values), 'mean': statistics.mean(values), 'sd': sd, 'se': sd / math.sqrt(len(values))}
++
++
++def _check_stats(actual: dict, values: list[float], where: str) -> None:
++    expected = _stats(values)
++    need(actual.get('n') == expected['n'] and type(actual.get('n')) is int, where + ': cluster n mismatch')
++    for k in ('mean', 'sd', 'se'):
++        need(_close(actual.get(k), expected[k]), where + ': statistic mismatch: ' + k)
++    ci = actual.get('bootstrap_ci', {})
++    need(ci.get('n') == len(values) and ci.get('resamples') == BOOTSTRAP_N
++         and ci.get('seed') == BOOTSTRAP_SEED, where + ': bootstrap metadata mismatch')
++    need(_close(ci.get('mean'), expected['mean']), where + ': bootstrap mean mismatch')
++    lo, hi = ci.get('ci_low'), ci.get('ci_high')
++    need(type(lo) in (int, float) and type(hi) in (int, float)
++         and math.isfinite(lo) and math.isfinite(hi) and min(values)-1e-12 <= lo <= hi <= max(values)+1e-12,
++         where + ': bootstrap interval impossible')
++
++
++def _strict_from_report(rep: dict) -> dict:
++    """Independent stdlib check of frozen R5 booleans, not a new gate contract."""
++    ladder = rep['difficulty_ladder']
++    gaps = rep['adjacent_rung_gaps']
++    margins = rep['fixed_baseline_margins']
++    conditions = {
++        'ordering_ok': all(ladder[a]['mean'] > ladder[b]['mean'] for a, b in zip(RUNGS, RUNGS[1:])),
++        'gaps_ge_kappa_se': all(v['gap'] > 0 and v['gap'] >= KAPPA * v['se_pair_cluster'] for v in gaps.values()),
++        'd3_positive': ladder['D3']['mean'] > 0,
++        'd3_mean_ge_kappa_se': ladder['D3']['mean'] >= KAPPA * ladder['D3']['se'],
++        'margins_ok': all(st['mean'] > 0 and st['mean'] >= KAPPA*st['se'] for per in margins.values() for st in per.values()),
++        'pair_integrity_unity': rep['pair_integrity_pass_rate'] == 1.0,
++        'oracle_positive': rep['oracle_positive_all_rungs'] is True}
++    conditions['pass'] = all(conditions.values())
++    return conditions
++
++
++def check_analysis(rows: dict, doc: dict) -> dict:
++    """Bind authority outputs to source episodes, pair statistics, and strict leaves."""
++    validate_rows(rows)
++    need(set(doc) == {'contract','mode','kappa','corpora','strict_both_pass','return_counts','not_evaluated'}, 'unexpected/missing analysis fields')
++    need(doc.get('not_evaluated') == NOT_EVALUATED, 'scope/evaluation claims changed')
++    need(doc.get('contract') == CONTRACT and doc.get('mode') == 'raw_saved_results', 'analysis mode/contract mismatch')
++    need(doc.get('kappa') == KAPPA and set(doc.get('corpora', {})) == set(SPLITS), 'analysis split/kappa mismatch')
++    statuses = {}
++    for split in SPLITS:
++        obj = doc['corpora'][split]
++        rep, cond = obj['report'], obj['conditions']
++        ns = batch.NAMESPACES[split]
++        need(rep['family'] == batch.FAMILY and rep['corpus'] == ns, 'report family/corpus mismatch')
++        table = rep['pair_table']
++        need(table['corpus'] == ns and table['family'] == batch.FAMILY
++             and table['n_pairs'] == 8 and len(table['rows']) == 8, 'pair table shape mismatch')
++        source = {(r['rung'], r['pair'], r['side']): r for r in rows[split]}
++        ids = sorted({(r['rung'], r['pair']) for r in rows[split]})
++        need([(r['rung'], r['pair_index']) for r in table['rows']] == ids, 'pair table membership/order mismatch')
++        for r in table['rows']:
++            key = (r['rung'], r['pair_index'])
++            need(r['corpus'] == ns and r['family'] == batch.FAMILY, 'table split identity mismatch')
++            need(r['episode_hashes'] == {s: source[key+(s,)]['episode_hash'] for s in ('A', 'B')}, 'pair output identity mismatch')
++            need(set(r['returns']) == set(POLICIES), 'metadata leaked into policy return table')
++            for p in POLICIES:
++                need(_close(r['returns'][p], (source[key+('A',)][p]+source[key+('B',)][p])/2), 'A/B mean mismatch')
++        series = lambda rung, p: [r['returns'][p] for r in table['rows'] if r['rung'] == rung]
++        need(set(rep['difficulty_ladder']) == set(RUNGS) and set(rep['fixed_baseline_margins']) == set(BASELINES), 'missing ladder/margin')
++        for rung in RUNGS:
++            refs = series(rung, 'reference'); flat = series(rung, 'always_flat')
++            _check_stats(rep['difficulty_ladder'][rung], [a-b for a,b in zip(refs,flat)], split+'/'+rung)
++            for p in BASELINES:
++                need(set(rep['fixed_baseline_margins'][p]) == set(RUNGS), 'margin rung missing')
++                _check_stats(rep['fixed_baseline_margins'][p][rung],
++                             [a-b for a,b in zip(refs,series(rung,p))], split+'/'+p+'/'+rung)
++        need(set(rep['adjacent_rung_gaps']) == {'D0-D1','D1-D2','D2-D3'}, 'adjacent gap set mismatch')
++        for a,b in zip(RUNGS,RUNGS[1:]):
++            gap=rep['adjacent_rung_gaps'][a+'-'+b]
++            la,lb=rep['difficulty_ladder'][a],rep['difficulty_ladder'][b]
++            need(_close(gap['gap'],la['mean']-lb['mean']) and _close(gap['se_pair_cluster'],math.hypot(la['se'],lb['se'])), 'gap mean/SE mismatch')
++        need(rep['pair_integrity_pass_rate'] == 1.0, 'accepted input integrity was changed')
++        oracle = all(statistics.mean(series(r,'oracle')) > 0 for r in RUNGS)
++        need(rep['oracle_positive_all_rungs'] is oracle, 'oracle flag mismatch')
++        expected = _strict_from_report(rep)
++        need(cond.get('kappa') == KAPPA, 'strict gate kappa drift')
++        for k,v in expected.items():
++            need(cond.get(k) is v, 'strict gate leaf contradiction: '+split+'/'+k)
++        # All numeric condition details must bind to the report, too.
++        need(_close(cond.get('d3_mean'),rep['difficulty_ladder']['D3']['mean'])
++             and _close(cond.get('d3_se'),rep['difficulty_ladder']['D3']['se']), 'condition D3 evidence mismatch')
++        need(set(cond['fixed_baseline_margins']) == set(BASELINES), 'condition baseline set mismatch')
++        for p in BASELINES:
++            need(set(cond['fixed_baseline_margins'][p]) == set(RUNGS), 'condition margin missing')
++            for r in RUNGS:
++                x=cond['fixed_baseline_margins'][p][r]; st=rep['fixed_baseline_margins'][p][r]
++                need(_close(x['mean'],st['mean']) and _close(x['se'],st['se'])
++                     and _close(x['kappa_times_se'],KAPPA*st['se'])
++                     and x['ok'] is (st['mean']>0 and st['mean']>=KAPPA*st['se'])
++                     and x['bootstrap_ci']==st['bootstrap_ci'], 'condition margin binding mismatch')
++        need(set(cond['gaps']) == set(rep['adjacent_rung_gaps']), 'condition gaps missing')
++        for k,v in rep['adjacent_rung_gaps'].items():
++            x=cond['gaps'][k]
++            need(_close(x['gap'],v['gap']) and _close(x['se_pair_cluster'],v['se_pair_cluster'])
++                 and _close(x['kappa_times_se'],KAPPA*v['se_pair_cluster'])
++                 and x['ok'] is (v['gap']>0 and v['gap']>=KAPPA*v['se_pair_cluster']), 'condition gap binding mismatch')
++        need(cond['d3_bootstrap_ci']==rep['difficulty_ladder']['D3']['bootstrap_ci'], 'condition D3 CI mismatch')
++        statuses[split] = cond['pass']
++    need(doc.get('strict_both_pass') is all(statuses.values()), 'split AND replaced or contradicted')
++    need(doc.get('return_counts') == sign_counts(rows), 'policy-return counts mismatch')
++    return statuses
++
++
++def result_for(analysis: dict) -> dict:
++    return {'contract': CONTRACT, 'engineering_consumer_complete': True,
++            'statistical_diagnostic_pass': analysis['strict_both_pass'],
++            'statistical_diagnostic_verdict': 'PASS' if analysis['strict_both_pass'] else 'FAIL',
++            'split_pass': {s: analysis['corpora'][s]['conditions']['pass'] for s in SPLITS},
++            'calibration_qualified': False, 'scaled_pipeline_validated': False,
++            'preprocessor_fit_performed': False, 'new_pair_requests': 0,
++            'new_evaluator_invocations': 0, 'formal_run_permitted': False,
++            'status': 'complete', 'rc': 0,
++            'scope': 'saved raw engineering data; 2 pairs/rung; not a full calibration or a model qualification'}
++
++
++def validate_authority(identity: dict, *, test_mode=False) -> None:
++    need(identity.get('kind') == ('test_fixture' if test_mode else 'repository_r4_r5_primitives'), 'authority kind mismatch')
++    if not test_mode:
++        from r17_c3_calibration_source_lock import SOURCE_SHA256
++        need(identity.get('sources') == SOURCE_SHA256, 'calibration authority sources changed')
++
++
++def execute(source: Path, out: Path, authority, *, test_mode: bool = False) -> dict:
++    source = source.resolve(strict=True)
++    # No normalization of symlink/.. before confirming the existing parent.
++    need(out.name not in ('','.', '..') and out.parent.is_dir(), 'output parent must exist')
++    dest = out.parent.resolve(strict=True) / out.name
++    need(not dest.is_relative_to(source) and not source.is_relative_to(dest), 'output overlaps input')
++    need(not dest.is_symlink() and not dest.exists(), 'output already exists')
++    before = snapshot(source)
++    rows, input_identity, source_verdict = load_input(source, test_mode=test_mode)
++    identity = authority.describe()
++    validate_authority(identity, test_mode=test_mode)
++    dest.mkdir(exist_ok=False)
++    try:
++        shutil.copytree(source, dest/'input_batch')
++        need(before == snapshot(dest/'input_batch') == snapshot(source), 'source/copy bytes changed')
++        plan = {'contract': contract(), 'input_identity': input_identity,
++                'source_batch_verdict': source_verdict, 'authority': identity,
++                'kind': 'test_fixture' if test_mode else 'real_handoff'}
++        new(dest/'plan.json', plan)
++        new(dest/'episodes.json', rows)
++        analysis = authority.analyze(rows)
++        new(dest/'analysis.json', analysis)  # preserve even invalid authority response
++        check_analysis(rows, analysis)
++        need(identity == authority.describe(), 'authority drifted during calculation')
++        need(before == snapshot(source) == snapshot(dest/'input_batch'), 'read-only source changed')
++        result = result_for(analysis)
++        new(dest/'result.json', result)
++        new(dest/'manifest.json', {'contract':CONTRACT, 'files':snapshot(dest)})
++        # Finished outputs must be independently consumable; result booleans alone are not enough.
++        verify(dest, test_mode=test_mode)
++        need(before == snapshot(source), 'source changed at publication boundary')
++        return result
++    except Exception as exc:
++        try:
++            new(dest/'failure.json', {'error':type(exc).__name__+': '+str(exc),
++                                      'status':'error','rc':3, 'calibration_qualified':False})
++        except Exception:
++            pass  # preserve the primary exception and all existing files
++        raise
++
++
++def verify(root: Path, *, test_mode: bool = False) -> dict:
++    root = root.resolve(strict=True)
++    before = snapshot(root)
++    manifest = read(root/'manifest.json')
++    need(manifest.get('contract') == CONTRACT, 'wrong bridge manifest contract')
++    actual = {k:v for k,v in before.items() if k!='manifest.json'}
++    need(actual == manifest.get('files'), 'bridge evidence byte set mismatch')
++    plan = read(root/'plan.json')
++    need(plan.get('contract') == contract(), 'bridge contract drift')
++    need(plan.get('kind') == ('test_fixture' if test_mode else 'real_handoff'), 'fixture cannot pass production verification')
++    validate_authority(plan['authority'], test_mode=test_mode)
++    rows, identity, source_verdict = load_input(root/'input_batch', test_mode=test_mode)
++    need(plan['input_identity']==identity and plan['source_batch_verdict']==source_verdict, 'source binding mismatch')
++    need(read(root/'episodes.json') == rows, 'episodes do not match selected source evaluations')
++    allowed = {'plan.json','episodes.json','analysis.json','result.json'} | {'input_batch/'+k for k in snapshot(root/'input_batch')}
++    need(set(actual)==allowed, 'unexpected/missing bridge artifact')
++    analysis = read(root/'analysis.json')
++    check_analysis(rows,analysis)
++    result = read(root/'result.json')
++    need(result == result_for(analysis), 'result promotion or contradiction')
++    need(before == snapshot(root), 'bridge changed while verifying')
++    return {'evidence_consistent':True, **result,
++            'bridge_manifest':meta(root/'manifest.json')}
++
++
++def main(argv=None) -> int:
++    parser=argparse.ArgumentParser(description=__doc__)
++    sub=parser.add_subparsers(dest='cmd',required=True)
++    p=sub.add_parser('run');p.add_argument('--batch',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
++    p=sub.add_parser('verify');p.add_argument('--root',type=Path,required=True)
++    sub.add_parser('contract')
++    args=parser.parse_args(argv)
++    try:
++        if args.cmd=='contract': doc=contract()
++        elif args.cmd=='verify': doc=verify(args.root)
++        else:
++            from r17_c3_calibration_authority import RepositoryAuthority
++            doc=execute(args.batch,args.out,RepositoryAuthority())
++        print(batch.canonical(doc));return 0
++    except Exception as exc:
++        print(batch.canonical({'engineering_consumer_complete':False,'calibration_qualified':False,
++                               'error':type(exc).__name__+': '+str(exc)}));return 3
++
++if __name__=='__main__': raise SystemExit(main())
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_calibration_authority.py
+@@ -0,0 +1,75 @@
++"""Thin, generation-free consumer of the repository's R4 statistics / R5 gate.
++Imports may load project modules; no generator, evaluator, scaler or trainer is called.
++"""
++from __future__ import annotations
++import importlib
++import math
++from pathlib import Path
++import sys
++from r17_c3_calibration_bridge import (CONTRACT, SPLITS, RUNGS, POLICIES, BASELINES,
++                                     KAPPA, BOOTSTRAP_N, BOOTSTRAP_SEED, need, meta,
++                                     sign_counts, validate_rows, NOT_EVALUATED)
++import r17_c3_reserve_batch as batch
++
++
++def ensure_imports():
++    try:
++        import rl_curriculum.curriculum261_api
++    except ModuleNotFoundError as exc:
++        if exc.name not in ('rl_curriculum','rl_curriculum.curriculum261_api'): raise
++        src=Path(__file__).resolve().parent.parent/'src'
++        if not src.is_dir(): raise
++        sys.path.insert(0,str(src))
++
++
++class RepositoryAuthority:
++    def __init__(self):
++        ensure_imports()
++        from rl_curriculum import curriculum261_r4_pairs as r4
++        from rl_curriculum import curriculum261_r5_pairs as r5
++        self.r4,self.r5=r4,r5
++        need(r5.ROBUSTNESS_KAPPA_R5==KAPPA,'R5 kappa drift')
++        need(r4.R4_BOOTSTRAP_RESAMPLES==BOOTSTRAP_N and r4.R4_BOOTSTRAP_SEED==BOOTSTRAP_SEED,'R4 bootstrap drift')
++        need(tuple(r4.REQUIRED_BASELINES[batch.FAMILY])==BASELINES,'baseline contract drift')
++        self.describe()
++
++    def describe(self):
++        from r17_c3_calibration_source_lock import SOURCE_SHA256
++        actual={}
++        for name,h in SOURCE_SHA256.items():
++            mod=importlib.import_module(name)
++            actual[name]=meta(Path(mod.__file__).resolve(strict=True))['sha256']
++            need(actual[name]==h,'imported source drift: '+name)
++        return {'kind':'repository_r4_r5_primitives','sources':actual}
++
++    def analyze(self,rows):
++        validate_rows(rows)
++        r4,r5=self.r4,self.r5
++        corpora={}
++        for split in SPLITS:
++            ns=batch.NAMESPACES[split]
++            # Caller has already removed pair/trade metadata from numeric returns.
++            table=r4.build_pair_evidence_table(rows[split],batch.FAMILY,ns)
++            ladder={}
++            margins={p:{} for p in BASELINES}
++            for rung in RUNGS:
++                values=r4.difficulty_series(table,rung)
++                ladder[rung]={**r4.cluster_stats(values), 'bootstrap_ci':r4.bootstrap_mean_ci(values)}
++                for p in BASELINES:
++                    v=r4.margin_series(table,rung,p)
++                    margins[p][rung]={**r4.cluster_stats(v),'bootstrap_ci':r4.bootstrap_mean_ci(v)}
++            gaps={}
++            for a,b in zip(RUNGS,RUNGS[1:]):
++                gap=ladder[a]['mean']-ladder[b]['mean']
++                se=math.sqrt(ladder[a]['se']**2+ladder[b]['se']**2)
++                gaps[a+'-'+b]={'gap':float(gap),'se_pair_cluster':se,
++                              'gap_over_se':float(gap/se) if se>0 else None}
++            report={'family':batch.FAMILY,'corpus':ns,'pair_table':table,
++                    'difficulty_ladder':ladder,'fixed_baseline_margins':margins,
++                    'adjacent_rung_gaps':gaps,'pair_integrity_pass_rate':1.0,
++                    'oracle_positive_all_rungs':bool(all(r4.table_series(table,r,'oracle').mean()>0 for r in RUNGS))}
++            corpora[split]={'report':report,'conditions':r5.corpus_conditions_r5(report,kappa=KAPPA)}
++        return {'contract':CONTRACT,'mode':'raw_saved_results','kappa':KAPPA,'corpora':corpora,
++                'strict_both_pass':all(corpora[s]['conditions']['pass'] for s in SPLITS),
++                'return_counts':sign_counts(rows),
++                'not_evaluated':list(NOT_EVALUATED)}
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_calibration_delivery.py
+@@ -0,0 +1,39 @@
++#!/usr/bin/env python3
++"""Composition of monitor bytes and bridge consistency; never a calibration PASS."""
++from pathlib import Path
++import argparse
++import sys
++import r17_c3_reserve_batch as batch
++from r17_c3_calibration_bridge import verify, need, read, meta
++from r17_required_bytes import delivery_check
++
++
++def check(root: Path, record: Path) -> dict:
++    root=root.resolve(strict=True);record=record.resolve(strict=True)
++    need(record.is_relative_to(root),'monitor record outside root')
++    saved=meta(record);doc=read(record)
++    need(doc.get('task_kind')=='engineering' and doc.get('run_id')==record.parent.name,'monitor identity/kind mismatch')
++    argv=doc.get('argv',[])
++    need(len(argv)==7 and Path(argv[1]).name=='r17_c3_calibration_bridge.py'
++         and argv[2:4]==['run','--batch'] and argv[5]=='--out','not the fixed bridge business command')
++    out=Path(argv[6]);inp=Path(argv[4])
++    need(out.name=='c3_calibration_bridge' and out.parent.name==doc['run_id'],'wrong bridge output binding')
++    need(inp.name=='c3_finite_reserve','wrong source batch argument')
++    before=delivery_check(root,record)
++    result=verify(record.parent/'c3_calibration_bridge')
++    after=delivery_check(root,record)
++    need(saved==meta(record),'monitor record changed during verification')
++    return {'overall_ok':before['delivery_ok'] and after['delivery_ok'] and result['engineering_consumer_complete'],
++            'native_and_required_before':before,'bridge':result,'native_and_required_after':after,
++            'calibration_qualified':False,
++            'scope':'engineering handoff only; statistical FAIL is not suppressed or turned into a qualification'}
++
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,required=True);p.add_argument('--record',type=Path,required=True);a=p.parse_args()
++    try:
++        result=check(a.root,a.record);print(batch.canonical(result));return 0 if result['overall_ok'] else 1
++    except Exception as exc:
++        print(batch.canonical({'overall_ok':False,'calibration_qualified':False,'error':type(exc).__name__+': '+str(exc)}));return 1
++
++if __name__=='__main__':raise SystemExit(main())
+--- /dev/null
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_calibration_bridge.py
+@@ -0,0 +1,375 @@
++import copy
++import json
++from pathlib import Path
++import subprocess
++import sys
++import pytest
++
++HERE=Path(__file__).resolve()
++for base in HERE.parents:
++    found=False
++    for runner in (base/'implementation',base/'runner',base/'stage2_6_1'/'runner',base/'stage2_6_1_runner'):
++        if (runner/'r17_c3_calibration_bridge.py').is_file():
++            sys.path.insert(0,str(runner))
++            support=base/'test_support'
++            if (support/'r17_c3_reserve_batch.py').is_file():sys.path.append(str(support))
++            found=True;break
++    if found:break
++else:raise RuntimeError('calibration bridge implementation not found')
++
++import r17_c3_reserve_batch as m
++import r17_c3_calibration_bridge as b
++
++
++"""Explicit synthetic upstream data; no real generation or evaluation."""
++import hashlib
++import r17_c3_reserve_batch as m
++GENERATOR={"family":"c3_cost","version":"cur261-c3-v4","fixture":True}
++
++def proof(q, accepted=True, attempts=None):
++    n = attempts if attempts is not None else (1 if accepted else 5)
++    rp = {**m.PARAMS[q.rung], 'cur261_rung': q.rung}
++    call = {**q.coordinate, 'iteration': 'r17', 'max_attempts': 5, 'rung_params': rp,
++            'generator': GENERATOR, 'split': 'curriculum261_'+q.coordinate['namespace'], 'timeframe': '15m'}
++    call['digest'] = m.envelope_digest(call, True)
++    envs, logs = [], []
++    for i in range(n):
++        passed = accepted and i == n-1
++        codes = [] if passed else ['A:too_few_distractors','B:too_few_distractors','pair:too_few_distractors']
++        env = {**q.coordinate, 'iteration':'r17', 'attempt_index':i, 'outer_seed':m.expected_seed(q,i),
++               'internal_derived_seed':m.expected_seed(q,i)//2, 'split':call['split'], 'timeframe':'15m',
++               'seed_derivation_fields':{**q.coordinate,'attempt':i,'stage_id':'stage2_6_1'},
++               'generator':GENERATOR, 'exception':None, 'generator_state_changed':False,
++               'generator_state_changed_since_call_start':False, 'accepted':passed,
++               'structural_validator_results':codes, 'rejection_reasons':codes,
++               'base_params':{s:{**rp,'pair_variant':s,'episode_bars':288,'initial_price':1.0} for s in ('A','B')},
++               'event_table':{s:{'bars':288,'hidden_digest':'hidden-fixture',
++                                'episode_content_hash':'ce-'+hashlib.sha256(f'{q.key}/{i}/{s}'.encode()).hexdigest(),
++                                'counts':{'n_signals':10,'n_above_cost':6 if s=='A' else 0,
++                                          'n_below_cost':4 if s=='A' else 10,'n_distractors':2 if passed else 0}}
++                              for s in ('A','B')}}
++        env['digest'] = m.envelope_digest(env)
++        envs.append(env)
++        logs.append({'index':i,'accepted':passed,'reason':'; '.join(codes)})
++    hashes = {s:envs[-1]['event_table'][s]['episode_content_hash'] for s in ('A','B')} if accepted else {}
++    return {'coordinate':q.coordinate,'status':'accepted' if accepted else 'structural_rejected',
++            'recorder_errors':[], 'call_envelope':call,'attempt_envelopes':envs,
++            'episode_hashes':hashes,'integrity':{'family':m.FAMILY,'rung':q.rung,'pair_index':q.index,'pass':True},
++            'attempt_log':{'family':m.FAMILY,'rung':q.rung,'pair_index':q.index,
++                           'seed_namespace':q.coordinate['namespace'],'max_attempts':5,
++                           'selected_attempt':n-1 if accepted else None,
++                           'attempts':logs,'output_episode_hashes':hashes}}
++
++def ev(q,p,negative=False):
++    rows=[]
++    for side in ('A','B'):
++        row={'rung':q.rung,'pair':q.index,'side':side,'episode_hash':p['episode_hashes'][side]}
++        row.update({'always_flat':0.,'always_long':-.002,'c3_cost_ignorant':-.05,
++                    'reference':-.12 if negative else .10,'oracle':-.1 if negative else .20})
++        rows.append(row)
++    means={n:sum(r[n] for r in rows)/2 for n in m.POLICIES}
++    return {'family':m.FAMILY,'episodes':rows,'policy_means':means,
++            'difficulty_metric':means['reference']-max(0.,means['always_long']),
++            'reference_beats_required_baselines':means['reference']>max(means[n] for n in m.POLICIES[:3]),
++            'oracle_positive':means['oracle']>0}
++
++class Fixture:
++    def __init__(self,rejected=(),fail=None,negative=False,evaluation_fail=None):
++        self.rejected=set(rejected); self.fail=fail; self.negative=negative
++        self.evaluation_fail=evaluation_fail; self.calls=[]; self.evaluated=[]; self.root=None
++    def describe(self):
++        return {'kind':'test_fixture','generator':GENERATOR}
++    def generate(self,q,observe):
++        self.calls.append(q.key)
++        if q.key==self.fail:
++            raise PermissionError('fixture permission denied; not structural')
++        p=proof(q,q.key not in self.rejected)
++        observe('call',p['call_envelope'])
++        for e in p['attempt_envelopes']: observe('attempt',e)
++        return m.Generated(p,p if p['status']=='accepted' else None)
++    def evaluate(self,q,handle):
++        assert self.root is None or (self.root/'selection.json').is_file()
++        self.evaluated.append(q.key)
++        if q.key==self.evaluation_fail:
++            raise OSError('evaluation failed')
++        return ev(q,handle,self.negative)
++
++class LadderFixture(Fixture):
++    """Deterministic returns only for bridge tests, not a production evaluator."""
++    def __init__(self, fail_split=None, **kw):
++        super().__init__(**kw);self.fail_split=fail_split
++    def evaluate(self,q,p):
++        out=ev(q,p)
++        v=[.08,.06,.04,.02][m.RUNGS.index(q.rung)] + q.index*.001
++        if q.split==self.fail_split and q.rung=='D3': v=-.02
++        for row in out['episodes']:
++            row['reference']=2*v+.01 if row['side']=='A' else -.01
++            row['oracle']=abs(row['reference'])+.1
++            row['reference_trades']=3;row['always_long_trades']=1
++        out['policy_means']={k:sum(r[k] for r in out['episodes'])/2 for k in m.POLICIES}
++        out['difficulty_metric']=out['policy_means']['reference']
++        out['reference_beats_required_baselines']=v>0
++        out['oracle_positive']=True
++        return out
++
++
++"""NumPy statistical fixtures for adapter tests, not the full repository.
++
++Equations match the inspected R4/R5 contract; the WSL interface check must call
++actual repository functions. No test here claims full project execution.
++"""
++import math
++import types
++import numpy as np
++import r17_c3_calibration_bridge as b
++from r17_c3_calibration_authority import RepositoryAuthority
++
++
++def build_pair_evidence_table(rows,family,corpus):
++    by={}
++    for r in rows:by.setdefault((r['rung'],r['pair']),{})[r['side']]=r
++    table=[]
++    for (r,i),x in sorted(by.items()):
++        table.append({'family':family,'corpus':corpus,'rung':r,'pair_index':i,
++                      'episode_hashes':{s:x[s]['episode_hash'] for s in ('A','B')},
++                      'returns':{p:float(np.mean([x['A'][p],x['B'][p]])) for p in b.POLICIES}})
++    return {'schema':{'fixture':True},'schema_identity':'fixture','family':family,'corpus':corpus,'rows':table,'n_pairs':len(table)}
++
++
++def table_series(t,r,p):return np.asarray([x['returns'][p] for x in t['rows'] if x['rung']==r])
++def difficulty_series(t,r):return table_series(t,r,'reference')-table_series(t,r,'always_flat')
++def margin_series(t,r,p):return table_series(t,r,'reference')-table_series(t,r,p)
++def cluster_stats(a):
++    return {'n':len(a),'mean':float(np.mean(a)),'sd':float(np.std(a,ddof=1)),
++            'se':float(np.std(a,ddof=1)/np.sqrt(len(a)))}
++def bootstrap_mean_ci(a):
++    rng=np.random.default_rng(b.BOOTSTRAP_SEED)
++    v=a[rng.integers(0,len(a),size=(b.BOOTSTRAP_N,len(a)))].mean(axis=1)
++    lo,hi=np.quantile(v,[.025,.975])
++    return {'n':len(a),'mean':float(a.mean()),'ci_low':float(lo),'ci_high':float(hi),
++            'seed':b.BOOTSTRAP_SEED,'resamples':b.BOOTSTRAP_N,'method':'percentile bootstrap;resample pairs(A/B 不拆散)'}
++
++def corpus_conditions_r5(rep,kappa=1.5):
++    la=rep['difficulty_ladder'];gaps={}
++    for a,c in zip(b.RUNGS,b.RUNGS[1:]):
++        key=a+'-'+c;g=rep['adjacent_rung_gaps'][key]
++        gaps[key]={**g,'kappa_times_se':kappa*g['se_pair_cluster'],
++                   'ok':g['gap']>0 and g['gap']>=kappa*g['se_pair_cluster']}
++    margins={}
++    for p in b.BASELINES:
++        margins[p]={}
++        for r in b.RUNGS:
++            st=rep['fixed_baseline_margins'][p][r]
++            margins[p][r]={'mean':st['mean'],'se':st['se'],'kappa_times_se':kappa*st['se'],
++                           'bootstrap_ci':st['bootstrap_ci'],'ok':st['mean']>0 and st['mean']>=kappa*st['se']}
++    doc={'rule':'strict per-corpus(R5 唯一口径)','kappa':float(kappa),
++         'ordering_ok':all(la[a]['mean']>la[c]['mean'] for a,c in zip(b.RUNGS,b.RUNGS[1:])),
++         'gaps_ge_kappa_se':all(x['ok'] for x in gaps.values()),'gaps':gaps,
++         'd3_positive':la['D3']['mean']>0,'d3_mean_ge_kappa_se':la['D3']['mean']>=kappa*la['D3']['se'],
++         'd3_mean':la['D3']['mean'],'d3_se':la['D3']['se'],'d3_bootstrap_ci':la['D3']['bootstrap_ci'],
++         'margins_ok':all(x['ok'] for pr in margins.values() for x in pr.values()),'fixed_baseline_margins':margins,
++         'pair_integrity_unity':rep['pair_integrity_pass_rate']==1.,'oracle_positive':rep['oracle_positive_all_rungs']}
++    doc['pass']=all(doc[k] for k in ('ordering_ok','gaps_ge_kappa_se','d3_positive','d3_mean_ge_kappa_se','margins_ok','pair_integrity_unity','oracle_positive'))
++    return doc
++
++
++class FixtureAuthority(RepositoryAuthority):
++    def __init__(self):
++        names=('build_pair_evidence_table','table_series','difficulty_series','margin_series','cluster_stats','bootstrap_mean_ci')
++        self.r4=types.SimpleNamespace(**{n:globals()[n] for n in names})
++        self.r5=types.SimpleNamespace(corpus_conditions_r5=corpus_conditions_r5)
++        self.calls=0
++    def describe(self):return {'kind':'test_fixture','sources':{}}
++    def analyze(self,rows):
++        self.calls+=1
++        return super().analyze(rows)
++
++
++def source(tmp, **kw):
++    root=tmp/'source';m.execute(root,LadderFixture(**kw));return root
++
++def bridge(tmp,**kw):
++    src=source(tmp,**kw);out=tmp/'output';a=FixtureAuthority()
++    result=b.execute(src,out,a,test_mode=True)
++    return src,out,result,a
++
++def save(path,obj):path.write_text(m.canonical(obj)+'\n')
++def resign(root):
++    save(root/'manifest.json',{'contract':b.CONTRACT,'files':{k:v for k,v in m.tree_snapshot(root).items() if k!='manifest.json'}})
++
++
++def test_happy_real_adapter_method_synthetic_primitives(tmp_path):
++    src,out,result,a=bridge(tmp_path)
++    assert a.calls==1 and result['engineering_consumer_complete']
++    assert result['statistical_diagnostic_pass'] and result['calibration_qualified'] is False
++    assert b.verify(out,test_mode=True)['evidence_consistent']
++    assert m.tree_snapshot(src)==m.tree_snapshot(out/'input_batch')
++
++@pytest.mark.parametrize('fail_split',['main','validation'])
++def test_failed_statistics_are_preserved_not_consumer_error(fail_split,tmp_path):
++    src,out,result,a=bridge(tmp_path,fail_split=fail_split)
++    assert result['rc']==0 and result['statistical_diagnostic_verdict']=='FAIL'
++    assert result['split_pass'][fail_split] is False and result['calibration_qualified'] is False
++    assert b.verify(out,test_mode=True)['engineering_consumer_complete']
++
++
++def test_pair_not_strategy_and_negative_returns_retained(tmp_path):
++    _,out,_,_=bridge(tmp_path)
++    doc=m.read_json(out/'analysis.json');c=doc['return_counts']
++    assert c['n_policy_returns']==160 and len(c['policies'])==5
++    assert sum(c['totals'].values())==160 and c['policies']['reference']['negative']==16
++    for s in b.SPLITS:
++        assert all(set(x['returns'])==set(b.POLICIES) for x in doc['corpora'][s]['report']['pair_table']['rows'])
++
++
++def test_corpus_se_uses_pair_n_not_episode_n(tmp_path):
++    _,out,_,_=bridge(tmp_path)
++    st=m.read_json(out/'analysis.json')['corpora']['main']['report']['difficulty_ladder']['D0']
++    assert st['n']==2 and st['se']==pytest.approx(.0005)
++
++
++def test_same_pair_index_across_splits_never_merged(tmp_path):
++    _,out,_,_=bridge(tmp_path)
++    doc=m.read_json(out/'analysis.json')
++    assert all(doc['corpora'][s]['report']['pair_table']['n_pairs']==8 for s in b.SPLITS)
++    assert doc['corpora']['main']['report']['corpus']!=doc['corpora']['validation']['report']['corpus']
++
++@pytest.mark.parametrize('mode',['delete','append','same_length'])
++def test_input_tamper_before_run_rejected(mode,tmp_path):
++    src=source(tmp_path);p=src/'selection.json'
++    if mode=='delete':p.unlink()
++    elif mode=='append':p.write_bytes(p.read_bytes()+b' ')
++    else:p.write_bytes(b'['+p.read_bytes()[1:])
++    a=FixtureAuthority()
++    with pytest.raises(Exception):b.execute(src,tmp_path/'out',a,test_mode=True)
++    assert a.calls==0 and not (tmp_path/'out').exists()
++
++@pytest.mark.parametrize('target',['source','nested','existing','symlink'])
++def test_no_input_or_existing_output_overwrite(target,tmp_path):
++    src=source(tmp_path);before=m.tree_snapshot(src)
++    out=tmp_path/'out'
++    if target=='source':out=src
++    elif target=='nested':out=src/'new'
++    elif target=='existing':out.mkdir();(out/'history').write_text('keep')
++    else:out.symlink_to(src,target_is_directory=True)
++    with pytest.raises(Exception):b.execute(src,out,FixtureAuthority(),test_mode=True)
++    assert before==m.tree_snapshot(src)
++    if target=='existing':assert (out/'history').read_text()=='keep'
++
++
++def test_second_execution_refuses_existing(tmp_path):
++    src,out,_,_=bridge(tmp_path);before=m.tree_snapshot(out)
++    with pytest.raises(Exception):b.execute(src,out,FixtureAuthority(),test_mode=True)
++    assert before==m.tree_snapshot(out)
++
++
++def test_source_unchanged_full_command(tmp_path):
++    src=source(tmp_path);before=m.tree_snapshot(src)
++    b.execute(src,tmp_path/'out',FixtureAuthority(),test_mode=True)
++    assert before==m.tree_snapshot(src)
++
++
++def test_production_cli_refuses_fixture(tmp_path):
++    _,out,_,_=bridge(tmp_path)
++    import os
++    env=dict(os.environ);env['PYTHONPATH']=str(Path(b.__file__).parent)+':'+str(Path(m.__file__).parent)
++    proc=subprocess.run([sys.executable,str(Path(b.__file__)),'verify','--root',str(out)],capture_output=True,text=True,env=env)
++    assert proc.returncode==3 and 'fixture' in proc.stdout
++
++
++def test_contract_subcommand_loads_no_business(tmp_path):
++    script="import sys;import r17_c3_calibration_bridge as b;b.main(['contract']);assert not any(x.startswith('rl_curriculum') for x in sys.modules)"
++    import os
++    env=dict(os.environ);env['PYTHONPATH']=str(Path(b.__file__).parent)+':'+str(Path(m.__file__).parent)
++    p=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,env=env)
++    assert p.returncode==0,p.stderr
++
++@pytest.mark.parametrize('where',['analysis','result','episodes','input'])
++def test_byte_mutation_after_seal_rejected(where,tmp_path):
++    _,out,_,_=bridge(tmp_path)
++    p=out/({'input':'input_batch/selection.json'}.get(where,where+'.json'))
++    p.write_bytes(p.read_bytes()+b' ')
++    with pytest.raises(Exception):b.verify(out,test_mode=True)
++
++@pytest.mark.parametrize('case',['promote_qualified','promote_scaled','make_new_requests','force_pass','count_pair_as_return',
++                                  'wrong_pair_hash','wrong_pair_mean','wrong_se','wrong_cluster_n','drop_baseline',
++                                  'missing_split','pooled_rescue','wrong_gap','flip_margin_leaf','wrong_corpus',
++                                  'copy_split','wrong_kappa','bootstrap_seed','metadata_as_return','alter_episodes','extra_file'])
++def test_semantic_mutations_still_rejected_after_outer_resign(case,tmp_path):
++    _,out,_,_=bridge(tmp_path,fail_split='validation')
++    a=m.read_json(out/'analysis.json');r=m.read_json(out/'result.json')
++    rep=a['corpora']['main']['report'];cond=a['corpora']['main']['conditions']
++    if case=='promote_qualified':r['calibration_qualified']=True
++    elif case=='promote_scaled':r['scaled_pipeline_validated']=True
++    elif case=='make_new_requests':r['new_pair_requests']=1
++    elif case=='force_pass':r['statistical_diagnostic_pass']=True
++    elif case=='count_pair_as_return':a['return_counts']['n_policy_returns']=192
++    elif case=='wrong_pair_hash':rep['pair_table']['rows'][0]['episode_hashes']['A']='ce-wrong'
++    elif case=='wrong_pair_mean':rep['pair_table']['rows'][0]['returns']['reference']=1.
++    elif case=='wrong_se':rep['difficulty_ladder']['D0']['se']/=2
++    elif case=='wrong_cluster_n':rep['difficulty_ladder']['D0']['n']=4
++    elif case=='drop_baseline':del rep['fixed_baseline_margins']['c3_cost_ignorant']
++    elif case=='missing_split':del a['corpora']['validation']
++    elif case=='pooled_rescue':a['strict_both_pass']=True
++    elif case=='wrong_gap':rep['adjacent_rung_gaps']['D0-D1']['gap']=100.
++    elif case=='flip_margin_leaf':cond['fixed_baseline_margins']['always_flat']['D0']['ok']=False
++    elif case=='wrong_corpus':rep['pair_table']['corpus']='calibration_r17'
++    elif case=='copy_split':a['corpora']['validation']=copy.deepcopy(a['corpora']['main'])
++    elif case=='wrong_kappa':cond['kappa']=1.
++    elif case=='bootstrap_seed':rep['difficulty_ladder']['D0']['bootstrap_ci']['seed']=1
++    elif case=='metadata_as_return':rep['pair_table']['rows'][0]['returns']['pair']=0
++    elif case=='alter_episodes':
++        rows=m.read_json(out/'episodes.json');rows['main'][0]['reference']+=1;save(out/'episodes.json',rows)
++    else:(out/'extra').write_text('unexpected')
++    save(out/'analysis.json',a);save(out/'result.json',r);resign(out)
++    with pytest.raises(Exception):b.verify(out,test_mode=True)
++
++@pytest.mark.parametrize('field',['oracle','reference','pair','episode_hash'])
++def test_missing_row_values_rejected(field,tmp_path):
++    src=source(tmp_path);rows,_,_=b.load_input(src,test_mode=True);del rows['main'][0][field]
++    with pytest.raises(Exception):b.validate_rows(rows)
++
++@pytest.mark.parametrize('value',[float('nan'),float('inf'),True,None])
++def test_invalid_returns_rejected(value,tmp_path):
++    src=source(tmp_path);rows,_,_=b.load_input(src,test_mode=True);rows['main'][0]['reference']=value
++    with pytest.raises(Exception):b.validate_rows(rows)
++
++
++def test_duplicate_side_rejected(tmp_path):
++    src=source(tmp_path);rows,_,_=b.load_input(src,test_mode=True);rows['main'][1]=rows['main'][0].copy()
++    with pytest.raises(Exception):b.validate_rows(rows)
++
++
++def test_authority_failure_preserves_original_and_error(tmp_path):
++    src=source(tmp_path);before=m.tree_snapshot(src)
++    class Fail(FixtureAuthority):
++        def analyze(self,rows):raise RuntimeError('authority failure')
++    with pytest.raises(RuntimeError):b.execute(src,tmp_path/'out',Fail(),test_mode=True)
++    assert before==m.tree_snapshot(src) and (tmp_path/'out/failure.json').is_file()
++    assert not (tmp_path/'out/result.json').exists()
++
++
++def test_invalid_authority_payload_preserved(tmp_path):
++    src=source(tmp_path)
++    class Wrong(FixtureAuthority):
++        def analyze(self,rows):
++            a=super().analyze(rows);a['strict_both_pass']=False;return a
++    with pytest.raises(Exception):b.execute(src,tmp_path/'out',Wrong(),test_mode=True)
++    assert (tmp_path/'out/analysis.json').is_file() and (tmp_path/'out/failure.json').is_file()
++    assert not (tmp_path/'out/manifest.json').exists()
++
++
++def test_insufficient_cluster_cannot_default_to_zero_se():
++    with pytest.raises(Exception):b._stats([.01])
++
++
++def test_scientific_threshold_uses_exact_greater_equal():
++    # No tolerance around verdict: this equality is valid, just-below is not.
++    rep={'difficulty_ladder':{r:{'mean':.08-i*.02,'se':0.} for i,r in enumerate(b.RUNGS)},
++         'adjacent_rung_gaps':{k:{'gap':.02,'se_pair_cluster':0.} for k in ('D0-D1','D1-D2','D2-D3')},
++         'fixed_baseline_margins':{p:{r:{'mean':.02,'se':0.} for r in b.RUNGS} for p in b.BASELINES},
++         'pair_integrity_pass_rate':1.,'oracle_positive_all_rungs':True}
++    rep['difficulty_ladder']['D3']={'mean':.015,'se':.01}
++    assert b._strict_from_report(rep)['d3_mean_ge_kappa_se']
++    rep['difficulty_ladder']['D3']['mean']=.015-1e-14
++    assert not b._strict_from_report(rep)['d3_mean_ge_kappa_se']
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_calibration_source_lock.py
+@@ -0,0 +1,3 @@
++# Generated by the guarded calibration bridge installer; historical reserve lock remains untouched.
++BASELINE = '5607876b213af825d618868ba89cb0705cfdc472'
++SOURCE_SHA256 = {'r17_c3_calibration_authority': '56f1b6f0686d419657683109d864cc48385b348cbbc20bfac0154e480b5c010e', 'r17_c3_calibration_bridge': '5910db41ac8071188c2cbd94fd4d550d775b5f52958507aea112add1b2f70fb5', 'r17_c3_calibration_delivery': '31d75f4ce186c8510f32bf4c1459cec6eab38b0a00b8d7767a6c72020414c990', 'r17_c3_reserve_batch': 'd8b84d48eb524b08b976197062a03e69a85e809c0abca71c1f93c052e2c63d87', 'r17_c3_reserve_source_lock': '4002f5b5dcbf9aa53a3a46639589cce7d1839b4f7666f2c2cdd0a49124e24dfd', 'r17_required_bytes': '5e19231a0d787e0c0ddeb2b513978ed3c7eb963938500bddacdaa1c85b776874', 'rl_curriculum.curriculum261_api': '74f4ae979aa073bc117fc57101a6214550a31fe8c945ae9072dbd9bfd7c4c1b2', 'rl_curriculum.curriculum261_pairs': 'f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd', 'rl_curriculum.curriculum261_qualification': '2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67', 'rl_curriculum.curriculum261_r4_pairs': '65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880', 'rl_curriculum.curriculum261_r5_pairs': 'ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86'}

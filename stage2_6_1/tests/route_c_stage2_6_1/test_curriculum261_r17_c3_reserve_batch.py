@@ -12,7 +12,8 @@ import pytest
 
 HERE = Path(__file__).resolve()
 for base in HERE.parents:
-    for runner in (base/'implementation', base/'runner', base/'stage2_6_1'/'runner'):
+    for runner in (base/'implementation', base/'runner', base/'stage2_6_1'/'runner',
+                   base/'stage2_6_1_runner'):
         if (runner/'r17_c3_reserve_batch.py').is_file():
             sys.path.insert(0, str(runner)); break
     else:
