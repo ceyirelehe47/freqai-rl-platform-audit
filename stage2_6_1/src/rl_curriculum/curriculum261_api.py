@@ -621,6 +621,8 @@ CURRICULUM261_R17_NAMESPACES = (
     "c2_independent_holdout_r17", "c2_independent_qualification_r17",
     "stress_r17", "fresh_holdout_r17", "training_r17",
     "ppo_smoke_r17",
+    # C3 finite-reserve v1: engineering-only; no formal authorization.
+    "c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17",
 )
 
 #: R17 正式资格面(数据入口四件套;§6.5)。

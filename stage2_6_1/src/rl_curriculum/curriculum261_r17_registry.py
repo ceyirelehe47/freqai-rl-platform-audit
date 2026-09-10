@@ -80,6 +80,8 @@ R17_ALL_NAMESPACES = (
     "c2_independent_holdout_r17", "c2_independent_qualification_r17",
     "stress_r17", "fresh_holdout_r17", "training_r17",
     "ppo_smoke_r17",
+    # C3 finite-reserve v1: engineering-only; no formal authorization.
+    "c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17",
 )
 
 #: 白名单一致性(api 为单一权威;启动时对齐校验)。

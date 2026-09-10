@@ -59,7 +59,8 @@ class TestRegistryApi:
     def test_registry_alignment(self):
         doc = verify_r17_registry_alignment()
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
-        assert doc["n_namespaces"] == 87 and doc["n_formal"] == 4
+        assert doc["n_namespaces"] == 89 and doc["n_formal"] == 4
+        assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         assert doc["unique"]
 
     def test_formal_four_namespaces_fresh(self):

@@ -1,0 +1,1164 @@
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_reserve_adapter.py
+@@ -0,0 +1,125 @@
++"""Thin adapter to unchanged production C3 generator/recorder/evaluator.
++
++Only imported by the real RUN path. The batch verifier remains standard-library
++only and cannot generate episodes. No exception based on PnL becomes a rejection.
++"""
++from __future__ import annotations
++
++import importlib
++import json
++from pathlib import Path
++import sys
++
++from r17_c3_reserve_batch import (Generated, PARAMS, DEFAULTS, NAMESPACES,
++                                 FAMILY, require, file_meta)
++
++
++def ensure_imports():
++    # Published repo: runner/../src. Deployed project: already on PYTHONPATH.
++    try:
++        import rl_curriculum.curriculum261_api  # noqa: F401
++    except ModuleNotFoundError as exc:
++        if exc.name not in ('rl_curriculum', 'rl_curriculum.curriculum261_api'):
++            raise
++        src = Path(__file__).resolve().parent.parent / 'src'
++        if not src.is_dir():
++            raise
++        sys.path.insert(0, str(src))
++
++
++def verify_sources() -> dict:
++    ensure_imports()
++    from r17_c3_reserve_source_lock import SOURCE_SHA256
++    actual = {}
++    for name, expected in SOURCE_SHA256.items():
++        module = importlib.import_module(name)
++        path = Path(module.__file__).resolve(strict=True)
++        got = file_meta(path)['sha256']
++        require(got == expected, f'actual imported source drift: {name} ({path})')
++        actual[name] = {'path': str(path), 'sha256': got}
++    return actual
++
++
++class RealC3Backend:
++    def __init__(self):
++        ensure_imports()
++        from rl_curriculum import curriculum261_api as api
++        from rl_curriculum import curriculum261_pairs as pairs
++        from rl_curriculum import curriculum261_generation_envelope as env
++        from rl_curriculum import curriculum261_qualification as qualification
++        from rl_curriculum import curriculum261_r17_registry as registry
++        self.api, self.pairs, self.env, self.qualification = api, pairs, env, qualification
++        self.spec = pairs.family_specs()[FAMILY]
++        require(api.CURRICULUM261_MAX_ATTEMPTS == 5, 'per-pair attempt contract changed')
++        require(self.spec.generator.family_version == 'cur261-c3-v4', 'generator version changed')
++        require(self.spec.rung_params == PARAMS and self.spec.reference_defaults == DEFAULTS,
++                'C3 parameters/reference defaults changed')
++        for ns in NAMESPACES.values():
++            require(ns in api.CURRICULUM261_R17_NAMESPACES and ns in registry.R17_ALL_NAMESPACES,
++                    'engineering namespaces not installed')
++            require(ns not in api.CURRICULUM261_R17_FORMAL_NAMESPACES, 'engineering namespace became formal')
++        self.source_identity = verify_sources()
++
++    def describe(self):
++        return {'kind': 'real_c3', 'generator': self.env.generator_identity(self.spec.generator),
++                'sources': self.source_identity, 'interpreter': sys.version,
++                'evaluation': 'existing evaluate_pair_corpus / production observations / frozen Route C env',
++                'normalization_fit': 'not performed; not a training qualification'}
++
++    def generate(self, q, observe):
++        api, pairs, env = self.api, self.pairs, self.env
++        # Exactly the same parameter expansion as generate_pair(); explicit recorder.
++        params = {**self.spec.rung_params[q.rung], 'cur261_rung': q.rung}
++        class Recorder(env.EnvelopeRecorder):
++            def __init__(self, **kw):
++                super().__init__(**kw)
++                self.failures = []
++            def record(self, event, payload):
++                try:
++                    super().record(event, payload)
++                    if event == 'attempt':
++                        observe('attempt', self.attempt_envelopes[-1])
++                except Exception as exc:
++                    # Upstream intentionally swallows recorder errors. Preserve and fail
++                    # the batch after this pair; never let them authorize a reserve.
++                    self.failures.append(f'{type(exc).__name__}: {str(exc)[:1000]}')
++                    raise
++        rec = Recorder(iteration='r17', namespace=q.coordinate['namespace'], family=FAMILY,
++                       rung=q.rung, pair_index=q.index, rung_params=params)
++        observe('call', rec.call_envelope)
++        try:
++            episodes, log = api.generate_pair_with_attempts(
++                self.spec.generator, params, namespace=q.coordinate['namespace'],
++                family=FAMILY, rung=q.rung, pair_index=q.index,
++                structural_validator=pairs.pair_acceptance_contract(FAMILY), recorder=rec)
++        except api.PairGenerationError as exc:
++            log = exc.attempt_log
++            if log is None:
++                raise RuntimeError('PairGenerationError missing attempt log') from exc
++            proof = {'coordinate': q.coordinate, 'status': 'structural_rejected',
++                     'call_envelope': rec.call_envelope, 'attempt_envelopes': rec.attempt_envelopes,
++                     'attempt_log': log.canonical(), 'episode_hashes': {},
++                     'recorder_errors': rec.failures, 'error': str(exc)}
++            return Generated(json.loads(env.canonical_json(proof)))
++        # All other exceptions propagate. No catch-and-resample.
++        pair = pairs.PairRecord(family=FAMILY, rung=q.rung, pair_index=q.index,
++                                episodes=episodes, attempt_log=log)
++        pair.integrity = pairs.compute_pair_integrity(pair)
++        pair.integrity_ok = pair.integrity['pass']
++        proof = {'coordinate': q.coordinate, 'status': 'accepted',
++                 'call_envelope': rec.call_envelope, 'attempt_envelopes': rec.attempt_envelopes,
++                 'attempt_log': log.canonical(), 'episode_hashes': dict(log.episode_hashes),
++                 'integrity': pair.integrity, 'recorder_errors': rec.failures}
++        return Generated(json.loads(env.canonical_json(proof)), pair)
++
++    def evaluate(self, q, pair):
++        require(pair.family == FAMILY and pair.rung == q.rung and pair.pair_index == q.index,
++                'in-memory pair identity mismatch')
++        require(pair.integrity_ok is True, 'cannot evaluate integrity-failed pair')
++        before = {s: self.api.episode_content_hash(pair.episodes[s]) for s in ('A', 'B')}
++        require(before == pair.attempt_log.episode_hashes, 'episode changed after selection')
++        ev = self.qualification.evaluate_pair_corpus(
++            [pair], FAMILY, dict(self.spec.rung_params[q.rung]), dict(self.spec.reference_defaults))
++        require(before == {s: self.api.episode_content_hash(pair.episodes[s]) for s in ('A', 'B')},
++                'evaluation mutated its generation input')
++        return json.loads(self.env.canonical_json(ev))
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_reserve_batch.py
+@@ -0,0 +1,553 @@
++#!/usr/bin/env python3
++"""Fixed C3 finite-reserve ENGINEERING batch. No formal or training entrypoint.
++
++Generation completes and membership is sealed before ANY evaluator invocation.
++Only evidenced C3 structural exhaustion permits another predeclared coordinate.
++The CLI verifier is read-only and prints JSON to stdout: no arbitrary receipt path.
++"""
++from __future__ import annotations
++
++import argparse
++from dataclasses import dataclass
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++import re
++import secrets
++import sys
++from typing import Any
++
++CONTRACT = 'C3FiniteReserveBatch-v1-engineering'
++BASELINE = '08b3f4a2b9c53529a7de1507bf1a70ae9b771b90'
++FAMILY = 'c3_cost'
++RUNGS = ('D0', 'D1', 'D2', 'D3')
++NAMESPACES = {'main': 'c3_reserve_main_eng_r17',
++              'validation': 'c3_reserve_validation_eng_r17'}
++# Engineering validation is NOT a frozen holdout.
++PARAMS = {
++    'D0': dict(alpha_bps=70.0, payoff_bars=1, vol_bps=18.0, cue_rate=.200,
++               mixture=[.60, .25, .15], distractor_rate=.015),
++    'D1': dict(alpha_bps=62.0, payoff_bars=1, vol_bps=18.0, cue_rate=.210,
++               mixture=[.46, .32, .22], distractor_rate=.025),
++    'D2': dict(alpha_bps=54.0, payoff_bars=1, vol_bps=18.0, cue_rate=.220,
++               mixture=[.34, .35, .31], distractor_rate=.040),
++    'D3': dict(alpha_bps=46.0, payoff_bars=1, vol_bps=18.0, cue_rate=.230,
++               mixture=[.14, .36, .50], distractor_rate=.060),
++}
++DEFAULTS = {'margin': 1.10, 'any_signal_s': .22}
++CODES = ('too_few_signals', 'too_few_above_cost_signals',
++         'too_few_below_cost_signals', 'missing_signal_directions', 'too_few_distractors')
++ALLOWED_REJECTIONS = frozenset(f'{side}:{code}' for side in ('A', 'B', 'pair') for code in CODES)
++POLICIES = ('always_flat', 'always_long', 'c3_cost_ignorant', 'reference', 'oracle')
++
++
++class EvidenceError(ValueError):
++    pass
++
++
++def require(ok: bool, message: str) -> None:
++    if not ok:
++        raise EvidenceError(message)
++
++
++def canonical(obj: Any) -> str:
++    return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
++
++
++def digest(obj: Any) -> str:
++    return hashlib.sha256(canonical(obj).encode('utf-8')).hexdigest()
++
++
++def envelope_digest(env: dict, call: bool = False) -> str:
++    # Persisted JSON subset of the authoritative generation-envelope contract.
++    return ('r11call-' if call else 'r11env-') + digest(
++        {k: v for k, v in env.items() if k not in ('digest', 'runtime')})
++
++
++def file_meta(path: Path) -> dict:
++    before = path.stat()
++    h = hashlib.sha256()
++    n = 0
++    with path.open('rb') as f:
++        while chunk := f.read(1 << 20):
++            h.update(chunk); n += len(chunk)
++    after = path.stat()
++    identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
++    require(identity(before) == identity(after) and n == after.st_size, 'file changed while reading')
++    return {'bytes': n, 'sha256': h.hexdigest()}
++
++
++def read_json(path: Path) -> Any:
++    def unique(pairs):
++        result = {}
++        for k, v in pairs:
++            require(k not in result, f'duplicate JSON key: {k}')
++            result[k] = v
++        return result
++    def invalid(value):
++        raise EvidenceError(f'nonfinite JSON value: {value}')
++    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique, parse_constant=invalid)
++
++
++def new_json(path: Path, value: Any) -> None:
++    """Internal, create-only names under our newly owned run tree; no overwrite."""
++    payload = (canonical(value) + '\n').encode('utf-8')
++    path.parent.mkdir(parents=True, exist_ok=True)
++    tmp = path.with_name('.' + path.name + '.' + secrets.token_hex(12) + '.tmp')
++    owned = False
++    try:
++        with tmp.open('xb') as f:
++            owned = True
++            f.write(payload); f.flush(); os.fsync(f.fileno())
++        os.link(tmp, path)
++    finally:
++        if owned:
++            tmp.unlink(missing_ok=True)
++
++
++@dataclass(frozen=True)
++class Request:
++    split: str
++    rung: str
++    index: int
++
++    @property
++    def key(self) -> str:
++        return f'{self.split}_{self.rung}_p{self.index}'
++
++    @property
++    def coordinate(self) -> dict:
++        return {'namespace': NAMESPACES[self.split], 'family': FAMILY,
++                'rung': self.rung, 'pair_index': self.index}
++
++    @property
++    def tier(self) -> str:
++        return 'primary' if self.index < 2 else 'reserve'
++
++
++def requests() -> list[Request]:
++    return [Request(s, r, i) for s in NAMESPACES for r in RUNGS for i in range(4)]
++
++
++def fixed_contract() -> dict:
++    return {'version': CONTRACT, 'engineering_only': True,
++            'purpose': 'engineering development, NOT calibration/holdout/qualification/training',
++            'family': FAMILY, 'namespaces': NAMESPACES, 'rungs': list(RUNGS),
++            'quota_per_stratum': 2, 'primary_indices': [0, 1], 'reserve_indices': [2, 3],
++            'max_pair_requests': 32, 'max_attempts_per_pair': 5, 'max_attempt_envelopes': 160,
++            'target_pairs': 16, 'selection_rule': 'primary_order_then_reserve_order_until_quota',
++            'generation_before_evaluation': True, 'abort_batch_on_exhaustion': True,
++            'allowed_rejection_reasons': sorted(ALLOWED_REJECTIONS),
++            'rung_params': PARAMS, 'reference_defaults': DEFAULTS}
++
++
++def make_plan(runtime: dict) -> dict:
++    contract = fixed_contract()
++    plan = {'contract': contract, 'contract_sha256': digest(contract),
++            'baseline': BASELINE, 'runtime': runtime,
++            'requests': [{'key': q.key, 'tier': q.tier, 'split': q.split, **q.coordinate}
++                         for q in requests()]}
++    plan['plan_sha256'] = digest(plan)
++    return json.loads(canonical(plan))
++
++
++def validate_plan(plan: dict) -> None:
++    require(plan['contract'] == fixed_contract(), 'contract differs from authorized fixed engineering plan')
++    expected = make_plan(plan['runtime'])
++    require(plan == expected, 'plan identity/request list mismatch')
++    require(plan['runtime']['kind'] in ('real_c3', 'test_fixture'), 'unknown backend kind')
++    require(isinstance(plan['runtime']['generator'], dict) and bool(plan['runtime']['generator']),
++            'missing frozen generator identity')
++    if plan['runtime']['kind'] == 'real_c3':
++        from r17_c3_reserve_source_lock import SOURCE_SHA256
++        sources = plan['runtime'].get('sources', {})
++        require(set(sources) == set(SOURCE_SHA256) and all(
++            sources[n].get('sha256') == h for n, h in SOURCE_SHA256.items()),
++            'execution sources do not match installed candidate')
++
++
++def expected_seed(q: Request, attempt: int) -> int:
++    fields = ['stage2_6_1', q.coordinate['namespace'], FAMILY, q.rung, q.index, attempt]
++    return int.from_bytes(hashlib.sha256(canonical(fields).encode()).digest()[:8], 'big')
++
++
++def validate_proof(q: Request, proof: dict, plan: dict) -> str:
++    """Classify only complete, identity-bound proof. Unknown/errors NEVER reserve."""
++    require(proof['coordinate'] == q.coordinate, 'request identity mismatch')
++    require(proof['status'] in ('accepted', 'structural_rejected'), 'unknown generation status')
++    require(proof.get('recorder_errors') == [], 'recorder errors or missing recorder fact')
++    call = proof['call_envelope']
++    require(call['digest'] == envelope_digest(call, True), 'call envelope digest mismatch')
++    for k, v in q.coordinate.items():
++        require(call.get(k) == v and type(call.get(k)) is type(v), f'call {k} mismatch')
++    rp = {**PARAMS[q.rung], 'cur261_rung': q.rung}
++    require(call.get('rung_params') == rp and call.get('max_attempts') == 5,
++            'call params or attempts changed')
++    require(call.get('iteration') == 'r17', 'call iteration mismatch')
++    require(call.get('generator') == plan['runtime']['generator'], 'generator identity mismatch')
++    require(call.get('split') == 'curriculum261_' + q.coordinate['namespace']
++            and call.get('timeframe') == '15m', 'call split/timeframe mismatch')
++    log, envs = proof['attempt_log'], proof['attempt_envelopes']
++    for k in ('family', 'rung', 'pair_index'):
++        require(log.get(k) == q.coordinate[k], 'attempt log coordinate mismatch')
++    require(log.get('seed_namespace') == q.coordinate['namespace'] and log.get('max_attempts') == 5,
++            'attempt log namespace/budget mismatch')
++    require(isinstance(envs, list) and 1 <= len(envs) <= 5, 'attempt evidence missing/outside budget')
++    accepted = proof['status'] == 'accepted'
++    selected = len(envs) - 1 if accepted else None
++    require(type(log.get('selected_attempt')) is (int if accepted else type(None)), 'selected type invalid')
++    require(log.get('selected_attempt') == selected, 'first-pass selection mismatch')
++    require(accepted or len(envs) == 5, 'rejection must exhaust exactly five attempts')
++    require(len(log['attempts']) == len(envs), 'log/envelope length mismatch')
++    for i, (env, att) in enumerate(zip(envs, log['attempts'])):
++        require(type(env.get('attempt_index')) is int and type(att.get('index')) is int
++                and env['attempt_index'] == i and att['index'] == i, 'attempt order mismatch')
++        require(env['digest'] == envelope_digest(env), 'attempt digest mismatch')
++        for k, v in q.coordinate.items():
++            require(env.get(k) == v and type(env.get(k)) is type(v), f'envelope {k} mismatch')
++        require(env.get('generator') == call['generator'], 'attempt generator mismatch')
++        require(env.get('iteration') == 'r17' and env.get('split') == call['split']
++                and env.get('timeframe') == '15m', 'attempt phase/timeframe mismatch')
++        require(type(env.get('outer_seed')) is int and env['outer_seed'] == expected_seed(q, i),
++                'outer seed mismatch')
++        require(type(env.get('internal_derived_seed')) is int and env['internal_derived_seed'] >= 0,
++                'internal seed missing')
++        require(env.get('seed_derivation_fields') == {**q.coordinate, 'attempt': i, 'stage_id': 'stage2_6_1'},
++                'seed fields mismatch')
++        require(env.get('exception') is None, 'generator exception is not reserve-eligible')
++        require(env.get('generator_state_changed') is False
++                and env.get('generator_state_changed_since_call_start') is False, 'generator state drift')
++        passed = accepted and i == selected
++        require(env.get('accepted') is passed and att.get('accepted') is passed, 'acceptance contradiction')
++        reasons = env.get('rejection_reasons')
++        require(isinstance(reasons, list) and env.get('structural_validator_results') == reasons,
++                'structural reason mismatch')
++        if passed:
++            require(reasons == [] and att.get('reason') == '', 'accepted attempt has rejection reasons')
++        else:
++            require(bool(reasons) and all(isinstance(x, str) and x in ALLOWED_REJECTIONS for x in reasons),
++                    'non-whitelisted rejection: stop instead of substitute')
++            require(att.get('reason') == '; '.join(reasons), 'log reasons mismatch')
++        for side in ('A', 'B'):
++            bp = env['base_params'][side]
++            expected_params = {**rp, 'pair_variant': side, 'episode_bars': 288, 'initial_price': 1.0}
++            require(set(bp) == set(expected_params), 'undeclared generator override or missing base parameter')
++            for k, v in expected_params.items():
++                require(k in bp and bp[k] == v and not isinstance(bp[k], bool), f'base param missing/changed: {side}.{k}')
++            table = env['event_table'][side]
++            require(table['bars'] == 288 and isinstance(table['hidden_digest'], str) and bool(table['hidden_digest']),
++                    'incomplete event table')
++            require(isinstance(table['episode_content_hash'], str)
++                    and re.fullmatch(r'ce-[a-f0-9]{64}', table['episode_content_hash']) is not None,
++                    'episode content hash invalid')
++            counts = table['counts']
++            for k in ('n_signals', 'n_above_cost', 'n_below_cost', 'n_distractors'):
++                require(type(counts.get(k)) is int and 0 <= counts[k] <= 288, 'missing/invalid C3 counts')
++            require(counts['n_above_cost'] + counts['n_below_cost'] == counts['n_signals'], 'inconsistent signal counts')
++            if passed:
++                require(counts['n_signals'] >= 6 and counts['n_below_cost'] >= 2 and counts['n_distractors'] >= 1,
++                        'accepted sample violates C3 counts')
++                require(counts['n_above_cost'] >= 2 if side == 'A' else counts['n_above_cost'] == 0,
++                        'accepted cost structure invalid')
++        # Count-backed reason consistency. 'pair:' is the A-side C3 content
++        # check in the unchanged pair_structural_contract. Direction membership
++        # itself is certified by the pinned validator; no latent re-generation.
++        for label, side in (('A', 'A'), ('B', 'B'), ('pair', 'A')):
++            c = env['event_table'][side]['counts']
++            expected_flags = {
++                'too_few_signals': c['n_signals'] < 6,
++                'too_few_distractors': c['n_distractors'] < 1,
++                'too_few_below_cost_signals': c['n_below_cost'] < 2,
++                'too_few_above_cost_signals': c['n_above_cost'] < 2 if side == 'A' else c['n_above_cost'] != 0,
++            }
++            for code, should_fail in expected_flags.items():
++                require((label + ':' + code in reasons) == should_fail, 'count/rejection-reason contradiction')
++    if accepted:
++        hashes = {s: envs[-1]['event_table'][s]['episode_content_hash'] for s in ('A', 'B')}
++        require(proof.get('episode_hashes') == hashes == log.get('output_episode_hashes'),
++                'selected envelope/output identity mismatch')
++        integrity = proof.get('integrity')
++        require(isinstance(integrity, dict) and integrity.get('pass') is True,
++                'integrity failure is fatal, not eligible for reserve')
++        for k in ('family', 'rung', 'pair_index'):
++            require(integrity.get(k) == q.coordinate[k], 'integrity identity mismatch')
++    else:
++        require(log.get('output_episode_hashes') == {} and proof.get('episode_hashes') == {},
++                'rejected request has selected output')
++    return proof['status']
++
++
++def validate_evaluation(q: Request, ev: dict, proof: dict) -> None:
++    require(ev.get('family') == FAMILY, 'evaluation family mismatch')
++    rows = ev.get('episodes')
++    require(isinstance(rows, list) and len(rows) == 2, 'evaluation must contain one A/B pair')
++    require([r.get('side') for r in rows] == ['A', 'B'], 'evaluation side/order mismatch')
++    for row in rows:
++        require(row.get('pair') == q.index and row.get('rung') == q.rung, 'evaluation coordinate mismatch')
++        require(row.get('episode_hash') == proof['episode_hashes'][row['side']], 'evaluation output mismatch')
++        for name in POLICIES:
++            v = row.get(name)
++            require(type(v) in (int, float) and math.isfinite(v), f'invalid metric {name}')
++    for name in POLICIES:
++        mean = sum(r[name] for r in rows) / 2
++        value = ev.get('policy_means', {}).get(name)
++        require(type(value) in (int, float) and math.isfinite(value) and math.isclose(value, mean, abs_tol=1e-12),
++                'evaluation mean inconsistent')
++    means = ev['policy_means']
++    metric = means['reference'] - max(0., means['always_long'])
++    require(type(ev.get('difficulty_metric')) in (int, float)
++            and math.isclose(ev['difficulty_metric'], metric, abs_tol=1e-12), 'difficulty metric inconsistent')
++    expected = means['reference'] > max(means[n] for n in POLICIES[:3])
++    require(ev.get('reference_beats_required_baselines') is expected
++            and ev.get('oracle_positive') is (means['oracle'] > 0), 'evaluation diagnostics inconsistent')
++    # Negative performance is valid data; none of these diagnostics gate membership or batch success.
++
++
++@dataclass
++class Generated:
++    proof: dict
++    handle: Any = None
++
++
++class Cursor:
++    """Single schedule source used by execution and cold readback."""
++    def __init__(self):
++        self.all = requests()
++        self.pos = 0
++        self.counts = {(s, r): 0 for s in NAMESPACES for r in RUNGS}
++        self.states = {q.key: 'not_started' for q in self.all}
++        self.selected = []
++        self.attempted = []
++        self.stop = None
++
++    def next(self) -> Request | None:
++        if self.stop:
++            return None
++        while self.pos < len(self.all):
++            q = self.all[self.pos]
++            if self.counts[q.split, q.rung] == 2:
++                self.states[q.key] = 'not_needed'
++                self.pos += 1
++                continue
++            return q
++        return None
++
++    def consume(self, q: Request, status: str):
++        require(self.next() == q, 'out-of-order/unapproved request')
++        require(status in ('accepted', 'structural_rejected', 'fatal'), 'unknown request result')
++        self.attempted.append(q.key)
++        self.states[q.key] = status
++        self.pos += 1
++        if status == 'accepted':
++            self.counts[q.split, q.rung] += 1
++            self.selected.append(q.key)
++        elif status == 'fatal':
++            self.stop = 'fatal'
++        if q.index == 3 and self.counts[q.split, q.rung] < 2 and not self.stop:
++            self.stop = 'reserve_exhausted'
++
++    def snapshot(self) -> dict:
++        self.next()  # mark all skipped reserves after the last accepted slot
++        return {'attempted': list(self.attempted), 'selected': list(self.selected),
++                'states': dict(self.states), 'stop': self.stop,
++                'quota_filled': all(n == 2 for n in self.counts.values())}
++
++
++def tree_snapshot(root: Path) -> dict:
++    out = {}
++    for p in sorted(root.rglob('*')):
++        require(not p.is_symlink(), 'symlink not allowed in batch evidence')
++        if p.is_file():
++            out[p.relative_to(root).as_posix()] = file_meta(p)
++        else:
++            require(p.is_dir(), 'nonregular evidence object')
++    return out
++
++
++def execute(out_dir: Path, backend, *, source_guard=lambda: None) -> dict:
++    """One fresh execution. Caller may not retry into this directory after any failure."""
++    root = Path(out_dir)
++    require(root.parent.is_dir(), 'output parent must already exist')
++    root = root.parent.resolve(strict=True) / root.name
++    root.mkdir(exist_ok=False)
++    cursor = Cursor()
++    handles, proofs, index, evaluations = {}, {}, [], []
++    result = {'contract': CONTRACT, 'engineering_only': True, 'status': 'error', 'rc': 3,
++              'evaluated': [], 'error': None, 'evaluation_started': None}
++    try:
++        source_guard()
++        plan = make_plan(backend.describe())
++        validate_plan(plan)
++        new_json(root / 'plan.json', plan)
++        while (q := cursor.next()) is not None:
++            new_json(root / 'starts' / (q.key + '.json'), {'coordinate': q.coordinate, 'ordinal': len(index)})
++            observed = []
++            def observe(kind, obj):
++                require(kind in ('call', 'attempt'), 'unknown recorder event')
++                suffix = 'call' if kind == 'call' else f"attempt_{obj['attempt_index']}"
++                new_json(root / 'attempts' / q.key / (suffix + '.json'), obj)
++                observed.append((kind, obj))
++            try:
++                generated = backend.generate(q, observe)
++                proof = generated.proof
++                # Preserve received evidence before classifying it, including malformed evidence.
++                new_json(root / 'requests' / (q.key + '.json'), proof)
++                status = validate_proof(q, proof, plan)
++                require(observed == [('call', proof['call_envelope'])] +
++                        [('attempt', e) for e in proof['attempt_envelopes']],
++                        'per-attempt persistence differs from final proof')
++                require(not (status == 'accepted' and generated.handle is None), 'missing accepted in-memory pair')
++                if status == 'accepted':
++                    handles[q.key] = generated.handle; proofs[q.key] = proof
++                index.append({'key': q.key, 'status': status})
++                cursor.consume(q, status)
++            except Exception as exc:
++                index.append({'key': q.key, 'status': 'fatal'})
++                cursor.consume(q, 'fatal')
++                new_json(root / 'errors' / (q.key + '.json'),
++                         {'type': type(exc).__name__, 'message': str(exc)[:2000]})
++                raise
++        state = cursor.snapshot()
++        selection = {'plan_sha256': plan['plan_sha256'], **state,
++                     'evaluation_not_started': True,
++                     'selected_proof_sha256': {k: file_meta(root / 'requests' / (k+'.json'))['sha256']
++                                               for k in state['selected']}}
++        # Membership is fixed before evaluation, even for an incomplete batch.
++        new_json(root / 'selection.json', selection)
++        if not state['quota_filled']:
++            result.update(status='reserve_exhausted', rc=4)
++        else:
++            source_guard()
++            by_key = {q.key: q for q in requests()}
++            for key in state['selected']:
++                q = by_key[key]
++                result['evaluation_started'] = key
++                new_json(root / 'evaluation_starts' / (key + '.json'),
++                         {'key': key, 'selection_sha256': file_meta(root / 'selection.json')['sha256']})
++                ev = backend.evaluate(q, handles[key])
++                new_json(root / 'evaluations' / (key + '.json'), ev)
++                validate_evaluation(q, ev, proofs[key])
++                evaluations.append(key)
++                # Release heavy references after evaluation; no generation/replacement in this phase.
++                del handles[key]
++            source_guard()
++            result.update(status='complete', rc=0)
++    except Exception as exc:
++        result['error'] = {'type': type(exc).__name__, 'message': str(exc)[:2000]}
++    result.update(schedule=cursor.snapshot(), results=index, evaluated=evaluations)
++    new_json(root / 'result.json', result)
++    # Snapshot belongs to this execution only; never re-sign an earlier run.
++    manifest = {'contract': CONTRACT, 'files': tree_snapshot(root)}
++    new_json(root / 'manifest.json', manifest)
++    return result
++
++
++def verify(root: Path, *, allow_test_fixture=False) -> dict:
++    """Cold read of fixed plan/observed request sequence. No generation and no writes."""
++    root = root.resolve(strict=True)
++    before = tree_snapshot(root)
++    manifest = read_json(root / 'manifest.json')
++    require(manifest.get('contract') == CONTRACT, 'manifest contract mismatch')
++    require(manifest['files'] == {k: v for k, v in before.items() if k != 'manifest.json'},
++            'evidence byte set mismatch')
++    plan = read_json(root / 'plan.json'); validate_plan(plan)
++    require(allow_test_fixture or plan['runtime']['kind'] == 'real_c3', 'fixture is not real batch evidence')
++    result = read_json(root / 'result.json')
++    require(result.get('contract') == CONTRACT and result.get('engineering_only') is True, 'result contract mismatch')
++    cursor = Cursor(); proofs = {}
++    for ordinal, row in enumerate(result['results']):
++        q = cursor.next()
++        require(q is not None and row['key'] == q.key, 'attempted sequence not authorized')
++        require(read_json(root / 'starts' / (q.key+'.json')) == {'coordinate': q.coordinate, 'ordinal': ordinal},
++                'missing/changed request start')
++        if row['status'] == 'fatal':
++            require((root/'errors'/(q.key+'.json')).is_file(), 'fatal record missing')
++            cursor.consume(q, 'fatal')
++        else:
++            p = read_json(root / 'requests' / (q.key+'.json'))
++            require(validate_proof(q, p, plan) == row['status'], 'row/proof status mismatch')
++            require(read_json(root/'attempts'/q.key/'call.json') == p['call_envelope'], 'call journal mismatch')
++            for env in p['attempt_envelopes']:
++                require(read_json(root/'attempts'/q.key/f"attempt_{env['attempt_index']}.json") == env,
++                        'attempt journal mismatch')
++            proofs[q.key] = p
++            cursor.consume(q, row['status'])
++    state = cursor.snapshot()
++    require(state == result['schedule'], 'schedule/result mismatch')
++    if state['quota_filled'] or state['stop'] == 'reserve_exhausted':
++        selection = read_json(root/'selection.json')
++        require(selection == {'plan_sha256': plan['plan_sha256'], **state,
++                             'evaluation_not_started': True,
++                             'selected_proof_sha256': {k: file_meta(root/'requests'/(k+'.json'))['sha256']
++                                                       for k in state['selected']}}, 'selection not bound to fixed schedule')
++    elif result['status'] != 'error':
++        raise EvidenceError('incomplete schedule cannot be successful')
++    require(result['evaluated'] == state['selected'][:len(result['evaluated'])], 'evaluation order changed')
++    require(not result['evaluated'] or state['quota_filled'], 'evaluation before quota closure')
++    by_key = {q.key: q for q in requests()}
++    for k in result['evaluated']:
++        start = read_json(root/'evaluation_starts'/(k+'.json'))
++        require(start == {'key': k, 'selection_sha256': file_meta(root/'selection.json')['sha256']},
++                'evaluation not bound to sealed selection')
++        validate_evaluation(by_key[k], read_json(root/'evaluations'/(k+'.json')), proofs[k])
++    # No accepted result may hide an extra generated/evaluated coordinate.
++    if result['status'] in ('complete', 'reserve_exhausted'):
++        actual_requests = {p.stem for p in (root/'requests').glob('*.json')}
++        require(actual_requests == set(state['attempted']), 'extra/missing generation artifact')
++        actual_evals = {p.stem for p in (root/'evaluations').glob('*.json')}
++        require(actual_evals == set(result['evaluated']), 'extra/missing evaluation artifact')
++        actual_starts = {p.stem for p in (root/'evaluation_starts').glob('*.json')}
++        require(actual_starts == set(result['evaluated']), 'extra evaluation invocation')
++        allowed = {'plan.json', 'selection.json', 'result.json', 'manifest.json'}
++        for k in state['attempted']:
++            allowed.update({f'starts/{k}.json', f'requests/{k}.json', f'attempts/{k}/call.json'})
++            allowed.update(f"attempts/{k}/attempt_{e['attempt_index']}.json" for e in proofs[k]['attempt_envelopes'])
++        for k in result['evaluated']:
++            allowed.update({f'evaluation_starts/{k}.json', f'evaluations/{k}.json'})
++        require(set(before) == allowed, 'extra/unaccounted invocation evidence')
++    if result['status'] == 'complete':
++        require(result['rc'] == 0 and result['error'] is None and state['quota_filled']
++                and result['evaluated'] == state['selected'] and len(result['evaluated']) == 16,
++                'false successful batch')
++    elif result['status'] == 'reserve_exhausted':
++        require(result['rc'] == 4 and state['stop'] == 'reserve_exhausted' and not result['evaluated'],
++                'exhaustion must remain non-success with no evaluation')
++    else:
++        require(result['status'] == 'error' and result['rc'] == 3 and result['error'] is not None,
++                'unknown terminal state')
++    require(before == tree_snapshot(root), 'verification changed/read unstable input')
++    return {'evidence_consistent': True, 'engineering_batch_complete': result['status'] == 'complete',
++            'status': result['status'], 'plan_sha256': plan['plan_sha256'],
++            'n_requests': len(state['attempted']), 'n_selected': len(state['selected']),
++            'n_evaluated': len(result['evaluated']), 'scope': CONTRACT}
++
++
++def main(argv=None) -> int:
++    ap = argparse.ArgumentParser(description=__doc__)
++    sub = ap.add_subparsers(dest='command', required=True)
++    sub.add_parser('plan', help='print fixed contract without generating data')
++    p = sub.add_parser('run'); p.add_argument('--out', type=Path, required=True)
++    p = sub.add_parser('verify'); p.add_argument('--root', type=Path, required=True)
++    args = ap.parse_args(argv)
++    try:
++        if args.command == 'plan':
++            print(canonical(fixed_contract())); return 0
++        if args.command == 'verify':
++            report = verify(args.root)
++            print(canonical(report))
++            return 0 if report['engineering_batch_complete'] else 1
++        from r17_c3_reserve_adapter import RealC3Backend, verify_sources
++        backend = RealC3Backend()
++        result = execute(args.out, backend, source_guard=verify_sources)
++        print(canonical({'status': result['status'], 'rc': result['rc'], 'out': str(args.out)}))
++        return result['rc']
++    except Exception as exc:
++        print(canonical({'status': 'invocation_failed', 'error_type': type(exc).__name__,
++                         'error': str(exc)[:2000]}), file=sys.stderr)
++        return 2
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_reserve_delivery.py
+@@ -0,0 +1,48 @@
++#!/usr/bin/env python3
++"""Read-only composition: monitored-run required bytes AND C3 batch semantics.
++No historical aggregate is rewritten; no training or generation imports.
++"""
++import argparse
++from pathlib import Path
++import sys
++from r17_c3_reserve_batch import verify, read_json, canonical, file_meta, require
++from r17_required_bytes import delivery_check
++
++
++def check(root, record):
++    root=root.resolve(strict=True); record=record.resolve(strict=True)
++    require(record.is_relative_to(root), 'record outside delivery root')
++    identity=file_meta(record)
++    r=read_json(record)
++    require(r.get('task_kind')=='engineering', 'not an engineering run')
++    require(r.get('run_id')==record.parent.name, 'run identity/path mismatch')
++    argv=r.get('argv')
++    require(isinstance(argv,list) and len(argv)==5 and Path(argv[1]).name=='r17_c3_reserve_batch.py'
++            and argv[2:4]==['run','--out'], 'business was not the fixed reserve-batch command')
++    # Archived absolute argv is a provenance string, not a path to read.
++    original_out=Path(argv[4])
++    require(original_out.name=='c3_finite_reserve' and original_out.parent.name==r['run_id'],
++            'business output was not the expected child of this run')
++    batch=record.parent/'c3_finite_reserve'
++    native=delivery_check(root,record)
++    semantics=verify(batch)
++    after=delivery_check(root,record)
++    require(identity==file_meta(record), 'record changed during composed verification')
++    ok=native['delivery_ok'] and after['delivery_ok'] and semantics['engineering_batch_complete']
++    return {'overall_ok':ok,'native_and_required_before':native,'batch':semantics,
++            'native_and_required_after':after,
++            'scope':'engineering batch only; not calibration/qualification/Stage 2.6.1 PASS'}
++
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__)
++    p.add_argument('--root',type=Path,required=True); p.add_argument('--record',type=Path,required=True)
++    a=p.parse_args()
++    try:
++        result=check(a.root,a.record); print(canonical(result)); return 0 if result['overall_ok'] else 1
++    except Exception as exc:
++        print(canonical({'overall_ok':False,'error':type(exc).__name__+': '+str(exc)}))
++        return 1
++
++
++if __name__=='__main__': raise SystemExit(main())
+--- /dev/null
++++ b/stage2_6_1/runner/r17_c3_reserve_source_lock.py
+@@ -0,0 +1,2 @@
++# Generated by guarded installer; not a historical execution identity.
++SOURCE_SHA256 = {'rl_curriculum.curriculum261_api': '74f4ae979aa073bc117fc57101a6214550a31fe8c945ae9072dbd9bfd7c4c1b2', 'rl_curriculum.curriculum261_r17_registry': '1dd8454fcf532fa930790ad778cf93be500122739ddc02c21126b1f36f2cf10a', 'rl_curriculum.curriculum261_c3': '773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72', 'rl_curriculum.curriculum261_pairs': 'f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd', 'rl_curriculum.curriculum261_generation_envelope': 'bcb9a8a6882566457d403461e7746216ace98865045aec9353aefadecce8e09d', 'rl_curriculum.curriculum261_qualification': '2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67', 'r17_required_bytes': '5e19231a0d787e0c0ddeb2b513978ed3c7eb963938500bddacdaa1c85b776874', 'r17_c3_reserve_adapter': 'e3950ccc12b87e40ec4b844b2f16fc640c245ae98318b56719bc883264c7d58f', 'r17_c3_reserve_batch': 'd8b84d48eb524b08b976197062a03e69a85e809c0abca71c1f93c052e2c63d87', 'r17_c3_reserve_delivery': '0674b9b8ff00b12b7b2ffb972cbc9273254106f926bc4c6e5a9e3fa10a766c67'}
+--- a/stage2_6_1/src/rl_curriculum/curriculum261_api.py
++++ b/stage2_6_1/src/rl_curriculum/curriculum261_api.py
+@@ -621,6 +621,8 @@
+     "c2_independent_holdout_r17", "c2_independent_qualification_r17",
+     "stress_r17", "fresh_holdout_r17", "training_r17",
+     "ppo_smoke_r17",
++    # C3 finite-reserve v1: engineering-only; no formal authorization.
++    "c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17",
+ )
+ 
+ #: R17 正式资格面(数据入口四件套;§6.5)。
+--- a/stage2_6_1/src/rl_curriculum/curriculum261_r17_registry.py
++++ b/stage2_6_1/src/rl_curriculum/curriculum261_r17_registry.py
+@@ -80,6 +80,8 @@
+     "c2_independent_holdout_r17", "c2_independent_qualification_r17",
+     "stress_r17", "fresh_holdout_r17", "training_r17",
+     "ppo_smoke_r17",
++    # C3 finite-reserve v1: engineering-only; no formal authorization.
++    "c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17",
+ )
+ 
+ #: 白名单一致性(api 为单一权威;启动时对齐校验)。
+--- /dev/null
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_reserve_batch.py
+@@ -0,0 +1,387 @@
++"""Finite reserve policy tests: fixture data, NOT production generation evidence."""
++from __future__ import annotations
++import copy
++import hashlib
++import importlib.util
++import json
++from pathlib import Path
++import subprocess
++import sys
++
++import pytest
++
++HERE = Path(__file__).resolve()
++for base in HERE.parents:
++    for runner in (base/'implementation', base/'runner', base/'stage2_6_1'/'runner'):
++        if (runner/'r17_c3_reserve_batch.py').is_file():
++            sys.path.insert(0, str(runner)); break
++    else:
++        continue
++    break
++else:
++    raise RuntimeError('reserve implementation not found')
++import r17_c3_reserve_batch as m
++
++GENERATOR = {'family': 'c3_cost', 'version': 'cur261-c3-v4', 'fixture': True}
++
++
++def proof(q, accepted=True, attempts=None):
++    n = attempts if attempts is not None else (1 if accepted else 5)
++    rp = {**m.PARAMS[q.rung], 'cur261_rung': q.rung}
++    call = {**q.coordinate, 'iteration': 'r17', 'max_attempts': 5, 'rung_params': rp,
++            'generator': GENERATOR, 'split': 'curriculum261_'+q.coordinate['namespace'], 'timeframe': '15m'}
++    call['digest'] = m.envelope_digest(call, True)
++    envs, logs = [], []
++    for i in range(n):
++        passed = accepted and i == n-1
++        codes = [] if passed else ['A:too_few_distractors','B:too_few_distractors','pair:too_few_distractors']
++        env = {**q.coordinate, 'iteration':'r17', 'attempt_index':i, 'outer_seed':m.expected_seed(q,i),
++               'internal_derived_seed':m.expected_seed(q,i)//2, 'split':call['split'], 'timeframe':'15m',
++               'seed_derivation_fields':{**q.coordinate,'attempt':i,'stage_id':'stage2_6_1'},
++               'generator':GENERATOR, 'exception':None, 'generator_state_changed':False,
++               'generator_state_changed_since_call_start':False, 'accepted':passed,
++               'structural_validator_results':codes, 'rejection_reasons':codes,
++               'base_params':{s:{**rp,'pair_variant':s,'episode_bars':288,'initial_price':1.0} for s in ('A','B')},
++               'event_table':{s:{'bars':288,'hidden_digest':'hidden-fixture',
++                                'episode_content_hash':'ce-'+hashlib.sha256(f'{q.key}/{i}/{s}'.encode()).hexdigest(),
++                                'counts':{'n_signals':10,'n_above_cost':6 if s=='A' else 0,
++                                          'n_below_cost':4 if s=='A' else 10,'n_distractors':2 if passed else 0}}
++                              for s in ('A','B')}}
++        env['digest'] = m.envelope_digest(env)
++        envs.append(env)
++        logs.append({'index':i,'accepted':passed,'reason':'; '.join(codes)})
++    hashes = {s:envs[-1]['event_table'][s]['episode_content_hash'] for s in ('A','B')} if accepted else {}
++    return {'coordinate':q.coordinate,'status':'accepted' if accepted else 'structural_rejected',
++            'recorder_errors':[], 'call_envelope':call,'attempt_envelopes':envs,
++            'episode_hashes':hashes,'integrity':{'family':m.FAMILY,'rung':q.rung,'pair_index':q.index,'pass':True},
++            'attempt_log':{'family':m.FAMILY,'rung':q.rung,'pair_index':q.index,
++                           'seed_namespace':q.coordinate['namespace'],'max_attempts':5,
++                           'selected_attempt':n-1 if accepted else None,
++                           'attempts':logs,'output_episode_hashes':hashes}}
++
++
++def ev(q,p,negative=False):
++    rows=[]
++    for side in ('A','B'):
++        row={'rung':q.rung,'pair':q.index,'side':side,'episode_hash':p['episode_hashes'][side]}
++        row.update({'always_flat':0.,'always_long':-.002,'c3_cost_ignorant':-.05,
++                    'reference':-.12 if negative else .10,'oracle':-.1 if negative else .20})
++        rows.append(row)
++    means={n:sum(r[n] for r in rows)/2 for n in m.POLICIES}
++    return {'family':m.FAMILY,'episodes':rows,'policy_means':means,
++            'difficulty_metric':means['reference']-max(0.,means['always_long']),
++            'reference_beats_required_baselines':means['reference']>max(means[n] for n in m.POLICIES[:3]),
++            'oracle_positive':means['oracle']>0}
++
++
++class Fixture:
++    def __init__(self,rejected=(),fail=None,negative=False,evaluation_fail=None):
++        self.rejected=set(rejected); self.fail=fail; self.negative=negative
++        self.evaluation_fail=evaluation_fail; self.calls=[]; self.evaluated=[]; self.root=None
++    def describe(self):
++        return {'kind':'test_fixture','generator':GENERATOR}
++    def generate(self,q,observe):
++        self.calls.append(q.key)
++        if q.key==self.fail:
++            raise PermissionError('fixture permission denied; not structural')
++        p=proof(q,q.key not in self.rejected)
++        observe('call',p['call_envelope'])
++        for e in p['attempt_envelopes']: observe('attempt',e)
++        return m.Generated(p,p if p['status']=='accepted' else None)
++    def evaluate(self,q,handle):
++        assert self.root is None or (self.root/'selection.json').is_file()
++        self.evaluated.append(q.key)
++        if q.key==self.evaluation_fail:
++            raise OSError('evaluation failed')
++        return ev(q,handle,self.negative)
++
++
++def execute(tmp_path,backend=None):
++    backend=backend or Fixture()
++    backend.root=tmp_path/'batch'
++    out=m.execute(backend.root,backend)
++    return out,backend
++
++
++def resign(root):
++    path=root/'manifest.json'
++    path.write_text(m.canonical({'contract':m.CONTRACT,'files':{
++        k:v for k,v in m.tree_snapshot(root).items() if k!='manifest.json'}})+'\n')
++
++
++def save(path,doc):
++    path.write_text(m.canonical(doc)+'\n')
++
++
++def test_happy_all_primaries_and_no_reserves(tmp_path):
++    out,b=execute(tmp_path)
++    assert out['rc']==0 and len(b.calls)==16 and len(b.evaluated)==16
++    assert all(k.endswith(('p0','p1')) for k in b.calls)
++    r=m.verify(b.root,allow_test_fixture=True)
++    assert r['engineering_batch_complete'] and r['n_requests']==16
++    assert all(v=='not_needed' for k,v in out['schedule']['states'].items() if k.endswith(('p2','p3')))
++
++
++@pytest.mark.parametrize('split',tuple(m.NAMESPACES))
++@pytest.mark.parametrize('rung',m.RUNGS)
++def test_same_stratum_reserve_only(split,rung,tmp_path):
++    failed=f'{split}_{rung}_p0'
++    out,b=execute(tmp_path,Fixture([failed]))
++    assert out['rc']==0 and len(b.calls)==17
++    assert f'{split}_{rung}_p2' in b.calls and f'{split}_{rung}_p3' not in b.calls
++    assert failed not in b.evaluated
++    m.verify(b.root,allow_test_fixture=True)
++
++
++def test_reject_one_reserve_then_next(tmp_path):
++    out,b=execute(tmp_path,Fixture(['main_D0_p0','main_D0_p2']))
++    assert b.calls[:4]==['main_D0_p0','main_D0_p1','main_D0_p2','main_D0_p3']
++    assert out['rc']==0 and len(b.evaluated)==16
++
++
++def test_both_primaries_rejected_uses_two_reserves(tmp_path):
++    out,b=execute(tmp_path,Fixture(['main_D0_p0','main_D0_p1']))
++    assert out['schedule']['selected'][:2]==['main_D0_p2','main_D0_p3']
++    assert out['rc']==0
++
++
++def test_finite_exhaustion_stops_entire_batch_before_eval(tmp_path):
++    out,b=execute(tmp_path,Fixture([f'main_D0_p{i}' for i in range(4)]))
++    assert out['rc']==4 and len(b.calls)==4 and not b.evaluated
++    r=m.verify(b.root,allow_test_fixture=True)
++    assert r['evidence_consistent'] and not r['engineering_batch_complete']
++    assert out['schedule']['states']['validation_D0_p0']=='not_started'
++
++
++def test_maximum_32_requests_160_attempt_bound(tmp_path):
++    class Slow(Fixture):
++        def generate(self,q,observe):
++            self.calls.append(q.key)
++            p=proof(q,q.index>=2,attempts=5)
++            observe('call',p['call_envelope'])
++            for e in p['attempt_envelopes']: observe('attempt',e)
++            return m.Generated(p,p if q.index>=2 else None)
++    out,b=execute(tmp_path,Slow())
++    assert out['rc']==0 and len(b.calls)==32
++    assert len(list((b.root/'attempts').glob('*/attempt_*.json')))==160
++
++
++def test_negative_performance_not_a_membership_gate(tmp_path):
++    out,b=execute(tmp_path,Fixture(negative=True))
++    assert out['rc']==0 and len(b.calls)==16
++    assert m.verify(b.root,allow_test_fixture=True)['engineering_batch_complete']
++
++
++def test_evaluator_error_does_not_generate_replacement(tmp_path):
++    out,b=execute(tmp_path,Fixture(evaluation_fail='main_D0_p1'))
++    assert out['rc']==3 and len(b.calls)==16 and len(b.evaluated)==2
++    assert out['evaluated']==['main_D0_p0']
++    assert not any(k.endswith('p2') for k in b.calls)
++    m.verify(b.root,allow_test_fixture=True)
++
++
++def test_nonstructural_error_stops_immediately(tmp_path):
++    out,b=execute(tmp_path,Fixture(fail='main_D0_p0'))
++    assert out['rc']==3 and b.calls==['main_D0_p0'] and b.evaluated==[]
++    m.verify(b.root,allow_test_fixture=True)
++
++
++def test_new_output_no_overwrite(tmp_path):
++    out,b=execute(tmp_path)
++    before=m.tree_snapshot(b.root)
++    with pytest.raises(FileExistsError): m.execute(b.root,Fixture())
++    assert before==m.tree_snapshot(b.root)
++
++
++def test_source_guard_prevents_generation(tmp_path):
++    b=Fixture()
++    def fail(): raise m.EvidenceError('source drift')
++    result=m.execute(tmp_path/'batch',b,source_guard=fail)
++    assert result['rc']==3 and b.calls==[]
++
++
++def test_source_guard_before_evaluation(tmp_path):
++    b=Fixture(); calls=[]
++    def guard():
++        calls.append(1)
++        if len(calls)==2: raise m.EvidenceError('changed source')
++    result=m.execute(tmp_path/'batch',b,source_guard=guard)
++    assert result['rc']==3 and len(b.calls)==16 and not b.evaluated
++
++
++@pytest.mark.parametrize('mutation',[
++    'missing_envelope','bad_digest','wrong_namespace','wrong_seed','null_internal_seed',
++    'missing_side','generator_error','nuisance_failure','unknown_rejection','missing_param',
++    'wrong_param','recorder_failure','selected_hashes','wrong_generator','state_drift',
++    'accepted_with_reasons','rejection_short','accepted_integrity_false','wrong_log_namespace'])
++def test_proof_faults_fail_closed(mutation):
++    q=m.Request('main','D0',0); p=proof(q)
++    if mutation=='rejection_short': p=proof(q,False,4)
++    e=p['attempt_envelopes'][0]
++    if mutation=='missing_envelope': p['attempt_envelopes']=[]
++    elif mutation=='bad_digest': e['digest']='bad'
++    elif mutation=='wrong_namespace': e['namespace']='qualification_r17'
++    elif mutation=='wrong_seed': e['outer_seed']+=1
++    elif mutation=='null_internal_seed': e['internal_derived_seed']=None
++    elif mutation=='missing_side': del e['event_table']['B']
++    elif mutation=='generator_error': e['exception']='arbitrary generator failure'
++    elif mutation in ('nuisance_failure','unknown_rejection'):
++        p=proof(q,False); e=p['attempt_envelopes'][0]
++        e['rejection_reasons']=e['structural_validator_results']=[
++            'pair:nuisance_volume_identical' if mutation=='nuisance_failure' else 'PnL_too_low']
++        p['attempt_log']['attempts'][0]['reason']='; '.join(e['rejection_reasons'])
++    elif mutation=='missing_param': del e['base_params']['A']['alpha_bps']
++    elif mutation=='wrong_param': e['base_params']['B']['distractor_rate']=.9
++    elif mutation=='recorder_failure': p['recorder_errors']=['disk failure']
++    elif mutation=='selected_hashes':
++        p['episode_hashes']={s:'ce-'+'0'*64 for s in ('A','B')}
++        p['attempt_log']['output_episode_hashes']=p['episode_hashes']
++    elif mutation=='wrong_generator': e['generator']={'changed':True}
++    elif mutation=='state_drift': e['generator_state_changed']=True
++    elif mutation=='accepted_with_reasons': e['rejection_reasons']=['A:too_few_signals']
++    elif mutation=='accepted_integrity_false': p['integrity']['pass']=False
++    elif mutation=='wrong_log_namespace': p['attempt_log']['seed_namespace']='elsewhere'
++    if mutation!='bad_digest': e['digest']=m.envelope_digest(e)
++    with pytest.raises((m.EvidenceError,KeyError)):
++        m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++@pytest.mark.parametrize('field',['alpha_bps','payoff_bars','vol_bps','cue_rate','mixture','distractor_rate'])
++def test_deleted_param_even_with_valid_digest(field):
++    q=m.Request('main','D2',1); p=proof(q)
++    e=p['attempt_envelopes'][0]; del e['base_params']['B'][field]
++    e['digest']=m.envelope_digest(e)
++    with pytest.raises(m.EvidenceError): m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++@pytest.mark.parametrize('side',['A','B'])
++def test_three_downstream_hashes_cannot_override_selected(side):
++    q=m.Request('main','D0',0); p=proof(q)
++    p['episode_hashes'][side]='ce-'+'a'*64
++    p['attempt_log']['output_episode_hashes']=p['episode_hashes']
++    with pytest.raises(m.EvidenceError): m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++@pytest.mark.parametrize('mutation',['reorder','selection','extra_request','extra_eval','modified_plan','hide_rejection'])
++def test_cold_semantic_tamper_even_when_manifest_resigned(tmp_path,mutation):
++    out,b=execute(tmp_path,Fixture(['main_D0_p0']))
++    rp=b.root/'result.json'; r=m.read_json(rp)
++    if mutation=='reorder': r['results'][0],r['results'][1]=r['results'][1],r['results'][0]; save(rp,r)
++    elif mutation=='selection':
++        sp=b.root/'selection.json'; s=m.read_json(sp); s['selected'][0]='validation_D0_p0'; save(sp,s)
++    elif mutation=='extra_request': save(b.root/'requests'/'main_D0_p9.json',{})
++    elif mutation=='extra_eval': save(b.root/'evaluations'/'main_D0_p9.json',{})
++    elif mutation=='modified_plan':
++        pp=b.root/'plan.json'; p=m.read_json(pp); p['contract']['reserve_indices'].append(4); save(pp,p)
++    elif mutation=='hide_rejection': r['results'].pop(0); save(rp,r)
++    resign(b.root)
++    with pytest.raises(m.EvidenceError): m.verify(b.root,allow_test_fixture=True)
++
++
++@pytest.mark.parametrize('mutation',['delete','append','same_length'])
++def test_bytes_tamper(tmp_path,mutation):
++    out,b=execute(tmp_path)
++    path=b.root/'selection.json'; data=path.read_bytes()
++    if mutation=='delete': path.unlink()
++    elif mutation=='append': path.write_bytes(data+b' ')
++    else: path.write_bytes(b'['+data[1:])
++    with pytest.raises(m.EvidenceError): m.verify(b.root,allow_test_fixture=True)
++
++
++def test_verify_does_not_write(tmp_path):
++    out,b=execute(tmp_path); before=m.tree_snapshot(b.root)
++    m.verify(b.root,allow_test_fixture=True)
++    assert before==m.tree_snapshot(b.root)
++
++
++def test_cli_refuses_fixture_as_real_evidence(tmp_path):
++    out,b=execute(tmp_path)
++    p=subprocess.run([sys.executable,m.__file__,'verify','--root',str(b.root)],capture_output=True,text=True)
++    assert p.returncode!=0 and 'fixture is not real' in p.stderr
++
++
++def test_plan_cli_zero_business_import(tmp_path):
++    p=subprocess.run([sys.executable,m.__file__,'plan'],capture_output=True,text=True)
++    assert p.returncode==0
++    c=json.loads(p.stdout); assert c['max_pair_requests']==32 and c['max_attempt_envelopes']==160
++
++
++def test_read_duplicate_keys_and_nan(tmp_path):
++    path=tmp_path/'bad.json'
++    for text in ['{"x":1,"x":2}','{"x":NaN}']:
++        path.write_text(text)
++        with pytest.raises(m.EvidenceError): m.read_json(path)
++
++
++def test_existing_temp_not_deleted(tmp_path,monkeypatch):
++    monkeypatch.setattr(m.secrets,'token_hex',lambda n:'fixed')
++    conflict=tmp_path/'.x.json.fixed.tmp'; conflict.write_text('NOT OWNED')
++    with pytest.raises(FileExistsError): m.new_json(tmp_path/'x.json',{'x':1})
++    assert conflict.read_text()=='NOT OWNED'
++
++
++def test_existing_target_preserved(tmp_path):
++    target=tmp_path/'out.json'; target.write_text('OLD')
++    with pytest.raises(FileExistsError): m.new_json(target,{})
++    assert target.read_text()=='OLD'
++    assert len(list(tmp_path.iterdir()))==1
++
++
++def test_hidden_parameter_override_rejected():
++    q=m.Request('main','D0',0);p=proof(q);e=p['attempt_envelopes'][0]
++    e['base_params']['A']['noise_mutate_from']=10;e['digest']=m.envelope_digest(e)
++    with pytest.raises(m.EvidenceError):m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++def test_unused_reserve_cannot_have_hidden_attempt_file(tmp_path):
++    out,b=execute(tmp_path)
++    p=b.root/'attempts'/'main_D0_p2'/'attempt_0.json';p.parent.mkdir();save(p,{})
++    resign(b.root)
++    with pytest.raises(m.EvidenceError):m.verify(b.root,allow_test_fixture=True)
++
++
++def test_evaluation_values_do_not_change_selection(tmp_path):
++    a=tmp_path/'positive';a.mkdir();b=tmp_path/'negative';b.mkdir()
++    r1,f1=execute(a,Fixture(['main_D0_p0'],negative=False))
++    r2,f2=execute(b,Fixture(['main_D0_p0'],negative=True))
++    assert r1['schedule']==r2['schedule']
++    assert (f1.root/'selection.json').read_bytes()==(f2.root/'selection.json').read_bytes()
++
++
++def test_six_attempts_not_allowed():
++    q=m.Request('main','D0',0);p=proof(q,False,6)
++    with pytest.raises(m.EvidenceError):m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++def test_reordered_selected_envelope_fails():
++    q=m.Request('validation','D3',0);p=proof(q,True,2)
++    p['attempt_envelopes'].reverse()
++    with pytest.raises(m.EvidenceError):m.validate_proof(q,p,m.make_plan(Fixture().describe()))
++
++
++@pytest.mark.parametrize('stage',['request','evaluation'])
++def test_written_invalid_evidence_is_preserved_and_not_substituted(tmp_path,stage):
++    class Broken(Fixture):
++        def generate(self,q,observe):
++            g=super().generate(q,observe)
++            if stage=='request':g.proof['integrity']['pass']=False
++            return g
++        def evaluate(self,q,h):
++            v=super().evaluate(q,h)
++            if stage=='evaluation':v['episodes'][0]['episode_hash']='ce-'+'f'*64
++            return v
++    r,b=execute(tmp_path,Broken())
++    assert r['rc']==3
++    if stage=='request':
++        assert len(b.calls)==1 and len(b.evaluated)==0
++        assert (b.root/'requests'/'main_D0_p0.json').is_file()
++    else:
++        assert len(b.calls)==16 and len(b.evaluated)==1
++        assert (b.root/'evaluations'/'main_D0_p0.json').is_file()
++
++
++def test_self_consistent_digest_does_not_hide_wrong_rejection_count():
++    q=m.Request('main','D0',0);p=proof(q,False)
++    e=p['attempt_envelopes'][0];e['event_table']['A']['counts']['n_distractors']=2
++    e['digest']=m.envelope_digest(e)
++    with pytest.raises(m.EvidenceError,match='count/rejection-reason'):m.validate_proof(q,p,m.make_plan(Fixture().describe()))
+--- a/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py
++++ b/stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py
+@@ -59,7 +59,8 @@
+     def test_registry_alignment(self):
+         doc = verify_r17_registry_alignment()
+         assert doc["api_namespaces_match"] and doc["api_formal_match"]
+-        assert doc["n_namespaces"] == 87 and doc["n_formal"] == 4
++        assert doc["n_namespaces"] == 89 and doc["n_formal"] == 4
++        assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
+         assert doc["unique"]
+ 
+     def test_formal_four_namespaces_fresh(self):
