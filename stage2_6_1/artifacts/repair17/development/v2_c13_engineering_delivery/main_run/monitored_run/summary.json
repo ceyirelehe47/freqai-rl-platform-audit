@@ -1,0 +1,256 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "v2c13eng_20260910T140213_115963",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea",
+ "argv": [
+  "python",
+  "/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_v2_c13_pipeline.py",
+  "run",
+  "--out",
+  "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/run_supervision/runs/v2c13eng_20260910T140213_115963/v2_c13_engineering"
+ ],
+ "business": {
+  "rc": 3,
+  "signal": null,
+  "protector": {
+   "pgid": 116034,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "v2c13eng_20260-worker_exit-58",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=3",
+   "severity": "WORKER",
+   "first_seen_mono": 58.4,
+   "last_seen_mono": 58.4,
+   "samples": 1,
+   "peak": {
+    "rc": 3,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 37.83833694458008,
+  "task_tree_rss_max_gib": 0.282623291015625,
+  "task_cpu_max_delta_s": 3.33,
+  "win_free_phys_min_gib": 31.007,
+  "win_commit_max_pct": 68.56
+ },
+ "coverage": {
+  "guest_last_mono": 58.18731605698122,
+  "win_last_mono": 56.39552856699447,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 0,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 2.9195540490036365,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-10T14:02:18Z"
+ },
+ "io": {
+  "submitted": 19,
+  "accepted": 19,
+  "ok": 19,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 19,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 139055635674816
+  },
+  "win": {
+   "protocol": "r17-native-sampler-v1",
+   "stop_requested": true,
+   "started": true,
+   "native_exit_confirmed": true,
+   "exited": true,
+   "waited": true,
+   "unconfirmed": false,
+   "terminal_verified": true,
+   "errors": [],
+   "token": "89bf94c71ce46235f2376c3b920d8d5a6a229b8801a8ae6b7e632b111cbce5a0",
+   "run_id": "v2c13eng_20260910T140213_115963",
+   "windows_pid": 138788,
+   "creation_filetime": "134335225366885480",
+   "native_status": "absent",
+   "forced": false,
+   "native_proof": {
+    "token": "89bf94c71ce46235f2376c3b920d8d5a6a229b8801a8ae6b7e632b111cbce5a0",
+    "creation_filetime": "134335225366885480",
+    "identity_matched": false,
+    "finished_utc": "2026-09-10T14:03:14.8334203Z",
+    "native_exited": true,
+    "actual_creation_filetime": "",
+    "pid": 138788,
+    "win32_error": 87,
+    "forced": false,
+    "run_id": "v2c13eng_20260910T140213_115963",
+    "status": "absent",
+    "protocol": "r17-native-sampler-v1"
+   },
+   "telemetry": {
+    "bytes": 9319,
+    "sha256": "df752bc602f67a6b79d9eea5b100a936f9d99d47f54058d8fd8f730e043d08bc",
+    "stable_during_read": true
+   },
+   "terminal_reason": "stop_requested",
+   "interop_pid": 116031,
+   "interop_exited": true
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "summary_failure": null,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded",
+  "control_failures": []
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 58.42174458698719,
+  "establish_reason": "finalize",
+  "remaining_at_write": 118.78,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_native_stop_confirm",
+    "requested": 30.0,
+    "remaining": 119.995,
+    "allowed": 30.0
+   },
+   {
+    "phase": "win_interop_reap",
+    "requested": 1.0,
+    "remaining": 118.874,
+    "allowed": 1.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 118.872,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 118.852,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 28617,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:02:17Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:02:18Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.9s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:02:18Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:02:18Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:03:13Z",
+   "stage": "business_exited",
+   "note": "rc=3"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-10T14:03:13Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 116031,
+  "windows": 138788
+ },
+ "written_utc": "2026-09-10T14:03:15Z"
+}

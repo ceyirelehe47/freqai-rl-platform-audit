@@ -1,0 +1,956 @@
+# -*- coding: utf-8 -*-
+"""阶段 2.6.1 Repair R15:共享 calibration/final orchestration(§12)。
+
+R9 确认输入(orchestration 缺陷):
+- cmd_calibrate 是一条手写长流程:holdout 三处评估错传 v2_main、
+  supervised 少传 namespace、reference equivalence 只留布尔值;
+  正式 CLI 与 preplan rehearsal 走两套代码 —— rehearsal 通过不代表
+  正式路径可用。
+
+R15 修复(§12.4 共享 Orchestrator):
+- 正式 calibrate(main/holdout)与 preplan rehearsal 调用同一
+  orchestration 函数 orchestrate_calibration_bundle_r15;
+- 唯一差异通过 R15ExecutionProfile 表达:namespace 集合与样本量
+  (§12:只允许 execution profile 改变样本量和 namespace);
+- 每个 evaluator 显式收到 routing(fail closed,§9);
+- supervised 调用 keyword-only(§7);reference equivalence 走
+  canonical 合同并落盘逐 mismatch 明细(§10/§11);
+- main 与 holdout 各自独立评估、独立 gate(禁 pooled rescue)。
+"""
+
+from __future__ import annotations
+
+import json
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from rl_curriculum.curriculum261_api import (
+    CURRICULUM261_FAMILIES,
+    CURRICULUM261_RUNGS,
+)
+from rl_curriculum.curriculum261_pairs import family_specs, generate_pair
+from rl_curriculum.curriculum261_production_obs import (
+    PRODUCTION_FEATURE_COLUMNS,
+)
+from rl_curriculum.curriculum261_r15_reference import (
+    reference_equivalence_run_r15,
+)
+from rl_curriculum.curriculum261_r15_routing import (
+    R15BundleRouting,
+    RoutingLedgerR15,
+    require_eval_routing_r15,
+)
+from rl_curriculum.curriculum261_r4_obs import r4_observation_schema
+from rl_curriculum.curriculum261_r4_preprocessing import (
+    RouteCPreprocessorV2,
+    adversarial_out_of_range_probe,
+    validate_observation_space_v2,
+)
+from rl_curriculum.curriculum261_r3_calibration import (
+    fit_matrix_from_records,
+)
+from rl_curriculum.curriculum261_r3_preprocessing import (
+    RouteCPreprocessor,
+    numerical_equivalence_report,
+)
+from rl_curriculum.curriculum261_r4_pairs import EVAL_CFG
+from rl_curriculum.curriculum261_r4_preprocessing import (
+    fit_manifest_multiset_hash,
+)
+from rl_curriculum.curriculum261_r6_calibration import (
+    fit_preprocessor_v2_from_bank_r6,
+)
+
+#: R15 supervised 正式 model seeds(§17:3 个全新 seeds;R15 与 R10
+#: 的 20261001-3 不重合)。
+R15_SUPERVISED_MODEL_SEEDS: tuple[int, ...] = (
+    20270111, 20270112, 20270113)
+R15_SUPERVISED_GATE: dict[str, Any] = {
+    # repair R15(B2):min_seeds_passing 语义 = 每个 gated control
+    # (W、B)各自至少 2/3 个 distinct model seeds 通过(control-run
+    # 计数不得冒充 seed 计数;U 仅诊断,不进入正式 gate 计数)。
+    "min_seeds_passing": 2,
+    "n_model_seeds": 3,
+    "heldout_balanced_accuracy_min": 0.60,
+    "behavior_gap_min": 0.20,
+    "mlp_arch": [128, 128],
+    "gated_controls": ["W", "B"],
+}
+CALIBRATION_PAIRS_PER_RUNG_R15 = 10
+C2_INDEPENDENT_PAIRS_PER_RUNG_R15 = 20
+SEMANTIC_BLOCKS_PER_CORPUS_R15 = 160
+EQUIVALENCE_PAIRS_PER_RUNG_R15 = 3
+
+
+@dataclass(frozen=True)
+class R15ExecutionProfile:
+    """execution profile:样本量与 namespace(唯一允许的差异维度)。"""
+
+    name: str
+    preplan: bool
+    c13_eval_namespace: str
+    equivalence_namespace: str
+    supervised_namespace: str
+    semantic_namespace: str
+    c2_matched_namespace: str
+    c2_independent_namespace: str
+    c13_pairs_per_rung: int
+    c2_blocks: int
+    semantic_blocks: int
+    c2_independent_pairs_per_rung: int
+    supervised_pairs_per_rung: int
+    supervised_train_pair_limit: int
+    supervised_model_seeds: tuple
+    equivalence_pairs_per_rung: int
+    write_artifacts: bool = True
+    artifact_suffix: str = ""
+    #: repair R15(工作包 C):shadow 路由类(工程 rehearsal;非正式)
+    shadow: bool = False
+    #: repair R15(工作包 C):supervised 训练配置(仅允许缩短纯训练
+    #: 计算 —— epoch/model seeds;不得改变生成调用路径覆盖)
+    supervised_training_config: dict[str, Any] | None = None
+
+    def artifact(self, base: str) -> str:
+        return f"{base}{self.artifact_suffix}"
+
+
+def formal_main_profile_r15(n_blocks: int) -> R15ExecutionProfile:
+    return R15ExecutionProfile(
+        name="formal_main", preplan=False,
+        c13_eval_namespace="calibration_r15",
+        equivalence_namespace="calibration_r15",
+        supervised_namespace="supervised_main_r15",
+        semantic_namespace="cue_semantic_calibration_r15",
+        c2_matched_namespace="calibration_r15",
+        c2_independent_namespace="c2_independent_calibration_r15",
+        c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        c2_blocks=int(n_blocks),
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=R15_SUPERVISED_MODEL_SEEDS,
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+    )
+
+
+def formal_holdout_profile_r15(n_blocks: int) -> R15ExecutionProfile:
+    return R15ExecutionProfile(
+        name="formal_holdout", preplan=False,
+        c13_eval_namespace="calibration_holdout_r15",
+        equivalence_namespace="calibration_holdout_r15",
+        supervised_namespace="supervised_holdout_r15",
+        semantic_namespace="cue_semantic_holdout_r15",
+        c2_matched_namespace="calibration_holdout_r15",
+        c2_independent_namespace="c2_independent_holdout_r15",
+        c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        c2_blocks=int(n_blocks),
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=R15_SUPERVISED_MODEL_SEEDS,
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+    )
+
+
+def rehearsal_main_profile_r15() -> R15ExecutionProfile:
+    return R15ExecutionProfile(
+        name="rehearsal_main", preplan=True,
+        c13_eval_namespace="preplan_calibration_main_r15",
+        equivalence_namespace="preplan_calibration_main_r15",
+        supervised_namespace="preplan_supervised_main_r15",
+        semantic_namespace="preplan_semantic_main_r15",
+        c2_matched_namespace="preplan_calibration_main_r15",
+        c2_independent_namespace="preplan_calibration_main_r15",
+        c13_pairs_per_rung=1,
+        c2_blocks=2,
+        semantic_blocks=4,
+        c2_independent_pairs_per_rung=2,
+        supervised_pairs_per_rung=4,
+        supervised_train_pair_limit=2,
+        supervised_model_seeds=(20270115,),
+        equivalence_pairs_per_rung=1,
+        write_artifacts=False,
+    )
+
+
+def rehearsal_holdout_profile_r15() -> R15ExecutionProfile:
+    return R15ExecutionProfile(
+        name="rehearsal_holdout", preplan=True,
+        c13_eval_namespace="preplan_calibration_holdout_r15",
+        equivalence_namespace="preplan_calibration_holdout_r15",
+        supervised_namespace="preplan_supervised_holdout_r15",
+        semantic_namespace="preplan_semantic_validation_r15",
+        c2_matched_namespace="preplan_calibration_holdout_r15",
+        c2_independent_namespace="preplan_calibration_holdout_r15",
+        c13_pairs_per_rung=1,
+        c2_blocks=2,
+        semantic_blocks=4,
+        c2_independent_pairs_per_rung=2,
+        supervised_pairs_per_rung=4,
+        supervised_train_pair_limit=2,
+        supervised_model_seeds=(20270115,),
+        equivalence_pairs_per_rung=1,
+        write_artifacts=False,
+    )
+
+
+# ------------------------------------------------ 工作包 C:full-scale shadow
+#: shadow 的 C2 matched block 数:取 FORMAL_BLOCK_OPTIONS={10,15,20} 的
+#: 最大值 —— 无论 R15 机械选出哪个 n,shadow 的生成坐标都是其超集
+#: (block index 0..19 覆盖 0..14 与 0..9)。
+SHADOW_C2_BLOCKS_R15 = 20
+#: shadow 的 supervised 训练削减(只允许缩短纯训练计算;不得改变
+#: 生成调用路径覆盖):1 个 model seed + 少 epoch。
+SHADOW_SUPERVISED_MODEL_SEEDS: tuple[int, ...] = (20270121,)
+SHADOW_SUPERVISED_TRAINING_CONFIG: dict[str, Any] = {"epochs": 2}
+
+
+def shadow_main_profile_r15() -> R15ExecutionProfile:
+    """full-scale shadow main(工作包 C):正式规模生成,削减纯训练。
+
+    生成基数 = formal main(c13 10/rung、equiv 3/rung、supervised
+    10/rung 全 family 全 rung、semantic 160、independent 20/rung、
+    c2 matched 20 blocks);唯一削减 = supervised 的 model seeds 与
+    epoch(不改变任何生成调用路径覆盖)。
+    """
+    return R15ExecutionProfile(
+        name="shadow_main", preplan=False, shadow=True,
+        c13_eval_namespace="shadow_calibration_main_r15",
+        equivalence_namespace="shadow_calibration_main_r15",
+        supervised_namespace="shadow_supervised_main_r15",
+        semantic_namespace="shadow_semantic_main_r15",
+        c2_matched_namespace="shadow_calibration_main_r15",
+        c2_independent_namespace="shadow_c2_independent_main_r15",
+        c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        c2_blocks=SHADOW_C2_BLOCKS_R15,
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=SHADOW_SUPERVISED_MODEL_SEEDS,
+        supervised_training_config=dict(SHADOW_SUPERVISED_TRAINING_CONFIG),
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+    )
+
+
+def shadow_holdout_profile_r15() -> R15ExecutionProfile:
+    """full-scale shadow holdout(与 shadow_main 对称;独立 namespace)。"""
+    return R15ExecutionProfile(
+        name="shadow_holdout", preplan=False, shadow=True,
+        c13_eval_namespace="shadow_calibration_holdout_r15",
+        equivalence_namespace="shadow_calibration_holdout_r15",
+        supervised_namespace="shadow_supervised_holdout_r15",
+        semantic_namespace="shadow_semantic_validation_r15",
+        c2_matched_namespace="shadow_calibration_holdout_r15",
+        c2_independent_namespace="shadow_c2_independent_holdout_r15",
+        c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        c2_blocks=SHADOW_C2_BLOCKS_R15,
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=SHADOW_SUPERVISED_MODEL_SEEDS,
+        supervised_training_config=dict(SHADOW_SUPERVISED_TRAINING_CONFIG),
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+    )
+
+
+# --------------------------------- R15RealArtifactCliRoundTrip-v1 profiles
+#: rt(round-trip rehearsal)profiles:正式生成基数 + rt3_*_r15
+#: rehearsal-only namespace + write_artifacts=True(上一步真实写出的
+#: artifact 必须成为 lock-plan/preflight-sealed 真实读取的输入;§四-4)。
+#: supervised 使用全量训练(3 个独立 rt seeds + 正式训练配置):rt 的
+#: robustness gate 是正式 gate 语义(min_seeds_passing=2/3),削减
+#: 训练会使 supervised gate 必然 FAIL(首抽教训);rt seeds
+#: (20270132-4)与正式(20270111-3)/preplan(20270115)/shadow(20270121)
+#: 不重合。
+RT_SUPERVISED_MODEL_SEEDS: tuple[int, ...] = (
+    20270132, 20270133, 20270134)
+RT_SUPERVISED_TRAINING_CONFIG: dict[str, Any] | None = None
+#: rt 的 c2 matched block 数:取 FORMAL_BLOCK_OPTIONS 最大值(生成坐标
+#: 为任何机械选择结果的超集;与 SHADOW_C2_BLOCKS_R15 同理)。
+RT_C2_BLOCKS_R15 = 20
+#: rt 的 c13 评估规模(rehearsal-only):c3 的 D2/D3 难度阶梯在
+#: 10 pairs/rung 下的 κ=1.5 margin 接近临界(三代语料实测:D3 均值
+#: 跨代 0.003-0.011,gap ratio 0.27-1.9;R12 正式属幸运抽)。rehearsal
+#: 的目的是接口覆盖而非统计资格;把 c13 评估扩到 60/rung(SE 缩
+#: ~√6)使真实效应主导 gate,工程 rehearsal 稳定可复现。正式链
+#: CALIBRATION_PAIRS_PER_RUNG_R15=10 冻结不变。
+RT_C13_PAIRS_PER_RUNG = 60
+
+
+def rt_main_profile_r15() -> R15ExecutionProfile:
+    """round-trip rehearsal main:正式生成规模 + rt namespace + 落盘。"""
+    return R15ExecutionProfile(
+        name="rt_main", preplan=False, shadow=False,
+        c13_eval_namespace="rt3_calibration_main_r15",
+        equivalence_namespace="rt3_calibration_main_r15",
+        supervised_namespace="rt3_supervised_main_r15",
+        semantic_namespace="rt3_semantic_main_r15",
+        c2_matched_namespace="rt3_calibration_main_r15",
+        c2_independent_namespace="rt3_c2_independent_main_r15",
+        c13_pairs_per_rung=RT_C13_PAIRS_PER_RUNG,
+        c2_blocks=RT_C2_BLOCKS_R15,
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=RT_SUPERVISED_MODEL_SEEDS,
+        supervised_training_config=(dict(RT_SUPERVISED_TRAINING_CONFIG)
+                                   if RT_SUPERVISED_TRAINING_CONFIG
+                                   else None),
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+        write_artifacts=True,
+    )
+
+
+def rt_holdout_profile_r15() -> R15ExecutionProfile:
+    """round-trip rehearsal holdout(与 rt_main 对称;独立 namespace)。"""
+    return R15ExecutionProfile(
+        name="rt_holdout", preplan=False, shadow=False,
+        c13_eval_namespace="rt3_calibration_holdout_r15",
+        equivalence_namespace="rt3_calibration_holdout_r15",
+        supervised_namespace="rt3_supervised_holdout_r15",
+        semantic_namespace="rt3_semantic_validation_r15",
+        c2_matched_namespace="rt3_calibration_holdout_r15",
+        c2_independent_namespace="rt3_c2_independent_holdout_r15",
+        c13_pairs_per_rung=RT_C13_PAIRS_PER_RUNG,
+        c2_blocks=RT_C2_BLOCKS_R15,
+        semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R15,
+        c2_independent_pairs_per_rung=C2_INDEPENDENT_PAIRS_PER_RUNG_R15,
+        supervised_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R15,
+        supervised_train_pair_limit=6,
+        supervised_model_seeds=RT_SUPERVISED_MODEL_SEEDS,
+        supervised_training_config=(dict(RT_SUPERVISED_TRAINING_CONFIG)
+                                   if RT_SUPERVISED_TRAINING_CONFIG
+                                   else None),
+        equivalence_pairs_per_rung=EQUIVALENCE_PAIRS_PER_RUNG_R15,
+        write_artifacts=True,
+    )
+
+
+# ------------------------------------------------ robustness battery(§18)
+def preprocessing_robustness_checks_r15(
+        routing_main: R15BundleRouting,
+        routing_holdout: R15BundleRouting,
+        records_main: list, records_holdout: list,
+        eval_records_main: list, eval_records_holdout: list,
+        equiv_records_main: list, equiv_records_holdout: list,
+        pack: dict[str, Any], *,
+        profile: R15ExecutionProfile,
+        ledger: RoutingLedgerR15,
+        profile_holdout: R15ExecutionProfile | None = None) -> dict[str, Any]:
+    """§18 Preprocessing V2 重新资格审查(R15 版;结构承 R6 电池)。
+
+    与 R6 的差异(全部为 R9 缺陷修复):
+    - reference equivalence 不再用单一 v2_main:main/holdout 各自的
+      equiv records 绑定各自 bundle,经显式 routing 校验;
+    - equivalence 走 canonical 合同(§11),逐 mismatch 明细落盘,
+      unexplained==0 才 pass;
+    - eval/isolation 检查按 role 分开记录。
+    """
+    from rl_curriculum.curriculum261_r6_param_pack import verify_r4_inheritance
+
+    checks: dict[str, Any] = {}
+    v2_main = routing_main.bundle(
+        expected_role="main", context="robustness_battery")
+    v2_holdout = routing_holdout.bundle(
+        expected_role="holdout", context="robustness_battery")
+
+    checks["survival_main"] = bool(
+        v2_main.retained_columns == list(PRODUCTION_FEATURE_COLUMNS))
+    checks["survival_holdout"] = bool(
+        v2_holdout.retained_columns == list(PRODUCTION_FEATURE_COLUMNS))
+    checks["fit_bank_integrity"] = bool(
+        all(r.integrity_ok for r in records_main)
+        and all(r.integrity_ok for r in records_holdout))
+
+    fit_df = fit_matrix_from_records(records_main)
+    half = len(fit_df) // 2
+    eq = numerical_equivalence_report(fit_df.iloc[:half],
+                                      fit_df.iloc[half:])
+    checks["production_numerical_equivalence"] = bool(eq["pass"])
+
+    with tempfile.TemporaryDirectory() as td:
+        epath = Path(td) / "envelope.json"
+        v2_main.serialize_envelope(epath)
+        reloaded = RouteCPreprocessorV2.load_envelope(epath)
+        sample = fit_matrix_from_records(eval_records_main[:4])
+        t1 = v2_main.transform(sample)
+        t2 = reloaded.transform(sample)
+        checks["envelope_reload_bundle_identity_stable"] = bool(
+            reloaded.bundle_hash == v2_main.bundle_hash)
+        checks["envelope_reload_transform_bitwise_equal"] = bool(
+            np.array_equal(t1.to_numpy(), t2.to_numpy()))
+        tampered = json.loads(epath.read_text(encoding="utf-8"))
+        tampered["fit_manifest"]["entries"][0]["episode_hash"] = \
+            "ce-tampered"
+        tpath = Path(td) / "tampered_manifest.json"
+        tpath.write_text(json.dumps(tampered), encoding="utf-8")
+        try:
+            RouteCPreprocessorV2.load_envelope(tpath)
+            checks["manifest_tamper_rejected"] = False
+        except RuntimeError:
+            checks["manifest_tamper_rejected"] = True
+        tampered2 = json.loads(epath.read_text(encoding="utf-8"))
+        tampered2["parameter_state"]["scaler"]["data_min_"][0] += 1e-6
+        tpath2 = Path(td) / "tampered_params.json"
+        tpath2.write_text(json.dumps(tampered2), encoding="utf-8")
+        try:
+            RouteCPreprocessorV2.load_envelope(tpath2)
+            checks["parameter_state_tamper_rejected"] = False
+        except RuntimeError:
+            checks["parameter_state_tamper_rejected"] = True
+
+    rng = np.random.default_rng(31415)
+    perm = rng.permutation(len(fit_df))
+    inner_shuffled = RouteCPreprocessor.build_and_fit(
+        fit_df.iloc[perm])
+    v2_shuffled = RouteCPreprocessorV2(
+        inner_shuffled, v2_main.entries, v2_main.namespace)
+    checks["staged_mixed_same_parameter_state_hash"] = bool(
+        v2_shuffled.parameter_state_hash == v2_main.parameter_state_hash)
+    checks["staged_mixed_same_bundle_hash"] = bool(
+        v2_shuffled.bundle_hash == v2_main.bundle_hash)
+
+    shuffled_entries = list(v2_main.entries)
+    rng2 = np.random.default_rng(27182)
+    order = rng2.permutation(len(shuffled_entries))
+    checks["manifest_order_invariant_multiset_hash"] = bool(
+        fit_manifest_multiset_hash(
+            [shuffled_entries[i] for i in order])
+        == v2_main.manifest_multiset_hash)
+
+    dup_records = list(records_main) + [records_main[0]]
+    v2_dup = fit_preprocessor_v2_from_bank_r6(
+        v2_main.namespace, pack, records=dup_records,
+        parameter_pack_identity=pack.get("digest"))[0]
+    checks["different_multiset_same_params_same_param_hash"] = bool(
+        v2_dup.parameter_state_hash == v2_main.parameter_state_hash)
+    checks["different_multiset_different_bundle"] = bool(
+        v2_dup.bundle_hash != v2_main.bundle_hash)
+
+    scaled_dfs = [v2_main.transform_episode_df(
+        rec.episodes[s].df) for rec in eval_records_main[:8]
+        for s in ("A", "B")]
+    space_validation = validate_observation_space_v2(
+        scaled_dfs, scaled_dfs, EVAL_CFG,
+        [int(rec.episodes[s].spec.seed)
+         for rec in eval_records_main[:8] for s in ("A", "B")],
+        context="preprocessing_robustness_r15")
+    checks["observation_space_v2"] = space_validation
+    adversarial = adversarial_out_of_range_probe(v2_main, EVAL_CFG)
+    checks["adversarial_out_of_range_probe"] = adversarial
+    checks["no_nan_inf"] = bool(all(
+        np.isfinite(sdf[list(PRODUCTION_FEATURE_COLUMNS)].to_numpy()
+                    ).all() for sdf in scaled_dfs))
+
+    state = v2_main.inner.fitted_state()
+    checks["position_identity"] = bool(
+        len(state["input_columns"]) == 8
+        and len(state["retained_columns"]) == 8
+        and state["position_slot"]["participates_in_fit"] is False
+        and state["position_slot"]["scaled"] is False)
+
+    checks["bundle_verification_main"] = v2_main.verify()
+    checks["bundle_verification_holdout"] = v2_holdout.verify()
+    n_expected = 2 * len(records_main)
+    checks["fit_manifest_provenance_complete"] = bool(
+        len(v2_main.entries) == n_expected
+        and all(e.episode_hash and e.feature_matrix_hash
+                and e.generator_identity for e in v2_main.entries))
+
+    sample_t_main = v2_main.transform(sample).to_numpy()
+    sample_t_hold = v2_holdout.transform(sample).to_numpy()
+    checks["dual_fit_transform_max_abs_diff"] = float(np.max(np.abs(
+        sample_t_main - sample_t_hold)))
+    checks["state_hashes_distinct"] = bool(
+        v2_main.parameter_state_hash
+        != v2_holdout.parameter_state_hash)
+
+    checks["r4_inheritance_verified"] = verify_r4_inheritance(pack)
+
+    # ---- reference equivalence(main/holdout 各自;canonical 合同)----
+    profile_hold = profile_holdout or profile
+    for role, routing, equiv_records, prof in (
+            ("main", routing_main, equiv_records_main, profile),
+            ("holdout", routing_holdout, equiv_records_holdout,
+             profile_hold)):
+        v2 = require_eval_routing_r15(
+            routing, prof.equivalence_namespace,
+            context=f"reference_equivalence_{role}", ledger=ledger)
+        report = reference_equivalence_run_r15(
+            equiv_records, v2, pack,
+            eval_namespace=prof.equivalence_namespace,
+            ledger=ledger)
+        checks[f"reference_equivalence_{role}"] = {
+            "pass": report["pass"],
+            "n_episodes": report["n_episodes"],
+            "canonical_scaled_full_equality": report[
+                "canonical_scaled_full_equality"],
+            "legacy_action_diffs_total": report[
+                "legacy_action_diffs_total"],
+            "unexplained_mismatches": report["unexplained_mismatches"],
+            "float64_math_path_pass": report["float64_math_path"]["pass"],
+        }
+        if role == "main":
+            checks["reference_equivalence_main_detail"] = report
+        else:
+            checks["reference_equivalence_holdout_detail"] = report
+    checks["reference_equivalence_all"] = bool(
+        checks["reference_equivalence_main"]["pass"]
+        and checks["reference_equivalence_holdout"]["pass"])
+    checks["routing_matrix_all_pass"] = ledger.all_pass()
+
+    core_ok = bool(
+        checks["survival_main"] and checks["survival_holdout"]
+        and checks["fit_bank_integrity"]
+        and checks["production_numerical_equivalence"]
+        and checks["envelope_reload_bundle_identity_stable"]
+        and checks["envelope_reload_transform_bitwise_equal"]
+        and checks["manifest_tamper_rejected"]
+        and checks["parameter_state_tamper_rejected"]
+        and checks["staged_mixed_same_parameter_state_hash"]
+        and checks["staged_mixed_same_bundle_hash"]
+        and checks["manifest_order_invariant_multiset_hash"]
+        and checks["different_multiset_same_params_same_param_hash"]
+        and checks["different_multiset_different_bundle"]
+        and space_validation["pass"] and adversarial["pass"]
+        and checks["no_nan_inf"] and checks["position_identity"]
+        and checks["bundle_verification_main"]["pass"]
+        and checks["bundle_verification_holdout"]["pass"]
+        and checks["fit_manifest_provenance_complete"]
+        and checks["reference_equivalence_all"]
+        and checks["r4_inheritance_verified"]["pass"]
+        and checks["routing_matrix_all_pass"])
+    return {
+        "format": "cur261-r15-preprocessing-robustness-v1",
+        "iteration": "r15",
+        "profile": profile.name,
+        "checks": checks,
+        "production_equivalence": eq,
+        "routing_matrix": ledger.matrix(),
+        "pass": core_ok,
+    }
+
+
+# ------------------------------------------------------ 共享编排(§12.4)
+def _generate_eval_records(
+        pack: dict[str, Any], namespace: str,
+        pairs_per_rung: int, override_fn: Any) -> list:
+    """按 namespace 生成 C1/C3 评估 records(每 family 每 rung)。"""
+    from rl_curriculum.curriculum261_pairs import generate_pair as _gp
+
+    records = []
+    for family in ("c1_opportunity", "c3_cost"):
+        override = override_fn(family, pack)
+        for rung in CURRICULUM261_RUNGS:
+            for idx in range(pairs_per_rung):
+                records.append(_gp(
+                    family, rung, idx, namespace=namespace,
+                    rung_params_override=override))
+    return records
+
+
+def _generate_equiv_records(
+        pack: dict[str, Any], namespace: str,
+        pairs_per_rung: int, override_fn: Any) -> list:
+    """equiv records 覆盖全部三个 family(reference equivalence 电池)。"""
+    from rl_curriculum.curriculum261_pairs import generate_pair as _gp
+
+    records = []
+    for family in CURRICULUM261_FAMILIES:
+        override = override_fn(family, pack)
+        for rung in CURRICULUM261_RUNGS:
+            for idx in range(pairs_per_rung):
+                records.append(_gp(
+                    family, rung, idx, namespace=namespace,
+                    rung_params_override=override))
+    return records
+
+
+def run_full_supervised_release_rehearsal(out_dir: Path) -> dict[str, Any]:
+    """§16-B:Full Supervised Release Rehearsal(Commit A 前至少一次)。
+
+    与 R11 shadow(单 seed/2 epochs)不同,本 rehearsal 覆盖正式数值
+    训练面:
+    - 正式 3 个 model seeds(R15_SUPERVISED_MODEL_SEEDS);
+    - 正式 W/B/U controls 与 training config(无 epochs 削减);
+    - 三 families;
+    - main 与 holdout 两条路径(各自独立 fit bundle + supervised);
+    - distinct-seed gate 机械计算(W≥2/3 ∧ B≥2/3;U 仅诊断)。
+
+    该结果是 development evidence,不是正式资格证据;不用于挑选课程
+    参数。使用 preplan namespace(preplan_fit_main_r15 /
+    preplan_supervised_main_r15 等)。
+    """
+    from rl_curriculum.curriculum261_r15_calibration import (
+        fit_preprocessor_v2_from_bank_r15,
+        generate_fit_bank_r15,
+        supervised_learnability_run_r15,
+    )
+    from rl_curriculum.curriculum261_r15_param_pack import (
+        r15_override_for,
+    )
+    from rl_curriculum.curriculum261_r15_shadow import _shadow_pack
+
+    out_dir = Path(out_dir)
+    pack = _shadow_pack()
+    override_fn = lambda family, p: r15_override_for(family, p)  # noqa: E731
+    roles: dict[str, Any] = {}
+    any_nan_inf = False
+    alignment_failures: list[str] = []
+    for role, fit_ns, sup_ns in (
+            ("main", "preplan_fit_main_r15", "preplan_supervised_main_r15"),
+            ("holdout", "preplan_fit_holdout_r15",
+             "preplan_supervised_holdout_r15")):
+        records = generate_fit_bank_r15(fit_ns, pack, pairs_per_rung=2)
+        bundle, manifest = fit_preprocessor_v2_from_bank_r15(
+            fit_ns, pack, records=records, pairs_per_rung=2,
+            parameter_pack_identity=str(pack.get("digest", "")))
+        sup = supervised_learnability_run_r15(
+            bundle, pack, namespace=sup_ns,
+            pairs_per_rung=10, train_pair_limit=6,
+            model_seeds=R15_SUPERVISED_MODEL_SEEDS)
+        for fam, fam_row in (sup.get("label_alignment") or {}).items():
+            if int(fam_row.get("n_alignment_failures", 0)) > 0:
+                alignment_failures.append(
+                    f"{role}/{fam}:{fam_row['n_alignment_failures']}")
+        def _scan(obj: Any) -> bool:
+            if isinstance(obj, float):
+                return bool(obj != obj or obj in (float("inf"),
+                                                 float("-inf")))
+            if isinstance(obj, dict):
+                return any(_scan(v) for v in obj.values())
+            if isinstance(obj, (list, tuple)):
+                return any(_scan(v) for v in obj)
+            return False
+
+        any_nan_inf = any_nan_inf or _scan(sup)
+        families = sup.get("families", {})
+        roles[role] = {
+            "fit_namespace": fit_ns,
+            "supervised_namespace": sup_ns,
+            "model_seeds": list(R15_SUPERVISED_MODEL_SEEDS),
+            "training_config": sup.get("training_config", {}),
+            "alignment_all_ok": sup.get("alignment_all_ok"),
+            "overall_pass": sup.get("pass"),
+            "per_family": {
+                fam: {
+                    "pass": row.get("pass"),
+                    "W_passing_seeds": row.get(
+                        "distinct_seed_gate", {}).get(
+                        "distinct_seed_count_by_control", {}).get("W"),
+                    "B_passing_seeds": row.get(
+                        "distinct_seed_gate", {}).get(
+                        "distinct_seed_count_by_control", {}).get("B"),
+                } for fam, row in families.items()},
+        }
+        (out_dir / f"full_supervised_rehearsal_{role}.json").write_text(
+            json.dumps(sup, indent=1, ensure_ascii=False, default=str),
+            encoding="utf-8")
+    result = {
+        "format": "cur261-r15-full-supervised-release-rehearsal-v1",
+        "development_evidence_only": True,
+        "not_used_for_parameter_selection": True,
+        "formal_model_seeds": list(R15_SUPERVISED_MODEL_SEEDS),
+        "formal_gate_constants": R15_SUPERVISED_GATE,
+        "roles": roles,
+        "nan_or_inf_detected": any_nan_inf,
+        "alignment_failures": alignment_failures,
+        "distinct_seed_gate_recomputed": True,
+        "pass": bool(
+            not any_nan_inf and not alignment_failures
+            and all(r.get("alignment_all_ok") is True
+                    and isinstance(r.get("per_family"), dict)
+                    and r["per_family"]
+                    for r in roles.values())),
+    }
+    return result
+
+
+def orchestrate_calibration_stage_r15(
+        out_dir: Path, pack: dict[str, Any], *,
+        n_blocks: int, recall_floor_value: float,
+        routing_main: R15BundleRouting,
+        routing_holdout: R15BundleRouting,
+        records_main: list, records_holdout: list,
+        profile_main: R15ExecutionProfile,
+        profile_holdout: R15ExecutionProfile,
+        override_fn: Any,
+        design_digest: str | None = None,
+        write_artifacts: bool = True) -> dict[str, Any]:
+    """§12.4 正式 calibrate 与 preplan/shadow rehearsal 共享的唯一编排。
+
+    正式:CLI cmd_calibrate 以 formal_main/holdout profiles 调用;
+    rehearsal:preplan 以 rehearsal_* profiles 调用;full-scale shadow
+    以 shadow_* profiles 调用(仅样本量与 namespace 不同;同一函数、
+    同一代码路径)。
+
+    repair R15(工作包 A):整个编排期间打开 generation invocation
+    envelope sink —— 编排内全部 pair attempt(eval/equiv/supervised/
+    c13/matched/independent,含 R6 冻结 runner 内部的 generate_pair
+    调用)逐 attempt 即时写入 generation_invocation_ledger.jsonl
+    (append + fsync;进程异常终止时已完成 attempt 均已持久)。
+    生成失败时 PairGenerationError 自带逐 attempt envelopes(见
+    api.generate_pair_with_attempts)。
+    """
+    from rl_curriculum.curriculum261_generation_envelope import (
+        envelope_sink,
+        ledger_sink_factory,
+    )
+
+    out_dir = Path(out_dir)
+    sink = envelope_sink(ledger_sink_factory(
+        out_dir / "generation_invocation_ledger.jsonl",
+        stage_label=f"orchestration:{profile_main.name}"))
+    with sink:
+        return _orchestrate_calibration_stage_inner_r15(
+            out_dir, pack, n_blocks=n_blocks,
+            recall_floor_value=recall_floor_value,
+            routing_main=routing_main, routing_holdout=routing_holdout,
+            records_main=records_main, records_holdout=records_holdout,
+            profile_main=profile_main, profile_holdout=profile_holdout,
+            override_fn=override_fn, design_digest=design_digest,
+            write_artifacts=write_artifacts)
+
+
+def _orchestrate_calibration_stage_inner_r15(
+        out_dir: Path, pack: dict[str, Any], *,
+        n_blocks: int, recall_floor_value: float,
+        routing_main: R15BundleRouting,
+        routing_holdout: R15BundleRouting,
+        records_main: list, records_holdout: list,
+        profile_main: R15ExecutionProfile,
+        profile_holdout: R15ExecutionProfile,
+        override_fn: Any,
+        design_digest: str | None = None,
+        write_artifacts: bool = True) -> dict[str, Any]:
+    """orchestrate_calibration_stage_r15 的执行核心(envelope sink 内)。"""
+    from rl_curriculum.curriculum261_r15_calibration import (
+        c2_independent_marginal_guard_r15,
+        c2_matched_conditions_r15,
+        run_c2_density_diagnostics_r15,
+        run_c2_independent_corpus_r15,
+        run_c2_matched_corpus_r15,
+        run_c2_semantic_corpus_r15,
+        run_calibration_corpus_c13_r15,
+        supervised_learnability_run_r15,
+    )
+    from rl_curriculum.curriculum261_r6_pairs import (
+        ROBUSTNESS_KAPPA_R6,
+        corpus_conditions_r6_pair,
+    )
+
+    out_dir = Path(out_dir)
+    ledger = RoutingLedgerR15()
+    result: dict[str, Any] = {
+        "format": "cur261-r15-calibration-orchestration-v1",
+        "iteration": "r15",
+        "profiles": [profile_main.name, profile_holdout.name],
+        "design_plan_digest": design_digest,
+        "preplan": profile_main.preplan,
+        "roles": {},
+    }
+
+    def _write(name: str, payload: Any) -> None:
+        if write_artifacts:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            (out_dir / name).write_text(
+                json.dumps(payload, ensure_ascii=False, indent=1,
+                           default=str), encoding="utf-8")
+
+    # ---- §18/§9:robustness 电池(main/holdout 显式 routing)----
+    eval_main = _generate_eval_records(
+        pack, profile_main.c13_eval_namespace,
+        max(profile_main.c13_pairs_per_rung, 1), override_fn)
+    eval_hold = _generate_eval_records(
+        pack, profile_holdout.c13_eval_namespace,
+        max(profile_holdout.c13_pairs_per_rung, 1), override_fn)
+    equiv_main = _generate_equiv_records(
+        pack, profile_main.equivalence_namespace,
+        profile_main.equivalence_pairs_per_rung, override_fn)
+    equiv_hold = _generate_equiv_records(
+        pack, profile_holdout.equivalence_namespace,
+        profile_holdout.equivalence_pairs_per_rung, override_fn)
+    prep_rob = preprocessing_robustness_checks_r15(
+        routing_main, routing_holdout, records_main, records_holdout,
+        eval_main, eval_hold, equiv_main, equiv_hold, pack,
+        profile=profile_main, ledger=ledger,
+        profile_holdout=profile_holdout)
+    _write("preprocessing_v2_requalification.json", prep_rob)
+    _write("production_equivalence.json", prep_rob["production_equivalence"])
+    _write("observation_space_validation.json", {
+        "calibration_corpora": prep_rob["checks"]["observation_space_v2"],
+        "adversarial_out_of_range": prep_rob["checks"][
+            "adversarial_out_of_range_probe"],
+    })
+    _write("bundle_routing_validation.json", {
+        "contract": "cur261-r15-bundle-routing-contract-v1",
+        "matrix": ledger.matrix(),
+        "all_pass": ledger.all_pass(),
+    })
+
+    # ---- §17:supervised main/holdout(keyword-only;显式 routing)----
+    supervised: dict[str, Any] = {}
+    for role, routing, profile in (
+            ("main", routing_main, profile_main),
+            ("holdout", routing_holdout, profile_holdout)):
+        v2_sup = require_eval_routing_r15(
+            routing, profile.supervised_namespace,
+            context=f"supervised_{role}", ledger=ledger)
+        supervised[role] = supervised_learnability_run_r15(
+            v2_sup, pack,
+            namespace=profile.supervised_namespace,
+            pairs_per_rung=profile.supervised_pairs_per_rung,
+            train_pair_limit=profile.supervised_train_pair_limit,
+            model_seeds=profile.supervised_model_seeds,
+            training_config=profile.supervised_training_config)
+        _write(f"supervised_learnability_{role}.json", supervised[role])
+        _write(f"supervised_label_alignment_{role}.json",
+               supervised[role].get("label_alignment", {}))
+        _write(f"supervised_dataset_identity_{role}.json",
+               supervised[role].get("dataset_identity", {}))
+
+    # ---- §19:C1/C3 + semantic + C2 matched + C2 independent(双 role)----
+    stage_roles: dict[str, Any] = {}
+    for role, routing, profile in (
+            ("main", routing_main, profile_main),
+            ("holdout", routing_holdout, profile_holdout)):
+        v2 = require_eval_routing_r15(
+            routing, profile.c13_eval_namespace,
+            context=f"c13_{role}", ledger=ledger)
+        c13 = run_calibration_corpus_c13_r15(
+            v2, pack, profile.c13_eval_namespace,
+            pairs_per_rung=profile.c13_pairs_per_rung)
+        _write(f"pair_evidence_table_{role}.json", {
+            f: c13["families"][f]["pair_table"]
+            for f in ("c1_opportunity", "c3_cost")})
+        v2_m = require_eval_routing_r15(
+            routing, profile.c2_matched_namespace,
+            context=f"c2_matched_{role}", ledger=ledger)
+        c2_matched = run_c2_matched_corpus_r15(
+            v2_m, pack, profile.c2_matched_namespace,
+            n_blocks=profile.c2_blocks)
+        _write(f"c2_block_evidence_table_{role}.json",
+               c2_matched["block_table"])
+        from rl_curriculum.curriculum261_r15_design import (
+            semantic_artifact_filename_r15,
+        )
+
+        semantic = run_c2_semantic_corpus_r15(
+            pack, profile.semantic_namespace,
+            n_blocks=profile.semantic_blocks,
+            out_dir=out_dir if write_artifacts else None,
+            artifact_name=semantic_artifact_filename_r15(
+                profile.semantic_namespace))
+        v2_i = require_eval_routing_r15(
+            routing, profile.c2_independent_namespace,
+            context=f"c2_independent_{role}", ledger=ledger)
+        c2_indep = run_c2_independent_corpus_r15(
+            v2_i, pack, profile.c2_independent_namespace,
+            pairs_per_rung=profile.c2_independent_pairs_per_rung)
+        marginal = c2_independent_marginal_guard_r15(
+            c2_indep, pack, recall_floor_value)
+        matched_conditions = c2_matched_conditions_r15(c2_matched, pack)
+        _write(f"c2_independent_marginal_{role}.json", marginal)
+        # per-role strict curriculum gate(独立;禁 pooled)
+        c13_conditions = {
+            f: corpus_conditions_r6_pair(
+                c13["families"][f], kappa=ROBUSTNESS_KAPPA_R6)
+            for f in ("c1_opportunity", "c3_cost")}
+        curriculum_gate = {
+            "c1": c13_conditions["c1_opportunity"],
+            "c3": c13_conditions["c3_cost"],
+            "c2_matched": matched_conditions,
+            "semantic": semantic,
+            "marginal": marginal,
+        }
+        stage_roles[role] = {
+            "c13": c13, "c2_matched": c2_matched,
+            "semantic": semantic, "c2_independent": c2_indep,
+            "marginal": marginal, "curriculum_gate": curriculum_gate,
+        }
+        result["roles"][role] = {
+            "curriculum_gate_pass": bool(
+                curriculum_gate["c1"]["pass"]
+                and curriculum_gate["c3"]["pass"]
+                and matched_conditions["pass"]
+                and semantic["pass"]
+                and marginal["guard"]["pass"]),
+        }
+    # 密度诊断(跨双语料;诊断性质)
+    density = run_c2_density_diagnostics_r15(
+        stage_roles["main"]["c2_matched"],
+        stage_roles["holdout"]["c2_matched"], pack)
+    _write("c2_density_diagnostics.json", density)
+
+    # ---- §15:GenerationEvidenceCompleteness-v1(治理层重算)----
+    from rl_curriculum.curriculum261_r15_generation_evidence import (
+        ExpectedCall,
+        block_summary_from_matched_block,
+        verify_generation_evidence_completeness,
+    )
+
+    expected_calls: list[ExpectedCall] = []
+    for profile in (profile_main, profile_holdout):
+        n_eval = max(profile.c13_pairs_per_rung, 1)
+        for fam in ("c1_opportunity", "c3_cost"):
+            for rung in CURRICULUM261_RUNGS:
+                for i in range(n_eval):
+                    # eval records + c13 corpus(同坐标两次调用)
+                    expected_calls.append(ExpectedCall(
+                        profile.c13_eval_namespace, fam, rung, i))
+                    expected_calls.append(ExpectedCall(
+                        profile.c13_eval_namespace, fam, rung, i))
+        for fam in CURRICULUM261_FAMILIES:
+            for rung in CURRICULUM261_RUNGS:
+                for i in range(profile.equivalence_pairs_per_rung):
+                    expected_calls.append(ExpectedCall(
+                        profile.equivalence_namespace, fam, rung, i))
+                for i in range(profile.supervised_pairs_per_rung):
+                    expected_calls.append(ExpectedCall(
+                        profile.supervised_namespace, fam, rung, i))
+        for rung in CURRICULUM261_RUNGS:
+            for i in range(profile.c2_independent_pairs_per_rung):
+                expected_calls.append(ExpectedCall(
+                    profile.c2_independent_namespace, "c2_context",
+                    rung, i))
+    block_summaries = []
+    for role in ("main", "holdout"):
+        blocks_role = stage_roles[role]["c2_matched"].get("blocks") or []
+        block_summaries.extend(
+            block_summary_from_matched_block(b) for b in blocks_role)
+    evidence = verify_generation_evidence_completeness(
+        out_dir / "generation_invocation_ledger.jsonl",
+        expected_calls,
+        stage_label=f"orchestration:{profile_main.name}",
+        blocks=block_summaries)
+    _write("generation_evidence_completeness.json", evidence)
+
+    result["preprocessing_robustness_pass"] = prep_rob["pass"]
+    result["routing_matrix_all_pass"] = ledger.all_pass()
+    result["routing_matrix"] = ledger.matrix()
+    result["supervised_main_pass"] = supervised["main"]["pass"]
+    result["supervised_holdout_pass"] = supervised["holdout"]["pass"]
+    result["main_independent_pass"] = result["roles"]["main"][
+        "curriculum_gate_pass"]
+    result["holdout_independent_pass"] = result["roles"]["holdout"][
+        "curriculum_gate_pass"]
+    result["density_pass"] = density["pass"]
+    result["generation_evidence_completeness_pass"] = bool(
+        evidence["pass"])
+    result["pass"] = bool(
+        prep_rob["pass"] and ledger.all_pass()
+        and result["supervised_main_pass"]
+        and result["supervised_holdout_pass"]
+        and result["main_independent_pass"]
+        and result["holdout_independent_pass"]
+        and result["generation_evidence_completeness_pass"])
+    return result
