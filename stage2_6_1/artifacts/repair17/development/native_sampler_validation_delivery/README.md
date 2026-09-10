@@ -6,8 +6,11 @@
 - 候选代码(源代码身份):`29101e0eed42e18c5ebd9337a575fb6ae66504bc`,逐件身份见 [code_identity.json](code_identity.json)
   (基线 `a6fe06f`、supervision blob 守卫 `f36cfff4`、win_sampler blob 守卫 `aa293034`、
   C3 reader `7a5ccc19…` 未改、应用补丁 sha256 `2abf178b…`)。
-- 机器可读索引(逐件路径/原件来源/真实创建时间 mtime/sha256/缺口标注):[run_index.json](run_index.json)
-- 归档时间:2026-09-10(UTC);原件创建时间以 run_index.json 内各件 mtime 为准(2026-09-09 16:44–18:12 UTC 为主)。
+- 机器可读索引(逐件路径/原件来源/原件真实创建时间/归档拷贝时间/sha256/缺口标注):[run_index.json](run_index.json)
+- 归档时间:2026-09-10(UTC);现存原件的真实创建时间记录于 run_index.json 件级 `original_mtime_utc`
+  (读自原件源位置 F:/trading/... 或 WSL /tmp,实测窗口 **2026-09-09T16:48:30Z–18:12:34Z**,与各件内容内嵌时间戳自洽;
+  归档拷贝时间另记 `mtime_utc_at_archive`;六个 run 目录与 rejected.jsonl 未经过拷贝,其文件 mtime 即原件时间。
+  详见 run_index.json 的 original_time_note)。
 - 本索引不引用本次归档提交自身的 SHA(不追填未来提交)。
 
 ## 目录结构
@@ -91,7 +94,8 @@ full2 候选 run `r17ns_full2_20260909T174348` 已在 `29101e0` 入库,本目录
 - 原件:`../run_supervision/runs/r17ns_full_20260909T170411`(junit 316KB、business/stdout.log 58KB、business.rc=1、
   evidence_complete=true)+ 外层 `tmp_r17ns_full.log`(worker_exit 告警、incidents=1、**ENTRY_RC=1**)+ 启动器 `launch_e_full.sh`。
 - 失败原因:非产品回归——pytest 默认字母序下重计算课程文件先于 R17 系执行,其 OpenMP 线程池未被 SigBlk 屏蔽,
-  触发截止前提守卫 control_outcome=7(unshielded_threads,run_record/junit 可查)。
+  触发截止前提守卫 control_outcome=7(unshielded_threads:实证见该 run 的 business/stdout.log,含 R17EMERG
+  `cutoff_premise_detail:"unshielded_threads:82512,82514,82515"` 与守卫断言输出)。
   r3 与 full2 均按既有 full_run_ordered.sh(R17 先跑)机制执行并通过。
   **默认序不重跑,该失败不称通过**。
 - **缺口如实**:当时 13 秒廉价复现(4 errors)仅控制台回显,未存文件。
