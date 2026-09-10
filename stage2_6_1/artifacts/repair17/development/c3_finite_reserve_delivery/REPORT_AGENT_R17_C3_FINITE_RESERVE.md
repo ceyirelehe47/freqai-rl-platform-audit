@@ -33,8 +33,9 @@
 | 接手基线 | `08b3f4a2b9c53529a7de1507bf1a70ae9b771b90` |
 | 前置治理提交 | `69dff57`（28 个 R7/R14/R15 历史 CRLF 入库文件标记 `-text`） |
 | 实现提交 | `9e0bff9f6952b8ba59e9b53198d140b6c10fa7de`（178 文件，+7402/−1） |
-| 当前 HEAD | `9e0bff9` |
-| `origin/route-c-stage2-6-1-repair17` | `9e0bff9`（已同步，无未推送提交） |
+| 当前 HEAD | `9f5547658f194051c00b7ffe3d6e4be8e6c04eaa`（本报告提交） |
+| 实现提交的 HEAD | `9e0bff9`（交付实现提交，本报告的父提交） |
+| `origin/route-c-stage2-6-1-repair17` | `9f55476`（已同步，无未推送提交） |
 
 祖先关系已核实：`08b3f4a` → `69dff57` → `9e0bff9`（`git merge-base --is-ancestor` 均成立）。
 
@@ -455,8 +456,10 @@ stage2_6_1/artifacts/repair17/development/c3_finite_reserve_delivery/
 
 真实批次产物（受监护目录，未改动）：
 `stage2_6_1/artifacts/repair17/development/run_supervision/runs/c3reserve_v1_20260910T050655_93442/c3_finite_reserve/`
-—— `plan.json`、`selection.json`、`requests/`(32)、`attempts/`(18 envelope)、
-`evaluation_starts/`(16)、`evaluations/`(16)、`result.json`、`manifest.json`。
+—— `plan.json`（声明 32 条请求计划）、`selection.json`、`requests/`（**16** 个物化请求文件，
+即实际调用的主请求；其余 16 条 plan 条目为备援，状态 `not_needed` 故未物化）、
+`attempts/`（16 个 `call.json` + **18** 个 `attempt_*.json` envelope）、
+`evaluation_starts/`（16）、`evaluations/`（16）、`result.json`、`manifest.json`。
 
 全量回归受监护目录：
 `.../runs/r17c3fr_full2_20260910T083615/`（第 2 次）、
