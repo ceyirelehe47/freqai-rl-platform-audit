@@ -568,7 +568,8 @@ def test_full_mode_lock_vs_deploy_import_differ(full_eco):
 
 
 def test_full_mode_test_file_deleted_or_changed(full_eco):
-    """删除/变更测试文件:记录集合与实际集合/字节失配 → 拒绝。"""
+    """删除/变更测试文件:记录集合与部署树实际集合/字节失配 → 拒绝
+    (live 复算只针对部署树,即 pytest 实际运行面)。"""
     eco = full_eco
     some = sorted((eco['deploy'] / 'tests' / 'route_c_stage2_6_1').glob(
         'test_*.py'))[0]
@@ -580,17 +581,14 @@ def test_full_mode_test_file_deleted_or_changed(full_eco):
         shutil.copy2(
             eco['release'] / 'stage2_6_1' / 'tests' / 'route_c_stage2_6_1'
             / some.name, some)
-    # 变更字节:hash 失配(release 副本也被改动)。
-    release_copy = eco['release'] / 'stage2_6_1' / 'tests' / (
-        'route_c_stage2_6_1') / some.name
-    release_copy.write_bytes(release_copy.read_bytes() + b'\n# x\n')
+    # 部署树字节变更:hash 失配(发布库副本无关)。
+    data = some.read_bytes()
     try:
+        some.write_bytes(data + b'\n# x\n')
         _expect_reject(eco['auth'], eco['pkg'], 'test_file_hash_mismatch',
                        current_sources=eco['sources'], checks='full')
     finally:
-        shutil.copy2(
-            eco['deploy'] / 'tests' / 'route_c_stage2_6_1' / some.name,
-            release_copy)
+        some.write_bytes(data)
 
 
 def test_full_mode_governance_lock_drift(full_eco):

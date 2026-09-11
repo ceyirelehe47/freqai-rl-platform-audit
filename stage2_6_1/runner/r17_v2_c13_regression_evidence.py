@@ -449,21 +449,19 @@ def verify_package(root: Path, *, authority: Any = None,
                        else Path(run_meta.get('deploy_root', '')))
         release_repo = (Path(release_repo) if release_repo is not None
                         else Path(run_meta.get('release_repo', '')))
-        # 记录路径为部署相对(tests/route_c_stage2_6_1/...);发布库同
-        # 文件在 stage2_6_1/ 之下。任一存在即重算对拍;两边都缺即失败。
+        # 测试文件 live 复算只针对部署树(pytest 实际运行面)。发布库
+        # 历史测试文件在磁盘上可能是 CRLF(同步时剥 CR),逐字节比对
+        # 不构成测试集合绑定;源码成员的双树绑定由 closure 复算承载。
         for rel, sha in sorted(recorded_tests.items()):
-            candidates = [deploy_root / rel,
-                          release_repo / 'stage2_6_1' / rel]
-            found = [p for p in candidates if p.is_file()]
-            if not found:
+            p = deploy_root / rel
+            if not p.is_file():
                 fail('test_file_hash_mismatch',
-                     f'recorded test file missing in both trees: {rel}')
+                     f'recorded test file missing in the deploy tree '
+                     f'(the tree pytest ran on): {rel}')
                 continue
-            for p in found:
-                if _sha256_bytes(p.read_bytes()) != sha:
-                    fail('test_file_hash_mismatch',
-                         f'test file bytes differ from recorded manifest: '
-                         f'{p}')
+            if _sha256_bytes(p.read_bytes()) != sha:
+                fail('test_file_hash_mismatch',
+                     f'test file bytes differ from recorded manifest: {p}')
         # 集合相等:部署树 tests 目录实际文件 == 记录集合。
         tests_dir = deploy_root / 'tests' / 'route_c_stage2_6_1'
         if tests_dir.is_dir():
