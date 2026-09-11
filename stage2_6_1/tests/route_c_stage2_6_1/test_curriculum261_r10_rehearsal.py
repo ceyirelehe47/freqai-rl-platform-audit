@@ -17,11 +17,37 @@ import pytest
 
 @pytest.mark.slow
 def test_full_pipeline_rehearsal_end_to_end_no_monkeypatch(tmp_path):
-    from rl_curriculum.curriculum261_r10_rehearsal import (
-        run_preplan_full_pipeline_rehearsal_r10,
-    )
+    # torch 线程面隔离(v2 轮 S3 全量回归归因):完整 rehearsal 链含
+    # ppo smoke 步骤(import torch),在 pytest 进程留下未屏蔽 CUDA
+    # 线程,使字母序在后的直调形态 supervisor 测试截止点前提核验
+    # rc=7(与 conftest 的 BLAS/CUDA 缓解同族;生产 rehearsal 在独立
+    # 进程执行)。rehearsal 在一次性子进程真实执行,断言语义不变。
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
 
-    report = run_preplan_full_pipeline_rehearsal_r10(tmp_path)
+    src = str(Path(__file__).resolve().parents[2] / 'src')
+    code = (
+        'import json, sys\n'
+        'from rl_curriculum.curriculum261_r10_rehearsal import (\n'
+        '    run_preplan_full_pipeline_rehearsal_r10)\n'
+        'report = run_preplan_full_pipeline_rehearsal_r10('
+        'sys.argv[1])\n'
+        'def _jsonable(o):\n'
+        '    if hasattr(o, "item"): return o.item()\n'
+        '    if hasattr(o, "tolist"): return o.tolist()\n'
+        '    return str(o)\n'
+        'sys.stdout.write(json.dumps(report, default=_jsonable))\n')
+    env = dict(os.environ)
+    env['PYTHONPATH'] = src + (
+        os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH') else '')
+    proc = subprocess.run(
+        [sys.executable, '-c', code, str(tmp_path)],
+        capture_output=True, text=True, timeout=1800, env=env)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    report = json.loads(proc.stdout)
     assert report["pass"], {
         k: v for k, v in report["proofs"].items()
         if v is False or (isinstance(v, dict)

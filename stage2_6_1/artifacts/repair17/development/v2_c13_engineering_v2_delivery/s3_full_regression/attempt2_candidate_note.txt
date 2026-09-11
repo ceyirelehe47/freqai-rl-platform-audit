@@ -1,0 +1,8 @@
+=== S3 attempt2 候选说明 ===
+date: 2026-09-10T19:12:06Z
+attempt1: 1942 passed / 11 failed / 7 skipped / 4 errors
+attempt1 失败归因: torch import 创建未屏蔽 CUDA/autograd/jemalloc 线程
+  (attempts_plan 的 run_ppo_smoke 在 pytest 进程内 import torch;
+   宿主 GPU 直通状态与 v1 轮不同导致 CUDA 懒初始化触发)
+候选2 新增: conftest CUDA_VISIBLE_DEVICES='' 缓解(同 BLAS 缓解性质);
+  TestPpoSmoke.test_256_step_smoke_passes 改子进程执行(线程面隔离)

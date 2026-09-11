@@ -59,8 +59,20 @@ class TestRegistryApi:
     def test_registry_alignment(self):
         doc = verify_r17_registry_alignment()
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
-        assert doc["n_namespaces"] == 89 and doc["n_formal"] == 4
+        # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
+        # = 97;正式集合不变(4)。集合精确性由增量检查承载,不是单纯
+        # 改一个数字绕过集合核验。
+        assert doc["n_namespaces"] == 97 and doc["n_formal"] == 4
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
+        v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
+              "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}
+        v2 = {"preplan_v2c13_v2_fit_main_r17",
+              "preplan_v2c13_v2_fit_validation_r17",
+              "preplan_v2c13_v2_eval_main_r17",
+              "preplan_v2c13_v2_eval_validation_r17"}
+        assert v1 <= set(R17_ALL_NAMESPACES)  # v1 保留,不删除凑数
+        assert v2 <= set(R17_ALL_NAMESPACES)  # v2 精确新增
+        assert not (v1 & v2)
         assert doc["unique"]
 
     def test_formal_four_namespaces_fresh(self):

@@ -1,0 +1,13 @@
+=== S3 attempt3 候选说明 ===
+date: 2026-09-10T21:28:49Z
+attempt2: 1942 passed / 11 failed / 4 errors — cuda driver probe 线程
+  (SigBlk=0) 污染;逐测试定位:r10_preflight 的 preflight/CLI 检查链
+  与 r10_rehearsal/r11_integration/r12_integration 在 pytest 主进程
+  import/触发 torch CUDA probe。
+候选3 新增(全部为测试基建,生产代码零改动):
+  - r10_preflight:prelock 静态 preflight 与两个 CLI 测试整体子进程化
+  - r10_rehearsal:完整 rehearsal 链子进程化
+  - r11/r12_integration:tiny_supervised fixture 子进程化
+  - attempts_plan:PPO smoke 子进程化(候选2)
+  - conftest:CUDA_VISIBLE_DEVICES 缓解(候选2)
+验证:r10 全组+cold_copy 113 passed;preflight 单独探针无 cuda 线程

@@ -15,6 +15,14 @@ for _v in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS",
            "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
+# v2 轮(S3 全量回归归因):torch 在 WSL GPU 直通可用时 import 即
+# 初始化 CUDA 事件/autograd 线程(cuda-EvtHandlr/pt_autograd_0/
+# cuda*),同为未屏蔽 C 层线程,同样使 supervisor 截止点核验按
+# 控制能力失效终结(rc=7)。测试面零 GPU 依赖(curriculum261_smoke
+# 显式 device="cpu"),屏蔽 CUDA 与上面的 BLAS 缓解同性质:只约束
+# 测试进程的第三方线程面,不改生产开关。
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+
 import sys
 from pathlib import Path
 

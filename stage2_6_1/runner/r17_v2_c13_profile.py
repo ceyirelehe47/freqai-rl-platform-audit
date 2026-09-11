@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""Immutable engineering profile for R17 V2 C1/C3 calibration.
+"""Immutable engineering profile for R17 V2 C1/C3 calibration (v2).
 
 This module is the single authority for the fixed plan of
-R17V2C13EngineeringCalibration-v1: namespaces, per-stratum quotas,
+R17V2C13EngineeringCalibration-v2: namespaces, per-stratum quotas,
 parameter snapshot derivation and the one-shot generation claim.
+
+v1 (R17V2C13EngineeringCalibration-v1) closed as an honest engineering
+FAIL at the first C1 request (single-family generator identity check).
+Its namespaces, claim and archived evidence stay untouched and are
+never reused: the v1 constants below are retained read-only for
+regression diagnostics and admission checks only.
 
 It contains no generation code and imports nothing from the deployed
 project at module import time (the heavy imports happen inside
@@ -16,19 +22,29 @@ import json
 from pathlib import Path
 from typing import Any
 
-CONTRACT = 'R17V2C13EngineeringCalibration-v1'
-BASELINE = '3e377add6f6b3ba68c24a50ccfffe7534983ca9b'
-PARENT = '5607876b213af825d618868ba89cb0705cfdc472'
+CONTRACT = 'R17V2C13EngineeringCalibration-v2'
+BASELINE = '769b6d282b6e870491e31e92f96828543d23ab24'
+PARENT = 'b3bb6087dfb886791e82a66745f0816f4949ee33'
 RUNGS = ('D0', 'D1', 'D2', 'D3')
 FIT_FAMILIES = ('c1_opportunity', 'c2_context', 'c3_cost')
 EVAL_FAMILIES = ('c1_opportunity', 'c3_cost')
 FAMILY_C3 = 'c3_cost'
 
-#: 四个新工程 namespace(与 api/registry 双表一致;engineering-only)。
-FIT_NAMESPACES = {'main': 'preplan_v2c13_fit_main_r17',
-                  'validation': 'preplan_v2c13_fit_validation_r17'}
-EVAL_NAMESPACES = {'main': 'preplan_v2c13_eval_main_r17',
-                   'validation': 'preplan_v2c13_eval_validation_r17'}
+#: v1 合同与四 namespace(只读历史:保留旧失败原件的对照身份;不可用于
+#: 新真实生成,v2 admission 拒绝把 v1 proof 填入 v2 配额)。
+V1_CONTRACT = 'R17V2C13EngineeringCalibration-v1'
+V1_BASELINE = '3e377add6f6b3ba68c24a50ccfffe7534983ca9b'
+V1_FIT_NAMESPACES = {'main': 'preplan_v2c13_fit_main_r17',
+                     'validation': 'preplan_v2c13_fit_validation_r17'}
+V1_EVAL_NAMESPACES = {'main': 'preplan_v2c13_eval_main_r17',
+                      'validation': 'preplan_v2c13_eval_validation_r17'}
+
+#: 四个 v2 工程 namespace(与 api/registry 双表一致;engineering-only;
+#: 任务书 §3.1 固定名,不复用任何 v1 namespace)。
+FIT_NAMESPACES = {'main': 'preplan_v2c13_v2_fit_main_r17',
+                  'validation': 'preplan_v2c13_v2_fit_validation_r17'}
+EVAL_NAMESPACES = {'main': 'preplan_v2c13_v2_eval_main_r17',
+                   'validation': 'preplan_v2c13_v2_eval_validation_r17'}
 
 #: 配额(任务书 §3.1)。
 FIT_QUOTA_PER_STRATUM = 6
@@ -163,6 +179,11 @@ def fixed_contract() -> dict[str, Any]:
         'n_fit_manifest_entries_per_bank': 2 * (
             FIT_QUOTA_PER_STRATUM * len(FIT_FAMILIES) * len(RUNGS)),
         'n_main_scaled_eval_episodes': 2 * selected_eval,
+        'n_fit_pairs_per_bank': FIT_QUOTA_PER_STRATUM * len(FIT_FAMILIES)
+        * len(RUNGS),
+        'n_eval_pairs_per_family_per_split': EVAL_QUOTA_PER_STRATUM
+        * len(RUNGS),
+        'canonical_pairs_per_split': 3 * len(EVAL_FAMILIES) * len(RUNGS),
         'c3_reserve_allowed_rejections': sorted(C3_ALLOWED_REJECTIONS),
         'c1_c2_reserve_allowed': False,
         'generation_before_evaluation': True,
@@ -179,6 +200,11 @@ def fixed_contract() -> dict[str, Any]:
             'selected pair counts do not match 144/160 budget')
     require(contract['n_fit_manifest_entries_per_bank'] == 144,
             'fit manifest entries per bank must be 144')
+    require(contract['n_fit_pairs_per_bank'] == 72
+            and contract['n_eval_pairs_per_family_per_split'] == 40
+            and contract['canonical_pairs_per_split'] == 24,
+            'per-bank/per-corpus scales do not match the authorized '
+            'engineering plan')
     return contract
 
 
@@ -279,39 +305,80 @@ def parameter_snapshot() -> dict[str, Any]:
     }
 
 
-def make_plan(runtime: dict[str, Any]) -> dict[str, Any]:
-    contract = fixed_contract()
+def make_plan(runtime: dict[str, Any],
+              contract: dict[str, Any] | None = None) -> dict[str, Any]:
+    """组装计划。contract=None 用权威 fixed_contract()(生产路径);
+    合成链测试可注入小合同(仅测试入口,生产 CLI 不暴露)。请求清单
+    一律从传入合同的 stages 派生,生产合同与 all_requests() 等价。"""
+    contract = fixed_contract() if contract is None else contract
+    requests = []
+    for stage in contract['stages']:
+        for q in stage_requests(stage):
+            requests.append(
+                {'key': request_key(q), 'tier': q['tier'],
+                 **{k: q[k] for k in ('stage', 'kind', 'split',
+                                      'namespace', 'family', 'rung',
+                                      'pair_index')}})
     plan = {'contract': contract, 'contract_sha256': digest(contract),
             'baseline': BASELINE, 'runtime': runtime,
-            'requests': [{'key': request_key(q), 'tier': q['tier'],
-                          **{k: q[k] for k in ('stage', 'kind', 'split',
-                                               'namespace', 'family',
-                                               'rung', 'pair_index')}}
-                         for q in all_requests()]}
+            'requests': requests}
     plan['plan_sha256'] = digest(plan)
     return json.loads(canonical(plan))
 
 
 def validate_plan(plan: dict[str, Any]) -> None:
-    require(plan['contract'] == fixed_contract(),
-            'contract differs from authorized fixed engineering plan')
-    expected = make_plan(plan['runtime'])
-    require(plan == expected, 'plan identity/request list mismatch')
+    require(plan == make_plan(plan['runtime'], plan['contract']),
+            'plan identity/request list mismatch')
     require(plan['runtime']['kind'] in ('real', 'test_fixture'),
             'unknown backend kind')
+    require(plan['runtime'].get('generators') is not None
+            and set(plan['runtime']['generators'])
+            == set(FIT_FAMILIES),
+            'runtime must carry the three-family generator map')
+    if plan['contract'] == fixed_contract():
+        return  # 生产合同:等价即通过
+    # 注入合同(仅合成链):必须自我声明 engineering_only 与 synthetic
+    # 语义,且规模字段与 stages 自洽(不能伪装生产 336 合同)。
+    require(plan['contract'].get('engineering_only') is True
+            and plan['contract'].get('synthetic_profile') is True,
+            'injected contract must be declared synthetic/engineering-only')
+
+
+def _generation_evidence_marker(doc: Any) -> bool:
+    """区分真实生成痕迹与仅计划/任务书/夹具中出现的名字。
+
+    真实生成痕迹的可靠内容特征:proof(call/attempt envelope)或已
+    消费的 claim payload。计划、preclaim 回执、任务书文本即使含有
+    namespace 字符串也不构成消费(任务书 V09)。
+    """
+    if not isinstance(doc, dict):
+        return False
+    if 'call_envelope' in doc or 'attempt_envelopes' in doc:
+        return True
+    if 'consumed_utc' in doc and 'plan_sha256' in doc:
+        return True
+    return False
 
 
 def namespace_unused_evidence(repo_root: Path) -> dict[str, Any]:
-    """运行前核对四个新 namespace 尚未被任何真实生成消费。
+    """运行前核对四个 v2 namespace 尚未被任何真实生成消费。
 
     扫描发布仓库的 artifacts 与部署侧 run 证据目录,寻找包含新
-    namespace 的既有生成记录(排除 registry/api/routing/测试/本轮
-    profile 自身)。只读;结果进入主计划。
+    namespace 的既有记录。命中分为两类:真实生成证据(proof/claim
+    → 已消费,阻止运行)与 planning-only(计划/任务书/夹具中的名字
+    → 不阻止,V09:不能因新计划包含 namespace 就拒绝自身)。
+
+    只读;结果进入主计划。必要根不可读或 JSON 损坏按"未知"报告并
+    停止(V09:不能吞异常后宣布零命中)。
     """
+    import os
+
     repo_root = Path(repo_root) if repo_root is not None \
         else RELEASE_REPO_ROOT
     names = list(FIT_NAMESPACES.values()) + list(EVAL_NAMESPACES.values())
     hits: list[dict[str, Any]] = []
+    planning_hits: list[dict[str, Any]] = []
+    unreadable: list[dict[str, Any]] = []
     scan_roots = [repo_root / 'stage2_6_1' / 'artifacts']
     deploy_runs = Path.home() / 'projects' / 'crypto_rl' / (
         'stage2_6_1_runner')
@@ -320,17 +387,45 @@ def namespace_unused_evidence(repo_root: Path) -> dict[str, Any]:
     for root in scan_roots:
         if not root.is_dir():
             continue
+        if not os.access(root, os.R_OK | os.X_OK):
+            unreadable.append({'path': str(root),
+                               'reason': 'scan root unreadable'})
+            continue
         for path in root.rglob('*.json'):
+            # 归档树内的符号链接(含历史 dangling link)不是 regular
+            # evidence 实体:自然跳过,不算"必要证据不可读"。真实
+            # regular 文件的读取/解析失败仍按未知上报并停止。
+            try:
+                is_regular = path.is_file()
+            except OSError:
+                is_regular = False
+            if not is_regular:
+                continue
             try:
                 text = path.read_text(encoding='utf-8', errors='strict')
-            except (OSError, UnicodeDecodeError):
+            except (OSError, UnicodeDecodeError) as exc:
+                # 必要证据损坏/不可读:报告未知并停止,不吞掉继续。
+                unreadable.append({'path': str(path),
+                                   'reason': f'{type(exc).__name__}'})
                 continue
             found = [n for n in names if n in text]
-            if found:
-                hits.append({'path': str(path), 'namespaces': found})
+            if not found:
+                continue
+            try:
+                doc = json.loads(text)
+            except ValueError:
+                doc = None
+            entry = {'path': str(path), 'namespaces': found}
+            if _generation_evidence_marker(doc):
+                hits.append(entry)
+            else:
+                planning_hits.append(entry)
     return {'scanned_roots': [str(r) for r in scan_roots],
             'n_hits': len(hits), 'hits': hits,
-            'namespaces_unused': not hits}
+            'n_planning_only_hits': len(planning_hits),
+            'planning_only_hits': planning_hits,
+            'unreadable_evidence': unreadable,
+            'namespaces_unused': (not hits) and (not unreadable)}
 
 
 def consume_generation_claim(plan: dict[str, Any]) -> dict[str, Any]:

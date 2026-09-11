@@ -66,6 +66,13 @@ R17_V2C13_ROLE_FIT_NAMESPACE: dict[str, str] = {
     "holdout": "preplan_v2c13_fit_validation_r17",
 }
 
+#: R17V2C13EngineeringCalibration-v2:v2 重跑路由(工程、非正式;v1
+#: namespace 已消费,不复用)。结构与 v1 表一致,仅换 v2 namespace。
+R17_V2C13_V2_ROLE_FIT_NAMESPACE: dict[str, str] = {
+    "main": "preplan_v2c13_v2_fit_main_r17",
+    "holdout": "preplan_v2c13_v2_fit_validation_r17",
+}
+
 #: 评估 namespace → 期望 role(§9.1;正式 + preplan + shadow)。
 R17_EVAL_NAMESPACE_ROLE: dict[str, str] = {
     # ---- 正式 ----
@@ -118,7 +125,21 @@ R17_EVAL_NAMESPACE_ROLE: dict[str, str] = {
     # R17_V2C13_ROLE_FIT_NAMESPACE 注释;不是 frozen holdout)。
     "preplan_v2c13_eval_main_r17": "main",
     "preplan_v2c13_eval_validation_r17": "holdout",
+    # ---- R17V2C13EngineeringCalibration-v2(工程;v2 重跑)----
+    "preplan_v2c13_v2_eval_main_r17": "main",
+    "preplan_v2c13_v2_eval_validation_r17": "holdout",
 }
+
+#: v2c13 各代专属 eval namespace(v2 代际隔离:v2c13v2 路由不得服务
+#: v1 eval namespace,反之亦然;不复用未走到的旧 validation/eval 名)。
+R17_V2C13_EVAL_NAMESPACES: frozenset[str] = frozenset({
+    "preplan_v2c13_eval_main_r17",
+    "preplan_v2c13_eval_validation_r17",
+})
+R17_V2C13_V2_EVAL_NAMESPACES: frozenset[str] = frozenset({
+    "preplan_v2c13_v2_eval_main_r17",
+    "preplan_v2c13_v2_eval_validation_r17",
+})
 
 _ALLOWED_ROLES = ("main", "holdout", "final", "diagnostic")
 
@@ -134,6 +155,12 @@ class R17BundleRouting:
     evaluator 只允许通过 bundle() 取得 preprocessor;构造时即校验
     role 与 fit namespace 的权威映射,任何不匹配立即抛
     RoutingContractError(在生成任何评估结果之前)。
+
+    v2 修复(B4):bundle() 在返回实际对象之前重算其当前三层身份
+    (namespace / parameter_state_hash / manifest_multiset_hash /
+    bundle_hash)并与构造时冻结值对照——缓存字段正确而实际对象被
+    替换/漂移(同 namespace 不同拟合状态、inner 状态被改、envelope
+    文件被换)在取用时被拒绝,而不是只在构造时被检查。
     """
 
     role: str
@@ -149,12 +176,45 @@ class R17BundleRouting:
     rt: bool = False
     #: R17V2C13EngineeringCalibration-v1:V2 C1/C3 工程校准路由类
     v2c13: bool = False
+    #: R17V2C13EngineeringCalibration-v2:v2 重跑路由类
+    v2c13v2: bool = False
 
     @property
     def nonformal(self) -> bool:
         """非正式路由(preplan rehearsal / shadow / rt round-trip /
         v2c13 工程校准)。"""
-        return self.preplan or self.shadow or self.rt or self.v2c13
+        return (self.preplan or self.shadow or self.rt or self.v2c13
+                or self.v2c13v2)
+
+    def actual_object_identity(self) -> dict[str, str]:
+        """实际将返回的 V2 对象的当前三层身份(动态重算)。
+
+        三层 hash 全部是 property:每次访问从对象当前 fitted_state /
+        entries 重算,inner 状态修改或 entries 变化立即反映在此处。
+        """
+        v2 = self._v2
+        return {
+            "namespace": str(v2.namespace),
+            "parameter_state_hash": str(v2.parameter_state_hash),
+            "manifest_multiset_hash": str(v2.manifest_multiset_hash),
+            "bundle_hash": str(v2.bundle_hash),
+        }
+
+    def _require_actual_object_matches_frozen(self, context: str) -> None:
+        actual = self.actual_object_identity()
+        expected = {
+            "namespace": self.fit_namespace,
+            "parameter_state_hash": self.parameter_state_hash,
+            "manifest_multiset_hash": self.manifest_multiset_hash,
+            "bundle_hash": self.bundle_hash,
+        }
+        if actual != expected:
+            drift = {k: (expected[k], actual[k]) for k in expected
+                     if expected[k] != actual[k]}
+            raise RoutingContractError(
+                f"实际 bundle 对象与冻结路由身份不一致(context="
+                f"{context or '<unnamed>'});drift={drift}"
+                f"(fail closed,取用即核对)")
 
     def bundle(self, *, expected_role: str | None = None,
                expected_fit_namespace: str | None = None,
@@ -165,6 +225,7 @@ class R17BundleRouting:
 
         expected_* 全部可选但 orchestrator/CLI 必须显式传(§9.2);任何
         不匹配在返回 bundle 之前抛错 —— 保证"生成第一条评估结果前失败"。
+        v2 修复:返回前对实际对象重算三层身份并与冻结值对照(B4)。
         """
         exp_role = expected_role or self.role
         exp_ns = expected_fit_namespace or self.fit_namespace
@@ -192,7 +253,33 @@ class R17BundleRouting:
                 f"/bundle={expected_bundle_hash},实际 role={self.role}"
                 f"/fit_namespace={self.fit_namespace}"
                 f"/bundle={self.bundle_hash}(fail closed,§9.3)")
+        self._require_actual_object_matches_frozen(context)
         return self._v2
+
+
+def _routing_table(*, preplan: bool, shadow: bool, rt: bool,
+                   v2c13: bool, v2c13v2: bool) -> dict[str, str]:
+    """路由类 → role/fit-namespace 权威表(互斥单选)。"""
+    if v2c13v2:
+        return R17_V2C13_V2_ROLE_FIT_NAMESPACE
+    if v2c13:
+        return R17_V2C13_ROLE_FIT_NAMESPACE
+    if rt:
+        return R17_RT_ROLE_FIT_NAMESPACE
+    if shadow:
+        return R17_SHADOW_ROLE_FIT_NAMESPACE
+    if preplan:
+        return R17_PREPLAN_ROLE_FIT_NAMESPACE
+    return R17_ROLE_FIT_NAMESPACE
+
+
+def _all_routed_fit_namespaces() -> list[str]:
+    return (list(R17_ROLE_FIT_NAMESPACE.values())
+            + list(R17_PREPLAN_ROLE_FIT_NAMESPACE.values())
+            + list(R17_SHADOW_ROLE_FIT_NAMESPACE.values())
+            + list(R17_RT_ROLE_FIT_NAMESPACE.values())
+            + list(R17_V2C13_ROLE_FIT_NAMESPACE.values())
+            + list(R17_V2C13_V2_ROLE_FIT_NAMESPACE.values()))
 
 
 def build_routing_r17(
@@ -201,6 +288,7 @@ def build_routing_r17(
         shadow: bool = False,
         rt: bool = False,
         v2c13: bool = False,
+        v2c13v2: bool = False,
         expected_bundle_hash: str | None = None) -> R17BundleRouting:
     """从 fitted V2 构造路由(校验 role↔namespace 权威映射)。
 
@@ -214,30 +302,20 @@ def build_routing_r17(
     repair R17:shadow=True 走 full-scale shadow 路由表(工程)。
     R17V2C13EngineeringCalibration-v1:v2c13=True 走 V2 C1/C3 工程
     校准路由表(只含 main/holdout 两 role;无 final)。
+    R17V2C13EngineeringCalibration-v2:v2c13v2=True 走 v2 重跑表。
     """
     if role not in _ALLOWED_ROLES:
         raise RoutingContractError(f"未知 routing role: {role}")
-    if sum(1 for flag in (preplan, shadow, rt, v2c13) if flag) > 1:
+    if sum(1 for flag in (preplan, shadow, rt, v2c13, v2c13v2) if flag) > 1:
         raise RoutingContractError(
-            "preplan/shadow/rt/v2c13 路由类互斥(至多一个为真)")
-    table = (R17_V2C13_ROLE_FIT_NAMESPACE if v2c13
-             else R17_RT_ROLE_FIT_NAMESPACE if rt
-             else R17_SHADOW_ROLE_FIT_NAMESPACE if shadow
-             else R17_PREPLAN_ROLE_FIT_NAMESPACE if preplan
-             else R17_ROLE_FIT_NAMESPACE)
+            "preplan/shadow/rt/v2c13/v2c13v2 路由类互斥(至多一个为真)")
+    table = _routing_table(preplan=preplan, shadow=shadow, rt=rt,
+                           v2c13=v2c13, v2c13v2=v2c13v2)
     if role in table and v2.namespace != table[role]:
         raise RoutingContractError(
             f"role={role} 的权威 fit namespace 是 {table[role]},"
             f"bundle 实际 fit namespace 是 {v2.namespace}(fail closed)")
-    if v2.namespace not in (list(R17_ROLE_FIT_NAMESPACE.values())
-                            + list(
-                                R17_PREPLAN_ROLE_FIT_NAMESPACE.values())
-                            + list(
-                                R17_SHADOW_ROLE_FIT_NAMESPACE.values())
-                            + list(
-                                R17_RT_ROLE_FIT_NAMESPACE.values())
-                            + list(
-                                R17_V2C13_ROLE_FIT_NAMESPACE.values())):
+    if v2.namespace not in _all_routed_fit_namespaces():
         raise RoutingContractError(
             f"bundle fit namespace {v2.namespace} 不属于任何 R17 路由表"
             f"(fail closed)")
@@ -257,6 +335,7 @@ def build_routing_r17(
         preplan=preplan,
         shadow=shadow,
         v2c13=v2c13,
+        v2c13v2=v2c13v2,
     )
 
 
@@ -279,11 +358,9 @@ def require_eval_routing_r17(
         raise RoutingContractError(
             f"评估 namespace {eval_namespace} 不在 R17 权威路由映射中"
             f"(fail closed;context={context})")
-    table = (R17_V2C13_ROLE_FIT_NAMESPACE if routing.v2c13
-             else R17_RT_ROLE_FIT_NAMESPACE if routing.rt
-             else R17_SHADOW_ROLE_FIT_NAMESPACE if routing.shadow
-             else R17_PREPLAN_ROLE_FIT_NAMESPACE if routing.preplan
-             else R17_ROLE_FIT_NAMESPACE)
+    table = _routing_table(preplan=routing.preplan, shadow=routing.shadow,
+                           rt=routing.rt, v2c13=routing.v2c13,
+                           v2c13v2=routing.v2c13v2)
     if expected_role in table:
         expected_fit_namespace = table[expected_role]
     else:  # diagnostic 等 preplan 专用 role:期望即实际声明值
@@ -298,6 +375,16 @@ def require_eval_routing_r17(
         raise RoutingContractError(
             f"正式 routing 不得服务非正式(preplan/shadow)评估 "
             f"namespace {eval_namespace}(fail closed)")
+    # v2c13 代际隔离:每代路由只服务本代 eval namespace。
+    if routing.v2c13 and eval_namespace not in R17_V2C13_EVAL_NAMESPACES:
+        raise RoutingContractError(
+            f"v2c13(v1)路由不得服务非 v1 v2c13 评估 namespace "
+            f"{eval_namespace}(fail closed;代际隔离)")
+    if routing.v2c13v2 and eval_namespace not in (
+            R17_V2C13_V2_EVAL_NAMESPACES):
+        raise RoutingContractError(
+            f"v2c13v2 路由不得服务非 v2 v2c13 评估 namespace "
+            f"{eval_namespace}(fail closed;代际隔离)")
     return routing.bundle(
         expected_role=expected_role,
         expected_fit_namespace=expected_fit_namespace,

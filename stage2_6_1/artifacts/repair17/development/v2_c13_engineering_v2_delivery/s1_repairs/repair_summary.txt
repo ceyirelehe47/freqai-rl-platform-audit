@@ -1,0 +1,29 @@
+=== S1 修复清单(v2 候选) ===
+date: 2026-09-11T01:36:48Z
+baseline HEAD: 769b6d282b6e870491e31e92f96828543d23ab24
+
+ stage2_6_1/runner/r17_v2_c13_batch.py              |   49 +-
+ stage2_6_1/runner/r17_v2_c13_pipeline.py           |  311 +++++-
+ stage2_6_1/runner/r17_v2_c13_profile.py            |  151 ++-
+ stage2_6_1/runner/r17_v2_c13_source_lock.py        |    6 +-
+ stage2_6_1/src/rl_curriculum/curriculum261_api.py  |    6 +
+ .../rl_curriculum/curriculum261_r17_registry.py    |    6 +
+ .../src/rl_curriculum/curriculum261_r17_routing.py |  131 ++-
+ stage2_6_1/tests/route_c_stage2_6_1/conftest.py    |    8 +
+ .../test_curriculum261_attempts_plan.py            |   34 +-
+ .../test_curriculum261_r10_preflight.py            |  102 +-
+ .../test_curriculum261_r10_rehearsal.py            |   34 +-
+ .../test_curriculum261_r11_integration.py          |   67 +-
+ .../test_curriculum261_r12_integration.py          |   63 +-
+ .../test_curriculum261_r17_governance_unit.py      |   14 +-
+ .../test_curriculum261_r17_v2_c13_pipeline.py      | 1092 +++++++++++++++++---
+ 15 files changed, 1724 insertions(+), 350 deletions(-)
+
+=== 修复点 → 行为对应 ===
+B1 三族身份: r17_v2_c13_batch.py describe() generators 映射 + validate_proof 按 q['family'] 取期望身份(call/attempt 双检);旧式单身份 runtime 拒绝
+B2 registry 97/4: curriculum261_api.py + curriculum261_r17_registry.py 各 +4 v2 namespace(双表断言对齐);governance 测试 89→97 精确增量(v1 保留+v2 新增+互斥)
+B3 strict 复算: r17_v2_c13_pipeline.py _recompute_strict 重写(SE_gap=sqrt(平方和);REQUIRED_BASELINES_COLDREAD 白名单快照;always_flat 每 rung 必查;缺列/空表/未知族拒绝);S05 与真实 rung_report_r4+corpus_conditions_r5 逐叶差分
+B4 实际对象: curriculum261_r17_routing.py bundle() 取用时重算实际三层身份对照冻结值;R17_V2C13_V2_ROLE_FIT_NAMESPACE 新表;v2c13/v2c13v2 代际隔离(eval namespace 各归各代)
+WP3: fit_and_freeze envelope_file_sha256 锚点;_recheck_frozen 评估后核对;_EVAL_PHASE_ACTIVE refit 守卫(独立于 FIT_CALL_LOG)
+WP4: run() phase 精确更新(preflight/claim/各stage/fit/freeze/eval/canonical/statistics/publication);verify 支持 synthetic 标记与失败 run 冷读;fit manifest 独立文件交叉核对;read_episode_csv float_precision=round_trip
+profile: CONTRACT→v2;V1_* 只读常量;namespace_unused_evidence planning/generation 分类+不可读报告;make_plan/validate_plan 合同参数化(synthetic_profile 声明强制)

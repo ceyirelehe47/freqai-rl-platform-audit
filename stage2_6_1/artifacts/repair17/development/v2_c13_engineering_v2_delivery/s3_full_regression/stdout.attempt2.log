@@ -1,0 +1,625 @@
+........................................................................ [  3%]
+........................................................................ [  7%]
+........................................................................ [ 10%]
+........................................................................ [ 14%]
+......................s................................................s [ 18%]
+........................................................................ [ 21%]
+.....................s.................................................. [ 25%]
+........................................................................ [ 29%]
+......................................................................s. [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+.......................................................s.s.s............ [ 43%]
+........................................................................ [ 47%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+.......................................................EEEE............. [ 58%]
+........R17ALERT {"event":"t06","n":1,"utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-10T19:22:37Z","run_id":"run"}
+...FFF.............................................F.....FFFF... [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+F..........F......................................................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-10T19:33:28Z","run_id":"run"}
+...... [ 76%]
+...........F............................................................ [ 80%]
+........................................................................ [ 84%]
+........................................................................ [ 87%]
+........................................................................ [ 91%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+....................                                                     [100%]
+==================================== ERRORS ====================================
+______ ERROR at setup of TestColdCopy.test_c01_full_payload_bytes_copied _______
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x70e6de510390>, _basetemp=PosixPath('/tmp/pytest-of-cryptorl/pytest-142'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def tiny_delivery(tmp_path_factory):
+        """真实最小交付:干净 run + 固定清单/锚 + 冷读副本(家目录)。"""
+        tmp = tmp_path_factory.mktemp("coldcopy")
+        samples = tmp / "samples.jsonl"
+        utc = _dt.datetime.now(_dt.timezone.utc).isoformat(
+            timespec="seconds").replace("+00:00", "Z")
+        win = {"event": "sample", "seq": 1, "utc": utc,
+               "perf": {"phys_avail_gb": 39.0, "commit_total_gb": 38.0,
+                        "commit_limit_gb": 83.0, "phys_total_gb": 63.0},
+               "vols": [
+                   {"vol": "F:", "present": True, "free_gb": 100.0,
+                    "size_gb": 500.0, "serial": "CFA1",
+                    "identity_match": True},
+                   {"vol": "C:", "present": True, "free_gb": 200.0,
+                    "size_gb": 900.0, "serial": "CCA1",
+                    "identity_match": True}],
+               "telemetry_out_writable": True}
+        guest = {"event": "guest_sample", "utc": utc,
+                 "meminfo": {"MemTotal": 40_000_000, "MemAvailable": 39_000_000},
+                 "psi_memory": {"full_avg10": 0.0},
+                 "vmstat_swap": {"pswpout": 0}}
+        with samples.open("w", encoding="utf-8") as fh:
+            for _ in range(20):
+                fh.write(json.dumps({"win": win, "guest": guest}) + "\n")
+        args = argparse.Namespace(
+            run_dir=str(tmp / "runsup" / "runs" / "tinyrun"),
+            task_kind="fixture", argv=["true"], task_cwd=None,
+            max_seconds=0, samples_source="file:" + str(samples),
+            win_sampler_ps1="/nonexistent.ps1", win_volumes="C:,F:",
+            expect_artifact=[], obs_ready_deadline=30.0)
+        sup = Supervisor(args)
+>       assert sup.run() == 0, "干净 run 是冷读夹具前置"
+E       AssertionError: 干净 run 是冷读夹具前置
+E       assert 7 == 0
+E        +  where 7 = run()
+E        +    where run = <r17_supervision.Supervisor object at 0x70e5f4f23a10>.run
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py:98: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/coldcopy0/runsup/runs/tinyrun","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:22:34Z","run_id":"tinyrun"}
+R17LOG {"event":"business_started","pid":133557,"pgid":133557,"argv":["true"],"utc":"2026-09-10T19:22:34Z","run_id":"tinyrun"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:22:34Z","run_id":"tinyrun"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/coldcopy0/runsup/runs/tinyrun","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/coldcopy0/runsup/runs/tinyrun/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/coldcopy0/runsup/runs/tinyrun/run_record.json","utc":"2026-09-10T19:22:34Z","run_id":"tinyrun"}
+______ ERROR at setup of TestColdCopy.test_c02_isolated_cold_read_passes _______
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x70e6de510390>, _basetemp=PosixPath('/tmp/pytest-of-cryptorl/pytest-142'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def tiny_delivery(tmp_path_factory):
+        """真实最小交付:干净 run + 固定清单/锚 + 冷读副本(家目录)。"""
+        tmp = tmp_path_factory.mktemp("coldcopy")
+        samples = tmp / "samples.jsonl"
+        utc = _dt.datetime.now(_dt.timezone.utc).isoformat(
+            timespec="seconds").replace("+00:00", "Z")
+        win = {"event": "sample", "seq": 1, "utc": utc,
+               "perf": {"phys_avail_gb": 39.0, "commit_total_gb": 38.0,
+                        "commit_limit_gb": 83.0, "phys_total_gb": 63.0},
+               "vols": [
+                   {"vol": "F:", "present": True, "free_gb": 100.0,
+                    "size_gb": 500.0, "serial": "CFA1",
+                    "identity_match": True},
+                   {"vol": "C:", "present": True, "free_gb": 200.0,
+                    "size_gb": 900.0, "serial": "CCA1",
+                    "identity_match": True}],
+               "telemetry_out_writable": True}
+        guest = {"event": "guest_sample", "utc": utc,
+                 "meminfo": {"MemTotal": 40_000_000, "MemAvailable": 39_000_000},
+                 "psi_memory": {"full_avg10": 0.0},
+                 "vmstat_swap": {"pswpout": 0}}
+        with samples.open("w", encoding="utf-8") as fh:
+            for _ in range(20):
+                fh.write(json.dumps({"win": win, "guest": guest}) + "\n")
+        args = argparse.Namespace(
+            run_dir=str(tmp / "runsup" / "runs" / "tinyrun"),
+            task_kind="fixture", argv=["true"], task_cwd=None,
+            max_seconds=0, samples_source="file:" + str(samples),
+            win_sampler_ps1="/nonexistent.ps1", win_volumes="C:,F:",
+            expect_artifact=[], obs_ready_deadline=30.0)
+        sup = Supervisor(args)
+>       assert sup.run() == 0, "干净 run 是冷读夹具前置"
+E       AssertionError: 干净 run 是冷读夹具前置
+E       assert 7 == 0
+E        +  where 7 = run()
+E        +    where run = <r17_supervision.Supervisor object at 0x70e5f4f23a10>.run
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py:98: AssertionError
+____ ERROR at setup of TestColdCopy.test_c03_missing_file_fails_no_fallback ____
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x70e6de510390>, _basetemp=PosixPath('/tmp/pytest-of-cryptorl/pytest-142'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def tiny_delivery(tmp_path_factory):
+        """真实最小交付:干净 run + 固定清单/锚 + 冷读副本(家目录)。"""
+        tmp = tmp_path_factory.mktemp("coldcopy")
+        samples = tmp / "samples.jsonl"
+        utc = _dt.datetime.now(_dt.timezone.utc).isoformat(
+            timespec="seconds").replace("+00:00", "Z")
+        win = {"event": "sample", "seq": 1, "utc": utc,
+               "perf": {"phys_avail_gb": 39.0, "commit_total_gb": 38.0,
+                        "commit_limit_gb": 83.0, "phys_total_gb": 63.0},
+               "vols": [
+                   {"vol": "F:", "present": True, "free_gb": 100.0,
+                    "size_gb": 500.0, "serial": "CFA1",
+                    "identity_match": True},
+                   {"vol": "C:", "present": True, "free_gb": 200.0,
+                    "size_gb": 900.0, "serial": "CCA1",
+                    "identity_match": True}],
+               "telemetry_out_writable": True}
+        guest = {"event": "guest_sample", "utc": utc,
+                 "meminfo": {"MemTotal": 40_000_000, "MemAvailable": 39_000_000},
+                 "psi_memory": {"full_avg10": 0.0},
+                 "vmstat_swap": {"pswpout": 0}}
+        with samples.open("w", encoding="utf-8") as fh:
+            for _ in range(20):
+                fh.write(json.dumps({"win": win, "guest": guest}) + "\n")
+        args = argparse.Namespace(
+            run_dir=str(tmp / "runsup" / "runs" / "tinyrun"),
+            task_kind="fixture", argv=["true"], task_cwd=None,
+            max_seconds=0, samples_source="file:" + str(samples),
+            win_sampler_ps1="/nonexistent.ps1", win_volumes="C:,F:",
+            expect_artifact=[], obs_ready_deadline=30.0)
+        sup = Supervisor(args)
+>       assert sup.run() == 0, "干净 run 是冷读夹具前置"
+E       AssertionError: 干净 run 是冷读夹具前置
+E       assert 7 == 0
+E        +  where 7 = run()
+E        +    where run = <r17_supervision.Supervisor object at 0x70e5f4f23a10>.run
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py:98: AssertionError
+__ ERROR at setup of TestColdCopy.test_c04_tamper_detected_original_untouched __
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x70e6de510390>, _basetemp=PosixPath('/tmp/pytest-of-cryptorl/pytest-142'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def tiny_delivery(tmp_path_factory):
+        """真实最小交付:干净 run + 固定清单/锚 + 冷读副本(家目录)。"""
+        tmp = tmp_path_factory.mktemp("coldcopy")
+        samples = tmp / "samples.jsonl"
+        utc = _dt.datetime.now(_dt.timezone.utc).isoformat(
+            timespec="seconds").replace("+00:00", "Z")
+        win = {"event": "sample", "seq": 1, "utc": utc,
+               "perf": {"phys_avail_gb": 39.0, "commit_total_gb": 38.0,
+                        "commit_limit_gb": 83.0, "phys_total_gb": 63.0},
+               "vols": [
+                   {"vol": "F:", "present": True, "free_gb": 100.0,
+                    "size_gb": 500.0, "serial": "CFA1",
+                    "identity_match": True},
+                   {"vol": "C:", "present": True, "free_gb": 200.0,
+                    "size_gb": 900.0, "serial": "CCA1",
+                    "identity_match": True}],
+               "telemetry_out_writable": True}
+        guest = {"event": "guest_sample", "utc": utc,
+                 "meminfo": {"MemTotal": 40_000_000, "MemAvailable": 39_000_000},
+                 "psi_memory": {"full_avg10": 0.0},
+                 "vmstat_swap": {"pswpout": 0}}
+        with samples.open("w", encoding="utf-8") as fh:
+            for _ in range(20):
+                fh.write(json.dumps({"win": win, "guest": guest}) + "\n")
+        args = argparse.Namespace(
+            run_dir=str(tmp / "runsup" / "runs" / "tinyrun"),
+            task_kind="fixture", argv=["true"], task_cwd=None,
+            max_seconds=0, samples_source="file:" + str(samples),
+            win_sampler_ps1="/nonexistent.ps1", win_volumes="C:,F:",
+            expect_artifact=[], obs_ready_deadline=30.0)
+        sup = Supervisor(args)
+>       assert sup.run() == 0, "干净 run 是冷读夹具前置"
+E       AssertionError: 干净 run 是冷读夹具前置
+E       assert 7 == 0
+E        +  where 7 = run()
+E        +    where run = <r17_supervision.Supervisor object at 0x70e5f4f23a10>.run
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py:98: AssertionError
+=================================== FAILURES ===================================
+__ TestResidualClosure.test_t16_leader_rc0_with_children_not_overall_success ___
+
+self = <test_curriculum261_r17_control_path_unit.TestResidualClosure object at 0x70e6cbfb06d0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0')
+
+    def test_t16_leader_rc0_with_children_not_overall_success(
+            self, tmp_path):
+        """leader rc=0 但子进程仍在:不整体 PASS;识别+受控清理;
+        邻近无关进程存活。"""
+        samples = tmp_path / "s.jsonl"
+        samples.write_text(
+            json.dumps({"win": _win(_perf()), "guest": _guest()}) + "\n",
+            encoding="utf-8")
+        sup = _sup(tmp_path, argv=["--", "bash", "-c",
+                                   "sleep 60 & exit 0"],
+                   samples_source=f"file:{samples}")
+        sup.policy["coop_exit_window_s"] = 1.0
+        sup.policy["default_max_seconds"] = 60
+        neighbor = subprocess.Popen(
+            ["sleep", "60"], start_new_session=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            rc = sup.run()
+            assert sup.biz_rc == 0, "前提:业务 leader 本身 rc=0"
+            assert rc != 0, "leader rc=0+残留清理后不得整体 rc=0"
+>           assert rc == 4, f"保护性清理(residual)→rc=4,实际 {rc}"
+E           AssertionError: 保护性清理(residual)→rc=4,实际 7
+E           assert 7 == 4
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py:504: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0/run","policy":"6990aa2e5f799110beb9d9f22728ec90b2f18730ab2f8dae824d745f99fce2a2","utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133589,"pgid":133589,"argv":["bash","-c","sleep 60 & exit 0"],"utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-residual_task-0","kind":"residual_task","detail":"leader rc=0 退出后登记组仍有 1 个活成员(有限收尾)","severity":"CRITICAL","first_seen_mono":0.1,"last_seen_mono":0.1,"samples":1,"peak":{"members":1},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{"members":1},"run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0/run","incidents":1,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_t16_leader_rc0_with_child0/run/run_record.json","utc":"2026-09-10T19:22:37Z","run_id":"run"}
+____ TestResidualClosure.test_t17_kill_denied_residual_unconfirmed_bounded _____
+
+self = <test_curriculum261_r17_control_path_unit.TestResidualClosure object at 0x70e6cbfb0e10>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0')
+
+    def test_t17_kill_denied_residual_unconfirmed_bounded(self, tmp_path):
+        """KILL 权限不足(注入)→完成未证实:有界退出诊断控制流,
+        residual_unconfirmed 如实记录+rc=5,不无限 continue。"""
+        samples = tmp_path / "s.jsonl"
+        samples.write_text(
+            json.dumps({"win": _win(_perf()), "guest": _guest()}) + "\n",
+            encoding="utf-8")
+        # run_timeout(5s)触发停止→TERM 被忽略→KILL 被注入拒绝→
+        # 保护未证实:诊断控制流在硬上界内退出(§7.2)
+        sup = _sup(tmp_path, argv=["--", "bash", "-c",
+                                   'trap "" TERM; sleep 120'],
+                   samples_source=f"file:{samples}")
+        sup.policy["coop_exit_window_s"] = 1.0
+        sup.policy["default_max_seconds"] = 5
+        _sig = Protector._signal
+    
+        def denied(self, sig):
+            if sig == 9:
+                raise PermissionError("t17 注入:KILL 被拒")
+            _sig(self, sig)
+        Protector._signal = denied
+        try:
+            t0 = time.monotonic()
+            rc = sup.run()
+            dt = time.monotonic() - t0
+            # 有界:max_s(5)+硬上界(coop1+10+25)之内退出
+            assert dt < 50, f"收尾必须有限(实际 {dt:.1f}s)"
+            assert sup.residual_unconfirmed is True
+>           assert rc == 5, f"完成未证实→rc=5,实际 {rc}"
+E           AssertionError: 完成未证实→rc=5,实际 7
+E           assert 7 == 5
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py:547: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0/run","policy":"eba116a9576aa349685c1df9ee11d09cc0d99f66f4b3f3b818e1bf5fe23b379e","utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133593,"pgid":133593,"argv":["bash","-c","trap \"\" TERM; sleep 120"],"utc":"2026-09-10T19:22:37Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-run_timeout-5","kind":"run_timeout","detail":"达到预登记最大运行时长 5s","severity":"CRITICAL","first_seen_mono":5.0,"last_seen_mono":5.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-10T19:22:42Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0/run","incidents":1,"business_rc":null,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_t17_kill_denied_residual_0/run/run_record.json","utc":"2026-09-10T19:23:18Z","run_id":"run"}
+_________ TestResidualClosure.test_t18_finalize_and_outcome_idempotent _________
+
+self = <test_curriculum261_r17_control_path_unit.TestResidualClosure object at 0x70e6cbfb1550>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_t18_finalize_and_outcome_0')
+
+    def test_t18_finalize_and_outcome_idempotent(self, tmp_path):
+        """重复 finalize/重复 control_outcome 幂等:不产生第二个
+        run_record/重复释放形态。summary 由 finalize 内的发布动作
+        自行完成(不预置占位文件——预置=发布目标被占,fc-integrity
+        语义下为发布失败而非可覆盖)。"""
+        # replay 形态:必需集合不含双采样流(回放输入替代,§8.2)
+        sup = _sup(tmp_path, samples_source="file:test")
+        sup.biz_rc = 0
+        for p in (sup.alerts_path, sup.biz_stdout, sup.biz_stderr):
+            p.write_text("x\n", encoding="utf-8")
+        sup.finalize()
+        rr1 = (tmp_path / "run" / "run_record.json").read_bytes()
+        sup.finalize()
+        rr2 = (tmp_path / "run" / "run_record.json").read_bytes()
+        assert rr1 == rr2
+>       assert sup.control_outcome() == sup.control_outcome() == 0
+E       assert 7 == 0
+E        +  where 7 = control_outcome()
+E        +    where control_outcome = <r17_supervision.Supervisor object at 0x70e5e4c88310>.control_outcome
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py:573: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_t18_finalize_and_outcome_0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_t18_finalize_and_outcome_0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_t18_finalize_and_outcome_0/run/run_record.json","utc":"2026-09-10T19:23:18Z","run_id":"run"}
+_ TestC02CapabilityFailureForms.test_c02b_mask_restore_failure_control_failure _
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestC02CapabilityFailureForms object at 0x70e6cbe15990>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_c02b_mask_restore_failure0')
+
+    def test_c02b_mask_restore_failure_control_failure(self, tmp_path):
+        """C02:掩码还原(SIG_SETMASK)失败——不吞错;rc=7;C 已建立
+        但掩码面异常仍是非成功;清理继续完成。"""
+        sup = _sup(tmp_path, samples_source=_replay_samples(tmp_path))
+        sup.biz_rc = 0
+        _prep_streams(sup)
+        real_sigmask = signal.pthread_sigmask
+        calls = {"n": 0}
+    
+        def flaky_restore(how, sigs):
+            # 签名与 signal.pthread_sigmask(how, sigs) 一致;
+            # BLOCK(临界区进入)正常,SETMASK(还原)失败
+            calls["n"] += 1
+            if how == signal.SIG_SETMASK and calls["n"] >= 2:
+                raise OSError(22, "probe: restore unavailable")
+            return real_sigmask(how, sigs)
+    
+        signal.pthread_sigmask = flaky_restore
+        try:
+            rc = sup.run()
+        finally:
+            signal.pthread_sigmask = real_sigmask
+            # 掩码面恢复:残留屏蔽会影响同进程后续测试(测试自身
+            # 责任域,不依赖被测代码恢复)
+            try:
+                signal.pthread_sigmask(signal.SIG_UNBLOCK,
+                                       {signal.SIGTERM, signal.SIGINT})
+            except (ValueError, OSError):
+                pass
+        assert rc == 7, f"还原失败=控制失败非成功,实际 {rc}"
+        kinds = [c["kind"] for c in sup._control_failures]
+        assert "cutoff_mask_restore_failed" in kinds
+        # C 已建立(前提核验成功路径不受影响)但记录如实
+>       assert sup._cutoff_certified is True
+E       assert False is True
+E        +  where False = <r17_supervision.Supervisor object at 0x70e5e4b70e50>._cutoff_certified
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:180: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_c02b_mask_restore_failure0/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:24:44Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133727,"pgid":133727,"argv":["true"],"utc":"2026-09-10T19:24:44Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:24:44Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_c02b_mask_restore_failure0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_c02b_mask_restore_failure0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_c02b_mask_restore_failure0/run/run_record.json","utc":"2026-09-10T19:24:44Z","run_id":"run"}
+_____ TestPPublishBoundaryMatrix.test_p01_partial_bytes_diagnostic_residue _____
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestPPublishBoundaryMatrix object at 0x70e6cbe17ed0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_p01_partial_bytes_diagnos0')
+
+    def test_p01_partial_bytes_diagnostic_residue(self, tmp_path):
+        """P01:写出 1 字节后失败——最终路径无文件(残片只在私有
+        临时名=诊断残片,不冒充成品);publish_failed;evidence
+        False;外层非零;实际 verifier 拒绝完整交付。"""
+        sup, target, tmpf = self._run_with_inject(tmp_path, "tmp_partial")
+        assert sup._summary_publish_failed is True
+        assert sup._summary_publish_failure["stage"] == "write_or_replace"
+        assert not target.exists(), "最终路径不得留半份内容"
+        assert tmpf.exists() and tmpf.read_bytes() == b"{", \
+            "失败临时件保留为诊断残片"
+>       assert sup.control_outcome() == 6
+E       assert 7 == 6
+E        +  where 7 = control_outcome()
+E        +    where control_outcome = <r17_supervision.Supervisor object at 0x70e5f45e7590>.control_outcome
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:510: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p01_partial_bytes_diagnos0/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133797,"pgid":133797,"argv":["true"],"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p01_partial_bytes_diagnos0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_p01_partial_bytes_diagnos0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_p01_partial_bytes_diagnos0/run/run_record.json","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+----------------------------- Captured stderr call -----------------------------
+R17EMERG {"event":"summary_write_failed","run_id":"run","stage":"write_or_replace","error":"OSError:[Errno 5] probe: io error","summary":{"schema":"r17-supervision-summary-v1","run_id":"run","policy_id":"R17-SUPERVISION-POLICY-v1","policy_sha256":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","argv":["true"],"business":{"rc":0,"signal":null,"protector":{"pgid":133797,"requested":false,"term_sent":false,"kill_sent":false,"terminal_confirmed":false,"identity_mismatch":false,"survivors":[]}},"stop_requested_reasons":[],"incidents":[],"peaks":{"win_free_phys_min_gib":39.0,"win_commit_max_pct":45.78,"guest_memavail_min_gib":37.19329833984375,"task_tree_rss_max_gib":0.0},"coverage":{"guest_last_mono":0.057312952005304396,"win_last_mono":0.057312952005304396,"win_parse_errors":null,"win_invalid_samples":null,"win_duplicate_seq":null,"win_seq_regressions":null,"win_stale_replayed":null,"win_read_failures":null,"win_read_failure_consecutive":null,"win_read_failure_last_op":null,"win_read_failure_last_utc":null,"win_read_failure_last_err":null,"guest_duplicate_seq":0,"guest_seq_regressions":0,"guest_stale_replayed":0,"guest_invalid_samples":0,"coverage_gaps":null,"obs_ready_at_mono":0.0028574349998962134,"telemetry_capped":false,"stdout_failures":0,"log_failures":0},"admission":{"ok":true,"reasons":[],"optional_degraded":["C:"],"checked_utc":"2026-09-10T19:25:14Z"},"io":{"submitted":14,"accepted":14,"ok":14,"failed":0,"in_flight":0,"executed":14,"dropped":0,"dropped_critical":0,"rejected_after_seal":1,"io_stuck":false,"closed":true,"thread_joined":true,"failures":[],"queued":0,"pending":0},"residual_unconfirmed":false,"startup_rejected":null,"writers":{"guest":{"stop_requested":true,"started":false,"joined":true,"alive_after_join":false,"thread_ident":null},"win":null,"io":{"close_requested":true,"joined":true,"alive_after":false,"thread_shielded":true},"business_live":false},"publication":{"summary_failed":false,"summary_failure":null,"run_record_failed":false,"cutoff_premise_ok":false,"cutoff_premise_detail":"unshielded_threads:132032","control_failures":[{"kind":"cutoff_capability_unavailable","detail":"unshielded_threads:132032","external_stop_sig":null,"external_stop_sig_count":0,"note":"截止点边界的线程前提无法证明;停止归属无法认证,run 按控制失败终结"}]},"external_stop_sig":null,"external_stop_consumed":false,"external_stop_sig_count":0,"finalize_budget":{"window_s":120.0,"established_at_mono":0.05952857100055553,"establish_reason":"finalize","remaining_at_write":119.977,"notes":[{"phase":"budget_established","requested":120.0,"remaining":120.0,"reason":"finalize"},{"phase":"io_drain","requested":15.0,"remaining":120.0,"allowed":15.0},{"phase":"io_writer_join","requested":5.0,"remaining":119.979,"allowed":5.0}]},"shutdown_step_failures":{},"telemetry_bytes":1265,"stage_marks":[{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_starting","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_ready","note":"ready_after=0.0s"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"startup_admitted","note":"ok"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_spawn","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_exited","note":"rc=0"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"finalize_begin","note":""}],"emergency_win_dir":null,"win_pids":{"interop":null,"windows":null},"written_utc":"2026-09-10T19:25:14Z"}}
+______ TestPPublishBoundaryMatrix.test_p02a_parseable_then_flush_failure _______
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestPPublishBoundaryMatrix object at 0x70e6cbe1c290>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_p02a_parseable_then_flush0')
+
+    def test_p02a_parseable_then_flush_failure(self, tmp_path):
+        """P02:完整可解析内容写完后 flush 失败——不以"JSON 可解析/
+        字节存在"抵消已知失败;无旧文件回退;首因保留。"""
+        sup, target, tmpf = self._run_with_inject(tmp_path, "tmp_flush")
+        assert sup._summary_publish_failed is True
+        assert not target.exists()
+        assert tmpf.exists(), "诊断残片保留"
+        assert json.loads(tmpf.read_text(encoding="utf-8"))["run_id"] == \
+            sup.run_id, "残片内容本身可解析——仍不构成有效发布"
+        rr = json.loads((tmp_path / "run" / "run_record.json")
+                        .read_text(encoding="utf-8"))
+        roles = {r["role"]: r for r in rr["required"]}
+        assert roles["summary"]["status"] == "publish_failed"
+>       assert sup.control_outcome() == 6
+E       assert 7 == 6
+E        +  where 7 = control_outcome()
+E        +    where control_outcome = <r17_supervision.Supervisor object at 0x70e5e500a150>.control_outcome
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:533: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p02a_parseable_then_flush0/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133800,"pgid":133800,"argv":["true"],"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p02a_parseable_then_flush0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_p02a_parseable_then_flush0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_p02a_parseable_then_flush0/run/run_record.json","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+----------------------------- Captured stderr call -----------------------------
+R17EMERG {"event":"summary_write_failed","run_id":"run","stage":"write_or_replace","error":"OSError:[Errno 5] probe: flush error","summary":{"schema":"r17-supervision-summary-v1","run_id":"run","policy_id":"R17-SUPERVISION-POLICY-v1","policy_sha256":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","argv":["true"],"business":{"rc":0,"signal":null,"protector":{"pgid":133800,"requested":false,"term_sent":false,"kill_sent":false,"terminal_confirmed":false,"identity_mismatch":false,"survivors":[]}},"stop_requested_reasons":[],"incidents":[],"peaks":{"win_free_phys_min_gib":39.0,"win_commit_max_pct":45.78,"guest_memavail_min_gib":37.19329833984375,"task_tree_rss_max_gib":0.0},"coverage":{"guest_last_mono":0.05661319399951026,"win_last_mono":0.05661319399951026,"win_parse_errors":null,"win_invalid_samples":null,"win_duplicate_seq":null,"win_seq_regressions":null,"win_stale_replayed":null,"win_read_failures":null,"win_read_failure_consecutive":null,"win_read_failure_last_op":null,"win_read_failure_last_utc":null,"win_read_failure_last_err":null,"guest_duplicate_seq":0,"guest_seq_regressions":0,"guest_stale_replayed":0,"guest_invalid_samples":0,"coverage_gaps":null,"obs_ready_at_mono":0.0017872470198199153,"telemetry_capped":false,"stdout_failures":0,"log_failures":0},"admission":{"ok":true,"reasons":[],"optional_degraded":["C:"],"checked_utc":"2026-09-10T19:25:14Z"},"io":{"submitted":14,"accepted":14,"ok":14,"failed":0,"in_flight":0,"executed":14,"dropped":0,"dropped_critical":0,"rejected_after_seal":1,"io_stuck":false,"closed":true,"thread_joined":true,"failures":[],"queued":0,"pending":0},"residual_unconfirmed":false,"startup_rejected":null,"writers":{"guest":{"stop_requested":true,"started":false,"joined":true,"alive_after_join":false,"thread_ident":null},"win":null,"io":{"close_requested":true,"joined":true,"alive_after":false,"thread_shielded":true},"business_live":false},"publication":{"summary_failed":false,"summary_failure":null,"run_record_failed":false,"cutoff_premise_ok":false,"cutoff_premise_detail":"unshielded_threads:132032","control_failures":[{"kind":"cutoff_capability_unavailable","detail":"unshielded_threads:132032","external_stop_sig":null,"external_stop_sig_count":0,"note":"截止点边界的线程前提无法证明;停止归属无法认证,run 按控制失败终结"}]},"external_stop_sig":null,"external_stop_consumed":false,"external_stop_sig_count":0,"finalize_budget":{"window_s":120.0,"established_at_mono":0.058229754999047145,"establish_reason":"finalize","remaining_at_write":119.978,"notes":[{"phase":"budget_established","requested":120.0,"remaining":120.0,"reason":"finalize"},{"phase":"io_drain","requested":15.0,"remaining":120.0,"allowed":15.0},{"phase":"io_writer_join","requested":5.0,"remaining":119.98,"allowed":5.0}]},"shutdown_step_failures":{},"telemetry_bytes":1265,"stage_marks":[{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_starting","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_ready","note":"ready_after=0.0s"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"startup_admitted","note":"ok"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_spawn","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_exited","note":"rc=0"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"finalize_begin","note":""}],"emergency_win_dir":null,"win_pids":{"interop":null,"windows":null},"written_utc":"2026-09-10T19:25:14Z"}}
+______ TestPPublishBoundaryMatrix.test_p02b_replace_failure_clean_target _______
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestPPublishBoundaryMatrix object at 0x70e6cbe1c610>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_p02b_replace_failure_clea0')
+
+    def test_p02b_replace_failure_clean_target(self, tmp_path):
+        """P02:tmp 完整但 replace 失败——最终路径干净;发布动作失败
+        与内容失败同面(publish_failed);verifier 拒绝。"""
+        sup, target, tmpf = self._run_with_inject(tmp_path, "replace")
+        assert sup._summary_publish_failed is True
+        assert not target.exists()
+        assert tmpf.exists()
+        rr = json.loads((tmp_path / "run" / "run_record.json")
+                        .read_text(encoding="utf-8"))
+        roles = {r["role"]: r for r in rr["required"]}
+        assert roles["summary"]["status"] == "publish_failed"
+>       assert sup.control_outcome() == 6
+E       assert 7 == 6
+E        +  where 7 = control_outcome()
+E        +    where control_outcome = <r17_supervision.Supervisor object at 0x70e5effc41d0>.control_outcome
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:548: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p02b_replace_failure_clea0/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133803,"pgid":133803,"argv":["true"],"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p02b_replace_failure_clea0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_p02b_replace_failure_clea0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_p02b_replace_failure_clea0/run/run_record.json","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+----------------------------- Captured stderr call -----------------------------
+R17EMERG {"event":"summary_write_failed","run_id":"run","stage":"write_or_replace","error":"PermissionError:[Errno 1] probe: replace denied","summary":{"schema":"r17-supervision-summary-v1","run_id":"run","policy_id":"R17-SUPERVISION-POLICY-v1","policy_sha256":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","argv":["true"],"business":{"rc":0,"signal":null,"protector":{"pgid":133803,"requested":false,"term_sent":false,"kill_sent":false,"terminal_confirmed":false,"identity_mismatch":false,"survivors":[]}},"stop_requested_reasons":[],"incidents":[],"peaks":{"win_free_phys_min_gib":39.0,"win_commit_max_pct":45.78,"guest_memavail_min_gib":37.19329833984375,"task_tree_rss_max_gib":0.0},"coverage":{"guest_last_mono":0.05678395301220007,"win_last_mono":0.05678395301220007,"win_parse_errors":null,"win_invalid_samples":null,"win_duplicate_seq":null,"win_seq_regressions":null,"win_stale_replayed":null,"win_read_failures":null,"win_read_failure_consecutive":null,"win_read_failure_last_op":null,"win_read_failure_last_utc":null,"win_read_failure_last_err":null,"guest_duplicate_seq":0,"guest_seq_regressions":0,"guest_stale_replayed":0,"guest_invalid_samples":0,"coverage_gaps":null,"obs_ready_at_mono":0.0016807540087029338,"telemetry_capped":false,"stdout_failures":0,"log_failures":0},"admission":{"ok":true,"reasons":[],"optional_degraded":["C:"],"checked_utc":"2026-09-10T19:25:14Z"},"io":{"submitted":14,"accepted":14,"ok":14,"failed":0,"in_flight":0,"executed":14,"dropped":0,"dropped_critical":0,"rejected_after_seal":1,"io_stuck":false,"closed":true,"thread_joined":true,"failures":[],"queued":0,"pending":0},"residual_unconfirmed":false,"startup_rejected":null,"writers":{"guest":{"stop_requested":true,"started":false,"joined":true,"alive_after_join":false,"thread_ident":null},"win":null,"io":{"close_requested":true,"joined":true,"alive_after":false,"thread_shielded":true},"business_live":false},"publication":{"summary_failed":false,"summary_failure":null,"run_record_failed":false,"cutoff_premise_ok":false,"cutoff_premise_detail":"unshielded_threads:132032","control_failures":[{"kind":"cutoff_capability_unavailable","detail":"unshielded_threads:132032","external_stop_sig":null,"external_stop_sig_count":0,"note":"截止点边界的线程前提无法证明;停止归属无法认证,run 按控制失败终结"}]},"external_stop_sig":null,"external_stop_consumed":false,"external_stop_sig_count":0,"finalize_budget":{"window_s":120.0,"established_at_mono":0.0583702840085607,"establish_reason":"finalize","remaining_at_write":119.978,"notes":[{"phase":"budget_established","requested":120.0,"remaining":120.0,"reason":"finalize"},{"phase":"io_drain","requested":15.0,"remaining":120.0,"allowed":15.0},{"phase":"io_writer_join","requested":5.0,"remaining":119.98,"allowed":5.0}]},"shutdown_step_failures":{},"telemetry_bytes":1265,"stage_marks":[{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_starting","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"observation_ready","note":"ready_after=0.0s"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"startup_admitted","note":"ok"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_spawn","note":""},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"business_exited","note":"rc=0"},{"event":"stage_mark","utc":"2026-09-10T19:25:14Z","stage":"finalize_begin","note":""}],"emergency_win_dir":null,"win_pids":{"interop":null,"windows":null},"written_utc":"2026-09-10T19:25:14Z"}}
+________ TestPPublishBoundaryMatrix.test_p03_normal_publish_no_residue _________
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestPPublishBoundaryMatrix object at 0x70e6cbe1c9d0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_p03_normal_publish_no_res0')
+
+    def test_p03_normal_publish_no_residue(self, tmp_path):
+        """P03 对照:正常发布——summary.json 存在且完整、无临时残
+        留、evidence 完整、实际 verifier 通过(负例不误伤正常件)。"""
+        sup, target, tmpf = self._run_with_inject(tmp_path, "none")
+        assert sup._summary_publish_failed is False
+        assert target.exists() and target.stat().st_size > 0
+        assert not tmpf.exists(), "成功发布不留临时件"
+        rr = json.loads((tmp_path / "run" / "run_record.json")
+                        .read_text(encoding="utf-8"))
+        roles = {r["role"]: r for r in rr["required"]}
+        assert roles["summary"]["status"] == "present"
+        assert rr["evidence_complete"] is True
+>       assert sup.control_outcome() == 0
+E       assert 7 == 0
+E        +  where 7 = control_outcome()
+E        +    where control_outcome = <r17_supervision.Supervisor object at 0x70e5e4c8a5d0>.control_outcome
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:564: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p03_normal_publish_no_res0/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":133806,"pgid":133806,"argv":["true"],"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:25:14Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_p03_normal_publish_no_res0/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_p03_normal_publish_no_res0/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_p03_normal_publish_no_res0/run/run_record.json","utc":"2026-09-10T19:25:14Z","run_id":"run"}
+______ TestUnifiedOutletsBudget.test_l01_outlets_share_single_budget_fact ______
+
+self = <test_curriculum261_r17_shutdown_fault_budget_cutoff_unit.TestUnifiedOutletsBudget object at 0x70e6cbd47210>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_l01_outlets_share_single_0')
+
+    def test_l01_outlets_share_single_budget_fact(self, tmp_path):
+        """L01:正常成功/crash/93 早拒绝三出口——每 run 预算恰一条
+        建立记录,summary.finalize_budget 事实一致。"""
+        # 出口1:正常成功
+        sup = _sup(tmp_path / "ok", argv=("--", "bash", "-c", "sleep 1"))
+        rc1 = sup.run()
+>       assert rc1 == 0
+E       assert 7 == 0
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_shutdown_fault_budget_cutoff_unit.py:901: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_l01_outlets_share_single_0/ok/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:32:25Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":134592,"pgid":134592,"argv":["bash","-c","sleep 1"],"utc":"2026-09-10T19:32:25Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:32:26Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_l01_outlets_share_single_0/ok/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_l01_outlets_share_single_0/ok/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_l01_outlets_share_single_0/ok/run/run_record.json","utc":"2026-09-10T19:32:26Z","run_id":"run"}
+______ TestW02W04NormalClosure.test_w02b_replay_unstarted_thread_distinct ______
+
+self = <test_curriculum261_r17_stop_publication_unit.TestW02W04NormalClosure object at 0x70e6cbd5e3d0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_w02b_replay_unstarted_thr0')
+
+    def test_w02b_replay_unstarted_thread_distinct(self, tmp_path):
+        """W02b:replay 形态采样线程未启动——单独记录(started=
+        False/joined=True),不产生伪错误,不影响完整证据。"""
+        base = tmp_path / "w02b"
+        base.mkdir(parents=True, exist_ok=True)
+        sp = base / "samples.jsonl"
+        _write_samples(sp)
+        args = argparse.Namespace(
+            run_dir=str(base / "run"), task_kind="fixture",
+            argv=["bash", "-c", "sleep 1"], task_cwd=None, max_seconds=0,
+            samples_source="file:" + str(sp),
+            win_sampler_ps1="/nonexistent.ps1", win_volumes="C:,F:",
+            expect_artifact=[], obs_ready_deadline=30.0)
+        sup = Supervisor(args)
+        rc = sup.run()
+>       assert rc == 0
+E       assert 7 == 0
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_stop_publication_unit.py:747: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_w02b_replay_unstarted_thr0/w02b/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:33:11Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":134742,"pgid":134742,"argv":["bash","-c","sleep 1"],"utc":"2026-09-10T19:33:11Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:33:12Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_w02b_replay_unstarted_thr0/w02b/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_w02b_replay_unstarted_thr0/w02b/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_w02b_replay_unstarted_thr0/w02b/run/run_record.json","utc":"2026-09-10T19:33:12Z","run_id":"run"}
+________ TestL04HandlerLifecycle.test_l04_handler_restored_on_all_exits ________
+
+self = <test_curriculum261_r17_unified_shutdown_unit.TestL04HandlerLifecycle object at 0x70e6cbdd5c90>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0')
+
+    def test_l04_handler_restored_on_all_exits(self, tmp_path):
+        """L04:成功/拒绝/异常/收尾失败各出口最终准确恢复旧 handler;
+        不在业务处理前恢复;重复调用不残留上一实例状态。"""
+        old_term = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        old_int = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        try:
+            # 出口1:成功(true 快速退出)
+>           assert _sup(tmp_path / "ok").run() == 0
+E           AssertionError: assert 7 == 0
+E            +  where 7 = run()
+E            +    where run = <r17_supervision.Supervisor object at 0x70e5eff762d0>.run
+E            +      where <r17_supervision.Supervisor object at 0x70e5eff762d0> = _sup((PosixPath('/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0') / 'ok'))
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_unified_shutdown_unit.py:583: AssertionError
+----------------------------- Captured stdout call -----------------------------
+R17LOG {"event":"supervisor_start","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0/ok/run","policy":"fc43ed1b5d61f3ab199eff2b1e34bdf8df340257f4803623948393d1ee8288ea","utc":"2026-09-10T19:34:33Z","run_id":"run"}
+R17LOG {"event":"business_started","pid":134971,"pgid":134971,"argv":["true"],"utc":"2026-09-10T19:34:33Z","run_id":"run"}
+R17LOG {"event":"business_exited","rc":0,"utc":"2026-09-10T19:34:33Z","run_id":"run"}
+R17LOG {"event":"supervisor_end","run_dir":"/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0/ok/run","incidents":0,"business_rc":0,"summary":"/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0/ok/run/summary.json","run_record":"/tmp/pytest-of-cryptorl/pytest-142/test_l04_handler_restored_on_a0/ok/run/run_record.json","utc":"2026-09-10T19:34:33Z","run_id":"run"}
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:61
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:61: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py:430: RuntimeWarning: Degrees of freedom <= 0 for slice
+    var_hi = perm_hi.var(ddof=1) / n
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r6_pairs.py:431: RuntimeWarning: Degrees of freedom <= 0 for slice
+    var_lo = perm_lo.var(ddof=1) / n
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:3015: RuntimeWarning: Degrees of freedom <= 0 for slice
+    c = cov(x, y, rowvar, dtype=dtype)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: divide by zero encountered in divide
+    c *= np.true_divide(1, fact)
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py::test_full_pipeline_rehearsal_end_to_end_no_monkeypatch
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: invalid value encountered in multiply
+    c *= np.true_divide(1, fact)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py::TestResidualClosure::test_t16_leader_rc0_with_children_not_overall_success
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py::TestResidualClosure::test_t17_kill_denied_residual_unconfirmed_bounded
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py::TestResidualClosure::test_t18_finalize_and_outcome_idempotent
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestC02CapabilityFailureForms::test_c02b_mask_restore_failure_control_failure
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestPPublishBoundaryMatrix::test_p01_partial_bytes_diagnostic_residue
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestPPublishBoundaryMatrix::test_p02a_parseable_then_flush_failure
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestPPublishBoundaryMatrix::test_p02b_replace_failure_clean_target
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestPPublishBoundaryMatrix::test_p03_normal_publish_no_residue
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_shutdown_fault_budget_cutoff_unit.py::TestUnifiedOutletsBudget::test_l01_outlets_share_single_budget_fact
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_stop_publication_unit.py::TestW02W04NormalClosure::test_w02b_replay_unstarted_thread_distinct
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_unified_shutdown_unit.py::TestL04HandlerLifecycle::test_l04_handler_restored_on_all_exits
+ERROR tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py::TestColdCopy::test_c01_full_payload_bytes_copied
+ERROR tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py::TestColdCopy::test_c02_isolated_cold_read_passes
+ERROR tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py::TestColdCopy::test_c03_missing_file_fails_no_fallback
+ERROR tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py::TestColdCopy::test_c04_tamper_detected_original_untouched
+11 failed, 1942 passed, 7 skipped, 16 warnings, 4 errors in 1794.09s (0:29:54)

@@ -85,6 +85,12 @@ R17_ALL_NAMESPACES = (
     # R17 V2 C1/C3 engineering calibration (engineering-only).
     "preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
     "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17",
+    # R17V2C13EngineeringCalibration-v2 (engineering-only): v2 rerun;
+    # v1 namespaces stay registered and consumed.
+    "preplan_v2c13_v2_fit_main_r17",
+    "preplan_v2c13_v2_fit_validation_r17",
+    "preplan_v2c13_v2_eval_main_r17",
+    "preplan_v2c13_v2_eval_validation_r17",
 )
 
 #: 白名单一致性(api 为单一权威;启动时对齐校验)。

@@ -16,13 +16,46 @@ import pytest
 
 
 def test_prelock_static_preflight(tmp_path, monkeypatch):
-    from rl_curriculum.curriculum261_r10_preflight import (
-        run_prelock_static_preflight_r10,
-    )
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
 
+    # torch 线程面隔离(v2 轮 S3 全量回归归因):静态 preflight 的
+    # imports/依赖解析/evaluator 探针检查在主进程 import 全部声明
+    # 依赖(stable_baselines3/rl_platform → torch),并触发 CUDA
+    # driver probe 线程(SigBlk=0),使字母序在后的直调形态 supervisor
+    # 测试截止点前提核验 rc=7(与 conftest 的 BLAS 缓解同族;生产
+    # preflight 在独立 CLI 进程执行,本无此线程面)。整个 preflight
+    # 在一次性子进程真实执行,全部断言语义不变。
+    _src = str(Path(__file__).resolve().parents[2] / 'src')
     monkeypatch.setenv("CURRICULUM261_R10_LOCK_DIR", str(tmp_path / "lock"))
-    result = run_prelock_static_preflight_r10(
-        tmp_path, "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5")
+
+    def _run_preflight_in_subprocess(out_dir: str, vendor: str) -> dict:
+        code = (
+            'import json, sys\n'
+            'from rl_curriculum.curriculum261_r10_preflight import (\n'
+            '    run_prelock_static_preflight_r10)\n'
+            'result = run_prelock_static_preflight_r10(\n'
+            '    sys.argv[1], sys.argv[2])\n'
+            'def _jsonable(o):\n'
+            '    if hasattr(o, "item"): return o.item()\n'
+            '    if hasattr(o, "tolist"): return o.tolist()\n'
+            '    return str(o)\n'
+            'sys.stdout.write(json.dumps(result, default=_jsonable))\n')
+        env = dict(os.environ)
+        env['PYTHONPATH'] = _src + (
+            os.pathsep + env['PYTHONPATH']
+            if env.get('PYTHONPATH') else '')
+        proc = subprocess.run(
+            [sys.executable, '-c', code, out_dir, vendor],
+            capture_output=True, text=True, timeout=600, env=env)
+        assert proc.returncode == 0, proc.stderr[-2000:]
+        return json.loads(proc.stdout)
+
+    result = _run_preflight_in_subprocess(
+        str(tmp_path), "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5")
     checks = result["checks"]
     assert result["pass"], json.dumps(
         {k: v for k, v in checks.items()
@@ -88,17 +121,35 @@ def _write_preplan_inputs(out: "pathlib.Path") -> None:
 
 
 def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
-    """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。"""
-    import pathlib
+    """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。
 
-    from rl_curriculum.curriculum261_r10_cli import main
+    torch 线程面隔离(v2 轮 S3 归因):CLI 的 plan-roundtrip 检查链在
+    主进程 import 依赖时触发 CUDA driver probe 线程(SigBlk=0),污染
+    后续直调形态 supervisor 测试;CLI 整体在一次性子进程执行,
+    rc/产物断言语义不变。
+    """
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
 
+    src = str(Path(__file__).resolve().parents[2] / 'src')
     monkeypatch.setenv("CURRICULUM261_R10_LOCK_DIR",
                        str(tmp_path / "lock"))
     out = tmp_path / "art"
     _write_preplan_inputs(out)
-    rc = main(["plan-roundtrip", "--out-dir", str(out)])
-    assert rc == 0
+    code = (
+        'import sys\n'
+        'from rl_curriculum.curriculum261_r10_cli import main\n'
+        'rc = main(["plan-roundtrip", "--out-dir", sys.argv[1]])\n'
+        'sys.exit(rc)\n')
+    env = dict(os.environ)
+    env['PYTHONPATH'] = src + (
+        os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH') else '')
+    proc = subprocess.run(
+        [sys.executable, '-c', code, str(out)],
+        capture_output=True, text=True, timeout=600, env=env)
+    assert proc.returncode == 0, proc.stderr[-2000:]
     result = json.loads(
         (out / "plan_roundtrip_validation.json").read_text(
             encoding="utf-8"))
@@ -123,12 +174,27 @@ def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
 
 
 def test_design_plan_lock_requires_roundtrip(tmp_path, monkeypatch):
-    """§20/§8.3:无 roundtrip 证据时拒绝锁 plan。"""
-    from rl_curriculum.curriculum261_r10_cli import main
+    """§20/§8.3:无 roundtrip 证据时拒绝锁 plan。(CLI 同样在子进程
+    执行,线程面隔离理由同上。)"""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
 
+    src = str(Path(__file__).resolve().parents[2] / 'src')
     monkeypatch.setenv("CURRICULUM261_R10_LOCK_DIR", str(tmp_path))
     out = tmp_path / "art2"
     _write_preplan_inputs(out)
-    rc = main(["design-plan-lock", "--out-dir", str(out)])
-    assert rc == 1
+    code = (
+        'import sys\n'
+        'from rl_curriculum.curriculum261_r10_cli import main\n'
+        'rc = main(["design-plan-lock", "--out-dir", sys.argv[1]])\n'
+        'sys.exit(rc)\n')
+    env = dict(os.environ)
+    env['PYTHONPATH'] = src + (
+        os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH') else '')
+    proc = subprocess.run(
+        [sys.executable, '-c', code, str(out)],
+        capture_output=True, text=True, timeout=600, env=env)
+    assert proc.returncode == 1
     assert not (out / "r10_design_plan.json").exists()

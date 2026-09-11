@@ -10,28 +10,47 @@ import pytest
 
 @pytest.fixture(scope="module")
 def tiny_supervised():
-    from rl_curriculum.curriculum261_pairs import generate_pair
-    from rl_curriculum.curriculum261_r12_calibration import (
-        fit_preprocessor_v2_from_bank_r12,
-        generate_fit_bank_r12,
-        supervised_learnability_run_r12,
-    )
-    from rl_curriculum.curriculum261_r12_shadow import _shadow_pack
+    # torch 线程面隔离(v2 轮 S3 全量回归归因;同 r11_integration):
+    # tiny supervised 全链在一次性子进程中真实执行,断言语义不变。
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
 
-    pack = _shadow_pack()
-    bank = generate_fit_bank_r12("preplan_fit_main_r12", pack,
-                                 pairs_per_rung=1)
-    v2, _ = fit_preprocessor_v2_from_bank_r12(
-        "preplan_fit_main_r12", pack, records=bank, pairs_per_rung=1,
-        parameter_pack_identity=pack["digest"])
-    result = supervised_learnability_run_r12(
-        v2, pack,
-        namespace="preplan_supervised_main_r12",
-        pairs_per_rung=2,
-        train_pair_limit=1,
-        model_seeds=(20261131, 20261132, 20261133),
-        training_config={"epochs": 2})
-    return result, pack
+    src = str(Path(__file__).resolve().parents[2] / 'src')
+    code = (
+        'import json, sys\n'
+        'from rl_curriculum.curriculum261_r12_calibration import (\n'
+        '    fit_preprocessor_v2_from_bank_r12, generate_fit_bank_r12,\n'
+        '    supervised_learnability_run_r12)\n'
+        'from rl_curriculum.curriculum261_r12_shadow import _shadow_pack\n'
+        'pack = _shadow_pack()\n'
+        'bank = generate_fit_bank_r12("preplan_fit_main_r12", pack, '
+        'pairs_per_rung=1)\n'
+        'v2, _ = fit_preprocessor_v2_from_bank_r12(\n'
+        '    "preplan_fit_main_r12", pack, records=bank, pairs_per_rung=1,'
+        '\n    parameter_pack_identity=pack["digest"])\n'
+        'result = supervised_learnability_run_r12(\n'
+        '    v2, pack, namespace="preplan_supervised_main_r12",\n'
+        '    pairs_per_rung=2, train_pair_limit=1,\n'
+        '    model_seeds=(20261131, 20261132, 20261133),\n'
+        '    training_config={"epochs": 2})\n'
+        'def _jsonable(o):\n'
+        '    if hasattr(o, "item"): return o.item()\n'
+        '    if hasattr(o, "tolist"): return o.tolist()\n'
+        '    return str(o)\n'
+        'sys.stdout.write(json.dumps({"result": result, "pack": pack}, '
+        'default=_jsonable))\n')
+    env = dict(os.environ)
+    env['PYTHONPATH'] = src + (
+        os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH') else '')
+    proc = subprocess.run(
+        [sys.executable, '-c', code], capture_output=True, text=True,
+        timeout=1200, env=env)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    payload = json.loads(proc.stdout)
+    return payload['result'], payload['pack']
 
 
 def test_tiny_supervised_runs_all_three_families(tiny_supervised):

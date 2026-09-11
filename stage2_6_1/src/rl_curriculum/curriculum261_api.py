@@ -627,6 +627,12 @@ CURRICULUM261_R17_NAMESPACES = (
     # banks + two full-size C1/C3 eval corpora (engineering-only).
     "preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
     "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17",
+    # R17V2C13EngineeringCalibration-v2 (engineering-only): the v2 rerun
+    # contract; v1 namespaces above stay registered and consumed.
+    "preplan_v2c13_v2_fit_main_r17",
+    "preplan_v2c13_v2_fit_validation_r17",
+    "preplan_v2c13_v2_eval_main_r17",
+    "preplan_v2c13_v2_eval_validation_r17",
 )
 
 #: R17 正式资格面(数据入口四件套;§6.5)。

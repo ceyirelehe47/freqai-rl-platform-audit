@@ -152,9 +152,37 @@ class TestPlanLock:
 
 class TestPpoSmoke:
     def test_256_step_smoke_passes(self, tmp_path):
-        from rl_curriculum.curriculum261_smoke import run_ppo_smoke
+        # torch/CUDA 线程面隔离(v2 轮 S3 全量回归归因):torch import
+        # 即创建未屏蔽 C 层线程(cuda*/pt_autograd_0/jemalloc_bg_thd),
+        # 全量扫描形态的 supervisor 截止点前提核验会如实 rc=7(与
+        # conftest 的 BLAS 缓解同因;CUDA_VISIBLE_DEVICES 空串也留
+        # driver 线程,torch 没有 CPU-only 开关能完全阻止)。
+        # PPO smoke 改在独立子进程执行:线程面留在子进程,smoke 的
+        # 全部断言语义不变。
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
 
-        result = run_ppo_smoke(out_dir=tmp_path)
+        src = str(Path(__file__).resolve().parents[2] / 'src')
+        out_file = tmp_path / 'smoke_result.json'
+        code = (
+            'import json, sys\n'
+            'from pathlib import Path\n'
+            'from rl_curriculum.curriculum261_smoke import run_ppo_smoke\n'
+            'result = run_ppo_smoke(out_dir=Path(sys.argv[2]))\n'
+            'Path(sys.argv[1]).write_text(json.dumps(result), '
+            'encoding="utf-8")\n')
+        env = dict(os.environ)
+        env['PYTHONPATH'] = src + (
+            os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH')
+            else '')
+        proc = subprocess.run(
+            [sys.executable, '-c', code, str(out_file),
+             str(tmp_path / 'smoke_out')],
+            capture_output=True, text=True, timeout=600, env=env)
+        assert proc.returncode == 0, proc.stderr[-2000:]
+        result = json.loads(out_file.read_text(encoding='utf-8'))
         assert result["pass"]
         assert result["steps"] == 256
         assert result["rewards_finite"]

@@ -204,11 +204,20 @@ def validate_proof(q: dict[str, Any], proof: dict, params_snapshot: dict,
     reason audit applies only to c3_cost (the only family with reserve
     rights). Unknown reasons for C3 and any rejection for C1/C2 are
     reported as-is — the scheduler turns them into a fatal stop.
+
+    v2 修复(B1):generator 身份按请求 family 从 runtime['generators']
+    取期望值——call 与每条 attempt 都必须匹配该族真实身份;缺映射、
+    旧式单身份 runtime(v1 形态)与跨族摘要均拒绝,不 fallback。
     """
     import re
 
     require(proof['coordinate'] == q,
             'request identity mismatch')
+    generators = runtime.get('generators')
+    require(isinstance(generators, dict)
+            and q['family'] in generators,
+            f"runtime generator map missing family: {q['family']}")
+    expected_generator = generators[q['family']]
     require(proof['status'] in ('accepted', 'structural_rejected'),
             'unknown generation status')
     require(proof.get('recorder_errors') == [],
@@ -225,7 +234,7 @@ def validate_proof(q: dict[str, Any], proof: dict, params_snapshot: dict,
             and call.get('max_attempts') == 5,
             'call params or attempts changed')
     require(call.get('iteration') == 'r17', 'call iteration mismatch')
-    require(call.get('generator') == runtime['generator'],
+    require(call.get('generator') == expected_generator,
             'generator identity mismatch')
     require(call.get('split') == 'curriculum261_' + q['namespace']
             and call.get('timeframe') == '15m',
@@ -258,6 +267,8 @@ def validate_proof(q: dict[str, Any], proof: dict, params_snapshot: dict,
             require(env.get(k) == q[k], f'envelope {k} mismatch')
         require(env.get('generator') == call['generator'],
                 'attempt generator mismatch')
+        require(env.get('generator') == expected_generator,
+                'attempt generator not bound to request family identity')
         require(env.get('iteration') == 'r17'
                 and env.get('split') == call['split']
                 and env.get('timeframe') == '15m',
@@ -420,9 +431,29 @@ class RealBackend:
             self.source_identity[name] = {'path': str(path), 'sha256': got}
 
     def describe(self) -> dict:
+        """三族各自绑定真实 generator 身份(v2 修复 B1)。
+
+        v1 缺陷:此处只登记 FAMILY_C3 的身份,validate_proof 对所有
+        请求用该单一身份比较——首个 C1 请求必然 mismatch。v2 按 family
+        建立完整映射;三族身份必须彼此不同,缺族/重复/错绑在 claim 前
+        拒绝(任务书 WP1.1/WP1.4)。
+        """
+        specs = self.pairs.family_specs()
+        generators = {
+            family: self.env.generator_identity(specs[family].generator)
+            for family in ('c1_opportunity', 'c2_context', 'c3_cost')
+        }
+        require(set(generators) == set(self.params_snapshot[
+            'rung_params']), 'generator map must cover exactly the '
+            'three schedule families')
+        digests = {family: g.get('fingerprint') or g
+                   for family, g in generators.items()}
+        require(all(d for d in digests.values())
+                and len(set(map(str, digests.values()))) == 3,
+                'the three families must carry distinct generator '
+                'identities')
         return {'kind': 'real',
-                'generator': self.env.generator_identity(
-                    self.pairs.family_specs()[FAMILY_C3].generator),
+                'generators': generators,
                 'sources': self.source_identity,
                 'interpreter': sys.version,
                 'families': ['c1_opportunity', 'c2_context', 'c3_cost'],
@@ -498,6 +529,18 @@ class RealBackend:
 
 
 # ------------------------------------------------------------ stage runner
+def read_episode_csv(path: Path) -> Any:
+    """重载持久化 episode 数值输入(CSV %.17g round-trip)。
+
+    pandas C 解析器默认路径对 float64 有 ULP 级误差;必须用
+    float_precision='round_trip' 才与生成时的 episode_content_hash
+    逐位一致(不修改原 hash 算法迁就 I/O——修解析,不修指纹)。
+    """
+    import pandas as pd
+
+    return pd.read_csv(path, float_precision='round_trip')
+
+
 def persist_selected_episode(root: Path, stage: str, q: dict[str, Any],
                              pair: Any) -> dict:
     """Persist selected numerical inputs (CSV %.17g + spec + hash 对拍).
