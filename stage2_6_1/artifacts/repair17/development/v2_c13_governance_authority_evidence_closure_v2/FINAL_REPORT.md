@@ -5,7 +5,7 @@ Baseline: 685d2c9b9a5c2c812ae75b23e2050c5383b38e7b
 Candidate commit C: 706614f6fdb3cbc2d74cdd139f165e987bd8ab14 (attempt 1,保留)
 Candidate commit C2: 2ef1b29b2f126825e7cdbc74093c42ca03c0fb40 (attempt 2,保留)
 Candidate commit C3: 19bd26fdff4aae44e0b4823836508d0c57a71cec (最终候选)
-Evidence commit E: <PENDING>
+Evidence commit E: da3e606b468471e269f94364f24c5ba3e6d8d29c
 
 governance_authority_evidence_closure: PASS
 c2_fixed_design_values_verified: true
