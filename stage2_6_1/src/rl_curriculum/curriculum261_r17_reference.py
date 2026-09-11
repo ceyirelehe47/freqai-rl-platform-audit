@@ -45,6 +45,7 @@ from rl_curriculum.curriculum261_r3_obs import (
 )
 from rl_curriculum.curriculum261_r4_obs import r4_observation_schema
 from rl_curriculum.curriculum261_r4_pairs import EVAL_CFG, RAW_SCHEMA
+from rl_curriculum.curriculum261_r17_routing import RoutingContractError
 from rl_curriculum.curriculum261_r6_param_pack import (
     r6_family_rung_params,
 )
@@ -270,6 +271,17 @@ def reference_equivalence_run_r17(
     rung_params_fn = rung_params_fn or (
         lambda family, pk: r6_family_rung_params(family, pk))
     specs = family_specs()
+    # 治理修复(E08):v2 轮 expected_bundle_hash 是死参数(签名接受、
+    # 内部从未使用)。现在 canonical 等价运行前对实际 bundle 对象做
+    # 防御性身份对拍 —— 期望 hash 与实际不符即 fail closed,不允许
+    # "调用方以为绑定了冻结 bundle、实际换对象仍跑完"。
+    if expected_bundle_hash is not None:
+        actual_hash = getattr(preproc_v2, "bundle_hash", None)
+        if actual_hash != expected_bundle_hash:
+            raise RoutingContractError(
+                f"reference equivalence bundle 防御对拍失败:"
+                f"expected={expected_bundle_hash} actual={actual_hash}"
+                f"(fail closed)")
     preproc = (preproc_v2.inner if hasattr(preproc_v2, "inner")
                 else preproc_v2)
     inner = preproc

@@ -1,0 +1,37 @@
+{
+ "task": "R17V2C13PostRunGovernanceAndC2LaunchPrep-v1",
+ "closures": {
+  "execution": {
+   "sha256": "591b1f35606c6fa2e75fbbb36ab8c87529064c771c93c604038de11ef1c80f85",
+   "role": "v2 主 run(00:51-00:56 UTC)实际执行的 r17_v2_c13_pipeline 字节;plan.json runtime.sources 记录路径: /home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_v2_c13_pipeline.py",
+   "bytes_available": false,
+   "status": "source_bytes_unavailable"
+  },
+  "post_run_reader_v2round": {
+   "sha256": "93f2d59af8b1279f9bd5f7faf0102ca2f75a8a570a6aa85fe4d4339d213985d7",
+   "role": "上轮主 run 后 S6 cold reader 修复并重锁的 source lock 中的 pipeline 身份;不是执行字节",
+   "bytes_available": true
+  },
+  "governance_fix_this_round": {
+   "pipeline_sha256": "2c0f415d57502705570f0dbde51fab5928b0b8d7c38ac27affc9c1bcbc59f324",
+   "source_lock_file_sha256": "54d49f267c033a25043c8d655159bf5021bf0b1a897037d9dbc7499f27eb7029",
+   "deployed_pipeline_sha256": "2c0f415d57502705570f0dbde51fab5928b0b8d7c38ac27affc9c1bcbc59f324",
+   "git_head_at_record": "d3cdf3d1bd4b40ba91013c31b14fc03eccb5ae11",
+   "role": "本轮治理修复后的候选闭包;未来 plan/claim/run record 必须绑定此类不可变执行闭包"
+  }
+ },
+ "search": {
+  "target": "591b1f35606c6fa2e75fbbb36ab8c87529064c771c93c604038de11ef1c80f85",
+  "named_candidates_scanned": 8,
+  "git_blobs_scanned": 8408,
+  "run_supervision_content_scan": true,
+  "reflog_stash_worktree_inventory": [
+   "git_reflog_inventory.txt",
+   "git_stash_inventory.txt",
+   "git_worktree_inventory.txt"
+  ],
+  "conclusion": "execution_source_bytes_available=false (no byte-exact match; honest unavailability, no reconstruction or fake backfill)",
+  "matches": []
+ },
+ "rule_p04": "post-run verifier 升级使用新 verifier 身份,不覆盖 execution closure;不能用 verifier 修复追认不满足 preclaim 的 run。"
+}

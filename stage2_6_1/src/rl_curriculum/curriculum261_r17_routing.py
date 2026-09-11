@@ -238,6 +238,12 @@ class R17BundleRouting:
             "actual_fit_namespace": self.fit_namespace,
             "expected_bundle_hash": expected_bundle_hash or "(unbound)",
             "actual_bundle_hash": self.bundle_hash,
+            # 治理修复(E08,WP3):ledger 行携带实际对象三层身份,
+            # 冷读可与 frozen checkpoint/envelope 交叉验证;"(unbound)"
+            # 只在调用方未声明期望时出现,编排层正确运行不得依赖它。
+            "actual_parameter_state_hash": self.parameter_state_hash,
+            "actual_manifest_multiset_hash":
+                self.manifest_multiset_hash,
         }
         if self.role != exp_role or self.fit_namespace != exp_ns:
             ok = False
@@ -342,6 +348,7 @@ def build_routing_r17(
 def require_eval_routing_r17(
         routing: R17BundleRouting, eval_namespace: str, *,
         context: str = "",
+        expected_bundle_hash: str | None = None,
         ledger: "RoutingLedgerR17 | None" = None) -> Any:
     """评估 namespace → 期望 role → bundle 的强制检查(§9.1/§9.2)。
 
@@ -350,6 +357,11 @@ def require_eval_routing_r17(
     main 评估撞 holdout bundle、final 用 main/holdout bundle 全部在此
     拒绝(§9.3)。repair R17:非正式路由类(preplan/shadow)不得服务
     正式评估 namespace;正式路由不得服务任何非正式 namespace。
+
+    治理修复(E08):新增可选 ``expected_bundle_hash`` 并透传给
+    ``bundle()`` —— v2c13 编排层必须传入 frozen checkpoint 的 bundle
+    hash,使 ledger 行记录真实期望而不是 "(unbound)";历史调用方
+    (orchestrator/旧测试)不传时行为不变(仍可选)。
     """
     _NONFORMAL_PREFIXES = ("preplan_", "reference_diagnostic",
                            "shadow_", "rt_", "rt3_")
@@ -388,6 +400,7 @@ def require_eval_routing_r17(
     return routing.bundle(
         expected_role=expected_role,
         expected_fit_namespace=expected_fit_namespace,
+        expected_bundle_hash=expected_bundle_hash,
         context=context or eval_namespace,
         ledger=ledger,
     )

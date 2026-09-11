@@ -31,9 +31,12 @@ from typing import Any
 
 from r17_v2_c13_profile import (
     BASELINE, CONTRACT, EVAL_NAMESPACES, FIT_NAMESPACES, RUNGS,
-    canonical, claim_state, consume_generation_claim, digest,
-    engineering_pack, fixed_contract, make_plan, namespace_unused_evidence,
-    parameter_snapshot, request_key, stage_requests, validate_plan)
+    authoritative_plan_path, canonical, claim_state,
+    consume_generation_claim_from_plan_file, digest, engineering_pack,
+    fixed_contract, load_preclaim_receipt, make_plan,
+    namespace_unused_evidence, parameter_snapshot, persist_authoritative_evidence,
+    persist_final_plan, request_key, stage_requests, validate_plan,
+    validate_preclaim_receipt, write_preclaim_receipt)
 from r17_v2_c13_batch import (
     RealBackend, StageCursor, execute_stage, file_meta, new_json,
     read_json, require, tree_snapshot, validate_proof)
@@ -301,7 +304,9 @@ def evaluate_split(root: Path, split: str, handles: dict[str, Any],
     for family in ('c1_opportunity', 'c3_cost'):
         bundle = require_eval_routing_r17(
             routing, eval_namespace,
-            context=f'calibration_{split}_{family}', ledger=ledger)
+            context=f'calibration_{split}_{family}', ledger=ledger,
+            expected_bundle_hash=frozen['hashes'][
+                'preprocessor_bundle_hash'])
         records = [handles[k] for k in members
                    if by_key[k]['family'] == family]
         require(len(records) == expected_eval_pairs,
@@ -344,7 +349,8 @@ def evaluate_split(root: Path, split: str, handles: dict[str, Any],
             f'pairs, got {len(equiv_records)}')
     equiv_bundle = require_eval_routing_r17(
         routing, eval_namespace, context=f'reference_equivalence_{split}',
-        ledger=ledger)
+        ledger=ledger,
+        expected_bundle_hash=frozen['hashes']['preprocessor_bundle_hash'])
     equiv_report = reference_equivalence_run_r17(
         equiv_records, equiv_bundle, pack, eval_namespace=eval_namespace,
         ledger=ledger,
@@ -377,11 +383,100 @@ def evaluate_split(root: Path, split: str, handles: dict[str, Any],
 
 
 # ------------------------------------------------------------------- run
+def prepare_authoritative_plan(*, backend: Any = None,
+                               contract: dict | None = None,
+                               full_regression_ref: dict | None = None
+                               ) -> dict:
+    """preclaim gate 流程(G03/G05/G11):组装并持久化权威交付三元组。
+
+    生产上这是独立于 ``run`` 的准入步骤,只能在同候选完整回归之后执行:
+
+    1. source guard + 参数快照 + namespace-unconsumed 扫描(零生成);
+    2. 扫描结果 create-only 持久化为 admission evidence 权威副本;
+    3. 最终计划 create-only 持久化(fsync+重读对拍),计划以
+       {path, sha256} 引用 evidence —— 计划身份不含易变观察(G12);
+    4. preclaim receipt create-only 写入,绑定 plan digest、plan 文件
+       字节、source closure digest 与完整回归证据引用。
+
+    幂等性:create-only,任何已存在即拒绝(不允许覆盖重试)。返回
+    {'plan', 'persisted', 'receipt_written'} 供 preclaim CLI 落盘报告。
+    """
+    import hashlib
+
+    sources = source_guard()
+    snapshot = parameter_snapshot()  # 参数面校验(零生成)
+    from r17_v2_c13_profile import RELEASE_REPO_ROOT
+
+    ns_check = namespace_unused_evidence(RELEASE_REPO_ROOT)
+    require(ns_check['namespaces_unused'],
+            f'namespaces already consumed or evidence unreadable: '
+            f'{ns_check["hits"][:5]}')
+    backend = RealBackend(snapshot) if backend is None else backend
+    runtime = backend.describe()
+    runtime['sources'] = sources
+    ev = persist_authoritative_evidence(ns_check)
+    plan = make_plan(
+        runtime, contract, admission_evidence={
+            'kind': 'namespace_unused_v1',
+            'path': plan_admission_evidence_ref(),
+            'sha256': ev['sha256']})
+    validate_plan(plan)
+    persisted = persist_final_plan(plan, authoritative_plan_path())
+    receipt = {
+        'profile': CONTRACT,
+        'admitted': True,
+        'plan_sha256': persisted['plan_sha256'],
+        'plan_file_sha256': persisted['file_sha256'],
+        'source_closure_sha256': digest(sources),
+        'full_regression_ref': full_regression_ref or {
+            'path': 'unspecified', 'entry_rc': 0},
+        'evidence_sha256': ev['sha256'],
+    }
+    write_preclaim_receipt(receipt)
+    return {'plan': plan, 'persisted': persisted,
+            'receipt_written': receipt}
+
+
+def plan_admission_evidence_ref() -> str:
+    """计划内 evidence 引用路径(CLAIM_ROOT 内文件名;G12 稳定身份)。"""
+    from r17_v2_c13_profile import EVIDENCE_FILENAME
+
+    return EVIDENCE_FILENAME
+
+
+def normalize_ns_evidence(ns_check: dict) -> dict:
+    """namespace 扫描结果的"决策身份"规范化(G12 §5.2)。
+
+    权威 claim 根内的 plan/receipt/evidence 文件自身会作为
+    planning-only 命中出现(preclaim 落盘前后两次扫描内容因此不同);
+    它们不是真实生成证据,从 planning 命中中剔除后再参与 evidence
+    身份对比。真实生成 hits(proof/claim 消费载荷)与 unreadable
+    绝不剔除 —— 权威根内出现它们仍然是硬阻塞。
+    """
+    from r17_v2_c13_profile import CLAIM_ROOT
+
+    claim_root = str(CLAIM_ROOT.resolve(strict=False))
+    out = json.loads(canonical(ns_check))
+    kept = [h for h in out.get('planning_only_hits', [])
+            if not str(h.get('path', '')).startswith(claim_root + '/')]
+    out['planning_only_hits'] = kept
+    # 仅当输入已携带该计数字段时同步更新(不向无键输入引入新键,
+    # 保持 canonical 身份稳定)。
+    if 'n_planning_only_hits' in out:
+        out['n_planning_only_hits'] = len(kept)
+    return out
+
+
 def run(out_dir: Path, *, backend: Any = None,
         contract: dict | None = None) -> int:
     """执行完整工程链。backend/contract 仅测试合成链注入用(生产
     CLI 不传:固定 RealBackend + 权威 fixed_contract);注入产物强制
-    标记 synthetic,verify 不授予工程完成。"""
+    标记 synthetic,verify 不授予工程完成。
+
+    治理修复(G03/G04/G11/G12):run 不再组装计划——它只消费 preclaim
+    流程持久化的权威 plan 文件,复验 receipt(同 plan/同 source
+    closure)与 admission evidence(当前 namespace 扫描摘要必须仍等于
+    计划引用值),然后从该文件取得一次性 claim,才允许首次生成。"""
     root = Path(out_dir)
     require(root.parent.is_dir(), 'output parent must already exist')
     root = root.parent.resolve(strict=True) / root.name
@@ -410,26 +505,74 @@ def run(out_dir: Path, *, backend: Any = None,
                 f'{ns_check["hits"][:5]} {ns_check["unreadable_evidence"][:5]}')
         backend = RealBackend(params_snapshot) if backend is None \
             else backend
+
+        # G12:run 不重新组装计划。消费 preclaim 流程持久化的同一权威
+        # plan 文件;当前扫描摘要必须仍等于计划引用值(namespace 状态
+        # 漂移在 claim 前拒绝)。摘要口径与持久化 evidence 文件字节
+        # 一致(canonical + 换行)。
+        import hashlib
+
+        result['phase'] = 'authoritative_plan_consumption'
+        plan_path = authoritative_plan_path()
+        require(plan_path.is_file(),
+                f'authoritative final plan missing (preclaim not run?): '
+                f'{plan_path}')
+        plan = json.loads(plan_path.read_text(encoding='utf-8'))
+        validate_plan(plan)
+        current_evidence_sha = hashlib.sha256(
+            (canonical(normalize_ns_evidence(ns_check)) + '\n')
+            .encode('utf-8')).hexdigest()
+        require(plan.get('admission_evidence', {}).get('sha256')
+                == current_evidence_sha,
+                'namespace admission evidence drifted from the '
+                'persisted plan (state changed after preclaim)')
         runtime = backend.describe()
         runtime['sources'] = sources
-        runtime['namespace_unused'] = ns_check
-        result['phase'] = 'plan_assembly'
-        plan = make_plan(runtime, contract)
-        validate_plan(plan)
+        require(plan['runtime'] == json.loads(canonical(runtime)),
+                'live backend runtime differs from the persisted plan '
+                '(candidate drift after preclaim)')
+        persisted_plan_sha = plan['plan_sha256']
+        persisted_file_sha = hashlib.sha256(
+            plan_path.read_bytes()).hexdigest()
 
-        # One-shot claim (S2/S3):second main experiment is refused even
-        # with a fresh out dir or monitored run id.
+        # G11:production 入口复验权威 preclaim receipt(同 plan digest、
+        # 同 source closure);缺失/过期/不同候选一律拒绝,不消费 claim。
+        result['phase'] = 'preclaim_receipt_validation'
+        receipt = load_preclaim_receipt()
+        validate_preclaim_receipt(
+            receipt, plan_sha256=persisted_plan_sha,
+            source_closure_sha256=digest(sources))
+        require(receipt.get('plan_file_sha256') == persisted_file_sha,
+                'authoritative plan file bytes differ from the receipt '
+                'anchor (tampered or replaced plan)')
+
+        # One-shot claim (S2/S3):claim 只能从已持久化的最终计划文件
+        # 取得(G04);second main experiment is refused even with a
+        # fresh out dir or monitored run id.
         result['phase'] = 'claim'
         claim = claim_state()
         require(not claim['consumed'],
                 f'generation claim already consumed: {claim}')
-        consumed = consume_generation_claim(plan)
-        new_json(root / 'plan.json', plan)
+        consumed = consume_generation_claim_from_plan_file(
+            plan_path, receipt)
+        # run root 保存权威计划的字节副本(plan.json);副本与权威文件
+        # 字节一致,manifest/verify 以此为 run 内锚点。
+        plan_copy = root / 'plan.json'
+        plan_copy.write_bytes(plan_path.read_bytes())
+        require(hashlib.sha256(plan_copy.read_bytes()).hexdigest()
+                == persisted_file_sha,
+                'run-local plan copy diverges from authoritative plan')
         new_json(root / 'params_snapshot.json', params_snapshot)
         new_json(root / 'claim.json', consumed)
 
         bundles: dict[str, dict[str, Any]] = {}
-        contract = contract if contract is not None else fixed_contract()
+        # stages 循环与计划共用同一合同(权威 plan 内嵌合同;传入
+        # contract 仅用于 synthetic 标记判定,不得分叉)。
+        if contract is not None:
+            require(plan['contract'] == contract,
+                    'run contract argument differs from the persisted '
+                    'plan contract')
+        contract = plan['contract']
         for stage in contract['stages']:
             stage_name = stage['stage']
             result['phase'] = f'{stage_name}_generation'
@@ -726,6 +869,68 @@ def _read_reference_equivalence(path: Path) -> dict:
         return doc
 
 
+# --------------------------------------- producer/consumer binding (WP3)
+def _entry_multiset_hash(entries: list[dict]) -> str:
+    """stdlib 重算 fit manifest multiset hash(与 r4 同口径;E04)。
+
+    与 curriculum261_r4_preprocessing 完全一致:entry canonical 用
+    json.dumps(sort_keys, separators=(',',':'), ensure_ascii=False,
+    default=str);entry_hash = sha256(canonical)(无前缀);multiset =
+    'r4fm-' + sha256(canonical({n_entries, sorted entry_hashes}))。
+    """
+    import hashlib
+
+    def r4_canonical(obj):
+        return json.dumps(obj, sort_keys=True, separators=(',', ':'),
+                          ensure_ascii=False, default=str)
+
+    hashes = sorted(
+        hashlib.sha256(r4_canonical(e).encode('utf-8')).hexdigest()
+        for e in entries)
+    return 'r4fm-' + hashlib.sha256(r4_canonical({
+        'n_entries': len(hashes), 'entry_hashes': hashes,
+    }).encode('utf-8')).hexdigest()
+
+
+def _reload_episode_identity(root: Path, stage: str, key: str,
+                             side: str, meta: dict) -> str | None:
+    """重载持久化 episode 并调用生产 ``episode_content_hash``(E02/E03)。
+
+    v2 持久化格式({key}_{side}.csv + .hidden.csv + 完整 spec.json)可
+    重建 GeneratedEpisode 等价对象 → 返回重算的完整内容指纹;旧格式
+    (无 hidden/params)该层不可重建 → 返回 None,由调用方按 partial
+    诚实登记,绝不复制旧 hash 字段冒充重算。
+    CSV 文件字节与 meta.csv_sha256 的对拍在调用方完成(分层:文件
+    字节 ≠ episode 身份)。
+    """
+    ensure_imports()
+    import pandas as pd
+
+    from rl_curriculum.generator_api import EpisodeSpec, GeneratedEpisode
+    from rl_curriculum.curriculum261_api import episode_content_hash
+
+    ep_dir = root / 'episodes' / stage
+    spec_doc = read_json(ep_dir / f'{key}_{side}.spec.json')
+    if (spec_doc.get('format') != 'v2c13-episode-persist-v2'
+            or 'hidden_csv' not in meta):
+        return None
+    df = pd.read_csv(ep_dir / meta['csv'], float_precision='round_trip')
+    hidden = pd.read_csv(ep_dir / meta['hidden_csv'],
+                         float_precision='round_trip')
+    spec = EpisodeSpec(
+        family=spec_doc['family'], params=spec_doc['params'],
+        seed=int(spec_doc['seed']), split=spec_doc['split'],
+        timeframe=spec_doc['timeframe'])
+    episode = GeneratedEpisode(
+        spec=spec, df=df, hidden=hidden,
+        family_version=spec_doc['family_version'],
+        timeframe=spec_doc['timeframe'],
+        is_null=spec_doc['is_null'],
+        generator_fingerprint=spec_doc['generator_fingerprint'],
+        meta={})
+    return episode_content_hash(episode)
+
+
 def verify(root: Path) -> dict:
     """Cold read of the whole delivery. No generation, no writes, no
     vendor transforms, no NumPy bootstrap — the sealed bytes, schedule,
@@ -761,6 +966,10 @@ def verify(root: Path) -> dict:
             'formal qualification must never be issued here')
 
     stage_reports = {}
+    #: producer/consumer 绑定证据(E01-E08);governance flags 驱动四态
+    #: verdict(§7.7) —— 旧 v2 归档按事实置 false,不抛错、不翻绿。
+    proof_episode_hashes: dict[str, dict[str, dict[str, str]]] = {}
+    episode_identity = {'full': 0, 'partial_legacy': 0, 'mismatch': 0}
     for stage in plan['contract']['stages']:
         name = stage['stage']
         sdir = root / 'stages' / name
@@ -816,14 +1025,64 @@ def verify(root: Path) -> dict:
             'n_selected': len(state['selected'])}
         require(stage_result['status'] == 'complete',
                 f'stage {name} not complete')
-        # episode CSV 与记录的 hash 对拍(选定数值输入不变)。
-        for key, meta in stage_result.get('episode_artifacts',
-                                          {}).items():
+        # E01:episode_artifacts 键集必须精确等于 selected key set ——
+        # 空/缺项字典不得绕过循环;未选/reserve/rejected 不得出现;
+        # 每 key 恰好 A/B 两侧;meta 文件名必须是目录内 basename(无
+        # 路径逃逸),文件本身为 regular file。
+        artifacts = stage_result.get('episode_artifacts', {})
+        require(set(artifacts) == set(selection['members']),
+                f'episode_artifacts key set != selected key set: '
+                f'{name}')
+        selected_proofs = {}
+        for key in selection['members']:
+            require(key in proofs,
+                    f'selected member missing validated proof: {key}')
+            selected_proofs[key] = proofs[key]['episode_hashes']
+        proof_episode_hashes[name] = selected_proofs
+        for key, meta in artifacts.items():
+            require(set(meta) == {'A', 'B'},
+                    f'episode artifact must carry exactly A/B: {key}')
             for side in ('A', 'B'):
-                path = root / 'episodes' / name / meta[side]['csv']
+                fname = meta[side]['csv']
+                require(isinstance(fname, str) and '/' not in fname
+                        and '\\' not in fname and fname != '.'
+                        and fname != '..'
+                        and not fname.startswith('.'),
+                        f'episode artifact escapes episode dir: {fname}')
+                path = root / 'episodes' / name / fname
+                require(path.is_file() and not path.is_symlink(),
+                        f'episode artifact not a regular file: {path}')
+                # 字节层:CSV 文件 sha 与生成时记录对拍(选定数值输入
+                # 不变)。CSV 字节 ≠ episode 身份(E03 分层)。
                 require(file_meta(path)['sha256']
                         == meta[side]['csv_sha256'],
                         f'episode csv drift: {key}/{side}')
+                # 身份层(E02/E03):对实际重载对象重算权威
+                # episode_content_hash;旧格式缺 hidden → partial。
+                recomputed = _reload_episode_identity(
+                    root, name, key, side, meta[side])
+                if recomputed is None:
+                    episode_identity['partial_legacy'] += 1
+                elif recomputed == meta[side]['episode_content_hash']:
+                    episode_identity['full'] += 1
+                else:
+                    episode_identity['mismatch'] += 1
+                    require(False,
+                            f'episode identity hash mismatch on reload: '
+                            f'{name}/{key}/{side}')
+        # v2 持久化格式的 hidden 文件也必须在字节集中(由 manifest 全集
+        # 对拍覆盖);meta 引用的 hidden_csv 同样要求 regular file。
+        for key, meta in artifacts.items():
+            for side in ('A', 'B'):
+                hidden_name = meta[side].get('hidden_csv')
+                if hidden_name is None:
+                    continue
+                hp = root / 'episodes' / name / hidden_name
+                require(hp.is_file() and not hp.is_symlink(),
+                        f'hidden artifact not a regular file: {hp}')
+                require(file_meta(hp)['sha256']
+                        == meta[side]['hidden_csv_sha256'],
+                        f'hidden csv drift: {key}/{side}')
 
     # bundles:三层身份链交叉对拍(plan -> frozen -> envelope JSON ->
     # delivery);envelope 文件字节与 checkpoint 锚点对照;独立
@@ -867,16 +1126,59 @@ def verify(root: Path) -> dict:
         require(side_manifest.get('multiset_hash')
                 == frozen['manifest_summary']['multiset_hash'],
                 f'{split} side fit manifest multiset hash drift')
+        # E04:fit manifest 逐成员绑定 selected fit proof ——
+        # (family, rung, pair_index, side) 多重集精确等于 fit stage
+        # 的选定坐标×A/B,每条 entry 的 episode_hash 必须等于该 proof
+        # 记录的对应侧 episode 内容指纹;namespace 逐条一致;multiset
+        # hash 用 stdlib 同口径重算。dup/漏 side/跨 bank/eval 混入、
+        # 只比数量或 family/rung 集合都过不了这一层。
+        fit_stage = f'fit_{split}'
+        require(fit_stage in proof_episode_hashes,
+                f'{split} bundle without member-bound fit proofs')
+        fit_selection = read_json(
+            root / 'stages' / fit_stage / 'selection.json')
+        expected_members: dict[tuple, str] = {}
+        for coord in fit_selection['member_coordinates']:
+            key = request_key(coord)
+            for side in ('A', 'B'):
+                expected_members[(
+                    coord['family'], coord['rung'],
+                    int(coord['pair_index']), side)] = \
+                    proof_episode_hashes[fit_stage][key][side]
+        actual_members: dict[tuple, str] = {}
+        for e in manifest_doc['entries']:
+            member = (e['family'], e['rung'], int(e['pair_index']),
+                      e['side'])
+            require(member not in actual_members,
+                    f'{split} fit manifest duplicate member: {member}')
+            require(e['namespace'] == FIT_NAMESPACES[split],
+                    f'{split} fit manifest entry foreign namespace: {e}')
+            actual_members[member] = e['episode_hash']
+        require(actual_members == expected_members,
+                f'{split} fit manifest members/episode hashes not '
+                f'member-bound to selected fit proofs')
+        require(_entry_multiset_hash(manifest_doc['entries'])
+                == manifest_doc['multiset_hash'],
+                f'{split} fit manifest multiset hash recompute mismatch')
         envelope_hashes[split] = envelope['hashes']
 
     # evaluations:统计代数复算 + strict 布尔对拍(完整 run 才存在)。
     stats_recomputed = {}
+    governance_routing = {'rows': 0, 'unbound': 0, 'legacy_rows': 0,
+                          'hash_mismatch': 0, 'pass_false': 0}
     for split in ('main', 'validation'):
         edir = root / 'evaluations' / split
         if not edir.is_dir():
             require(not run_complete,
                     f'complete run missing evaluations: {split}')
             continue
+        eval_stage = f'eval_{split}'
+        eval_selection = read_json(
+            root / 'stages' / eval_stage / 'selection.json')
+        eval_members = [request_key(c)
+                        for c in eval_selection['member_coordinates']]
+        by_member = {request_key(c): c
+                     for c in eval_selection['member_coordinates']}
         for family in ('c1_opportunity', 'c3_cost'):
             path = root / 'evaluations' / split / f'{family}_report.json'
             report = read_json(path)
@@ -887,10 +1189,44 @@ def verify(root: Path) -> dict:
                     == plan['contract'].get(
                         'n_eval_pairs_per_family_per_split', 40),
                     'eval pair table rows != per-family pairs')
+            # E05:选定成员 → 持久化 episode → pair row 逐成员一致;
+            # reserve index 保留原值;episode hashes ↔ proof 对拍。
+            family_members = [k for k in eval_members
+                              if by_member[k]['family'] == family]
+            require(report['member_keys'] == family_members,
+                    f'member_keys not bound to eval selection: '
+                    f'{family}/{split}')
+            row_keys = {}
+            for row in report['family_report']['pair_table']['rows']:
+                member = (row['rung'], int(row['pair_index']))
+                require(member not in row_keys,
+                        f'duplicate pair row: {family}/{split}/{member}')
+                require(sorted(row['episode_hashes']) == ['A', 'B'],
+                        f'pair row missing A/B: {family}/{split}/{member}')
+                row_keys[member] = row['episode_hashes']
+            expected_rows = {}
+            for k in family_members:
+                c = by_member[k]
+                expected_rows[(c['rung'], int(c['pair_index']))] = \
+                    proof_episode_hashes[eval_stage][k]
+            require(row_keys == expected_rows,
+                    f'pair rows not member-bound to selected episodes: '
+                    f'{family}/{split}')
             recomputed = _recompute_strict(report['family_report'])
             require(recomputed['strict_pass_recomputed']
                     == bool(report['conditions']['pass']),
                     f'strict algebra mismatch: {family}/{split}')
+            # E06:result/delivery 的统计必须从已复核 conditions 派生
+            # —— 翻绿/删改叶子即使外层 manifest 重签也在此拒绝。
+            if run_complete:
+                sealed = result['statistical'][f'{family}_{split}']
+                require(bool(sealed['strict_pass'])
+                        == bool(report['conditions']['pass']),
+                        f'result strict flag not derived from report: '
+                        f'{family}/{split}')
+                require(sealed['conditions'] == report['conditions'],
+                        f'result conditions not the reviewed report: '
+                        f'{family}/{split}')
             stats_recomputed[f'{family}_{split}'] = recomputed
         equiv = _read_reference_equivalence(
             root / 'evaluations' / split / 'reference_equivalence.json')
@@ -900,6 +1236,76 @@ def verify(root: Path) -> dict:
                     'canonical_pairs_per_split', 24),
                 'equivalence subset episodes != 2 x canonical pairs '
                 'per split')
+        # E07:canonical 集合精确 = 每 family×rung 选定顺序前 3 pair;
+        # 核对具体成员(不只 n_episodes)、per-episode 结论、unexplained
+        # 与 result 声明一致、bundle 绑定等于冻结 hash。
+        seen: dict[tuple[str, str], int] = {}
+        expected_canonical: list[str] = []
+        for k in eval_members:
+            c = by_member[k]
+            slot = (c['family'], c['rung'])
+            if seen.get(slot, 0) < 3:
+                seen[slot] = seen.get(slot, 0) + 1
+                expected_canonical.append(k)
+        if run_complete:
+            declared = result['reference_equivalence'][split]
+            require(declared['member_keys'] == expected_canonical,
+                    f'canonical member set not the fixed first-3-per-'
+                    f'stratum selection: {split}')
+            require(declared['n_episodes']
+                    == 2 * len(expected_canonical),
+                    f'canonical episode count mismatch: {split}')
+            require(declared['unexplained_mismatches'] == 0
+                    and equiv['unexplained_mismatches'] == 0,
+                    f'unexplained canonical mismatch is engineering '
+                    f'failure: {split}')
+            require(declared['pass'] is True
+                    and equiv['pass'] is True,
+                    f'canonical equivalence not passing: {split}')
+
+    # E08:routing 矩阵与 frozen checkpoint 交叉验证 —— 每行必须携带
+    # 真实 expected/actual bundle hash(legacy "(unbound)" 行按治理缺口
+    # 计,不抛错:四态 verdict 用),三层身份等于冻结值,pass 全真。
+    frozen_hashes = {s: read_json(root / 'bundles' / s
+                                  / 'frozen_checkpoint.json')['hashes']
+                     for s in ('main', 'validation')
+                     if (root / 'bundles' / s).is_dir()}
+    routing_matrix = delivery.get('routing_matrix') or []
+    for row in routing_matrix:
+        governance_routing['rows'] += 1
+        if row.get('pass') is not True:
+            governance_routing['pass_false'] += 1
+        expected_hash = row.get('expected_bundle_hash')
+        corpus = str(row.get('corpus', ''))
+        split = ('validation' if 'validation' in corpus
+                 else 'main' if 'main' in corpus else None)
+        frozen = frozen_hashes.get(split) if split else None
+        if expected_hash in (None, '(unbound)'):
+            governance_routing['unbound'] += 1
+            continue
+        if 'actual_parameter_state_hash' not in row:
+            governance_routing['legacy_rows'] += 1
+        if frozen is None:
+            require(False, f'routing row without frozen bundle: {corpus}')
+        if expected_hash != frozen['preprocessor_bundle_hash']:
+            require(False,
+                    f'routing expected hash != frozen bundle hash: '
+                    f'{corpus}')
+        if row.get('actual_bundle_hash') != frozen[
+                'preprocessor_bundle_hash']:
+            require(False,
+                    f'routing actual bundle hash drift: {corpus}')
+        if ('actual_parameter_state_hash' in row
+                and row['actual_parameter_state_hash']
+                != frozen['parameter_state_hash']):
+            require(False, f'routing parameter state drift: {corpus}')
+        if ('actual_manifest_multiset_hash' in row
+                and row['actual_manifest_multiset_hash']
+                != frozen['fit_manifest_multiset_hash']):
+            require(False, f'routing manifest multiset drift: {corpus}')
+    if run_complete:
+        require(routing_matrix,
+                'complete run missing routing matrix')
 
     if result['status'] == 'complete':
         require(result['rc'] == 0 and result['error'] is None
@@ -914,10 +1320,54 @@ def verify(root: Path) -> dict:
     require(before == tree_snapshot(root),
             'verification changed/read unstable input')
     statistical = delivery['statistical_diagnostic']
+
+    # ------------------------------------------------ 四态 verdict(§7.7/S02)
+    # 旧 v2 归档:数值链真实完成 + stored pair table strict PASS 保留,
+    # 但 preclaim/claim 顺序、root 旁路、源码闭包与 producer/consumer
+    # 绑定缺口使 governance_contract_pass=false —— 新 verifier 的
+    # "evidence self-consistent" 不再自动输出 engineering_complete。
+    numerical_path_complete = bool(
+        result['status'] == 'complete'
+        and result['engineering_path_complete'] is True
+        and len(envelope_hashes) == 2
+        and len(stats_recomputed) == 4)
+    strict_all = [
+        bool(v['strict_pass']) for k, v in (statistical or {}).items()
+        if isinstance(v, dict) and 'strict_pass' in v]
+    if len(strict_all) == 4:
+        stored_table_strict_diagnostic = ('PASS' if all(strict_all)
+                                          else 'FAIL')
+    else:
+        stored_table_strict_diagnostic = 'NOT_RUN'
+    plan_format_layered = (
+        isinstance(plan.get('admission_evidence'), dict)
+        and 'namespace_unused' not in plan['runtime'])
+    claim_doc = (read_json(root / 'claim.json')
+                 if (root / 'claim.json').is_file() else None)
+    claim_bound_to_plan = bool(
+        claim_doc and claim_doc.get('plan_sha256') == plan['plan_sha256'])
+    episode_identity_rebuildable = bool(
+        episode_identity['full'] > 0
+        and episode_identity['mismatch'] == 0
+        and episode_identity['partial_legacy'] == 0)
+    governance_flags = {
+        'plan_format_layered': plan_format_layered,
+        'claim_bound_to_plan': claim_bound_to_plan,
+        'episode_identity_fully_rebuildable': episode_identity_rebuildable,
+        'routing_matrix_binds_frozen_hash': bool(
+            governance_routing['rows'] > 0
+            and governance_routing['unbound'] == 0
+            and governance_routing['legacy_rows'] == 0
+            and governance_routing['hash_mismatch'] == 0
+            and governance_routing['pass_false'] == 0),
+    }
+    governance_contract_pass = bool(
+        numerical_path_complete and all(governance_flags.values()))
     return {
         'evidence_consistent': True,
-        'engineering_complete': (result['status'] == 'complete'
-                                 and not synthetic),
+        'engineering_complete': bool(
+            numerical_path_complete and governance_contract_pass
+            and not synthetic),
         'synthetic': synthetic,
         'status': result['status'],
         'plan_sha256': plan['plan_sha256'],
@@ -930,6 +1380,13 @@ def verify(root: Path) -> dict:
             k: bool(v['strict_pass'])
             for k, v in (statistical or {}).items()
             if isinstance(v, dict) and 'strict_pass' in v},
+        'numerical_path_complete': numerical_path_complete,
+        'stored_table_strict_diagnostic': stored_table_strict_diagnostic,
+        'governance_contract_pass': governance_contract_pass,
+        'governance_flags': governance_flags,
+        'episode_identity_reload': episode_identity,
+        'routing_audit': governance_routing,
+        'formal_qualification_issued': False,
         'scope': CONTRACT,
     }
 

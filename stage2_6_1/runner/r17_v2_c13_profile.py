@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -65,16 +66,34 @@ C3_ALLOWED_REJECTIONS = frozenset(
     f'{scope}:{code}' for scope in ('A', 'B', 'pair')
     for code in C3_RESERVE_CODES)
 
-#: 发布仓库固定根(生成证据所在;env 覆盖仅用于隔离验证副本)。
-import os as _os
+#: 发布仓库固定根(生成证据所在;生产 authority)。
+#:
+#: 治理修复(G06/G07):v2 轮此处从环境变量 R17_V2C13_REPO_ROOT 派生,生产
+#: CLI 换一个空根即可同时改写 claim 根与 namespace 扫描根,构成对已
+#: 消费一次性许可的静态重取路径。现在生产根为固定常量,不读任何环境
+#: 变量;测试/合成链注入只能通过 set_test_authority() 显式 fixture 接口
+#: (或测试对模块属性 monkeypatch),生产 CLI 无任何注入入口。
+RELEASE_REPO_ROOT = Path('/mnt/f/trading/freqai-rl-audit')
 
-RELEASE_REPO_ROOT = Path(_os.environ.get(
-    'R17_V2C13_REPO_ROOT', '/mnt/f/trading/freqai-rl-audit'))
-
-#: 一次性工程 claim 固定位置(profile 决定;换 out/run_id 不重新取得;
+#: 一次性工程 claim 固定位置(profile 决定;换 out/run_id/cwd 不重新取得;
 #: 落在发布仓库固定开发证据域,与部署布局无关)。
 CLAIM_ROOT = RELEASE_REPO_ROOT / (
     'stage2_6_1/artifacts/repair17/development/v2_c13_engineering_claim')
+
+
+def set_test_authority(repo_root, claim_root=None) -> None:
+    """fixture-only:为测试/合成链显式注入临时 authority 根。
+
+    生产 CLI 不调用本函数(无入口);合成链与协议测试用它把 claim 根
+    与 namespace 扫描根指向临时目录。注入后 consume/claim_state 仍执行
+    权威根内路径守卫(symlink/`..`/相对路径逃逸拒绝)。
+    """
+    global RELEASE_REPO_ROOT, CLAIM_ROOT
+    RELEASE_REPO_ROOT = Path(repo_root)
+    CLAIM_ROOT = (Path(claim_root) if claim_root is not None
+                  else RELEASE_REPO_ROOT / (
+                      'stage2_6_1/artifacts/repair17/development/'
+                      'v2_c13_engineering_claim'))
 
 
 class ProfileError(RuntimeError):
@@ -306,10 +325,21 @@ def parameter_snapshot() -> dict[str, Any]:
 
 
 def make_plan(runtime: dict[str, Any],
-              contract: dict[str, Any] | None = None) -> dict[str, Any]:
+              contract: dict[str, Any] | None = None,
+              admission_evidence: dict[str, Any] | None = None
+              ) -> dict[str, Any]:
     """组装计划。contract=None 用权威 fixed_contract()(生产路径);
     合成链测试可注入小合同(仅测试入口,生产 CLI 不暴露)。请求清单
-    一律从传入合同的 stages 派生,生产合同与 all_requests() 等价。"""
+    一律从传入合同的 stages 派生,生产合同与 all_requests() 等价。
+
+    身份分层(G12):``runtime`` 只承载稳定事实(kind/generators/sources/
+    interpreter);namespace 扫描等易变运行观察以 ``admission_evidence``
+    的 {path, sha256} 引用进入计划,内容不内嵌 —— 同一证据内容得到
+    同一 plan digest,plan 文件自身成为 planning-only 命中也不再改变
+    科学计划身份。v2 轮把扫描结果整包内嵌 runtime,导致 preclaim 计划
+    (66cbf9f3)与主 run 计划(4fbbb91a)digest 分叉,本轮治理修复废除
+    该形态;冷读旧 v2 计划走 validate_plan 的 legacy 分支。
+    """
     contract = fixed_contract() if contract is None else contract
     requests = []
     for stage in contract['stages']:
@@ -319,15 +349,56 @@ def make_plan(runtime: dict[str, Any],
                  **{k: q[k] for k in ('stage', 'kind', 'split',
                                       'namespace', 'family', 'rung',
                                       'pair_index')}})
-    plan = {'contract': contract, 'contract_sha256': digest(contract),
-            'baseline': BASELINE, 'runtime': runtime,
-            'requests': requests}
+    plan: dict[str, Any] = {
+        'contract': contract, 'contract_sha256': digest(contract),
+        'baseline': BASELINE, 'runtime': runtime,
+        'requests': requests}
+    if admission_evidence is not None:
+        require(isinstance(admission_evidence, dict)
+                and isinstance(admission_evidence.get('path'), str)
+                and isinstance(admission_evidence.get('sha256'), str)
+                and re.fullmatch(r'[a-f0-9]{64}',
+                                 admission_evidence['sha256']) is not None,
+                'admission_evidence must be a {path, sha256} content '
+                'reference, not an embedded observation')
+        plan['admission_evidence'] = {
+            'kind': admission_evidence.get('kind', 'namespace_unused_v1'),
+            'path': admission_evidence['path'],
+            'sha256': admission_evidence['sha256']}
     plan['plan_sha256'] = digest(plan)
     return json.loads(canonical(plan))
 
 
+def _plan_core(plan: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in plan.items() if k != 'plan_sha256'}
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
-    require(plan == make_plan(plan['runtime'], plan['contract']),
+    """计划身份自洽校验(G03/G12 的 digest 层)。
+
+    - plan_sha256 必须等于除自身外全字段的 canonical digest(对持久化
+      文件重读同样成立;不再要求与重新 make_plan 逐字段等价 —— 那依赖
+      runtime 内嵌易变观察的可重放性,正是 v2 轮 digest 分叉根因);
+    - 请求清单仍必须与合同的 stages 派生清单精确等价(科学坐标固定);
+    - runtime 形态:新形态不携带 namespace_unused 等易变键;v2 归档的
+      legacy 形态(runtime 内嵌 namespace_unused/sources)允许冷读,
+      由 verify 的 governance verdict 单独标记,不在此拒绝。
+    """
+    require(isinstance(plan, dict) and 'plan_sha256' in plan,
+            'plan missing plan_sha256')
+    require(digest(_plan_core(plan)) == plan['plan_sha256'],
+            'plan digest does not match its own content')
+    require(plan.get('contract_sha256') == digest(plan['contract']),
+            'contract digest mismatch')
+    derived: list[dict[str, Any]] = []
+    for stage in plan['contract']['stages']:
+        for q in stage_requests(stage):
+            derived.append(
+                {'key': request_key(q), 'tier': q['tier'],
+                 **{k: q[k] for k in ('stage', 'kind', 'split',
+                                      'namespace', 'family', 'rung',
+                                      'pair_index')}})
+    require(plan['requests'] == derived,
             'plan identity/request list mismatch')
     require(plan['runtime']['kind'] in ('real', 'test_fixture'),
             'unknown backend kind')
@@ -335,8 +406,16 @@ def validate_plan(plan: dict[str, Any]) -> None:
             and set(plan['runtime']['generators'])
             == set(FIT_FAMILIES),
             'runtime must carry the three-family generator map')
+    if 'admission_evidence' in plan:
+        require(isinstance(plan['admission_evidence'], dict)
+                and re.fullmatch(r'[a-f0-9]{64}',
+                                 str(plan['admission_evidence'].get(
+                                     'sha256'))) is not None
+                and isinstance(plan['admission_evidence'].get('path'),
+                               str),
+                'admission_evidence reference malformed')
     if plan['contract'] == fixed_contract():
-        return  # 生产合同:等价即通过
+        return  # 生产合同:结构自洽即通过
     # 注入合同(仅合成链):必须自我声明 engineering_only 与 synthetic
     # 语义,且规模字段与 stages 自洽(不能伪装生产 336 合同)。
     require(plan['contract'].get('engineering_only') is True
@@ -428,18 +507,227 @@ def namespace_unused_evidence(repo_root: Path) -> dict[str, Any]:
             'namespaces_unused': (not hits) and (not unreadable)}
 
 
-def consume_generation_claim(plan: dict[str, Any]) -> dict[str, Any]:
-    """一次性工程 claim:create-only;同 profile 第二次主实验被拒。
+# ------------------------------------------------- plan/receipt/claim protocol
+#: 权威最终计划/preclaim receipt/admission evidence 固定位置(与 claim
+#: 同根;由 preclaim gate 流程 create-only 写入;production run 只消费
+#: 已持久化的同一 plan 文件,不重新组装计划 — G03/G05/G11/G12)。
+RECEIPT_FILENAME = f'{CONTRACT}.preclaim.json'
+PLAN_FILENAME = f'{CONTRACT}.plan.json'
+EVIDENCE_FILENAME = f'{CONTRACT}.admission_evidence.json'
 
-    claim 路径由 profile 常量决定,与输出目录/监护 run_id 无关。
+
+def _fsync_dir(path: Path) -> None:
+    import os
+
+    fd = os.open(path, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _guarded_claim_path(filename: str) -> Path:
+    """权威 claim 根内路径守卫(G07)。
+
+    最终路径 resolve 后必须严格位于 CLAIM_ROOT(resolve)之内;符号链接、
+    ``..``、相对逃逸与第二 checkout 在此拒绝。CLAIM_ROOT 自身也必须在
+    RELEASE_REPO_ROOT(resolve)之内,防止注入根本身被指到权威域外后把
+    claim 写去任意位置。
+    """
+    claim_root = CLAIM_ROOT.resolve(strict=True)
+    repo_root = RELEASE_REPO_ROOT.resolve(strict=True)
+    require(claim_root == repo_root or claim_root.is_relative_to(repo_root),
+            f'claim root escapes release repo authority: {CLAIM_ROOT}')
+    path = claim_root / filename
+    resolved = path.resolve(strict=False)
+    require(resolved.is_relative_to(claim_root),
+            f'claim path escapes authority root: {path}')
+    return path
+
+
+def authoritative_plan_path() -> Path:
+    return CLAIM_ROOT / PLAN_FILENAME
+
+
+def authoritative_evidence_path() -> Path:
+    return CLAIM_ROOT / EVIDENCE_FILENAME
+
+
+def receipt_path() -> Path:
+    return CLAIM_ROOT / RECEIPT_FILENAME
+
+
+def persist_final_plan(plan: dict[str, Any], path: Path) -> dict[str, Any]:
+    """create-only 持久化最终计划(G03):O_EXCL 写入 + 文件与目录 fsync
+    + 重读回算 canonical digest 与文件 sha256 对拍。
+
+    已存在即拒绝(不覆盖、不重试);调用方随后才能申请 claim。
+    """
+    import os
+    import secrets
+
+    validate_plan(plan)
+    path = Path(path)
+    require(not path.exists(), f'final plan already persisted: {path}')
+    payload = (canonical(plan) + '\n').encode('utf-8')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name('.' + path.name + '.' + secrets.token_hex(12)
+                        + '.tmp')
+    try:
+        with tmp.open('xb') as fh:
+            fh.write(payload)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.link(tmp, path)
+        _fsync_dir(path.parent)
+    finally:
+        tmp.unlink(missing_ok=True)
+    # readback:字节与 digest 双对拍。
+    reread = json.loads(path.read_text(encoding='utf-8'))
+    require(reread == plan, 'persisted plan readback differs from plan')
+    import hashlib
+
+    file_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    require(digest(_plan_core(reread)) == reread['plan_sha256'],
+            'persisted plan digest self-check failed')
+    return {'path': str(path), 'plan_sha256': plan['plan_sha256'],
+            'bytes': len(payload), 'file_sha256': file_sha}
+
+
+def persist_authoritative_evidence(evidence: dict[str, Any],
+                                   path: Path | None = None
+                                   ) -> dict[str, Any]:
+    """create-only 持久化 admission evidence 权威副本(namespace 扫描
+    结果;plan 以 {path, sha256} 引用)。run() 重算扫描并与该摘要对拍
+    —— namespace 消费状态漂移在 claim 前拒绝,而非静默通过。"""
+    import hashlib
+    import os
+
+    target = (Path(path) if path is not None
+              else authoritative_evidence_path())
+    require(not target.exists(),
+            f'admission evidence already persisted: {target}')
+    body = (canonical(evidence) + '\n').encode('utf-8')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, 'xb') as fh:
+        fh.write(body)
+        fh.flush()
+        os.fsync(fh.fileno())
+    _fsync_dir(target.parent)
+    return {'path': str(target), 'sha256':
+            hashlib.sha256(body).hexdigest(), 'bytes': len(body)}
+
+
+def write_preclaim_receipt(receipt: dict[str, Any],
+                           path: Path | None = None) -> dict[str, Any]:
+    """create-only 写权威 preclaim receipt(G05)。
+
+    receipt 必须绑定:同候选 source closure digest、完整回归证据引用、
+    最终 plan digest;只在最后一次影响主链/guard 的改动与其对应完整
+    回归之后由 preclaim gate 写入。写入后不得改 guard 沿用旧回执。
+    """
+    validate_preclaim_receipt_shape(receipt)
+    target = Path(path) if path is not None else receipt_path()
+    require(not target.exists(),
+            f'preclaim receipt already exists: {target}')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    body = (canonical(receipt) + '\n').encode('utf-8')
+    import os
+
+    with open(target, 'xb') as fh:
+        fh.write(body)
+        fh.flush()
+        os.fsync(fh.fileno())
+    _fsync_dir(target.parent)
+    import hashlib
+
+    return {'path': str(target), 'bytes': len(body),
+            'file_sha256': hashlib.sha256(body).hexdigest()}
+
+
+def validate_preclaim_receipt_shape(receipt: dict[str, Any]) -> None:
+    require(isinstance(receipt, dict) and receipt.get('admitted') is True,
+            'preclaim receipt not admitted')
+    require(receipt.get('profile') == CONTRACT,
+            'preclaim receipt bound to a different profile')
+    require(isinstance(receipt.get('plan_sha256'), str)
+            and re.fullmatch(r'[a-f0-9]{64}',
+                             receipt['plan_sha256']) is not None,
+            'preclaim receipt missing plan digest')
+    require(isinstance(receipt.get('source_closure_sha256'), str)
+            and re.fullmatch(r'[a-f0-9]{64}',
+                             receipt['source_closure_sha256']) is not None,
+            'preclaim receipt missing source closure digest')
+    require(isinstance(receipt.get('full_regression_ref'), dict)
+            and isinstance(receipt['full_regression_ref'].get('path'), str)
+            and receipt['full_regression_ref'].get('entry_rc') == 0,
+            'preclaim receipt missing green full-regression reference')
+
+
+def load_preclaim_receipt() -> dict[str, Any]:
+    """读权威 receipt;缺失/损坏按异常拒绝(fail closed,不静默)。"""
+    path = receipt_path()
+    require(path.is_file(),
+            f'authoritative preclaim receipt missing: {path}')
+    try:
+        receipt = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        raise ProfileError(
+            f'preclaim receipt unreadable (fail closed): {exc}') from exc
+    validate_preclaim_receipt_shape(receipt)
+    return receipt
+
+
+def validate_preclaim_receipt(receipt: dict[str, Any], *,
+                              plan_sha256: str,
+                              source_closure_sha256: str) -> None:
+    """production entry 复验 receipt(G11):同 plan digest、同 source
+    closure。receipt 过期(候选已改)在此拒绝,不能靠 operator 自报。"""
+    validate_preclaim_receipt_shape(receipt)
+    require(receipt['plan_sha256'] == plan_sha256,
+            'preclaim receipt bound to a different plan')
+    require(receipt['source_closure_sha256'] == source_closure_sha256,
+            'preclaim receipt bound to a different source closure '
+            '(stale candidate)')
+
+
+def consume_generation_claim_from_plan_file(
+        plan_path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
+    """一次性工程 claim 只能从已持久化的最终计划文件取得(G04)。
+
+    v2 轮缺陷:``run()`` 先用内存 dict 消费 claim、事后才写 plan.json,
+    claim 绑定的 plan 与 preclaim 计划分叉。现在:
+
+    - 重读 plan 文件并重算 plan_sha256(payload 引用精确持久化值);
+    - receipt 必须已通过 validate_preclaim_receipt(同 plan/同 closure);
+    - O_EXCL 创建 claim;两进程竞态恰好一个成功,失败方不删不重试;
+    - claim 后崩溃/业务失败:claim 永久保留,无恢复路径(G10)。
     """
     import os
     import time
 
+    plan_path = Path(plan_path)
+    require(plan_path.is_file(),
+            f'plan file missing; claim requires a persisted plan: '
+            f'{plan_path}')
+    plan = json.loads(plan_path.read_text(encoding='utf-8'))
+    validate_plan(plan)
+    validate_preclaim_receipt_shape(receipt)
+    require(receipt['plan_sha256'] == plan['plan_sha256'],
+            'preclaim receipt bound to a different plan digest')
+    import hashlib
+
+    plan_file_sha = hashlib.sha256(
+        plan_path.read_bytes()).hexdigest()
+    if receipt.get('plan_file_sha256') is not None:
+        require(receipt['plan_file_sha256'] == plan_file_sha,
+                'persisted plan file bytes differ from the receipt anchor '
+                '(tampered or replaced plan)')
     CLAIM_ROOT.mkdir(parents=True, exist_ok=True)
-    path = CLAIM_ROOT / f'{CONTRACT}.json'
+    path = _guarded_claim_path(f'{CONTRACT}.json')
     payload = {
         'profile': CONTRACT, 'plan_sha256': plan['plan_sha256'],
+        'plan_file_sha256': plan_file_sha,
         'baseline': BASELINE, 'consumed_utc': time.strftime(
             '%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
     }
@@ -450,11 +738,21 @@ def consume_generation_claim(plan: dict[str, Any]) -> dict[str, Any]:
         os.fsync(fd)
     finally:
         os.close(fd)
-    return {'path': str(path), 'plan_sha256': plan['plan_sha256']}
+    _fsync_dir(path.parent)
+    return {'path': str(path), 'plan_sha256': plan['plan_sha256'],
+            'plan_path': str(plan_path)}
 
 
 def claim_state() -> dict[str, Any]:
-    path = CLAIM_ROOT / f'{CONTRACT}.json'
+    if not CLAIM_ROOT.is_dir():
+        return {'consumed': False,
+                'path': str(CLAIM_ROOT / f'{CONTRACT}.json')}
+    try:
+        path = _guarded_claim_path(f'{CONTRACT}.json')
+    except (ProfileError, OSError) as exc:
+        return {'consumed': True,
+                'path': str(CLAIM_ROOT / f'{CONTRACT}.json'),
+                'error': f'authority guard rejected: {exc}'}
     if not path.is_file():
         return {'consumed': False, 'path': str(path)}
     try:

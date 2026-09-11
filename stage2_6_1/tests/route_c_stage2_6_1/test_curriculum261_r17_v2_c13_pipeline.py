@@ -674,37 +674,72 @@ def test_v09_namespace_consumption_detection(tmp_path, monkeypatch):
 
 
 # ------------------------------------------------------------------ V10
+def _claim_fixture(tmp_path, monkeypatch, runtime=None):
+    """G03-G04 协议夹具:权威 plan+receipt 先持久化,claim 从文件取得。"""
+    monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', tmp_path / 'repo')
+    monkeypatch.setattr(prof, 'CLAIM_ROOT', tmp_path / 'repo'
+                        / 'stage2_6_1' / 'artifacts' / 'repair17'
+                        / 'development' / 'v2_c13_engineering_claim')
+    (tmp_path / 'repo').mkdir(exist_ok=True)
+    (tmp_path / 'repo' / 'stage2_6_1' / 'artifacts' / 'repair17'
+     / 'development' / 'v2_c13_engineering_claim').mkdir(
+        parents=True, exist_ok=True)
+    plan = prof.make_plan(runtime or fixture_runtime())
+    persisted = prof.persist_final_plan(
+        plan, prof.authoritative_plan_path())
+    receipt = {
+        'profile': prof.CONTRACT, 'admitted': True,
+        'plan_sha256': persisted['plan_sha256'],
+        'plan_file_sha256': persisted['file_sha256'],
+        'source_closure_sha256': 'ab' * 32,
+        'full_regression_ref': {'path': 'test://full', 'entry_rc': 0},
+    }
+    prof.write_preclaim_receipt(receipt)
+    return plan, persisted, receipt
+
+
 def test_v10_one_shot_claim(tmp_path, monkeypatch):
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', tmp_path / 'claim')
-    plan = prof.make_plan(fixture_runtime())
+    plan, persisted, receipt = _claim_fixture(tmp_path, monkeypatch)
     assert prof.claim_state()['consumed'] is False
-    prof.consume_generation_claim(plan)
+    consumed = prof.consume_generation_claim_from_plan_file(
+        prof.authoritative_plan_path(), receipt)
     state = prof.claim_state()
     assert state['consumed'] is True
     assert state['plan_sha256'] == plan['plan_sha256']
+    # claim payload 绑定持久化 plan 文件字节(G04/G09 锚)。
+    assert consumed['plan_sha256'] == persisted['plan_sha256']
     # 换 out/run_id 不会重新取得:第二次 consume 直接失败。
     with pytest.raises(FileExistsError):
-        prof.consume_generation_claim(plan)
+        prof.consume_generation_claim_from_plan_file(
+            prof.authoritative_plan_path(), receipt)
     # 换 plan(不同 runtime)同样不能重取:claim 文件已排他存在。
     plan2 = prof.make_plan({'kind': 'test_fixture',
                             'generators': copy.deepcopy(GENERATORS),
                             'sources': {}, 'interpreter': 'other'})
     assert plan2['plan_sha256'] != plan['plan_sha256']
     with pytest.raises(FileExistsError):
-        prof.consume_generation_claim(plan2)
+        prof.consume_generation_claim_from_plan_file(
+            prof.authoritative_plan_path(), receipt)
 
 
 def test_v10_corrupted_claim_is_consumed_not_retried(tmp_path,
                                                      monkeypatch):
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', tmp_path / 'claim')
-    (tmp_path / 'claim').mkdir(parents=True)
-    (tmp_path / 'claim' / f'{prof.CONTRACT}.json').write_text(
+    monkeypatch.setattr(prof, 'CLAIM_ROOT', tmp_path / 'repo'
+                        / 'stage2_6_1' / 'artifacts' / 'repair17'
+                        / 'development' / 'v2_c13_engineering_claim')
+    monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', tmp_path / 'repo')
+    (tmp_path / 'repo').mkdir(exist_ok=True)
+    (tmp_path / 'repo' / 'stage2_6_1' / 'artifacts' / 'repair17'
+     / 'development' / 'v2_c13_engineering_claim').mkdir(parents=True)
+    (prof.CLAIM_ROOT / f'{prof.CONTRACT}.json').write_text(
         'not-json{', encoding='utf-8')
     state = prof.claim_state()
     assert state['consumed'] is True and 'error' in state
-    # 损坏 claim 不删除重试:consume 仍拒绝。
+    # 损坏 claim 不删除重试:consume 仍拒绝(fail closed)。
+    plan, persisted, receipt = _claim_fixture(tmp_path, monkeypatch)
     with pytest.raises(FileExistsError):
-        prof.consume_generation_claim(prof.make_plan(fixture_runtime()))
+        prof.consume_generation_claim_from_plan_file(
+            prof.authoritative_plan_path(), receipt)
 
 
 # ------------------------------------------------------------------ V0x exec

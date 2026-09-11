@@ -547,31 +547,64 @@ def persist_selected_episode(root: Path, stage: str, q: dict[str, Any],
 
     保存选定 pair 的 A/B episode 数值输入,后续验证无需重新生成本轮
     坐标;写后复算 episode content hash 证明与生成时逐位一致。
+
+    治理修复(E02/E03,WP3):v2 轮只持久化 df CSV 与最小 spec,hidden
+    事件表不在证据面内 —— 生产冷读无法对实际重载对象重算权威
+    ``episode_content_hash``(它覆盖 spec.canonical + df + hidden),
+    只能对拍 CSV 字节,等于 episode 身份层不可重建。现在补齐:
+
+    - ``{key}_{side}.hidden.csv``:hidden 事件表数值列(同 %.17g 规范);
+    - spec.json 增 split/params/timeframe/family_version/is_null/
+      generator_fingerprint —— 与 EpisodeSpec.canonical() 的全部
+      字段对齐;
+
+    使 reader 可重建 GeneratedEpisode 等价对象并调用生产 hash 函数。
+    旧 v2 归档无这些字段,reader 按 partial 诚实登记,不回填旧文件。
     """
     out_dir = root / 'episodes' / stage
     out_dir.mkdir(parents=True, exist_ok=True)
     key = request_key(q)
     meta = {}
+    import hashlib
+
+    def _sha(p: Path) -> str:
+        h = hashlib.sha256()
+        with p.open('rb') as f:
+            while chunk := f.read(1 << 20):
+                h.update(chunk)
+        return h.hexdigest()
+
     for side in ('A', 'B'):
         ep = pair.episodes[side]
         path = out_dir / f'{key}_{side}.csv'
         require(not path.exists(), 'episode artifact already exists')
-        df = ep.df
-        path.write_text(df.to_csv(index=False, float_format='%.17g'),
-                        encoding='utf-8')
+        path.write_text(
+            ep.df.to_csv(index=False, float_format='%.17g'),
+            encoding='utf-8')
+        hidden_path = out_dir / f'{key}_{side}.hidden.csv'
+        require(not hidden_path.exists(),
+                'hidden artifact already exists')
+        hidden_path.write_text(
+            ep.hidden.to_csv(index=False, float_format='%.17g'),
+            encoding='utf-8')
         spec_path = out_dir / f'{key}_{side}.spec.json'
-        new_json(spec_path, {'seed': int(ep.spec.seed),
-                             'namespace': q['namespace'],
-                             'family': q['family'], 'rung': q['rung'],
-                             'pair_index': q['pair_index'], 'side': side})
-        import hashlib
-
-        h = hashlib.sha256()
-        with path.open('rb') as f:
-            while chunk := f.read(1 << 20):
-                h.update(chunk)
+        new_json(spec_path, {
+            'format': 'v2c13-episode-persist-v2',
+            'seed': int(ep.spec.seed),
+            'namespace': q['namespace'],
+            'family': ep.spec.family, 'rung': q['rung'],
+            'pair_index': q['pair_index'], 'side': side,
+            'split': ep.spec.split,
+            'timeframe': ep.spec.timeframe,
+            'params': dict(ep.spec.params),
+            'family_version': ep.family_version,
+            'is_null': bool(ep.is_null),
+            'generator_fingerprint': ep.generator_fingerprint,
+        })
         meta[side] = {'csv': path.name, 'bytes': path.stat().st_size,
-                      'csv_sha256': h.hexdigest(),
+                      'csv_sha256': _sha(path),
+                      'hidden_csv': hidden_path.name,
+                      'hidden_csv_sha256': _sha(hidden_path),
                       'episode_content_hash':
                           pair.attempt_log.episode_hashes[side]}
     return meta

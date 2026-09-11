@@ -141,22 +141,43 @@ class ChainFixture:
             reason_override=self.reason_override,
             generator_override=generator_override,
             params=self.params['rung_params'] if self.params else None)
-        observe('call', p['call_envelope'])
-        for e in p['attempt_envelopes']:
-            observe('attempt', e)
         handle = None
         if p['status'] == 'accepted':
             handle = synthetic_pair(q, abs(hash(key)) % (2 ** 31))
+            # 治理修复(E04):proof 与 fit manifest 的 episode hash 必须
+            # 同源。把合成 event_table 的占位 hash 换成 handle 的真实
+            # episode_content_hash(envelope digest 重算),否则生产
+            # reader 的逐成员绑定如实拒绝。
+            real = dict(handle.attempt_log.episode_hashes)
+            for env in p['attempt_envelopes']:
+                for side in ('A', 'B'):
+                    env['event_table'][side][
+                        'episode_content_hash'] = real[side]
+                env['digest'] = batch.envelope_digest(env)
+            p['episode_hashes'] = dict(real)
+            p['attempt_log']['output_episode_hashes'] = dict(real)
+        observe('call', p['call_envelope'])
+        for e in p['attempt_envelopes']:
+            observe('attempt', e)
         return batch.Generated(p, handle)
 
 
 @pytest.fixture
 def chain_env(tmp_path, monkeypatch):
-    """隔离环境:tmp repo root(空 artifacts)/tmp claim/重置模块全局。"""
+    """隔离环境:tmp repo root(空 artifacts)/tmp claim/重置模块全局。
+
+    治理修复后合成链走完整新协议:fixture 先经生产
+    prepare_authoritative_plan()(真实 source/params/扫描 + 权威
+    plan/evidence/receipt create-only 持久化),run() 再消费同一
+    权威计划取得 claim —— 与生产唯一差异仍是生成边界替身与小合同。
+    """
     repo_root = tmp_path / 'repo'
     (repo_root / 'stage2_6_1' / 'artifacts').mkdir(parents=True)
     monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', repo_root)
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', tmp_path / 'claim')
+    # claim 根必须在 repo 根内(生产相对结构;G07 守卫拒绝域外 claim 根)。
+    monkeypatch.setattr(prof, 'CLAIM_ROOT', repo_root / 'stage2_6_1'
+                        / 'artifacts' / 'repair17' / 'development'
+                        / 'v2_c13_engineering_claim')
     monkeypatch.setattr(pipe, 'FIT_CALL_LOG', [])
     monkeypatch.setattr(pipe, 'POLICY_EVALUATION_STARTED', False)
     monkeypatch.setattr(pipe, '_EVAL_PHASE_ACTIVE', False)
@@ -164,12 +185,20 @@ def chain_env(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _run_chain(tmp_path, backend, contract=None):
+def _preclaim_authoritative(tmp_path, backend, contract):
+    """合成链的 preclaim gate:真实流程持久化权威 plan/evidence/receipt。"""
     backend.params = prof.parameter_snapshot()
+    return pipe.prepare_authoritative_plan(
+        backend=backend, contract=contract,
+        full_regression_ref={'path': 'synthetic://chain-fixture',
+                             'entry_rc': 0})
+
+
+def _run_chain(tmp_path, backend, contract=None):
+    contract = contract if contract is not None else small_contract()
+    _preclaim_authoritative(tmp_path, backend, contract)
     out = tmp_path / 'run' / 'chain'
-    rc = pipe.run(out, backend=backend,
-                  contract=contract if contract is not None
-                  else small_contract())
+    rc = pipe.run(out, backend=backend, contract=contract)
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     return rc, out, result
 
@@ -226,21 +255,19 @@ def test_e01_healthy_synthetic_chain_full_path(chain_env):
 
 # ------------------------------------------------------------------ E02
 def test_e02_selected_episode_inputs_reload_and_hash(chain_env):
-    """数值输入持久化:CSV 重载后按原 episode content hash 验证。"""
+    """数值输入持久化:CSV 重载后按原 episode content hash 验证。
+
+    治理修复后持久化为 v2 完整格式(df+hidden+完整 spec),生产 reader
+    ``_reload_episode_identity`` 对每个选定 A/B 重算权威
+    episode_content_hash 并与生成时值逐位对拍(不是复制旧 hash 字段)。
+    """
     pytest.importorskip('rl_curriculum')
     backend = ChainFixture()
     rc, out, result = _run_chain(chain_env, backend)
     assert rc == 0
-    import numpy as np
-    import pandas as pd
-    from rl_curriculum.curriculum261_api import episode_content_hash
-    from types import SimpleNamespace
-
-    from rl_curriculum.generator_api import (
-        EpisodeSpec, GeneratedEpisode,
-    )
     checked = 0
-    for stage in ('fit_main', 'eval_main'):
+    for stage in ('fit_main', 'fit_validation', 'eval_main',
+                  'eval_validation'):
         sdir = out / 'stages' / stage
         stage_result = json.loads((sdir / 'result.json').read_text(
             encoding='utf-8'))
@@ -248,33 +275,17 @@ def test_e02_selected_episode_inputs_reload_and_hash(chain_env):
                                           {}).items():
             for side in ('A', 'B'):
                 csv = out / 'episodes' / stage / meta[side]['csv']
-                spec_doc = json.loads(
-                    (out / 'episodes' / stage
-                     / meta[side]['csv'].replace('.csv', '.spec.json')
-                     ).read_text(encoding='utf-8'))
-                # round_trip 解析:与生成时 episode_content_hash 逐位
-                # 一致(默认解析器有 ULP 误差,不能用它)。
-                df = batch.read_episode_csv(csv)
-                spec = EpisodeSpec(
-                    family=spec_doc['family'],
-                    params={'fixture': True},
-                    seed=int(spec_doc['seed']),
-                    split='train', timeframe='15m')
-                ep = GeneratedEpisode(
-                    spec=spec, df=df, hidden=pd.DataFrame(
-                        0.0, index=df.index,
-                        columns=['signal', 'distractor']),
-                    family_version='fixture-v1', timeframe='15m',
-                    is_null=False,
-                    generator_fingerprint='g-fixture-synth')
-                # CSV 字节 hash 与记录一致 + 重载对象的原生产
-                # episode_content_hash 与生成时逐位一致。
                 assert batch.file_meta(csv)['sha256'] == \
                     meta[side]['csv_sha256']
-                assert episode_content_hash(ep) == \
-                    meta[side]['episode_content_hash']
+                recomputed = pipe._reload_episode_identity(
+                    out, stage, key, side, meta[side])
+                assert recomputed is not None, \
+                    'v2 persist format must be fully rebuildable'
+                assert recomputed == \
+                    meta[side]['episode_content_hash'], \
+                    f'identity hash mismatch: {stage}/{key}/{side}'
                 checked += 1
-    assert checked >= 24  # fit 12×2 + eval 至少部分
+    assert checked >= 48  # (fit 12 + eval 12) × 2 split × 2 side
 
 
 # ------------------------------------------------------------------ E03
@@ -284,6 +295,7 @@ def test_e03_phase_accurate_on_generation_failure(chain_env):
     contract = small_contract()
     backend = ChainFixture(fail_at='fit_validation_c2_context_D1_p0')
     backend.params = prof.parameter_snapshot()
+    _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
     rc = pipe.run(out, backend=backend, contract=contract)
     assert rc == 3
@@ -317,6 +329,7 @@ def test_e03_reserve_exhaustion_phase_and_eval_not_started(chain_env):
                                             'B:too_few_distractors',
                                             'pair:too_few_distractors'])
     backend.params = prof.parameter_snapshot()
+    _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
     rc = pipe.run(out, backend=backend, contract=contract)
     assert rc == 4
@@ -423,6 +436,7 @@ def test_fault_write_failure_preserves_state(chain_env, monkeypatch):
     contract = small_contract()
     backend = ChainFixture()
     backend.params = prof.parameter_snapshot()
+    _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
     real_new_json = batch.new_json
     calls = {'n': 0}
@@ -452,6 +466,7 @@ def test_fault_refit_during_eval_blocked(chain_env, monkeypatch):
     backend = ChainFixture()
     backend.params = prof.parameter_snapshot()
     contract = small_contract()
+    _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
     real_eval = pipe.evaluate_split
     invoked = {'n': 0}

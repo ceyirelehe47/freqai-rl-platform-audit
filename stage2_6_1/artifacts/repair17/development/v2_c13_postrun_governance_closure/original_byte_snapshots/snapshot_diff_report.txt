@@ -1,0 +1,39 @@
+SNAPSHOT_DIFF=CHANGED
+1c1
+< stage2_6_1/artifacts/repair17/development/run_supervision/rejected/rejected.jsonl	8f78abb62871c240f3622de6e0820c4b1d9e9b7c00b0c750eea9b7454497d50e	11363
+---
+> stage2_6_1/artifacts/repair17/development/run_supervision/rejected/rejected.jsonl	6df57a32665cee1c61aa9d6edcb1cef7248f96b020a2eb820015ebe34c0b6af5	11514
+5957,5960c5957,5960
+< stage2_6_1/runner/r17_v2_c13_batch.py	6b4547f8c1b4e37949e2335575e5a5c33ca816d6bd062b371246ed3b2da7a2db	29626
+< stage2_6_1/runner/r17_v2_c13_pipeline.py	93f2d59af8b1279f9bd5f7faf0102ca2f75a8a570a6aa85fe4d4339d213985d7	44156
+< stage2_6_1/runner/r17_v2_c13_profile.py	ff192c3a4819a557c0b5a989162e64712e173eeac124be245dc1e22591cb8019	20416
+< stage2_6_1/runner/r17_v2_c13_source_lock.py	c9152b62192a93571c16ba62e0ef2e70522f108726f3eb83fd25d48007a77c55	3000
+---
+> stage2_6_1/runner/r17_v2_c13_batch.py	25eba0af11b9ed06c1d9380d3ec460a29390593ddf7947d9027ee44b7c36d499	31091
+> stage2_6_1/runner/r17_v2_c13_pipeline.py	e38d43ce8b34feb4d18b6cc3e88c732e7c8575e32bcad61882b9c88d4f0b8126	67603
+> stage2_6_1/runner/r17_v2_c13_profile.py	addd6d23900ea6fa512a66432b5b3eb7d61260ef3b980f653bb3ea4565fae6dd	33917
+> stage2_6_1/runner/r17_v2_c13_source_lock.py	86ffe739f2ff31e91832f4a33f640ac93f6603a12bb801d99f0ccd604c5d2662	3000
+5963c5963
+< stage2_6_1/src/rl_curriculum/curriculum261_r17_reference.py	e18b52b7494eea5cc9972e6b2c9ddcbeb8f822f280aeea2c0ce7e6c44e096667	20822
+---
+> stage2_6_1/src/rl_curriculum/curriculum261_r17_reference.py	52eb72dedcdc46ad25839fb5762cbdf1c9b4f4cc9f1d24ddf213e452b47fcdca	21593
+5965c5965
+< stage2_6_1/src/rl_curriculum/curriculum261_r17_routing.py	61d2f66a49dc2c12e3b996c3a9007625fc35a69f537c42b27d84c318e1d6bbf9	19106
+---
+> stage2_6_1/src/rl_curriculum/curriculum261_r17_routing.py	7e05cb002f1a36f1654364b1e53bb48cd66f10b2052067773d7e65dbf6e7f23d	19915
+
+说明（运行时追加，非本轮修改）:
+- 唯一差异文件 run_supervision/rejected/rejected.jsonl 是监控守护进程的
+  活动队列（本轮 T7 全量回归期间监控对 rejected 事件追加 151 字节；
+  与接手时已存在的同类活动遥测写入面一致，上轮 S0 亦将其登记为范围外
+  运行时产物）。
+- 受保护旧树（v1/v2 claim、v2_c13_engineering_v2_delivery、
+  v2_c13_engineering_delivery、source locks、monitor run
+  v2c13eng2_*/v2c13eng_*/v2c13full_* 目录）字节全部不变。
+- 判定：R03 通过（无任何受保护原件被本轮改动；活动队列追加按实记录）。
+
+补充（授权实现面，非意外改动）:
+- r17_v2_c13_batch/pipeline/profile/source_lock 四个 runner 文件的差异
+  即本轮任务书 WP1/WP3 授权的治理修复改动（git diff 可核对其与提交
+  范围一一对应），不属于旧原件篡改；snapshot 将其纳入是为了发现
+  "清单外"意外改动——实际差异与授权清单完全吻合。
