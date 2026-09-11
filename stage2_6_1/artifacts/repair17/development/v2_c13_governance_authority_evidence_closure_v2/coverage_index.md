@@ -33,13 +33,13 @@ A/F/P/C/R 编号对应 ACCEPTANCE_MATRIX.md；证据相对本归档根。
 | P06 | protected_snapshots/diff_summary.json（3442 文件零变化；遥测区单列） |
 | C01/C02 | targeted_tests/attempt3/test_curriculum261_r17_c2_launch_prep.junit.xml::test_c01 / ::test_c02 |
 | C03-C08 | 同上 ::test_c03_real_selector_behavior_differential（10 场景对真实 mechanical_selection）+ c2_selector_behavior/c2_prep_report.json |
-| C09 | 同上 ::test_c06_c09_zero_call_sentinels_all_zero（十入口计数 0）+ zero_production_side_effects/c2_prep_report.json |
+| C09 | 同上 ::test_c06_c09_zero_call_sentinels_all_zero（十入口计数 0）+ c2_selector_behavior/c2_prep_report.json(副本另见 zero_production_side_effects/) |
 | R01 | targeted_tests/attempt3/*（117/0/0/0，六文件零 skip）+ official（124/0/0，C 字节）+ reader_binding 于全量回归 7/7 |
 | R02 | synthetic_chain::test_e01（合成链完整协议）+ regression_evidence::test_production_verifier_rejects_synthetic_domain |
 | R03 | full_regression/20260911T205757Z（entry rc 0；2030 passed/7 skipped；junit/run_record/summary/telemetry/native 全 present） |
 | R04 | healthy_package（required 角色逐字节 + supervisor 双锚校验绿 verify_healthy.json） |
 | R05 | commit_e.sh 输出（C3..E diff 空 + final_import_identity.json == 治理 lock） |
-| R06 | zero_production_side_effects/（claim 字节不变、C2 哨兵 0、生产根零写入） |
+| R06 | zero_production_side_effects/（claim_zero_write.json claim 字节不变、生产根零写入;c2 哨兵见 c2_selector_behavior/） |
 | R07 | SHA256SUMS 自检 + 本根为全新目录（旧 artifact 未触碰） |
 | R08 | git 历史：C=706614f、C2=2ef1b29、C3=19bd26f、E=<见首页>，均普通提交已 push（远端 ref 见 handover 与报告） |
 | R09 | FINAL_REPORT.md 首页（工程治理/C2 prep/统计 NOT_RUN/formal NOT_ISSUED 分列） |
