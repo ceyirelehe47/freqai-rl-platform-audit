@@ -32,7 +32,7 @@ from typing import Any
 from r17_v2_c13_profile import (
     BASELINE, CONTRACT, EVAL_NAMESPACES, FIT_NAMESPACES, RUNGS,
     authoritative_plan_path, canonical, claim_state,
-    consume_generation_claim_from_plan_file, digest, engineering_pack,
+    consume_production_claim, digest, engineering_pack,
     fixed_contract, load_preclaim_receipt, make_plan,
     namespace_unused_evidence, parameter_snapshot, persist_authoritative_evidence,
     persist_final_plan, request_key, stage_requests, validate_plan,
@@ -66,12 +66,20 @@ def ensure_imports() -> None:
 
 
 def source_guard() -> dict:
+    """治理 source guard(P03):使用本轮治理闭包 lock,不再借历史
+    v2 主 run 执行闭包(r17_v2_c13_source_lock.py,d3cdf3d1 字节只读)
+    给新代码背书。成员集固定,重复/缺失/额外成员拒绝。"""
     from r17_v2_c13_batch import ensure_imports as _ei
 
     _ei()
     import importlib
 
-    from r17_v2_c13_source_lock import SOURCE_SHA256
+    from r17_v2_c13_governance_source_lock import SOURCE_SHA256
+    from r17_v2_c13_governance_source_lock import (
+        validate_member_set as _validate_members,
+    )
+
+    _validate_members()
     actual = {}
     for name, expected in SOURCE_SHA256.items():
         module = importlib.import_module(name)
@@ -385,66 +393,96 @@ def evaluate_split(root: Path, split: str, handles: dict[str, Any],
 # ------------------------------------------------------------------- run
 def prepare_authoritative_plan(*, backend: Any = None,
                                contract: dict | None = None,
-                               full_regression_ref: dict | None = None
+                               authority: Any = None
                                ) -> dict:
-    """preclaim gate 流程(G03/G05/G11):组装并持久化权威交付三元组。
+    """preclaim gate 流程(G03/G05/G11 + B1/B2/§5.3):组装并持久化权威
+    交付三元组。
 
-    生产上这是独立于 ``run`` 的准入步骤,只能在同候选完整回归之后执行:
+    生产上这是独立于 ``run`` 的准入步骤,只能在同候选完整回归之后执行。
+    顺序(§5.3,全部在写入前完成拒绝):
 
-    1. source guard + 参数快照 + namespace-unconsumed 扫描(零生成);
-    2. 扫描结果 create-only 持久化为 admission evidence 权威副本;
-    3. 最终计划 create-only 持久化(fsync+重读对拍),计划以
-       {path, sha256} 引用 evidence —— 计划身份不含易变观察(G12);
-    4. preclaim receipt create-only 写入,绑定 plan digest、plan 文件
-       字节、source closure digest 与完整回归证据引用。
+    1. 解析 authority(默认生产字面常量)并校验 backend/contract 组合;
+    2. 读取并机器验证权威完整回归证据包(固定路径;缺省/伪/过期/
+       不同候选回归在创建 plan/receipt/claim 之前拒绝 — F01/F11);
+    3. 验证当前 source closure 与回归候选闭包相同(B4);
+    4. source guard + 参数快照 + namespace-unconsumed 扫描(零生成);
+    5. 扫描结果 create-only 持久化为 admission evidence 权威副本;
+    6. 最终计划 create-only 持久化(计划以 {path, sha256} 引用 evidence);
+    7. preclaim receipt create-only 写入,绑定 plan digest、plan 文件
+       字节、source closure digest 与机器验证的回归证据包 digest。
 
-    幂等性:create-only,任何已存在即拒绝(不允许覆盖重试)。返回
-    {'plan', 'persisted', 'receipt_written'} 供 preclaim CLI 落盘报告。
-    """
+    幂等性:create-only,任何已存在即拒绝(不允许覆盖重试)。调用方
+    不能传任意 regression path 或自报 rc — 证据包只从 authority 推导
+    的固定路径读取(B1)。"""
     import hashlib
 
-    sources = source_guard()
-    snapshot = parameter_snapshot()  # 参数面校验(零生成)
-    from r17_v2_c13_profile import RELEASE_REPO_ROOT
+    from r17_v2_c13_profile import (
+        authoritative_full_regression_path, enforce_authority_combination,
+        resolve_authority,
+    )
 
-    ns_check = namespace_unused_evidence(RELEASE_REPO_ROOT)
+    auth = resolve_authority(authority)
+    # A04/B2:组合校验先于任何写入(合成 authority + RealBackend/生产
+    # 合同在此拒绝)。
+    enforce_authority_combination(auth, backend=backend, contract=contract)
+
+    pkg_path = authoritative_full_regression_path(auth)
+    # 先取当前闭包,再让校验器对拍证据包记录的候选闭包(不同候选
+    # 回归在此拒绝)。
+    sources = source_guard()
+    from r17_v2_c13_regression_evidence import verify_package
+
+    regression_verdict = verify_package(
+        pkg_path, authority=auth, current_sources=sources,
+        checks=('full' if not auth.synthetic else 'structural'))
+    require(regression_verdict['ok'],
+            f'full regression evidence rejected at preclaim: '
+            f'{regression_verdict["errors"][:5]}')
+    snapshot = parameter_snapshot()  # 参数面校验(零生成)
+    ns_check = namespace_unused_evidence(auth.repo_root)
     require(ns_check['namespaces_unused'],
             f'namespaces already consumed or evidence unreadable: '
             f'{ns_check["hits"][:5]}')
     backend = RealBackend(snapshot) if backend is None else backend
     runtime = backend.describe()
     runtime['sources'] = sources
-    ev = persist_authoritative_evidence(ns_check)
+    ev = persist_authoritative_evidence(ns_check, authority=auth)
     plan = make_plan(
         runtime, contract, admission_evidence={
             'kind': 'namespace_unused_v1',
             'path': plan_admission_evidence_ref(),
             'sha256': ev['sha256']})
     validate_plan(plan)
-    persisted = persist_final_plan(plan, authoritative_plan_path())
+    persisted = persist_final_plan(plan, authority=auth)
     receipt = {
         'profile': CONTRACT,
         'admitted': True,
         'plan_sha256': persisted['plan_sha256'],
         'plan_file_sha256': persisted['file_sha256'],
         'source_closure_sha256': digest(sources),
-        'full_regression_ref': full_regression_ref or {
-            'path': 'unspecified', 'entry_rc': 0},
+        'full_regression_evidence': {
+            'path': str(pkg_path),
+            'package_sha256': regression_verdict['package_sha256'],
+            'entry_rc': regression_verdict['summary']['entry_rc'],
+            'business_rc': regression_verdict['summary']['business_rc'],
+            'format': regression_verdict['format'],
+        },
         'evidence_sha256': ev['sha256'],
     }
-    write_preclaim_receipt(receipt)
+    write_preclaim_receipt(receipt, authority=auth)
     return {'plan': plan, 'persisted': persisted,
-            'receipt_written': receipt}
+            'receipt_written': receipt,
+            'regression_verdict': regression_verdict}
 
 
 def plan_admission_evidence_ref() -> str:
-    """计划内 evidence 引用路径(CLAIM_ROOT 内文件名;G12 稳定身份)。"""
+    """计划内 evidence 引用路径(权威 claim 根内文件名;G12 稳定身份)。"""
     from r17_v2_c13_profile import EVIDENCE_FILENAME
 
     return EVIDENCE_FILENAME
 
 
-def normalize_ns_evidence(ns_check: dict) -> dict:
+def normalize_ns_evidence(ns_check: dict, authority: Any = None) -> dict:
     """namespace 扫描结果的"决策身份"规范化(G12 §5.2)。
 
     权威 claim 根内的 plan/receipt/evidence 文件自身会作为
@@ -453,9 +491,10 @@ def normalize_ns_evidence(ns_check: dict) -> dict:
     身份对比。真实生成 hits(proof/claim 消费载荷)与 unreadable
     绝不剔除 —— 权威根内出现它们仍然是硬阻塞。
     """
-    from r17_v2_c13_profile import CLAIM_ROOT
+    from r17_v2_c13_profile import resolve_authority
 
-    claim_root = str(CLAIM_ROOT.resolve(strict=False))
+    claim_root = str(resolve_authority(authority).claim_root.resolve(
+        strict=False))
     out = json.loads(canonical(ns_check))
     kept = [h for h in out.get('planning_only_hits', [])
             if not str(h.get('path', '')).startswith(claim_root + '/')]
@@ -468,15 +507,23 @@ def normalize_ns_evidence(ns_check: dict) -> dict:
 
 
 def run(out_dir: Path, *, backend: Any = None,
-        contract: dict | None = None) -> int:
+        contract: dict | None = None, authority: Any = None) -> int:
     """执行完整工程链。backend/contract 仅测试合成链注入用(生产
     CLI 不传:固定 RealBackend + 权威 fixed_contract);注入产物强制
     标记 synthetic,verify 不授予工程完成。
 
-    治理修复(G03/G04/G11/G12):run 不再组装计划——它只消费 preclaim
-    流程持久化的权威 plan 文件,复验 receipt(同 plan/同 source
-    closure)与 admission evidence(当前 namespace 扫描摘要必须仍等于
-    计划引用值),然后从该文件取得一次性 claim,才允许首次生成。"""
+    治理修复(G03/G04/G11/G12 + B2/B4):run 不再组装计划——它只消费
+    preclaim 流程持久化的权威 plan 文件,复验 receipt(同 plan/同
+    source closure/同回归证据包 digest)与 admission evidence(当前
+    namespace 扫描摘要必须仍等于计划引用值),然后在任何生成之前
+    重新机器验证权威完整回归证据包(篡改/重签 manifest 在 claim 前
+    拒绝),最后从固定权威路径取得一次性 claim。"""
+    from r17_v2_c13_profile import (
+        enforce_authority_combination, resolve_authority,
+    )
+
+    auth = resolve_authority(authority)
+    enforce_authority_combination(auth, backend=backend, contract=contract)
     root = Path(out_dir)
     require(root.parent.is_dir(), 'output parent must already exist')
     root = root.parent.resolve(strict=True) / root.name
@@ -497,9 +544,7 @@ def run(out_dir: Path, *, backend: Any = None,
         result['phase'] = 'preflight_parameter_snapshot'
         params_snapshot = parameter_snapshot()
         result['phase'] = 'preflight_namespace_unused_check'
-        from r17_v2_c13_profile import RELEASE_REPO_ROOT
-        repo_root = RELEASE_REPO_ROOT
-        ns_check = namespace_unused_evidence(repo_root)
+        ns_check = namespace_unused_evidence(auth.repo_root)
         require(ns_check['namespaces_unused'],
                 f'namespaces already consumed or evidence unreadable: '
                 f'{ns_check["hits"][:5]} {ns_check["unreadable_evidence"][:5]}')
@@ -513,15 +558,15 @@ def run(out_dir: Path, *, backend: Any = None,
         import hashlib
 
         result['phase'] = 'authoritative_plan_consumption'
-        plan_path = authoritative_plan_path()
+        plan_path = authoritative_plan_path(auth)
         require(plan_path.is_file(),
                 f'authoritative final plan missing (preclaim not run?): '
                 f'{plan_path}')
         plan = json.loads(plan_path.read_text(encoding='utf-8'))
         validate_plan(plan)
         current_evidence_sha = hashlib.sha256(
-            (canonical(normalize_ns_evidence(ns_check)) + '\n')
-            .encode('utf-8')).hexdigest()
+            (canonical(normalize_ns_evidence(ns_check, authority=auth))
+             + '\n').encode('utf-8')).hexdigest()
         require(plan.get('admission_evidence', {}).get('sha256')
                 == current_evidence_sha,
                 'namespace admission evidence drifted from the '
@@ -538,23 +583,43 @@ def run(out_dir: Path, *, backend: Any = None,
         # G11:production 入口复验权威 preclaim receipt(同 plan digest、
         # 同 source closure);缺失/过期/不同候选一律拒绝,不消费 claim。
         result['phase'] = 'preclaim_receipt_validation'
-        receipt = load_preclaim_receipt()
+        receipt = load_preclaim_receipt(auth)
         validate_preclaim_receipt(
             receipt, plan_sha256=persisted_plan_sha,
             source_closure_sha256=digest(sources))
-        require(receipt.get('plan_file_sha256') == persisted_file_sha,
+        require(receipt['plan_file_sha256'] == persisted_file_sha,
                 'authoritative plan file bytes differ from the receipt '
                 'anchor (tampered or replaced plan)')
 
-        # One-shot claim (S2/S3):claim 只能从已持久化的最终计划文件
-        # 取得(G04);second main experiment is refused even with a
-        # fresh out dir or monitored run id.
+        # B4/F09/F10/F11:在任何生成之前重新机器验证权威完整回归证据
+        # 包,并核对 receipt 锚定的包 digest(追加/等长篡改/重签外层
+        # manifest 都改变包 digest,在此拒绝)。
+        result['phase'] = 'full_regression_evidence_revalidation'
+        from r17_v2_c13_profile import authoritative_full_regression_path
+        from r17_v2_c13_regression_evidence import verify_package
+
+        pkg_path = authoritative_full_regression_path(auth)
+        regression_verdict = verify_package(
+            pkg_path, authority=auth, current_sources=sources,
+            checks=('full' if not auth.synthetic else 'structural'))
+        require(regression_verdict['ok'],
+                f'full regression evidence rejected before claim: '
+                f'{regression_verdict["errors"][:5]}')
+        validate_preclaim_receipt(
+            receipt, plan_sha256=persisted_plan_sha,
+            source_closure_sha256=digest(sources),
+            full_regression_evidence_sha256=(
+                regression_verdict['package_sha256']))
+
+        # One-shot claim (S2/S3):claim 只能从固定权威路径取得(G04/
+        # A07:不接受 caller 传 plan path 或内存 receipt);second main
+        # experiment is refused even with a fresh out dir or monitored
+        # run id.
         result['phase'] = 'claim'
-        claim = claim_state()
+        claim = claim_state(auth)
         require(not claim['consumed'],
                 f'generation claim already consumed: {claim}')
-        consumed = consume_generation_claim_from_plan_file(
-            plan_path, receipt)
+        consumed = consume_production_claim(authority=auth)
         # run root 保存权威计划的字节副本(plan.json);副本与权威文件
         # 字节一致,manifest/verify 以此为 run 内锚点。
         plan_copy = root / 'plan.json'

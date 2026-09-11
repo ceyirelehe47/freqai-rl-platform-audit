@@ -419,7 +419,10 @@ class RealBackend:
             require(ns not in api.CURRICULUM261_R17_FORMAL_NAMESPACES,
                     'engineering namespace became formal')
         self.params_snapshot = params_snapshot
-        from r17_v2_c13_source_lock import SOURCE_SHA256
+        # 治理 v2(P03):执行面改用本轮治理闭包 lock;历史 v2 主 run
+        # 执行闭包(r17_v2_c13_source_lock.py,d3cdf3d1 字节)只读保留,
+        # 不再给新代码背书。
+        from r17_v2_c13_governance_source_lock import SOURCE_SHA256
         import importlib
         self.source_identity = {}
         for name, expected in SOURCE_SHA256.items():

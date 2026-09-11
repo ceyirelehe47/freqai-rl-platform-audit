@@ -1,4 +1,9 @@
-"""C2 launch 准备测试(C01-C06;零生成、零调用)。"""
+"""C2 launch 准备测试(C01-C09;调用真实 selector 的行为差分,零生成、
+零调用;任务 R17V2C13GovernanceAuthorityEvidenceAndC2PrepClosure-v2)。
+
+机械顺序 PASS 由对 r6_design.mechanical_selection(唯一权威排序实现)
+的合成结果表行为差分决定;源码字符串扫描只作诊断(B5)。
+"""
 from __future__ import annotations
 
 import json
@@ -15,6 +20,17 @@ for base in HERE.parents:
         break
 else:
     pytest.importorskip('rl_curriculum')
+# 零调用哨兵需要安装到 runner 治理模块(claim 接口);显式加入 path。
+for base in HERE.parents:
+    for runner in (base / 'runner', base / 'stage2_6_1' / 'runner',
+                   base / 'stage2_6_1_runner'):
+        if (runner / 'r17_v2_c13_profile.py').is_file():
+            if str(runner) not in sys.path:
+                sys.path.insert(0, str(runner))
+            break
+    else:
+        continue
+    break
 
 import importlib.util
 
@@ -37,7 +53,7 @@ def _load_prep():
             sys.modules[spec.name] = mod
             spec.loader.exec_module(mod)
             return mod
-    pytest.skip('c2 launch prep module not found in this layout')
+    pytest.fail('c2 launch prep module not found in this layout')
 
 
 prep = _load_prep()
@@ -65,13 +81,54 @@ def test_c01_candidate_set_exactly_three():
                     assert ladder[r][k] == v
 
 
-def test_c02_n_options_and_mechanical_order():
+def test_c02_n_options_and_input_contract_rejections():
+    """C02:n 恰好 10/15/20;第四 n/缺候选由固定输入合同拒绝。"""
     d = prep.diff_against_fixed_design()
     assert d['n_options'] == [10, 15, 20]
     assert prep.FIXED_DESIGN_LITERAL['mechanical_order'] == [
         'minimum_qualifying_n', 'maximin',
         'minimum_distance_to_historical', 'stable_candidate_id']
-    assert d['checks']['mechanical_order_min_n_first'] is True
+    behavior = d['selector_behavior']
+    assert behavior['scenarios']['fixed_inputs_n_options_exact'] is True
+    assert behavior['scenarios'][
+        'fixed_inputs_exactly_three_candidates'] is True
+
+
+def test_c03_real_selector_behavior_differential():
+    """C03-C08:调用现存权威 selector 的行为差分全部通过。"""
+    d = prep.diff_against_fixed_design()
+    assert d['all_pass'] is True, json.dumps(d['selector_behavior'])
+    s = d['selector_behavior']
+    assert s['selector'] == (
+        'rl_curriculum.curriculum261_r6_design.mechanical_selection')
+    # 最小合格 n 压过更高 n 的更高 score(C03)。
+    assert s['scenarios']['min_qualifying_n_beats_higher_score'] is True
+    # 同 n maximin 决胜(C04)。
+    assert s['scenarios']['same_n_maximin_decides'] is True
+    # maximin 同分 → 距 historical;再同分 → 稳定 id(C05)。
+    assert s['scenarios']['maximin_tie_distance_decides'] is True
+    assert s['scenarios']['distance_tie_stable_id_decides'] is True
+    # 不合格项排除;全不合格明确 no-selection 不回退 control(C06)。
+    assert s['scenarios']['unqualified_never_selected'] is True
+    assert s['scenarios']['all_unqualified_no_selection'] is True
+    # 输入顺序打乱不变(C07)。
+    assert s['scenarios']['input_order_invariant'] is True
+    # matched/point diagnostics 不改变 verdict(C08)。
+    assert s['scenarios'][
+        'diagnostic_keys_do_not_change_verdict'] is True
+    # 直接调用权威 selector 复核最小 n 优先(独立于 prep 断言)。
+    from rl_curriculum.curriculum261_r6_design import mechanical_selection
+
+    table = prep._table(
+        {'alpha': {10: True, 15: True}, 'beta': {10: False, 15: True}},
+        {'alpha': {10: 1.0, 15: 2.0}, 'beta': {15: 50.0}},
+        {'alpha': 0.9, 'beta': 0.1})
+    assert mechanical_selection(table) == ('alpha', 10)
+    all_unq = prep._table(
+        {'alpha': {10: False, 15: False, 20: False},
+         'beta': {10: False, 15: False, 20: False}},
+        {'alpha': {}, 'beta': {}}, {'alpha': 0.0, 'beta': 0.0})
+    assert mechanical_selection(all_unq) == (None, None)
 
 
 def test_c03_binding_sources_dedicated_only():
@@ -112,7 +169,26 @@ def test_c05_no_namespace_claim_or_plan_registered():
         assert banned not in src
 
 
-def test_c06_zero_generation_calls(monkeypatch, tmp_path):
+def test_c06_c09_zero_call_sentinels_all_zero():
+    """C09:generator/fit/eval/canonical/policy/claim/namespace 哨兵
+    计数全 0;哨兵全部安装成功(fail-closed,无不可用项)。"""
+    d = prep.diff_against_fixed_design()
+    behavior = d['selector_behavior']
+    assert behavior['all_pass'] is True
+    zero = behavior['zero_call']
+    assert zero['all_zero'] is True, json.dumps(zero)
+    assert zero['unavailable_sentinels'] == []
+    assert zero['violations'] == []
+    assert all(v == 0 for v in zero['counts'].values())
+    interfaces = {'generator', 'fit', 'eval', 'policy', 'canonical',
+                  'claim', 'namespace'}
+    seen = {key.split(':')[0] for key in zero['counts']}
+    assert interfaces <= seen, seen
+    # 源码字符串扫描仅诊断,不再是 PASS 决定面。
+    assert isinstance(behavior['diagnostics_only_source_scan'], dict)
+
+
+def test_c06_generation_sentinels_on_entry_points(monkeypatch, tmp_path):
     """全部 prep 入口对生产生成/fit/eval/canonical/policy 零调用。"""
     import rl_curriculum.curriculum261_api as api
     import rl_curriculum.curriculum261_pairs as pairs
@@ -124,7 +200,8 @@ def test_c06_zero_generation_calls(monkeypatch, tmp_path):
 
     monkeypatch.setattr(api, 'generate_pair_with_attempts', fail)
     monkeypatch.setattr(pairs, 'generate_pair', fail)
-    # diff/candidates 两次调用全部完成且不触发哨兵。
+    # diff/candidates/行为差分三次调用全部完成且不触发哨兵。
     d = prep.diff_against_fixed_design()
     assert d['all_pass'] is True
     assert len(prep.next_calibration_candidates()) == 3
+    assert prep.verify_mechanical_selection_behavior()['all_pass'] is True

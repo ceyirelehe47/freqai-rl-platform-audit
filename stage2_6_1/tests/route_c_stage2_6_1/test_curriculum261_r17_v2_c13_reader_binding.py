@@ -282,15 +282,31 @@ def test_e10_archived_copy_semantic_negatives(tmp_path):
 
 
 # ------------------------------------------------- run() 协议顺序(集成)
+_SYNTHETIC_CONTRACT = {
+    'engineering_only': True, 'synthetic_profile': True,
+    'stages': [{
+        'stage': 'fit_main', 'kind': 'fit', 'split': 'main',
+        'namespace': 'preplan_v2c13_v2_fit_main_r17',
+        'families': ['c1_opportunity'], 'quota_per_stratum': 1,
+        'reserve_indices': {},
+    }],
+}
+
+
+def _synthetic_authority(tmp_path):
+    repo_root = tmp_path / 'repo'
+    (repo_root / 'stage2_6_1' / 'artifacts').mkdir(parents=True,
+                                                    exist_ok=True)
+    claim = (repo_root / 'stage2_6_1' / 'artifacts' / 'repair17'
+             / 'development' / 'v2_c13_engineering_claim')
+    claim.mkdir(parents=True, exist_ok=True)
+    return prof.synthetic_authority(repo_root, claim)
+
+
 def test_run_requires_authoritative_plan_first(tmp_path, monkeypatch):
     """G03/G12 集成:无权威 plan → run 在消费前拒绝,零生成零 claim。"""
     pytest.importorskip('rl_curriculum')
-    repo_root = tmp_path / 'repo'
-    (repo_root / 'stage2_6_1' / 'artifacts').mkdir(parents=True)
-    monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', repo_root)
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', repo_root / 'stage2_6_1'
-                        / 'artifacts' / 'repair17' / 'development'
-                        / 'v2_c13_engineering_claim')
+    auth = _synthetic_authority(tmp_path)
     monkeypatch.setattr(pipe, 'FIT_CALL_LOG', [])
     monkeypatch.setattr(pipe, 'POLICY_EVALUATION_STARTED', False)
     monkeypatch.setattr(pipe, '_EVAL_PHASE_ACTIVE', False)
@@ -317,7 +333,8 @@ def test_run_requires_authoritative_plan_first(tmp_path, monkeypatch):
             described.append(1)
             return {}
 
-    rc = pipe.run(out, backend=NoBackend(), contract={})
+    rc = pipe.run(out, backend=NoBackend(), contract=_SYNTHETIC_CONTRACT,
+                  authority=auth)
     assert rc == 3
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     assert result['phase'] == 'authoritative_plan_consumption'
@@ -331,12 +348,7 @@ def test_run_rejects_stale_receipt_or_evidence_drift(
         tmp_path, monkeypatch):
     """G09/G11 集成:receipt 过期或 evidence 漂移 → claim 前拒绝。"""
     pytest.importorskip('rl_curriculum')
-    repo_root = tmp_path / 'repo'
-    (repo_root / 'stage2_6_1' / 'artifacts').mkdir(parents=True)
-    monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', repo_root)
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', repo_root / 'stage2_6_1'
-                        / 'artifacts' / 'repair17' / 'development'
-                        / 'v2_c13_engineering_claim')
+    auth = _synthetic_authority(tmp_path)
     monkeypatch.setattr(pipe, 'source_guard', lambda: {'stub': {
         'path': '/stub', 'sha256': '00' * 32}})
     from test_curriculum261_r17_v2_c13_pipeline import GENERATORS
@@ -352,23 +364,26 @@ def test_run_rejects_stale_receipt_or_evidence_drift(
 
     ev_sha = hashlib.sha256(
         (prof.canonical(ev) + '\n').encode('utf-8')).hexdigest()
-    prof.persist_authoritative_evidence(ev)
-    plan = prof.make_plan(runtime, admission_evidence={
+    prof.persist_authoritative_evidence(ev, authority=auth)
+    plan = prof.make_plan(runtime, contract=_SYNTHETIC_CONTRACT,
+                          admission_evidence={
         'kind': 'namespace_unused_v1',
         'path': prof.EVIDENCE_FILENAME, 'sha256': ev_sha})
     prof.validate_plan(plan)
-    persisted = prof.persist_final_plan(
-        plan, prof.authoritative_plan_path())
-    # 过期 closure receipt。
+    persisted = prof.persist_final_plan(plan, authority=auth)
+    # 过期 closure receipt(回归引用为新形状;closure 故意过期)。
     prof.write_preclaim_receipt({
         'profile': prof.CONTRACT, 'admitted': True,
         'plan_sha256': persisted['plan_sha256'],
         'plan_file_sha256': persisted['file_sha256'],
         'source_closure_sha256': 'ff' * 32,
-        'full_regression_ref': {'path': 'x', 'entry_rc': 0}})
+        'full_regression_evidence': {
+            'path': str(prof.authoritative_full_regression_path(auth)),
+            'package_sha256': 'aa' * 32, 'entry_rc': 0, 'business_rc': 0},
+        'evidence_sha256': 'bb' * 32}, authority=auth)
     monkeypatch.setattr(pipe, 'namespace_unused_evidence',
                         lambda root: ev)
-    monkeypatch.setattr(pipe, 'parameter_snapshot', lambda: {
+    monkeypatch.setattr(prof, 'parameter_snapshot', lambda: {
         'pack': {'digest': 'x'}, 'rung_params': {}, 'reference_defaults':
             {}, 'r4_parameter_pack_digest': 'y', 'sources': {},
         'r4_inheritance': {'pass': True}})
@@ -379,12 +394,13 @@ def test_run_rejects_stale_receipt_or_evidence_drift(
 
     (tmp_path / 'run').mkdir()
     out = tmp_path / 'run' / 'chain'
-    rc = pipe.run(out, backend=StubBackend(), contract=plan['contract'])
+    rc = pipe.run(out, backend=StubBackend(), contract=plan['contract'],
+                  authority=auth)
     assert rc == 3
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     assert result['phase'] == 'preclaim_receipt_validation'
     assert 'different source closure' in result['error']['message']
     # 无 claim、无生成产物。
-    assert not (prof.CLAIM_ROOT / f'{prof.CONTRACT}.json').exists()
+    assert not (auth.claim_root / f'{prof.CONTRACT}.json').exists()
     assert not out.joinpath('claim.json').exists()
     assert not out.joinpath('stages').exists()

@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -66,34 +67,16 @@ C3_ALLOWED_REJECTIONS = frozenset(
     f'{scope}:{code}' for scope in ('A', 'B', 'pair')
     for code in C3_RESERVE_CODES)
 
-#: 发布仓库固定根(生成证据所在;生产 authority)。
+#: 治理修复 v2(B2/A02/A03):生产 authority 是不可变事实。
 #:
-#: 治理修复(G06/G07):v2 轮此处从环境变量 R17_V2C13_REPO_ROOT 派生,生产
-#: CLI 换一个空根即可同时改写 claim 根与 namespace 扫描根,构成对已
-#: 消费一次性许可的静态重取路径。现在生产根为固定常量,不读任何环境
-#: 变量;测试/合成链注入只能通过 set_test_authority() 显式 fixture 接口
-#: (或测试对模块属性 monkeypatch),生产 CLI 无任何注入入口。
-RELEASE_REPO_ROOT = Path('/mnt/f/trading/freqai-rl-audit')
-
-#: 一次性工程 claim 固定位置(profile 决定;换 out/run_id/cwd 不重新取得;
-#: 落在发布仓库固定开发证据域,与部署布局无关)。
-CLAIM_ROOT = RELEASE_REPO_ROOT / (
-    'stage2_6_1/artifacts/repair17/development/v2_c13_engineering_claim')
-
-
-def set_test_authority(repo_root, claim_root=None) -> None:
-    """fixture-only:为测试/合成链显式注入临时 authority 根。
-
-    生产 CLI 不调用本函数(无入口);合成链与协议测试用它把 claim 根
-    与 namespace 扫描根指向临时目录。注入后 consume/claim_state 仍执行
-    权威根内路径守卫(symlink/`..`/相对路径逃逸拒绝)。
-    """
-    global RELEASE_REPO_ROOT, CLAIM_ROOT
-    RELEASE_REPO_ROOT = Path(repo_root)
-    CLAIM_ROOT = (Path(claim_root) if claim_root is not None
-                  else RELEASE_REPO_ROOT / (
-                      'stage2_6_1/artifacts/repair17/development/'
-                      'v2_c13_engineering_claim'))
+#: v2 轮缺陷:``RELEASE_REPO_ROOT``/``CLAIM_ROOT`` 是可变模块全局,公开
+#: ``set_test_authority()`` 或测试直接 monkeypatch 模块属性即可把生产
+#: prepare/run/consume 指到任意临时根。本轮废除可变全局与注入函数:
+#: 生产入口每次调用都从下方字面常量重新推导 canonical authority,
+#: 不读环境变量、cwd、out、run id 或任何模块可变状态;合成 authority
+#: 只能以显式 ``Authority(synthetic=True)`` 实例传入,并且与
+#: RealBackend/生产合同组合时在任何持久化、claim、生成之前被拒绝
+#: (enforce_authority_combination)。生产 CLI 不暴露任何 root 参数。
 
 
 class ProfileError(RuntimeError):
@@ -112,6 +95,123 @@ def canonical(obj: Any) -> str:
 
 def digest(obj: Any) -> str:
     return hashlib.sha256(canonical(obj).encode('utf-8')).hexdigest()
+
+
+# ------------------------------------------------------------- authority
+@dataclass(frozen=True)
+class Authority:
+    """不可变 authority:frozen 数据类,无任何可变模块状态。
+
+    生产实例由 ``production_authority()`` 从字面常量推导(每次调用
+    重新构建,等值比较);合成实例由 ``synthetic_authority()`` 显式
+    构建并携带 ``synthetic=True`` 标记。任何写入/claim/生成入口都
+    必须先 ``resolve_authority()`` 并通过
+    ``enforce_authority_combination()`` 组合校验。
+    """
+
+    repo_root: Path
+    claim_root: Path
+    synthetic: bool = False
+
+    def __post_init__(self) -> None:
+        if self.synthetic is False:
+            require(
+                self.claim_root == self.repo_root
+                or self.claim_root.is_relative_to(self.repo_root),
+                f'production claim root escapes the release repo '
+                f'authority: {self.claim_root}')
+
+
+def production_authority() -> Authority:
+    """从字面常量重建生产 authority(不读任何模块可变状态/环境)。
+
+    发布仓库固定根(生成证据所在);一次性工程 claim 根落在发布仓库
+    固定开发证据域,与部署布局、out、run id、cwd 无关。
+    """
+    root = Path('/mnt/f/trading/freqai-rl-audit')
+    return Authority(
+        repo_root=root,
+        claim_root=root / ('stage2_6_1/artifacts/repair17/development/'
+                           'v2_c13_engineering_claim'),
+        synthetic=False)
+
+
+def synthetic_authority(repo_root, claim_root) -> Authority:
+    """测试专用:显式合成 authority(必须给出独立的临时根)。
+
+    合成根必须位于系统临时目录(pytest tmp_path 即在其中)且不得与
+    生产根重叠;合成实例只能配合显式 fixture backend 与声明
+    synthetic 的注入合同使用,与 RealBackend/生产合同组合在写入前
+    被拒绝。
+    """
+    import tempfile
+
+    root = Path(repo_root)
+    claim = Path(claim_root)
+    prod = production_authority()
+    for forbidden in (prod.repo_root, prod.claim_root):
+        require(not (root == forbidden or claim == forbidden
+                     or claim.is_relative_to(forbidden)
+                     or root.is_relative_to(forbidden)),
+                f'synthetic authority must not overlap the production '
+                f'root: {forbidden}')
+    tmp = Path(tempfile.gettempdir()).resolve()
+    require(root.is_absolute() and claim.is_absolute()
+            and (claim == root or claim.is_relative_to(root))
+            and root.resolve(strict=False).is_relative_to(tmp),
+            'synthetic authority roots must be absolute, nested and '
+            'located inside the system temp directory')
+    return Authority(repo_root=root, claim_root=claim, synthetic=True)
+
+
+def resolve_authority(authority: Authority | None = None) -> Authority:
+    """None → 从字面常量重建生产 authority;显式实例原样返回。
+
+    每次调用重新推导,不缓存,不读模块可变状态(A02)。"""
+    return production_authority() if authority is None else authority
+
+
+def enforce_authority_combination(authority: Authority, *,
+                                  backend: Any = None,
+                                  contract: dict | None = None
+                                  ) -> None:
+    """B2/A04:authority 与 backend/contract 组合在任何持久化、claim、
+    生成之前校验。
+
+    - 生产 authority 只能与 RealBackend(None 视为 RealBackend)和
+      权威 fixed_contract 组合;
+    - 合成 authority 必须与显式 fixture backend(拒绝 None/RealBackend)
+      和声明 synthetic 的注入合同组合。
+    """
+    require(isinstance(authority, Authority),
+            'authority must be an immutable Authority instance')
+    if not authority.synthetic:
+        if backend is not None:
+            from r17_v2_c13_batch import RealBackend
+
+            require(isinstance(backend, RealBackend),
+                    'production authority cannot pair with a fixture '
+                    'backend (synthetic generation into the production '
+                    'claim root is forbidden)')
+        if contract is not None:
+            require(contract == fixed_contract(),
+                    'production authority cannot pair with an injected '
+                    'contract')
+    else:
+        if backend is None:
+            require(False, 'synthetic authority cannot pair with the '
+                           'default RealBackend; pass an explicit '
+                           'fixture backend')
+        from r17_v2_c13_batch import RealBackend
+
+        require(not isinstance(backend, RealBackend),
+                'RealBackend with a synthetic authority is rejected '
+                'before any persistence, claim or generation')
+        require(isinstance(contract, dict)
+                and contract.get('engineering_only') is True
+                and contract.get('synthetic_profile') is True,
+                'synthetic authority requires an explicit declared-'
+                'synthetic contract')
 
 
 # ---------------------------------------------------------------- stages
@@ -453,7 +553,7 @@ def namespace_unused_evidence(repo_root: Path) -> dict[str, Any]:
     import os
 
     repo_root = Path(repo_root) if repo_root is not None \
-        else RELEASE_REPO_ROOT
+        else production_authority().repo_root
     names = list(FIT_NAMESPACES.values()) + list(EVAL_NAMESPACES.values())
     hits: list[dict[str, Any]] = []
     planning_hits: list[dict[str, Any]] = []
@@ -511,9 +611,12 @@ def namespace_unused_evidence(repo_root: Path) -> dict[str, Any]:
 #: 权威最终计划/preclaim receipt/admission evidence 固定位置(与 claim
 #: 同根;由 preclaim gate 流程 create-only 写入;production run 只消费
 #: 已持久化的同一 plan 文件,不重新组装计划 — G03/G05/G11/G12)。
+#: 权威完整回归证据包固定目录(§4.2):同样只由合同与 authority 推导,
+#: 调用方不能传任意 regression path(B1/F01)。
 RECEIPT_FILENAME = f'{CONTRACT}.preclaim.json'
 PLAN_FILENAME = f'{CONTRACT}.plan.json'
 EVIDENCE_FILENAME = f'{CONTRACT}.admission_evidence.json'
+FULL_REGRESSION_DIRNAME = f'{CONTRACT}.full_regression'
 
 
 def _fsync_dir(path: Path) -> None:
@@ -526,18 +629,20 @@ def _fsync_dir(path: Path) -> None:
         os.close(fd)
 
 
-def _guarded_claim_path(filename: str) -> Path:
+def _guarded_claim_path(filename: str,
+                        authority: Authority | None = None) -> Path:
     """权威 claim 根内路径守卫(G07)。
 
-    最终路径 resolve 后必须严格位于 CLAIM_ROOT(resolve)之内;符号链接、
-    ``..``、相对逃逸与第二 checkout 在此拒绝。CLAIM_ROOT 自身也必须在
-    RELEASE_REPO_ROOT(resolve)之内,防止注入根本身被指到权威域外后把
-    claim 写去任意位置。
+    最终路径 resolve 后必须严格位于 authority 的 claim_root(resolve)
+    之内;符号链接、``..``、相对逃逸与第二 checkout 在此拒绝。生产
+    claim 根自身也必须在发布仓库根(resolve)之内,防止注入根本身被
+    指到权威域外后把 claim 写去任意位置。
     """
-    claim_root = CLAIM_ROOT.resolve(strict=True)
-    repo_root = RELEASE_REPO_ROOT.resolve(strict=True)
+    auth = resolve_authority(authority)
+    claim_root = auth.claim_root.resolve(strict=True)
+    repo_root = auth.repo_root.resolve(strict=True)
     require(claim_root == repo_root or claim_root.is_relative_to(repo_root),
-            f'claim root escapes release repo authority: {CLAIM_ROOT}')
+            f'claim root escapes release repo authority: {auth.claim_root}')
     path = claim_root / filename
     resolved = path.resolve(strict=False)
     require(resolved.is_relative_to(claim_root),
@@ -545,29 +650,39 @@ def _guarded_claim_path(filename: str) -> Path:
     return path
 
 
-def authoritative_plan_path() -> Path:
-    return CLAIM_ROOT / PLAN_FILENAME
+def authoritative_plan_path(authority: Authority | None = None) -> Path:
+    return resolve_authority(authority).claim_root / PLAN_FILENAME
 
 
-def authoritative_evidence_path() -> Path:
-    return CLAIM_ROOT / EVIDENCE_FILENAME
+def authoritative_evidence_path(authority: Authority | None = None) -> Path:
+    return resolve_authority(authority).claim_root / EVIDENCE_FILENAME
 
 
-def receipt_path() -> Path:
-    return CLAIM_ROOT / RECEIPT_FILENAME
+def receipt_path(authority: Authority | None = None) -> Path:
+    return resolve_authority(authority).claim_root / RECEIPT_FILENAME
 
 
-def persist_final_plan(plan: dict[str, Any], path: Path) -> dict[str, Any]:
+def authoritative_full_regression_path(
+        authority: Authority | None = None) -> Path:
+    """权威完整回归证据包固定目录(只由合同与 authority 推导)。"""
+    return (resolve_authority(authority).claim_root
+            / FULL_REGRESSION_DIRNAME)
+
+
+def persist_final_plan(plan: dict[str, Any], *,
+                      authority: Authority | None = None
+                      ) -> dict[str, Any]:
     """create-only 持久化最终计划(G03):O_EXCL 写入 + 文件与目录 fsync
     + 重读回算 canonical digest 与文件 sha256 对拍。
 
-    已存在即拒绝(不覆盖、不重试);调用方随后才能申请 claim。
+    落点只由 authority 推导(A06:调用方不能传任意 plan path);已存在
+    即拒绝(不覆盖、不重试);调用方随后才能申请 claim。
     """
     import os
     import secrets
 
     validate_plan(plan)
-    path = Path(path)
+    path = authoritative_plan_path(authority)
     require(not path.exists(), f'final plan already persisted: {path}')
     payload = (canonical(plan) + '\n').encode('utf-8')
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -594,8 +709,8 @@ def persist_final_plan(plan: dict[str, Any], path: Path) -> dict[str, Any]:
             'bytes': len(payload), 'file_sha256': file_sha}
 
 
-def persist_authoritative_evidence(evidence: dict[str, Any],
-                                   path: Path | None = None
+def persist_authoritative_evidence(evidence: dict[str, Any], *,
+                                   authority: Authority | None = None
                                    ) -> dict[str, Any]:
     """create-only 持久化 admission evidence 权威副本(namespace 扫描
     结果;plan 以 {path, sha256} 引用)。run() 重算扫描并与该摘要对拍
@@ -603,8 +718,7 @@ def persist_authoritative_evidence(evidence: dict[str, Any],
     import hashlib
     import os
 
-    target = (Path(path) if path is not None
-              else authoritative_evidence_path())
+    target = authoritative_evidence_path(authority)
     require(not target.exists(),
             f'admission evidence already persisted: {target}')
     body = (canonical(evidence) + '\n').encode('utf-8')
@@ -618,16 +732,19 @@ def persist_authoritative_evidence(evidence: dict[str, Any],
             hashlib.sha256(body).hexdigest(), 'bytes': len(body)}
 
 
-def write_preclaim_receipt(receipt: dict[str, Any],
-                           path: Path | None = None) -> dict[str, Any]:
+def write_preclaim_receipt(receipt: dict[str, Any], *,
+                           authority: Authority | None = None
+                           ) -> dict[str, Any]:
     """create-only 写权威 preclaim receipt(G05)。
 
-    receipt 必须绑定:同候选 source closure digest、完整回归证据引用、
-    最终 plan digest;只在最后一次影响主链/guard 的改动与其对应完整
-    回归之后由 preclaim gate 写入。写入后不得改 guard 沿用旧回执。
+    receipt 必须绑定:同候选 source closure digest、机器验证过的完整
+    回归证据引用(package digest)、最终 plan digest 与 plan 文件字节
+    digest;只在最后一次影响主链/guard 的改动与其对应完整回归之后由
+    preclaim gate 写入。写入后不得改 guard 沿用旧回执。落点只由
+    authority 推导(A06)。
     """
     validate_preclaim_receipt_shape(receipt)
-    target = Path(path) if path is not None else receipt_path()
+    target = receipt_path(authority)
     require(not target.exists(),
             f'preclaim receipt already exists: {target}')
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -654,19 +771,34 @@ def validate_preclaim_receipt_shape(receipt: dict[str, Any]) -> None:
             and re.fullmatch(r'[a-f0-9]{64}',
                              receipt['plan_sha256']) is not None,
             'preclaim receipt missing plan digest')
+    require(isinstance(receipt.get('plan_file_sha256'), str)
+            and re.fullmatch(r'[a-f0-9]{64}',
+                             receipt['plan_file_sha256']) is not None,
+            'preclaim receipt missing mandatory plan file byte digest')
     require(isinstance(receipt.get('source_closure_sha256'), str)
             and re.fullmatch(r'[a-f0-9]{64}',
                              receipt['source_closure_sha256']) is not None,
             'preclaim receipt missing source closure digest')
-    require(isinstance(receipt.get('full_regression_ref'), dict)
-            and isinstance(receipt['full_regression_ref'].get('path'), str)
-            and receipt['full_regression_ref'].get('entry_rc') == 0,
-            'preclaim receipt missing green full-regression reference')
+    # B1/F01:完整回归证据必须是机器验证过的内容寻址引用;禁止
+    # path=unspecified / caller 自报 entry_rc=0 的伪绿色形态。
+    fre = receipt.get('full_regression_evidence')
+    require(isinstance(fre, dict)
+            and isinstance(fre.get('path'), str)
+            and fre['path'] not in ('', 'unspecified')
+            and re.fullmatch(r'[a-f0-9]{64}',
+                             str(fre.get('package_sha256'))) is not None
+            and fre.get('entry_rc') == 0
+            and fre.get('business_rc') == 0,
+            'preclaim receipt missing machine-verified full-regression '
+            'evidence reference (path/package_sha256/entry_rc/'
+            'business_rc); caller self-reported rc alone is not '
+            'acceptable')
 
 
-def load_preclaim_receipt() -> dict[str, Any]:
+def load_preclaim_receipt(
+        authority: Authority | None = None) -> dict[str, Any]:
     """读权威 receipt;缺失/损坏按异常拒绝(fail closed,不静默)。"""
-    path = receipt_path()
+    path = receipt_path(authority)
     require(path.is_file(),
             f'authoritative preclaim receipt missing: {path}')
     try:
@@ -680,55 +812,72 @@ def load_preclaim_receipt() -> dict[str, Any]:
 
 def validate_preclaim_receipt(receipt: dict[str, Any], *,
                               plan_sha256: str,
-                              source_closure_sha256: str) -> None:
+                              source_closure_sha256: str,
+                              full_regression_evidence_sha256: str | None
+                              = None) -> None:
     """production entry 复验 receipt(G11):同 plan digest、同 source
-    closure。receipt 过期(候选已改)在此拒绝,不能靠 operator 自报。"""
+    closure、(提供时)同完整回归证据包 digest。receipt 过期(候选已改)
+    在此拒绝,不能靠 operator 自报。"""
     validate_preclaim_receipt_shape(receipt)
     require(receipt['plan_sha256'] == plan_sha256,
             'preclaim receipt bound to a different plan')
     require(receipt['source_closure_sha256'] == source_closure_sha256,
             'preclaim receipt bound to a different source closure '
             '(stale candidate)')
+    if full_regression_evidence_sha256 is not None:
+        require(receipt['full_regression_evidence']['package_sha256']
+                == full_regression_evidence_sha256,
+                'preclaim receipt bound to a different full-regression '
+                'evidence package (regressed or replaced evidence)')
 
 
-def consume_generation_claim_from_plan_file(
-        plan_path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
-    """一次性工程 claim 只能从已持久化的最终计划文件取得(G04)。
+def consume_production_claim(*, authority: Authority | None = None
+                             ) -> dict[str, Any]:
+    """一次性工程 claim 只能从固定权威 plan/receipt 取得(G04/A07)。
 
-    v2 轮缺陷:``run()`` 先用内存 dict 消费 claim、事后才写 plan.json,
-    claim 绑定的 plan 与 preclaim 计划分叉。现在:
+    v2 轮缺陷:``run()`` 可用内存 dict 与任意 plan path 消费 claim;
+    上一治理轮仍保留 caller 传入 plan_path/receipt 的 API。本轮废除
+    caller 输入 — 本函数只从 authority 推导的固定路径读取:
 
-    - 重读 plan 文件并重算 plan_sha256(payload 引用精确持久化值);
-    - receipt 必须已通过 validate_preclaim_receipt(同 plan/同 closure);
+    - 重读权威 plan 文件并重算 plan_sha256 + 文件字节 sha;
+    - 权威 receipt 必须通过 validate_preclain_receipt_shape 且绑定
+      同 plan digest 与同 plan 文件字节;
     - O_EXCL 创建 claim;两进程竞态恰好一个成功,失败方不删不重试;
+    - claim payload 绑定合同、plan 内容 digest、plan 文件字节 digest、
+      source closure digest、完整回归证据包 digest 与消费时间(§4.3);
     - claim 后崩溃/业务失败:claim 永久保留,无恢复路径(G10)。
     """
+    import hashlib
     import os
     import time
 
-    plan_path = Path(plan_path)
+    auth = resolve_authority(authority)
+    plan_path = authoritative_plan_path(auth)
     require(plan_path.is_file(),
-            f'plan file missing; claim requires a persisted plan: '
-            f'{plan_path}')
+            f'authoritative plan file missing; claim requires the '
+            f'persisted final plan: {plan_path}')
     plan = json.loads(plan_path.read_text(encoding='utf-8'))
     validate_plan(plan)
-    validate_preclaim_receipt_shape(receipt)
+    receipt = load_preclaim_receipt(auth)
     require(receipt['plan_sha256'] == plan['plan_sha256'],
             'preclaim receipt bound to a different plan digest')
-    import hashlib
-
     plan_file_sha = hashlib.sha256(
         plan_path.read_bytes()).hexdigest()
-    if receipt.get('plan_file_sha256') is not None:
-        require(receipt['plan_file_sha256'] == plan_file_sha,
-                'persisted plan file bytes differ from the receipt anchor '
-                '(tampered or replaced plan)')
-    CLAIM_ROOT.mkdir(parents=True, exist_ok=True)
-    path = _guarded_claim_path(f'{CONTRACT}.json')
+    require(receipt['plan_file_sha256'] == plan_file_sha,
+            'persisted plan file bytes differ from the receipt anchor '
+            '(tampered or replaced plan)')
+    auth.claim_root.mkdir(parents=True, exist_ok=True)
+    path = _guarded_claim_path(f'{CONTRACT}.json', auth)
     payload = {
-        'profile': CONTRACT, 'plan_sha256': plan['plan_sha256'],
+        'profile': CONTRACT,
+        'contract_sha256': digest(plan['contract']),
+        'plan_sha256': plan['plan_sha256'],
         'plan_file_sha256': plan_file_sha,
-        'baseline': BASELINE, 'consumed_utc': time.strftime(
+        'source_closure_sha256': receipt['source_closure_sha256'],
+        'full_regression_evidence_sha256': (
+            receipt['full_regression_evidence']['package_sha256']),
+        'baseline': BASELINE,
+        'consumed_utc': time.strftime(
             '%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
     }
     body = (canonical(payload) + '\n').encode('utf-8')
@@ -740,18 +889,21 @@ def consume_generation_claim_from_plan_file(
         os.close(fd)
     _fsync_dir(path.parent)
     return {'path': str(path), 'plan_sha256': plan['plan_sha256'],
-            'plan_path': str(plan_path)}
+            'plan_path': str(plan_path),
+            'full_regression_evidence_sha256': (
+                payload['full_regression_evidence_sha256'])}
 
 
-def claim_state() -> dict[str, Any]:
-    if not CLAIM_ROOT.is_dir():
+def claim_state(authority: Authority | None = None) -> dict[str, Any]:
+    auth = resolve_authority(authority)
+    if not auth.claim_root.is_dir():
         return {'consumed': False,
-                'path': str(CLAIM_ROOT / f'{CONTRACT}.json')}
+                'path': str(auth.claim_root / f'{CONTRACT}.json')}
     try:
-        path = _guarded_claim_path(f'{CONTRACT}.json')
+        path = _guarded_claim_path(f'{CONTRACT}.json', auth)
     except (ProfileError, OSError) as exc:
         return {'consumed': True,
-                'path': str(CLAIM_ROOT / f'{CONTRACT}.json'),
+                'path': str(auth.claim_root / f'{CONTRACT}.json'),
                 'error': f'authority guard rejected: {exc}'}
     if not path.is_file():
         return {'consumed': False, 'path': str(path)}

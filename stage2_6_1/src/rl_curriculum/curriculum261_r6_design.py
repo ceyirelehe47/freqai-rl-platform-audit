@@ -624,6 +624,32 @@ def _maximin_score(corpus_results: list[dict[str, Any]], n: int) -> float:
     return float(min(vals))
 
 
+def mechanical_selection(candidate_results: dict[str, Any]
+                         ) -> tuple[str | None, int | None]:
+    """§22 机械选择:最小合格 n → maximin → distance → stable id。
+
+    唯一权威排序实现(纯代码搬移自 run_design_stage 内联段,语义逐位
+    不变):对 candidate×block-count 组合,先取最小合格 n;同 n 内按
+    maximin 降序、距 historical 参数距离升序、candidate id 字典序
+    决胜;无任何合格组合返回 (None, None)(§26 no-selection,不回退
+    control)。治理轮把本函数提为可调用入口,供 C2 launch prep 用
+    合成结果表做零生成行为差分;run_design_stage 照常调用本函数。
+    """
+    for n in FORMAL_BLOCK_OPTIONS:
+        combos = [(cid, res) for cid, res in candidate_results.items()
+                  if res["qualified_by_block_count"][str(n)]]
+        if combos:
+            ranked = sorted(
+                combos,
+                key=lambda kv: (-kv[1]["maximin_score_by_qualified_n"][
+                                    str(n)],
+                                kv[1]["param_distance_from_historical"],
+                                kv[0]))
+            selected_id, _selected = ranked[0]
+            return selected_id, n
+    return None, None
+
+
 def run_design_stage(out_dir: Path, plan: dict[str, Any],
                      design_digest: str,
                      baseline_commit: str = "") -> dict[str, Any]:
@@ -661,22 +687,8 @@ def run_design_stage(out_dir: Path, plan: dict[str, Any],
         candidate_results, indent=2, ensure_ascii=False, default=float),
         encoding="utf-8")
 
-    # §22 机械选择:最小 n → maximin → distance → id
-    selected_n: int | None = None
-    selected_id: str | None = None
-    for n in FORMAL_BLOCK_OPTIONS:
-        combos = [(cid, res) for cid, res in candidate_results.items()
-                  if res["qualified_by_block_count"][str(n)]]
-        if combos:
-            ranked = sorted(
-                combos,
-                key=lambda kv: (-kv[1]["maximin_score_by_qualified_n"][
-                                    str(n)],
-                                kv[1]["param_distance_from_historical"],
-                                kv[0]))
-            selected_id, selected = ranked[0]
-            selected_n = n
-            break
+    # §22 机械选择:唯一权威排序实现(见 mechanical_selection)。
+    selected_id, selected_n = mechanical_selection(candidate_results)
 
     power = _build_power_summary(
         candidate_results, selected_id, selected_n, design_digest)

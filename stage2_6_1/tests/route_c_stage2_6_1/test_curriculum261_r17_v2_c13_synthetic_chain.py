@@ -162,22 +162,37 @@ class ChainFixture:
         return batch.Generated(p, handle)
 
 
+def _chain_authority(tmp_path):
+    """合成链 authority(路径确定性推导;与 fixture 建立的目录一致)。"""
+    repo_root = tmp_path / 'repo'
+    claim = repo_root / 'stage2_6_1' / 'artifacts' / 'repair17' \
+        / 'development' / 'v2_c13_engineering_claim'
+    return prof.synthetic_authority(repo_root, claim)
+
+
 @pytest.fixture
 def chain_env(tmp_path, monkeypatch):
     """隔离环境:tmp repo root(空 artifacts)/tmp claim/重置模块全局。
 
-    治理修复后合成链走完整新协议:fixture 先经生产
+    治理 v2 后合成链走完整新协议:显式 synthetic authority + 固定路径
+    合成健康回归证据包(机器验证过、候选闭包对拍),fixture 经生产
     prepare_authoritative_plan()(真实 source/params/扫描 + 权威
-    plan/evidence/receipt create-only 持久化),run() 再消费同一
-    权威计划取得 claim —— 与生产唯一差异仍是生成边界替身与小合同。
+    plan/evidence/receipt create-only 持久化),run() 再复验回归包并
+    从同一权威计划取得 claim —— 与生产唯一差异仍是生成边界替身与
+    小合同。
     """
     repo_root = tmp_path / 'repo'
     (repo_root / 'stage2_6_1' / 'artifacts').mkdir(parents=True)
-    monkeypatch.setattr(prof, 'RELEASE_REPO_ROOT', repo_root)
     # claim 根必须在 repo 根内(生产相对结构;G07 守卫拒绝域外 claim 根)。
-    monkeypatch.setattr(prof, 'CLAIM_ROOT', repo_root / 'stage2_6_1'
-                        / 'artifacts' / 'repair17' / 'development'
-                        / 'v2_c13_engineering_claim')
+    claim = repo_root / 'stage2_6_1' / 'artifacts' / 'repair17' \
+        / 'development' / 'v2_c13_engineering_claim'
+    claim.mkdir(parents=True, exist_ok=True)
+    auth = _chain_authority(tmp_path)
+    from r17_v2_c13_regression_evidence import build_synthetic_package
+
+    build_synthetic_package(
+        prof.authoritative_full_regression_path(auth),
+        current_sources=pipe.source_guard())
     monkeypatch.setattr(pipe, 'FIT_CALL_LOG', [])
     monkeypatch.setattr(pipe, 'POLICY_EVALUATION_STARTED', False)
     monkeypatch.setattr(pipe, '_EVAL_PHASE_ACTIVE', False)
@@ -186,19 +201,20 @@ def chain_env(tmp_path, monkeypatch):
 
 
 def _preclaim_authoritative(tmp_path, backend, contract):
-    """合成链的 preclaim gate:真实流程持久化权威 plan/evidence/receipt。"""
+    """合成链的 preclaim gate:真实流程持久化权威 plan/evidence/receipt
+    (回归证据包由 chain_env 预先建立在固定权威路径)。"""
     backend.params = prof.parameter_snapshot()
     return pipe.prepare_authoritative_plan(
         backend=backend, contract=contract,
-        full_regression_ref={'path': 'synthetic://chain-fixture',
-                             'entry_rc': 0})
+        authority=_chain_authority(tmp_path))
 
 
 def _run_chain(tmp_path, backend, contract=None):
     contract = contract if contract is not None else small_contract()
     _preclaim_authoritative(tmp_path, backend, contract)
     out = tmp_path / 'run' / 'chain'
-    rc = pipe.run(out, backend=backend, contract=contract)
+    rc = pipe.run(out, backend=backend, contract=contract,
+                  authority=_chain_authority(tmp_path))
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     return rc, out, result
 
@@ -297,7 +313,8 @@ def test_e03_phase_accurate_on_generation_failure(chain_env):
     backend.params = prof.parameter_snapshot()
     _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
-    rc = pipe.run(out, backend=backend, contract=contract)
+    rc = pipe.run(out, backend=backend, contract=contract,
+                  authority=_chain_authority(chain_env))
     assert rc == 3
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     assert result['status'] == 'generation_failed'
@@ -331,7 +348,8 @@ def test_e03_reserve_exhaustion_phase_and_eval_not_started(chain_env):
     backend.params = prof.parameter_snapshot()
     _preclaim_authoritative(chain_env, backend, contract)
     out = chain_env / 'run' / 'chain'
-    rc = pipe.run(out, backend=backend, contract=contract)
+    rc = pipe.run(out, backend=backend, contract=contract,
+                  authority=_chain_authority(chain_env))
     assert rc == 4
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     assert result['phase'] == 'eval_main_generation'
@@ -450,7 +468,8 @@ def test_fault_write_failure_preserves_state(chain_env, monkeypatch):
 
     monkeypatch.setattr(pipe, 'new_json', flaky_new_json)
     monkeypatch.setattr(batch, 'new_json', flaky_new_json)
-    rc = pipe.run(out, backend=backend, contract=contract)
+    rc = pipe.run(out, backend=backend, contract=contract,
+                  authority=_chain_authority(chain_env))
     assert rc == 3
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
     assert result['status'] == 'generation_failed'
@@ -483,7 +502,8 @@ def test_fault_refit_during_eval_blocked(chain_env, monkeypatch):
         return out
 
     monkeypatch.setattr(pipe, 'evaluate_split', eval_with_refit_attempt)
-    rc = pipe.run(out, backend=backend, contract=contract)
+    rc = pipe.run(out, backend=backend, contract=contract,
+                  authority=_chain_authority(chain_env))
     assert rc == 0
     assert invoked['n'] == 2  # 两分区的评估都尝试过 refit 且被拒
     result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
@@ -520,3 +540,76 @@ def test_e05_production_profile_precise_vs_small(chain_env):
         prof.validate_plan(prof.make_plan(
             {'kind': 'real', 'generator': GENERATORS['c3_cost']},
             small))
+
+
+# ------------------------------------------------------------- E11 回归证据
+def test_e11_regression_tamper_rejected_before_claim(chain_env):
+    """F09/F10/F11:preclaim 后篡改权威回归包(含重签外层 manifest)
+    → run 在 claim 前拒绝;未篡改控制组照常完成全链。"""
+    pytest.importorskip('rl_curriculum')
+    auth = _chain_authority(chain_env)
+    backend = ChainFixture()
+    contract = small_contract()
+    _preclaim_authoritative(chain_env, backend, contract)
+    pkg = prof.authoritative_full_regression_path(auth)
+    # 彻底攻击者:篡改 junit + 重签 manifest + 同步 required 条目;
+    # supervisor run_record 的角色 sha 与 receipt 锚定的包 digest 仍
+    # 拒绝(双层内锚 + 内容寻址 digest)。
+    import hashlib
+
+    junit = (pkg / 'junit.xml').read_text(encoding='utf-8')
+    (pkg / 'junit.xml').write_text(
+        junit.replace('test_synth_0', 'test_syNth_0'), encoding='utf-8')
+    from r17_v2_c13_regression_evidence import package_content_index
+
+    required = json.loads((pkg / 'required_files.json').read_text())
+    data = (pkg / 'junit.xml').read_bytes()
+    for e in required['entries']:
+        if e['path'] == 'junit.xml':
+            e['sha256'] = hashlib.sha256(data).hexdigest()
+            e['size'] = len(data)
+    (pkg / 'required_files.json').write_text(
+        json.dumps(required, indent=2), encoding='utf-8')
+    index = {rel: meta for rel, meta in package_content_index(pkg).items()
+             if rel != 'manifest.json'}
+    (pkg / 'manifest.json').write_text(
+        json.dumps({'format': 'R17V2C13FullRegressionEvidence-v1',
+                    'files': index}, indent=2, sort_keys=True),
+        encoding='utf-8')
+
+    out = chain_env / 'run' / 'chain_tamper'
+    rc = pipe.run(out, backend=backend, contract=contract, authority=auth)
+    assert rc == 3
+    result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
+    assert result['phase'] == 'full_regression_evidence_revalidation'
+    assert 'full regression evidence rejected before claim' in \
+        result['error']['message']
+    # claim 未消费、无任何生成产物。
+    assert prof.claim_state(auth)['consumed'] is False
+    assert not out.joinpath('claim.json').exists()
+    assert not out.joinpath('stages').exists()
+
+
+def test_e11_regression_digest_anchor_rejects_resign_only(chain_env):
+    """F10:仅重签外层 manifest(不改语义文件)→ 包 digest 漂移,run
+    在 receipt 包 digest 锚处拒绝。"""
+    pytest.importorskip('rl_curriculum')
+    auth = _chain_authority(chain_env)
+    backend = ChainFixture()
+    contract = small_contract()
+    _preclaim_authoritative(chain_env, backend, contract)
+    pkg = prof.authoritative_full_regression_path(auth)
+    from r17_v2_c13_regression_evidence import package_content_index
+
+    index = {rel: meta for rel, meta in package_content_index(pkg).items()
+             if rel != 'manifest.json'}
+    (pkg / 'manifest.json').write_text(
+        json.dumps({'format': 'R17V2C13FullRegressionEvidence-v1',
+                    'files': index, 'resigned': True}, indent=2,
+                   sort_keys=True), encoding='utf-8')
+    out = chain_env / 'run' / 'chain_resign'
+    rc = pipe.run(out, backend=backend, contract=contract, authority=auth)
+    assert rc == 3
+    result = json.loads((out / 'result.json').read_text(encoding='utf-8'))
+    assert result['phase'] == 'full_regression_evidence_revalidation'
+    assert prof.claim_state(auth)['consumed'] is False
