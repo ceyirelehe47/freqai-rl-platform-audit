@@ -713,6 +713,9 @@ def collect_package(*, run_dir: Path, out_dir: Path,
                        'supervision/run_record.json')
     rr_entry['role'] = 'run_record'
     required_entries.append(rr_entry)
+    (out_dir / 'required_files.json').write_text(
+        json.dumps({'entries': required_entries}, indent=2),
+        encoding='utf-8')
 
     for src, rel in ((entry_stdout, 'entry.stdout.log'),
                      (entry_stderr, 'entry.stderr.log')):
