@@ -1,0 +1,110 @@
+{
+  "all_pass": true,
+  "checks": {
+    "exactly_three_candidates": true,
+    "historical_is_c2_rung_params": true,
+    "conservative_matches_preregistered": true,
+    "midpoint_matches_fixed_literal": true,
+    "historical_matches_fixed_literal": true,
+    "conservative_matches_fixed_literal": true,
+    "n_options_exact": true,
+    "semantic_160": true,
+    "cue_audit_500_plus_500": true,
+    "r16_fail_retained": true
+  },
+  "selector_behavior": {
+    "all_pass": true,
+    "scenarios": {
+      "min_qualifying_n_beats_higher_score": true,
+      "same_n_maximin_decides": true,
+      "maximin_tie_distance_decides": true,
+      "distance_tie_stable_id_decides": true,
+      "unqualified_never_selected": true,
+      "all_unqualified_no_selection": true,
+      "input_order_invariant": true,
+      "diagnostic_keys_do_not_change_verdict": true,
+      "fixed_inputs_exactly_three_candidates": true,
+      "fixed_inputs_n_options_exact": true
+    },
+    "zero_call": {
+      "counts": {
+        "generator:rl_curriculum.curriculum261_api.generate_pair_with_attempts": 0,
+        "generator:rl_curriculum.curriculum261_r6_design.generate_pair": 0,
+        "fit:rl_curriculum.curriculum261_r17_calibration.fit_preprocessor_v2_from_bank_r17": 0,
+        "eval:rl_curriculum.curriculum261_r6_design._evaluate_candidate_matched": 0,
+        "policy:rl_curriculum.evaluator.run_policy_episode": 0,
+        "canonical:rl_curriculum.curriculum261_r4_pairs.evaluate_pair_corpus_r4": 0,
+        "claim:r17_v2_c13_profile.write_preclaim_receipt": 0,
+        "claim:r17_v2_c13_profile.consume_production_claim": 0,
+        "claim:r17_v2_c13_profile.persist_final_plan": 0,
+        "namespace:rl_curriculum.curriculum261_r17_registry.require_r17_namespace_registered": 0
+      },
+      "violations": [],
+      "unavailable_sentinels": [],
+      "all_zero": true
+    },
+    "diagnostics_only_source_scan": {
+      "source_scan_min_n_first": true
+    },
+    "selector": "rl_curriculum.curriculum261_r6_design.mechanical_selection"
+  },
+  "candidate_axis": {
+    "historical": {
+      "alpha_bps": [
+        68.0,
+        54.0,
+        40.0,
+        32.0
+      ],
+      "wick_kappa": [
+        0.8,
+        0.55,
+        0.38,
+        0.25
+      ]
+    },
+    "conservative": {
+      "alpha_bps": [
+        74.0,
+        56.0,
+        40.0,
+        28.0
+      ],
+      "wick_kappa": [
+        0.82,
+        0.6,
+        0.4,
+        0.26
+      ]
+    },
+    "midpoint": {
+      "alpha_bps": [
+        71.0,
+        55.0,
+        40.0,
+        30.0
+      ],
+      "wick_kappa": [
+        0.81,
+        0.575,
+        0.39,
+        0.255
+      ]
+    }
+  },
+  "distance_from_historical": {
+    "historical": 0.0,
+    "conservative": 0.45881300101114325,
+    "midpoint": 0.2294065005055716
+  },
+  "n_options": [
+    10,
+    15,
+    20
+  ],
+  "binding_sources": {
+    "dedicated_semantic_blocks": 160,
+    "cue_audit_blocks_per_corpus": 500
+  },
+  "not_authorized": true
+}
