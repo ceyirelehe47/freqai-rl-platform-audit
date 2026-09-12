@@ -1,0 +1,14 @@
+执行 R17V2C13V10FixtureRepairAndVerificationResume-v3a。
+仓库 ceyirelehe47/freqai-rl-platform-audit，分支 route-c-stage2-6-1-repair17，固定接手 HEAD=1ea193c0f1eb710e37aa23aa89f261617eb93c43。
+
+这是助手已经完成的单文件代码补丁＋v3实机验收续接，不是让你设计修复。解压后依次读 README_AGENT.md、TASKBOOK.md、RUNBOOK.md、SOURCE_MAP.md、ACCEPTANCE_MATRIX.md。
+
+不要回退04b2978，不要再次应用旧v3九文件包，不要relock。只应用 tools/apply_fixture_patch.py 对 pipeline测试的一个夹具替换和五个新增case。原test_v10_one_shot_claim及其他已有测试体不变。健康构造复用当前claim_protocol已经通过的helper；禁止放宽synthetic/production边界或恢复假摘要为合法输入。
+
+核对最新ref/固定blob/包SHA；保留历史与活动日志；check后apply并保存recovery；同步source_guard十成员不变；经监护入口运行八文件定向（预计157个case，不删测试凑数）。全绿后只提交修复测试文件为新候选C，再完成尚未执行的原v3一次完整R17-first回归、collector健康包fullverify、副本负例和E后冷验。给定run_bound_regression.sh/probe_evidence.py已随包，无需重新实现。
+
+新证据唯一位置为旧v3根下未存在的子目录：stage2_6_1/artifacts/repair17/development/v2_c13_admission_boundary_closure_v3/continuation_v3a/。不要改旧v3 REPORT或根SHA256SUMS，不新增平级证据根；该选择已与现有evidence-only guard匹配。C前的证据保存在仓库外，E才新增该子树。E/E2不改源码/测试，不把git_head_at_collect改成E，不为E再跑全量pytest。
+
+不运行新主实验、生产plan/receipt/claim写入、C2正式实验、qualification/exposure或正式训练。既有pytest隔离组件行为按原v3范围运行并单独记账，不谎称所有生产函数调用都为0。
+
+任何阶段失败保留原始证据并停止，不自行修改实现/预期/验收；如实普通commit/push失败状态，明确NOT_ADMITTED。成功则普通C/E/可选E2并push，报告实际定向/全量/JUnit/rc、source/test身份、保护对象对拍、最终full冷验和远端SHA。统计NOT_RUN，正式资格NOT_ISSUED；旧v3失败和旧v2工程FAIL不追认。

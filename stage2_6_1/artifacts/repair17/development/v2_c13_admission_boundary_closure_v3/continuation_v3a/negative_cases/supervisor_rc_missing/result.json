@@ -1,0 +1,43 @@
+{
+  "case": "supervisor_rc_missing",
+  "expected_error": "supervision_rc_mismatch",
+  "rejected_at_expected_layer": true,
+  "verdict": {
+    "ok": false,
+    "format": "R17V2C13FullRegressionEvidence-v1",
+    "errors": [
+      [
+        "required_file_mismatch",
+        "required file bytes differ: run_record -> supervision/run_record.json"
+      ],
+      [
+        "required_file_mismatch",
+        "role bytes differ: run_record"
+      ],
+      [
+        "supervision_rc_mismatch",
+        "supervisor business rc must be explicitly zero"
+      ]
+    ],
+    "checks": {
+      "layers_evaluated": true
+    },
+    "package_sha256": "0374572ea964bdaffea792b44c74703d817e2b25015d0275b7a1799fb4725a12",
+    "summary": {
+      "entry_rc": 0,
+      "business_rc": 0,
+      "junit": {
+        "tests": 1832,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 7
+      },
+      "n_collected": 1832,
+      "n_critical_files": 8,
+      "n_allowed_skips": 7
+    },
+    "validation_scope": "full",
+    "admission_eligible": false,
+    "guard_version": "R17AdmissionBoundary-v3"
+  }
+}
