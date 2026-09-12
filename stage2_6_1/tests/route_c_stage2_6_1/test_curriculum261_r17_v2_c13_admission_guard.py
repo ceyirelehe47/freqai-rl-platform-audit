@@ -186,3 +186,143 @@ def test_code_change_then_revert_is_not_evidence_only(full_eco):
     e['git']('add','-A'); e['git']('commit','-qm','source change')
     path.write_bytes(data); e['git']('add','-A'); e['git']('commit','-qm','revert')
     assert 'candidate_drift' in errors(e['auth'],e['pkg'],checks='full',current_sources=e['sources'])
+
+# v3b: candidate-owned complete recursive test set. No production writes.
+@pytest.fixture
+def v3b_test_ecology(tmp_path):
+    import hashlib
+    import subprocess
+    repo = tmp_path / 'map_repo'
+    deploy = tmp_path / 'map_deploy'
+    repo.mkdir()
+    def git(*args):
+        return guard.git_checked(repo, *args).decode().strip()
+    git('init', '-q'); git('config', 'user.email', 'fixture@example.invalid')
+    git('config', 'user.name', 'R17 synthetic mapping tests')
+    git('config', 'core.autocrlf', 'false')
+    files = {
+        'stage2_6_1/tests/test_root.py': b'def test_root():\r\n    assert True\r\n',
+        'stage2_6_1/tests/route_c_stage2_6_1/test_nested.py': b'def test_nested():\n    assert True\n',
+        'stage2_6_1/tests/route_c_stage2_6_1/conftest.py': b'# candidate support file\n',
+    }
+    for source, body in files.items():
+        src = repo / source; src.parent.mkdir(parents=True, exist_ok=True); src.write_bytes(body)
+        dst = deploy / 'tests/route_c_stage2_6_1' / src.name
+        dst.parent.mkdir(parents=True, exist_ok=True); dst.write_bytes(body.replace(b'\r', b''))
+    git('add', '.'); git('commit', '-qm', 'synthetic candidate')
+    candidate = git('rev-parse', 'HEAD')
+    mapping = guard.candidate_test_map(repo, candidate)
+    manifest = ''.join(row['deploy_sha256'] + '  ' + rel + '\n'
+                       for rel, row in mapping.items() if row['is_test']).encode()
+    cases = [{'classname': 'tests.route_c_stage2_6_1.test_root', 'name': 'test_root', 'skipped': False},
+             {'classname': 'tests.route_c_stage2_6_1.test_nested', 'name': 'test_nested', 'skipped': False}]
+    collection = [guard.junit_nodeid(c) for c in cases]
+    return {'repo': repo, 'deploy': deploy, 'candidate': candidate, 'git': git,
+            'mapping': mapping, 'manifest': manifest, 'cases': cases, 'collection': collection}
+
+
+def v3b_map_check(e, **overrides):
+    values = {k: e[k] for k in ('repo', 'candidate', 'manifest', 'collection', 'cases')}
+    values['deploy_root'] = e['deploy']; values.update(overrides)
+    return guard.verify_candidate_tests(**values)
+
+
+def test_v3b_root_and_nested_candidate_tests_are_both_required(v3b_test_ecology):
+    e = v3b_test_ecology
+    assert len(e['mapping']) == 3
+    assert e['mapping']['tests/route_c_stage2_6_1/test_root.py']['source_path'] == 'stage2_6_1/tests/test_root.py'
+    assert v3b_map_check(e) == []
+
+
+@pytest.mark.parametrize('mutation', ['deploy_only', 'manifest_only', 'both', 'everything'])
+def test_v3b_dropping_root_origin_never_produces_green_subset(v3b_test_ecology, mutation):
+    e = v3b_test_ecology; rel = 'tests/route_c_stage2_6_1/test_root.py'
+    if mutation in ('deploy_only', 'both', 'everything'):
+        (e['deploy'] / rel).unlink()
+    if mutation in ('manifest_only', 'both', 'everything'):
+        e['manifest'] = b''.join(line for line in e['manifest'].splitlines(keepends=True) if rel.encode() not in line)
+    if mutation == 'everything':
+        e['collection'] = [n for n in e['collection'] if not n.startswith(rel+'::')]
+        e['cases'] = [c for c in e['cases'] if not c['classname'].endswith('test_root')]
+    keys = {k for k, _ in v3b_map_check(e)}
+    assert keys
+    if mutation in ('manifest_only', 'both', 'everything'):
+        assert 'test_candidate_set_mismatch' in keys
+    if mutation == 'everything':
+        assert 'test_execution_set_mismatch' in keys
+
+
+@pytest.mark.parametrize('same_bytes', [False, True])
+def test_v3b_duplicate_basename_rejected_even_with_equal_bytes(v3b_test_ecology, same_bytes):
+    e = v3b_test_ecology
+    p = e['repo'] / 'stage2_6_1/tests/another/test_root.py'; p.parent.mkdir(parents=True)
+    p.write_bytes((e['repo'] / 'stage2_6_1/tests/test_root.py').read_bytes() if same_bytes else b'# alternate\n')
+    e['git']('add', '.'); e['git']('commit', '-qm', 'synthetic duplicate')
+    with pytest.raises(guard.AdmissionError, match='test_source_collision'):
+        guard.candidate_test_map(e['repo'], e['git']('rev-parse', 'HEAD'))
+
+
+def test_v3b_casefold_collision_rejected(v3b_test_ecology):
+    e = v3b_test_ecology
+    p = e['repo'] / 'stage2_6_1/tests/test_ROOT.py'; p.write_bytes(b'# different case\n')
+    e['git']('add', '.'); e['git']('commit', '-qm', 'synthetic case collision')
+    with pytest.raises(guard.AdmissionError, match='test_source_collision'):
+        guard.candidate_test_map(e['repo'], e['git']('rev-parse', 'HEAD'))
+
+
+def test_v3b_normalization_matches_all_CR_removal_not_just_CRLF(v3b_test_ecology):
+    e = v3b_test_ecology
+    p = e['repo'] / 'stage2_6_1/tests/test_root.py'
+    p.write_bytes(b'def test_root():\r\n    assert True\r# CR inside comment\n')
+    e['git']('add', '.'); e['git']('commit', '-qm', 'synthetic CR fixture')
+    mapping = guard.candidate_test_map(e['repo'], e['git']('rev-parse', 'HEAD'))
+    import hashlib
+    row = mapping['tests/route_c_stage2_6_1/test_root.py']
+    assert row['deploy_sha256'] == hashlib.sha256(p.read_bytes().replace(b'\r', b'')).hexdigest()
+    assert row['deploy_sha256'] != hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+
+
+@pytest.mark.parametrize('mutation', ['duplicate_manifest', 'empty_manifest', 'foreign_manifest', 'extra_deployed', 'missing_support', 'support_tamper', 'missing_execution', 'foreign_execution', 'duplicate_collection'])
+def test_v3b_mapping_and_execution_negatives(v3b_test_ecology, mutation):
+    e = v3b_test_ecology
+    if mutation == 'duplicate_manifest':
+        e['manifest'] += e['manifest'].splitlines(keepends=True)[0]
+    elif mutation == 'empty_manifest':
+        e['manifest'] = b''
+    elif mutation == 'foreign_manifest':
+        e['manifest'] += b'aa' * 32 + b'  tests/route_c_stage2_6_1/test_foreign.py\n'
+    elif mutation == 'extra_deployed':
+        (e['deploy'] / 'tests/route_c_stage2_6_1/test_foreign.py').write_bytes(b'def test_foreign(): pass\n')
+    elif mutation == 'missing_support':
+        (e['deploy'] / 'tests/route_c_stage2_6_1/conftest.py').unlink()
+    elif mutation == 'support_tamper':
+        (e['deploy'] / 'tests/route_c_stage2_6_1/conftest.py').write_bytes(b'# changed\n')
+    elif mutation == 'missing_execution':
+        e['collection'] = e['collection'][1:]; e['cases'] = e['cases'][1:]
+    elif mutation == 'foreign_execution':
+        e['collection'][0] += '_foreign'
+    else:
+        e['collection'].append(e['collection'][0])
+    assert v3b_map_check(e)
+
+
+@pytest.mark.parametrize('source_link', [False, True])
+def test_v3b_test_symlink_is_not_a_source_or_deployed_test(v3b_test_ecology, source_link):
+    e = v3b_test_ecology
+    if source_link:
+        path = e['repo'] / 'stage2_6_1/tests/test_link.py'
+        path.symlink_to('test_root.py')
+        e['git']('add', '.'); e['git']('commit', '-qm', 'synthetic link')
+        with pytest.raises(guard.AdmissionError, match='nonregular'):
+            guard.candidate_test_map(e['repo'], e['git']('rev-parse', 'HEAD'))
+    else:
+        path = e['deploy'] / 'tests/route_c_stage2_6_1/test_root.py'
+        path.unlink(); path.symlink_to(e['repo'] / 'stage2_6_1/tests/test_root.py')
+        assert 'test_file_hash_mismatch' in {k for k, _ in v3b_map_check(e)}
+
+
+def test_v3b_collection_and_junit_class_parameter_identity(v3b_test_ecology):
+    e = v3b_test_ecology
+    e['cases'][0].update(classname='tests.route_c_stage2_6_1.test_root.TestClass', name='test_root[x.y]')
+    e['collection'][0] = 'tests/route_c_stage2_6_1/test_root.py::TestClass::test_root[x.y]'
+    assert v3b_map_check(e) == []

@@ -1,4 +1,4 @@
-"""R17 admission boundary v3. Standard-library-only, no generation/fit/eval.
+"""R17 admission boundary v3b (test mapping repair). Standard-library-only, no generation/fit/eval.
 
 This module strengthens evidence consumption; it does not replace the existing
 supervisor, sampler, scientific reader, statistics, or C2 selector. Files in a
@@ -307,6 +307,162 @@ def verify_candidate_history(repo: Path, candidate: str, collected_head: str) ->
             'evidence_descendants': commits, 'source_test_trees_unchanged': True}
 
 
+def candidate_test_map(repo: Path, candidate: str) -> dict[str, dict[str, Any]]:
+    """Git-owned recursive source -> r17_sync basename/CR-removal mapping.
+
+    Includes support .py files so basename collisions cannot silently overwrite
+    a test or conftest. No lookup is guessed from the deployment's directory.
+    The candidate, not a caller manifest, determines the complete member set.
+    """
+    from pathlib import PurePosixPath
+
+    no_symlink_path(Path(repo), must_exist=True)
+    if re.fullmatch(r'[0-9a-f]{40}', candidate or '') is None:
+        raise AdmissionError('candidate_commit_malformed')
+    git_checked(repo, 'cat-file', '-e', candidate + '^{commit}')
+    source_root = 'stage2_6_1/tests/'
+    deployed_root = 'tests/route_c_stage2_6_1/'
+    tree = git_checked(repo, 'ls-tree', '-r', '-z', '--full-tree', candidate,
+                       '--', source_root.rstrip('/'))
+    result: dict[str, dict[str, Any]] = {}
+    folded: dict[str, str] = {}
+    for item in tree.split(b'\0'):
+        if not item:
+            continue
+        try:
+            header, raw = item.split(b'\t', 1)
+            mode, kind, oid = header.decode('ascii').split()
+            source = raw.decode('utf-8', errors='strict')
+        except (ValueError, UnicodeError) as exc:
+            raise AdmissionError('test_source_mapping_invalid: malformed Git tree') from exc
+        if not source.endswith('.py'):
+            continue
+        parts = PurePosixPath(source).parts
+        if not source.startswith(source_root) or '..' in parts \
+                or any(c in source for c in ('\r', '\n', '\t', '\\')):
+            raise AdmissionError('test_source_mapping_invalid: unsafe source path')
+        if mode not in ('100644', '100755') or kind != 'blob':
+            raise AdmissionError('test_source_mapping_invalid: nonregular Python source: ' + source)
+        leaf = parts[-1]
+        destination = deployed_root + leaf
+        # Also reject case-fold collisions: the release tree may live on DrvFS.
+        key = destination.casefold()
+        if key in folded:
+            raise AdmissionError('test_source_collision: ' + source + ' and '
+                                 + result[folded[key]]['source_path'])
+        body = git_checked(repo, 'cat-file', 'blob', oid)
+        normalized = body.replace(b'\r', b'')  # exact existing tr -d '\r' rule
+        result[destination] = {
+            'source_path': source, 'deploy_path': destination,
+            'git_blob': oid, 'git_mode': mode,
+            'source_sha256': sha256(body), 'source_size': len(body),
+            'deploy_sha256': sha256(normalized), 'deploy_size': len(normalized),
+            'is_test': leaf.startswith('test_'),
+            'normalization': 'delete-all-CR-bytes/r17_sync.sh',
+        }
+        folded[key] = destination
+    if not result or not any(row['is_test'] for row in result.values()):
+        raise AdmissionError('test_source_mapping_empty: candidate has no tests')
+    return dict(sorted(result.items()))
+
+
+def deployment_test_errors(deploy_root: Path, mapping: dict) -> list:
+    """All Python files in the deployed test surface must match the candidate."""
+    errors = []
+    directory = Path(deploy_root) / 'tests/route_c_stage2_6_1'
+    try:
+        no_symlink_path(directory, must_exist=True)
+        if not directory.is_dir():
+            raise AdmissionError('test deployment directory missing')
+        found = {}
+        # The sync target is flat. A nested source/symlink directory is not an
+        # alternate place to find candidates. __pycache__ is not source.
+        for path in directory.iterdir():
+            st = path.lstat()
+            if path.name == '__pycache__' and stat.S_ISDIR(st.st_mode):
+                continue
+            if path.suffix == '.py':
+                found['tests/route_c_stage2_6_1/' + path.name] = path
+            elif stat.S_ISDIR(st.st_mode) or stat.S_ISLNK(st.st_mode):
+                errors.append(('test_file_set_changed',
+                               'unexpected directory/link in flat test surface: ' + str(path)))
+        if set(found) != set(mapping):
+            errors.append(('test_file_set_changed', canonical({
+                'missing': sorted(set(mapping) - set(found)),
+                'extra': sorted(set(found) - set(mapping))})))
+        for rel in sorted(set(mapping) & set(found)):
+            try:
+                body = stable_bytes(found[rel])
+                row = mapping[rel]
+                if sha256(body) != row['deploy_sha256'] or len(body) != row['deploy_size']:
+                    errors.append(('test_file_hash_mismatch',
+                                   'deployed bytes differ from candidate normalization: ' + rel))
+            except (OSError, AdmissionError) as exc:
+                errors.append(('test_file_hash_mismatch', str(exc)))
+    except (OSError, AdmissionError) as exc:
+        errors.append(('test_file_set_changed', str(exc)))
+    return errors
+
+
+def verify_candidate_tests(repo: Path, candidate: str, deploy_root: Path,
+                           manifest: bytes, collection: list[str],
+                           cases: list[dict]) -> list:
+    """Bind candidate, deployment, manifest and executed file membership.
+
+    Exact testcase multiset equality remains enforced by package_semantics.
+    This layer additionally prevents dropping a tracked file from *both* the
+    deployed tree and the supplied manifest/collection to obtain a green subset.
+    Synthetic full-mode fixtures obey the same rules; no fixture bypass.
+    """
+    from collections import Counter
+
+    errors = []
+    try:
+        mapping = candidate_test_map(repo, candidate)
+    except (OSError, ValueError, AdmissionError, subprocess.SubprocessError) as exc:
+        return [('test_source_mapping_invalid', str(exc))]
+    expected = {rel: row for rel, row in mapping.items() if row['is_test']}
+    entries: dict[str, str] = {}
+    try:
+        for line in manifest.decode('utf-8', errors='strict').splitlines():
+            m = re.fullmatch(r'([0-9a-f]{64})  (tests/route_c_stage2_6_1/test_[^/\r\n]+\.py)', line)
+            if not m:
+                errors.append(('test_manifest_malformed', 'malformed test manifest row'))
+                continue
+            if m[2] in entries:
+                errors.append(('test_manifest_duplicate', m[2]))
+            entries[m[2]] = m[1]
+    except UnicodeError as exc:
+        errors.append(('test_manifest_malformed', str(exc)))
+    if set(entries) != set(expected):
+        errors.append(('test_candidate_set_mismatch', canonical({
+            'missing': sorted(set(expected) - set(entries)),
+            'extra': sorted(set(entries) - set(expected))})))
+    for rel in sorted(set(expected) & set(entries)):
+        if entries[rel] != expected[rel]['deploy_sha256']:
+            errors.append(('test_file_hash_mismatch',
+                           'manifest digest differs from candidate normalized bytes: ' + rel))
+    errors.extend(deployment_test_errors(deploy_root, mapping))
+    # Use the existing JUnit identity conversion. Comparing path sets does not
+    # replace the existing exact ID multiset / testcase-status verification.
+    try:
+        collected = [node for node in collection if '::' in node]
+        executed = [junit_nodeid(case) for case in cases]
+        if any(n != 1 for n in Counter(collected).values()):
+            errors.append(('collected_membership_mismatch', 'duplicate collected node id'))
+        if Counter(collected) != Counter(executed):
+            errors.append(('collected_membership_mismatch', 'JUnit/collection node multiset differs'))
+        for label, nodes in (('collection', collected), ('execution', executed)):
+            represented = {node.split('::', 1)[0] for node in nodes}
+            if represented != set(expected):
+                errors.append(('test_execution_set_mismatch', canonical({
+                    'layer': label, 'missing': sorted(set(expected) - represented),
+                    'extra': sorted(represented - set(expected))})))
+    except (KeyError, TypeError, AdmissionError) as exc:
+        errors.append(('test_execution_set_mismatch', str(exc)))
+    return errors
+
+
 def package_semantics(root: Path, *, synthetic: bool, full: bool,
                       release_repo: Path | None, deploy_root: Path | None,
                       current_sources: dict | None) -> list:
@@ -455,19 +611,10 @@ def package_semantics(root: Path, *, synthetic: bool, full: bool,
         except (OSError, AdmissionError, subprocess.SubprocessError) as exc:
             key = 'worktree_not_clean' if 'worktree_not_clean' in str(exc) else 'candidate_drift'
             bad(key, str(exc))
-        # Bind deployed test bytes to the candidate Git objects, not only to a
-        # caller-supplied filesystem copy. CRLF->LF is the existing sync rule.
-        for line in stable_bytes(root / 'test_files.sha256').decode().splitlines():
-            m = re.fullmatch(r'([0-9a-f]{64})  (tests/route_c_stage2_6_1/test_[^/]+\.py)', line)
-            if not m:
-                bad('test_manifest_malformed', 'invalid test manifest path')
-                continue
-            try:
-                blob = git_checked(release_repo, 'show', run['candidate_commit'] + ':stage2_6_1/' + m[2])
-                if m[1] not in (sha256(blob), sha256(blob.replace(b'\r\n', b'\n'))):
-                    bad('test_file_hash_mismatch', 'deployment test differs from candidate Git blob: ' + m[2])
-            except (OSError, AdmissionError, subprocess.SubprocessError) as exc:
-                bad('test_file_hash_mismatch', str(exc))
+        # Candidate Git tree is the source of the complete recursive test map.
+        errors.extend(verify_candidate_tests(
+            release_repo, run['candidate_commit'], deploy_root,
+            stable_bytes(root / 'test_files.sha256'), collection, cases))
     return errors
 
 
@@ -544,4 +691,4 @@ def guarded_verify(root: Path, *, legacy: Callable, authority: Any = None,
             'validation_scope': checks,
             'admission_eligible': bool(not errors and checks == 'full'
                                        and authority is not None and not authority.synthetic),
-            'guard_version': 'R17AdmissionBoundary-v3'}
+            'guard_version': 'R17AdmissionBoundary-v3b'}

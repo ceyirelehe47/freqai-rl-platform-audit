@@ -438,14 +438,17 @@ def full_eco(tmp_path):
     lock_file = release / 'stage2_6_1' / 'runner' / (
         'r17_v2_c13_governance_source_lock.py')
     lock_file.write_bytes(lock_data)
-    test_rel = []
-    for f in sorted(layout['tests'].glob('test_*.py')):
-        data = f.read_bytes()
-        (release / 'stage2_6_1' / 'tests' / 'route_c_stage2_6_1' /
-         f.name).write_bytes(data)
-        (deploy / 'tests' / 'route_c_stage2_6_1' / f.name).write_bytes(data)
-        test_rel.append((f'tests/route_c_stage2_6_1/{f.name}',
-                         hashlib.sha256(data).hexdigest()))
+    # v3b: this is an explicit three-case synthetic ecology, not a fake
+    # "full project" receipt. Candidate sources, deployment and actual fixture
+    # JUnit/collection must agree; production verification has no exemption.
+    test_body = ("def test_synth_0(): pass\n"
+                 "def test_synth_1(): pass\n"
+                 "def test_synth_2(): pass\n").encode('utf-8')
+    test_name = 'test_synth.py'
+    (release / 'stage2_6_1/tests/route_c_stage2_6_1' / test_name).write_bytes(test_body)
+    (deploy / 'tests/route_c_stage2_6_1' / test_name).write_bytes(test_body)
+    test_rel = [('tests/route_c_stage2_6_1/' + test_name,
+                 hashlib.sha256(test_body).hexdigest())]
 
     def git(*args):
         proc = subprocess.run(['git', '-C', str(release), *args],

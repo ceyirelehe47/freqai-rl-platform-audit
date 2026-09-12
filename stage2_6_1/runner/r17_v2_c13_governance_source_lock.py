@@ -24,7 +24,7 @@ MEMBER_MODULES = ('r17_v2_c13_admission_guard', 'r17_v2_c13_batch', 'r17_v2_c13_
 #: 成员 → 实际导入字节 SHA-256(由 r17_v2_c13_governance_relock.py
 #: 在候选冻结时从部署导入面生成;生成后本文件随候选提交冻结)。
 SOURCE_SHA256 = {
-    "r17_v2_c13_admission_guard": "daf603e6a4ca207373f3034ed518a32535810cc327dce356f075244bba0d3a04",
+    "r17_v2_c13_admission_guard": "a6ba69e79cf858cf0cd8762b5a531db272376bc0ea05f4b6994f1187f849e382",
     "r17_v2_c13_batch": "bb02cdacd929b63eea290447a37797e2437523974dcb4e24953655692a78a531",
     "r17_v2_c13_pipeline": "839cab9cab545c15b568e4b9102149243f53f0aaee8935c67cbeb4249cbc9230",
     "r17_v2_c13_profile": "fa62af44d9300fcdc3b5bea15c15bfc16688f0415b482b431f9d2e4584518221",
