@@ -99,8 +99,15 @@ def _canonical(obj: Any) -> str:
 
 # ------------------------------------------------------------------ digest
 def package_content_index(root: Path) -> dict[str, dict[str, Any]]:
-    from r17_v2_c13_admission_guard import tree_index
-    return tree_index(Path(root))
+    """包内全部 regular 文件的 {rel: {size, sha256}}(manifest 含自身)。"""
+    root = Path(root)
+    index: dict[str, dict[str, Any]] = {}
+    for path in sorted(root.rglob('*')):
+        if path.is_dir():
+            continue
+        rel = path.relative_to(root).as_posix()
+        index[rel] = _file_meta(path)
+    return index
 
 
 def package_digest(root: Path) -> str:
@@ -127,8 +134,22 @@ def _lstat_not_symlink(path: Path, errors: list, key: str,
 
 
 def _parse_junit(path: Path):
-    from r17_v2_c13_admission_guard import junit_details, stable_bytes
-    totals, cases, _diagnostics = junit_details(stable_bytes(path))
+    """返回 (totals, cases):cases = [{id, classname, name, skipped}]。"""
+    import xml.etree.ElementTree as ET
+
+    root = ET.parse(path).getroot()
+    totals = {'tests': 0, 'failures': 0, 'errors': 0, 'skipped': 0}
+    cases: list[dict[str, str]] = []
+    for suite in root.iter('testsuite'):
+        for key in totals:
+            totals[key] += int(suite.get(key) or 0)
+        for case in suite.iter('testcase'):
+            skipped = case.find('skipped') is not None
+            cases.append({
+                'id': f"{case.get('classname', '')}::{case.get('name', '')}",
+                'classname': case.get('classname', ''),
+                'name': case.get('name', ''),
+                'skipped': skipped})
     return totals, cases
 
 
@@ -176,7 +197,7 @@ def _recompute_members(release_repo: Path, deploy_root: Path,
     return out
 
 
-def _verify_package_core(root: Path, *, authority: Any = None,
+def verify_package(root: Path, *, authority: Any = None,
                    current_sources: dict[str, Any] | None = None,
                    checks: str = 'full',
                    release_repo: Path | None = None,
@@ -572,7 +593,11 @@ def _verify_package_core(root: Path, *, authority: Any = None,
                              f'regression candidate worktree not clean '
                              f'for runner/src/tests: {out.splitlines()[:5]}')
                     rc, head = git('rev-parse', 'HEAD')
-                    # v3 wrapper verifies evidence-only ancestry, not HEAD equality.
+                    if run_meta.get('git_head_at_collect') \
+                            and rc == 0 \
+                            and run_meta['git_head_at_collect'] != head:
+                        fail('candidate_drift',
+                             'collect-time HEAD differs from current HEAD')
 
     # ---- 15 required/native 文件实际 size/SHA
     required = read_json('required_files.json')
@@ -769,7 +794,6 @@ def collect_package(*, run_dir: Path, out_dir: Path,
     status = git('status', '--porcelain=v1', '--', 'stage2_6_1/runner',
                  'stage2_6_1/src', 'stage2_6_1/tests')
     run_meta = {
-        'synthetic': False,
         'format': PACKAGE_FORMAT,
         'task_kind': run_record.get('task_kind'),
         'run_id': run_record.get('run_id'),
@@ -888,92 +912,127 @@ def build_source_provenance(release_repo: Path,
 def build_synthetic_package(root: Path, *, current_sources: dict[str, Any],
                             candidate_commit: str = '0' * 40,
                             n_tests: int = 3) -> dict[str, Any]:
-    """Explicit fixture evidence, not a production certificate."""
-    from r17_v2_c13_admission_guard import (ROLE_PATHS, no_symlink_path,
-                                           stable_bytes, tree_index)
+    """pytest 临时目录合成健康包(显式 synthetic;域校验拒生产根)。
+
+    用于合成链协议测试与校验器单元测试;产物永远位于 tmp,production
+    verifier 的允许域检查拒绝其冒充生产证据。
+    """
+    import shutil
     import tempfile
+
+    tmp_base = Path(tempfile.gettempdir())
     root = Path(root)
-    no_symlink_path(root)
-    if not root.is_relative_to(Path(tempfile.gettempdir()).resolve()) or root.exists():
-        raise EvidenceError('synthetic package requires a fresh dedicated temporary directory')
+    require_synthetic = root.resolve(strict=False).is_relative_to(tmp_base)
+    if not require_synthetic:
+        raise EvidenceError(
+            f'synthetic package must live under the system temp dir: '
+            f'{root}')
+    if root.exists():
+        shutil.rmtree(root)
     root.mkdir(parents=True)
-    def write(rel, value):
-        target = root / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(value, str):
-            target.write_text(value, encoding='utf-8')
-        else:
-            target.write_text(json.dumps(value, indent=2, sort_keys=True), encoding='utf-8')
-    cases = ''.join(f'<testcase classname="tests.route_c_stage2_6_1.test_synth" '
-                    f'name="test_synth_{i}" time="0.001"/>' for i in range(n_tests))
-    junit = ('<?xml version="1.0" encoding="utf-8"?><testsuites>'
-             '<testsuite name="fixture" '
-             f'tests="{n_tests}" failures="0" errors="0" skipped="0">'
-             f'{cases}</testsuite></testsuites>')
-    write('junit.xml', junit)
-    write('collected_tests.txt', '\n'.join(
-        f'tests/route_c_stage2_6_1/test_synth.py::test_synth_{i}' for i in range(n_tests))
-        + f'\n{n_tests} tests collected\n')
-    for rel in ('entry.rc', 'business.rc'):
-        write(rel, '0\n')
-    write('entry.stdout.log', 'synthetic fixture entry\n')
-    write('entry.stderr.log', '')
-    write('business.stdout.log', f'{n_tests} passed in 0.01s\n')
-    write('business.stderr.log', '')
-    write('test_files.sha256', _sha256_bytes(b'synthetic') + '  tests/route_c_stage2_6_1/test_synth.py\n')
-    write('critical_tests.json', {'critical_test_files': ['test_synth']})
-    write('skips_allowlist.json', {'allowed_skips': []})
-    for role, rel in ROLE_PATHS.items():
-        if not (root / rel).exists() and role != 'run_record':
-            write(rel, {'synthetic': True, 'run_id': 'synthetic-chain', 'role': role})
-    rr = {'run_id': 'synthetic-chain', 'task_kind': 'pytest', 'finalized': True,
-          'argv': ['python', '-m', 'pytest', '-q', 'tests/route_c_stage2_6_1'],
-          'business': {'rc': 0, 'signal': None},
-          'started_utc': '2026-09-12T00:00:00Z', 'ended_utc': '2026-09-12T00:00:01Z',
-          'required': []}
-    entries = []
-    for role, rel in ROLE_PATHS.items():
-        if role == 'run_record':
-            continue
-        data = stable_bytes(root / rel)
-        sha = _sha256_bytes(data)
-        rr['required'].append({'role': role, 'path': rel, 'status': 'present',
-                               'sha256': sha, 'bytes': len(data)})
-        entries.append({'role': role, 'path': rel, 'sha256': sha, 'size': len(data)})
-    write('supervision/run_record.json', rr)
-    data = stable_bytes(root / ROLE_PATHS['run_record'])
-    entries.append({'role': 'run_record', 'path': ROLE_PATHS['run_record'],
-                    'sha256': _sha256_bytes(data), 'size': len(data)})
-    write('required_files.json', {'entries': entries})
+
     members = {m: v['sha256'] for m, v in current_sources.items()}
-    write('source_closure.json', {
-        'candidate_commit': candidate_commit, 'governance_lock_file': {
-            'path': 'synthetic', 'sha256': _sha256_bytes(b'synthetic')},
-        'members': members, 'members_digest': _sha256_bytes(_canonical(members).encode())})
-    write('import_identity.json', {
-        side: {m: {'file': v['path'], 'sha256': v['sha256']} for m, v in current_sources.items()}
-        for side in ('release', 'deploy')})
-    write('run_meta.json', {
-        'format': PACKAGE_FORMAT, 'synthetic': True, 'task_kind': 'pytest',
-        'run_id': rr['run_id'], 'candidate_commit': candidate_commit,
-        'git_head_at_collect': candidate_commit, 'worktree_clean': True,
-        'argv': rr['argv'], 'cwd': '/tmp', 'release_repo': str(root), 'deploy_root': str(root),
-        'env': {'python': 'synthetic'}, 'entry_command': 'synthetic',
-        'started_utc': rr['started_utc'], 'ended_utc': rr['ended_utc']})
-    write('manifest.json', {'format': PACKAGE_FORMAT, 'files': tree_index(root)})
-    return {'package_root': str(root), 'package_sha256': package_digest(root)}
-
-
-
-
-def verify_package(root: Path, *, authority: Any = None,
-                   current_sources: dict[str, Any] | None = None,
-                   checks: str = 'full', release_repo: Path | None = None,
-                   deploy_root: Path | None = None) -> dict[str, Any]:
-    from r17_v2_c13_admission_guard import guarded_verify
-    return guarded_verify(root, legacy=_verify_package_core, authority=authority,
-                          current_sources=current_sources, checks=checks,
-                          release_repo=release_repo, deploy_root=deploy_root)
+    cases = ''.join(
+        f'<testcase classname="tests.route_c_stage2_6_1.test_synth" '
+        f'name="test_synth_{i}" time="0.001"/>' for i in range(n_tests))
+    junit = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<testsuites><testsuite name="route_c_stage2_6_1" '
+        f'tests="{n_tests}" failures="0" errors="0" skipped="0">'
+        f'{cases}</testsuite></testsuites>')
+    (root / 'junit.xml').write_text(junit, encoding='utf-8')
+    ids = [f'tests/route_c_stage2_6_1/test_synth.py::test_synth_{i}'
+           for i in range(n_tests)]
+    (root / 'collected_tests.txt').write_text(
+        '\n'.join(ids) + f'\n{n_tests} tests collected\n', encoding='utf-8')
+    (root / 'entry.rc').write_text('0\n', encoding='utf-8')
+    (root / 'business.rc').write_text('0\n', encoding='utf-8')
+    (root / 'entry.stdout.log').write_text('entry ok\n', encoding='utf-8')
+    (root / 'entry.stderr.log').write_text('', encoding='utf-8')
+    (root / 'business.stdout.log').write_text(
+        f'{n_tests} passed in 0.01s\n', encoding='utf-8')
+    (root / 'business.stderr.log').write_text('', encoding='utf-8')
+    (root / 'test_files.sha256').write_text(
+        _sha256_bytes(b'synthetic') + '  tests/route_c_stage2_6_1/'
+        'test_synth.py\n', encoding='utf-8')
+    (root / 'skips_allowlist.json').write_text(
+        '{"allowed_skips": []}', encoding='utf-8')
+    (root / 'critical_tests.json').write_text(
+        '{"critical_test_files": ["test_synth"]}', encoding='utf-8')
+    run_record = {
+        'run_id': 'synthetic-chain', 'task_kind': 'pytest',
+        'finalized': True,
+        'argv': ['python', '-m', 'pytest', '-q',
+                 'tests/route_c_stage2_6_1'],
+        'business': {'rc': 0, 'signal': None},
+        'required': [
+            {'role': 'junit_xml', 'path': 'runs/s/junit.xml',
+             'status': 'present',
+             'sha256': _sha256_bytes(junit.encode('utf-8'))},
+            {'role': 'business_stdout', 'path': 'runs/s/b.out',
+             'status': 'present', 'sha256': _sha256_bytes(
+                 f'{n_tests} passed in 0.01s\n'.encode('utf-8'))},
+        ],
+        'started_utc': '2026-09-11T00:00:00Z',
+        'ended_utc': '2026-09-11T00:00:01Z'}
+    (root / 'supervision').mkdir()
+    (root / 'supervision/run_record.json').write_text(
+        json.dumps(run_record, indent=2), encoding='utf-8')
+    (root / 'supervision/summary.json').write_text(
+        json.dumps({'run_id': 'synthetic-chain', 'schema':
+                    'r17-supervision-summary-v1'}), encoding='utf-8')
+    required_entries = [
+        {'role': 'junit_xml', 'path': 'junit.xml',
+         'sha256': _sha256_bytes(junit.encode('utf-8')),
+         'size': len(junit.encode('utf-8'))},
+        {'role': 'business_stdout', 'path': 'business.stdout.log',
+         'sha256': _sha256_bytes(
+             f'{n_tests} passed in 0.01s\n'.encode('utf-8')),
+         'size': len(f'{n_tests} passed in 0.01s\n'.encode('utf-8'))},
+        {'role': 'run_record', 'path': 'supervision/run_record.json',
+         'sha256': _file_meta(root / 'supervision/run_record.json')['sha256'],
+         'size': _file_meta(root / 'supervision/run_record.json')['size']},
+    ]
+    (root / 'required_files.json').write_text(
+        json.dumps({'entries': required_entries}, indent=2),
+        encoding='utf-8')
+    (root / 'import_identity.json').write_text(
+        json.dumps({'release': {'synthetic-package': {
+            'file': str(root / 'junit.xml'), 'sha256': _sha256_bytes(
+                junit.encode('utf-8'))}},
+            'deploy': {'synthetic-package': {
+                'file': str(root / 'junit.xml'), 'sha256': _sha256_bytes(
+                    junit.encode('utf-8'))}}}, indent=2),
+        encoding='utf-8')
+    closure = {
+        'candidate_commit': candidate_commit,
+        'governance_lock_file': {'path': 'synthetic', 'sha256':
+                                 _sha256_bytes(b'synthetic')},
+        'members': members,
+        'members_digest': _sha256_bytes(_canonical(members).encode('utf-8')),
+    }
+    (root / 'source_closure.json').write_text(
+        json.dumps(closure, indent=2, sort_keys=True), encoding='utf-8')
+    (root / 'run_meta.json').write_text(
+        json.dumps({
+            'format': PACKAGE_FORMAT, 'task_kind': 'pytest',
+            'run_id': 'synthetic-chain', 'candidate_commit':
+            candidate_commit, 'git_head_at_collect': candidate_commit,
+            'worktree_clean': True,
+            'argv': list(run_record['argv']), 'cwd': '/tmp',
+            'release_repo': str(root), 'deploy_root': str(root),
+            'env': {'python': 'synthetic'},
+            'started_utc': run_record['started_utc'],
+            'ended_utc': run_record['ended_utc'],
+            'entry_command': 'synthetic'}, indent=2, sort_keys=True),
+        encoding='utf-8')
+    index = {rel: meta for rel, meta in package_content_index(root).items()
+             if rel != 'manifest.json'}
+    (root / 'manifest.json').write_text(
+        json.dumps({'format': PACKAGE_FORMAT, 'files': index}, indent=2,
+                   sort_keys=True), encoding='utf-8')
+    return {'package_root': str(root),
+            'package_sha256': package_digest(root)}
 
 
 def main(argv=None) -> int:

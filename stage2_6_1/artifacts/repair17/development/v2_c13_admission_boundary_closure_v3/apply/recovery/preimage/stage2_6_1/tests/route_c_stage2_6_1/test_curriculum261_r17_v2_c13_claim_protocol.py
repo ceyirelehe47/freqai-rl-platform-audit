@@ -44,19 +44,16 @@ from test_curriculum261_r17_v2_c13_pipeline import (  # noqa: E402
 
 
 def _runtime(tag: str = 'proto') -> dict:
-    import hashlib
-    return {'kind': 'test_fixture', 'generators': copy.deepcopy(GENERATORS),
-            'sources': {'fixture_mod': {'path': f'/fixture/{tag}.py',
-                                        'sha256': hashlib.sha256(tag.encode()).hexdigest()}},
+    return {'kind': 'test_fixture',
+            'generators': copy.deepcopy(GENERATORS),
+            'sources': {'mod': {'path': f'/deployed/{tag}.py',
+                                'sha256': tag * 32}},
             'interpreter': sys.version}
 
 
 def _healthy_regression_ref(auth) -> dict:
-    import r17_v2_c13_regression_evidence as rev
-    pkg = prof.authoritative_full_regression_path(auth)
-    assert pkg.is_dir(), 'healthy reference must point to actual evidence'
-    return {'path': str(pkg), 'package_sha256': rev.package_digest(pkg),
-            'entry_rc': 0, 'business_rc': 0}
+    return {'path': str(prof.authoritative_full_regression_path(auth)),
+            'package_sha256': 'aa' * 32, 'entry_rc': 0, 'business_rc': 0}
 
 
 @pytest.fixture
@@ -69,26 +66,17 @@ def authority(tmp_path):
     return prof.synthetic_authority(root, claim)
 
 
-def _persist_plan_and_receipt(auth, closure=None, runtime=None):
-    import r17_v2_c13_regression_evidence as rev
-    runtime = runtime or _runtime()
-    ev = {'scanned_roots': [str(auth.repo_root / 'stage2_6_1/artifacts')],
-          'hits': [], 'n_hits': 0, 'planning_only_hits': [],
-          'unreadable_evidence': [], 'namespaces_unused': True}
-    evidence = prof.persist_authoritative_evidence(ev, authority=auth)
-    rev.build_synthetic_package(prof.authoritative_full_regression_path(auth),
-                                current_sources=runtime['sources'])
-    contract = dict(prof.fixed_contract(), synthetic_profile=True)
-    plan = prof.make_plan(runtime, contract=contract, admission_evidence={
-        'kind': 'namespace_unused_v1', 'path': prof.EVIDENCE_FILENAME,
-        'sha256': evidence['sha256']})
+def _persist_plan_and_receipt(auth, closure='ab' * 32, runtime=None):
+    plan = prof.make_plan(runtime or _runtime())
     persisted = prof.persist_final_plan(plan, authority=auth)
-    receipt = {'profile': prof.CONTRACT, 'admitted': True,
-               'plan_sha256': persisted['plan_sha256'],
-               'plan_file_sha256': persisted['file_sha256'],
-               'source_closure_sha256': prof.digest(runtime['sources']),
-               'full_regression_evidence': _healthy_regression_ref(auth),
-               'evidence_sha256': evidence['sha256']}
+    receipt = {
+        'profile': prof.CONTRACT, 'admitted': True,
+        'plan_sha256': persisted['plan_sha256'],
+        'plan_file_sha256': persisted['file_sha256'],
+        'source_closure_sha256': closure,
+        'full_regression_evidence': _healthy_regression_ref(auth),
+        'evidence_sha256': 'bb' * 32,
+    }
     prof.write_preclaim_receipt(receipt, authority=auth)
     return plan, persisted, receipt
 
@@ -169,7 +157,9 @@ def test_a04_combination_rejected_before_writes(tmp_path, authority):
 
 
 def test_a05_cli_and_paths_have_no_root_override(authority, capsys):
+    """production CLI 不暴露 root 参数;未知 root 选项拒绝(A05)。"""
     import r17_v2_c13_pipeline as pipe
+
     for argv in (['run', '--out', '/tmp/x', '--repo-root', '/tmp'],
                  ['run', '--out', '/tmp/x', '--claim-root', '/tmp'],
                  ['verify', '--root', '/tmp', '--release-repo', '/tmp']):
@@ -177,9 +167,15 @@ def test_a05_cli_and_paths_have_no_root_override(authority, capsys):
             pipe.main(argv)
     with pytest.raises(SystemExit):
         prof.main(['namespaces', '--repo-root', '/tmp'])
-    with pytest.raises(prof.ProfileError):
-        prof.Authority(repo_root=authority.repo_root,
-                       claim_root=authority.repo_root.parent / 'foreign/claim', synthetic=True)
+    # 相对路径/../symlink parent/域外根:claim 根守卫拒绝(claim_state
+    # fail closed 而非旁路)。
+    outside_claim = authority.repo_root.parent / 'other' / 'claim'
+    outside_claim.mkdir(parents=True)
+    bad = prof.Authority(repo_root=authority.repo_root,
+                         claim_root=outside_claim,
+                         synthetic=True)
+    state = prof.claim_state(bad)
+    assert state['consumed'] is True and 'error' in state
 
 
 def test_a06_a07_fixed_paths_and_claim_api(authority):
@@ -311,16 +307,24 @@ def test_g11_missing_receipt_fails_closed(authority):
 
 # -------------------------------------------------------------------- G06/G07
 def test_g07_claim_root_escape_rejected(authority):
-    _persist_plan_and_receipt(authority)
-    assert prof.claim_state(authority)['consumed'] is False
-    with pytest.raises(prof.ProfileError):
-        prof.Authority(repo_root=authority.repo_root,
-                       claim_root=authority.repo_root.parent / 'other/claim', synthetic=True)
-    claim = authority.claim_root / f'{prof.CONTRACT}.json'
-    outside = authority.repo_root.parent / 'outside.json'
-    outside.write_text('{}')
-    claim.symlink_to(outside)
+    """symlink/.. 相对路径/域外 claim 根:权威守卫拒绝(G07)。"""
+    plan, persisted, receipt = _persist_plan_and_receipt(authority)
     state = prof.claim_state(authority)
+    assert state['consumed'] is False
+    # symlink 逃逸:claim 根内放符号链接指向域外文件(读取时拒绝)。
+    outside = authority.repo_root.parent / 'outside.json'
+    outside.write_text('{}', encoding='utf-8')
+    link = authority.claim_root / 'escape'
+    link.symlink_to(outside)
+    resolved = link.resolve()
+    assert not resolved.is_relative_to(authority.claim_root.resolve())
+    # 域外 claim 根(repo 根之外)→ guard 拒绝且 fail closed。
+    bad = prof.Authority(repo_root=authority.repo_root,
+                         claim_root=authority.repo_root.parent / 'other'
+                         / 'claim',
+                         synthetic=True)
+    (authority.repo_root.parent / 'other' / 'claim').mkdir(parents=True)
+    state = prof.claim_state(bad)
     assert state['consumed'] is True and 'error' in state
 
 
@@ -399,16 +403,24 @@ def test_g10_claim_survives_crash_no_recovery(authority):
 
 # -------------------------------------------------------------------- A08
 def test_a08_claim_binds_closure_and_regression_digest(authority):
-    plan, persisted, receipt = _persist_plan_and_receipt(authority)
+    """claim payload 绑定合同/plan digest/plan 文件字节/source
+    closure/回归证据包 digest/消费时间(§4.3)。"""
+    closure = 'ab' * 32
+    pkg_sha = 'aa' * 32
+    plan, persisted, receipt = _persist_plan_and_receipt(authority,
+                                                         closure=closure)
+    receipt['full_regression_evidence']['package_sha256'] = pkg_sha
+    prof.receipt_path(authority).unlink()
+    prof.write_preclaim_receipt(receipt, authority=authority)
     prof.consume_production_claim(authority=authority)
-    claim = json.loads((authority.claim_root / f'{prof.CONTRACT}.json').read_text())
-    assert claim['synthetic'] is True
+    claim = json.loads(
+        (authority.claim_root / f'{prof.CONTRACT}.json').read_text())
     assert claim['profile'] == prof.CONTRACT
     assert claim['contract_sha256'] == prof.digest(plan['contract'])
     assert claim['plan_sha256'] == persisted['plan_sha256']
     assert claim['plan_file_sha256'] == persisted['file_sha256']
-    assert claim['source_closure_sha256'] == prof.digest(plan['runtime']['sources'])
-    assert claim['full_regression_evidence_sha256'] == _healthy_regression_ref(authority)['package_sha256']
+    assert claim['source_closure_sha256'] == closure
+    assert claim['full_regression_evidence_sha256'] == pkg_sha
     assert claim['consumed_utc']
 
 

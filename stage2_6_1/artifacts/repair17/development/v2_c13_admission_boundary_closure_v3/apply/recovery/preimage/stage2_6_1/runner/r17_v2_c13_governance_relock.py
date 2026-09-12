@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 MEMBER_MODULES = (
-    'r17_v2_c13_admission_guard',
     'r17_v2_c13_batch',
     'r17_v2_c13_pipeline',
     'r17_v2_c13_profile',
@@ -26,7 +25,7 @@ MEMBER_MODULES = (
     'rl_curriculum.curriculum261_r6_param_pack',
 )
 
-_TEMPLATE = '''"""治理 source lock(R17V2C13AdmissionBoundaryAndColdReadClosure-v3)。
+_TEMPLATE = '''"""治理 source lock(R17V2C13GovernanceAuthorityEvidenceAndC2PrepClosure-v2)。
 
 角色声明(§6.2,不可改写):本文件锁定【本轮治理候选 C】的
 preclaim/claim/reader 实际导入源码闭包 —— 它是事后治理与未来
@@ -41,7 +40,7 @@ preclaim 基础设施的闭包,**不是** 2026-09-10 v2 主 run 的实际执行
 分别复算(见 r17_v2_c13_regression_evidence)。本文件不锁定自身
 (无自指 hash),不混入 artifact、日志或时间戳。
 """
-BASELINE = '04b2978a1e2c375bd347168f2a9eeded790b393e'
+BASELINE = '685d2c9b9a5c2c812ae75b23e2050c5383b38e7b'
 GOVERNANCE_ROLE = (
     'post-run governance / future preclaim closure; NOT the v2 main-run '
     'execution closure (bytes of 591b1f35... remain unavailable by '

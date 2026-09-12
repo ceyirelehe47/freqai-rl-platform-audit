@@ -446,7 +446,6 @@ def prepare_authoritative_plan(*, backend: Any = None,
     backend = RealBackend(snapshot) if backend is None else backend
     runtime = backend.describe()
     runtime['sources'] = sources
-    ns_check = normalize_ns_evidence(ns_check, authority=auth)
     ev = persist_authoritative_evidence(ns_check, authority=auth)
     plan = make_plan(
         runtime, contract, admission_evidence={

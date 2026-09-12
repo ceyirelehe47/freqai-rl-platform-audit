@@ -35,8 +35,7 @@ else:
 import r17_v2_c13_profile as prof
 import r17_v2_c13_regression_evidence as rev
 
-_RUNNER_MEMBERS = ('r17_v2_c13_admission_guard',
-                   'r17_v2_c13_batch', 'r17_v2_c13_pipeline',
+_RUNNER_MEMBERS = ('r17_v2_c13_batch', 'r17_v2_c13_pipeline',
                    'r17_v2_c13_profile', 'r17_v2_c13_regression_evidence')
 _SRC_MEMBERS = ('curriculum261_pairs', 'curriculum261_r17_c2_launch_prep',
                 'curriculum261_r17_param_pack', 'curriculum261_r6_design',

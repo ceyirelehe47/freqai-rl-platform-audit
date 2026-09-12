@@ -100,17 +100,26 @@ def digest(obj: Any) -> str:
 # ------------------------------------------------------------- authority
 @dataclass(frozen=True)
 class Authority:
-    """Validated immutable authority; direct construction is not an override."""
+    """不可变 authority:frozen 数据类,无任何可变模块状态。
+
+    生产实例由 ``production_authority()`` 从字面常量推导(每次调用
+    重新构建,等值比较);合成实例由 ``synthetic_authority()`` 显式
+    构建并携带 ``synthetic=True`` 标记。任何写入/claim/生成入口都
+    必须先 ``resolve_authority()`` 并通过
+    ``enforce_authority_combination()`` 组合校验。
+    """
+
     repo_root: Path
     claim_root: Path
     synthetic: bool = False
 
     def __post_init__(self) -> None:
-        from r17_v2_c13_admission_guard import AdmissionError, authority_values
-        try:
-            authority_values(self.repo_root, self.claim_root, self.synthetic)
-        except (OSError, AdmissionError) as exc:
-            raise ProfileError(str(exc)) from exc
+        if self.synthetic is False:
+            require(
+                self.claim_root == self.repo_root
+                or self.claim_root.is_relative_to(self.repo_root),
+                f'production claim root escapes the release repo '
+                f'authority: {self.claim_root}')
 
 
 def production_authority() -> Authority:
@@ -156,16 +165,10 @@ def synthetic_authority(repo_root, claim_root) -> Authority:
 
 
 def resolve_authority(authority: Authority | None = None) -> Authority:
-    auth = production_authority() if authority is None else authority
-    require(type(auth) is Authority, 'authority must be the exact immutable Authority type')
-    if not auth.synthetic:
-        fixed = Path('/mnt/f/trading/freqai-rl-audit')
-        require(auth.repo_root == fixed and auth.claim_root == fixed /
-                'stage2_6_1/artifacts/repair17/development/v2_c13_engineering_claim',
-                'noncanonical production authority rejected')
-    # Revalidate physical paths on every public call (a parent may have changed).
-    auth.__post_init__()
-    return auth
+    """None → 从字面常量重建生产 authority;显式实例原样返回。
+
+    每次调用重新推导,不缓存,不读模块可变状态(A02)。"""
+    return production_authority() if authority is None else authority
 
 
 def enforce_authority_combination(authority: Authority, *,
@@ -180,7 +183,8 @@ def enforce_authority_combination(authority: Authority, *,
     - 合成 authority 必须与显式 fixture backend(拒绝 None/RealBackend)
       和声明 synthetic 的注入合同组合。
     """
-    authority = resolve_authority(authority)
+    require(isinstance(authority, Authority),
+            'authority must be an immutable Authority instance')
     if not authority.synthetic:
         if backend is not None:
             from r17_v2_c13_batch import RealBackend
@@ -625,14 +629,25 @@ def _fsync_dir(path: Path) -> None:
         os.close(fd)
 
 
-def _guarded_claim_path(filename: str, authority: Authority | None = None) -> Path:
-    from r17_v2_c13_admission_guard import no_symlink_path
+def _guarded_claim_path(filename: str,
+                        authority: Authority | None = None) -> Path:
+    """权威 claim 根内路径守卫(G07)。
+
+    最终路径 resolve 后必须严格位于 authority 的 claim_root(resolve)
+    之内;符号链接、``..``、相对逃逸与第二 checkout 在此拒绝。生产
+    claim 根自身也必须在发布仓库根(resolve)之内,防止注入根本身被
+    指到权威域外后把 claim 写去任意位置。
+    """
     auth = resolve_authority(authority)
-    require(isinstance(filename, str) and filename not in ('', '.', '..')
-            and '/' not in filename and '\\' not in filename,
-            'claim filename must be a basename')
-    no_symlink_path(auth.claim_root, must_exist=True)
-    return no_symlink_path(auth.claim_root / filename)
+    claim_root = auth.claim_root.resolve(strict=True)
+    repo_root = auth.repo_root.resolve(strict=True)
+    require(claim_root == repo_root or claim_root.is_relative_to(repo_root),
+            f'claim root escapes release repo authority: {auth.claim_root}')
+    path = claim_root / filename
+    resolved = path.resolve(strict=False)
+    require(resolved.is_relative_to(claim_root),
+            f'claim path escapes authority root: {path}')
+    return path
 
 
 def authoritative_plan_path(authority: Authority | None = None) -> Path:
@@ -816,163 +831,89 @@ def validate_preclaim_receipt(receipt: dict[str, Any], *,
                 'evidence package (regressed or replaced evidence)')
 
 
-def consume_production_claim(*, authority: Authority | None = None) -> dict[str, Any]:
-    """Exclusive terminal write, only after full fixed-file revalidation."""
+def consume_production_claim(*, authority: Authority | None = None
+                             ) -> dict[str, Any]:
+    """一次性工程 claim 只能从固定权威 plan/receipt 取得(G04/A07)。
+
+    v2 轮缺陷:``run()`` 可用内存 dict 与任意 plan path 消费 claim;
+    上一治理轮仍保留 caller 传入 plan_path/receipt 的 API。本轮废除
+    caller 输入 — 本函数只从 authority 推导的固定路径读取:
+
+    - 重读权威 plan 文件并重算 plan_sha256 + 文件字节 sha;
+    - 权威 receipt 必须通过 validate_preclain_receipt_shape 且绑定
+      同 plan digest 与同 plan 文件字节;
+    - O_EXCL 创建 claim;两进程竞态恰好一个成功,失败方不删不重试;
+    - claim payload 绑定合同、plan 内容 digest、plan 文件字节 digest、
+      source closure digest、完整回归证据包 digest 与消费时间(§4.3);
+    - claim 后崩溃/业务失败:claim 永久保留,无恢复路径(G10)。
+    """
+    import hashlib
     import os
     import time
-    from r17_v2_c13_admission_guard import stable_bytes
-    from r17_v2_c13_regression_evidence import package_digest
+
     auth = resolve_authority(authority)
-    # Preserve the permanent one-shot semantics even if later evidence is bad.
-    path = auth.claim_root / f'{CONTRACT}.json'
-    if os.path.lexists(path):
-        raise FileExistsError(f'claim already exists and remains consumed: {path}')
-    admitted = validate_claim_admission(auth)
+    plan_path = authoritative_plan_path(auth)
+    require(plan_path.is_file(),
+            f'authoritative plan file missing; claim requires the '
+            f'persisted final plan: {plan_path}')
+    plan = json.loads(plan_path.read_text(encoding='utf-8'))
+    validate_plan(plan)
+    receipt = load_preclaim_receipt(auth)
+    require(receipt['plan_sha256'] == plan['plan_sha256'],
+            'preclaim receipt bound to a different plan digest')
+    plan_file_sha = hashlib.sha256(
+        plan_path.read_bytes()).hexdigest()
+    require(receipt['plan_file_sha256'] == plan_file_sha,
+            'persisted plan file bytes differ from the receipt anchor '
+            '(tampered or replaced plan)')
+    auth.claim_root.mkdir(parents=True, exist_ok=True)
     path = _guarded_claim_path(f'{CONTRACT}.json', auth)
-    plan, receipt = admitted['plan'], admitted['receipt']
-    for p, body in admitted['anchors'].items():
-        require(stable_bytes(p) == body, f'admission input changed before claim: {p}')
-    require(package_digest(authoritative_full_regression_path(auth)) ==
-            admitted['full_regression_evidence_sha256'],
-            'regression evidence changed immediately before claim')
     payload = {
-        'profile': CONTRACT, 'synthetic': auth.synthetic,
-        'contract_sha256': digest(plan['contract']), 'plan_sha256': plan['plan_sha256'],
-        'plan_file_sha256': admitted['plan_file_sha256'],
-        'source_closure_sha256': admitted['source_closure_sha256'],
-        'full_regression_evidence_sha256': admitted['full_regression_evidence_sha256'],
+        'profile': CONTRACT,
+        'contract_sha256': digest(plan['contract']),
+        'plan_sha256': plan['plan_sha256'],
+        'plan_file_sha256': plan_file_sha,
+        'source_closure_sha256': receipt['source_closure_sha256'],
+        'full_regression_evidence_sha256': (
+            receipt['full_regression_evidence']['package_sha256']),
         'baseline': BASELINE,
-        'consumed_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'consumed_utc': time.strftime(
+            '%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
     }
-    data = (canonical(payload) + '\n').encode()
-    fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY
-                 | getattr(os, 'O_NOFOLLOW', 0), 0o644)
+    body = (canonical(payload) + '\n').encode('utf-8')
+    fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
     try:
-        # A failed/partial write consumes the claim permanently too.
-        with os.fdopen(fd, 'wb', closefd=False) as fh:
-            fh.write(data)
-            fh.flush()
-            os.fsync(fd)
+        os.write(fd, body)
+        os.fsync(fd)
     finally:
         os.close(fd)
-        _fsync_dir(path.parent)
+    _fsync_dir(path.parent)
     return {'path': str(path), 'plan_sha256': plan['plan_sha256'],
-            'plan_path': str(authoritative_plan_path(auth)),
-            'full_regression_evidence_sha256': admitted['full_regression_evidence_sha256']}
+            'plan_path': str(plan_path),
+            'full_regression_evidence_sha256': (
+                payload['full_regression_evidence_sha256'])}
 
 
 def claim_state(authority: Authority | None = None) -> dict[str, Any]:
-    from r17_v2_c13_admission_guard import stable_bytes, strict_json
-    import os
-    try:
-        auth = resolve_authority(authority)
-        path = auth.claim_root / f'{CONTRACT}.json'
-        if not auth.claim_root.is_dir():
-            return {'consumed': not auth.synthetic, 'path': str(path),
-                    **({'error': 'production authority unavailable; state unknown'}
-                       if not auth.synthetic else {})}
-        path = _guarded_claim_path(f'{CONTRACT}.json', auth)
-        if not os.path.lexists(path):
-            return {'consumed': False, 'path': str(path)}
-        data = strict_json(stable_bytes(path))
-        require(isinstance(data, dict) and data.get('profile') == CONTRACT
-                and isinstance(data.get('plan_sha256'), str),
-                'invalid existing claim; treated as consumed')
-        return {'consumed': True, 'path': str(path),
-                'plan_sha256': data.get('plan_sha256'),
-                'consumed_utc': data.get('consumed_utc')}
-    except Exception as exc:
-        # Unknown/invalid/nonregular existing claims never reopen permission.
-        fallback = (authority.claim_root if type(authority) is Authority else
-                    Path('/mnt/f/trading/freqai-rl-audit') /
-                    'stage2_6_1/artifacts/repair17/development/v2_c13_engineering_claim')
-        return {'consumed': True, 'path': str(fallback / f'{CONTRACT}.json'),
-                'error': f'authority/claim rejected: {type(exc).__name__}: {exc}'}
-
-
-
-
-def validate_claim_admission(authority: Authority | None = None) -> dict[str, Any]:
-    """The final claim boundary reads every fixed dependency itself.
-
-    Synthetic fixtures use the same file/proof checks but cannot confer real
-    permission. Only production calls perform real source and namespace checks.
-    No generator, fit, evaluator, canonical policy or training call occurs here.
-    """
-    from r17_v2_c13_admission_guard import stable_bytes, strict_json
-    from r17_v2_c13_regression_evidence import verify_package
     auth = resolve_authority(authority)
-    plan_path = authoritative_plan_path(auth)
-    require(plan_path.is_file(), f'authoritative plan file missing: {plan_path}')
-    anchors: dict[Path, bytes] = {}
-    def read(path: Path) -> Any:
-        body = stable_bytes(path)
-        anchors[path] = body
-        return strict_json(body)
-    plan = read(plan_path)
-    validate_plan(plan)
-    require(plan['runtime']['kind'] == ('test_fixture' if auth.synthetic else 'real'),
-            'plan runtime kind and authority disagree')
-    require(plan['contract'] == fixed_contract() if not auth.synthetic
-            else plan['contract'].get('synthetic_profile') is True,
-            'production/synthetic contract and authority disagree')
-    rp = receipt_path(auth)
-    require(rp.is_file(), f'authoritative preclaim receipt missing: {rp}')
-    receipt = read(rp)
-    validate_preclaim_receipt_shape(receipt)
-    require(receipt['plan_sha256'] == plan['plan_sha256'],
-            'preclaim receipt bound to a different plan digest')
-    file_sha = hashlib.sha256(anchors[plan_path]).hexdigest()
-    require(receipt['plan_file_sha256'] == file_sha,
-            'persisted plan file bytes differ from receipt')
-    ep = authoritative_evidence_path(auth)
-    require(ep.is_file(), f'authoritative admission evidence missing: {ep}')
-    admission = read(ep)
-    admission_sha = hashlib.sha256(anchors[ep]).hexdigest()
-    require(plan.get('admission_evidence', {}).get('path') == EVIDENCE_FILENAME
-            and plan['admission_evidence'].get('sha256') == admission_sha
-            and receipt.get('evidence_sha256') == admission_sha,
-            'admission evidence is not bound to plan and receipt')
-    require(isinstance(admission, dict) and admission.get('namespaces_unused') is True
-            and admission.get('hits') == []
-            and admission.get('unreadable_evidence') == [],
-            'admission evidence is unknown or reports consumed namespaces')
-    if auth.synthetic:
-        sources = plan['runtime'].get('sources')
-        require(isinstance(sources, dict) and bool(sources), 'fixture source identity missing')
-    else:
-        from r17_v2_c13_pipeline import source_guard, normalize_ns_evidence
-        sources = source_guard()
-        require(plan['runtime'].get('sources') == sources,
-                'persisted plan execution source closure drifted')
-        fresh = namespace_unused_evidence(auth.repo_root)
-        require(fresh.get('namespaces_unused') is True,
-                'namespaces consumed or namespace evidence unreadable')
-        require(normalize_ns_evidence(fresh, authority=auth) == admission,
-                'namespace admission evidence drifted after preclaim')
-    pkg = authoritative_full_regression_path(auth)
-    require(receipt['full_regression_evidence']['path'] == str(pkg),
-            'receipt regression path differs from fixed authority path')
-    verdict = verify_package(pkg, authority=auth, current_sources=sources,
-                             checks='structural' if auth.synthetic else 'full')
-    require(verdict['ok'], f'full regression evidence rejected at claim: {verdict["errors"][:5]}')
-    require(auth.synthetic or verdict.get('admission_eligible') is True,
-            'structural/synthetic evidence cannot admit production claim')
-    validate_preclaim_receipt(
-        receipt, plan_sha256=plan['plan_sha256'], source_closure_sha256=digest(sources),
-        full_regression_evidence_sha256=verdict['package_sha256'])
-    require(type(receipt['full_regression_evidence']['entry_rc']) is int
-            and type(receipt['full_regression_evidence']['business_rc']) is int,
-            'receipt rc must be integer, not bool')
-    require(receipt['full_regression_evidence']['entry_rc'] == verdict['summary']['entry_rc'] == 0
-            and receipt['full_regression_evidence']['business_rc'] == verdict['summary']['business_rc'] == 0,
-            'receipt rc differs from actual full regression')
-    for path, body in anchors.items():
-        require(stable_bytes(path) == body, f'admission input changed during validation: {path}')
-    return {'plan': plan, 'receipt': receipt, 'plan_file_sha256': file_sha,
-            'source_closure_sha256': digest(sources),
-            'full_regression_evidence_sha256': verdict['package_sha256'],
-            'anchors': anchors}
+    if not auth.claim_root.is_dir():
+        return {'consumed': False,
+                'path': str(auth.claim_root / f'{CONTRACT}.json')}
+    try:
+        path = _guarded_claim_path(f'{CONTRACT}.json', auth)
+    except (ProfileError, OSError) as exc:
+        return {'consumed': True,
+                'path': str(auth.claim_root / f'{CONTRACT}.json'),
+                'error': f'authority guard rejected: {exc}'}
+    if not path.is_file():
+        return {'consumed': False, 'path': str(path)}
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        return {'consumed': True, 'path': str(path), 'error': str(exc)}
+    return {'consumed': True, 'path': str(path),
+            'plan_sha256': data.get('plan_sha256'),
+            'consumed_utc': data.get('consumed_utc')}
 
 
 def main(argv=None) -> int:

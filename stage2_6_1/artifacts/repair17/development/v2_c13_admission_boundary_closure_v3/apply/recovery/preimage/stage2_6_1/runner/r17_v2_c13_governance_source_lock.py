@@ -1,4 +1,4 @@
-"""治理 source lock(R17V2C13AdmissionBoundaryAndColdReadClosure-v3)。
+"""治理 source lock(R17V2C13GovernanceAuthorityEvidenceAndC2PrepClosure-v2)。
 
 角色声明(§6.2,不可改写):本文件锁定【本轮治理候选 C】的
 preclaim/claim/reader 实际导入源码闭包 —— 它是事后治理与未来
@@ -13,22 +13,31 @@ preclaim 基础设施的闭包,**不是** 2026-09-10 v2 主 run 的实际执行
 分别复算(见 r17_v2_c13_regression_evidence)。本文件不锁定自身
 (无自指 hash),不混入 artifact、日志或时间戳。
 """
-BASELINE = '04b2978a1e2c375bd347168f2a9eeded790b393e'
+BASELINE = '685d2c9b9a5c2c812ae75b23e2050c5383b38e7b'
 GOVERNANCE_ROLE = (
     'post-run governance / future preclaim closure; NOT the v2 main-run '
     'execution closure (bytes of 591b1f35... remain unavailable by '
     'design)')
 
-MEMBER_MODULES = ('r17_v2_c13_admission_guard', 'r17_v2_c13_batch', 'r17_v2_c13_pipeline', 'r17_v2_c13_profile', 'r17_v2_c13_regression_evidence', 'rl_curriculum.curriculum261_pairs', 'rl_curriculum.curriculum261_r17_c2_launch_prep', 'rl_curriculum.curriculum261_r17_param_pack', 'rl_curriculum.curriculum261_r6_design', 'rl_curriculum.curriculum261_r6_param_pack')
+MEMBER_MODULES = (
+    "r17_v2_c13_batch",
+    "r17_v2_c13_pipeline",
+    "r17_v2_c13_profile",
+    "r17_v2_c13_regression_evidence",
+    "rl_curriculum.curriculum261_pairs",
+    "rl_curriculum.curriculum261_r17_c2_launch_prep",
+    "rl_curriculum.curriculum261_r17_param_pack",
+    "rl_curriculum.curriculum261_r6_design",
+    "rl_curriculum.curriculum261_r6_param_pack",
+)
 
 #: 成员 → 实际导入字节 SHA-256(由 r17_v2_c13_governance_relock.py
 #: 在候选冻结时从部署导入面生成;生成后本文件随候选提交冻结)。
 SOURCE_SHA256 = {
-    "r17_v2_c13_admission_guard": "daf603e6a4ca207373f3034ed518a32535810cc327dce356f075244bba0d3a04",
     "r17_v2_c13_batch": "bb02cdacd929b63eea290447a37797e2437523974dcb4e24953655692a78a531",
-    "r17_v2_c13_pipeline": "839cab9cab545c15b568e4b9102149243f53f0aaee8935c67cbeb4249cbc9230",
-    "r17_v2_c13_profile": "fa62af44d9300fcdc3b5bea15c15bfc16688f0415b482b431f9d2e4584518221",
-    "r17_v2_c13_regression_evidence": "e480f7b53562d7dda84e43f5a2187d600809c25e424d83dd6220465e54bda49f",
+    "r17_v2_c13_pipeline": "9c52f0788f5f8f704e0c0b46fb2adde1c26e0ad8da634177497239fa1e4991c1",
+    "r17_v2_c13_profile": "6057491afa5bb59fc9c84336dcf6b7c59635b9cb938940355c02c7f51115c50b",
+    "r17_v2_c13_regression_evidence": "0ca3dc15c6410df263d9be3388da3d2582711e552a5fa319ce7734bcab8f7604",
     "rl_curriculum.curriculum261_pairs": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
     "rl_curriculum.curriculum261_r17_c2_launch_prep": "4b21a068918fbb8428d11f18eb1590324bce131d6cf30f4893bd841b5af45036",
     "rl_curriculum.curriculum261_r17_param_pack": "427886de7abc1ff98e0772e4932587b8d54390cb92d14b5f4797e866ca5ca893",

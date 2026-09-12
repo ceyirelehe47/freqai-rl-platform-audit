@@ -1,0 +1,35 @@
+........................................................................ [ 47%]
+.......................F................................................ [ 94%]
+........                                                                 [100%]
+=================================== FAILURES ===================================
+___________________________ test_v10_one_shot_claim ____________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_v10_one_shot_claim0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x749e5694da50>
+
+    def test_v10_one_shot_claim(tmp_path, monkeypatch):
+        plan, persisted, receipt, auth = _claim_fixture(tmp_path, monkeypatch)
+        assert prof.claim_state(auth)['consumed'] is False
+>       consumed = prof.consume_production_claim(authority=auth)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py:706: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+stage2_6_1_runner/r17_v2_c13_profile.py:830: in consume_production_claim
+    admitted = validate_claim_admission(auth)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+stage2_6_1_runner/r17_v2_c13_profile.py:916: in validate_claim_admission
+    require(plan['contract'] == fixed_contract() if not auth.synthetic
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'production/synthetic contract and authority disagree'
+
+    def require(ok: bool, message: str) -> None:
+        if not ok:
+>           raise ProfileError(message)
+E           r17_v2_c13_profile.ProfileError: production/synthetic contract and authority disagree
+
+stage2_6_1_runner/r17_v2_c13_profile.py:88: ProfileError
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py::test_v10_one_shot_claim
+1 failed, 151 passed in 483.18s (0:08:03)
