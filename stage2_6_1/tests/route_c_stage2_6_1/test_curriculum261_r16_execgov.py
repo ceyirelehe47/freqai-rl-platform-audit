@@ -327,93 +327,20 @@ class TestBootstrapEvidence:
 
 
 class TestRealSubprocessCompetition:
-    """§10:双进程竞争用真实 subprocess(barrier 精确控制交错)。"""
-
-    COMPETITION_SCRIPT = textwrap.dedent("""
-        import json, os, sys
-        sys.path.insert(0, {src!r})
-        from rl_curriculum.curriculum261_r16_execgov import (
-            R16FormalSession, R16OwnershipError, exposure_state)
-        role, ready_path, go_path = sys.argv[1], sys.argv[2], sys.argv[3]
-        Path_ready = open(ready_path, "w"); Path_ready.close()
-        # barrier: 等 go 信号(主进程在 A 已 acquire 后创建 go 文件)
-        import time
-        while not os.path.exists(go_path):
-            time.sleep(0.02)
-        try:
-            s = R16FormalSession.acquire(binding={{"role": role}})
-        except R16OwnershipError as exc:
-            print(json.dumps({{"role": role, "acquired": False,
-                               "error": str(exc)[:80]}}))
-            sys.exit(3)
-        s.record_exposure_started("digest-comp")
-        g = s.issue_generation_grant()
-        # 慢速持权:主进程在此期间观察
-        time.sleep(float(sys.argv[4]))
-        s.revoke_generation_grant()
-        s.commit_qualification_terminal("completed", "digest-comp")
-        s.release()
-        print(json.dumps({{"role": role, "acquired": True}}))
-    """)
+    """Real simultaneous competition; preserve child evidence before asserting."""
 
     def test_two_processes_one_winner(self, state_root, tmp_path):
-        src = str(Path(__file__).resolve().parents[2] / "src")
-        script = tmp_path / "compete.py"
-        script.write_text(self.COMPETITION_SCRIPT.format(src=src),
-                          encoding="utf-8")
-        ready_a = tmp_path / "ready_a"
-        ready_b = tmp_path / "ready_b"
-        go = tmp_path / "go"
-        env = dict(os.environ)
-        env["CURRICULUM261_R16_STATE_ROOT"] = str(state_root)
-        # A 先启动并等待 barrier;B 也启动等待
-        pa = subprocess.Popen(
-            [sys.executable, str(script), "A", str(ready_a), str(go),
-             "1.0"],
-            env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        for _ in range(200):
-            if ready_a.exists():
-                break
-            import time
+        from rl_curriculum import curriculum261_r16_execgov as eg
+        from r17_r16_journal_test_support import evidence_dir, run_competition
 
-            time.sleep(0.02)
-        assert ready_a.exists(), "A 未到达 barrier"
-        pb = subprocess.Popen(
-            [sys.executable, str(script), "B", str(ready_b), str(go),
-             "0.1"],
-            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True)
-        for _ in range(200):
-            if ready_b.exists():
-                break
-            import time
-
-            time.sleep(0.02)
-        assert ready_b.exists(), "B 未到达 barrier"
-        # A 已 acquire(在 barrier 前?不——脚本先等 go 再 acquire;
-        # 修正:go 之前进程未 acquire。这里用 A 的 ready 后、B 的
-        # ready 顺序不能保证 A 先拿锁。改为:主进程先让 A 走,
-        # 确认 A 获得锁(exposure running),再放 B。)
-        go.write_text("")
-        out_a, _ = pa.communicate(timeout=30)
-        # A 结束(terminal+release)后 B 才被放行?不——go 已同时
-        # 放行。为确保 A 先:等待 exposure 出现。
-        # (A 的 acquire 与 B 的 acquire 竞争;确定性由 A 先启动
-        #  与 flock 语义保证:A 先到 barrier,go 创建后 A 大概率
-        #  先 acquire。若 B 赢,A 的输出会显示 acquired:False;
-        #  断言恰好一个 acquired=True 即可,角色不限。)
-        out_b, _ = pb.communicate(timeout=30)
-        results = []
-        for line in (out_a + out_b).splitlines():
-            line = line.strip()
-            if line.startswith("{"):
-                results.append(json.loads(line))
-        winners = [r for r in results if r.get("acquired")]
-        assert len(winners) == 1, results
-        losers = [r for r in results if not r.get("acquired")]
-        assert len(losers) == 1
-        # 输家的拒绝被记录;journal 恰好一次 exposure
+        evidence = evidence_dir(tmp_path, "r16_competition")
+        result = run_competition(Path(eg.__file__), state_root,
+                                 tmp_path / "control", evidence)
+        assert result["ok"], json.dumps(result, ensure_ascii=False, indent=2)
+        winners = [r for r in result["results"] if r.get("acquired")]
+        losers = [r for r in result["results"] if not r.get("acquired")]
+        assert len(winners) == 1, result
+        assert len(losers) == 1, result
         entries = journal_entries()
         assert len([e for e in entries
                     if e["event"] == "exposure_started"]) == 1

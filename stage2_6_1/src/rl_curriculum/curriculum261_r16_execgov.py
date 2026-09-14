@@ -157,88 +157,188 @@ def _fsync_dir(directory: Path) -> None:
         os.close(fd)
 
 
+def _open_journal_file(path: Path, *, writing: bool):
+    """Open the journal inode, never replace it or create anything on a read.
+
+    The journal flock is a short I/O mutex, independent of r16_session.lock.
+    Every caller opens its own file description; no cached/inherited lock fd.
+    O_NONBLOCK makes an unexpected FIFO fail validation instead of hanging.
+    """
+    import stat
+
+    flags = os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    flags |= (os.O_RDWR | os.O_CREAT | os.O_APPEND) if writing else os.O_RDONLY
+    try:
+        fd = os.open(path, flags, 0o600)
+    except FileNotFoundError:
+        if not writing:
+            return None
+        raise
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise R16JournalCorruption(f"journal is not a regular file: {path}")
+        return os.fdopen(fd, "r+b" if writing else "rb", buffering=0)
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _assert_journal_inode(fh: Any, path: Path) -> None:
+    """A replacement/unlink is an error, not permission to switch lock inodes."""
+    import stat
+
+    live = os.stat(path, follow_symlinks=False)
+    opened = os.fstat(fh.fileno())
+    if (not stat.S_ISREG(live.st_mode)
+            or (live.st_dev, live.st_ino) != (opened.st_dev, opened.st_ino)):
+        raise R16JournalCorruption(f"journal inode changed: {path}")
+
+
+def _journal_records_locked(fh: Any, path: Path, *, strict: bool) -> list[dict[str, Any]]:
+    """Parse under the caller's SH/EX lock. No recursive public reader call.
+
+    A killed partial append stays corrupt. Neither writer nor reader trims,
+    repairs, renumbers or rewrites an existing byte. Lenient mode remains a
+    diagnostic only; allocation always uses strict validation.
+    """
+    def unique(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError("duplicate journal JSON key")
+            result[key] = value
+        return result
+
+    def invalid_constant(value):
+        raise ValueError("nonfinite journal JSON value: " + value)
+
+    fh.seek(0)
+    out: list[dict[str, Any]] = []
+    bad: list[int] = []
+    for line_number, raw in enumerate(fh, 1):
+        if not raw.strip():
+            # Historical blank lines are tolerated, but an unfinished tail is
+            # never silently made into a valid record by the next append.
+            if raw and not raw.endswith(b"\n"):
+                bad.append(line_number)
+            continue
+        try:
+            if not raw.endswith(b"\n"):
+                raise ValueError("unterminated journal record")
+            rec = json.loads(raw.decode("utf-8", errors="strict"),
+                             object_pairs_hook=unique,
+                             parse_constant=invalid_constant)
+            if (not isinstance(rec, dict) or type(rec.get("seq")) is not int
+                    or rec["seq"] != len(out) + 1
+                    or rec.get("event") not in R16_JOURNAL_EVENTS
+                    or rec.get("iteration") != CURRICULUM261_ITERATION_ID_R16):
+                raise ValueError("journal sequence/event/iteration mismatch")
+        except (UnicodeError, ValueError):
+            bad.append(line_number)
+            continue
+        out.append(rec)
+    if bad and strict:
+        raise R16JournalCorruption(
+            f"权威 journal 损坏({len(bad)} 行;fail closed;"
+            f"lines={bad[:8]}):{path}")
+    return out
+
+
+def _write_journal_record(fd: int, data: bytes) -> None:
+    """Complete short writes while holding EX; errors leave the real prefix."""
+    view = memoryview(data)
+    while view:
+        try:
+            written = os.write(fd, view)
+        except InterruptedError:
+            continue
+        if written <= 0:
+            raise OSError(errno.EIO, "journal write made no progress")
+        view = view[written:]
+
+
 def journal_append(event: str, payload: dict[str, Any] | None = None,
                    *, durable: bool = True) -> int:
-    """追加一条权威事件并返回其 seq。
+    """Strict replay -> allocate seq -> append -> fsync, in one EX transaction.
 
-    durable=True(默认,全部关键事件)执行 write→flush→fsync(file)→
-    fsync(dir) 完整持久化协议(§8.2);一次 os.replace 不为多个
-    artifact 提供共同事务,journal 因此只在单文件内追加。
+    Both the session owner and a rejected contender use this journal lock.
+    durable=False changes only fsync policy, never mutual exclusion. No
+    journal lock is held across a session operation, callback or domain work.
+    Lock order is session (when owned) -> journal; never the reverse.
     """
+    import fcntl
+
     if event not in R16_JOURNAL_EVENTS:
         raise RuntimeError(f"未知 journal 事件类型 {event!r}")
+    if payload is not None and not isinstance(payload, dict):
+        raise TypeError("journal payload must be a dict or None")
+    data = dict(payload or {})
+    reserved = {"seq", "utc", "event", "iteration", "pid"}
+    if reserved.intersection(data):
+        raise ValueError("journal payload overrides reserved metadata")
+    # Validate JSON before any persistent side effect. No default=str coercion.
+    json.dumps(data, ensure_ascii=False, allow_nan=False)
     path = r16_journal_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    entries = _journal_entries_lenient(path)
-    seq = entries + 1
-    record = {
-        "seq": seq,
-        "utc": _now_utc(),
-        "event": event,
-        "iteration": CURRICULUM261_ITERATION_ID_R16,
-        "pid": os.getpid(),
-    }
-    if payload:
-        record.update(payload)
-    line = json.dumps(record, ensure_ascii=False, sort_keys=True)
-    with open(path, "a", encoding="utf-8") as fh:
-        fh.write(line + "\n")
-        fh.flush()
-        if durable:
-            os.fsync(fh.fileno())
-    if durable:
-        _fsync_dir(path.parent)
-    return seq
+    with _open_journal_file(path, writing=True) as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            _assert_journal_inode(fh, path)
+            entries = _journal_records_locked(fh, path, strict=True)
+            seq = len(entries) + 1
+            record = {"seq": seq, "utc": _now_utc(), "event": event,
+                      "iteration": CURRICULUM261_ITERATION_ID_R16,
+                      "pid": os.getpid(), **data}
+            encoded = (json.dumps(record, ensure_ascii=False, sort_keys=True,
+                                  allow_nan=False) + "\n").encode("utf-8")
+            _write_journal_record(fh.fileno(), encoded)
+            fh.flush()
+            if durable:
+                os.fsync(fh.fileno())
+                _fsync_dir(path.parent)
+            _assert_journal_inode(fh, path)
+            return seq
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 def _journal_entries_lenient(path: Path) -> int:
-    """计数既有行(仅用于 seq 分配;损坏行保留原样)。"""
-    if not path.is_file():
+    """Legacy diagnostic line count, under SH. Never used to allocate seq."""
+    import fcntl
+
+    fh = _open_journal_file(path, writing=False)
+    if fh is None:
         return 0
-    count = 0
-    with open(path, "rb") as fh:
-        for _raw in fh:
-            if _raw.strip():
-                count += 1
-    return count
+    with fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_SH)
+        try:
+            _assert_journal_inode(fh, path)
+            return sum(1 for raw in fh if raw.strip())
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 def journal_entries(*, strict: bool = True) -> list[dict[str, Any]]:
-    """重放权威 journal。
+    """Read a completed append snapshot under SH, without creating any file.
 
-    strict=True(授权判定路径):任何一行无法解析、seq 不连续或事件
-    类型未知都 raise R16JournalCorruption——不得静默跳过解析失败的
-    事件后认为"从未 exposure"(§8.2)。
+    The session lock is deliberately not acquired here. Corrupt or truncated
+    journal bytes fail closed; no automatic recovery/last-good-tail rollback.
     """
-    path = r16_journal_path()
-    if not path.is_file():
-        return []
-    out: list[dict[str, Any]] = []
-    expected_seq = 1
-    corrupt: list[str] = []
-    with open(path, "rb") as fh:
-        for raw in fh:
-            if not raw.strip():
-                continue
-            text = raw.decode("utf-8", errors="replace").strip()
-            try:
-                rec = json.loads(text)
-            except json.JSONDecodeError:
-                corrupt.append(text[:200])
-                continue
-            if (not isinstance(rec, dict)
-                    or rec.get("seq") != expected_seq
-                    or rec.get("event") not in R16_JOURNAL_EVENTS):
-                corrupt.append(text[:200])
-                continue
-            out.append(rec)
-            expected_seq += 1
-    if corrupt and strict:
-        raise R16JournalCorruption(
-            f"权威 journal 损坏({len(corrupt)} 行不可解析/seq 断裂/"
-            f"未知事件;fail closed):{r16_journal_path()}")
-    return out
+    import fcntl
 
+    path = r16_journal_path()
+    fh = _open_journal_file(path, writing=False)
+    if fh is None:
+        return []
+    with fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_SH)
+        try:
+            _assert_journal_inode(fh, path)
+            out = _journal_records_locked(fh, path, strict=strict)
+            _assert_journal_inode(fh, path)
+            return out
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 def _entry(record: dict[str, Any], **match: Any) -> bool:
     return all(record.get(k) == v for k, v in match.items())
@@ -431,8 +531,17 @@ class R16FormalSession:
             "session": _token_hash(token),
             "binding": binding,
         }
-        journal_append("session_acquired", payload)
-        return cls(binding=binding, lock_fh=fh, token=token)
+        try:
+            journal_append("session_acquired", payload)
+            return cls(binding=binding, lock_fh=fh, token=token)
+        except BaseException:
+            # No session object was returned: do not leak ownership on an I/O
+            # or strict-journal failure. Preserve every written journal byte.
+            try:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            finally:
+                fh.close()
+            raise
 
     @classmethod
     def _record_rejection(cls, binding: dict[str, Any], reason: str,
