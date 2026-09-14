@@ -1,0 +1,165 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "monitored_run",
+ "task_kind": "engineering",
+ "argv": [
+  "python",
+  "/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_c2_consumer_rehearsal.py",
+  "rehearse",
+  "--out",
+  "/tmp/r17_c2_consumer_VuE8gp/bundle"
+ ],
+ "started_utc": "2026-09-14T12:28:43Z",
+ "ended_utc": "2026-09-14T12:28:49Z",
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "pgid": 1857
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "79f1feccbf5547e7f8b327c18c69e5ffec660a38c3cd34c869ca1018f98c4584"
+ },
+ "required": [
+  {
+   "role": "telemetry_guest",
+   "path": "rehearsal/monitored_run/telemetry/guest_samples.jsonl",
+   "status": "present",
+   "sha256": "e5b7ca8f92b5f31b9001da2ba23d35e571f2d91902379c477575ddfbf2c9549c",
+   "bytes": 1146
+  },
+  {
+   "role": "telemetry_win",
+   "path": "rehearsal/monitored_run/telemetry/win_samples.jsonl",
+   "status": "present",
+   "sha256": "0ba7cf74ccf9e2e0f31de083259be1d29fa484ac8f2badc0a75e5bc943a1df37",
+   "bytes": 1418
+  },
+  {
+   "role": "alerts",
+   "path": "rehearsal/monitored_run/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "c8fcf3f03f9535ef0b19e22e7e9f1410987390afd9bd19528193a515cb13089c",
+   "bytes": 2641
+  },
+  {
+   "role": "business_stdout",
+   "path": "rehearsal/monitored_run/business/stdout.log",
+   "status": "present",
+   "sha256": "3afcd2cd4931958309d4477fd25e2ff3d74fb4c7ce3bef99e243a3b6d3c088ea",
+   "bytes": 1434
+  },
+  {
+   "role": "business_stderr",
+   "path": "rehearsal/monitored_run/business/stderr.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "native_sampler_identity",
+   "path": "rehearsal/monitored_run/native_sampler/identity.json",
+   "status": "present",
+   "sha256": "2fb6d87cb0fbdc28cc2bfc66b96947b42770203008512e36a8294c87d4f941ce",
+   "bytes": 528
+  },
+  {
+   "role": "native_sampler_terminal",
+   "path": "rehearsal/monitored_run/native_sampler/terminal.json",
+   "status": "present",
+   "sha256": "0b967c2f3a14149289da790fa19137c7defbe345bfe09d2037917e314ad677f6",
+   "bytes": 569
+  },
+  {
+   "role": "native_sampler_confirmation",
+   "path": "rehearsal/monitored_run/native_sampler/native_confirmation.json",
+   "status": "present",
+   "sha256": "352c48ce9249a91ca1b9baa712a0dfc97dd7b0473f6897cf118b83e30ae5dab9",
+   "bytes": 360
+  },
+  {
+   "role": "summary",
+   "path": "rehearsal/monitored_run/summary.json",
+   "status": "present",
+   "sha256": "f14db01c928777a6ca257c9274e38f72ad52a9da81931a76eb0ce888e629e05b",
+   "bytes": 5491
+  }
+ ],
+ "evidence_complete": true,
+ "missing_roles": [],
+ "control_failures": [],
+ "cutoff_certified": true,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 131488678934208
+  },
+  "win": {
+   "protocol": "r17-native-sampler-v1",
+   "stop_requested": true,
+   "started": true,
+   "native_exit_confirmed": true,
+   "exited": true,
+   "waited": true,
+   "unconfirmed": false,
+   "terminal_verified": true,
+   "errors": [],
+   "token": "235873e061b7290b0139c7e59779b271fcb61dc58a086e59c490b1d4ad03526e",
+   "run_id": "monitored_run",
+   "windows_pid": 3436,
+   "creation_filetime": "134338625254487482",
+   "native_status": "absent",
+   "forced": false,
+   "native_proof": {
+    "token": "235873e061b7290b0139c7e59779b271fcb61dc58a086e59c490b1d4ad03526e",
+    "creation_filetime": "134338625254487482",
+    "identity_matched": false,
+    "finished_utc": "2026-09-14T12:28:50.7096657Z",
+    "native_exited": true,
+    "actual_creation_filetime": "",
+    "pid": 3436,
+    "win32_error": 87,
+    "forced": false,
+    "run_id": "monitored_run",
+    "status": "absent",
+    "protocol": "r17-native-sampler-v1"
+   },
+   "telemetry": {
+    "bytes": 1418,
+    "sha256": "0ba7cf74ccf9e2e0f31de083259be1d29fa484ac8f2badc0a75e5bc943a1df37",
+    "stable_during_read": true
+   },
+   "terminal_reason": "stop_requested",
+   "interop_pid": 1850,
+   "interop_exited": true
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 17,
+  "accepted": 17,
+  "ok": 17,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 17,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}

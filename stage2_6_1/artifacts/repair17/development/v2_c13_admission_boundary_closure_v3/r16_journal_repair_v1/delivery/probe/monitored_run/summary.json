@@ -1,0 +1,237 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "monitored_run",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "a2e9ac967cf9f0e10da570c0cd94ec19a03d838ed60926636484cd9497ab0059",
+ "argv": [
+  "python",
+  "/mnt/e/trading/R17_R16_Journal_C2_Resume_v1/r17_r16_journal_v1/tools/probe_journal.py",
+  "--module",
+  "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r16_execgov.py",
+  "--out",
+  "/home/cryptorl/projects/crypto_rl/work/r17_r16_journal_v1_20260914T121332Z_309/probe/probe"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 534,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [],
+ "peaks": {
+  "guest_memavail_min_gib": 38.05799102783203,
+  "task_tree_rss_max_gib": 0.0
+ },
+ "coverage": {
+  "guest_last_mono": 1.6375442539999767,
+  "win_last_mono": 2.2702186950000396,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 0,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 2.2704609370000526,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-14T12:18:13Z"
+ },
+ "io": {
+  "submitted": 17,
+  "accepted": 17,
+  "ok": 17,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 17,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 132952378828480
+  },
+  "win": {
+   "protocol": "r17-native-sampler-v1",
+   "stop_requested": true,
+   "started": true,
+   "native_exit_confirmed": true,
+   "exited": true,
+   "waited": true,
+   "unconfirmed": false,
+   "terminal_verified": true,
+   "errors": [],
+   "token": "d450da1a21e6398ecfc935b53df0ad0cf4df0124d221e4aa85a10d5357e6e051",
+   "run_id": "monitored_run",
+   "windows_pid": 34600,
+   "creation_filetime": "134338618929388056",
+   "native_status": "absent",
+   "forced": false,
+   "native_proof": {
+    "token": "d450da1a21e6398ecfc935b53df0ad0cf4df0124d221e4aa85a10d5357e6e051",
+    "creation_filetime": "134338618929388056",
+    "identity_matched": false,
+    "finished_utc": "2026-09-14T12:18:17.4105460Z",
+    "native_exited": true,
+    "actual_creation_filetime": "",
+    "pid": 34600,
+    "win32_error": 87,
+    "forced": false,
+    "run_id": "monitored_run",
+    "status": "absent",
+    "protocol": "r17-native-sampler-v1"
+   },
+   "telemetry": {
+    "bytes": 1419,
+    "sha256": "494e5daf516db6f33e85fb2468c84137b5fd41bbcde101178cd4c63225a08136",
+    "stable_during_read": true
+   },
+   "terminal_reason": "stop_requested",
+   "interop_pid": 527,
+   "interop_exited": true
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "summary_failure": null,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded",
+  "control_failures": []
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 4.33501943300007,
+  "establish_reason": "finalize",
+  "remaining_at_write": 118.783,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_native_stop_confirm",
+    "requested": 30.0,
+    "remaining": 120.0,
+    "allowed": 30.0
+   },
+   {
+    "phase": "win_interop_reap",
+    "requested": 1.0,
+    "remaining": 118.805,
+    "allowed": 1.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 118.805,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 118.785,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 5484,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:12Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:13Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.3s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:13Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:13Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:15Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-14T12:18:15Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 527,
+  "windows": 34600
+ },
+ "written_utc": "2026-09-14T12:18:16Z"
+}
