@@ -1,0 +1,135 @@
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [ 10%]
+........................................................................ [ 13%]
+............................................................R17ALERT {"event":"t06","n":1,"utc":"2026-09-14T04:40:40Z","run_id":"run"}
+.R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-14T04:40:40Z","run_id":"run"}
+........... [ 16%]
+........................................................................ [ 20%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 30%]
+...............................................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-14T04:51:02Z","run_id":"run"}
+......................... [ 33%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+........................................................................ [ 43%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................s............................... [ 57%]
+.................s...................................................... [ 60%]
+.......................................s................................ [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 70%]
+................s....................................................... [ 73%]
+........................................................................ [ 77%]
+.................................................................F...... [ 80%]
+.s.s.s.................................................................. [ 83%]
+........................................................................ [ 87%]
+........................................................................ [ 90%]
+........................................................................ [ 94%]
+........................................................................ [ 97%]
+........................................................                 [100%]
+=================================== FAILURES ===================================
+_________ TestRealSubprocessCompetition.test_two_processes_one_winner __________
+
+self = <test_curriculum261_r16_execgov.TestRealSubprocessCompetition object at 0x7032da685c10>
+state_root = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_two_processes_one_winner0/r16_state')
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_two_processes_one_winner0')
+
+    def test_two_processes_one_winner(self, state_root, tmp_path):
+        src = str(Path(__file__).resolve().parents[2] / "src")
+        script = tmp_path / "compete.py"
+        script.write_text(self.COMPETITION_SCRIPT.format(src=src),
+                          encoding="utf-8")
+        ready_a = tmp_path / "ready_a"
+        ready_b = tmp_path / "ready_b"
+        go = tmp_path / "go"
+        env = dict(os.environ)
+        env["CURRICULUM261_R16_STATE_ROOT"] = str(state_root)
+        # A 先启动并等待 barrier;B 也启动等待
+        pa = subprocess.Popen(
+            [sys.executable, str(script), "A", str(ready_a), str(go),
+             "1.0"],
+            env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        for _ in range(200):
+            if ready_a.exists():
+                break
+            import time
+    
+            time.sleep(0.02)
+        assert ready_a.exists(), "A 未到达 barrier"
+        pb = subprocess.Popen(
+            [sys.executable, str(script), "B", str(ready_b), str(go),
+             "0.1"],
+            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True)
+        for _ in range(200):
+            if ready_b.exists():
+                break
+            import time
+    
+            time.sleep(0.02)
+        assert ready_b.exists(), "B 未到达 barrier"
+        # A 已 acquire(在 barrier 前?不——脚本先等 go 再 acquire;
+        # 修正:go 之前进程未 acquire。这里用 A 的 ready 后、B 的
+        # ready 顺序不能保证 A 先拿锁。改为:主进程先让 A 走,
+        # 确认 A 获得锁(exposure running),再放 B。)
+        go.write_text("")
+        out_a, _ = pa.communicate(timeout=30)
+        # A 结束(terminal+release)后 B 才被放行?不——go 已同时
+        # 放行。为确保 A 先:等待 exposure 出现。
+        # (A 的 acquire 与 B 的 acquire 竞争;确定性由 A 先启动
+        #  与 flock 语义保证:A 先到 barrier,go 创建后 A 大概率
+        #  先 acquire。若 B 赢,A 的输出会显示 acquired:False;
+        #  断言恰好一个 acquired=True 即可,角色不限。)
+        out_b, _ = pb.communicate(timeout=30)
+        results = []
+        for line in (out_a + out_b).splitlines():
+            line = line.strip()
+            if line.startswith("{"):
+                results.append(json.loads(line))
+        winners = [r for r in results if r.get("acquired")]
+>       assert len(winners) == 1, results
+E       AssertionError: [{'role': 'B', 'acquired': False, 'error': '另一个进程持有 R16 正式会话锁(竞争请求被拒绝;本请求对正式状态零写入)'}]
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/route_c_stage2_6_1/test_curriculum261_r16_execgov.py:413: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r16_execgov.py::TestRealSubprocessCompetition::test_two_processes_one_winner
+1 failed, 2136 passed, 7 skipped, 9 warnings in 2320.80s (0:38:40)
