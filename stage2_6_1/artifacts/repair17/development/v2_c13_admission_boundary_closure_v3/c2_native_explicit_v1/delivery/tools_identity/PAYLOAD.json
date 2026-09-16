@@ -1,0 +1,105 @@
+{
+  "authorization": "synthetic-engineering-only; no production execution",
+  "baseline": "ef55c96d9858dbf1f04f83e5ec22854a88883b5b",
+  "branch": "route-c-stage2-6-1-repair17",
+  "files": {
+    "stage2_6_1/runner/r17_c2_native_rehearsal.py": {
+      "before_sha256": null,
+      "sha256": "f3cf52b6deacafc37672d8d9acd06f0de2bcb02729a98d16a3e13b690d193bd0",
+      "size": 20394
+    },
+    "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native.py": {
+      "before_sha256": null,
+      "sha256": "8243f8dde8a32b12a001deb456f3e93d8574d3debbda365c541d82665161336f",
+      "size": 16868
+    },
+    "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_codec.py": {
+      "before_sha256": null,
+      "sha256": "a720edbc605121d646edaf264e5271dc587156824eb122a8664f6c3d16241faf",
+      "size": 11942
+    },
+    "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_inputs.py": {
+      "before_sha256": null,
+      "sha256": "4b37c34b3510e30d7f339f89335146fb2fcb9a39599cc7a75dfb46d719453de5",
+      "size": 19150
+    },
+    "stage2_6_1/src/rl_curriculum/curriculum261_r17_cue_eval.py": {
+      "before_sha256": "26c9d560ea3854da5949dd8333d3ce143ec6c1121dd983b3a861ee84e2383d73",
+      "sha256": "8715f54883a8c9778c97e14c5cb8f50f0cb45d68a70d8af33068d80d9f33ef42",
+      "size": 24883
+    },
+    "stage2_6_1/tests/route_c_stage2_6_1/r17_c2_native_fixtures.py": {
+      "before_sha256": null,
+      "sha256": "b3f871a9c82f7ca7629804aefd21ad572832f77a26d0807d478561e7e291e85e",
+      "size": 8296
+    },
+    "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_codec.py": {
+      "before_sha256": null,
+      "sha256": "a2588c5e741d6fc351aeed45e39c7960127a87a87cc105ba9eb6b681893ddf3c",
+      "size": 4220
+    },
+    "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_components.py": {
+      "before_sha256": null,
+      "sha256": "ddb940c04fed189436604e16b49131207ac8d659ea2ab2ce2dce83fe49273d26",
+      "size": 7707
+    }
+  },
+  "full_collection_expected": 2239,
+  "new_tests_expected": {
+    "test_r17_c2_native_codec": 37,
+    "test_r17_c2_native_components": 21
+  },
+  "patch_sha256": "26451f580b38e411c222b1d92e96f726d2c91b8b14679499b3e2c490a664cd44",
+  "task": "R17C2NativeExplicitSampleIntegration-v1",
+  "repairs_v2": {
+    "format": "R17PayloadRepairManifest-v3",
+    "package": "R17C2NativeExplicitSampleIntegration-v1",
+    "supersedes": "payload_repair_v2.json",
+    "failure_evidence": [
+      "10_targeted rc=96 (pre-created RUN_DIR; script authoring defect)",
+      "10_targeted_r1 rc=2 (ModuleNotFoundError: r17_c2_native_rehearsal at collection)",
+      "10_targeted_r2 rc=1 (13 codec FAILED + 20 components ERROR + 1 design FAILED; SampleError: UTC ns dates required)"
+    ],
+    "runtime_facts": {
+      "pandas": "3.0.3",
+      "numpy": "2.4.6",
+      "date_range_default_dtype": "datetime64[us, UTC]",
+      "production_generator_date_source": "generator_api.py pd.date_range(\"2026-01-01T00:00:00Z\", freq=\"900s\") -> datetime64[us, UTC]"
+    },
+    "authorization": "GOAL.md Section 0/3-G1: existing package is a correctable starting point; patch bytes not binding",
+    "repairs": [
+      {
+        "path": "stage2_6_1/runner/r17_c2_native_rehearsal.py",
+        "original_sha256": "53cd314e1777a06a629eec24bfe10c3b154f03f8c8bd61533b127b9753ccdec5",
+        "original_size": 19887,
+        "repaired_sha256": "f3cf52b6deacafc37672d8d9acd06f0de2bcb02729a98d16a3e13b690d193bd0",
+        "repaired_size": 20394,
+        "reason": "monitored entry normalizes business PYTHONPATH to src only; runner imported tests-dir fixtures without bootstrapping sys.path (r17_c2_consumer_rehearsal._fixtures idiom added)"
+      },
+      {
+        "path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_components.py",
+        "original_sha256": "dcea9e4b51b3258c51f2465384e165e330eecad8111804448be40d30ab956e77",
+        "original_size": 7108,
+        "repaired_sha256": "ddb940c04fed189436604e16b49131207ac8d659ea2ab2ce2dce83fe49273d26",
+        "repaired_size": 7707,
+        "reason": "monitored entry normalizes business PYTHONPATH to src only; test imported runner module via ambient path (load_module file-location idiom added)"
+      },
+      {
+        "path": "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_codec.py",
+        "original_sha256": "972942528f3d45180f3636e2e58689f4085f0f5c5dfba0d7ee53b45c2d125bfc",
+        "original_size": 11090,
+        "repaired_sha256": "a720edbc605121d646edaf264e5271dc587156824eb122a8664f6c3d16241faf",
+        "repaired_size": 11942,
+        "reason": "runtime pandas 3.0.3 emits datetime64[us] from pd.date_range (production generator_api identical); codec hardcoded ns-only datetime index/column checks; generalized to ns/us/ms/s with explicit lossless unit field"
+      },
+      {
+        "path": "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_inputs.py",
+        "original_sha256": "7a3364cd743137f405fbc5b2f233e06bb79d29638ca32c3d293d53980b7c341b",
+        "original_size": 18877,
+        "repaired_sha256": "4b37c34b3510e30d7f339f89335146fb2fcb9a39599cc7a75dfb46d719453de5",
+        "repaired_size": 19150,
+        "reason": "same pandas 3 resolution reality; _episode_doc UTC ns-only date check generalized to ns/us/ms/s with native-resolution 15-minute continuity check"
+      }
+    ]
+  }
+}

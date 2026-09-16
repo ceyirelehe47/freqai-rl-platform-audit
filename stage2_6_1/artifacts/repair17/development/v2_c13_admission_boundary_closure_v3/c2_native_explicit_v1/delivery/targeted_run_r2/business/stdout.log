@@ -1,0 +1,1157 @@
+................................................................FFFFF... [ 64%]
+.....FFFFFFFF.....EEEEEEEEEEEEEEEEEEEFE                                  [100%]
+==================================== ERRORS ====================================
+________ ERROR at setup of test_sample_membership_mutations_fail[drop] _________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+______ ERROR at setup of test_sample_membership_mutations_fail[duplicate] ______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+______ ERROR at setup of test_sample_membership_mutations_fail[namespace] ______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+________ ERROR at setup of test_sample_membership_mutations_fail[index] ________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+________ ERROR at setup of test_sample_membership_mutations_fail[side] _________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+______ ERROR at setup of test_sample_membership_mutations_fail[spec_seed] ______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______ ERROR at setup of test_sample_membership_mutations_fail[ce_hash] _______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+________ ERROR at setup of test_sample_membership_mutations_fail[date] _________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______ ERROR at setup of test_sample_membership_mutations_fail[hidden] ________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+____ ERROR at setup of test_sample_membership_mutations_fail[extra_family] _____
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+________ ERROR at setup of test_sample_membership_mutations_fail[retry] ________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_________ ERROR at setup of test_wrong_external_corpus_identity[role] __________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_________ ERROR at setup of test_wrong_external_corpus_identity[split] _________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______ ERROR at setup of test_wrong_external_corpus_identity[candidate] _______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_________ ERROR at setup of test_wrong_external_corpus_identity[count] _________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+______________ ERROR at setup of test_all_sample_types_roundtrip _______________
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_ ERROR at setup of test_explicit_seeds_require_exact_members_and_fixture_scope _
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______ ERROR at setup of test_raw_reuse_detection_ignores_label_changes _______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_____ ERROR at setup of test_real_v2_scaled_canonical_statistics_semantics _____
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+______ ERROR at setup of test_parameter_drift_rejected_before_evaluation _______
+
+    @pytest.fixture(scope='module')
+    def samples():
+        pack = n.engineering_pack('historical', .95-.02)
+>       return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                      for role in ('fit','calibration_matched','calibration_semantic','calibration_independent')}
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:33: in <dictcomp>
+    return pack, {role: make_corpus(spec_for('main', role, 'historical', 1 if role=='fit' else 2), pack)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:139: in make_corpus
+    return ExplicitCorpus(spec, [make_pair(spec, pack, f, r, i)
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:265: in document
+    rows.append(_pair_doc(rec, spec, rec.pair_index, rec.rung, rec.family))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+=================================== FAILURES ===================================
+_______________ test_index_and_signed_zero_are_lossless[index0] ________________
+
+index = RangeIndex(start=0, stop=4, step=1)
+
+    @pytest.mark.parametrize('index', [pd.RangeIndex(4), pd.RangeIndex(9,1,-2),
+        pd.Index([11,12,18,22], name='row'), pd.date_range('2024-01-01', periods=4),
+        pd.date_range('2024-01-01', periods=4, tz='UTC')])
+    def test_index_and_signed_zero_are_lossless(index):
+        f = frame()
+        f.index = index
+        f.columns.name = 'features'
+>       out = c.decode_frame(c.encode_frame(f))
+                             ^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______________ test_index_and_signed_zero_are_lossless[index1] ________________
+
+index = RangeIndex(start=9, stop=1, step=-2)
+
+    @pytest.mark.parametrize('index', [pd.RangeIndex(4), pd.RangeIndex(9,1,-2),
+        pd.Index([11,12,18,22], name='row'), pd.date_range('2024-01-01', periods=4),
+        pd.date_range('2024-01-01', periods=4, tz='UTC')])
+    def test_index_and_signed_zero_are_lossless(index):
+        f = frame()
+        f.index = index
+        f.columns.name = 'features'
+>       out = c.decode_frame(c.encode_frame(f))
+                             ^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______________ test_index_and_signed_zero_are_lossless[index2] ________________
+
+index = Index([11, 12, 18, 22], dtype='int64', name='row')
+
+    @pytest.mark.parametrize('index', [pd.RangeIndex(4), pd.RangeIndex(9,1,-2),
+        pd.Index([11,12,18,22], name='row'), pd.date_range('2024-01-01', periods=4),
+        pd.date_range('2024-01-01', periods=4, tz='UTC')])
+    def test_index_and_signed_zero_are_lossless(index):
+        f = frame()
+        f.index = index
+        f.columns.name = 'features'
+>       out = c.decode_frame(c.encode_frame(f))
+                             ^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______________ test_index_and_signed_zero_are_lossless[index3] ________________
+
+index = DatetimeIndex(['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04'], dtype='datetime64[us]', freq='D')
+
+    @pytest.mark.parametrize('index', [pd.RangeIndex(4), pd.RangeIndex(9,1,-2),
+        pd.Index([11,12,18,22], name='row'), pd.date_range('2024-01-01', periods=4),
+        pd.date_range('2024-01-01', periods=4, tz='UTC')])
+    def test_index_and_signed_zero_are_lossless(index):
+        f = frame()
+        f.index = index
+        f.columns.name = 'features'
+>       out = c.decode_frame(c.encode_frame(f))
+                             ^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_______________ test_index_and_signed_zero_are_lossless[index4] ________________
+
+index = DatetimeIndex(['2024-01-01 00:00:00+00:00', '2024-01-02 00:00:00+00:00',
+               '2024-01-03 00:00:00+00:00', '2024-01-04 00:00:00+00:00'],
+              dtype='datetime64[us, UTC]', freq='D')
+
+    @pytest.mark.parametrize('index', [pd.RangeIndex(4), pd.RangeIndex(9,1,-2),
+        pd.Index([11,12,18,22], name='row'), pd.date_range('2024-01-01', periods=4),
+        pd.date_range('2024-01-01', periods=4, tz='UTC')])
+    def test_index_and_signed_zero_are_lossless(index):
+        f = frame()
+        f.index = index
+        f.columns.name = 'features'
+>       out = c.decode_frame(c.encode_frame(f))
+                             ^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+__________________ test_invalid_frame_shape_rejected[columns] __________________
+
+mutation = 'columns'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+___________________ test_invalid_frame_shape_rejected[extra] ___________________
+
+mutation = 'extra'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+___________________ test_invalid_frame_shape_rejected[dtype] ___________________
+
+mutation = 'dtype'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+____________________ test_invalid_frame_shape_rejected[hex] ____________________
+
+mutation = 'hex'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_____________________ test_invalid_frame_shape_rejected[n] _____________________
+
+mutation = 'n'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+___________________ test_invalid_frame_shape_rejected[index] ___________________
+
+mutation = 'index'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_________________ test_invalid_frame_shape_rejected[timezone] __________________
+
+mutation = 'timezone'
+
+    @pytest.mark.parametrize('mutation', ['columns','extra','dtype','hex','n','index','timezone'])
+    def test_invalid_frame_shape_rejected(mutation):
+>       d = c.encode_frame(frame())
+            ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+____________________ test_safe_document_and_external_anchor ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_safe_document_and_externa0')
+
+    def test_safe_document_and_external_anchor(tmp_path):
+>       doc = {'frame': c.encode_frame(frame()), 'synthetic': True}
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_codec.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:170: in encode_frame
+    data.append({'kind': 'numeric', 'values': _array(s.to_numpy())})
+                                              ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:81: in _array
+    need(dtype in DTYPES, 'unsupported numeric dtype: ' + dtype)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'unsupported numeric dtype: object'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: unsupported numeric dtype: object
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+_________________ test_native_design_receives_explicit_blocks __________________
+
+    def test_native_design_receives_explicit_blocks():
+        pack=n.engineering_pack('historical',.95-.02)
+>       data=make_corpus(spec_for('main','design_matched','historical',2),pack)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/r17_c2_native_fixtures.py:157: in make_corpus
+    return ExplicitCorpus(spec, blocks, pack['c2_ladder'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:217: in __init__
+    self._seal = digest(self.document())
+                        ^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:244: in document
+    pairs.append(_pair_doc(rec, spec, b.block_index, r, 'c2_context'))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:159: in _pair_doc
+    episodes[side] = _episode_doc(ep)
+                     ^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_c2_native_inputs.py:87: in _episode_doc
+    need('date' in ep.df and str(ep.df['date'].dtype) == 'datetime64[ns, UTC]',
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ok = False, message = 'UTC ns dates required'
+
+    def need(ok: bool, message: str) -> None:
+        if not ok:
+>           raise SampleError(message)
+E           rl_curriculum.curriculum261_r17_c2_native_codec.SampleError: UTC ns dates required
+
+src/rl_curriculum/curriculum261_r17_c2_native_codec.py:35: SampleError
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_index_and_signed_zero_are_lossless[index0]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_index_and_signed_zero_are_lossless[index1]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_index_and_signed_zero_are_lossless[index2]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_index_and_signed_zero_are_lossless[index3]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_index_and_signed_zero_are_lossless[index4]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[columns]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[extra]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[dtype]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[hex]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[n]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[index]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_invalid_frame_shape_rejected[timezone]
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_codec.py::test_safe_document_and_external_anchor
+FAILED tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_native_design_receives_explicit_blocks
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[drop]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[duplicate]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[namespace]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[index]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[side]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[spec_seed]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[ce_hash]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[date]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[hidden]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[extra_family]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_sample_membership_mutations_fail[retry]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_wrong_external_corpus_identity[role]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_wrong_external_corpus_identity[split]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_wrong_external_corpus_identity[candidate]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_wrong_external_corpus_identity[count]
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_all_sample_types_roundtrip
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_explicit_seeds_require_exact_members_and_fixture_scope
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_real_v2_scaled_canonical_statistics_semantics
+ERROR tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_parameter_drift_rejected_before_evaluation
+14 failed, 77 passed, 20 errors in 29.23s

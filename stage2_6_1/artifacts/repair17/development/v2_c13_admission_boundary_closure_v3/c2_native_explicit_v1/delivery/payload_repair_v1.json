@@ -1,0 +1,28 @@
+{
+  "authorization": "GOAL.md Section 0/3-G1: existing package is a correctable starting point; patch bytes not binding",
+  "failure_evidence": [
+    "10_targeted rc=96 (pre-created RUN_DIR; script authoring defect)",
+    "10_targeted_r1 rc=2 (ModuleNotFoundError: r17_c2_native_rehearsal at collection)"
+  ],
+  "format": "R17PayloadRepairManifest-v1",
+  "original_package_sha256_manifest": "PAYLOAD.json (unchanged in PKG)",
+  "package": "R17C2NativeExplicitSampleIntegration-v1",
+  "repairs": [
+    {
+      "original_sha256": "53cd314e1777a06a629eec24bfe10c3b154f03f8c8bd61533b127b9753ccdec5",
+      "original_size": 19887,
+      "path": "stage2_6_1/runner/r17_c2_native_rehearsal.py",
+      "reason": "monitored entry normalizes business PYTHONPATH to src only; runner imported tests-dir fixtures without bootstrapping sys.path (r17_c2_consumer_rehearsal._fixtures idiom added)",
+      "repaired_sha256": "f3cf52b6deacafc37672d8d9acd06f0de2bcb02729a98d16a3e13b690d193bd0",
+      "repaired_size": 20394
+    },
+    {
+      "original_sha256": "dcea9e4b51b3258c51f2465384e165e330eecad8111804448be40d30ab956e77",
+      "original_size": 7108,
+      "path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_components.py",
+      "reason": "monitored entry normalizes business PYTHONPATH to src only; test imported runner module via ambient path (load_module file-location idiom added)",
+      "repaired_sha256": "7bbce81e3bdac0436d900556c029a672d8d11f00cc162986cf2bec1a009e3305",
+      "repaired_size": 7787
+    }
+  ]
+}
