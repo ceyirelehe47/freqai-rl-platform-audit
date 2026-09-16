@@ -187,6 +187,7 @@ def semantic_cue_gate(
         recall_floor_value: float = 0.0,
         min_unique_positive_cues: int = MIN_UNIQUE_POSITIVE_CUES,
         label: str = "",
+        *, explicit_block_seeds: dict[int, int] | None = None,
 ) -> dict[str, Any]:
     """§15 dedicated semantic corpus 的 candidate-independent gate。
 
@@ -205,7 +206,17 @@ def semantic_cue_gate(
     任一 FAIL => R17 design FAIL(不进入 candidate 设计)。
     """
     obs = canonical_cue_observations(blocks, thresholds)
-    trace = trace_matched_blocks(blocks, rung_params_by_rung, thresholds)
+    if explicit_block_seeds is None:
+        trace = trace_matched_blocks(blocks, rung_params_by_rung, thresholds)
+    else:
+        # Engineering-only sample/seed boundary. All trace/rate mathematics
+        # and default production namespace behavior remain the original code.
+        from rl_curriculum.curriculum261_r17_c2_native_inputs import (
+            explicit_trace_arguments,
+        )
+        from rl_curriculum.curriculum261_r17_noise_replay import trace_corpus
+        trace = trace_corpus(explicit_trace_arguments(blocks, explicit_block_seeds),
+                             rung_params_by_rung, thresholds)
     pos_blocks = []
     for pb in obs["per_block"]:
         pos = [e for e in pb["events"] if e["is_positive"]]
