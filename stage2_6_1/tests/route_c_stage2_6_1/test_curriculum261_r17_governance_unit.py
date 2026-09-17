@@ -60,9 +60,10 @@ class TestRegistryApi:
         doc = verify_r17_registry_alignment()
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
         # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
-        # = 97;正式集合不变(4)。集合精确性由增量检查承载,不是单纯
-        # 改一个数字绕过集合核验。
-        assert doc["n_namespaces"] == 97 and doc["n_formal"] == 4
+        # = 97;R18 尝试族(正式 16 + rt4 工程 21 = 37)加入后 = 134,
+        # 正式集合 4 + R18 四件套 = 8。集合精确性由增量检查承载,
+        # 不是单纯改一个数字绕过集合核验。
+        assert doc["n_namespaces"] == 134 and doc["n_formal"] == 8
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
               "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}
@@ -76,11 +77,14 @@ class TestRegistryApi:
         assert doc["unique"]
 
     def test_formal_four_namespaces_fresh(self):
+        # R18 尝试四件套加入正式面(journal §11 处方:R17 框架 + 全新
+        # namespace);旧四件套保持注册未消费。
+        from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
         assert set(CURRICULUM261_R17_FORMAL_NAMESPACES) == {
             "qualification_r17",
             "preprocess_fit_qualification_r17",
             "c2_independent_qualification_r17",
-            "cue_semantic_qualification_r17"}
+            "cue_semantic_qualification_r17"} | set(R18_FORMAL_FOUR)
         assert not (set(CURRICULUM261_R17_NAMESPACES)
                     & set() )
 

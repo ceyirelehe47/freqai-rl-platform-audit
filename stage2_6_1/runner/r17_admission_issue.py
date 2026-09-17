@@ -54,8 +54,11 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     parents = _git(repo, "rev-parse", commit_a + "^")
     if parents.returncode != 0:
         raise SystemExit("refused: commit has no parent (not a candidate)")
-    tail = state_root.parts[-3:]
-    if tail != ("artifacts", "route_c_stage2_6_1_repair17", "state") \
+    tails = (
+        ("artifacts", "route_c_stage2_6_1_repair17", "state"),
+        ("artifacts", "route_c_stage2_6_1_repair18", "state"),
+    )
+    if tuple(state_root.parts[-3:]) not in tails \
             or state_root.parent.parent.parent != deploy_root:
         raise SystemExit("refused: deployed state root shape unbound")
     required = {"admission_id", "iteration", "plan_digest", "authorization"}

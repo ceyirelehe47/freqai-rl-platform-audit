@@ -216,25 +216,32 @@ def run_final_qualification_r17(out_dir: Path,
             conditioning_fit_namespace=str(
                 rehearsal_profile["conditioning_fit_namespace"]))
     else:
+        # R18 尝试正式四件套(journal §11 处方:R17 框架 + 全新
+        # namespace;一次性消费语义不变)。
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_C2_INDEPENDENT_QUALIFICATION, R18_FIT_QUALIFICATION,
+            R18_FORMAL_FOUR, R18_FRESH_HOLDOUT, R18_QUALIFICATION,
+            R18_SEMANTIC_QUALIFICATION,
+        )
         core_kwargs = dict(
-            profile_name="formal_final_r17",
-            final_namespace="qualification_r17",
-            fit_namespace="preprocess_fit_qualification_r17",
+            profile_name="formal_final_r18",
+            final_namespace=R18_QUALIFICATION,
+            fit_namespace=R18_FIT_QUALIFICATION,
             c13_pairs_per_rung=10,
             c2_blocks=int(plan["final_sample_counts"][
                 "c2_matched_blocks"]),
             semantic_block_count=160,
             independent_pairs_per_rung=20,
-            independent_namespace="c2_independent_qualification_r17",
-            semantic_namespace_override="cue_semantic_qualification_r17",
-            fresh_seed_final_namespace="qualification_r17",
-            fresh_seed_holdout_namespace="fresh_holdout_r17")
+            independent_namespace=R18_C2_INDEPENDENT_QUALIFICATION,
+            semantic_namespace_override=R18_SEMANTIC_QUALIFICATION,
+            fresh_seed_final_namespace=R18_QUALIFICATION,
+            fresh_seed_holdout_namespace=R18_FRESH_HOLDOUT)
 
-    # ---- 受控委派协议:注册身份 → 等待绑定本实例的 token ---------
+    # ---- 受控委派协议:注册身份 → 等待绑定本进程实例的 token ---------
     grant_namespaces = (
         tuple(rehearsal_profile["grant_namespaces"])
         if rt and rehearsal_profile.get("grant_namespaces")
-        else R17_FORMAL_QUALIFICATION_NAMESPACES)
+        else R18_FORMAL_FOUR)
     if control_write_fd is not None and control_read_fd is not None:
         _worker_delegate(control_write_fd, control_read_fd,
                          grant_namespaces)

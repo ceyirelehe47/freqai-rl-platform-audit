@@ -37,8 +37,12 @@ CONSUMED_NAME = "r17_admission_consumed.jsonl"
 DEFAULT_RELEASE_REPO = "/mnt/f/trading/freqai-rl-audit"
 REJECT_RC = 96
 
-#: state root 必须形如 <deploy_root>/artifacts/route_c_stage2_6_1_repair17/state
-_STATE_TAIL = ("artifacts", "route_c_stage2_6_1_repair17", "state")
+#: state root 必须形如 <deploy_root>/artifacts/route_c_stage2_6_1_repairN/state
+#: (N ∈ 已冻结的正式迭代轮;R18 = 全新 namespace 尝试,GOAL/journal §11 处方)。
+_STATE_TAILS = (
+    ("artifacts", "route_c_stage2_6_1_repair17", "state"),
+    ("artifacts", "route_c_stage2_6_1_repair18", "state"),
+)
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _ZERO_SHA = "0" * 40
 
@@ -46,12 +50,11 @@ _ZERO_SHA = "0" * 40
 def deploy_root_of(state_root: Path) -> Path | None:
     """由 state root 推算部署根;形态不符(任意根组合)返回 None。"""
     sp = Path(state_root)
-    # state_root 必须是 <deploy>/artifacts/route_c_stage2_6_1_repair17/state
-    if sp.name != _STATE_TAIL[2] or \
-            sp.parent.name != _STATE_TAIL[1] or \
-            sp.parent.parent.name != _STATE_TAIL[0]:
-        return None
-    return sp.parent.parent.parent
+    # state_root 必须是 <deploy>/artifacts/route_c_stage2_6_1_repairN/state
+    for tail in _STATE_TAILS:
+        if (sp.parent.parent.name, sp.parent.name, sp.name) == tail:
+            return sp.parent.parent.parent
+    return None
 
 
 def _release_repo(release_repo: str | None) -> Path:

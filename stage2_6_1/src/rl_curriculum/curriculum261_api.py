@@ -577,6 +577,13 @@ CURRICULUM261_R16_NAMESPACE_ROLES.update({
 
 #: R17 全部 seed namespace(与 curriculum261_r17_registry.R17_ALL_
 #: NAMESPACES 同源;此处为单一权威,registry 侧断言对齐)。
+# R18 formal attempt family (R17 framework + brand-new namespaces per the
+# aborted r17 journal's §11 prescription; single source in r18_attempt).
+from rl_curriculum.curriculum261_r18_attempt import (  # noqa: E402
+    R18_ALL_NEW as _R18_ATTEMPT_NAMESPACES,
+    R18_FORMAL_FOUR as _R18_ATTEMPT_FORMAL_FOUR,
+)
+
 CURRICULUM261_R17_NAMESPACES = (
     "cue_contract_model_r17", "cue_contract_validation_r17",
     "cue_k_global_null_r17", "preplan_engineering_smoke_r17",
@@ -633,15 +640,17 @@ CURRICULUM261_R17_NAMESPACES = (
     "preplan_v2c13_v2_fit_validation_r17",
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
-)
+) + _R18_ATTEMPT_NAMESPACES
 
-#: R17 正式资格面(数据入口四件套;§6.5)。
+#: R17 正式资格面(数据入口四件套;§6.5)。R18 尝试按其 journal §11
+#: 处方("R17 永久结束,下一轮必须 R17 + 全新 namespace")以全新
+#: 四件套加入正式面;旧四件套保持注册未消费。
 CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "qualification_r17",
     "preprocess_fit_qualification_r17",
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
-)
+) + _R18_ATTEMPT_FORMAL_FOUR
 
 CURRICULUM261_R17_NAMESPACE_ROLES = {
     name: {"iteration": "r17", "class": "engineering"}

@@ -1327,10 +1327,13 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
 
     out = Path(args.out_dir)
     if getattr(args, "rehearsal", False):
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_RT_CUE_MODEL, R18_RT_CUE_VALIDATION,
+        )
         report = run_cue_contract_audit(
             out,
-            model_namespace="rt_cue_model_r17",
-            validation_namespace="rt_cue_validation_r17",
+            model_namespace=R18_RT_CUE_MODEL,
+            validation_namespace=R18_RT_CUE_VALIDATION,
             require_locked_plan=False)
         _dump_txt(out, "cue_semantic_contract_digest.txt",
                   cue_semantic_contract_digest())
@@ -1338,7 +1341,7 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
                     cue_semantic_contract_payload())
         print(f"[cue-audit][rehearsal] pass={report['pass']} "
               f"p_contract={report['p_contract']:.6f} "
-              f"namespaces=rt_cue_model_r17/rt_cue_validation_r17")
+              f"namespaces={R18_RT_CUE_MODEL}/{R18_RT_CUE_VALIDATION}")
         if not report["pass"]:
             print("[cue-audit][rehearsal] rehearsal 审计 FAIL——"
                   "R17RealArtifactCliRoundTrip-v1 不得通过")
@@ -1885,11 +1888,17 @@ def cmd_design_plan_lock(args: argparse.Namespace) -> int:
         # audit plan(非正式参数),plan 内以显式标记代替 digest;正式
         # 路径必须携带真实锁定 digest(下方 else 分支)。
         audit_plan_digest_value = "r15ap-rt-rehearsal-no-locked-plan"
-        design_namespaces = ("rt_design_matched_main_r17",
-                             "rt_design_matched_validation_r17")
-        semantic_namespaces = ("rt_semantic_design_main_r17",
-                               "rt_semantic_design_validation_r17")
-        independent_namespace = "rt_design_independent_r17"
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_RT_DESIGN_INDEPENDENT, R18_RT_DESIGN_MATCHED_MAIN,
+            R18_RT_DESIGN_MATCHED_VALIDATION,
+            R18_RT_SEMANTIC_DESIGN_MAIN,
+            R18_RT_SEMANTIC_DESIGN_VALIDATION,
+        )
+        design_namespaces = (R18_RT_DESIGN_MATCHED_MAIN,
+                             R18_RT_DESIGN_MATCHED_VALIDATION)
+        semantic_namespaces = (R18_RT_SEMANTIC_DESIGN_MAIN,
+                               R18_RT_SEMANTIC_DESIGN_VALIDATION)
+        independent_namespace = R18_RT_DESIGN_INDEPENDENT
     else:
         audit_plan = load_locked_cue_audit_plan_r17(out)
         audit_plan_digest_value = str(
@@ -2081,8 +2090,13 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
             rt_main_profile_r17,
         )
 
-        fit_ns_main = "rt3_fit_main_r17"
-        fit_ns_hold = "rt3_fit_holdout_r17"
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_RT_CALIBRATION_MAIN, R18_RT_FIT_HOLDOUT, R18_RT_FIT_MAIN,
+            R18_RT_STRESS,
+        )
+
+        fit_ns_main = R18_RT_FIT_MAIN
+        fit_ns_hold = R18_RT_FIT_HOLDOUT
         # 诊断轮(2026-09-06):缺省 = R16 rt 预登记规模(RT_* 常量,
         # R15/R16 rehearsal 17 步全绿的同一规模);CURRICULUM261_R17_
         # RT_SMALL=1 时的缩小模式仅作工程链路诊断逃生门(统计排序
@@ -2092,17 +2106,20 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
             "CURRICULUM261_R17_RT_SMALL", "0") == "1"
         profile_main_obj = rt_main_profile_r17(small=_rt_small)
         profile_holdout_obj = rt_holdout_profile_r17(small=_rt_small)
-        conditioning_eval_ns = "rt3_calibration_main_r17"
-        stress_ns = "rt3_stress_r17"
-        print("[calibrate][rehearsal] rt3_* namespace;预登记工程规模"
+        conditioning_eval_ns = R18_RT_CALIBRATION_MAIN
+        stress_ns = R18_RT_STRESS
+        print("[calibrate][rehearsal] rt4_*_r18 namespace;预登记工程规模"
               "(rt 缩小模式=%s;链路验证非统计;§8.1)" % _rt_small)
     else:
-        fit_ns_main = "preprocess_fit_calibration_r17"
-        fit_ns_hold = "preprocess_fit_holdout_r17"
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_C13_MAIN, R18_FIT_HOLDOUT, R18_FIT_MAIN, R18_STRESS,
+        )
+        fit_ns_main = R18_FIT_MAIN
+        fit_ns_hold = R18_FIT_HOLDOUT
         profile_main_obj = formal_main_profile_r17(n_blocks)
         profile_holdout_obj = formal_holdout_profile_r17(n_blocks)
-        conditioning_eval_ns = "calibration_r17"
-        stress_ns = "stress_r17"
+        conditioning_eval_ns = R18_C13_MAIN
+        stress_ns = R18_STRESS
 
     print(f"[calibrate] fitting main preprocessor ({fit_ns_main})...")
     records_main = generate_fit_bank_r17(fit_ns_main, pack)
@@ -2402,18 +2419,19 @@ def cmd_preflight_sealed(args: argparse.Namespace) -> int:
 #: 与正式路径同代码。缩小规模下 verdict 不作资格判定(预期非 PASS;
 #: artifact 写盘供 smoke/下游 reader 真实读取)。
 R17_RT_FINAL_PROFILE: dict = {
-    "final_namespace": "rt3_qualification_r17",
-    "fit_namespace": "rt3_fit_qualification_r17",
+    # R18 尝试的 rt final 验证族(rt4_*_r18;不消耗正式 R18 四件套)。
+    "final_namespace": "rt4_qualification_r18",
+    "fit_namespace": "rt4_fit_qualification_r18",
     "c13_pairs_per_rung": 2,
     "c2_blocks": 4,
     "semantic_block_count": 8,
     "independent_pairs_per_rung": 2,
-    "independent_namespace": "rt3_c2_independent_main_r17",
-    "semantic_namespace": "rt3_semantic_final_r17",
-    "supervised_namespace": "rt3_supervised_main_r17",
+    "independent_namespace": "rt4_c2_independent_main_r18",
+    "semantic_namespace": "rt4_semantic_final_r18",
+    "supervised_namespace": "rt4_supervised_main_r18",
     "supervised_model_seeds": (20270135,),
     "supervised_training_config": {"epochs": 2},
-    "conditioning_fit_namespace": "rt3_fit_main_r17",
+    "conditioning_fit_namespace": "rt4_fit_main_r18",
 }
 
 
