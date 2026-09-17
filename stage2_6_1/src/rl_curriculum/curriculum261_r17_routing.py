@@ -397,7 +397,7 @@ def require_eval_routing_r17(
     (orchestrator/旧测试)不传时行为不变(仍可选)。
     """
     _NONFORMAL_PREFIXES = ("preplan_", "reference_diagnostic",
-                           "shadow_", "rt_", "rt3_")
+                           "shadow_", "rt_", "rt3_", "rt4_")
     expected_role = R17_EVAL_NAMESPACE_ROLE.get(eval_namespace)
     if expected_role is None:
         raise RoutingContractError(
