@@ -35,6 +35,9 @@ from rl_curriculum.curriculum261_generation_envelope import (
 
 COMPLETENESS_FORMAT = "cur261-r17-generation-evidence-completeness-v1"
 R17_ITERATION = "r17"
+#: R18 尝试族(R17 框架 + 全新 namespace;journal §11 处方)的信封
+#: 迭代标识与 r17 同属本框架治理面,完备性对账同等接受。
+R17_FRAMEWORK_ITERATIONS = ("r17", "r18")
 
 
 @dataclass(frozen=True)
@@ -141,7 +144,7 @@ def verify_generation_evidence_completeness(
             stage_mismatch += 1
             continue
         env = r.get("envelope") or {}
-        if env.get("iteration") != R17_ITERATION:
+        if env.get("iteration") not in R17_FRAMEWORK_ITERATIONS:
             iteration_mismatch += 1
             continue
         try:

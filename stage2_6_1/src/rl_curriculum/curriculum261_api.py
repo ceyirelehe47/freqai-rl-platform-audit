@@ -1457,12 +1457,12 @@ def _default_recorder(namespace: str, family: str, rung: str,
         from rl_curriculum.curriculum261_generation_envelope import (
             active_recorder,
         )
-        # repair R12-R16:iteration 字段按 namespace 后缀派生——R0-R11
-        # namespace 行为与 R11 完全一致("r11");全部 R12 namespace 含
-        # "r12" 子串、R13 含 "r13"、R14 含 "r14"、R15 含 "r15"、
-        # R16 含 "r16"、R17 含 "r17" 子串,且历史 namespace 均不含,
-        # 故无歧义。
-        iteration = ("r17" if "r17" in namespace
+        # repair R12-R18:iteration 字段按 namespace 后缀派生——R0-R11
+        # namespace 行为与 R11 完全一致("r11");R12-R17 namespace 各含
+        # 对应子串;R18 尝试族含 "r18" 子串(R17 框架 + 全新 namespace;
+        # journal §11 处方),历史 namespace 均不含,故无歧义。
+        iteration = ("r18" if "r18" in namespace
+                     else "r17" if "r17" in namespace
                      else "r16" if "r16" in namespace
                      else "r15" if "r15" in namespace
                      else "r14" if "r14" in namespace
