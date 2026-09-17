@@ -220,7 +220,7 @@ def run_final_qualification_r17(out_dir: Path,
         # namespace;一次性消费语义不变)。
         from rl_curriculum.curriculum261_r18_attempt import (
             R18_C2_INDEPENDENT_QUALIFICATION, R18_FIT_QUALIFICATION,
-            R18_FORMAL_FOUR, R18_FRESH_HOLDOUT, R18_QUALIFICATION,
+            R18_FRESH_HOLDOUT, R18_QUALIFICATION,
             R18_SEMANTIC_QUALIFICATION,
         )
         core_kwargs = dict(
@@ -238,6 +238,7 @@ def run_final_qualification_r17(out_dir: Path,
             fresh_seed_holdout_namespace=R18_FRESH_HOLDOUT)
 
     # ---- 受控委派协议:注册身份 → 等待绑定本进程实例的 token ---------
+    from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
     grant_namespaces = (
         tuple(rehearsal_profile["grant_namespaces"])
         if rt and rehearsal_profile.get("grant_namespaces")
