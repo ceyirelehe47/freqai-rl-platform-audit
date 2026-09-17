@@ -408,7 +408,7 @@ def test_v03_v1_first_c1_proof_readonly_regression(tmp_path):
 
 
 # ------------------------------------------------------------------ V04
-def test_v04_registry_97_4_exact_increment():
+def test_v04_registry_exact_increment():
     c = prof.fixed_contract()
     assert c['n_planned_requests'] == 336
     assert c['n_fit_requests'] == 160 and c['n_eval_requests'] == 176
@@ -428,21 +428,27 @@ def test_v04_registry_97_4_exact_increment():
             R17_ALL_NAMESPACES, R17_FORMAL_QUALIFICATION_NAMESPACES)
     except ModuleNotFoundError:
         pytest.skip('rl_curriculum not importable in this layout')
-    # 精确 97/4;非重言式:与显式基线集合 + 四 v2 名的并集精确相等。
-    assert len(ns) == 97 and len(formal) == 4
+    # 精确 127/8(v2c13 世代 97/4 + R18 尝试增量 30/4);非重言式:
+    # 与显式基线集合 + v1 四名 + v2 四名 + R18 尝试名的并集精确相等。
+    from rl_curriculum.curriculum261_r18_attempt import (
+        R18_ALL_NEW, R18_FORMAL_FOUR)
+    assert len(ns) == 127 and len(formal) == 8
     assert tuple(ns) == R17_ALL_NAMESPACES
     v1_names = (*prof.V1_FIT_NAMESPACES.values(),
                 *prof.V1_EVAL_NAMESPACES.values())
     v2_names = (*prof.FIT_NAMESPACES.values(),
                 *prof.EVAL_NAMESPACES.values())
-    baseline_89 = set(R17_ALL_NAMESPACES) - set(v1_names) - set(v2_names)
+    baseline_89 = set(R17_ALL_NAMESPACES) - set(v1_names) - set(v2_names) \
+        - set(R18_ALL_NEW)
     assert len(baseline_89) == 89  # v1 之前的历史基线
     assert set(R17_ALL_NAMESPACES) == baseline_89 | set(v1_names) \
-        | set(v2_names)
+        | set(v2_names) | set(R18_ALL_NEW)
     assert set(v1_names) & set(v2_names) == set()
     for name in v2_names:
         assert name in ns and name not in formal
     assert tuple(formal) == R17_FORMAL_QUALIFICATION_NAMESPACES
+    # R18 尝试正式四名已注册且被镜像双表一致收录。
+    assert set(R18_FORMAL_FOUR) <= set(formal)
     # v1 名保留且仍非正式。
     for name in v1_names:
         assert name in ns and name not in formal
