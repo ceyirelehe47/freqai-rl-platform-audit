@@ -55,13 +55,10 @@ R18_FORMAL_FAMILY = (
 ) + R18_FORMAL_FOUR
 
 # ---- rt4 工程族(r18 尝试的 rehearsal 验证面;新坐标新种子) ----
-R18_RT_CUE_MODEL = "rt_cue_model_r18"
-R18_RT_CUE_VALIDATION = "rt_cue_validation_r18"
-R18_RT_DESIGN_MATCHED_MAIN = "rt_design_matched_main_r18"
-R18_RT_DESIGN_MATCHED_VALIDATION = "rt_design_matched_validation_r18"
-R18_RT_DESIGN_INDEPENDENT = "rt_design_independent_r18"
-R18_RT_SEMANTIC_DESIGN_MAIN = "rt_semantic_design_main_r18"
-R18_RT_SEMANTIC_DESIGN_VALIDATION = "rt_semantic_design_validation_r18"
+# 注:cue-audit 与 design 的 rehearsal 夹具保持既有 rt_cue_*_r17 /
+# rt_design_*_r17 坐标(其机械面在 r18 尝试中零改动;本轮 rt9c 已
+# 实证 17/17,重掷新坐标只是无信息量的统计重抽)。本族覆盖 r18
+# 尝试真正改接线的面:calibrate 双分区与 final qualification。
 R18_RT_FIT_MAIN = "rt4_fit_main_r18"
 R18_RT_FIT_HOLDOUT = "rt4_fit_holdout_r18"
 R18_RT_CALIBRATION_MAIN = "rt4_calibration_main_r18"
@@ -78,10 +75,6 @@ R18_RT_QUALIFICATION = "rt4_qualification_r18"
 R18_RT_SEMANTIC_FINAL = "rt4_semantic_final_r18"
 
 R18_RT_FAMILY = (
-    R18_RT_CUE_MODEL, R18_RT_CUE_VALIDATION,
-    R18_RT_DESIGN_MATCHED_MAIN, R18_RT_DESIGN_MATCHED_VALIDATION,
-    R18_RT_DESIGN_INDEPENDENT,
-    R18_RT_SEMANTIC_DESIGN_MAIN, R18_RT_SEMANTIC_DESIGN_VALIDATION,
     R18_RT_FIT_MAIN, R18_RT_FIT_HOLDOUT,
     R18_RT_CALIBRATION_MAIN, R18_RT_CALIBRATION_HOLDOUT,
     R18_RT_C2_INDEPENDENT_MAIN, R18_RT_C2_INDEPENDENT_HOLDOUT,

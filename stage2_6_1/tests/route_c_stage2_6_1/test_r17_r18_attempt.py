@@ -31,7 +31,7 @@ from rl_curriculum.curriculum261_r17_registry import (
 
 
 def test_r18_family_is_fresh_and_registered():
-    assert len(set(a.R18_ALL_NEW)) == len(a.R18_ALL_NEW) == 37
+    assert len(set(a.R18_ALL_NEW)) == len(a.R18_ALL_NEW) == 30
     assert not any(n.endswith("_r17") for n in a.R18_ALL_NEW)
     assert set(a.R18_ALL_NEW) <= set(CURRICULUM261_R17_NAMESPACES)
     assert set(a.R18_ALL_NEW) <= set(R17_ALL_NAMESPACES)

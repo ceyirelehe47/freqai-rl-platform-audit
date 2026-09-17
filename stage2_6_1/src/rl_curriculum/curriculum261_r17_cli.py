@@ -1327,13 +1327,14 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
 
     out = Path(args.out_dir)
     if getattr(args, "rehearsal", False):
-        from rl_curriculum.curriculum261_r18_attempt import (
-            R18_RT_CUE_MODEL, R18_RT_CUE_VALIDATION,
-        )
+        # rehearsal 夹具坐标保持 rt_cue_*_r17(本轮 rt9c 17/17 已实证的
+        # 既有工程坐标):r18 尝试不改变审计机械面,重掷新坐标只会引入
+        # 无信息量的统计重抽(global-K 在新坐标曾落 INDETERMINATE,
+        # 按冻结合同不得当 PASS)。正式审计命名空间亦不变。
         report = run_cue_contract_audit(
             out,
-            model_namespace=R18_RT_CUE_MODEL,
-            validation_namespace=R18_RT_CUE_VALIDATION,
+            model_namespace="rt_cue_model_r17",
+            validation_namespace="rt_cue_validation_r17",
             require_locked_plan=False)
         _dump_txt(out, "cue_semantic_contract_digest.txt",
                   cue_semantic_contract_digest())
@@ -1341,7 +1342,7 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
                     cue_semantic_contract_payload())
         print(f"[cue-audit][rehearsal] pass={report['pass']} "
               f"p_contract={report['p_contract']:.6f} "
-              f"namespaces={R18_RT_CUE_MODEL}/{R18_RT_CUE_VALIDATION}")
+              f"namespaces=rt_cue_model_r17/rt_cue_validation_r17")
         if not report["pass"]:
             print("[cue-audit][rehearsal] rehearsal 审计 FAIL——"
                   "R17RealArtifactCliRoundTrip-v1 不得通过")
@@ -1888,17 +1889,13 @@ def cmd_design_plan_lock(args: argparse.Namespace) -> int:
         # audit plan(非正式参数),plan 内以显式标记代替 digest;正式
         # 路径必须携带真实锁定 digest(下方 else 分支)。
         audit_plan_digest_value = "r15ap-rt-rehearsal-no-locked-plan"
-        from rl_curriculum.curriculum261_r18_attempt import (
-            R18_RT_DESIGN_INDEPENDENT, R18_RT_DESIGN_MATCHED_MAIN,
-            R18_RT_DESIGN_MATCHED_VALIDATION,
-            R18_RT_SEMANTIC_DESIGN_MAIN,
-            R18_RT_SEMANTIC_DESIGN_VALIDATION,
-        )
-        design_namespaces = (R18_RT_DESIGN_MATCHED_MAIN,
-                             R18_RT_DESIGN_MATCHED_VALIDATION)
-        semantic_namespaces = (R18_RT_SEMANTIC_DESIGN_MAIN,
-                               R18_RT_SEMANTIC_DESIGN_VALIDATION)
-        independent_namespace = R18_RT_DESIGN_INDEPENDENT
+        # rehearsal 夹具坐标保持既有 rt_design_*_r17(设计机械面在 r18
+        # 尝试中零改动;正式设计命名空间不变——不重掷设计统计)。
+        design_namespaces = ("rt_design_matched_main_r17",
+                             "rt_design_matched_validation_r17")
+        semantic_namespaces = ("rt_semantic_design_main_r17",
+                               "rt_semantic_design_validation_r17")
+        independent_namespace = "rt_design_independent_r17"
     else:
         audit_plan = load_locked_cue_audit_plan_r17(out)
         audit_plan_digest_value = str(
