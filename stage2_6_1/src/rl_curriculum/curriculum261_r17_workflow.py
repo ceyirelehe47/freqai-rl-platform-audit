@@ -286,6 +286,20 @@ R17_WORKFLOW_STEPS: tuple[dict[str, Any], ...] = (
              "17 条完整);最后节点后的日志封口边界在冻结前定义"),
 )
 
+#: 注册表权威产物(resides in the deployed state root; produced by
+#: lock-plan via registry paths, consumed by preflight-sealed / qualify)。
+#: 该边在 R12-R16 从未被执行到;协调者按 out_dir 解析前置产物会把
+#: state root 里的计划误判为缺失(接口错位,正式链同样会踩)。
+#: 独立映射、不进入步骤声明 ⇒ workflow graph digest 不变。
+R17_STATE_ROOT_ARTIFACTS: dict[str, tuple[str, ...]] = {
+    "lock-plan": ("qualification_plan_r17.json",
+                  "qualification_plan_digest_r17.txt"),
+    "preflight-sealed": ("qualification_plan_r17.json",
+                         "qualification_plan_digest_r17.txt"),
+    "qualify": ("qualification_plan_r17.json",
+                "qualification_plan_digest_r17.txt"),
+}
+
 #: 全部 failure phase(继承 R15 20 条超集语义)。
 R17_FAILURE_PHASES: tuple[str, ...] = (
     "bootstrap", "pre-provenance", "determinism", "audit", "cue-audit",
@@ -605,8 +619,21 @@ def execute_workflow_chain_r17(
                     *step["argv"]]
             start_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
             t0 = time.monotonic()
+            # 注册表权威产物按部署 state root 解析(qualification
+            # plan/digest 由 lock-plan 经 registry 路径写入 state
+            # root;接口错位修复,其余产物仍按 out_dir)。映射独立
+            # 于步骤声明,graph digest 不受影响。
+            _sra = set(R17_STATE_ROOT_ARTIFACTS.get(name, ()))
+            _state_root = Path(os.environ.get(
+                "CURRICULUM261_R17_STATE_ROOT",
+                str(Path(out_dir) / "state")))
+
+            def _artifact_file(artifact: str) -> Path:
+                return ((_state_root if artifact in _sra
+                         else Path(out_dir)) / artifact)
+
             pre_missing = [a for a in step.get("requires_artifacts", ())
-                           if not (out_dir / a).is_file()]
+                           if not _artifact_file(a).is_file()]
             rc = 0
             signal_info: int | None = None
             # §5.4:design 步正式数据开始事件由协调者在 subprocess
@@ -655,9 +682,9 @@ def execute_workflow_chain_r17(
                 session.record_step_completed(name, rc=rc)
             else:
                 session.record_step_failed(name, rc=rc)
-            in_shas = {a: _sha256_file(out_dir / a)
+            in_shas = {a: _sha256_file(_artifact_file(a))
                        for a in step.get("requires_artifacts", ())}
-            out_shas = {a: _sha256_file(out_dir / a)
+            out_shas = {a: _sha256_file(_artifact_file(a))
                         for a in step.get("output_artifacts", ())}
             rec = {
                 "step": name,
