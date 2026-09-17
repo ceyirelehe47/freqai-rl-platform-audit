@@ -561,35 +561,60 @@ def preprocessing_robustness_checks_r17(
 # ------------------------------------------------------ 共享编排(§12.4)
 def _generate_eval_records(
         pack: dict[str, Any], namespace: str,
-        pairs_per_rung: int, override_fn: Any) -> list:
-    """按 namespace 生成 C1/C3 评估 records(每 family 每 rung)。"""
+        pairs_per_rung: int, override_fn: Any,
+        reserve_log: list | None = None) -> list:
+    """按 namespace 生成 C1/C3 评估 records(每 family 每 rung)。
+
+    c3_cost 走 GOAL §4 有限备援合同(主坐标结构耗尽且证据完备时
+    替换预声明 reserve 坐标;未知异常原样传播);C1 保持严格生成。
+    """
     from rl_curriculum.curriculum261_pairs import generate_pair as _gp
+    from rl_curriculum.curriculum261_r17_c3_finite_reserve import (
+        generate_c3_pair_with_finite_reserve,
+    )
 
     records = []
     for family in ("c1_opportunity", "c3_cost"):
         override = override_fn(family, pack)
         for rung in CURRICULUM261_RUNGS:
             for idx in range(pairs_per_rung):
-                records.append(_gp(
-                    family, rung, idx, namespace=namespace,
-                    rung_params_override=override))
+                if family == "c3_cost":
+                    records.append(generate_c3_pair_with_finite_reserve(
+                        rung, idx, namespace=namespace, override=override,
+                        reserve_log=reserve_log))
+                else:
+                    records.append(_gp(
+                        family, rung, idx, namespace=namespace,
+                        rung_params_override=override))
     return records
 
 
 def _generate_equiv_records(
         pack: dict[str, Any], namespace: str,
-        pairs_per_rung: int, override_fn: Any) -> list:
-    """equiv records 覆盖全部三个 family(reference equivalence 电池)。"""
+        pairs_per_rung: int, override_fn: Any,
+        reserve_log: list | None = None) -> list:
+    """equiv records 覆盖全部三个 family(reference equivalence 电池)。
+
+    c3_cost 同样走有限备援合同(equiv 语料无 pair 下标切分语义)。
+    """
     from rl_curriculum.curriculum261_pairs import generate_pair as _gp
+    from rl_curriculum.curriculum261_r17_c3_finite_reserve import (
+        generate_c3_pair_with_finite_reserve,
+    )
 
     records = []
     for family in CURRICULUM261_FAMILIES:
         override = override_fn(family, pack)
         for rung in CURRICULUM261_RUNGS:
             for idx in range(pairs_per_rung):
-                records.append(_gp(
-                    family, rung, idx, namespace=namespace,
-                    rung_params_override=override))
+                if family == "c3_cost":
+                    records.append(generate_c3_pair_with_finite_reserve(
+                        rung, idx, namespace=namespace, override=override,
+                        reserve_log=reserve_log))
+                else:
+                    records.append(_gp(
+                        family, rung, idx, namespace=namespace,
+                        rung_params_override=override))
     return records
 
 
@@ -785,18 +810,58 @@ def _orchestrate_calibration_stage_inner_r17(
                            default=str), encoding="utf-8")
 
     # ---- §18/§9:robustness 电池(main/holdout 显式 routing)----
+    # GOAL §4 C3 有限备援:主备坐标与预算在生成前声明并落盘;台账
+    # 记录全部替换/耗尽事件(证据摘要),供下游与冷读复核。
+    from rl_curriculum.curriculum261_r17_c3_finite_reserve import (
+        reserve_declaration,
+    )
+    c3_reserve_log: list[dict[str, Any]] = []
+    c3_reserve_journal: dict[str, Any] = {
+        "declarations": [
+            dict(reserve_declaration(
+                profile_main.c13_eval_namespace,
+                max(profile_main.c13_pairs_per_rung, 1)),
+                corpus="eval_main"),
+            dict(reserve_declaration(
+                profile_holdout.c13_eval_namespace,
+                max(profile_holdout.c13_pairs_per_rung, 1)),
+                corpus="eval_holdout"),
+            dict(reserve_declaration(
+                profile_main.equivalence_namespace,
+                profile_main.equivalence_pairs_per_rung),
+                corpus="equiv_main"),
+            dict(reserve_declaration(
+                profile_holdout.equivalence_namespace,
+                profile_holdout.equivalence_pairs_per_rung),
+                corpus="equiv_holdout"),
+            dict(reserve_declaration(
+                profile_main.c13_eval_namespace,
+                profile_main.c13_pairs_per_rung),
+                corpus="c13_evidence_main"),
+            dict(reserve_declaration(
+                profile_holdout.c13_eval_namespace,
+                profile_holdout.c13_pairs_per_rung),
+                corpus="c13_evidence_holdout"),
+        ],
+        "events": c3_reserve_log,
+    }
+    _write("c3_finite_reserve_journal.json", c3_reserve_journal)
     eval_main = _generate_eval_records(
         pack, profile_main.c13_eval_namespace,
-        max(profile_main.c13_pairs_per_rung, 1), override_fn)
+        max(profile_main.c13_pairs_per_rung, 1), override_fn,
+        reserve_log=c3_reserve_log)
     eval_hold = _generate_eval_records(
         pack, profile_holdout.c13_eval_namespace,
-        max(profile_holdout.c13_pairs_per_rung, 1), override_fn)
+        max(profile_holdout.c13_pairs_per_rung, 1), override_fn,
+        reserve_log=c3_reserve_log)
     equiv_main = _generate_equiv_records(
         pack, profile_main.equivalence_namespace,
-        profile_main.equivalence_pairs_per_rung, override_fn)
+        profile_main.equivalence_pairs_per_rung, override_fn,
+        reserve_log=c3_reserve_log)
     equiv_hold = _generate_equiv_records(
         pack, profile_holdout.equivalence_namespace,
-        profile_holdout.equivalence_pairs_per_rung, override_fn)
+        profile_holdout.equivalence_pairs_per_rung, override_fn,
+        reserve_log=c3_reserve_log)
     prep_rob = preprocessing_robustness_checks_r17(
         routing_main, routing_holdout, records_main, records_holdout,
         eval_main, eval_hold, equiv_main, equiv_hold, pack,
@@ -846,7 +911,8 @@ def _orchestrate_calibration_stage_inner_r17(
             context=f"c13_{role}", ledger=ledger)
         c13 = run_calibration_corpus_c13_r17(
             v2, pack, profile.c13_eval_namespace,
-            pairs_per_rung=profile.c13_pairs_per_rung)
+            pairs_per_rung=profile.c13_pairs_per_rung,
+            reserve_log=c3_reserve_log)
         _write(f"pair_evidence_table_{role}.json", {
             f: c13["families"][f]["pair_table"]
             for f in ("c1_opportunity", "c3_cost")})
@@ -940,6 +1006,17 @@ def _orchestrate_calibration_stage_inner_r17(
                 expected_calls.append(ExpectedCall(
                     profile.c2_independent_namespace, "c2_context",
                     rung, i))
+    # GOAL §4 C3 有限备援:每一次 reserve 调用(成功替换或结构耗尽)在
+    # 台账中恰有一个事件;据此为预期多重集追加对应 reserve 坐标的一次
+    # 调用,使 §15 完备性对账涵盖备援面(主坐标失败调用已由基础预期
+    # 计数覆盖——失败调用的 call 组照常落账)。
+    for event in c3_reserve_log:
+        if event.get("event") in ("reserve_substituted",
+                                  "reserve_structural_exhaustion"):
+            expected_calls.append(ExpectedCall(
+                event["namespace"], "c3_cost", event["rung"],
+                int(event["reserve_index"])))
+    _write("c3_finite_reserve_journal.json", c3_reserve_journal)
     block_summaries = []
     for role in ("main", "holdout"):
         blocks_role = stage_roles[role]["c2_matched"].get("blocks") or []

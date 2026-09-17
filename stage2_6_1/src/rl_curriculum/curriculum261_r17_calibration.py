@@ -96,10 +96,50 @@ def fit_preprocessor_v2_from_bank_r17(
 def run_calibration_corpus_c13_r17(
         preproc_v2: Any, pack: dict[str, Any], namespace: str, *,
         pairs_per_rung: int = CALIBRATION_PAIRS_PER_RUNG_R17,
+        reserve_log: list | None = None,
 ) -> dict[str, Any]:
-    """C1/C3 pair 语料(R6 冻结实现;keyword-only 转发)。"""
-    return _run_c13(preproc_v2, pack, namespace,
-                    pairs_per_rung=pairs_per_rung)
+    """C1/C3 pair 语料(R6 报告合同;C3 有限备援在 R17 层实施)。
+
+    C1 与评估数学保持 R6 冻结实现逐位一致(同一 thresholds/override/
+    rung_params/rung_report_r4 调用形状)。仅 c3_cost 的生成循环按
+    GOAL §4 有限备援合同执行:主坐标结构耗尽(证据完备)时替换为
+    预声明 reserve 坐标;未知异常按 §11 原样传播。supervised 语料
+    不在本函数面(其 train/test 按 pair 下标切分,禁索引替换)。
+    """
+    from rl_curriculum.curriculum261_r6_param_pack import (
+        r6_family_rung_params,
+        r6_override_for,
+    )
+    from rl_curriculum.curriculum261_r4_pairs import rung_report_r4
+    from rl_curriculum.curriculum261_r17_c3_finite_reserve import (
+        generate_c3_pair_with_finite_reserve,
+    )
+
+    specs = family_specs()
+    family_reports: dict[str, Any] = {}
+    for family in ("c1_opportunity", "c3_cost"):
+        thresholds = dict(specs[family].reference_defaults)
+        override = r6_override_for(family, pack)
+        records = []
+        for rung in CURRICULUM261_RUNGS:
+            for idx in range(pairs_per_rung):
+                if family == "c3_cost":
+                    records.append(generate_c3_pair_with_finite_reserve(
+                        rung, idx, namespace=namespace, override=override,
+                        reserve_log=reserve_log))
+                else:
+                    records.append(generate_pair(
+                        family, rung, idx, namespace=namespace,
+                        rung_params_override=override))
+        rung_params = r6_family_rung_params(family, pack)
+        family_reports[family] = rung_report_r4(
+            records, family, rung_params, thresholds, preproc_v2,
+            corpus=namespace)
+    return {
+        "seed_namespace": namespace,
+        "pairs_per_rung": pairs_per_rung,
+        "families": family_reports,
+    }
 
 
 def run_c2_matched_corpus_r17(

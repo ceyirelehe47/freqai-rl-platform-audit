@@ -442,6 +442,20 @@ def _execute_final_core_inner_r17(
             for f in CURRICULUM261_FAMILIES}
     family_reports: dict[str, Any] = {}
     all_records: dict[str, list] = {}
+    # GOAL §4 C3 有限备援:qualification C1/C3 语料的 c3 生成同样按
+    # 主备坐标合同执行(证据完备的结构耗尽→预声明 reserve;未知异常
+    # 原样传播)。C1 严格;台账随 qualification result 落盘。
+    from rl_curriculum.curriculum261_r17_c3_finite_reserve import (
+        generate_c3_pair_with_finite_reserve,
+        reserve_declaration,
+    )
+    c3_reserve_log: list[dict[str, Any]] = []
+    c3_reserve_journal = {
+        "declarations": [dict(
+            reserve_declaration(final_namespace, c13_pairs_per_rung),
+            corpus="final_c13")],
+        "events": c3_reserve_log,
+    }
     for family in CURRICULUM261_FAMILIES:
         if family == FAMILY_C2:
             continue
@@ -449,9 +463,14 @@ def _execute_final_core_inner_r17(
         records = []
         for rung in CURRICULUM261_RUNGS:
             for idx in range(int(c13_pairs_per_rung)):
-                records.append(generate_pair(
-                    family, rung, idx, namespace=final_namespace,
-                    rung_params_override=override))
+                if family == "c3_cost":
+                    records.append(generate_c3_pair_with_finite_reserve(
+                        rung, idx, namespace=final_namespace,
+                        override=override, reserve_log=c3_reserve_log))
+                else:
+                    records.append(generate_pair(
+                        family, rung, idx, namespace=final_namespace,
+                        rung_params_override=override))
         all_records[family] = records
         family_reports[family] = rung_report_r4(
             records, family, r17_family_rung_params(family, pack),
@@ -719,6 +738,7 @@ def _execute_final_core_inner_r17(
         "rt": bool(rt),
         "plan_digest": digest,
         "parameter_pack_digest": pack["digest"],
+        "c3_finite_reserve_journal": c3_reserve_journal,
         "started_utc": started,
         "completed_utc": datetime.now(timezone.utc).isoformat(
             timespec="seconds"),
