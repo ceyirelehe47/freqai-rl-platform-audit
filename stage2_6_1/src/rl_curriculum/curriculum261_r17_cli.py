@@ -2366,6 +2366,20 @@ def cmd_lock_plan(args: argparse.Namespace) -> int:
         final_bundle_hash="",
     )
     path, digest = lock_plan_r17(plan)
+    # 注册表权威参数包:plan lock 时以 create-only 语义同步到部署
+    # state root(sealed preflight 的 plan_path_resolves 与 registry
+    # 六要素静态资格都按该路径解析;该边 R12-R16 从未执行到)。
+    from rl_curriculum.curriculum261_r17_registry import (
+        r17_parameter_pack_path,
+    )
+    registry_pack = r17_parameter_pack_path()
+    if registry_pack.is_file():
+        raise RuntimeError(
+            "registry 参数包已存在;plan lock 后禁止重写(与 plan 同 "
+            "一次性语义)")
+    registry_pack.parent.mkdir(parents=True, exist_ok=True)
+    registry_pack.write_bytes(
+        (out / "r17_parameter_pack.json").read_bytes())
     print(f"[lock-plan] locked {path} digest={digest}")
     return 0
 
