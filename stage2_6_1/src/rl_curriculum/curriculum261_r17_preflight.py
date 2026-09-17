@@ -269,6 +269,15 @@ def run_prelock_static_preflight_r17(out_dir: Path,
                     concurrent_lock_rejected = True
                 lock_ok = bool(concurrent_lock_rejected)
             finally:
+                # §7.4 生命周期:exposure running 时必须先提交资格终态
+                # 才能 release。探针走完整 open→terminal→release 序列
+                # (临时状态根),不放宽内核规则。
+                _probe_state = _probe_exposure_state()
+                if _probe_state["exposed"] and \
+                        _probe_state["status"] == "running":
+                    probe.commit_qualification_terminal(
+                        "completed", "r17dp-preflight-probe",
+                        note="preflight-static probe teardown")
                 probe.release()
         finally:
             if old is None:
