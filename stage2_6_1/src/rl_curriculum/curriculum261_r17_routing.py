@@ -138,6 +138,29 @@ R17_EVAL_NAMESPACE_ROLE: dict[str, str] = {
     # ---- R17V2C13EngineeringCalibration-v2(工程;v2 重跑)----
     "preplan_v2c13_v2_eval_main_r17": "main",
     "preplan_v2c13_v2_eval_validation_r17": "holdout",
+    # ---- R18 尝试(journal §11 处方:R17 框架 + 全新 namespace)----
+    "calibration_r18": "main",
+    "calibration_holdout_r18": "holdout",
+    "qualification_r18": "final",
+    "c2_independent_calibration_r18": "main",
+    "c2_independent_holdout_r18": "holdout",
+    "c2_independent_qualification_r18": "final",
+    "supervised_main_r18": "main",
+    "supervised_holdout_r18": "holdout",
+    "cue_semantic_calibration_r18": "main",
+    "cue_semantic_holdout_r18": "holdout",
+    "cue_semantic_qualification_r18": "final",
+    # ---- R18 尝试 rt4 工程族 ----
+    "rt4_calibration_main_r18": "main",
+    "rt4_calibration_holdout_r18": "holdout",
+    "rt4_supervised_main_r18": "main",
+    "rt4_supervised_holdout_r18": "holdout",
+    "rt4_semantic_main_r18": "main",
+    "rt4_semantic_validation_r18": "holdout",
+    "rt4_c2_independent_main_r18": "main",
+    "rt4_c2_independent_holdout_r18": "holdout",
+    "rt4_qualification_r18": "final",
+    "rt4_semantic_final_r18": "final",
 }
 
 #: v2c13 各代专属 eval namespace(v2 代际隔离:v2c13v2 路由不得服务
