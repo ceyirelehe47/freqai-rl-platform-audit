@@ -1016,6 +1016,22 @@ def _orchestrate_calibration_stage_inner_r17(
             expected_calls.append(ExpectedCall(
                 event["namespace"], "c3_cost", event["rung"],
                 int(event["reserve_index"])))
+    # 证据化结构耗尽坐标的 0-accepted 调用豁免(主坐标与耗尽的 reserve
+    # 坐标;条目仅来自台账中证据完备的耗尽事件)。
+    evidenced_exhausted: dict[tuple[str, str, str, int], dict[str, Any]] = {}
+    for event in c3_reserve_log:
+        if event.get("event") == "main_structural_exhaustion":
+            evidenced_exhausted[(
+                event["namespace"], "c3_cost", event["rung"],
+                int(event["main_index"]))] = {
+                    "source": "main",
+                    "evidence_digest": event["evidence"]["evidence_digest"]}
+        elif event.get("event") == "reserve_structural_exhaustion":
+            evidenced_exhausted[(
+                event["namespace"], "c3_cost", event["rung"],
+                int(event["reserve_index"]))] = {
+                    "source": "reserve",
+                    "evidence_digest": event["evidence"]["evidence_digest"]}
     _write("c3_finite_reserve_journal.json", c3_reserve_journal)
     block_summaries = []
     for role in ("main", "holdout"):
@@ -1026,7 +1042,8 @@ def _orchestrate_calibration_stage_inner_r17(
         out_dir / "generation_invocation_ledger.jsonl",
         expected_calls,
         stage_label=f"orchestration:{profile_main.name}",
-        blocks=block_summaries)
+        blocks=block_summaries,
+        evidenced_exhausted=evidenced_exhausted)
     _write("generation_evidence_completeness.json", evidence)
 
     result["preprocessing_robustness_pass"] = prep_rob["pass"]

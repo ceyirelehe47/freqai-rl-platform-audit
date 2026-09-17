@@ -85,14 +85,24 @@ def verify_generation_evidence_completeness(
         stage_label: str,
         blocks: Sequence[BlockAttemptSummary] | None = None,
         ledger_rows_override: list[dict[str, Any]] | None = None,
+        evidenced_exhausted: dict[tuple[str, str, str, int],
+                                  dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """核对 expected 与 observed;任何缺口 ⇒ pass=False(fail closed)。
 
     observed 按 call_digest 分组(同坐标允许多次合法调用,例如 eval
     records 与 c13 corpus 对同一 (namespace,family,rung,pair) 各生成
     一次);expected 以多重集表达坐标期望次数。
+
+    GOAL §4 C3 有限备援:evidenced_exhausted 提供主/备坐标的"证据化
+    结构耗尽"映射(来自预声明备援台账,条目本身只在完整逐 attempt
+    证据校验通过时产生)。该集合内的坐标允许 0 个 accepted envelope
+    的调用,但要求每个 attempt 均为非 accepted 且无 exception——
+    不满足该形状的调用仍按原规则报问题(fail closed 不放松)。
     """
     problems: list[str] = []
+    exhausted_exempt = dict(evidenced_exhausted or {})
+    exempted_calls = 0
     # ---- expected 多重集 ----
     expected_counts: dict[tuple[str, str, str, int], int] = {}
     for c in expected_calls:
@@ -184,9 +194,14 @@ def verify_generation_evidence_completeness(
                 break
         accepted = [e for e in envs if e.get("accepted") is True]
         if len(accepted) != 1:
-            problems.append(
-                f"call#{seq} {key}:accepted envelope 数 = "
-                f"{len(accepted)}(应为 1)")
+            if key in exhausted_exempt and len(envs) >= 1 and all(
+                    e.get("accepted") is False and not e.get("exception")
+                    for e in envs):
+                exempted_calls += 1
+            else:
+                problems.append(
+                    f"call#{seq} {key}:accepted envelope 数 = "
+                    f"{len(accepted)}(应为 1)")
         else:
             n_accepted_total += 1
             if int(accepted[0]["attempt_index"]) != max(idxs):
@@ -259,6 +274,7 @@ def verify_generation_evidence_completeness(
         "orphan_excess_calls": len(orphan_rows),
         "n_attempt_envelopes": n_attempt_envs,
         "n_calls_with_accepted": n_accepted_total,
+        "exempted_exhausted_calls": exempted_calls,
         "bad_envelopes": bad_envs,
         "unparseable_rows": unparseable,
         "stage_mismatch_rows": stage_mismatch,

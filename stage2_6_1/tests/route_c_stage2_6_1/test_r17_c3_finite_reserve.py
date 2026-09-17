@@ -142,3 +142,31 @@ def test_budget_exhaustion_reraises_and_unknown_never_retried(monkeypatch):
     with pytest.raises(PairGenerationError):
         fr.generate_c3_pair_with_finite_reserve(
             "D0", 7, namespace="ns", override={}, reserve_log=[])
+
+
+def test_completeness_verifier_exempts_evidenced_exhaustion():
+    from rl_curriculum.curriculum261_r17_generation_evidence import (
+        ExpectedCall, verify_generation_evidence_completeness)
+
+    def env(idx, *, accepted, pair_index):
+        return {"iteration": "r17", "namespace": "ns", "family": "c3_cost",
+                "rung": "D0", "pair_index": pair_index,
+                "attempt_index": idx, "outer_seed": 1,
+                "digest": "d" * 32, "accepted": accepted, "exception": None}
+
+    rows = [{"stage": "s", "envelope": env(i, accepted=False, pair_index=52)}
+            for i in range(5)]
+    rows.append({"stage": "s",
+                 "envelope": env(0, accepted=True, pair_index=1104)})
+    expected = [ExpectedCall("ns", "c3_cost", "D0", 52),
+                ExpectedCall("ns", "c3_cost", "D0", 1104)]
+    exempt = {("ns", "c3_cost", "D0", 52): {
+        "source": "main", "evidence_digest": "x" * 64}}
+    result = verify_generation_evidence_completeness(
+        None, expected, stage_label="s", ledger_rows_override=rows,
+        evidenced_exhausted=exempt)
+    assert result["pass"] is True
+    assert result["exempted_exhausted_calls"] == 1
+    baseline = verify_generation_evidence_completeness(
+        None, expected, stage_label="s", ledger_rows_override=rows)
+    assert baseline["pass"] is False
