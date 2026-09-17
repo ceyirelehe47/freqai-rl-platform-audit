@@ -66,6 +66,20 @@ if [ -n "${R17_ART_ROOT:-}" ] || [ -n "${R17_STATE_ROOT:-}" ]; then
 fi
 FREEZE_SHA="${1:?需要 Commit A SHA}"
 ADMISSION_PY="$RUNNER/../src/rl_curriculum/curriculum261_r17_admission.py"
+
+# ---- 链外前置产物预检(R19 处方勘误;纵深防御) ------------------------
+# gate_topology_reconciliation.json 按 R17_EXTERNAL_ARTIFACTS 合同是
+# "Commit A 前链外一次性锁定"的产物;缺失 = 链外 provenance-lock 义务
+# 未履行,链注定死于第 1 步 provenance-verify(R18 r2 的实际死法)。
+# 此处零消费早拒(rc=96),不消耗一次性准入。存在性检查不证明内容
+# 有效——内容由链步 1 provenance-verify 强制(重算 digest 并比对)。
+if [ ! -f "$ART/gate_topology_reconciliation.json" ]; then
+  printf '{"event":"precondition_missing","utc":"%s","reason":"gate_topology_reconciliation_absent","freeze_sha":"%s","pid":%s}\n' \
+    "$(r17_ts)" "$FREEZE_SHA" "$$" >> "$REQ_DIR/admission_rejected.jsonl"
+  echo "FATAL: 链外前置产物缺失: $ART/gate_topology_reconciliation.json(Commit A 前链外 provenance-lock 未履行;零消费早拒)" >&2
+  exit 96
+fi
+
 # 入口闸门只校验(零副作用早拒:许可存在/形状/冻结 SHA/状态根绑定)。
 # 一次性消费的唯一登记点=协调者 CLI formal 分支的
 # enforce_formal_admission(防绕过本入口直接调 CLI)。入口不得再传

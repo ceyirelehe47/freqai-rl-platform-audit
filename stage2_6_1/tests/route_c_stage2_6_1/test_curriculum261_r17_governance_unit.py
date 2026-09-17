@@ -140,7 +140,8 @@ class TestRunnerSurface:
 
     SHELLS = ["r17_formal_chain.sh", "r17_rt_rehearsal.sh",
               "r17_entry_common.sh", "r17_monitored_entry.sh",
-              "r17_sync.sh", "assemble_r17_b.sh"]
+              "r17_sync.sh", "assemble_r17_b.sh",
+              "r18_formal_chain.sh"]
 
     @pytest.mark.parametrize("name", SHELLS)
     def test_shell_files_are_lf(self, name):
