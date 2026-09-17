@@ -1,0 +1,24 @@
+{
+  "format": "R18FirstAdmissionBootstrapDefectDisclosure-v1",
+  "utc": "2026-09-17T15:55:00Z",
+  "admission_id_consumed": "route-c-r18-attempt-20260917-08a7958",
+  "event": "首次真实行使 R18 正式入口暴露双层准入闸门各自消费的潜伏缺陷(入口 --consume 消费后,协调者 enforce_formal_admission 以 admission_already_consumed 拒绝)",
+  "outcome": "链死于 bootstrap:rc=96;workflow 前缀为空;provenance-verify 未开始;exposure=not_exposed;零正式业务副作用(无 journal 会话、无步骤、无数据生成、无命名空间暴露)",
+  "fail_closure_summary_sha256_location": "/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair18/r17_fail_closure_summary.json(verdict=FAIL;failed_step=bootstrap;executed_prefix=[];next_step_not_executed=provenance-verify;exposure_state=not_exposed)",
+  "first_launch_evidence": {
+    "admission_file_sha256": "482b84cdf43ff2171d5690b7ee4296d2265706ed1f9f7d031e0a8000c08c3de6",
+    "issuance_log_sha256": "5a3165b08669481ca6052f2bea2d515a2e75f28dd2e59a3ea4a71dc06b459b6b",
+    "consumed_log_sha256": "2033df34293bd265b80597e376b42cc140e4a9dfb658569448b53a59e8da9bdc",
+    "request_dir": "r17_formal_requests/20260917T152941Z_383",
+    "console_log": "r18_formal_chain_console.log"
+  },
+  "repair": {
+    "commit": "a5ea7b946d5ec5429772e21301c6327a994e9981",
+    "message": "R17: single consumption point for formal admission (entry validates, CLI consumes)",
+    "regression_test": "test_r17_r18_attempt.py::test_r18_entry_gate_validates_without_consuming",
+    "r17_twin_note": "r17_formal_chain.sh 存在同款 --consume 缺陷但repair17 状态根 journal 永久终态,不存在可达的合法许可,不改冻结面"
+  },
+  "terminality_assessment": "R18 迭代未终态:无 execgov journal、无 r17_iteration_aborted.json、无终态事件;fail-closure 为 bootstrap 阶段记录,post_exposure_policy 为静态模板文案且 exposure 从未发生;abort_request 文件无任何读取方(仅写者),不阻塞新会话获取",
+  "decision": "按 GOAL 对工程缺陷的自主修复授权,移除已消费令牌(签发日志/消费日志/请求证据全部原样保留),以新 admission_id 重签同一预注册计划(Commit A 更新为修复提交),重跑一次性正式链",
+  "operator": "RouteC_FullRoadmap_Goal_v1 执行 Agent"
+}
