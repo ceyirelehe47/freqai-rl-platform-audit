@@ -24,11 +24,21 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-#: §9.1 正式路由:role → 期望 fit namespace。
+#: §9.1 正式路由:role → 期望 fit namespace。R18 尝试按 journal §11
+#: 处方指向全新命名空间族(curriculum261_r18_attempt)。
+from rl_curriculum.curriculum261_r18_attempt import (
+    R18_FIT_HOLDOUT as _R18_FIT_HOLDOUT,
+    R18_FIT_MAIN as _R18_FIT_MAIN,
+    R18_FIT_QUALIFICATION as _R18_FIT_QUALIFICATION,
+    R18_RT_FIT_HOLDOUT as _R18_RT_FIT_HOLDOUT,
+    R18_RT_FIT_MAIN as _R18_RT_FIT_MAIN,
+    R18_RT_FIT_QUALIFICATION as _R18_RT_FIT_QUALIFICATION,
+)
+
 R17_ROLE_FIT_NAMESPACE: dict[str, str] = {
-    "main": "preprocess_fit_calibration_r17",
-    "holdout": "preprocess_fit_holdout_r17",
-    "final": "preprocess_fit_qualification_r17",
+    "main": _R18_FIT_MAIN,
+    "holdout": _R18_FIT_HOLDOUT,
+    "final": _R18_FIT_QUALIFICATION,
 }
 
 #: §9.1 preplan/rehearsal 路由(execution profile 只换 namespace)。
@@ -51,9 +61,9 @@ R17_SHADOW_ROLE_FIT_NAMESPACE: dict[str, str] = {
 #: 非正式;rt_*_r17 rehearsal-only namespace;与 shadow 同构但独立
 #: 路由类——rt 的 final 用独立 fit namespace,不复用 main fit)。
 R17_RT_ROLE_FIT_NAMESPACE: dict[str, str] = {
-    "main": "rt3_fit_main_r17",
-    "holdout": "rt3_fit_holdout_r17",
-    "final": "rt3_fit_qualification_r17",
+    "main": _R18_RT_FIT_MAIN,
+    "holdout": _R18_RT_FIT_HOLDOUT,
+    "final": _R18_RT_FIT_QUALIFICATION,
 }
 
 #: R17V2C13EngineeringCalibration-v1:V2 C1/C3 工程校准路由(工程、
