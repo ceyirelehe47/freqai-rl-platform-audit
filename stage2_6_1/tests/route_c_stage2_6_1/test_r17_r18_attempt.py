@@ -100,3 +100,35 @@ def test_r18_final_profile_namespaces():
               if isinstance(v, str)}
     assert values <= set(a.R18_RT_FAMILY)
     assert R17_RT_FINAL_PROFILE["final_namespace"] == a.R18_RT_QUALIFICATION
+
+
+def _find_runner_dir() -> Path:
+    for cand in (Path("/mnt/f/trading/freqai-rl-audit/stage2_6_1/runner"),
+                 Path("F:/trading/freqai-rl-audit/stage2_6_1/runner"),
+                 Path(__file__).resolve().parents[2] / "runner"):
+        if (cand / "r18_formal_chain.sh").is_file():
+            return cand
+    return Path(__file__).resolve().parents[2] / "runner"
+
+
+def test_r18_entry_gate_validates_without_consuming():
+    """单次消费合同:入口闸门只校验;唯一消费点=CLI formal 分支。
+
+    2026-09-17 首次真实行使暴露双消费缺陷:入口 --consume 先登记,
+    协调者 enforce_formal_admission 以 admission_already_consumed
+    拒绝,链死于 bootstrap(零业务副作用)。本断言防回归:入口的
+    ADMISSION_PY gate 调用不得携带 --consume,且仍须传 --freeze-sha
+    与 --state-root(早拒语义不变)。
+    """
+    sh = (_find_runner_dir() / "r18_formal_chain.sh").read_text(
+        encoding="utf-8")
+    assert "\r" not in sh, "入口脚本必须保持 LF 行尾"
+    start = sh.index('ADMISSION_PY" gate')
+    end = sh.index('"; then', start)
+    call = sh[start:end]
+    assert "--freeze-sha" in call and "--state-root" in call
+    assert "--consume" not in call
+    # 协调者 CLI 仍是 formal 分支的唯一消费点(enforce_formal_admission)。
+    cli = (Path(__file__).resolve().parents[2] / "src" / "rl_curriculum"
+           / "curriculum261_r17_cli.py").read_text(encoding="utf-8")
+    assert "enforce_formal_admission(" in cli

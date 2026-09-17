@@ -66,10 +66,15 @@ if [ -n "${R17_ART_ROOT:-}" ] || [ -n "${R17_STATE_ROOT:-}" ]; then
 fi
 FREEZE_SHA="${1:?需要 Commit A SHA}"
 ADMISSION_PY="$RUNNER/../src/rl_curriculum/curriculum261_r17_admission.py"
+# 入口闸门只校验(零副作用早拒:许可存在/形状/冻结 SHA/状态根绑定)。
+# 一次性消费的唯一登记点=协调者 CLI formal 分支的
+# enforce_formal_admission(防绕过本入口直接调 CLI)。入口不得再传
+# --consume:2026-09-17 首次真实行使暴露双消费缺陷(入口消费后协调者
+# 以 admission_already_consumed 拒绝,链死于 bootstrap,零业务副作用)。
 admission_out=""
 if ! admission_out="$(python3 "$ADMISSION_PY" gate \
     --deploy-root "$PROJECT_ROOT" --state-root "$ART/state" \
-    --freeze-sha "$FREEZE_SHA" --consume)"; then
+    --freeze-sha "$FREEZE_SHA")"; then
   admission_reject "${admission_out:-admission_gate_internal_error}"
 fi
 mkdir -p "$ART"
