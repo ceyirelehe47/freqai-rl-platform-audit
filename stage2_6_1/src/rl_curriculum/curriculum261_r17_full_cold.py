@@ -58,14 +58,24 @@ def read_full_cold_evidence(artifacts_dir: Path) -> dict[str, Any]:
         else smoke.get("preprocessor_bundle_hash_bound"))
     exposure_terminal = False
     exposure_status = None
+    # 权威曝光标记由 execgov 投影到部署 state root;artifacts 目录内
+    # 的历史副本仅作回退(该边 R12-R16 从未执行到,路径口径在此闭合)。
+    import os as _os
+    _marker_roots = [artifacts_dir]
+    _state_root = _os.environ.get("CURRICULUM261_R17_STATE_ROOT")
+    if _state_root:
+        _marker_roots.append(Path(_state_root))
     for marker_name in ("qualification_exposure_r17.json",
                         "rehearsal_exposure.json"):
-        marker = artifacts_dir / marker_name
-        if marker.is_file():
-            exposure_status = json.loads(
-                marker.read_text(encoding="utf-8")).get("status")
-            exposure_terminal = exposure_status in (
-                "completed", "failed", "crashed", "PASS", "FAIL")
+        for _root in _marker_roots:
+            marker = _root / marker_name
+            if marker.is_file():
+                exposure_status = json.loads(
+                    marker.read_text(encoding="utf-8")).get("status")
+                exposure_terminal = exposure_status in (
+                    "completed", "failed", "crashed", "PASS", "FAIL")
+                break
+        if exposure_terminal or exposure_status is not None:
             break
     if not exposure_terminal:
         # rehearsal final(R13 语义)把终态写在 result 自身
