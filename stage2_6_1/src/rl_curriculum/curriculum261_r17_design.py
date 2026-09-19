@@ -54,6 +54,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import copy
+
 import numpy as np
 
 from rl_platform.versions import (
@@ -221,12 +223,57 @@ SEMANTIC_CORPUS_ROLE_R17 = {
 }
 
 
+def candidate_semantic_namespace_r17(base_ns: str, cand_id: str) -> str:
+    """§15b 候选级 dedicated semantic namespace(外部审查 4.1 统一)。
+
+    = 已注册 base semantic namespace + "__" + 预注册 candidate id;
+    由 design plan 显式预注册(plan.semantic_corpora.candidate_
+    namespaces);派生规则唯一,无自由命名空间。
+    """
+    return f"{base_ns}__{cand_id}"
+
+
+def _candidate_ns_split_r17(namespace: str) -> tuple[str, str] | None:
+    if "__" not in namespace:
+        return None
+    base, cand = namespace.rsplit("__", 1)
+    if cand not in C2_LADDER_CANDIDATES_R17:
+        return None
+    for table in (SEMANTIC_ARTIFACT_MAP_R17,
+                  SEMANTIC_STAGE_ARTIFACT_MAP_R17):
+        if base in table:
+            return base, cand
+    return None
+
+
+def semantic_corpus_role_r17(namespace: str) -> str:
+    """§R17-8 corpus role 查询(显式表 + §15b 候选级派生规则)。"""
+    if namespace in SEMANTIC_CORPUS_ROLE_R17:
+        return SEMANTIC_CORPUS_ROLE_R17[namespace]
+    split = _candidate_ns_split_r17(namespace)
+    if split is not None:
+        return SEMANTIC_CORPUS_ROLE_R17[split[0]] + "_candidate"
+    raise RuntimeError(
+        f"semantic namespace {namespace} 无 corpus role(§R17-8 显式"
+        f"表 + §15b 候选级派生规则均未覆盖)")
+
+
 def semantic_artifact_filename_r17(namespace: str) -> str:
-    """§R17-8:namespace → 文件名的唯一合法路径(穷尽映射)。"""
+    """§R17-8:namespace → 文件名的唯一合法路径(穷尽映射 + §15b
+    候选级 dedicated namespace 的显式派生规则;仍禁止 endswith/
+    后缀内容启发式)。"""
     for table in (SEMANTIC_ARTIFACT_MAP_R17,
                   SEMANTIC_STAGE_ARTIFACT_MAP_R17):
         if namespace in table:
             return table[namespace]
+    split = _candidate_ns_split_r17(namespace)
+    if split is not None:
+        base, cand = split
+        for table in (SEMANTIC_ARTIFACT_MAP_R17,
+                      SEMANTIC_STAGE_ARTIFACT_MAP_R17):
+            if base in table:
+                stem, dot, suffix = table[base].partition(".")
+                return f"{stem}__{cand}{dot}{suffix}"
     known = sorted(set(SEMANTIC_ARTIFACT_MAP_R17)
                    | set(SEMANTIC_STAGE_ARTIFACT_MAP_R17))
     raise RuntimeError(
@@ -265,7 +312,7 @@ def write_semantic_artifact_r17(out_dir: Path, namespace: str,
     path = out_dir / fname
     body = dict(payload)
     body["namespace"] = namespace
-    body["corpus_role"] = SEMANTIC_CORPUS_ROLE_R17[namespace]
+    body["corpus_role"] = semantic_corpus_role_r17(namespace)
     body["design_plan_digest"] = plan_digest
     body["event_count"] = len(event_rows or [])
     blob = json.dumps(body, indent=2, ensure_ascii=False, default=float)
@@ -278,7 +325,7 @@ def write_semantic_artifact_r17(out_dir: Path, namespace: str,
     back = json.loads(path.read_text(encoding="utf-8"))
     if (back.get("namespace") != namespace
             or back.get("corpus_role")
-            != SEMANTIC_CORPUS_ROLE_R17[namespace]):
+            != semantic_corpus_role_r17(namespace)):
         raise RuntimeError(
             f"semantic artifact reload 校验失败:{fname} 内嵌 "
             f"namespace/role 与写入值不一致")
@@ -583,25 +630,41 @@ def design_plan_payload_r17(*, baseline_commit: str, vendor_pin: str,
         "semantic_corpora": {
             "blocks_per_corpus": eff_semantic_blocks,
             "namespaces": list(eff_semantic_namespaces),
-            "ladder": "冻结 sentinel ladder(cur261-c2-v9 默认 D0-D3;"
-                      "candidate-independent;与任何 R17 candidate 数值"
-                      "无依赖)",
+            "candidate_namespaces": {
+                cid: [f"{ns}__{cid}" for ns in eff_semantic_namespaces]
+                for cid in grid
+            },
+            "ladder": "sentinel pre-gate = 冻结 sentinel ladder"
+                      "(cur261-c2-v9 默认 D0-D3;candidate-"
+                      "independent;与任何 R17 candidate 数值无依赖);"
+                      "候选级语料 = 各 candidate 自身 ladder",
             "sample_size_rationale": "R7 40 blocks 的 bootstrap SE "
                                      "≈0.0069-0.0085,point≈0.95/"
                                      "floor≈0.93 时单侧 LCB 偶然失败概率"
                                      "过高;40→160 使 block-cluster SE "
                                      "理论上减半,LCB 有明确余量(§14;"
                                      "数据后禁止扩样/第三 corpus/合并/"
-                                     "删除)",
+                                     "删除;候选级语料同规则)",
             "min_unique_positive_cues": MIN_UNIQUE_POSITIVE_CUES,
-            "gate": "每 corpus 独立:unique-event coverage ≥3600 / "
-                    "canonical consistency / recall LCB ≥ recall_floor /"
-                    " non-cue FP UCB ≤0.01 / per-event K 完整 / noise "
-                    "replay 完整性;任一 FAIL => R17 design FAIL(§15)",
-            "candidate_decoupling": "shared cue 指标不进入 candidate "
-                                    "maximin score;candidate-specific "
-                                    "precision/false-cue 在 40-block "
-                                    "candidate corpus 评估(§16)",
+            "gate": "sentinel pre-gate:每 corpus 独立(shared/candidate-"
+                    "independent:unique-event coverage ≥3600 / canonical "
+                    "consistency / recall LCB ≥ recall_floor / non-cue "
+                    "FP UCB ≤0.01 / per-event K 完整 / noise replay "
+                    "完整性);任一 FAIL => R17 design FAIL(§15)。"
+                    "候选级 gate(§15b):每 candidate × corpus 独立,"
+                    "shared + candidate(precision LCB ≥0.85 / payoff "
+                    "false-cue UCB ≤0.06)= run_c2_semantic_corpus_r17 "
+                    "同一 runner;FAIL => 该 candidate 在全部 n 不合格",
+            "candidate_decoupling": "四类 cue rate metric(recall/"
+                                    "precision/noncue FP/payoff "
+                                    "false-cue)的正式绑定与 maximin "
+                                    "cue 读数唯一来源 = 候选级 "
+                                    "dedicated 160-block semantic "
+                                    "corpus(§15b;与 calibration/"
+                                    "holdout/final 及 G1 consumer 同一"
+                                    "合同);matched 40-block candidate "
+                                    "corpus 的 cue 点指标仅诊断,结构"
+                                    "检查仍真实执行(§16)",
         },
         "candidate_grid": {
             "candidates": {k: {r: dict(v[r])
@@ -661,10 +724,12 @@ def design_plan_payload_r17(*, baseline_commit: str, vendor_pin: str,
         },
         "selection_rule": {
             "qualification": "(candidate, n) 在两个 design corpus 均满足"
-                             "全部 matched power 硬门槛 + candidate-"
-                             "specific 语义(§23/§24);shared cue gate "
-                             "在 dedicated semantic corpus 独立完成"
-                             "(§15)",
+                             "全部 matched power 硬门槛 + 结构语义"
+                             "(local cue independence / context "
+                             "observability)+ 该 candidate × corpus 的"
+                             "候选级 dedicated semantic gate 通过(四类"
+                             " cue rate metric 唯一 binding source;"
+                             "§15/§15b/§23)",
             "order": ["最小 formal block count n(10→15→20)",
                       "maximin score 最大(该 n 下)",
                       "参数偏离历史最小", "candidate id 稳定排序"],
@@ -672,7 +737,8 @@ def design_plan_payload_r17(*, baseline_commit: str, vendor_pin: str,
                              "×2, pos_rate/0.65, 密度比, payoff-fc UCB "
                              "余量 1-fc/0.06, precision LCB 余量 "
                              "prec/0.85} × 两 corpus(不含 shared recall;"
-                             "§16)",
+                             "fc/precision 读自候选级 dedicated "
+                             "semantic corpus 统一视图;§15b/§16)",
             "hard_rule": "先选最小 n,再选该 n 下 score 最高者;平局取 "
                          "distance 最小;禁止事后扩大 block 数;禁止删除"
                          "失败 candidate;不得用 R6/R7 的 n=15 结果预指定"
@@ -684,6 +750,12 @@ def design_plan_payload_r17(*, baseline_commit: str, vendor_pin: str,
             "on_semantic_gate_fail": "任一 semantic corpus gate FAIL → "
                                      "R17 design FAIL(不生成 candidate "
                                      "blocks;§15/§25)",
+            "on_candidate_semantic_fail": "candidate 任一 corpus 的候选级"
+                                          "dedicated semantic gate FAIL → "
+                                          "该 candidate 在全部 n 不合格"
+                                          "(机械;不得扩样/换语料/重锁;"
+                                          "§15b);全部 candidate 不合格 → "
+                                          "§25 no_qualified_combination",
             "on_no_qualified_combination": "R17 = FAIL;自动 power/semantic "
                                            "summary;保留 block tables;"
                                            "报告 binding condition;不生成"
@@ -793,9 +865,10 @@ def _evaluate_candidate_matched_r17(
         n_blocks: int = DESIGN_BLOCKS_PER_CORPUS_R17,
 ) -> dict[str, Any]:
     """单 candidate 在单 design corpus:matched blocks(可注入已生成的
-    blocks)→ 唯一 pair 表 → 唯一 block 表 → 全部 n 选项硬门槛 +
-    R17 candidate-specific 语义(§23;precision LCB ≥0.85 / payoff
-    false-cue UCB ≤0.06 按 rung × side)。"""
+    blocks)→ 唯一 pair 表 → 唯一 block 表 → 全部 n 选项硬门槛;
+    cue 点指标仅诊断(§15b:四类 cue rate metric 的正式绑定在候选级
+    dedicated 160-block semantic corpus;结构语义 local cue
+    independence / context observability 仍真实执行并绑定)。"""
     if blocks is None:
         blocks = [generate_matched_block_with_attempts(
             ladder, namespace=corpus_ns, block_index=i)
@@ -877,9 +950,8 @@ def _evaluate_candidate_matched_r17(
             "qualified": bool(all(reasons.values())),
         }
 
-    # 密度(R6 冻结 gate)+ R17 candidate-specific cue 语义 + 独立性/
-    # 可观察性(冻结公共实现;全部依赖模块级解析——R8 的
-    # c2_density_summary 错误导入已修复为 r5_pairs 来源)
+    # 密度(R6 冻结 gate)+ 结构语义(冻结公共实现;全部依赖模块级
+    # 解析——R8 的 c2_density_summary 错误导入已修复为 r5_pairs 来源)
     density_summaries: dict[str, Any] = {}
     for r in rungs:
         d = c2_density_summary(
@@ -888,6 +960,10 @@ def _evaluate_candidate_matched_r17(
             [blk.pair_records[r] for blk in blocks], ladder[r],
             thresholds)
         density_summaries[r] = density_gate_r5(d)
+    # §15b(外部审查 4.1 统一):matched 40-block 的 candidate cue
+    # 语义保留计算与报告,但仅作诊断——semantics_pass 只含结构语义;
+    # precision LCB / payoff false-cue UCB 的正式绑定与 maximin 读数
+    # 均来自候选级 dedicated semantic corpus(_selection_view_r17)。
     cue_sem = candidate_cue_semantics(blocks, candidate_id, thresholds)
     semantics = {
         "local_cue_independence": check_c2_local_cue_independence(
@@ -902,12 +978,15 @@ def _evaluate_candidate_matched_r17(
         "r6_point_separation_diagnostic_only": {
             k: v for k, v in check_c2_cue_payoff_separation(
                 records).items() if k != "per_rung"},
+        "cue_point_metrics_binding": False,
+        "cue_point_metrics_diagnostic_only": True,
+        "formal_binding_source": (
+            "candidate_dedicated_160_block_semantic_corpus"),
     }
     density_ok = all(d["pass"] for d in density_summaries.values())
     semantics_ok = bool(
         semantics["local_cue_independence"]["pass"]
-        and semantics["context_observability"]["pass"]
-        and cue_sem["pass"])
+        and semantics["context_observability"]["pass"])
     integrity_ok = bool(all(rec.integrity_ok for rec in records))
     scrambled = scrambled_gap_control(block_table)
     return {
@@ -946,6 +1025,28 @@ def _margin(block_table: dict[str, Any], rung: str, baseline: str):
     return block_margin_series(block_table, rung, baseline)
 
 
+def _selection_view_r17(raw: dict[str, Any],
+                        dedicated: dict[str, Any]) -> dict[str, Any]:
+    """§15b 统一选择视图(外部审查 4.1 收口)。
+
+    与 c2_consumer 的重绑定构造同源:semantics_pass = 结构语义
+    (local cue independence ∧ context observability)∧ 该候选在该
+    corpus 的 dedicated semantic gate pass;scorer 读取的
+    candidate_cue_semantics_r17_cluster_aware 键路由到 dedicated
+    candidate 数据。matched 40-block 的 cue 点指标保留在 raw 中仅作
+    诊断,不进入本视图任何判定(行为级防回归见
+    test_curriculum261_r17_design_cue_binding.py)。
+    """
+    view = copy.deepcopy(raw)
+    view["semantics_pass"] = bool(
+        raw["semantics"]["local_cue_independence"]["pass"]
+        and raw["semantics"]["context_observability"]["pass"]
+        and dedicated["pass"])
+    view["semantics"]["candidate_cue_semantics_r17_cluster_aware"] = (
+        copy.deepcopy(dedicated["candidate"]))
+    return view
+
+
 def _qualified_at_n(corpus_results: list[dict[str, Any]], n: int) -> bool:
     return all(
         res["per_formal_block_count"][str(n)]["qualified"]
@@ -957,7 +1058,8 @@ def _qualified_at_n(corpus_results: list[dict[str, Any]], n: int) -> bool:
 def _maximin_score_r17(corpus_results: list[dict[str, Any]],
                       n: int) -> float:
     """§16 maximin(不含 shared recall——由 dedicated semantic corpus
-    独立承担)。"""
+    独立承担;§15b:payoff-fc/precision 余量经统一选择视图读自候选级
+    dedicated semantic corpus,matched 点指标不进入)。"""
     vals: list[float] = []
     pos_rate_min = 1.0
     fc_ucb_worst = 0.0
@@ -1136,23 +1238,81 @@ def _run_design_stage_inner_r17(out_dir: Path, plan: dict[str, Any],
                     ladder, namespace=corpus_ns, block_index=i)
                 for i in range(n_blocks)]
 
+    # ---- §15b 候选级 dedicated semantic corpora(外部审查 4.1)----
+    # 四类 cue rate metric 的正式绑定与 maximin cue 读数唯一来源:
+    # 每 candidate × semantic corpus 的 160-block dedicated 语料,
+    # 与 calibration/holdout/final 共用同一 runner(run_c2_
+    # semantic_corpus_r17:同一 shared gate + candidate 语义函数、
+    # 同一 artifact writer)。本地 import 规避 design→calibration
+    # 模块环(calibration 侧对 design 同款延迟导入;两模块均在
+    # DESIGN_CODE_MODULES_R17 冻结清单内,身份照常进 plan)。
+    from rl_curriculum.curriculum261_r17_calibration import (
+        run_c2_semantic_corpus_r17,
+    )
+    n_sem_blocks = int(semantic_cfg["blocks_per_corpus"])
+    sem_namespaces = list(semantic_cfg["namespaces"])
+    if len(sem_namespaces) != len(plan["design_data"]["corpora"]):
+        raise RuntimeError(
+            "semantic namespaces 与 design corpora 数量不一致"
+            f"(§15b:{sem_namespaces} vs "
+            f"{plan['design_data']['corpora']})")
+
     # ---- candidate × corpus 评估(复用已生成的 blocks)----
     candidate_results: dict[str, Any] = {}
     for cand_id, ladder in grid.items():
+        # 候选级 dedicated 语料 × gate(namespace 预注册于
+        # plan.semantic_corpora.candidate_namespaces)
+        dedicated_reports: dict[str, Any] = {}
+        for sem_ns in sem_namespaces:
+            cand_ns = candidate_semantic_namespace_r17(sem_ns, cand_id)
+            shim_pack = {
+                "selected_c2_candidate": cand_id,
+                "c2_ladder": copy.deepcopy(ladder),
+                "recall_floor": floor,
+                "design_plan_digest": design_digest,
+            }
+            report = run_c2_semantic_corpus_r17(
+                shim_pack, cand_ns, n_blocks=n_sem_blocks,
+                out_dir=out_dir)
+            dedicated_reports[sem_ns] = {
+                "namespace": cand_ns,
+                "pass": bool(report["pass"]),
+                "shared_pass": bool(report["shared"]["pass"]),
+                "candidate_pass": bool(report["candidate"]["pass"]),
+                "binding_leaf_checks": list(
+                    report["binding_leaf_checks"]),
+                "shared_summary": {
+                    "n_blocks": report["n_blocks"],
+                    "recall_lcb": report["shared"]["recall"]["bound"],
+                    "noncue_fp_ucb": report["shared"][
+                        "noncue_false_positive"]["bound"],
+                    "n_unique_positive_cues": report["shared"][
+                        "n_unique_positive_cues"],
+                },
+                "candidate": copy.deepcopy(report["candidate"]),
+            }
         corpora = [
             _evaluate_candidate_matched_r17(
                 cand_id, ladder, ns, thresholds,
                 blocks=blocks_by[ns][cand_id], n_blocks=n_blocks)
             for ns in plan["design_data"]["corpora"]]
+        # §15b 统一视图:资格/排序不再消费 matched cue 点指标
+        views = [
+            _selection_view_r17(raw, dedicated_reports[sem_ns])
+            for raw, sem_ns in zip(corpora, sem_namespaces)]
         qualified_ns: dict[str, bool] = {}
         scores: dict[str, float] = {}
         for n in FORMAL_BLOCK_OPTIONS:
-            qualified_ns[str(n)] = _qualified_at_n(corpora, n)
+            qualified_ns[str(n)] = _qualified_at_n(views, n)
             if qualified_ns[str(n)]:
-                scores[str(n)] = _maximin_score_r17(corpora, n)
+                scores[str(n)] = _maximin_score_r17(views, n)
         candidate_results[cand_id] = {
             "candidate_params": ladder,
             "corpora": corpora,
+            "dedicated_semantic": dedicated_reports,
+            "selection_semantics_source": (
+                "candidate_dedicated_160_block_semantic_corpus"
+                "(§15b;matched cue 点指标 diagnostic_only)"),
             "qualified_by_block_count": qualified_ns,
             "maximin_score_by_qualified_n": scores,
             "qualified_any": any(qualified_ns.values()),
@@ -1318,6 +1478,12 @@ def _run_design_stage_inner_r17(out_dir: Path, plan: dict[str, Any],
                 "n_unique_positive_cues": g[
                     "n_unique_positive_cues"],
             } for ns, g in semantic_gates.items()},
+        "candidate_dedicated_semantic": {
+            sem_ns: {"namespace": d["namespace"], "pass": d["pass"]}
+            for sem_ns, d in candidate_results[selected_id][
+                "dedicated_semantic"].items()},
+        "semantics_binding_source": (
+            "candidate_dedicated_160_block_semantic_corpus"),
         "marginal_guard_pass": True,
         "parameter_pack_digest": pack["digest"],
         "pass": True,
@@ -1416,13 +1582,15 @@ def _build_power_summary_r17(candidate_results: dict[str, Any],
             for name, ok in n_res["reasons"].items():
                 if not ok:
                     cand_weak.setdefault(n_str, {})[name] = False
-                    key = f"n={n_str}:{name}"
-                    global_fail_counts[key] = (
-                        global_fail_counts.get(key, 0) + 1)
         if not all(c["semantics_pass"] for c in res["corpora"]):
             cand_weak["semantics"] = False
             global_fail_counts["semantics"] = (
                 global_fail_counts.get("semantics", 0) + 1)
+        if not all(d["pass"] for d in res.get(
+                "dedicated_semantic", {}).values()):
+            cand_weak["dedicated_semantic"] = False
+            global_fail_counts["dedicated_semantic"] = (
+                global_fail_counts.get("dedicated_semantic", 0) + 1)
         if not all(c["density_pass"] for c in res["corpora"]):
             cand_weak["density"] = False
             global_fail_counts["density"] = (

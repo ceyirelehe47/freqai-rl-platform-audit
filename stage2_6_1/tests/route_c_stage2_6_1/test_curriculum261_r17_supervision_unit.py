@@ -891,12 +891,27 @@ class TestFormalAdmissionIsolation:
         fake_sha = "a" * 40
         state = tmp_path / "artifacts" / \
             "route_c_stage2_6_1_repair17" / "state"
+        from rl_curriculum.curriculum261_r17_admission_substance import (
+            SUBSTANCE_FORMAT, substance_digest)
+        substance = {
+            "format": SUBSTANCE_FORMAT,
+            "plan_digest_method": "git_tree_digest",
+            "plan_digest_claimed": "a" * 40,
+            "plan_digest_recomputed": "a" * 40,
+            "regression_evidence": {"path": "/nonexistent/ev.json",
+                                    "sha256": "0" * 64,
+                                    "protocol": "full",
+                                    "counts": {}, "scope": "formal"},
+            "verified_utc": "2026-09-20T00:00:00Z"}
         (tmp_path / ".r17_formal_admission.json").write_text(
             json.dumps({
-                "format": "cur261-r17-formal-admission-v1",
+                "format": "cur261-r17-formal-admission-v2",
                 "commit_a_sha": fake_sha,
+                "plan_digest": "a" * 40,
                 "deployed_state_root": str(state),
-                "admission_id": "sandbox-fixture-1"}),
+                "admission_id": "sandbox-fixture-1",
+                "substance": substance,
+                "substance_digest": substance_digest(substance)}),
             encoding="utf-8")
         proc = self._run_sandbox(tmp_path, sha=fake_sha)
         assert proc.returncode == 96
@@ -980,19 +995,45 @@ class TestFormalAdmissionUnit:
         return repo, sha
 
     def _mk_admission(self, tmp_path: Path, *, sha, state=None,
-                      aid="aid-unit-1", fmt=None, freeze=None):
+                      aid="aid-unit-1", fmt=None, freeze=None,
+                      repo=None):
         from rl_curriculum.curriculum261_r17_admission import (
             ADMISSION_FILENAME, ADMISSION_FORMAT)
         dr = tmp_path / "deploy"
         dr.mkdir(parents=True, exist_ok=True)
         st = state or (dr / "artifacts" /
                        "route_c_stage2_6_1_repair17" / "state")
-        (dr / ADMISSION_FILENAME).write_text(json.dumps({
+        payload = {
             "format": fmt or ADMISSION_FORMAT,
             "commit_a_sha": sha,
             "deployed_state_root": str(st),
             "admission_id": aid,
-        }), encoding="utf-8")
+        }
+        if repo is not None:
+            # v2 合法路径:真实实质块(沙箱 git 仓 + 机读回归证据)
+            from r17_admission_substance_test_support import (
+                write_evidence_record, write_junit,
+                write_preregistration)
+            from rl_curriculum.curriculum261_r17_admission_substance \
+                import (git_tree_digest, substance_digest,
+                        verify_preregistration_substance)
+            ev_dir = tmp_path / f"substance_{aid}"
+            junit = write_junit(ev_dir / "junit.xml", passed=2)
+            evidence = write_evidence_record(
+                ev_dir / "regression_evidence.json", repo, sha,
+                [junit])
+            prereg_path = write_preregistration(
+                ev_dir / "prereg.json", repo, sha, evidence,
+                admission_id=aid)
+            prereg = json.loads(
+                prereg_path.read_text(encoding="utf-8"))
+            substance = verify_preregistration_substance(
+                repo, sha, prereg)
+            payload["plan_digest"] = prereg["plan_digest"]
+            payload["substance"] = substance
+            payload["substance_digest"] = substance_digest(substance)
+        (dr / ADMISSION_FILENAME).write_text(json.dumps(payload),
+                                             encoding="utf-8")
         return dr, st, (freeze if freeze is not None else sha)
 
     @staticmethod
@@ -1052,7 +1093,7 @@ class TestFormalAdmissionUnit:
         from rl_curriculum.curriculum261_r17_admission import (
             CONSUMED_NAME, consume_admission, enforce_formal_admission)
         repo, sha = self._repo_with_commit(tmp_path)
-        dr, st, fz = self._mk_admission(tmp_path, sha=sha)
+        dr, st, fz = self._mk_admission(tmp_path, sha=sha, repo=repo)
         ok, reason, adm = self._validate(dr, st, fz, repo)
         assert ok, reason
         # enforce:通过 → None,并写一次性消费记录
@@ -1064,7 +1105,7 @@ class TestFormalAdmissionUnit:
             st, fz, str(repo)) == "admission_already_consumed"
         # 新 admission_id(同 sha)仍可过 → 消费记录区分 id 而非 sha
         dr2, st2, fz2 = self._mk_admission(
-            tmp_path / "second", sha=sha, aid="aid-unit-2")
+            tmp_path / "second", sha=sha, aid="aid-unit-2", repo=repo)
         assert enforce_formal_admission(
             st2, fz2, str(repo)) is None
 
@@ -1091,7 +1132,7 @@ class TestFormalAdmissionUnit:
         from rl_curriculum.curriculum261_r17_admission import (
             ADMISSION_FILENAME, REJECT_RC, main)
         repo, sha = self._repo_with_commit(tmp_path)
-        dr, st, fz = self._mk_admission(tmp_path, sha=sha)
+        dr, st, fz = self._mk_admission(tmp_path, sha=sha, repo=repo)
         rc = main(["gate", "--deploy-root", str(dr),
                    "--state-root", str(st), "--freeze-sha", fz,
                    "--release-repo", str(repo)])

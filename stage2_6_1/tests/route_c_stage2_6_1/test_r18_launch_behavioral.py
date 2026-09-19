@@ -14,6 +14,11 @@ provenance-verify 内容强制;隔离面:R17_PROJECT_ROOT 指向沙箱根
 - 第二次启动/直调 enforce_formal_admission → admission_already_
   consumed,消费日志与 journal 均不增(双消费回归)。
 """
+from r17_admission_substance_test_support import (
+    write_evidence_record,
+    write_junit,
+    write_preregistration)
+
 import hashlib
 import json
 import os
@@ -86,6 +91,10 @@ class _Sandbox:
         self.repo = self.root / "release_repo"
         self.repo.mkdir()
         _run(["git", "init", "-q", "."], cwd=self.repo)
+        (self.repo / "stage2_6_1").mkdir()
+        # 签发器 v2 要求发布仓内存在实质绑定模块(同源实现)
+        (self.repo / "stage2_6_1" / "src").symlink_to(
+            DEPLOY_SRC, target_is_directory=True)
         _git(self.repo, "config", "user.email", "r18bh@test")
         _git(self.repo, "config", "user.name", "r18bh")
         (self.repo / "base.txt").write_text("base\n")
@@ -98,14 +107,18 @@ class _Sandbox:
         self.admission_id = "r18bh-admission-0001"
 
     def issue_admission(self) -> None:
+        # v2 实质绑定:plan_digest = Commit A tree digest 实算;
+        # regression_evidence = 机读 record(真实 junit 原件,含
+        # 7 个历史 skip;沙箱内构造,不触碰正式部署面)。
+        ev_dir = self.root / "substance_ev"
+        junit = write_junit(ev_dir / "junit.xml", passed=3)
+        evidence = write_evidence_record(
+            ev_dir / "regression_evidence.json", self.repo,
+            self.commit_a, [junit])
         prereg = self.root / "prereg.json"
-        prereg.write_text(json.dumps({
-            "admission_id": self.admission_id,
-            "iteration": "r18",
-            "plan_digest": "0" * 40,
-            "authorization": (
-                "test-harness:外部审查3.2 行为级隔离验证,"
-                "沙箱签发,不触碰正式部署面")}, ensure_ascii=False))
+        write_preregistration(
+            prereg, self.repo, self.commit_a, evidence,
+            admission_id=self.admission_id)
         proc = _run([sys.executable, str(ISSUER),
                      "--repo", str(self.repo),
                      "--deploy-root", str(self.root),
@@ -113,6 +126,15 @@ class _Sandbox:
                      "--commit-a", self.commit_a,
                      "--preregistration", str(prereg)])
         assert proc.returncode == 0, proc.stderr
+
+    def tamper_admission_substance(self) -> None:
+        """v2 篡改场景:改 substance 内容但保留 digest 字段。"""
+        path = self.root / ".r17_formal_admission.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc["substance"]["plan_digest_claimed"] = "0" * 40
+        path.write_text(
+            json.dumps(doc, indent=1, sort_keys=True,
+                       ensure_ascii=False) + "\n", encoding="utf-8")
 
     def place_precondition(self, payload) -> None:
         (self.root / "artifacts" / "route_c_stage2_6_1_repair18"
@@ -269,4 +291,22 @@ def test_single_consumption_full_flow_then_double_consume_refused(
         release_repo=str(sandbox.repo))
     assert reason == "admission_already_consumed"
     assert len(sandbox.consumed_lines()) == 1
+    assert _face_snapshot() == before
+
+@requires_sync
+def test_substance_tamper_refuses_zero_consumption(sandbox):
+    """准入实质块被篡改(digest 不再自洽)→ 入口拒绝、零消费、
+    零链状态、零部署面触碰(§4.2 行为级防回归)。"""
+    sandbox.issue_admission()
+    sandbox.place_precondition({"pass": False})
+    sandbox.tamper_admission_substance()
+    before = _face_snapshot()
+    proc = sandbox.launch()
+    assert proc.returncode == 96
+    assert "admission_substance_digest_mismatch" in (
+        proc.stdout + proc.stderr)
+    assert sandbox.consumed_lines() == []
+    assert sandbox.journal() == []
+    rej = sandbox.last_rejection()
+    assert rej["reason"] == "admission_substance_digest_mismatch"
     assert _face_snapshot() == before

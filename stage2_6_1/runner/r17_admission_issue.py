@@ -25,6 +25,7 @@ journal, and never modifies frozen science.
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 import re
@@ -34,9 +35,11 @@ import time
 from pathlib import Path
 
 ISSUANCE_LOG = "r17_admission_issued.jsonl"
-ADMISSION_FORMAT = "cur261-r17-formal-admission-v1"
+ADMISSION_FORMAT = "cur261-r17-formal-admission-v2"
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _REFUSED = ("0" * 40, "1" * 40)
+_SUBSTANCE_MODULE = (
+    "rl_curriculum.curriculum261_r17_admission_substance")
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
@@ -61,7 +64,9 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     if tuple(state_root.parts[-3:]) not in tails \
             or state_root.parent.parent.parent != deploy_root:
         raise SystemExit("refused: deployed state root shape unbound")
-    required = {"admission_id", "iteration", "plan_digest", "authorization"}
+    required = {"admission_id", "iteration", "plan_digest",
+                "authorization", "regression_evidence",
+                "plan_digest_method"}
     if not isinstance(preregistration, dict) \
             or not required <= set(preregistration):
         raise SystemExit("refused: preregistration missing " + str(
@@ -83,6 +88,48 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     target = Path(deploy_root) / ".r17_formal_admission.json"
     if target.exists():
         raise SystemExit("refused: admission file already present")
+    # §4.2 实质绑定(v2):plan digest 实算(Commit A tree digest 重算
+    # 比对 preregistration 声明)+ 候选回归证据核验(机读 record,
+    # junit 原件重解析计数、0 failures/0 errors、skip 恰为历史允许
+    # 表、差分协议 parent/边界)。验证实现唯一存在于发布仓 src 包
+    # (签发与消费同源);本签发器保持 stdlib,经子进程调用并要求
+    # rc=0。写 digest 字段不构成验证——这里是重算。
+    src_root = Path(repo) / "stage2_6_1" / "src"
+    if not (src_root / "rl_curriculum" / (
+            _SUBSTANCE_MODULE.split(".")[-1] + ".py")).is_file():
+        raise SystemExit(
+            "refused: admission substance module missing in release repo")
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(
+            "w", suffix=".json", delete=False,
+            encoding="utf-8") as tmp:
+        json.dump(preregistration, tmp, ensure_ascii=False,
+                  sort_keys=True)
+        prereg_tmp = tmp.name
+    try:
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(src_root) + (
+            os.pathsep + env["PYTHONPATH"]
+            if env.get("PYTHONPATH") else "")
+        proc = subprocess.run(
+            [sys.executable, "-m", _SUBSTANCE_MODULE, "verify",
+             "--repo", str(repo), "--commit-a", commit_a,
+             "--preregistration", prereg_tmp],
+            capture_output=True, text=True, timeout=600, env=env)
+    finally:
+        os.unlink(prereg_tmp)
+    if proc.returncode != 0:
+        raise SystemExit(
+            "refused: admission substance verification failed: "
+            + (proc.stdout or proc.stderr).strip()[:300])
+    try:
+        verified = json.loads(proc.stdout)
+        substance = verified["substance"]
+        substance_digest = verified["substance_digest"]
+    except (ValueError, KeyError) as exc:
+        raise SystemExit(
+            "refused: substance verifier output unreadable") from exc
     admission = {
         "format": ADMISSION_FORMAT,
         "commit_a_sha": commit_a,
@@ -91,6 +138,8 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
         "iteration": preregistration["iteration"],
         "plan_digest": preregistration["plan_digest"],
         "authorization": preregistration["authorization"],
+        "substance": substance,
+        "substance_digest": substance_digest,
         "issued_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     payload = json.dumps(admission, ensure_ascii=False,
@@ -103,6 +152,7 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
             "admission_id": admission_id,
             "commit_a_sha": commit_a,
             "issued_utc": admission["issued_utc"],
+            "substance_digest": substance_digest,
             "preregistration_sha256": hashlib.sha256(
                 json.dumps(preregistration, sort_keys=True,
                            ensure_ascii=False).encode("utf-8")

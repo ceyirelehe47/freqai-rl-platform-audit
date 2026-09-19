@@ -32,7 +32,7 @@ import time
 from pathlib import Path
 
 ADMISSION_FILENAME = ".r17_formal_admission.json"
-ADMISSION_FORMAT = "cur261-r17-formal-admission-v1"
+ADMISSION_FORMAT = "cur261-r17-formal-admission-v2"
 CONSUMED_NAME = "r17_admission_consumed.jsonl"
 DEFAULT_RELEASE_REPO = "/mnt/f/trading/freqai-rl-audit"
 REJECT_RC = 96
@@ -73,6 +73,24 @@ def _git_commit_exists(repo: Path, sha: str) -> bool:
     except (OSError, subprocess.SubprocessError):
         return False
     return proc.returncode == 0
+
+
+def _load_substance_module():
+    """加载同源实质绑定模块(与本文件同目录)。
+
+    入口脚本以 `python3 <path>/curriculum261_r17_admission.py gate`
+    直跑本模块(无包上下文),包名导入在该形态不可用;按文件路径
+    加载使签发/消费/入口三种调用形态共用同一实现(同源核验)。
+    """
+    import importlib.util
+
+    path = Path(__file__).resolve().parent / (
+        "curriculum261_r17_admission_substance.py")
+    spec = importlib.util.spec_from_file_location(
+        "curriculum261_r17_admission_substance", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def validate_admission(
@@ -123,6 +141,19 @@ def validate_admission(
                     return False, "admission_already_consumed", {}
         except (OSError, ValueError):
             return False, "admission_consumed_log_unreadable", {}
+    # §4.2 实质绑定(v2;同源复验):与签发端共用
+    # curriculum261_r17_admission_substance 的唯一实现——重算 Commit A
+    # tree digest 比对 plan_digest/substance 声明、回归证据原件
+    # sha256 与 junit 重解析复验。v1(无 substance 块)在此前的
+    # admission_format_mismatch 处已拒绝。
+    try:
+        _substance = _load_substance_module()
+        ok_sub, reason_sub = _substance.verify_admission_substance(
+            adm, repo)
+    except Exception:  # noqa: BLE001 —— 闸门内部异常=fail closed
+        return False, "admission_substance_internal_error", {}
+    if not ok_sub:
+        return False, reason_sub, {}
     return True, "ok", adm
 
 
