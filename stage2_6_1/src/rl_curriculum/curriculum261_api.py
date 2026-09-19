@@ -829,6 +829,24 @@ def curriculum261_eval_config() -> EvalConfig:
 
 
 # ---------------------------------------------------------------- seed 派生
+#: §15b 候选级 dedicated semantic namespace 的 candidate id 后缀权威表
+#: (与 curriculum261_r17_param_pack.C2_LADDER_CANDIDATES_R17 的键集合
+#: 同值;交叉断言见 test_curriculum261_r17_design_cue_binding——api
+#: 不可模块级 import param_pack(依赖方向),故独立副本 + 测试防漂移)。
+C2_LADDER_CANDIDATE_ID_SUFFIXES: tuple[str, ...] = (
+    "c2l_historical_control", "c2l_conservative", "c2l_midpoint",
+)
+
+
+def _is_candidate_semantic_namespace(namespace: str) -> bool:
+    """§15b 派生命名空间 = 已注册 base + '__' + 预注册 candidate id。"""
+    if "__" not in namespace:
+        return False
+    base, cand = namespace.rsplit("__", 1)
+    return (cand in C2_LADDER_CANDIDATE_ID_SUFFIXES
+            and base in CURRICULUM261_SEED_NAMESPACES)
+
+
 def derive261_seed(
     namespace: str, family: str, rung: str, pair_index: int, attempt: int,
 ) -> int:
@@ -840,11 +858,14 @@ def derive261_seed(
     qualification corpus 与 calibration corpus / training seed 通过
     namespace 字符串天然隔离。
     """
-    if namespace not in CURRICULUM261_SEED_NAMESPACES:
+    if namespace not in CURRICULUM261_SEED_NAMESPACES \
+            and not _is_candidate_semantic_namespace(namespace):
         raise GeneratorError(
             f"seed namespace {namespace!r} 不在 "
             f"{CURRICULUM261_SEED_NAMESPACES}(calibration/qualification "
-            f"必须隔离;training 本阶段只允许 PPO smoke)")
+            f"必须隔离;training 本阶段只允许 PPO smoke;候选级 "
+            f"dedicated semantic 派生 = base + '__' + "
+            f"{C2_LADDER_CANDIDATE_ID_SUFFIXES})")
     if namespace == "qualification_r2" and not qualification_r2_unlocked():
         raise GeneratorError(
             "qualification_r2 seed 在 qualification plan 锁定前不可访问"
@@ -1217,7 +1238,8 @@ def _derive261_seed_raw(
     repair R3(§32 技术债修复):历史上本函数曾被定义两次,第一次
     (递归调用自身的死代码)被第二次定义覆盖;现已合并为单一实现。
     """
-    if namespace not in CURRICULUM261_SEED_NAMESPACES:
+    if namespace not in CURRICULUM261_SEED_NAMESPACES \
+            and not _is_candidate_semantic_namespace(namespace):
         raise GeneratorError(
             f"seed namespace {namespace!r} 不在 "
             f"{CURRICULUM261_SEED_NAMESPACES}")

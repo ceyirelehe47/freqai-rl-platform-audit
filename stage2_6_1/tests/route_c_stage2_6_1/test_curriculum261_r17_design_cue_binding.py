@@ -212,6 +212,8 @@ class TestCandidateNamespaceExplicitMapping:
             semantic_artifact_filename_r17(bogus)
         with pytest.raises(RuntimeError):
             semantic_corpus_role_r17(bogus)
+
+
     def test_writer_stamps_role_and_exclusive_create(self, tmp_path):
         ns = candidate_semantic_namespace_r17(
             "cue_semantic_design_main_r17", CID)
@@ -225,3 +227,29 @@ class TestCandidateNamespaceExplicitMapping:
         with pytest.raises(FileExistsError):
             write_semantic_artifact_r17(
                 tmp_path, ns, {"payload": 2}, "r17dp-test")
+
+
+def test_candidate_suffix_table_matches_grid():
+    """api 候选后缀权威表与 param_pack 网格键零漂移(独立副本防漂移)。"""
+    from rl_curriculum.curriculum261_api import (
+        C2_LADDER_CANDIDATE_ID_SUFFIXES)
+    assert tuple(sorted(r17_candidate_grid())) == tuple(
+        sorted(C2_LADDER_CANDIDATE_ID_SUFFIXES))
+
+
+def test_block_generation_in_derived_candidate_namespace():
+    """§15b 派生命名空间的 seed 派生与块生成真实可运行
+    (rt 实跑暴露的缺口:种子白名单曾拒绝派生 ns)。"""
+    from rl_curriculum.curriculum261_api import derive261_seed
+    ns = candidate_semantic_namespace_r17(NS, "c2l_midpoint")
+    seed = derive261_seed(ns, "c2_context", "matched_block", 0, 0)
+    assert seed > 0
+    blk = generate_matched_block_with_attempts(
+        r17_candidate_grid()["c2l_midpoint"], namespace=ns,
+        block_index=0)
+    assert blk is not None
+    from rl_curriculum.generator_api import GeneratorError
+    with pytest.raises(GeneratorError):
+        derive261_seed(
+            candidate_semantic_namespace_r17(NS, "c2l_unknown"),
+            "c2_context", "matched_block", 0, 0)
