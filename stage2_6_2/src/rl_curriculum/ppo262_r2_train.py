@@ -502,15 +502,21 @@ def _build_diagnosed_ppo2_cls():
 _DIAG2_PPO_CLS = None
 
 
-def build_diagnosed_ppo2(config: dict[str, Any], seed: int, env):
-    """DiagnosedPPO2 构造(与 ppo262_config.build_ppo 同参数语义)。"""
+def build_diagnosed_ppo2(config: dict[str, Any], seed: int, env,
+                         *, extra_model_kwargs: dict | None = None):
+    """DiagnosedPPO2 构造(与 ppo262_config.build_ppo 同参数语义)。
+
+    extra_model_kwargs(G5 诊断新增;缺省 None = 原行为逐位不变):
+    透传 SB3 PPO 构造参数(如 normalize_advantage);r2 历史调用
+    一律不传,行为不变。
+    """
     global _DIAG2_PPO_CLS
     if _DIAG2_PPO_CLS is None:
         _DIAG2_PPO_CLS = _build_diagnosed_ppo2_cls()
     import torch
     act_fn = {"Tanh": torch.nn.Tanh,
               "ReLU": torch.nn.ReLU}[config["activation_fn"]]
-    return _DIAG2_PPO_CLS(
+    kwargs = dict(
         policy=config["policy"], env=env,
         learning_rate=config["learning_rate"],
         n_steps=config["n_steps"],
@@ -528,8 +534,10 @@ def build_diagnosed_ppo2(config: dict[str, Any], seed: int, env):
         },
         seed=int(seed),
         verbose=0,
-        device=config["device"],
-    )
+        device=config["device"])
+    if extra_model_kwargs:
+        kwargs.update(extra_model_kwargs)
+    return _DIAG2_PPO_CLS(**kwargs)
 
 
 # ============================================================ 诊断 runner
@@ -541,6 +549,7 @@ def r2_diag_train_run(
     checkpoint_episodes: tuple[int, ...] = (),
     gradient_detail_every: int = 1,
     bc_init_state: dict | None = None,
+    model_extra_kwargs: dict | None = None,
 ) -> dict[str, Any]:
     """R2 诊断训练 run(重复暴露 bank;真实 checkpoint;真实梯度)。
 
@@ -591,7 +600,8 @@ def r2_diag_train_run(
     cb = DiagnosisCallback(
         inner_env, latent_labels=latent_labels,
         on_episode_done=_save_checkpoint)
-    model = build_diagnosed_ppo2(config, model_seed, train_env)
+    model = build_diagnosed_ppo2(config, model_seed, train_env,
+                                 extra_model_kwargs=model_extra_kwargs)
     model._diag2_detail_every = int(gradient_detail_every)
     init_hash = policy_state_hash(model)
     bc_init_actor_hash = None
