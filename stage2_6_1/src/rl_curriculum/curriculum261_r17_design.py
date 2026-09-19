@@ -197,7 +197,16 @@ SEMANTIC_STAGE_ARTIFACT_MAP_R17 = {
     "rt4_semantic_main_r18": "rt_semantic_main.json",
     "rt4_semantic_validation_r18": "rt_semantic_validation.json",
     "rt4_semantic_final_r18": "rt_semantic_final.json",
+    # R19 尝试(R19 处方;同一 writer 合同)
+    "cue_semantic_calibration_r19": "cue_semantic_calibration.json",
+    "cue_semantic_holdout_r19": "cue_semantic_holdout.json",
+    "cue_semantic_qualification_r19":
+        "qualification_cue_semantics.json",
+    "rt4_semantic_main_r19": "rt_semantic_main.json",
+    "rt4_semantic_validation_r19": "rt_semantic_validation.json",
+    "rt4_semantic_final_r19": "rt_semantic_final.json",
 }
+
 SEMANTIC_CORPUS_ROLE_R17 = {
     "cue_semantic_design_main_r17": "main",
     "cue_semantic_design_validation_r17": "validation",
@@ -220,6 +229,12 @@ SEMANTIC_CORPUS_ROLE_R17 = {
     "rt4_semantic_main_r18": "rt_main",
     "rt4_semantic_validation_r18": "rt_validation",
     "rt4_semantic_final_r18": "rt_final",
+    "cue_semantic_calibration_r19": "calibration",
+    "cue_semantic_holdout_r19": "holdout",
+    "cue_semantic_qualification_r19": "qualification",
+    "rt4_semantic_main_r19": "rt_main",
+    "rt4_semantic_validation_r19": "rt_validation",
+    "rt4_semantic_final_r19": "rt_final",
 }
 
 

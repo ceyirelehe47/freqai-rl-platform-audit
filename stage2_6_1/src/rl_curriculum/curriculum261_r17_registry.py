@@ -21,6 +21,12 @@ from rl_curriculum.curriculum261_r18_attempt import (
     R18_ALL_NEW as _R18_ATTEMPT_NAMESPACES,
     R18_FORMAL_FOUR as _R18_ATTEMPT_FORMAL_FOUR,
 )
+# R19 formal attempt family(R19 处方;R18 终态后;单一来源在
+# r19_attempt,与 api 双表对齐;开放门 4.1/4.2 已先闭合)。
+from rl_curriculum.curriculum261_r19_attempt import (
+    R19_ALL_NEW as _R19_ATTEMPT_NAMESPACES,
+    R19_FORMAL_FOUR as _R19_ATTEMPT_FORMAL_FOUR,
+)
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +47,7 @@ R17_FORMAL_QUALIFICATION_NAMESPACES = (
     "preprocess_fit_qualification_r17",
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
-) + _R18_ATTEMPT_FORMAL_FOUR
+) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR
 
 #: R17 全部 seed namespace(白名单单一权威在 api;此处为派生对齐)。
 R17_ALL_NAMESPACES = (
@@ -99,7 +105,7 @@ R17_ALL_NAMESPACES = (
     "preplan_v2c13_v2_fit_validation_r17",
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
-) + _R18_ATTEMPT_NAMESPACES
+) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES
 
 #: 白名单一致性(api 为单一权威;启动时对齐校验)。
 from rl_curriculum.curriculum261_api import (  # noqa: E402

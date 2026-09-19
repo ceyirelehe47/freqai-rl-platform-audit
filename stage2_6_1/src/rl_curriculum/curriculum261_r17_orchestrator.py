@@ -119,19 +119,19 @@ class R17ExecutionProfile:
 
 
 def formal_main_profile_r17(n_blocks: int) -> R17ExecutionProfile:
-    # R18 尝试命名空间族(journal §11 处方:R17 框架 + 全新 namespace)。
-    from rl_curriculum.curriculum261_r18_attempt import (
-        R18_C13_MAIN, R18_C2_INDEPENDENT_MAIN, R18_SEMANTIC_MAIN,
-        R18_SUPERVISED_MAIN,
+    # R19 尝试命名空间族(R19 处方;R18 终态后;开放门 4.1/4.2 已闭)。
+    from rl_curriculum.curriculum261_r19_attempt import (
+        R19_C13_MAIN, R19_C2_INDEPENDENT_MAIN, R19_SEMANTIC_MAIN,
+        R19_SUPERVISED_MAIN,
     )
     return R17ExecutionProfile(
         name="formal_main", preplan=False,
-        c13_eval_namespace=R18_C13_MAIN,
-        equivalence_namespace=R18_C13_MAIN,
-        supervised_namespace=R18_SUPERVISED_MAIN,
-        semantic_namespace=R18_SEMANTIC_MAIN,
-        c2_matched_namespace=R18_C13_MAIN,
-        c2_independent_namespace=R18_C2_INDEPENDENT_MAIN,
+        c13_eval_namespace=R19_C13_MAIN,
+        equivalence_namespace=R19_C13_MAIN,
+        supervised_namespace=R19_SUPERVISED_MAIN,
+        semantic_namespace=R19_SEMANTIC_MAIN,
+        c2_matched_namespace=R19_C13_MAIN,
+        c2_independent_namespace=R19_C2_INDEPENDENT_MAIN,
         c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R17,
         c2_blocks=int(n_blocks),
         semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R17,
@@ -144,18 +144,18 @@ def formal_main_profile_r17(n_blocks: int) -> R17ExecutionProfile:
 
 
 def formal_holdout_profile_r17(n_blocks: int) -> R17ExecutionProfile:
-    from rl_curriculum.curriculum261_r18_attempt import (
-        R18_C13_HOLDOUT, R18_C2_INDEPENDENT_HOLDOUT,
-        R18_SEMANTIC_HOLDOUT, R18_SUPERVISED_HOLDOUT,
+    from rl_curriculum.curriculum261_r19_attempt import (
+        R19_C13_HOLDOUT, R19_C2_INDEPENDENT_HOLDOUT,
+        R19_SEMANTIC_HOLDOUT, R19_SUPERVISED_HOLDOUT,
     )
     return R17ExecutionProfile(
         name="formal_holdout", preplan=False,
-        c13_eval_namespace=R18_C13_HOLDOUT,
-        equivalence_namespace=R18_C13_HOLDOUT,
-        supervised_namespace=R18_SUPERVISED_HOLDOUT,
-        semantic_namespace=R18_SEMANTIC_HOLDOUT,
-        c2_matched_namespace=R18_C13_HOLDOUT,
-        c2_independent_namespace=R18_C2_INDEPENDENT_HOLDOUT,
+        c13_eval_namespace=R19_C13_HOLDOUT,
+        equivalence_namespace=R19_C13_HOLDOUT,
+        supervised_namespace=R19_SUPERVISED_HOLDOUT,
+        semantic_namespace=R19_SEMANTIC_HOLDOUT,
+        c2_matched_namespace=R19_C13_HOLDOUT,
+        c2_independent_namespace=R19_C2_INDEPENDENT_HOLDOUT,
         c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R17,
         c2_blocks=int(n_blocks),
         semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R17,
@@ -306,20 +306,20 @@ def rt_main_profile_r17(small: bool = False) -> R17ExecutionProfile:
     4/rung、equiv 1/rung(接口覆盖不变:同文件种类、同调用
     路径;§8.1 允许的 rehearsal 样本规模差异)。
     """
-    # R18 尝试的 rt 验证族:rt4_*_r18(全新工程命名空间,与正式族
-    # 同一批注册;不消耗任何 R17 旧身份)。
-    from rl_curriculum.curriculum261_r18_attempt import (
-        R18_RT_CALIBRATION_MAIN, R18_RT_C2_INDEPENDENT_MAIN,
-        R18_RT_SEMANTIC_MAIN, R18_RT_SUPERVISED_MAIN,
+    # R19 尝试的 rt 验证族:rt4_*_r19(全新工程命名空间,与正式族
+    # 同一批注册;不消耗任何 R17/R18 旧身份)。
+    from rl_curriculum.curriculum261_r19_attempt import (
+        R19_RT_CALIBRATION_MAIN, R19_RT_C2_INDEPENDENT_MAIN,
+        R19_RT_SEMANTIC_MAIN, R19_RT_SUPERVISED_MAIN,
     )
     return R17ExecutionProfile(
         name="rt_main", preplan=False, shadow=False,
-        c13_eval_namespace=R18_RT_CALIBRATION_MAIN,
-        equivalence_namespace=R18_RT_CALIBRATION_MAIN,
-        supervised_namespace=R18_RT_SUPERVISED_MAIN,
-        semantic_namespace=R18_RT_SEMANTIC_MAIN,
-        c2_matched_namespace=R18_RT_CALIBRATION_MAIN,
-        c2_independent_namespace=R18_RT_C2_INDEPENDENT_MAIN,
+        c13_eval_namespace=R19_RT_CALIBRATION_MAIN,
+        equivalence_namespace=R19_RT_CALIBRATION_MAIN,
+        supervised_namespace=R19_RT_SUPERVISED_MAIN,
+        semantic_namespace=R19_RT_SEMANTIC_MAIN,
+        c2_matched_namespace=R19_RT_CALIBRATION_MAIN,
+        c2_independent_namespace=R19_RT_C2_INDEPENDENT_MAIN,
         c13_pairs_per_rung=2 if small else RT_C13_PAIRS_PER_RUNG,
         c2_blocks=4 if small else RT_C2_BLOCKS_R17,
         semantic_blocks=8 if small else
@@ -341,18 +341,18 @@ def rt_main_profile_r17(small: bool = False) -> R17ExecutionProfile:
 
 def rt_holdout_profile_r17(small: bool = False) -> R17ExecutionProfile:
     """rt holdout(与 rt_main 对称;独立 namespace;small 同义)。"""
-    from rl_curriculum.curriculum261_r18_attempt import (
-        R18_RT_CALIBRATION_HOLDOUT, R18_RT_C2_INDEPENDENT_HOLDOUT,
-        R18_RT_SEMANTIC_VALIDATION, R18_RT_SUPERVISED_HOLDOUT,
+    from rl_curriculum.curriculum261_r19_attempt import (
+        R19_RT_CALIBRATION_HOLDOUT, R19_RT_C2_INDEPENDENT_HOLDOUT,
+        R19_RT_SEMANTIC_VALIDATION, R19_RT_SUPERVISED_HOLDOUT,
     )
     return R17ExecutionProfile(
         name="rt_holdout", preplan=False, shadow=False,
-        c13_eval_namespace=R18_RT_CALIBRATION_HOLDOUT,
-        equivalence_namespace=R18_RT_CALIBRATION_HOLDOUT,
-        supervised_namespace=R18_RT_SUPERVISED_HOLDOUT,
-        semantic_namespace=R18_RT_SEMANTIC_VALIDATION,
-        c2_matched_namespace=R18_RT_CALIBRATION_HOLDOUT,
-        c2_independent_namespace=R18_RT_C2_INDEPENDENT_HOLDOUT,
+        c13_eval_namespace=R19_RT_CALIBRATION_HOLDOUT,
+        equivalence_namespace=R19_RT_CALIBRATION_HOLDOUT,
+        supervised_namespace=R19_RT_SUPERVISED_HOLDOUT,
+        semantic_namespace=R19_RT_SEMANTIC_VALIDATION,
+        c2_matched_namespace=R19_RT_CALIBRATION_HOLDOUT,
+        c2_independent_namespace=R19_RT_C2_INDEPENDENT_HOLDOUT,
         c13_pairs_per_rung=2 if small else RT_C13_PAIRS_PER_RUNG,
         c2_blocks=4 if small else RT_C2_BLOCKS_R17,
         semantic_blocks=8 if small else

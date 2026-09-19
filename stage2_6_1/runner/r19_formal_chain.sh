@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# R19 尝试正式链(R17 框架 + 全新命名空间;R19 处方)——薄 shell 入口 + 单一协调者。
+# 步骤顺序的唯一来源 = curriculum261_r17_workflow.R17_WORKFLOW_STEPS
+# (由协调者 cli chain-run 展开执行;本脚本只做:LF 自检 → 准入许可
+# 闸门 → 启动请求证据 → 环境验证 → chain-run)。
+#
+# R17 诊断轮 E1 修复(请求日志先隔离):本脚本全部"会话准入前"的
+# shell 层输出(chain_run.log/fail_closure.log/launch_evidence.jsonl)
+# 只写本请求独立目录 r17_formal_requests/<RUN_ID>/,不写跨请求共享
+# 路径——第二个并发请求即使随后被链会话锁拒绝,也不可能截断或
+# 混写第一个请求的日志(bash 在命令执行前打开重定向,共享路径的
+# `>` 会先截断;这是 E1 缺陷的机制)。被拒请求的 python 层证据由
+# 协调者写入部署状态根的 rejected_requests/ 区,与请求目录互补。
+# 共享入口段(LF 自检后)见 r17_entry_common.sh。
+#
+# 监护接线闭合轮 WP0c:正式准入许可闸门前置到任何正式写入之前
+# (创建 $ART、激活环境、接受会话、journal/plan/abort 全部之后置);
+# 撤销 R17_ART_ROOT/R17_STATE_ROOT 对正式 root 的重定向通道
+# (正式部署 root 不可由环境变量重定义;工程测试改用沙箱
+# R17_PROJECT_ROOT + R17_RUNNER_DIR,不触达部署面)。
+#
+# 前置: 开放门 §4.1/§4.2 已闭合(7776aa9d);准入 v2
+# (substance 实质绑定)在 gate 内同源复验。
+# 用法: bash r19_formal_chain.sh <commit_a_sha>
+# 环境: R17_PROJECT_ROOT(缺省 $HOME/projects/crypto_rl);
+#       R17_RUNNER_DIR(缺省 $PROJECT_ROOT/stage2_6_1_runner;工程
+#       测试指向真实部署 runner 面以调用真实入口脚本)
+
+# ---- LF 自检(R15 事故防御;必须在 set -euo pipefail 之前;含共享段) ----
+ENTRY_COMMON="$(cd "$(dirname "$0")" && pwd)/r17_entry_common.sh"
+if grep -q $'\r' "$0" "$ENTRY_COMMON"; then
+  echo "FATAL: $0 或 r17_entry_common.sh 含 CR 字节(CRLF 行尾);拒绝启动。" >&2
+  echo "R15 同款缺陷;执行面字节检查失败。" >&2
+  exit 99
+fi
+
+set -euo pipefail
+
+PROJECT_ROOT="${R17_PROJECT_ROOT:-$HOME/projects/crypto_rl}"
+RUNNER="${R17_RUNNER_DIR:-$PROJECT_ROOT/stage2_6_1_runner}"
+# shellcheck source=/dev/null
+source "$RUNNER/r17_entry_common.sh"
+
+# 正式产物根(固定锚定;冻结面:部署状态根=$ART/state)。
+ART="$PROJECT_ROOT/artifacts/route_c_stage2_6_1_repair19"
+
+# ---- 请求级隔离目录(E1;先于任何重定向与 emit 建立) ----
+REQ_ROOT="$PROJECT_ROOT/r17_formal_requests"
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)_$$"
+REQ_DIR="$REQ_ROOT/$RUN_ID"
+mkdir -p "$REQ_DIR"
+
+# ---- 正式准入许可闸门(WP0c/C01) -------------------------------------
+# 在创建任何正式 artifact、接受会话或发起业务步骤之前校验部署根
+# 的 .r17_formal_admission.json;无有效许可 → 只写本请求拒绝日志
+# 并退出(rc=96):不建 $ART、不激活环境、不启动观测、不写
+# journal/plan/abort。许可由未来独立授权流程放置;本轮部署面不
+# 存在任何有效许可,正式入口保持关闭。
+admission_reject() {
+  printf '{"event":"admission_rejected","utc":"%s","reason":"%s","freeze_sha":"%s","pid":%s}\n' \
+    "$(r17_ts)" "$1" "${FREEZE_SHA:-unknown}" "$$" \
+    >> "$REQ_DIR/admission_rejected.jsonl"
+  echo "FATAL: formal 准入被拒: $1 (许可=$PROJECT_ROOT/.r17_formal_admission.json)" >&2
+  exit 96
+}
+if [ -n "${R17_ART_ROOT:-}" ] || [ -n "${R17_STATE_ROOT:-}" ]; then
+  admission_reject "env_redirect_forbidden"
+fi
+FREEZE_SHA="${1:?需要 Commit A SHA}"
+ADMISSION_PY="$RUNNER/../src/rl_curriculum/curriculum261_r17_admission.py"
+
+# ---- 链外前置产物预检(R19 处方勘误;纵深防御) ------------------------
+# gate_topology_reconciliation.json 按 R17_EXTERNAL_ARTIFACTS 合同是
+# "Commit A 前链外一次性锁定"的产物;缺失 = 链外 provenance-lock 义务
+# 未履行,链注定死于第 1 步 provenance-verify(R18 r2 的实际死法)。
+# 此处零消费早拒(rc=96),不消耗一次性准入。存在性检查不证明内容
+# 有效——内容由链步 1 provenance-verify 强制(重算 digest 并比对)。
+if [ ! -f "$ART/gate_topology_reconciliation.json" ]; then
+  printf '{"event":"precondition_missing","utc":"%s","reason":"gate_topology_reconciliation_absent","freeze_sha":"%s","pid":%s}\n' \
+    "$(r17_ts)" "$FREEZE_SHA" "$$" >> "$REQ_DIR/admission_rejected.jsonl"
+  echo "FATAL: 链外前置产物缺失: $ART/gate_topology_reconciliation.json(Commit A 前链外 provenance-lock 未履行;零消费早拒)" >&2
+  exit 96
+fi
+
+# 入口闸门只校验(零副作用早拒:许可存在/形状/冻结 SHA/状态根绑定)。
+# 一次性消费的唯一登记点=协调者 CLI formal 分支的
+# enforce_formal_admission(防绕过本入口直接调 CLI)。入口不得再传
+# --consume:2026-09-17 首次真实行使暴露双消费缺陷(入口消费后协调者
+# 以 admission_already_consumed 拒绝,链死于 bootstrap,零业务副作用)。
+admission_out=""
+if ! admission_out="$(python3 "$ADMISSION_PY" gate \
+    --deploy-root "$PROJECT_ROOT" --state-root "$ART/state" \
+    --freeze-sha "$FREEZE_SHA")"; then
+  admission_reject "${admission_out:-admission_gate_internal_error}"
+fi
+mkdir -p "$ART"
+LAUNCH_EVIDENCE="$REQ_DIR/launch_evidence.jsonl"
+emit_launch "launch_requested" "r19_formal_chain.sh $* run_id=$RUN_ID"
+emit_launch "admission_granted" "$admission_out"
+
+# ---- 存储天花板 → 环境激活 → 解释器验证(共享入口段) ----
+r17_check_storage_ceiling
+r17_activate_environment
+r17_verify_interpreter
+
+# ---- 部署状态根绑定(准入解析;正式唯一) ----
+export CURRICULUM261_R17_DEPLOYED_STATE_ROOT="$ART/state"
+export CURRICULUM261_R17_STATE_ROOT="$CURRICULUM261_R17_DEPLOYED_STATE_ROOT"
+
+# ---- 观测接线(观测型;WP1/§5.1) ----
+# 仅启动宿主采样器并登记;判定/保护不作用于本入口的业务编排(其进程
+# 非本段启动,无登记进程组)。观测不可用时链继续并记录降级(不吞其它
+# 失败);EXIT trap 保证被拒请求只关闭自己的观测(M16 被拒者路径)。
+if ! r17_monitored_bootstrap "$REQ_DIR" "$RUN_ID"; then
+  emit_launch "monitored_bootstrap_degraded" "win observation unavailable"
+fi
+trap 'r17_monitored_teardown "$REQ_DIR"' EXIT
+
+# ---- 唯一编排调用:协调者 chain-run(会话 → plan → 17 步 → 终态) ----
+# workflow plan 由协调者在会话内生成;plan 结构校验失败 =
+# 协调者自身失败,按 bootstrap 边界封口(§5.4:workflow 前缀为空)。
+echo "=== [chain-run formal] $(r17_ts) ==="
+wrc=0
+python -m rl_curriculum.curriculum261_r17_cli chain-run \
+    --out-dir "$ART" --freeze-sha "$FREEZE_SHA" \
+    > "$REQ_DIR/chain_run.log" 2>&1 || wrc=$?
+tail -5 "$REQ_DIR/chain_run.log" || true
+if [ "$wrc" -ne 0 ]; then
+  # 协调者失败(会话获取被拒/plan 失败/步骤失败)——被拒与
+  # 失败的区分由协调者落盘(请求证据 vs journal 事件);
+  # 入口只按 bootstrap 边界封口 workflow 前缀为空的情形:
+  # plan 文件不存在 ⇒ 任何步骤都未启动。
+  if [ ! -f "$ART/r17_workflow_plan_formal.json" ]; then
+    python -m rl_curriculum.curriculum261_r17_cli fail-closure \
+      --out-dir "$ART" --failed-step bootstrap --verdict FAIL \
+      --reason "chain-run rc=$wrc 且 workflow plan 未生成(协调者会话获取或结构校验失败;R17 §5.4:失败发生在 bootstrap,workflow 前缀为空,首个未执行节点 provenance-verify 未开始;停止;只读收尾)" \
+      >> "$REQ_DIR/fail_closure.log" 2>&1 || true
+  fi
+fi
+emit_launch "chain_finished" "rc=$wrc"
+echo "=== [chain-run formal] rc=$wrc $(r17_ts) ==="
+exit "$wrc"

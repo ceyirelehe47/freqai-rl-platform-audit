@@ -44,16 +44,16 @@ from rl_curriculum.curriculum261_r17_plan import (
     load_locked_plan_r17,
 )
 
-#: R17 rehearsal final profile(rt4_*_r18 工程 namespace;缩小规模;
-#: 不消耗正式 R18 namespace/状态;与 r17_cli 的 R17_RT_FINAL_PROFILE
+#: R17 rehearsal final profile(rt4_*_r19 工程 namespace;缩小规模;
+#: 不消耗正式 R19 namespace/状态;与 r17_cli 的 R17_RT_FINAL_PROFILE
 #: 保持一致——CLI 是唯一权威定义,本 re-export 供 preplan/测试使用)。
 R17_RT_FINAL_PROFILE: dict[str, Any] = {
-    "final_namespace": "rt4_qualification_r18",
-    "fit_namespace": "rt4_fit_qualification_r18",
-    "independent_namespace": "rt4_c2_independent_main_r18",
-    "semantic_namespace": "rt4_semantic_final_r18",
-    "supervised_namespace": "rt4_supervised_main_r18",
-    "conditioning_fit_namespace": "rt4_fit_main_r18",
+    "final_namespace": "rt4_qualification_r19",
+    "fit_namespace": "rt4_fit_qualification_r19",
+    "independent_namespace": "rt4_c2_independent_main_r19",
+    "semantic_namespace": "rt4_semantic_final_r19",
+    "supervised_namespace": "rt4_supervised_main_r19",
+    "conditioning_fit_namespace": "rt4_fit_main_r19",
     "c13_pairs_per_rung": 2,
     "c2_blocks": 4,
     "semantic_block_count": 8,

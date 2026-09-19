@@ -2087,13 +2087,12 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
             rt_main_profile_r17,
         )
 
-        from rl_curriculum.curriculum261_r18_attempt import (
-            R18_RT_CALIBRATION_MAIN, R18_RT_FIT_HOLDOUT, R18_RT_FIT_MAIN,
-            R18_RT_STRESS,
+        from rl_curriculum.curriculum261_r19_attempt import (
+            R19_RT_CALIBRATION_MAIN, R19_RT_FIT_HOLDOUT, R19_RT_FIT_MAIN,
+            R19_RT_STRESS,
         )
-
-        fit_ns_main = R18_RT_FIT_MAIN
-        fit_ns_hold = R18_RT_FIT_HOLDOUT
+        fit_ns_main = R19_RT_FIT_MAIN
+        fit_ns_hold = R19_RT_FIT_HOLDOUT
         # 诊断轮(2026-09-06):缺省 = R16 rt 预登记规模(RT_* 常量,
         # R15/R16 rehearsal 17 步全绿的同一规模);CURRICULUM261_R17_
         # RT_SMALL=1 时的缩小模式仅作工程链路诊断逃生门(统计排序
@@ -2103,20 +2102,20 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
             "CURRICULUM261_R17_RT_SMALL", "0") == "1"
         profile_main_obj = rt_main_profile_r17(small=_rt_small)
         profile_holdout_obj = rt_holdout_profile_r17(small=_rt_small)
-        conditioning_eval_ns = R18_RT_CALIBRATION_MAIN
-        stress_ns = R18_RT_STRESS
-        print("[calibrate][rehearsal] rt4_*_r18 namespace;预登记工程规模"
+        conditioning_eval_ns = R19_RT_CALIBRATION_MAIN
+        stress_ns = R19_RT_STRESS
+        print("[calibrate][rehearsal] rt4_*_r19 namespace;预登记工程规模"
               "(rt 缩小模式=%s;链路验证非统计;§8.1)" % _rt_small)
     else:
-        from rl_curriculum.curriculum261_r18_attempt import (
-            R18_C13_MAIN, R18_FIT_HOLDOUT, R18_FIT_MAIN, R18_STRESS,
+        from rl_curriculum.curriculum261_r19_attempt import (
+            R19_C13_MAIN, R19_FIT_HOLDOUT, R19_FIT_MAIN, R19_STRESS,
         )
-        fit_ns_main = R18_FIT_MAIN
-        fit_ns_hold = R18_FIT_HOLDOUT
+        fit_ns_main = R19_FIT_MAIN
+        fit_ns_hold = R19_FIT_HOLDOUT
         profile_main_obj = formal_main_profile_r17(n_blocks)
         profile_holdout_obj = formal_holdout_profile_r17(n_blocks)
-        conditioning_eval_ns = R18_C13_MAIN
-        stress_ns = R18_STRESS
+        conditioning_eval_ns = R19_C13_MAIN
+        stress_ns = R19_STRESS
 
     print(f"[calibrate] fitting main preprocessor ({fit_ns_main})...")
     records_main = generate_fit_bank_r17(fit_ns_main, pack)
@@ -2416,19 +2415,19 @@ def cmd_preflight_sealed(args: argparse.Namespace) -> int:
 #: 与正式路径同代码。缩小规模下 verdict 不作资格判定(预期非 PASS;
 #: artifact 写盘供 smoke/下游 reader 真实读取)。
 R17_RT_FINAL_PROFILE: dict = {
-    # R18 尝试的 rt final 验证族(rt4_*_r18;不消耗正式 R18 四件套)。
-    "final_namespace": "rt4_qualification_r18",
-    "fit_namespace": "rt4_fit_qualification_r18",
+    # R19 尝试的 rt final 验证族(rt4_*_r19;不消耗正式 R19 四件套)。
+    "final_namespace": "rt4_qualification_r19",
+    "fit_namespace": "rt4_fit_qualification_r19",
     "c13_pairs_per_rung": 2,
     "c2_blocks": 4,
     "semantic_block_count": 8,
     "independent_pairs_per_rung": 2,
-    "independent_namespace": "rt4_c2_independent_main_r18",
-    "semantic_namespace": "rt4_semantic_final_r18",
-    "supervised_namespace": "rt4_supervised_main_r18",
+    "independent_namespace": "rt4_c2_independent_main_r19",
+    "semantic_namespace": "rt4_semantic_final_r19",
+    "supervised_namespace": "rt4_supervised_main_r19",
     "supervised_model_seeds": (20270135,),
     "supervised_training_config": {"epochs": 2},
-    "conditioning_fit_namespace": "rt4_fit_main_r18",
+    "conditioning_fit_namespace": "rt4_fit_main_r19",
 }
 
 

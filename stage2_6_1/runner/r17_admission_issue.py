@@ -60,6 +60,7 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     tails = (
         ("artifacts", "route_c_stage2_6_1_repair17", "state"),
         ("artifacts", "route_c_stage2_6_1_repair18", "state"),
+        ("artifacts", "route_c_stage2_6_1_repair19", "state"),
     )
     if tuple(state_root.parts[-3:]) not in tails \
             or state_root.parent.parent.parent != deploy_root:

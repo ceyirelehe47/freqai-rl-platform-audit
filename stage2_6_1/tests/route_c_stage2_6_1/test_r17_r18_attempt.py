@@ -54,33 +54,24 @@ def test_old_formal_four_stay_registered_but_unused():
     assert not old_four & set(a.R18_ALL_NEW)
 
 
-def test_profiles_wire_r18_family():
+def test_profiles_superseded_by_r19_family():
+    # R19 处方接替:live formal/rt profiles 自 R19 尝试接线起指向
+    # r19 族(见 test_r17_r19_attempt);R18 族保持注册(历史终态、
+    # 未消费),但不再被任何 live profile 引用。
+    from rl_curriculum import curriculum261_r19_attempt as r19
     main = formal_main_profile_r17(20)
     hold = formal_holdout_profile_r17(20)
-    assert main.c13_eval_namespace == a.R18_C13_MAIN
-    assert main.supervised_namespace == a.R18_SUPERVISED_MAIN
-    assert main.semantic_namespace == a.R18_SEMANTIC_MAIN
-    assert main.c2_independent_namespace == a.R18_C2_INDEPENDENT_MAIN
-    assert hold.c13_eval_namespace == a.R18_C13_HOLDOUT
-    assert hold.semantic_namespace == a.R18_SEMANTIC_HOLDOUT
     rt_main = rt_main_profile_r17()
     rt_hold = rt_holdout_profile_r17()
-    assert rt_main.c13_eval_namespace == a.R18_RT_CALIBRATION_MAIN
-    assert rt_main.semantic_namespace == a.R18_RT_SEMANTIC_MAIN
-    assert rt_hold.c13_eval_namespace == a.R18_RT_CALIBRATION_HOLDOUT
-    assert rt_hold.c2_independent_namespace == (
-        a.R18_RT_C2_INDEPENDENT_HOLDOUT)
     wired = {main.c13_eval_namespace, main.supervised_namespace,
-             main.semantic_namespace, main.c2_matched_namespace,
-             main.c2_independent_namespace, hold.c13_eval_namespace,
-             hold.supervised_namespace, hold.semantic_namespace,
-             hold.c2_matched_namespace, hold.c2_independent_namespace,
-             rt_main.c13_eval_namespace, rt_main.supervised_namespace,
-             rt_main.semantic_namespace, rt_main.c2_independent_namespace,
-             rt_hold.c13_eval_namespace, rt_hold.supervised_namespace,
-             rt_hold.semantic_namespace,
+             main.semantic_namespace, main.c2_independent_namespace,
+             hold.c13_eval_namespace, hold.semantic_namespace,
+             hold.c2_independent_namespace,
+             rt_main.c13_eval_namespace, rt_main.semantic_namespace,
+             rt_hold.c13_eval_namespace,
              rt_hold.c2_independent_namespace}
-    assert wired <= set(a.R18_ALL_NEW)
+    assert wired & set(a.R18_ALL_NEW) == set()
+    assert wired <= set(r19.R19_ALL_NEW)
 
 
 def test_admission_tail_version_table():
@@ -90,16 +81,17 @@ def test_admission_tail_version_table():
     assert deploy_root_of(r17) == deploy
     assert deploy_root_of(r18) == deploy
     assert deploy_root_of(
-        deploy / "artifacts/route_c_stage2_6_1_repair19/state") is None
+        deploy / "artifacts/route_c_stage2_6_1_repair20/state") is None
     assert deploy_root_of(deploy / "somewhere/state") is None
 
 
-def test_r18_final_profile_namespaces():
+def test_r18_final_profile_superseded_by_r19():
     from rl_curriculum.curriculum261_r17_cli import R17_RT_FINAL_PROFILE
+    from rl_curriculum import curriculum261_r19_attempt as r19
     values = {v for v in R17_RT_FINAL_PROFILE.values()
               if isinstance(v, str)}
-    assert values <= set(a.R18_RT_FAMILY)
-    assert R17_RT_FINAL_PROFILE["final_namespace"] == a.R18_RT_QUALIFICATION
+    assert values <= set(r19.R19_RT_FAMILY)
+    assert R17_RT_FINAL_PROFILE["final_namespace"] == r19.R19_RT_QUALIFICATION
 
 
 def _find_runner_dir() -> Path:

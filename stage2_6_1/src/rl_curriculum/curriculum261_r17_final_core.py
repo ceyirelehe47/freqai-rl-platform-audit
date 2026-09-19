@@ -148,7 +148,7 @@ def execute_final_core_r17(
         digest: str = "", started: str | None = None,
         profile_name: str = "formal_final",
         final_namespace: str = "qualification_r17",
-        fit_namespace: str = "preprocess_fit_qualification_r18",
+        fit_namespace: str = "preprocess_fit_qualification_r19",
         c13_pairs_per_rung: int = 10,
         c2_blocks: int | None = None,
         semantic_block_count: int = 160,
@@ -360,7 +360,7 @@ def _execute_final_core_inner_r17(
         digest: str = "", started: str | None = None,
         profile_name: str = "formal_final",
         final_namespace: str = "qualification_r17",
-        fit_namespace: str = "preprocess_fit_qualification_r18",
+        fit_namespace: str = "preprocess_fit_qualification_r19",
         c13_pairs_per_rung: int = 10,
         c2_blocks: int | None = None,
         semantic_block_count: int = 160,
@@ -601,7 +601,7 @@ def _execute_final_core_inner_r17(
     )
 
     cond_records = generate_fit_bank_r17(
-        conditioning_fit_namespace or "preprocess_fit_calibration_r18",
+        conditioning_fit_namespace or "preprocess_fit_calibration_r19",
         pack) if not rehearsal else final_records
     cond_eval_records = [
         rec for recs in all_records.values() for rec in recs[:8]]

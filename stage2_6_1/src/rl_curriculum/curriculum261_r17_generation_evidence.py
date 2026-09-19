@@ -35,9 +35,11 @@ from rl_curriculum.curriculum261_generation_envelope import (
 
 COMPLETENESS_FORMAT = "cur261-r17-generation-evidence-completeness-v1"
 R17_ITERATION = "r17"
-#: R18 尝试族(R17 框架 + 全新 namespace;journal §11 处方)的信封
-#: 迭代标识与 r17 同属本框架治理面,完备性对账同等接受。
-R17_FRAMEWORK_ITERATIONS = ("r17", "r18")
+#: R18/R19 尝试族(R17 框架 + 全新 namespace;journal §11 处方与
+#: R19 处方)的信封迭代标识与 r17 同属本框架治理面,完备性对账
+#: 同等接受。
+R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19")
+
 
 
 @dataclass(frozen=True)

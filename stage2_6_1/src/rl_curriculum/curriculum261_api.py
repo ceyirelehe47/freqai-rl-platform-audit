@@ -583,6 +583,12 @@ from rl_curriculum.curriculum261_r18_attempt import (  # noqa: E402
     R18_ALL_NEW as _R18_ATTEMPT_NAMESPACES,
     R18_FORMAL_FOUR as _R18_ATTEMPT_FORMAL_FOUR,
 )
+# R19 formal attempt family (R19 prescription after the terminal r18
+# attempt; single source in r19_attempt; gates 4.1/4.2 closed first).
+from rl_curriculum.curriculum261_r19_attempt import (  # noqa: E402
+    R19_ALL_NEW as _R19_ATTEMPT_NAMESPACES,
+    R19_FORMAL_FOUR as _R19_ATTEMPT_FORMAL_FOUR,
+)
 
 CURRICULUM261_R17_NAMESPACES = (
     "cue_contract_model_r17", "cue_contract_validation_r17",
@@ -640,7 +646,7 @@ CURRICULUM261_R17_NAMESPACES = (
     "preplan_v2c13_v2_fit_validation_r17",
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
-) + _R18_ATTEMPT_NAMESPACES
+) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES
 
 #: R17 正式资格面(数据入口四件套;§6.5)。R18 尝试按其 journal §11
 #: 处方("R17 永久结束,下一轮必须 R17 + 全新 namespace")以全新
@@ -650,7 +656,7 @@ CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "preprocess_fit_qualification_r17",
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
-) + _R18_ATTEMPT_FORMAL_FOUR
+) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR
 
 CURRICULUM261_R17_NAMESPACE_ROLES = {
     name: {"iteration": "r17", "class": "engineering"}
@@ -1459,9 +1465,8 @@ def _default_recorder(namespace: str, family: str, rung: str,
         )
         # repair R12-R18:iteration 字段按 namespace 后缀派生——R0-R11
         # namespace 行为与 R11 完全一致("r11");R12-R17 namespace 各含
-        # 对应子串;R18 尝试族含 "r18" 子串(R17 框架 + 全新 namespace;
-        # journal §11 处方),历史 namespace 均不含,故无歧义。
-        iteration = ("r18" if "r18" in namespace
+        iteration = ("r19" if "r19" in namespace
+                     else "r18" if "r18" in namespace
                      else "r17" if "r17" in namespace
                      else "r16" if "r16" in namespace
                      else "r15" if "r15" in namespace

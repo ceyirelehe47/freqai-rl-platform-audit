@@ -38,11 +38,14 @@ DEFAULT_RELEASE_REPO = "/mnt/f/trading/freqai-rl-audit"
 REJECT_RC = 96
 
 #: state root 必须形如 <deploy_root>/artifacts/route_c_stage2_6_1_repairN/state
-#: (N ∈ 已冻结的正式迭代轮;R18 = 全新 namespace 尝试,GOAL/journal §11 处方)。
+#: (N ∈ 已冻结的正式迭代轮;R19 = 全新 namespace 尝试,R19 处方,
+#: 开放门 4.1/4.2 闭合后)。
 _STATE_TAILS = (
     ("artifacts", "route_c_stage2_6_1_repair17", "state"),
     ("artifacts", "route_c_stage2_6_1_repair18", "state"),
+    ("artifacts", "route_c_stage2_6_1_repair19", "state"),
 )
+
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _ZERO_SHA = "0" * 40
 

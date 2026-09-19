@@ -24,21 +24,22 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-#: §9.1 正式路由:role → 期望 fit namespace。R18 尝试按 journal §11
-#: 处方指向全新命名空间族(curriculum261_r18_attempt)。
-from rl_curriculum.curriculum261_r18_attempt import (
-    R18_FIT_HOLDOUT as _R18_FIT_HOLDOUT,
-    R18_FIT_MAIN as _R18_FIT_MAIN,
-    R18_FIT_QUALIFICATION as _R18_FIT_QUALIFICATION,
-    R18_RT_FIT_HOLDOUT as _R18_RT_FIT_HOLDOUT,
-    R18_RT_FIT_MAIN as _R18_RT_FIT_MAIN,
-    R18_RT_FIT_QUALIFICATION as _R18_RT_FIT_QUALIFICATION,
+#: §9.1 正式路由:role → 期望 fit namespace。R19 尝试按 R19 处方
+#: (R18 终态后;开放门 4.1/4.2 已闭)指向全新命名空间族
+#: (curriculum261_r19_attempt)。
+from rl_curriculum.curriculum261_r19_attempt import (
+    R19_FIT_HOLDOUT as _R19_FIT_HOLDOUT,
+    R19_FIT_MAIN as _R19_FIT_MAIN,
+    R19_FIT_QUALIFICATION as _R19_FIT_QUALIFICATION,
+    R19_RT_FIT_HOLDOUT as _R19_RT_FIT_HOLDOUT,
+    R19_RT_FIT_MAIN as _R19_RT_FIT_MAIN,
+    R19_RT_FIT_QUALIFICATION as _R19_RT_FIT_QUALIFICATION,
 )
 
 R17_ROLE_FIT_NAMESPACE: dict[str, str] = {
-    "main": _R18_FIT_MAIN,
-    "holdout": _R18_FIT_HOLDOUT,
-    "final": _R18_FIT_QUALIFICATION,
+    "main": _R19_FIT_MAIN,
+    "holdout": _R19_FIT_HOLDOUT,
+    "final": _R19_FIT_QUALIFICATION,
 }
 
 #: §9.1 preplan/rehearsal 路由(execution profile 只换 namespace)。
@@ -61,9 +62,9 @@ R17_SHADOW_ROLE_FIT_NAMESPACE: dict[str, str] = {
 #: 非正式;rt_*_r17 rehearsal-only namespace;与 shadow 同构但独立
 #: 路由类——rt 的 final 用独立 fit namespace,不复用 main fit)。
 R17_RT_ROLE_FIT_NAMESPACE: dict[str, str] = {
-    "main": _R18_RT_FIT_MAIN,
-    "holdout": _R18_RT_FIT_HOLDOUT,
-    "final": _R18_RT_FIT_QUALIFICATION,
+    "main": _R19_RT_FIT_MAIN,
+    "holdout": _R19_RT_FIT_HOLDOUT,
+    "final": _R19_RT_FIT_QUALIFICATION,
 }
 
 #: R17V2C13EngineeringCalibration-v1:V2 C1/C3 工程校准路由(工程、
@@ -161,6 +162,29 @@ R17_EVAL_NAMESPACE_ROLE: dict[str, str] = {
     "rt4_c2_independent_holdout_r18": "holdout",
     "rt4_qualification_r18": "final",
     "rt4_semantic_final_r18": "final",
+    # ---- R19 尝试(R19 处方;开放门 4.1/4.2 闭合后解锁)----
+    "calibration_r19": "main",
+    "calibration_holdout_r19": "holdout",
+    "qualification_r19": "final",
+    "c2_independent_calibration_r19": "main",
+    "c2_independent_holdout_r19": "holdout",
+    "c2_independent_qualification_r19": "final",
+    "supervised_main_r19": "main",
+    "supervised_holdout_r19": "holdout",
+    "cue_semantic_calibration_r19": "main",
+    "cue_semantic_holdout_r19": "holdout",
+    "cue_semantic_qualification_r19": "final",
+    # ---- R19 尝试 rt4 工程族 ----
+    "rt4_calibration_main_r19": "main",
+    "rt4_calibration_holdout_r19": "holdout",
+    "rt4_supervised_main_r19": "main",
+    "rt4_supervised_holdout_r19": "holdout",
+    "rt4_semantic_main_r19": "main",
+    "rt4_semantic_validation_r19": "holdout",
+    "rt4_c2_independent_main_r19": "main",
+    "rt4_c2_independent_holdout_r19": "holdout",
+    "rt4_qualification_r19": "final",
+    "rt4_semantic_final_r19": "final",
 }
 
 #: v2c13 各代专属 eval namespace(v2 代际隔离:v2c13v2 路由不得服务
