@@ -56,25 +56,37 @@ analytic_terms 的 q(t) 跨位置近恒定(≈0.98862),权重源不改变
 担忧不构成缺口来源;剩余区分只在「validation 抽取的边界涨落」
 与「语料级小系统分量」之间(事实 2/合并量级 z≈1.7 一如前述)。
 
-## 同参数独立重抽的旁证(工程史,只读收集)
+## 历史抽取散布的真实机制(第二增补修正版,含实证)
 
-audit 语料生成锚定各 run 自己的 cue-audit 计划(`audit_digest`;
-`attempt=0`/`rng_seed=20270101`/namespace 固定不变),因此每个
-chain run 是一次**计划锚定的独立重抽**。工程史上可观测的三次
-互异抽取(全部 500 blocks/语料、同参数):
+初版曾把历史散布解读为"计划锚定的逐 run 独立重抽"——**机制表述
+错误**,现以直接实证修正:
 
-| 抽取 | audit_digest | z(model) | z(validation) | validation 判定 |
-|---|---|---|---|---|
-| rt9c 等 12 次 rt run(同一计划) | r15ca-5c79cb… | +1.18 | **−0.79**(0.951915,高于 analytic) | 过 |
-| rt 20260917T101918Z | r15ca-6782f9… | +1.31 | **+0.68** | 过 |
-| **R19 正式** | r15ap-0da8dc…(正式计划) | +0.64 | **+2.32**(0.945931) | **不过** |
+1. **固定代码下 audit 完全确定**。在 HEAD(7bbb033) 工程坐标重跑
+   正式机械面(`r17_cli cue-audit`;determinism/provenance/audit
+   前置后):计划 digest 仍为 r15ap-0da8dc45fe38,corpora 逐位
+   复现正式运行——p=0.950432、model=0.949237、validation=
+   0.945931、z=+2.32、FAIL 原样再现。r10 机械面另证:同代码
+   7 次重抽全同(r10ca-4b98b06f)。plan payload 无 run 级熵;
+   corpus 派生 = f(plan digest, 固定 namespace/attempt/rng)。
+2. **散布仅存在于代码状态之间**:audit 计划 digest 含代码身份,
+   三次互异历史值对应三个代码状态:
 
-含义(量级事实):(a) FAIL 不是 audit namespace 的确定性属性——
-同参数重抽给出 validation z ∈ {−0.79, +0.68, +2.32} 的散布,
-正式抽取是三次中唯一越界者,此前工程抽取的 validation 曾高于
-analytic;(b) model z 三次全为正(+0.64/+1.18/+1.31)——与
-「analytic 相对实现语料平均略偏高」的合并证据方向一致,但仅
-三抽,不构成结论。
+| 代码状态(计划 digest) | z(model) | z(validation) | validation 判定 |
+|---|---|---|---|
+| r15ca-5c79cb…(12 次 rt run 所在状态,彼此逐位同) | +1.18 | **−0.79**(0.951915) | 过 |
+| r15ca-6782f9…(rt 20260917T101918Z) | +1.31 | **+0.68** | 过 |
+| r15ap-0da8dc…(正式与 HEAD 复现,同一状态) | +0.64 | **+2.32**(0.945931) | **不过** |
+
+3. **R20 含义(比初版更精确)**:
+   - 原样重跑**不重抽**——逐位复现 FAIL(已实证);
+   - 新抽样需要改变 audit 抽取坐标(代码身份变化,或处方中显式
+   的新 audit 坐标/namespace),不是"再跑一次";
+   - 三个代码状态值为 ±2 SE 量级的实现散布,与"边界性"量级一致;
+     model z 三态全正(+0.64/+1.18/+1.31)的方向性观察保留,
+     仅三态,不构成结论。
+
+(工程重抽证据:部署树 r17_audit_redraws/draw_head 等;只读分析,
+未触碰任何正式 design/semantic namespace 与 admission 面。)
 
 ## 复核路径
 
