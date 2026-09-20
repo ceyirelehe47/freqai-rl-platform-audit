@@ -109,14 +109,18 @@ def _plan_method_supported(preregistration: dict) -> bool:
 
 
 def parse_junit(path: Path) -> dict:
-    """junit XML 重解析(计数 + skipped 测试 ID 提取;不信 record 声明)。"""
+    """junit XML 元素级重解析(不信 record 声明,也不信 suite 汇总属性)。
+
+    计数全部从 <testcase> 子元素逐个清点(failure/error/skipped),
+    再与 testsuite 聚合属性交叉核对:两边不一致 => 拒绝(捕捉
+    "属性为绿但实际含 failure/error"的伪造/损坏 junit)。
+    skipped 测试 ID 与用例 ID 唯一性一并核验。
+    """
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as exc:
         raise SubstanceError(
             f"regression_junit_unreadable:{path.name}") from exc
-    totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
-    skipped_ids: list[str] = []
 
     def _int(el, key) -> int:
         raw = el.get(key, "0") or "0"
@@ -125,6 +129,11 @@ def parse_junit(path: Path) -> dict:
         except ValueError:
             return 0
 
+    attr_totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    element_totals = {"tests": 0, "failures": 0, "errors": 0,
+                      "skipped": 0}
+    skipped_ids: list[str] = []
+    case_ids: set[str] = set()
     suites = [root] if root.tag == "testsuite" else []
     suites.extend(root.iter("testsuite"))
     seen_roots = set()
@@ -132,15 +141,29 @@ def parse_junit(path: Path) -> dict:
         if id(suite) in seen_roots:
             continue
         seen_roots.add(id(suite))
-        for key in totals:
-            totals[key] += _int(suite, key)
+        for key in attr_totals:
+            attr_totals[key] += _int(suite, key)
         for case in suite.iter("testcase"):
-            skipped = case.find("skipped")
-            if skipped is not None:
-                cid = case.get("classname", "") + "::" + case.get(
-                    "name", "")
+            cid = case.get("classname", "") + "::" + case.get("name", "")
+            if not case.get("name"):
+                raise SubstanceError(
+                    f"regression_junit_testcase_malformed:{path.name}")
+            if cid in case_ids:
+                raise SubstanceError(
+                    f"regression_junit_duplicate_testcase:{cid}")
+            case_ids.add(cid)
+            element_totals["failures"] += len(case.findall("failure"))
+            element_totals["errors"] += len(case.findall("error"))
+            if case.find("skipped") is not None:
+                element_totals["skipped"] += 1
                 skipped_ids.append(cid)
-    return {**totals, "skipped_ids": skipped_ids}
+    element_totals["tests"] = len(case_ids)
+    for key in ("tests", "failures", "errors", "skipped"):
+        if attr_totals[key] != element_totals[key]:
+            raise SubstanceError(
+                f"regression_junit_element_attribute_mismatch:{key}"
+                f"({element_totals[key]}!={attr_totals[key]})")
+    return {**element_totals, "skipped_ids": skipped_ids}
 
 
 def _resolve(record_path: Path, raw: str) -> Path:

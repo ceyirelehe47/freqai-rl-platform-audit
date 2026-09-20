@@ -266,3 +266,125 @@ class TestIssuerV2RequiresSubstance:
                     ).exists()
         assert not (tmp / "deploy" / "r17_admission_issued.jsonl"
                     ).exists()
+
+# ------------- parse_junit 元素级核验(2026-09-20 加固) -------------
+
+def _write_raw_junit(path: Path, body: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+class TestParseJunitElementLevel:
+    """计数必须来自 testcase 元素并与 suite 属性交叉核对。"""
+
+    def test_attribute_green_but_failure_element_rejected(self,
+                                                          tmp_path):
+        """负例:汇总属性 failures=0 但某 testcase 含 <failure>。"""
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = _write_raw_junit(tmp_path / "forged.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="2" failures="0"'
+            ' errors="0" skipped="0">'
+            '<testcase classname="t" name="a"/>'
+            '<testcase classname="t" name="b"><failure type="AssertionError"/>'
+            "</testcase>"
+            "</testsuite></testsuites>"))
+        with pytest.raises(SubstanceError, match=(
+                "element_attribute_mismatch:failures")):
+            parse_junit(jp)
+
+    def test_error_element_rejected(self, tmp_path):
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = _write_raw_junit(tmp_path / "forged_err.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="1" failures="0"'
+            ' errors="0" skipped="0">'
+            '<testcase classname="t" name="a"><error/></testcase>'
+            "</testsuite></testsuites>"))
+        with pytest.raises(SubstanceError, match=(
+                "element_attribute_mismatch:errors")):
+            parse_junit(jp)
+
+    def test_skipped_attribute_inflation_rejected(self, tmp_path):
+        """负例:skipped 属性虚报(声明 1,元素 0)。"""
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = _write_raw_junit(tmp_path / "forged_skip.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="1" failures="0"'
+            ' errors="0" skipped="1">'
+            '<testcase classname="t" name="a"/>'
+            "</testsuite></testsuites>"))
+        with pytest.raises(SubstanceError, match=(
+                "element_attribute_mismatch:skipped")):
+            parse_junit(jp)
+
+    def test_duplicate_testcase_id_rejected(self, tmp_path):
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = _write_raw_junit(tmp_path / "dup.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="2" failures="0"'
+            ' errors="0" skipped="0">'
+            '<testcase classname="t" name="a"/>'
+            '<testcase classname="t" name="a"/>'
+            "</testsuite></testsuites>"))
+        with pytest.raises(SubstanceError, match=(
+                "regression_junit_duplicate_testcase")):
+            parse_junit(jp)
+
+    def test_malformed_testcase_rejected(self, tmp_path):
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = _write_raw_junit(tmp_path / "mal.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="1" failures="0"'
+            ' errors="0" skipped="0">'
+            '<testcase classname="t"/>'
+            "</testsuite></testsuites>"))
+        with pytest.raises(SubstanceError, match=(
+                "regression_junit_testcase_malformed")):
+            parse_junit(jp)
+
+    def test_normal_green_junit_compatible(self, tmp_path):
+        """兼容验证:正常自洽 junit 计数正确、跳过 ID 全量提取。"""
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit
+        jp = write_junit(tmp_path / "ok.xml", passed=3)
+        parsed = parse_junit(jp)
+        assert parsed["tests"] == 3 + len(HISTORICAL_SKIP_IDS)
+        assert parsed["failures"] == 0 and parsed["errors"] == 0
+        assert parsed["skipped"] == len(HISTORICAL_SKIP_IDS)
+        assert set(parsed["skipped_ids"]) == set(HISTORICAL_SKIP_IDS)
+
+    def test_forged_junit_rejected_end_to_end(self, sandbox, tmp_path):
+        """端到端:record 声明全绿且属性自洽文案,但原件含 failure
+        元素 => verify_regression_evidence 必须拒绝。"""
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import parse_junit, _sha256_file
+        jp = _write_raw_junit(tmp_path / "ev_forge" / "j.xml", (
+            '<?xml version="1.0"?>'
+            '<testsuites><testsuite name="s" tests="1" failures="0"'
+            ' errors="0" skipped="0">'
+            '<testcase classname="t" name="a"><failure/></testcase>'
+            "</testsuite></testsuites>"))
+        tmp, repo, commit_a = sandbox[0], sandbox[1], sandbox[2]
+        import hashlib
+        import json as _json
+        sha = hashlib.sha256(jp.read_bytes()).hexdigest()
+        rec = tmp / "ev_forge" / "rec.json"
+        rec.write_text(_json.dumps({
+            "format": "cur261-r17-candidate-regression-evidence-v1",
+            "commit_a_sha": commit_a, "scope": "formal",
+            "junit": [{"path": jp.name, "sha256": sha}],
+            "counts": {"tests": 1, "failures": 0, "errors": 0,
+                       "skipped": 0},
+            "historical_skip_ids": [], "protocol": "full",
+        }), encoding="utf-8")
+        with pytest.raises(SubstanceError, match=(
+                "element_attribute_mismatch:failures")):
+            verify_regression_evidence(rec, repo, commit_a)
+
