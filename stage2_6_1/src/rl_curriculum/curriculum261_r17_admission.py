@@ -147,12 +147,14 @@ def validate_admission(
     # §4.2 实质绑定(v2;同源复验):与签发端共用
     # curriculum261_r17_admission_substance 的唯一实现——重算 Commit A
     # tree digest 比对 plan_digest/substance 声明、回归证据原件
-    # sha256 与 junit 重解析复验。v1(无 substance 块)在此前的
-    # admission_format_mismatch 处已拒绝。
+    # sha256 与 junit 重解析复验、候选树完整集合/多文件唯一性/
+    # 差分父链,以及部署测试面字节(本端运行于部署机,提供
+    # deploy_root)。v1(无 substance 块)在 admission_format_mismatch
+    # 处已拒绝。
     try:
         _substance = _load_substance_module()
         ok_sub, reason_sub = _substance.verify_admission_substance(
-            adm, repo)
+            adm, repo, deploy_root=Path(deploy_root))
     except Exception:  # noqa: BLE001 —— 闸门内部异常=fail closed
         return False, "admission_substance_internal_error", {}
     if not ok_sub:

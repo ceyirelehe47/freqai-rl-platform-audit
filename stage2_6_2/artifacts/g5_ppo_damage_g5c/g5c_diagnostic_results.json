@@ -1,0 +1,2279 @@
+{
+ "format": "cur261-ppo262-g5c-diagnostic-results-v1",
+ "iteration": "s262_diag_g5c",
+ "g5c_plan_digest": "g5cdp-e55e6100c5093366309cbdfc2da5ead1d276ac8737c7ead403d0387c359dd252",
+ "arms": {
+  "C0_std30": {
+   "29301": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "heldout_before": 0.8963630468264476,
+    "heldout_after": 0.5,
+    "margin_before": {
+     "mean_abs_diff": 0.047239918261766434,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.04499283423441766,
+     "argmax_match": 0.929006968641115
+    },
+    "margin_after": {
+     "mean_abs_diff": 4.479602336883545,
+     "frac_below_0p5": 0.0,
+     "frac_below_2p0": 0.0,
+     "mean_signed_diff": -4.009719719177893,
+     "argmax_match": 0.051829268292682924
+    },
+    "kl_ft_to_bc": 1.6053109169006348,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": -2.1798943126483117e-05,
+      "det_gap": 0.0,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": -5.0514317746056605
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.0,
+      "detail": {
+       "long_rate_above_cost": 1.0,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 1.0,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.0,
+       "position_changes_per_100_steps": 0.0,
+       "transaction_cost_paid": 4.795204795204796,
+       "n_trades_total": 24
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C0_std30_seed29301",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.39636304682644763
+   },
+   "29302": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "heldout_before": 0.9214154411764706,
+    "heldout_after": 0.4404871323529412,
+    "margin_before": {
+     "mean_abs_diff": 0.0488864928483963,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.04659878262659398,
+     "argmax_match": 0.9256678281068524
+    },
+    "margin_after": {
+     "mean_abs_diff": 1.9775068759918213,
+     "frac_below_0p5": 0.062137049941927994,
+     "frac_below_2p0": 0.5733159117305459,
+     "mean_signed_diff": 1.3213342228010903,
+     "argmax_match": 0.8349303135888502
+    },
+    "kl_ft_to_bc": 0.47758805751800537,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": 0.030814694996095376,
+      "det_gap": 0.06527777777777777,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 92.36237876607014
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": -0.12638888888888888,
+      "detail": {
+       "long_rate_above_cost": 0.5055555555555555,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.6319444444444444,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": -0.12638888888888888,
+       "position_changes_per_100_steps": 1.0598141695702672,
+       "transaction_cost_paid": 10.898463248135275,
+       "n_trades_total": 73
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C0_std30_seed29302",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.4809283088235294
+   },
+   "29303": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "heldout_before": 0.8855902086768637,
+    "heldout_after": 0.45866442542787283,
+    "margin_before": {
+     "mean_abs_diff": 0.0485350638628006,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.047190493658513834,
+     "argmax_match": 0.9396051103368177
+    },
+    "margin_after": {
+     "mean_abs_diff": 1.4715348482131958,
+     "frac_below_0p5": 0.06562137049941928,
+     "frac_below_2p0": 0.9022938443670151,
+     "mean_signed_diff": 1.1702936599626013,
+     "argmax_match": 0.8715156794425087
+    },
+    "kl_ft_to_bc": 0.26848286390304565,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.01253346542002129,
+      "det_gap": 0.0,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 22.258487536906358
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.03981275491286618,
+      "detail": {
+       "long_rate_above_cost": 0.7212643678160919,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.6814516129032258,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": 0.03981275491286618,
+       "position_changes_per_100_steps": 0.5226480836236934,
+       "transaction_cost_paid": 6.299873319487942,
+       "n_trades_total": 36
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C0_std30_seed29303",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.42692578324899083
+   }
+  },
+  "C1_std300": {
+   "29301": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "heldout_before": 0.9905473443396651,
+    "heldout_after": 0.9467156637574644,
+    "margin_before": {
+     "mean_abs_diff": 7.4650163650512695,
+     "frac_below_0p5": 0.007259001161440186,
+     "frac_below_2p0": 0.029907084785133566,
+     "mean_signed_diff": 7.458345943843377,
+     "argmax_match": 0.9946283391405343
+    },
+    "margin_after": {
+     "mean_abs_diff": 5.242893695831299,
+     "frac_below_0p5": 0.035859465737514515,
+     "frac_below_2p0": 0.14692218350754935,
+     "mean_signed_diff": 4.917176674086596,
+     "argmax_match": 0.8989547038327527
+    },
+    "kl_ft_to_bc": 0.20205378532409668,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": 0.13568732139397305,
+      "det_gap": 0.1513888888888889,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 140.35650873603515
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.14583333333333331,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 0.3541666666666667,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.14583333333333331,
+       "position_changes_per_100_steps": 11.788617886178862,
+       "transaction_cost_paid": 110.35044367052578,
+       "n_trades_total": 812
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C1_std300_seed29301",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.04383168058220066
+   },
+   "29302": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "heldout_before": 0.9935661764705883,
+    "heldout_after": 0.9978553921568627,
+    "margin_before": {
+     "mean_abs_diff": 8.090899467468262,
+     "frac_below_0p5": 0.004790940766550522,
+     "frac_below_2p0": 0.024390243902439025,
+     "mean_signed_diff": 8.066037856635143,
+     "argmax_match": 0.9878048780487805
+    },
+    "margin_after": {
+     "mean_abs_diff": 7.158711910247803,
+     "frac_below_0p5": 0.007259001161440186,
+     "frac_below_2p0": 0.027439024390243903,
+     "mean_signed_diff": 7.154035743849479,
+     "argmax_match": 0.9959349593495935
+    },
+    "kl_ft_to_bc": 0.007688852492719889,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": 0.16916585039925847,
+      "det_gap": 0.20694444444444443,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.4941963768993525
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.20694444444444443,
+      "detail": {
+       "long_rate_above_cost": 0.49722222222222223,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.2902777777777778,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.20694444444444443,
+       "position_changes_per_100_steps": 11.265969802555169,
+       "transaction_cost_paid": 78.95768650147036,
+       "n_trades_total": 776
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C1_std300_seed29302",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": -0.0042892156862743835
+   },
+   "29303": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "heldout_before": 0.9939639364303179,
+    "heldout_after": 0.9954156479217604,
+    "margin_before": {
+     "mean_abs_diff": 8.08988094329834,
+     "frac_below_0p5": 0.006533101045296167,
+     "frac_below_2p0": 0.024099883855981417,
+     "mean_signed_diff": 8.069611069849074,
+     "argmax_match": 0.9885307781649245
+    },
+    "margin_after": {
+     "mean_abs_diff": 8.242210388183594,
+     "frac_below_0p5": 0.007404181184668989,
+     "frac_below_2p0": 0.028019744483159116,
+     "mean_signed_diff": 8.226430208888445,
+     "argmax_match": 0.9912891986062717
+    },
+    "kl_ft_to_bc": 0.006303264759480953,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.17480575017603678,
+      "det_gap": 0.1935483870967742,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.6395194459066296
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.1935483870967742,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.3064516129032258,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": 0.1935483870967742,
+       "position_changes_per_100_steps": 11.73054587688734,
+       "transaction_cost_paid": 82.16455890551734,
+       "n_trades_total": 808
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C1_std300_seed29303",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": -0.00145171149144252
+   }
+  },
+  "C2_margin300": {
+   "29301": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "heldout_before": 0.9895971250236428,
+    "heldout_after": 0.9228070649481658,
+    "margin_before": {
+     "mean_abs_diff": 4.337512493133545,
+     "frac_below_0p5": 0.013792102206736353,
+     "frac_below_2p0": 0.05937862950058072,
+     "mean_signed_diff": 4.327008323646589,
+     "argmax_match": 0.9878048780487805
+    },
+    "margin_after": {
+     "mean_abs_diff": 4.095408916473389,
+     "frac_below_0p5": 0.06692799070847852,
+     "frac_below_2p0": 0.2922473867595819,
+     "mean_signed_diff": 3.420991816634743,
+     "argmax_match": 0.8561265969802555
+    },
+    "kl_ft_to_bc": 0.3747875392436981,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": 0.06834984601735417,
+      "det_gap": 0.05277777777777776,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 71.75207354601473
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.056850811485642916,
+      "detail": {
+       "long_rate_above_cost": 0.49157303370786515,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 0.43472222222222223,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.056850811485642916,
+       "position_changes_per_100_steps": 26.771196283391404,
+       "transaction_cost_paid": 219.3244632991078,
+       "n_trades_total": 1844
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C2_margin300_seed29301",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.06679006007547705
+   },
+   "29302": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "heldout_before": 0.9921875,
+    "heldout_after": 0.7368259803921569,
+    "margin_before": {
+     "mean_abs_diff": 5.838426113128662,
+     "frac_below_0p5": 0.009001161440185831,
+     "frac_below_2p0": 0.046167247386759584,
+     "mean_signed_diff": 5.815012037217548,
+     "argmax_match": 0.985191637630662
+    },
+    "margin_after": {
+     "mean_abs_diff": 4.914712429046631,
+     "frac_below_0p5": 0.19221835075493612,
+     "frac_below_2p0": 0.5219221835075494,
+     "mean_signed_diff": 2.5274447185894893,
+     "argmax_match": 0.5011614401858304
+    },
+    "kl_ft_to_bc": 1.220375657081604,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": -0.03432002047498628,
+      "det_gap": -0.01666666666666672,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 78.61194549109295
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": -0.015277777777777779,
+      "detail": {
+       "long_rate_above_cost": 0.25555555555555554,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.2708333333333333,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": -0.015277777777777779,
+       "position_changes_per_100_steps": 64.25667828106853,
+       "transaction_cost_paid": 493.5287293913583,
+       "n_trades_total": 4434
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C2_margin300_seed29302",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.25536151960784315
+   },
+   "29303": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "heldout_before": 0.9908312958435208,
+    "heldout_after": 0.8224327628361858,
+    "margin_before": {
+     "mean_abs_diff": 5.083833694458008,
+     "frac_below_0p5": 0.009727061556329849,
+     "frac_below_2p0": 0.07084785133565621,
+     "mean_signed_diff": 5.0535053837218005,
+     "argmax_match": 0.9825783972125436
+    },
+    "margin_after": {
+     "mean_abs_diff": 4.474731922149658,
+     "frac_below_0p5": 0.2260452961672474,
+     "frac_below_2p0": 0.6064169570267132,
+     "mean_signed_diff": 3.236811608327044,
+     "argmax_match": 0.6626016260162602
+    },
+    "kl_ft_to_bc": 0.6542639136314392,
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.0015055841114038904,
+      "det_gap": 0.0026881720430107503,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 52.54885359019216
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": -0.04208379681127178,
+      "detail": {
+       "long_rate_above_cost": 0.26436781609195403,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.3064516129032258,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": -0.04208379681127178,
+       "position_changes_per_100_steps": 49.30313588850174,
+       "transaction_cost_paid": 396.99273375139444,
+       "n_trades_total": 3396
+      }
+     }
+    },
+    "run_pass": true,
+    "n_update_records": 48,
+    "checkpoint_verification": {
+     "run_id": "g5c_C2_margin300_seed29303",
+     "expected": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "produced": [
+      "after_bc_before_ppo",
+      "ep16",
+      "ep48",
+      "ep96"
+     ],
+     "extra_tags": [],
+     "n_expected": 4,
+     "n_produced": 4,
+     "problems": [],
+     "pass": true
+    },
+    "drop": 0.16839853300733498
+   }
+  }
+ },
+ "per_seed_bc": {
+  "29301": {
+   "C0_std30": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.051829268292682924,
+     "predicted_long_rate": 0.10830429732868757,
+     "accuracy": 0.929006968641115,
+     "balanced_accuracy": 0.8963630468264476,
+     "long_recall": 0.8599439775910365,
+     "long_precision": 0.41152815013404825,
+     "flat_recall": 0.9327821160618588,
+     "false_positive_rate": 0.06721788393814117,
+     "confusion": {
+      "tp": 307,
+      "fp": 439,
+      "fn": 50,
+      "tn": 6092
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 6142,
+        "mean_predicted_p_long": 0.48783459881449787,
+        "empirical_long_rate": 0.0081406707912732
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 746,
+        "mean_predicted_p_long": 0.5087785765568629,
+        "empirical_long_rate": 0.41152815013404825
+       }
+      ]
+     },
+     "brier_score": 0.23901361565008694,
+     "pr_auc": 0.803886266120636,
+     "roc_auc": 0.9760491549245638,
+     "behavior_gap_proxy": 0.7927260936528953
+    },
+    "margin_stats": {
+     "mean_abs_diff": 0.047239918261766434,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.04499283423441766,
+     "argmax_match": 0.929006968641115
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": 0.0014318300129731454,
+      "det_gap": 0.21869538077403247,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": -0.9572888423925949
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.21588639200998752,
+      "detail": {
+       "long_rate_above_cost": 0.4297752808988764,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 0.21388888888888888,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.21588639200998752,
+       "position_changes_per_100_steps": 15.418118466898955,
+       "transaction_cost_paid": 107.59865290179056,
+       "n_trades_total": 1062
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 30,
+     "loss": 0.6707753539085388,
+     "match_rate": 0.9233449697494507
+    }
+   },
+   "C1_std300": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.051829268292682924,
+     "predicted_long_rate": 0.05574912891986063,
+     "accuracy": 0.9946283391405343,
+     "balanced_accuracy": 0.9905473443396651,
+     "long_recall": 0.9859943977591037,
+     "long_precision": 0.9166666666666666,
+     "flat_recall": 0.9951002909202266,
+     "false_positive_rate": 0.004899709079773389,
+     "confusion": {
+      "tp": 352,
+      "fp": 32,
+      "fn": 5,
+      "tn": 6499
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 6332,
+        "mean_predicted_p_long": 0.004854488599708966,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 82,
+        "mean_predicted_p_long": 0.1439389904461256,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 34,
+        "mean_predicted_p_long": 0.23787878234596813,
+        "empirical_long_rate": 0.11764705882352941
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 29,
+        "mean_predicted_p_long": 0.34581974251516934,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 27,
+        "mean_predicted_p_long": 0.44149262816817675,
+        "empirical_long_rate": 0.037037037037037035
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 14,
+        "mean_predicted_p_long": 0.5448156808103833,
+        "empirical_long_rate": 0.21428571428571427
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 19,
+        "mean_predicted_p_long": 0.6498908431906449,
+        "empirical_long_rate": 0.3157894736842105
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 17,
+        "mean_predicted_p_long": 0.7405341337708866,
+        "empirical_long_rate": 0.5294117647058824
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 10,
+        "mean_predicted_p_long": 0.8519116640090942,
+        "empirical_long_rate": 1.0
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 324,
+        "mean_predicted_p_long": 0.9952193662340258,
+        "empirical_long_rate": 1.0
+       }
+      ]
+     },
+     "brier_score": 0.004503980503579428,
+     "pr_auc": 0.9958634406543689,
+     "roc_auc": 0.9997293665590566,
+     "behavior_gap_proxy": 0.9810946886793303
+    },
+    "margin_stats": {
+     "mean_abs_diff": 7.4650163650512695,
+     "frac_below_0p5": 0.007259001161440186,
+     "frac_below_2p0": 0.029907084785133566,
+     "mean_signed_diff": 7.458345943843377,
+     "argmax_match": 0.9946283391405343
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": 0.17745474523698906,
+      "det_gap": 0.2096285892634207,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.7686559048791999
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.2096285892634207,
+      "detail": {
+       "long_rate_above_cost": 0.49157303370786515,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 0.28194444444444444,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.2096285892634207,
+       "position_changes_per_100_steps": 11.033681765389083,
+       "transaction_cost_paid": 77.49463615209488,
+       "n_trades_total": 760
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.013078934513032436,
+     "match_rate": 0.9960801601409912
+    }
+   },
+   "C2_margin300": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.051829268292682924,
+     "predicted_long_rate": 0.06315331010452961,
+     "accuracy": 0.9878048780487805,
+     "balanced_accuracy": 0.9895971250236428,
+     "long_recall": 0.9915966386554622,
+     "long_precision": 0.8137931034482758,
+     "flat_recall": 0.9875976113918236,
+     "false_positive_rate": 0.01240238860817639,
+     "confusion": {
+      "tp": 354,
+      "fp": 81,
+      "fn": 3,
+      "tn": 6450
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 6026,
+        "mean_predicted_p_long": 0.03109791027984753,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 291,
+        "mean_predicted_p_long": 0.12853683707947583,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 64,
+        "mean_predicted_p_long": 0.24880579370073974,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 36,
+        "mean_predicted_p_long": 0.33789101077450645,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 36,
+        "mean_predicted_p_long": 0.4401100112332238,
+        "empirical_long_rate": 0.08333333333333333
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 47,
+        "mean_predicted_p_long": 0.5425279597018627,
+        "empirical_long_rate": 0.0425531914893617
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 28,
+        "mean_predicted_p_long": 0.6500248610973358,
+        "empirical_long_rate": 0.21428571428571427
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 22,
+        "mean_predicted_p_long": 0.7501592283899133,
+        "empirical_long_rate": 0.36363636363636365
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 20,
+        "mean_predicted_p_long": 0.8475636959075927,
+        "empirical_long_rate": 1.0
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 318,
+        "mean_predicted_p_long": 0.9922715824729992,
+        "empirical_long_rate": 1.0
+       }
+      ]
+     },
+     "brier_score": 0.008899193112336867,
+     "pr_auc": 0.9963816390952758,
+     "roc_auc": 0.9997722561693487,
+     "behavior_gap_proxy": 0.9791942500472858
+    },
+    "margin_stats": {
+     "mean_abs_diff": 4.337512493133545,
+     "frac_below_0p5": 0.013792102206736353,
+     "frac_below_2p0": 0.05937862950058072,
+     "mean_signed_diff": 4.327008323646589,
+     "argmax_match": 0.9878048780487805
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 356,
+       "below_cost": 720
+      },
+      "probability_gap": 0.13265231692349716,
+      "det_gap": 0.1402465667915106,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.20587908076032005
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.1402465667915106,
+      "detail": {
+       "long_rate_above_cost": 0.49719101123595505,
+       "n_above_cost": 356,
+       "long_rate_below_cost": 0.35694444444444445,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.1402465667915106,
+       "position_changes_per_100_steps": 12.630662020905923,
+       "transaction_cost_paid": 88.44855377357726,
+       "n_trades_total": 870
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.03840060532093048,
+     "match_rate": 0.9925957918167114,
+     "mean_hinge": 0.047115981578826904,
+     "violating_frac": 0.05749128758907318
+    }
+   }
+  },
+  "29302": {
+   "C0_std30": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.05226480836236934,
+     "predicted_long_rate": 0.11788617886178862,
+     "accuracy": 0.9256678281068524,
+     "balanced_accuracy": 0.9214154411764706,
+     "long_recall": 0.9166666666666666,
+     "long_precision": 0.4064039408866995,
+     "flat_recall": 0.9261642156862745,
+     "false_positive_rate": 0.07383578431372549,
+     "confusion": {
+      "tp": 330,
+      "fp": 482,
+      "fn": 30,
+      "tn": 6046
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 6076,
+        "mean_predicted_p_long": 0.4873732203633633,
+        "empirical_long_rate": 0.004937458854509546
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 812,
+        "mean_predicted_p_long": 0.509064056896811,
+        "empirical_long_rate": 0.4064039408866995
+       }
+      ]
+     },
+     "brier_score": 0.23865055063447893,
+     "pr_auc": 0.8185793680190676,
+     "roc_auc": 0.9803466264978213,
+     "behavior_gap_proxy": 0.8428308823529411
+    },
+    "margin_stats": {
+     "mean_abs_diff": 0.0488864928483963,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.04659878262659398,
+     "argmax_match": 0.9256678281068524
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": 0.0016652419749233482,
+      "det_gap": 0.21666666666666665,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": -6.558526286387594
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.21666666666666665,
+      "detail": {
+       "long_rate_above_cost": 0.45555555555555555,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.2388888888888889,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.21666666666666665,
+       "position_changes_per_100_steps": 16.75377468060395,
+       "transaction_cost_paid": 116.3130426702095,
+       "n_trades_total": 1154
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 30,
+     "loss": 0.6697003841400146,
+     "match_rate": 0.9259582161903381
+    }
+   },
+   "C1_std300": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.05226480836236934,
+     "predicted_long_rate": 0.06445993031358885,
+     "accuracy": 0.9878048780487805,
+     "balanced_accuracy": 0.9935661764705883,
+     "long_recall": 1.0,
+     "long_precision": 0.8108108108108109,
+     "flat_recall": 0.9871323529411765,
+     "false_positive_rate": 0.012867647058823529,
+     "confusion": {
+      "tp": 360,
+      "fp": 84,
+      "fn": 0,
+      "tn": 6444
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 6335,
+        "mean_predicted_p_long": 0.00690005957445808,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 49,
+        "mean_predicted_p_long": 0.13771592536751104,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 23,
+        "mean_predicted_p_long": 0.26088147513244464,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 21,
+        "mean_predicted_p_long": 0.34679401488531203,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 16,
+        "mean_predicted_p_long": 0.4755855593830347,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 10,
+        "mean_predicted_p_long": 0.522357726097107,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 33,
+        "mean_predicted_p_long": 0.6585108962925997,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 23,
+        "mean_predicted_p_long": 0.741022659384686,
+        "empirical_long_rate": 0.08695652173913043
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 10,
+        "mean_predicted_p_long": 0.8335941195487976,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 368,
+        "mean_predicted_p_long": 0.9949884252703708,
+        "empirical_long_rate": 0.9728260869565217
+       }
+      ]
+     },
+     "brier_score": 0.007816967711675317,
+     "pr_auc": 0.9996461299609399,
+     "roc_auc": 0.9999795751633987,
+     "behavior_gap_proxy": 0.9871323529411765
+    },
+    "margin_stats": {
+     "mean_abs_diff": 8.090899467468262,
+     "frac_below_0p5": 0.004790940766550522,
+     "frac_below_2p0": 0.024390243902439025,
+     "mean_signed_diff": 8.066037856635143,
+     "argmax_match": 0.9878048780487805
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": 0.13271283531371086,
+      "det_gap": 0.13611111111111113,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.32654013009413296
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.13611111111111113,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.3638888888888889,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.13611111111111113,
+       "position_changes_per_100_steps": 12.89198606271777,
+       "transaction_cost_paid": 90.21038688821824,
+       "n_trades_total": 888
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.01807819865643978,
+     "match_rate": 0.9934669137001038
+    }
+   },
+   "C2_margin300": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.05226480836236934,
+     "predicted_long_rate": 0.06707317073170732,
+     "accuracy": 0.985191637630662,
+     "balanced_accuracy": 0.9921875,
+     "long_recall": 1.0,
+     "long_precision": 0.7792207792207793,
+     "flat_recall": 0.984375,
+     "false_positive_rate": 0.015625,
+     "confusion": {
+      "tp": 360,
+      "fp": 102,
+      "fn": 0,
+      "tn": 6426
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 6113,
+        "mean_predicted_p_long": 0.02851287175782202,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 226,
+        "mean_predicted_p_long": 0.13324555220593393,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 37,
+        "mean_predicted_p_long": 0.23817138937679497,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 26,
+        "mean_predicted_p_long": 0.35529591830877155,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 24,
+        "mean_predicted_p_long": 0.45624840011199314,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 28,
+        "mean_predicted_p_long": 0.5512650928327015,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 35,
+        "mean_predicted_p_long": 0.663432776927948,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 27,
+        "mean_predicted_p_long": 0.7401422063509623,
+        "empirical_long_rate": 0.07407407407407407
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 18,
+        "mean_predicted_p_long": 0.8623706996440887,
+        "empirical_long_rate": 0.2222222222222222
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 354,
+        "mean_predicted_p_long": 0.9937518331627387,
+        "empirical_long_rate": 1.0
+       }
+      ]
+     },
+     "brier_score": 0.01021851513638411,
+     "pr_auc": 0.9996925559091334,
+     "roc_auc": 0.999982553785403,
+     "behavior_gap_proxy": 0.984375
+    },
+    "margin_stats": {
+     "mean_abs_diff": 5.838426113128662,
+     "frac_below_0p5": 0.009001161440185831,
+     "frac_below_2p0": 0.046167247386759584,
+     "mean_signed_diff": 5.815012037217548,
+     "argmax_match": 0.985191637630662
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 360,
+       "below_cost": 720
+      },
+      "probability_gap": 0.11589256140528581,
+      "det_gap": 0.1111111111111111,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": -0.09368960659216283
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.1111111111111111,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 360,
+       "long_rate_below_cost": 0.3888888888888889,
+       "n_below_cost": 720,
+       "cost_selectivity_gap": 0.1111111111111111,
+       "position_changes_per_100_steps": 13.414634146341463,
+       "transaction_cost_paid": 93.8165167840329,
+       "n_trades_total": 924
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.04306310787796974,
+     "match_rate": 0.9869338274002075,
+     "mean_hinge": 0.07012786716222763,
+     "violating_frac": 0.06750871241092682
+    }
+   }
+  },
+  "29303": {
+   "C0_std30": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 30,
+     "lr": 0.0003
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.04994192799070848,
+     "predicted_long_rate": 0.09291521486643438,
+     "accuracy": 0.9396051103368177,
+     "balanced_accuracy": 0.8855902086768637,
+     "long_recall": 0.8255813953488372,
+     "long_precision": 0.44375,
+     "flat_recall": 0.94559902200489,
+     "false_positive_rate": 0.054400977995110025,
+     "confusion": {
+      "tp": 284,
+      "fp": 356,
+      "fn": 60,
+      "tn": 6188
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 6248,
+        "mean_predicted_p_long": 0.48744381059834047,
+        "empirical_long_rate": 0.009603072983354673
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 640,
+        "mean_predicted_p_long": 0.507788151409477,
+        "empirical_long_rate": 0.44375
+       }
+      ]
+     },
+     "brier_score": 0.23854171809795896,
+     "pr_auc": 0.7751341505478511,
+     "roc_auc": 0.9795192294023995,
+     "behavior_gap_proxy": 0.7711804173537272
+    },
+    "margin_stats": {
+     "mean_abs_diff": 0.0485350638628006,
+     "frac_below_0p5": 1.0,
+     "frac_below_2p0": 1.0,
+     "mean_signed_diff": 0.047190493658513834,
+     "argmax_match": 0.9396051103368177
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.0013311499350593392,
+      "det_gap": 0.21718576195773082,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": -1.019140182002344
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.2185298479792362,
+      "detail": {
+       "long_rate_above_cost": 0.40804597701149425,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.18951612903225806,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": 0.2185298479792362,
+       "position_changes_per_100_steps": 13.559814169570267,
+       "transaction_cost_paid": 94.65457946448461,
+       "n_trades_total": 934
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 30,
+     "loss": 0.6703153848648071,
+     "match_rate": 0.9277003407478333
+    }
+   },
+   "C1_std300": {
+    "arm_spec": {
+     "loss": "ce",
+     "epochs": 300,
+     "lr": 0.001
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.04994192799070848,
+     "predicted_long_rate": 0.061411149825783974,
+     "accuracy": 0.9885307781649245,
+     "balanced_accuracy": 0.9939639364303179,
+     "long_recall": 1.0,
+     "long_precision": 0.8132387706855791,
+     "flat_recall": 0.9879278728606357,
+     "false_positive_rate": 0.012072127139364303,
+     "confusion": {
+      "tp": 344,
+      "fp": 79,
+      "fn": 0,
+      "tn": 6465
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 6365,
+        "mean_predicted_p_long": 0.0057457759274088345,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 44,
+        "mean_predicted_p_long": 0.14384940029545265,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 17,
+        "mean_predicted_p_long": 0.253063885604634,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 28,
+        "mean_predicted_p_long": 0.3388310010944094,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 11,
+        "mean_predicted_p_long": 0.4409425583752719,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 29,
+        "mean_predicted_p_long": 0.556407186491736,
+        "empirical_long_rate": 0.06896551724137931
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 14,
+        "mean_predicted_p_long": 0.6603690768991198,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 28,
+        "mean_predicted_p_long": 0.7515243909188679,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 6,
+        "mean_predicted_p_long": 0.8444492419560751,
+        "empirical_long_rate": 0.3333333333333333
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 346,
+        "mean_predicted_p_long": 0.9926084969085076,
+        "empirical_long_rate": 0.9826589595375722
+       }
+      ]
+     },
+     "brier_score": 0.006861666698255976,
+     "pr_auc": 0.9987099493968036,
+     "roc_auc": 0.9999253710126798,
+     "behavior_gap_proxy": 0.9879278728606357
+    },
+    "margin_stats": {
+     "mean_abs_diff": 8.08988094329834,
+     "frac_below_0p5": 0.006533101045296167,
+     "frac_below_2p0": 0.024099883855981417,
+     "mean_signed_diff": 8.069611069849074,
+     "argmax_match": 0.9885307781649245
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.16129775477703684,
+      "det_gap": 0.1653225806451613,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.5463182950282721
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.1653225806451613,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.3346774193548387,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": 0.1653225806451613,
+       "position_changes_per_100_steps": 12.282229965156795,
+       "transaction_cost_paid": 85.95329270505982,
+       "n_trades_total": 846
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.014410181902348995,
+     "match_rate": 0.9939024448394775
+    }
+   },
+   "C2_margin300": {
+    "arm_spec": {
+     "loss": "hinge",
+     "epochs": 300,
+     "lr": 0.001,
+     "margin": 2.0
+    },
+    "actor_changed": true,
+    "critic_unchanged": true,
+    "heldout": {
+     "n": 6888,
+     "true_long_rate": 0.04994192799070848,
+     "predicted_long_rate": 0.06736353077816493,
+     "accuracy": 0.9825783972125436,
+     "balanced_accuracy": 0.9908312958435208,
+     "long_recall": 1.0,
+     "long_precision": 0.7413793103448276,
+     "flat_recall": 0.9816625916870416,
+     "false_positive_rate": 0.018337408312958436,
+     "confusion": {
+      "tp": 344,
+      "fp": 120,
+      "fn": 0,
+      "tn": 6424
+     },
+     "calibration": {
+      "bins": [
+       {
+        "bin": [
+         0.0,
+         0.1
+        ],
+        "n": 5862,
+        "mean_predicted_p_long": 0.03942433493803237,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.1,
+         0.2
+        ],
+        "n": 452,
+        "mean_predicted_p_long": 0.13114084192939038,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.2,
+         0.30000000000000004
+        ],
+        "n": 58,
+        "mean_predicted_p_long": 0.2354847259562591,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.30000000000000004,
+         0.4
+        ],
+        "n": 36,
+        "mean_predicted_p_long": 0.35702241046561134,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.4,
+         0.5
+        ],
+        "n": 16,
+        "mean_predicted_p_long": 0.45352237299084663,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.5,
+         0.6000000000000001
+        ],
+        "n": 32,
+        "mean_predicted_p_long": 0.5566375199705362,
+        "empirical_long_rate": 0.0
+       },
+       {
+        "bin": [
+         0.6000000000000001,
+         0.7000000000000001
+        ],
+        "n": 30,
+        "mean_predicted_p_long": 0.6549681921799978,
+        "empirical_long_rate": 0.06666666666666667
+       },
+       {
+        "bin": [
+         0.7000000000000001,
+         0.8
+        ],
+        "n": 43,
+        "mean_predicted_p_long": 0.7545374853666439,
+        "empirical_long_rate": 0.046511627906976744
+       },
+       {
+        "bin": [
+         0.8,
+         0.9
+        ],
+        "n": 23,
+        "mean_predicted_p_long": 0.8514374805533368,
+        "empirical_long_rate": 0.34782608695652173
+       },
+       {
+        "bin": [
+         0.9,
+         1.0
+        ],
+        "n": 336,
+        "mean_predicted_p_long": 0.9880873293039345,
+        "empirical_long_rate": 0.9880952380952381
+       }
+      ]
+     },
+     "brier_score": 0.013282755115199454,
+     "pr_auc": 0.9981745747014739,
+     "roc_auc": 0.999894719821459,
+     "behavior_gap_proxy": 0.9816625916870416
+    },
+    "margin_stats": {
+     "mean_abs_diff": 5.083833694458008,
+     "frac_below_0p5": 0.009727061556329849,
+     "frac_below_2p0": 0.07084785133565621,
+     "mean_signed_diff": 5.0535053837218005,
+     "argmax_match": 0.9825783972125436
+    },
+    "bank_eval": {
+     "probability": {
+      "family": "c3_cost",
+      "class_sample_counts": {
+       "above_cost": 348,
+       "below_cost": 744
+      },
+      "probability_gap": 0.11737884358296502,
+      "det_gap": 0.11021505376344087,
+      "sampling_sufficient": true
+     },
+     "capture": {
+      "family": "c3_cost",
+      "valid": true,
+      "valid_cells": [
+       "D0",
+       "D1",
+       "D2"
+      ],
+      "invalid_cells": [],
+      "weights_renormalized": {
+       "D0": 0.2,
+       "D1": 0.3,
+       "D2": 0.5
+      },
+      "capture": 0.15218187679325948
+     },
+     "behavior": {
+      "family": "c3_cost",
+      "det_behavior_gap": 0.11021505376344087,
+      "detail": {
+       "long_rate_above_cost": 0.5,
+       "n_above_cost": 348,
+       "long_rate_below_cost": 0.3897849462365591,
+       "n_below_cost": 744,
+       "cost_selectivity_gap": 0.11021505376344087,
+       "position_changes_per_100_steps": 13.472706155632984,
+       "transaction_cost_paid": 94.11886321162669,
+       "n_trades_total": 928
+      }
+     }
+    },
+    "train_tail": {
+     "epoch": 300,
+     "loss": 0.040504731237888336,
+     "match_rate": 0.9882404208183289,
+     "mean_hinge": 0.05794054642319679,
+     "violating_frac": 0.06750871241092682
+    }
+   }
+  }
+ },
+ "sanity": {
+  "c0_control_reproduced_destroy": true
+ },
+ "arm_stats": {
+  "C0_std30": {
+   "drops": [
+    0.39636304682644763,
+    0.4809283088235294,
+    0.42692578324899083
+   ],
+   "det_behavior_gaps": [
+    0.0,
+    -0.12638888888888888,
+    0.03981275491286618
+   ],
+   "bc_std30_mean_gap": 0.21702763555196344
+  },
+  "C1_std300": {
+   "drops": [
+    0.04383168058220066,
+    -0.0042892156862743835,
+    -0.00145171149144252
+   ],
+   "det_behavior_gaps": [
+    0.14583333333333331,
+    0.20694444444444443,
+    0.1935483870967742
+   ],
+   "bc_std30_mean_gap": 0.21702763555196344
+  },
+  "C2_margin300": {
+   "drops": [
+    0.06679006007547705,
+    0.25536151960784315,
+    0.16839853300733498
+   ],
+   "det_behavior_gaps": [
+    0.056850811485642916,
+    -0.015277777777777779,
+    -0.04208379681127178
+   ],
+   "bc_std30_mean_gap": 0.21702763555196344
+  }
+ },
+ "verdicts": {
+  "C0_std30": {
+   "preserved": false,
+   "preserved_and_selective": false
+  },
+  "C1_std300": {
+   "preserved": true,
+   "preserved_and_selective": true
+  },
+  "C2_margin300": {
+   "preserved": false,
+   "preserved_and_selective": false
+  }
+ },
+ "completed_utc": "2026-09-20T08:42:31Z"
+}

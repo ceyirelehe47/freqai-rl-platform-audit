@@ -1,0 +1,58 @@
+{
+ "format": "cur261-ppo262-g5c-diagnostic-plan-v1",
+ "iteration": "s262_diag_g5c",
+ "non_formal_declaration": "本诊断不构成正式 Stage 2.6.2 输入;不进入 official namespace/seed;不触碰 ppo_final_eval_262/qualification_*",
+ "family": "c3_cost",
+ "rationale": "G5b 因果范围审查(route_c_stage2_6_2_g5b_causal_scope_review.md):standard vs margin 双臂损失形态与预算共变,干预归因超界;本对照补预算匹配 CE 臂。",
+ "arms": {
+  "C0_std30": {
+   "loss": "ce",
+   "epochs": 30,
+   "lr": 0.0003
+  },
+  "C1_std300": {
+   "loss": "ce",
+   "epochs": 300,
+   "lr": 0.001
+  },
+  "C2_margin300": {
+   "loss": "hinge",
+   "epochs": 300,
+   "lr": 0.001,
+   "margin": 2.0
+  }
+ },
+ "budget_note": "G5b 的 B0/B2 双臂共变(损失形态×预算);C1_std300 与 C2_margin300 预算逐字相同(300ep/1e-3),隔离损失形态;C0_std30 与 G5b B0 同预算,失败复现 sanity。",
+ "fine_tune": {
+  "steps": 27552,
+  "segments": 12,
+  "rehearsal": false
+ },
+ "seeds": [
+  29301,
+  29302,
+  29303
+ ],
+ "bank_spec": {
+  "train_per_slot": {
+   "rungs": [
+    "D0",
+    "D1"
+   ],
+   "pairs_per_rung": 2,
+   "pair_base_rule": "slot*32"
+  },
+  "eval_per_slot": {
+   "rungs": [
+    "D0",
+    "D1",
+    "D2"
+   ],
+   "pairs_per_fr": 4,
+   "pair_base_rule": "256 + slot*32"
+  }
+ },
+ "decision_rule": "与 G5b 逐字相同:preserved = drop<=0.05 于 >=2/3 seeds;selective = det_behavior_gap >= 0.5*bc_std_gap 于 >=2/3;sanity = C0_std30 摧毁复现(drop>0.1)于 >=2/3",
+ "g5c_code_sha256": "2b16654e1bdd63c23dcbd6a3ea23f44152ae548a9aa4e7441b1bec540a67c6ac",
+ "g5c_plan_digest": "g5cdp-e55e6100c5093366309cbdfc2da5ead1d276ac8737c7ead403d0387c359dd252"
+}

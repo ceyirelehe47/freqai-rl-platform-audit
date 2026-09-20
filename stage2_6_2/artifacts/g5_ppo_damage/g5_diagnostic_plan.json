@@ -1,0 +1,133 @@
+{
+ "format": "cur261-ppo262-g5-diagnostic-plan-v1",
+ "iteration": "s262_diag_g5",
+ "non_formal_declaration": "本诊断不构成正式 Stage 2.6.2 输入;不进入 official namespace/seed;不触碰 ppo_final_eval_262 / qualification_*;结果仅用于 GOAL G5 的修复/诊断结论",
+ "family": "c3_cost",
+ "problem_anchor": "r2 s262_diag_r2_1: C3 Branch D — BC 3/3 学会(bal 0.866-0.923),PPO fine-tune 3/3 摧毁(drop 0.246-0.498)",
+ "excluded_hypotheses": [
+  "representation capacity(supervised 全族可学)",
+  "preprocessing(C3 无需 scaling;r2 §6/§11)",
+  "budget(s262_r0 probe 4× 无救援)"
+ ],
+ "base_candidate": "cand_a_center",
+ "base_config": {
+  "policy": "MlpPolicy",
+  "learning_rate": 0.0003,
+  "n_steps": 574,
+  "batch_size": 287,
+  "n_epochs": 10,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_range": 0.2,
+  "ent_coef": 0.01,
+  "vf_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "net_arch": [
+   128,
+   128
+  ],
+  "activation_fn": "Tanh",
+  "device": "cpu",
+  "notes": "中心候选:仓库路线 [128,128] + 标准 PPO clipping"
+ },
+ "arms": {
+  "A0_control": {
+   "hypothesis": "r2 原配置复现 Branch D 摧毁(对照)",
+   "overlay": {}
+  },
+  "A1_lr_low": {
+   "hypothesis": "更新幅度:learning_rate 3e-4 → 3e-5",
+   "overlay": {
+    "learning_rate": 3e-05
+   }
+  },
+  "A2_epochs_low": {
+   "hypothesis": "每 rollout 更新量:n_epochs 10 → 2",
+   "overlay": {
+    "n_epochs": 2
+   }
+  },
+  "A3_advnorm_off": {
+   "hypothesis": "移除逐 minibatch advantage normalization",
+   "overlay": {},
+   "model_kwargs": {
+    "normalize_advantage": false
+   }
+  },
+  "A4_vf_low": {
+   "hypothesis": "critic 耦合:vf_coef 0.5 → 0.05",
+   "overlay": {
+    "vf_coef": 0.05
+   }
+  },
+  "A5_clip_low": {
+   "hypothesis": "信任域:clip_range 0.2 → 0.05",
+   "overlay": {
+    "clip_range": 0.05
+   }
+  }
+ },
+ "seeds": {
+  "bc_finetune": [
+   29101,
+   29102,
+   29103
+  ]
+ },
+ "g5_code_sha256": "8c1506720787942cc4100e0786f65ab79a9bc2e8dce2ce8edb1318507ca3dbd9",
+ "supersedes_note": "锁 #1(g5dp-0a851816…)/#2(g5dp-14818f23…)零数据期废止(EpisodeKey 参数序 / env 导入缺失);锁 #3(g5dp-423ec7bc…)在首个 BC 训练完成后、任何持久化(checkpoint/results)之前中止于 BC 参照深拷贝 API 误用——模型状态仅存在于已崩溃进程内存,磁盘零 G5 模型/计划外证据;各次废止均以新 g5_code_sha256 重锁",
+ "bank_spec": {
+  "train_per_slot": {
+   "rungs": [
+    "D0",
+    "D1"
+   ],
+   "pairs_per_rung": 2,
+   "pair_base_rule": "slot*32",
+   "adapter": "unscaled(C3 BC arm,r2 规则)"
+  },
+  "eval_per_slot": {
+   "rungs": [
+    "D0",
+    "D1",
+    "D2"
+   ],
+   "pairs_per_fr": 4,
+   "pair_base_rule": "256 + slot*32"
+  },
+  "bc_epochs": 30,
+  "bc_lr": 0.0003,
+  "class_weighted": true,
+  "steps_finetune": 27552,
+  "checkpoint_episodes": [
+   16,
+   48,
+   96
+  ],
+  "checkpoint_tags": [
+   "after_bc_before_ppo",
+   "ep16",
+   "ep48",
+   "ep96"
+  ]
+ },
+ "metrics": [
+  "heldout balanced_accuracy(bc_before/bc_after/ft)",
+  "cost_selectivity_gap(deterministic behavior)",
+  "probability gap(c3 above_cost vs below_cost)",
+  "family_eval_capture(窄 denominator 如实记录)"
+ ],
+ "stage261_code_anchor": {
+  "declaration": "本诊断在 R17 框架演进后的 2.6.1 源码上运行;r2 诊断结论保持其自身 input lock 身份(9305c773…);当前 api.py 漂移经 ppo262_input_lock 的 R17 框架轮登记精确锚定(repo 92818db2);G5 复用的 r2 训练/评估实现语义等价由其测试面覆盖"
+ },
+ "decision": {
+  "h0_valid_requires": ">=2/3 seeds drop > 0.1(control 复现摧毁)",
+  "arm_preserved_requires": ">=2/3 seeds drop <= 0.05",
+  "arm_preserved_improved_requires": "preserved 且 >=2/3 seeds ft cost_selectivity_gap >= 0.5 * bc cost_selectivity_gap",
+  "invalid_if": "A0_control 未复现摧毁(>=2/3 drop>0.1)则本轮无效"
+ },
+ "stop_rule": "固定预算 6 arms × 3 seeds × 27,552 steps;不延长、不换配、不看结果加 arm;任何 arm 失败即如实记录为该 arm 结果",
+ "created_utc": "2026-09-19T23:43:57Z",
+ "g5_plan_digest": "g5dp-009ca872a2b3dc642ed006a1f9b60a0ad2d9496590eea325c85b5a4531e71d27",
+ "locked_utc": "2026-09-19T23:43:57Z"
+}

@@ -50,3 +50,12 @@ python -m rl_curriculum.ppo262_g5c lock --out-dir artifacts/g5_ppo_damage_g5c
 python -m rl_curriculum.ppo262_g5c run --out-dir artifacts/g5_ppo_damage_g5c
 pytest tests/route_c_stage2_6_2/test_ppo262_g5c.py
 ```
+
+## 关联补充(2026-09-20 B 轮;原文不追改)
+
+本报告结论 1-2 的因果措辞经原件只读核验后**收窄**:"因果变量"
+ 与"经由边际宽度"超出三臂对照可单独识别的范围(C0→C1 共变
+ epochs×lr;边际宽度为训练后测量量,未被单独操纵)。限定结论、
+ 原件哈希、判定复算与运行溯源缺失项见
+ `route_c_stage2_6_2_g5c_verification.md`;机读核验与 checkpoint
+ 清单入 `stage2_6_2/artifacts/g5_ppo_damage_g5c/`。

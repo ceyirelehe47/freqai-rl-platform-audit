@@ -98,12 +98,18 @@ class _Sandbox:
         _git(self.repo, "config", "user.email", "r18bh@test")
         _git(self.repo, "config", "user.name", "r18bh")
         (self.repo / "base.txt").write_text("base\n")
+        # v2 完整性:base 提交携带沙箱测试源树(静态全集权威);
+        # 签发端在部署根上复验部署测试面,同步沙箱面。
+        from r17_admission_substance_test_support import (
+            sync_deploy_surface, write_sandbox_test_tree)
+        write_sandbox_test_tree(self.repo)
         _git(self.repo, "add", "-A")
         _git(self.repo, "commit", "-qm", "base")
         (self.repo / "cand.txt").write_text("cand\n")
         _git(self.repo, "add", "-A")
         _git(self.repo, "commit", "-qm", "cand")
         self.commit_a = _git(self.repo, "rev-parse", "HEAD")
+        sync_deploy_surface(self.repo, self.commit_a, self.root)
         self.admission_id = "r18bh-admission-0001"
 
     def issue_admission(self) -> None:

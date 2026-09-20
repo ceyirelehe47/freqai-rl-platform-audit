@@ -979,19 +979,11 @@ class TestFormalAdmissionUnit:
 
     @staticmethod
     def _repo_with_commit(tmp_path: Path):
-        repo = tmp_path / "repo"
-        repo.mkdir()
-        for args in (
-                ["git", "init", "-q", "."],
-                ["git", "config", "user.email", "t@example.invalid"],
-                ["git", "config", "user.name", "t"],
-                ["git", "commit", "--allow-empty", "-q", "-m", "x"],
-        ):
-            subprocess.run(args, cwd=str(repo), check=True)
-        sha = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=str(repo),
-            capture_output=True, text=True, check=True
-        ).stdout.strip()
+        # v2 完整性:合法路径的沙箱仓必须携带测试源树(静态全集
+        # 推导的权威);与 r17_admission_substance_test_support 同源。
+        from r17_admission_substance_test_support import (
+            git_repo_with_candidate)
+        repo, sha, _parent = git_repo_with_candidate(tmp_path / "repo")
         return repo, sha
 
     def _mk_admission(self, tmp_path: Path, *, sha, state=None,
@@ -1010,15 +1002,16 @@ class TestFormalAdmissionUnit:
             "admission_id": aid,
         }
         if repo is not None:
-            # v2 合法路径:真实实质块(沙箱 git 仓 + 机读回归证据)
+            # v2 合法路径:真实实质块(沙箱 git 仓 + 机读完整回归
+            # 证据);消费端在部署根上复验部署测试面,同步沙箱面。
             from r17_admission_substance_test_support import (
-                write_evidence_record, write_junit,
-                write_preregistration)
+                sync_deploy_surface, write_evidence_record,
+                write_junit, write_preregistration)
             from rl_curriculum.curriculum261_r17_admission_substance \
                 import (git_tree_digest, substance_digest,
                         verify_preregistration_substance)
             ev_dir = tmp_path / f"substance_{aid}"
-            junit = write_junit(ev_dir / "junit.xml", passed=2)
+            junit = write_junit(ev_dir / "junit.xml", passed=3)
             evidence = write_evidence_record(
                 ev_dir / "regression_evidence.json", repo, sha,
                 [junit])
@@ -1029,6 +1022,7 @@ class TestFormalAdmissionUnit:
                 prereg_path.read_text(encoding="utf-8"))
             substance = verify_preregistration_substance(
                 repo, sha, prereg)
+            sync_deploy_surface(repo, sha, dr)
             payload["plan_digest"] = prereg["plan_digest"]
             payload["substance"] = substance
             payload["substance_digest"] = substance_digest(substance)

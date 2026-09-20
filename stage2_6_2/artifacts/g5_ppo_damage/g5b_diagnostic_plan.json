@@ -1,0 +1,89 @@
+{
+ "format": "cur261-ppo262-g5b-diagnostic-plan-v1",
+ "iteration": "s262_diag_g5b",
+ "non_formal_declaration": "本诊断不构成正式 Stage 2.6.2 输入;不进入 official namespace/seed;不触碰 ppo_final_eval_262/qualification_*",
+ "family": "c3_cost",
+ "prior_evidence": "s262_diag_g5:更新幅度被排除(KL≈0.008-0.13 仍全毁);机制 = 亚阈值边际 argmax 脆弱性",
+ "margin_bc_optimization": {
+  "loss": "weighted hinge relu(margin - s*(z1-z0))",
+  "margin": 2.0,
+  "epochs": 300,
+  "lr": 0.001,
+  "calibration_note": "GOAL G5 允许研究性超参来自开发集。标定在锁定前于diag262g5b_bc_train_c3_s0 train bank(dev 数据)上进行:softplus 30ep/3e-4 仅达 mean|diff|≈0.05(梯度衰减),hinge 300ep/1e-3/margin2.0 达 mean|diff|=5.46、frac<0.5=1.1%、match=0.988;优化预算差异是干预的一部分,如实声明而非隐藏"
+ },
+ "arms": {
+  "B0_control": {
+   "bc": "standard",
+   "rehearsal": false
+  },
+  "B2_margin_bc": {
+   "bc": "margin",
+   "rehearsal": false
+  },
+  "B3_rehearsal": {
+   "bc": "standard",
+   "rehearsal": true
+  },
+  "B4_margin_rehearsal": {
+   "bc": "margin",
+   "rehearsal": true
+  }
+ },
+ "margin": 2.0,
+ "rehearsal": {
+  "per_cycle_epochs": 1,
+  "lr": 0.0001
+ },
+ "seeds": {
+  "bc_finetune": [
+   29201,
+   29202,
+   29203
+  ]
+ },
+ "bank_spec": {
+  "train_per_slot": {
+   "rungs": [
+    "D0",
+    "D1"
+   ],
+   "pairs_per_rung": 2,
+   "pair_base_rule": "slot*32",
+   "adapter": "unscaled"
+  },
+  "eval_per_slot": {
+   "rungs": [
+    "D0",
+    "D1",
+    "D2"
+   ],
+   "pairs_per_fr": 4,
+   "pair_base_rule": "256 + slot*32"
+  },
+  "bc_epochs": 30,
+  "bc_lr": 0.0003,
+  "steps_finetune": 27552,
+  "segment_steps": 2296,
+  "checkpoint_tags": [
+   "after_bc_before_ppo",
+   "ep16",
+   "ep48",
+   "ep96"
+  ]
+ },
+ "metrics": [
+  "heldout balanced_accuracy(bc/ft)",
+  "cost_selectivity_gap / probability gap / capture",
+  "KL(pi_ft || pi_BC)",
+  "margin stats(mean|z1-z0| / frac<0.5 / frac<2.0, bc 后与 ft 后)"
+ ],
+ "decision": {
+  "b0_valid_requires": ">=2/3 seeds drop > 0.1",
+  "preserved_requires": ">=2/3 seeds drop <= 0.05",
+  "preserved_selective_requires": "preserved 且 >=2/3 seeds ft gap >= 0.5*bc gap"
+ },
+ "stop_rule": "4 arms × 3 seeds × 27,552 steps 固定",
+ "g5b_code_sha256": "a6fc23dc577dd003cffd30c6003e5e4e4571c78ec0452d8e45553a8476d3824d",
+ "created_utc": "2026-09-20T00:01:48Z",
+ "g5b_plan_digest": "g5bdp-f797fd6316f26006c2ecfc4a8f5b6fb98aec6c183156dfbd483849c66d8264ea"
+}

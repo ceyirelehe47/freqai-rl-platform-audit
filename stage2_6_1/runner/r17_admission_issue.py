@@ -116,7 +116,8 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
         proc = subprocess.run(
             [sys.executable, "-m", _SUBSTANCE_MODULE, "verify",
              "--repo", str(repo), "--commit-a", commit_a,
-             "--preregistration", prereg_tmp],
+             "--preregistration", prereg_tmp,
+             "--deploy-root", str(deploy_root)],
             capture_output=True, text=True, timeout=600, env=env)
     finally:
         os.unlink(prereg_tmp)
