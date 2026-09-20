@@ -1,0 +1,216 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "20260908T125233_1541_8411",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "adb4818ec54c90e59367b549217383d2b298ab878032bbb6b7953851117247de",
+ "argv": [
+  "bash",
+  "-c",
+  "source /home/cryptorl/projects/crypto_rl/activate-freqtrade.sh && cd /home/cryptorl/projects/crypto_rl && python -m pytest tests/route_c_stage2_6_1 -q --no-header --junitxml=/mnt/f/trading/r17fc_dev/full_run/junit.xml"
+ ],
+ "business": {
+  "rc": 1,
+  "signal": null,
+  "protector": {
+   "pgid": 8475,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "20260908T12523-worker_exit-1703",
+   "kind": "worker_exit",
+   "detail": "业务进程 rc=1",
+   "severity": "WORKER",
+   "first_seen_mono": 1703.2,
+   "last_seen_mono": 1703.2,
+   "samples": 1,
+   "peak": {
+    "rc": 1,
+    "patterns": []
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 0
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 33.942054748535156,
+  "task_tree_rss_max_gib": 5.928535461425781,
+  "task_cpu_max_delta_s": 12.15,
+  "win_free_phys_min_gib": 28.597,
+  "win_commit_max_pct": 71.14
+ },
+ "coverage": {
+  "guest_last_mono": 1701.3097488509998,
+  "win_last_mono": 1701.148697103,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 6,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": "stat",
+  "win_read_failure_last_utc": "2026-09-08T12:52:36Z",
+  "win_read_failure_last_err": "FileNotFoundError",
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 1.996689915999923,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-08T12:52:36Z"
+ },
+ "io": {
+  "submitted": 20,
+  "accepted": 20,
+  "ok": 20,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 20,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 135455737636544
+  },
+  "win": {
+   "stop_requested": true,
+   "interop_pid": 8472,
+   "waited": true,
+   "exited": true,
+   "unconfirmed": false
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "summary_failure": null,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded",
+  "control_failures": []
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 1703.1886720080001,
+  "establish_reason": "finalize",
+  "remaining_at_write": 119.738,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_sampler_join",
+    "requested": 10.0,
+    "remaining": 119.884,
+    "allowed": 10.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 119.882,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 119.801,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 751179,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:52:35Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:52:36Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:52:36Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T12:52:36Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T13:20:11Z",
+   "stage": "business_exited",
+   "note": "rc=1"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-08T13:20:11Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 8472,
+  "windows": 103940
+ },
+ "written_utc": "2026-09-08T13:20:11Z"
+}
