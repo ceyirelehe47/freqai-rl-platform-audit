@@ -20,9 +20,15 @@
      protocol=="full")、delta 无 src/rl_curriculum 统计面变更
      (git diff --name-only 实算比对声明清单)。
 
-签发端把 verify_preregistration_substance 的产物(substance
-payload + substance_digest)嵌入 admission v2;消费端用
-verify_admission_substance 以同一实现复验(digest 比对 + 重算比对),
+职责边界(2026-09-20 澄清,防误读):
+1) 的实算只完成**代码身份绑定**——在 preregistration 将
+plan_digest 口径定义为 "Commit A 的 git tree digest" 的前提下,
+它证明"准入所指代码 = 该 tree"。它**不构成实验计划内容绑定**:
+不验证计划文档/参数与审查方所见一致,也不验证 tree 内任何计划
+文本的哈希。实验计划内容的约束由各自合同承担(design 侧
+plan-lock 的 plan digest 口径与链上 provenance-lock),不在本模块。
+2) 的回归证据核验完成**回归绿绑定**(junit 元素级 + sha256 +
+commit_a 绑定),与 1) 相互独立、缺一不可。
 杜绝"签发与消费各说各话"。
 """
 from __future__ import annotations
