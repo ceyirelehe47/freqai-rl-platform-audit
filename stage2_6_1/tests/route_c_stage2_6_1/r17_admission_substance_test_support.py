@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-"""准入实质绑定(v2)测试支撑:沙箱 git 仓库 / junit 原件 / 回归证据
-record / preregistration 构造器。全部经被测包的真实函数生成摘要,
-不复制实现。
+"""准入实质绑定(v3)测试支撑:沙箱 git 仓库 / 真实执行器运行 /
+回归证据 record 负例改造器 / preregistration 构造器。
 
-2026-09-20 完整性收敛升级:沙箱仓携带真实测试源树
-(stage2_6_1/tests/route_c_stage2_6_1/,含 sandbox 通过测试与 7 个
-历史 skip 桩模块);record 为 cur261-r17-candidate-regression-
-evidence-v2(完整集合:候选树映射清单 + collection + execution)。
-默认构造的 record 是"合法完整证据";负例经 *_override 注入失配。
+2026-09-25 v3 升级(RouteC_FullCollection_ResearchDesign_NextGoal_v1):
+沙箱仓携带真实测试源树(canonical 模块 = plain + parametrize×3 +
+参数化 fixture×2 + pytest_generate_tests×2,全部真实 pytest 展开;
+conftest + 7 个历史 skip 桩模块[skip 标记真实生效];src/rl_curriculum
+__init__)。合法完整证据不再由 helper 合成,而是由真实执行器
+runner/r21_full_collection_regression.py 在沙箱部署面上采集:
+collection/execution stdout、junit、env、record 全部为真实原件。
+负例 = 复制运行目录后定向改造(record 字段/原件字节),经被测包
+真实函数核验;不再提供"调用方自写 collection 列表"的构造路径。
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -28,19 +32,95 @@ from rl_curriculum.curriculum261_r17_admission_substance import (
 )
 
 _SANDBOX_MODULE = "test_sandbox"
-_SANDBOX_PASSING = 3
+
+#: canonical 沙箱模块:覆盖本项目参数化语义的全部形态。
+_CANONICAL_SOURCE = '''# sandbox canonical test module (generated)
+import pytest
 
 
-def _sandbox_module_source(n: int) -> str:
-    lines = ["# sandbox test module (generated)", ""]
-    for i in range(n):
-        lines += [f"def test_case_{i}():", "    assert True", ""]
-    return "\n".join(lines) + "\n"
+def test_plain_ok():
+    assert True
+
+
+@pytest.mark.parametrize("x", [0, 1, 2])
+def test_parameter(x):
+    assert x in (0, 1, 2)
+
+
+@pytest.fixture(params=["fa", "fb"])
+def fixture_param(request):
+    return request.param
+
+
+def test_fixture_param(fixture_param):
+    assert fixture_param in ("fa", "fb")
+
+
+def test_generated(gen_param):
+    assert gen_param in ("g1", "g2")
+'''
+
+#: 沙箱 conftest:pytest_generate_tests 是被允许的动态收集形态
+#: (A03 验收项),不是过滤 hook(_verify_conftest_hooks 只拒绝
+#: pytest_collection_modifyitems / pytest_ignore_collect)。
+_SANDBOX_CONFTEST = '''# sandbox conftest (generated)
+
+
+def pytest_generate_tests(metafunc):
+    if "gen_param" in metafunc.fixturenames:
+        metafunc.parametrize("gen_param", ["g1", "g2"])
+'''
+
+
+#: A01 反例树:三参数实例之一有意失败(审查 probe 形状)。
+_PROBE_SOURCE = '''# sandbox probe module (one param instance intentionally fails)
+import pytest
+
+
+def test_probe_plain_ok():
+    assert True
+
+
+@pytest.mark.parametrize("x", [0, 1, 2])
+def test_parameter(x):
+    assert x != 1
+'''
+
+_TESTS_DIR = Path(__file__).resolve().parent
+_EXECUTOR_CANDIDATES = (
+    _TESTS_DIR.parents[1] / "runner" / "r21_full_collection_regression.py",
+    _TESTS_DIR.parents[1] / "stage2_6_1" / "runner" / (
+        "r21_full_collection_regression.py"),
+    _TESTS_DIR.parents[1] / "stage2_6_1_runner" / (
+        "r21_full_collection_regression.py"),
+)
+_SUBSTANCE_SRC_CANDIDATES = (
+    _TESTS_DIR.parents[1] / "src",
+    _TESTS_DIR.parents[2] / "src",
+)
+
+
+def executor_path() -> Path:
+    for path in _EXECUTOR_CANDIDATES:
+        if path.is_file():
+            return path
+    raise FileNotFoundError(
+        "runner/r21_full_collection_regression.py 不可达: "
+        + str(tuple(str(p) for p in _EXECUTOR_CANDIDATES)))
+
+
+def substance_src() -> Path:
+    for cand in _SUBSTANCE_SRC_CANDIDATES:
+        if (cand / "rl_curriculum" / (
+                "curriculum261_r17_admission_substance.py")).is_file():
+            return cand
+    raise FileNotFoundError("发布仓 src 包不可达")
 
 
 def _skip_module_sources() -> dict[str, str]:
     """由 HISTORICAL_SKIP_IDS 权威表生成 7 个历史 skip 桩模块源
-    (模块/类/方法名与表内 classname 逐字一致;不手抄防漂移)。"""
+    (模块/类/方法名与表内 classname 逐字一致;真实运行中以
+    pytest.mark.skip 呈现 skipped,不手抄防漂移)。"""
     modules: dict[str, dict[str | None, list[str]]] = {}
     for cid in HISTORICAL_SKIP_IDS:
         classname, name = cid.rsplit("::", 1)
@@ -49,45 +129,62 @@ def _skip_module_sources() -> dict[str, str]:
         modules.setdefault(module, {}).setdefault(cls, []).append(name)
     sources = {}
     for module, classes in sorted(modules.items()):
-        lines = ["# sandbox historical-skip stub (generated)", ""]
+        lines = ["# sandbox historical-skip stub (generated)",
+                 "import pytest", ""]
         for cls, methods in classes.items():
             if cls is None:
                 for m in methods:
-                    lines += [f"def {m}():",
-                              "    raise AssertionError(",
-                              "        'sandbox historical skip stub')", ""]
+                    lines += [
+                        "@pytest.mark.skip("
+                        "reason='sandbox historical allowlist stub')",
+                        f"def {m}():",
+                        "    raise AssertionError('unreachable')", ""]
             else:
                 lines.append(f"class {cls}:")
                 for m in methods:
-                    lines += [f"    def {m}(self):",
-                              "        raise AssertionError(",
-                              "            'sandbox historical skip stub')"]
+                    lines += [
+                        "    @pytest.mark.skip("
+                        "reason='sandbox historical allowlist stub')",
+                        f"    def {m}(self):",
+                        "        raise AssertionError('unreachable')"]
                 lines.append("")
         sources[f"{module}.py"] = "\n".join(lines) + "\n"
     return sources
 
 
-def write_sandbox_test_tree(repo: Path, *, sandbox_tests: int = _SANDBOX_PASSING) -> None:
-    """把沙箱测试源树写入仓工作区(调用方负责 git add/commit)。"""
+def write_sandbox_test_tree(repo: Path, *, probe: bool = False) -> None:
+    """把沙箱测试源树 + src/rl_curriculum 写入仓工作区
+    (调用方负责 git add/commit)。
+
+    src 面含真实 substance 模块字节副本:签发器要求发布仓内存在
+    该模块,v3 import_surface 又要求候选 src 成员与部署 src 字节
+    一致——副本而非符号链接,避免 git mode 120000 进入映射。"""
     test_dir = repo / "stage2_6_1" / "tests" / "route_c_stage2_6_1"
     test_dir.mkdir(parents=True, exist_ok=True)
     (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
-        _sandbox_module_source(sandbox_tests), encoding="utf-8")
+        _PROBE_SOURCE if probe else _CANONICAL_SOURCE, encoding="utf-8")
     (test_dir / "conftest.py").write_text(
-        "# sandbox conftest\n", encoding="utf-8")
+        "# sandbox conftest\n" if probe else _SANDBOX_CONFTEST,
+        encoding="utf-8")
     for leaf, source in _skip_module_sources().items():
         (test_dir / leaf).write_text(source, encoding="utf-8")
+    src_dir = repo / "stage2_6_1" / "src" / "rl_curriculum"
+    src_dir.mkdir(parents=True, exist_ok=True)
+    (src_dir / "__init__.py").write_text(
+        "# sandbox src root\n", encoding="utf-8")
+    shutil.copyfile(
+        substance_src() / "rl_curriculum" / (
+            "curriculum261_r17_admission_substance.py"),
+        src_dir / "curriculum261_r17_admission_substance.py")
 
 
-def git_repo_with_candidate(tmp: Path, *,
-                            sandbox_tests: int = _SANDBOX_PASSING
+def git_repo_with_candidate(tmp: Path, *, probe: bool = False
                             ) -> tuple[Path, str, str]:
     """两提交沙箱仓(Commit A 需有 parent,满足签发器校验)。
 
-    base 提交携带完整测试源树(sandbox 模块 + conftest + 历史
-    skip 桩),cand 提交为候选。静态全集 = sandbox_tests 个通过
-    测试 + 7 个历史 skip,与 write_junit(passed=sandbox_tests) 对应。
-    """
+    base 提交携带完整测试源树 + src 根,cand 提交为候选。
+    canonical 树真实展开 = 8 通过 + 7 历史 skip;probe 树 =
+    2 通过 + 1 失败 + 7 历史 skip。"""
     repo = tmp / "relrepo"
     repo.mkdir(parents=True)
     for args in (
@@ -97,7 +194,7 @@ def git_repo_with_candidate(tmp: Path, *,
     ):
         subprocess.run(args, cwd=str(repo), check=True)
     (repo / "base.txt").write_text("base\n")
-    write_sandbox_test_tree(repo, sandbox_tests=sandbox_tests)
+    write_sandbox_test_tree(repo, probe=probe)
     subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True)
     subprocess.run(["git", "commit", "-qm", "base"], cwd=str(repo),
                    check=True)
@@ -115,8 +212,8 @@ def git_repo_with_candidate(tmp: Path, *,
 
 
 def sync_deploy_surface(repo: Path, commit_a: str, deploy_root: Path) -> Path:
-    """把候选树测试面按映射同步到沙箱部署根(字节=CR 规范化 blob)。
-    只写沙箱,永不触真实部署面。"""
+    """把候选树测试面 + src 面按映射同步到沙箱部署根
+    (字节 = CR 规范化 blob)。只写沙箱,永不触真实部署面。"""
     mapping = candidate_test_map(repo, commit_a)
     target = Path(deploy_root) / "tests" / "route_c_stage2_6_1"
     target.mkdir(parents=True, exist_ok=True)
@@ -126,128 +223,130 @@ def sync_deploy_surface(repo: Path, commit_a: str, deploy_root: Path) -> Path:
             capture_output=True, check=True).stdout
         (target / Path(row["deploy_path"]).name).write_bytes(
             blob.replace(b"\r", b""))
+    src_tree = subprocess.run(
+        ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", commit_a,
+         "--", "stage2_6_1/src/rl_curriculum/"],
+        capture_output=True, check=True, text=True).stdout
+    src_dir = Path(deploy_root) / "src" / "rl_curriculum"
+    src_dir.mkdir(parents=True, exist_ok=True)
+    for rel in [ln for ln in src_tree.splitlines() if ln.endswith(".py")]:
+        blob = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{commit_a}:{rel}"],
+            capture_output=True, check=True).stdout
+        (src_dir / rel.rsplit("/", 1)[-1]).write_bytes(
+            blob.replace(b"\r", b""))
     return target
+
+
+def run_executor(out_dir: Path, repo: Path, commit_a: str,
+                 deploy_root: Path, *, protocol: str = "full",
+                 differential: Path | None = None, shards: list[str] | None = None,
+                 expect_rc: tuple = (0, 3)) -> tuple[Path, dict, int]:
+    """在沙箱部署面真实执行 r21_full_collection_regression.py。
+
+    返回 (run_dir, summary, rc)。合法运行 expect_rc=(0,);
+    负例树/拒绝场景放宽。substance 模块取真实发布仓 src。"""
+    command = [
+        sys.executable, str(executor_path()),
+        "--repo", str(repo), "--commit-a", commit_a,
+        "--deploy-root", str(deploy_root), "--out-dir", str(out_dir),
+        "--substance-src", str(substance_src()),
+    ]
+    if protocol != "full":
+        command += ["--protocol", protocol]
+    if differential is not None:
+        command += ["--differential", str(differential)]
+    for shard in (shards or []):
+        command += ["--shard", shard]
+    proc = subprocess.run(command, capture_output=True, text=True,
+                          timeout=900)
+    assert proc.returncode in expect_rc, (
+        f"executor rc={proc.returncode}\n{proc.stdout}\n{proc.stderr}")
+    summary = json.loads((Path(out_dir) / "summary.json").read_text(
+        encoding="utf-8")) if (Path(out_dir) / "summary.json").is_file() \
+        else {"raw_stdout": proc.stdout, "raw_stderr": proc.stderr}
+    return Path(out_dir), summary, proc.returncode
+
+
+def record_path(run_dir: Path) -> Path:
+    return Path(run_dir) / "regression_evidence_v3_record.json"
+
+
+def read_record(run_dir: Path) -> dict:
+    return json.loads(record_path(run_dir).read_text(encoding="utf-8"))
+
+
+def copy_run(run_dir: Path, dest: Path) -> Path:
+    """复制完整运行目录(record 原件相对路径保持自洽)。"""
+    dest = Path(dest)
+    dest.mkdir(parents=True, exist_ok=False)
+    shutil.copytree(run_dir, dest, dirs_exist_ok=True)
+    return dest
+
+
+def edit_record(run_dir: Path, mutate) -> Path:
+    """加载 record → mutate(record) → 原位写回(sha 由调用方自理)。"""
+    path = record_path(run_dir)
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    mutate(doc)
+    path.write_text(
+        json.dumps(doc, indent=1, ensure_ascii=False) + "\n",
+        encoding="utf-8")
+    return path
+
+
+def rehash_artifact(run_dir: Path, name: str) -> str:
+    """原件被定向改造后,把 record 内对应 sha 换成新字节摘要。"""
+    data = (Path(run_dir) / name).read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+
+    def _fix(doc: dict) -> None:
+        for block in (doc.get("collection_run", {}).get("runs", [])
+                      + doc.get("execution", {}).get("runs", [])):
+            for key in ("stdout", "stderr"):
+                art = block.get(key) or {}
+                if art.get("path") == name:
+                    art["sha256"] = digest
+        for entry in doc.get("junit", []):
+            if entry.get("path") == name:
+                entry["sha256"] = digest
+
+    edit_record(run_dir, _fix)
+    return digest
+
+
+def rewrite_collection_stdout(run_dir: Path, ids: list[str]) -> None:
+    """把收集原件改写为给定 ID 全集(计数行同步)——负例构造器,
+    模拟"伪造的收集输出";sha 由调用方 rehash 或保留以测替换检测。"""
+    text = "\n".join(ids) + f"\n\n{len(ids)} tests collected in 0.00s\n"
+    (Path(run_dir) / "collection.stdout.txt").write_text(
+        text, encoding="utf-8")
 
 
 def write_junit(path: Path, passed: int,
                 skipped_ids=HISTORICAL_SKIP_IDS) -> Path:
     """生成与 parse_junit 兼容的最小 junit 原件(计数自洽)。
 
-    通过用例 = tests.route_c_stage2_6_1.test_sandbox 模块的
-    test_case_0..N-1(须存在于沙箱树);skip = 历史允许表 ID。
-    """
-    skipped_ids = list(skipped_ids)
-    suites = ET.Element("testsuites")
-    s = ET.SubElement(
-        suites, "testsuite", {
-            "name": "sandbox",
-            "tests": str(passed + len(skipped_ids)),
-            "failures": "0", "errors": "0",
-            "skipped": str(len(skipped_ids))})
-    for i in range(passed):
-        ET.SubElement(s, "testcase", {
-            "classname": f"tests.route_c_stage2_6_1.{_SANDBOX_MODULE}",
-            "name": f"test_case_{i}"})
-    for cid in skipped_ids:
-        cls, name = cid.rsplit("::", 1)
-        tc = ET.SubElement(s, "testcase", {
-            "classname": cls, "name": name})
-        ET.SubElement(tc, "skipped")
-    ET.indent(suites)
+    仅服务于 parse_junit 元素级核验单元测试;v3 完整证据路径一律
+    使用真实执行器产物。通过用例 = tests.route_c_stage2_6_1.
+    test_sandbox 模块 test_case_0..N-1。"""
     path.parent.mkdir(parents=True, exist_ok=True)
-    ET.ElementTree(suites).write(path, encoding="utf-8",
-                                 xml_declaration=True)
+    cases = []
+    for i in range(passed):
+        cases.append(
+            f'<testcase classname="tests.route_c_stage2_6_1.test_sandbox"'
+            f' name="test_case_{i}"/>')
+    for cid in sorted(skipped_ids):
+        classname, _, name = cid.rpartition("::")
+        cases.append(
+            f'<testcase classname="{classname}" name="{name}">'
+            f"<skipped/></testcase>")
+    path.write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<testsuite name="sandbox" tests="{len(cases)}" failures="0" '
+        f'errors="0" skipped="{len(cases) - passed}">'
+        + "".join(cases) + "</testsuite>\n", encoding="utf-8")
     return path
-
-
-def write_evidence_record(record_path: Path, repo: Path, commit_a: str,
-                          junit_paths: list[Path], *,
-                          protocol: str = "full",
-                          counts_override: dict | None = None,
-                          skip_ids_override=None,
-                          historical_skip_ids=None,
-                          collection_override=None,
-                          test_files_override=None,
-                          execution_override=None,
-                          differential: dict | None = None,
-                          drop_fields: tuple = ()) -> Path:
-    """构造 cur261-r17-candidate-regression-evidence-v2 record。
-
-    计数/跳过集合由真实 parse_junit 从生成的 junit 原件重算;
-    test_files 清单由真实 candidate_test_map 从候选树重算;
-    collection 默认 = junit 实际执行 node-ID(合法完整证据下与
-    静态全集一致);*_override/drop_fields 供负例注入失配。
-    """
-    aggregate = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
-    skipped_ids: list[str] = []
-    executed: list[str] = []
-    entries = []
-    for jp in junit_paths:
-        parsed = parse_junit(jp)
-        for key in aggregate:
-            aggregate[key] += parsed[key]
-        skipped_ids.extend(parsed["skipped_ids"])
-        for cid in parsed["case_ids"]:
-            classname, _, name = cid.partition("::")
-            executed.append(junit_nodeid(classname, name))
-        entries.append({
-            "path": str(jp),
-            "sha256": hashlib.sha256(
-                jp.read_bytes()).hexdigest()})
-    counts = counts_override or aggregate
-    skip_ids = (historical_skip_ids
-                if historical_skip_ids is not None else sorted(
-                    set(skipped_ids)))
-    if skip_ids_override is not None:
-        skip_ids = skip_ids_override
-    mapping = candidate_test_map(repo, commit_a)
-    if test_files_override is not None:
-        test_files = test_files_override
-    else:
-        test_files = [
-            {"source_path": row["source_path"],
-             "deploy_path": row["deploy_path"],
-             "deploy_sha256": row["deploy_sha256"],
-             "deploy_size": row["deploy_size"],
-             "is_test": row["is_test"]}
-            for row in mapping.values()]
-    if collection_override is not None:
-        collection = collection_override
-    else:
-        collection = sorted(executed)
-    if execution_override is not None:
-        execution = execution_override
-    else:
-        execution = {
-            "command": ["pytest", "tests/route_c_stage2_6_1", "-q",
-                        "--junitxml=junit.xml"],
-            "interpreter": sys.executable,
-            "cwd": "/sandbox",
-            "returncode": 0,
-        }
-    record = {
-        "format": REGRESSION_EVIDENCE_FORMAT,
-        "scope": "formal",
-        "protocol": protocol,
-        "commit_a_sha": commit_a,
-        "junit": entries,
-        "counts": counts,
-        "historical_skip_ids": skip_ids,
-        "test_files": test_files,
-        "collection": collection,
-        "execution": execution,
-        "bound_utc": "2026-09-20T00:00:00Z",
-        "notes": "test-harness sandbox evidence",
-    }
-    if differential is not None:
-        record["differential"] = differential
-    for key in drop_fields:
-        record.pop(key, None)
-    record_path.parent.mkdir(parents=True, exist_ok=True)
-    record_path.write_text(
-        json.dumps(record, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8")
-    return record_path
 
 
 def write_preregistration(path: Path, repo: Path, commit_a: str,

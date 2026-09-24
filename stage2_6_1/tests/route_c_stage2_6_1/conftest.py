@@ -29,3 +29,27 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[2] / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+
+# v3 轮(2026-09-25):session 级共享真实完整回归运行。合法完整
+# 证据必须来自真实执行器产物;一次构建,全部 substance/e2e 测试
+# 复用(run 目录只读;签发/消费 e2e 各自清理许可副作用)。
+import pytest
+
+
+@pytest.fixture(scope="session")
+def r17_canonical_full_run(tmp_path_factory):
+    from types import SimpleNamespace
+    from r17_admission_substance_test_support import (
+        git_repo_with_candidate, run_executor, sync_deploy_surface,
+        record_path)
+    base = tmp_path_factory.mktemp("r17_canonical_full_run")
+    repo, commit_a, parent = git_repo_with_candidate(base)
+    deploy = base / "deploy"
+    sync_deploy_surface(repo, commit_a, deploy)
+    run_dir, summary, rc = run_executor(
+        base / "run", repo, commit_a, deploy, expect_rc=(0,))
+    assert rc == 0 and summary.get("ok"), summary
+    return SimpleNamespace(
+        base=base, repo=repo, commit_a=commit_a, parent=parent,
+        deploy=deploy, run_dir=run_dir, record=record_path(run_dir),
+        summary=summary)

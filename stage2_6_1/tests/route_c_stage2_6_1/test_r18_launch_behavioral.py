@@ -15,8 +15,8 @@ provenance-verify 内容强制;隔离面:R17_PROJECT_ROOT 指向沙箱根
   consumed,消费日志与 journal 均不增(双消费回归)。
 """
 from r17_admission_substance_test_support import (
-    write_evidence_record,
-    write_junit,
+    record_path,
+    run_executor,
     write_preregistration)
 
 import hashlib
@@ -92,9 +92,9 @@ class _Sandbox:
         self.repo.mkdir()
         _run(["git", "init", "-q", "."], cwd=self.repo)
         (self.repo / "stage2_6_1").mkdir()
-        # 签发器 v2 要求发布仓内存在实质绑定模块(同源实现)
-        (self.repo / "stage2_6_1" / "src").symlink_to(
-            DEPLOY_SRC, target_is_directory=True)
+        # v3:签发器要求发布仓内存在实质绑定模块,import_surface
+        # 又要求候选 src 成员为常规文件——write_sandbox_test_tree
+        # 以字节副本写入(不用符号链接)。
         _git(self.repo, "config", "user.email", "r18bh@test")
         _git(self.repo, "config", "user.name", "r18bh")
         (self.repo / "base.txt").write_text("base\n")
@@ -113,17 +113,16 @@ class _Sandbox:
         self.admission_id = "r18bh-admission-0001"
 
     def issue_admission(self) -> None:
-        # v2 实质绑定:plan_digest = Commit A tree digest 实算;
-        # regression_evidence = 机读 record(真实 junit 原件,含
-        # 7 个历史 skip;沙箱内构造,不触碰正式部署面)。
-        ev_dir = self.root / "substance_ev"
-        junit = write_junit(ev_dir / "junit.xml", passed=3)
-        evidence = write_evidence_record(
-            ev_dir / "regression_evidence.json", self.repo,
-            self.commit_a, [junit])
+        # v3 实质绑定:plan_digest = Commit A tree digest 实算;
+        # regression_evidence = 真实执行器在本沙箱部署面上采集的
+        # v3 record(真实收集/执行原件;不触碰正式部署面)。
+        run_dir, summary, rc = run_executor(
+            self.root / "substance_ev", self.repo, self.commit_a,
+            self.root, expect_rc=(0,))
+        assert rc == 0 and summary["ok"], summary
         prereg = self.root / "prereg.json"
         write_preregistration(
-            prereg, self.repo, self.commit_a, evidence,
+            prereg, self.repo, self.commit_a, record_path(run_dir),
             admission_id=self.admission_id)
         proc = _run([sys.executable, str(ISSUER),
                      "--repo", str(self.repo),

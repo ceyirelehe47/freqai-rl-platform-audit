@@ -1002,27 +1002,26 @@ class TestFormalAdmissionUnit:
             "admission_id": aid,
         }
         if repo is not None:
-            # v2 合法路径:真实实质块(沙箱 git 仓 + 机读完整回归
-            # 证据);消费端在部署根上复验部署测试面,同步沙箱面。
+            # v3 合法路径:真实执行器在该部署根上采集的完整回归
+            # 证据(真实收集/执行原件);消费端在部署根上复验
+            # 部署测试面与 import 面。
             from r17_admission_substance_test_support import (
-                sync_deploy_surface, write_evidence_record,
-                write_junit, write_preregistration)
+                record_path, run_executor, sync_deploy_surface,
+                write_preregistration)
             from rl_curriculum.curriculum261_r17_admission_substance \
                 import (git_tree_digest, substance_digest,
                         verify_preregistration_substance)
-            ev_dir = tmp_path / f"substance_{aid}"
-            junit = write_junit(ev_dir / "junit.xml", passed=3)
-            evidence = write_evidence_record(
-                ev_dir / "regression_evidence.json", repo, sha,
-                [junit])
+            sync_deploy_surface(repo, sha, dr)
+            run_dir, summary, rc = run_executor(
+                tmp_path / f"run_{aid}", repo, sha, dr, expect_rc=(0,))
+            assert rc == 0 and summary["ok"], summary
             prereg_path = write_preregistration(
-                ev_dir / "prereg.json", repo, sha, evidence,
-                admission_id=aid)
+                tmp_path / f"prereg_{aid}.json", repo, sha,
+                record_path(run_dir), admission_id=aid)
             prereg = json.loads(
                 prereg_path.read_text(encoding="utf-8"))
             substance = verify_preregistration_substance(
                 repo, sha, prereg)
-            sync_deploy_surface(repo, sha, dr)
             payload["plan_digest"] = prereg["plan_digest"]
             payload["substance"] = substance
             payload["substance_digest"] = substance_digest(substance)
