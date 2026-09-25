@@ -1,0 +1,90 @@
+{
+ "schema": "r17-run-record-v2",
+ "run_id": "e2e_192433_2063_49422",
+ "task_kind": "fixture",
+ "argv": [
+  "python3",
+  "-c",
+  "import sys; sys.stderr.write('PairGenerationError: too_few_distractors\\n');sys.exit(7)"
+ ],
+ "started_utc": "2026-09-25T11:24:33Z",
+ "ended_utc": "2026-09-25T11:24:34Z",
+ "business": {
+  "rc": 7,
+  "signal": null,
+  "pgid": 7939
+ },
+ "policy": {
+  "id": "R17-SUPERVISION-POLICY-v1",
+  "sha256": "e40ec2c8199508925435be06e6c36e55fb0951ef3fce80747b28b4ec26e4278b"
+ },
+ "required": [
+  {
+   "role": "alerts",
+   "path": "runs/e2e_192433_2063_49422/alerts/alerts.jsonl",
+   "status": "present",
+   "sha256": "986416462d8e003636e299a0e5b55d73556ef02c7cbdf6a58e237e1215aec6a0",
+   "bytes": 1899
+  },
+  {
+   "role": "business_stdout",
+   "path": "runs/e2e_192433_2063_49422/business/stdout.log",
+   "status": "present",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "bytes": 0
+  },
+  {
+   "role": "business_stderr",
+   "path": "runs/e2e_192433_2063_49422/business/stderr.log",
+   "status": "present",
+   "sha256": "a8e45da45e01a36a9f29bfed329d7793d892cdfb0b7824ffb016d131847089dc",
+   "bytes": 41
+  },
+  {
+   "role": "summary",
+   "path": "runs/e2e_192433_2063_49422/summary.json",
+   "status": "present",
+   "sha256": "9d6e71d008dd2a2cccee87e96ca11dcb382488eb4e460f9b3fa14106499e9842",
+   "bytes": 4394
+  }
+ ],
+ "evidence_complete": true,
+ "missing_roles": [],
+ "control_failures": [],
+ "cutoff_certified": true,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": false,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": null
+  },
+  "win": null,
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "io": {
+  "submitted": 16,
+  "accepted": 16,
+  "ok": 16,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 16,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "finalized": true
+}
