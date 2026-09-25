@@ -73,6 +73,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
 import stat
 import subprocess
@@ -821,9 +822,13 @@ def _verify_child_env_policy(env: dict, label: str,
     pythonpath = forced.get("PYTHONPATH")
     if not isinstance(pythonpath, str) or not pythonpath:
         raise SubstanceError(f"{label}_child_env_pythonpath_invalid")
-    if deploy_root is not None \
-            and Path(pythonpath) != (Path(deploy_root) / "stage2_6_1_runner"):
-        raise SubstanceError(f"{label}_child_env_pythonpath_not_runner")
+    if deploy_root is not None:
+        parts = pythonpath.split(os.pathsep)
+        if len(parts) != 2 \
+                or Path(parts[0]) != (Path(deploy_root) / "src") \
+                or Path(parts[1]) != (Path(deploy_root) / "stage2_6_1_runner"):
+            raise SubstanceError(
+                f"{label}_child_env_pythonpath_not_runner")
     if any(key.startswith("PYTEST_")
            for key in inherited):
         raise SubstanceError(f"{label}_child_env_pytest_leak")

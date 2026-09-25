@@ -298,7 +298,14 @@ def main(argv: list[str] | None = None) -> int:
     base_env, drop_report = _child_env()
     base_env["PYTHONDONTWRITEBYTECODE"] = "1"
     base_env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-    base_env["PYTHONPATH"] = str(deploy_root / "stage2_6_1_runner")
+    # 显式两元导入域:部署 src(套件/探测子进程的合法导入面,
+    # conftest 本会插入)+ runner 面(审计器)。修复:r11/r12 等
+    # 探测子进程以 PYTHONPATH setdefault 假定该键缺失——受控环境
+    # 预置后需保证 src 仍在导入域(2026-09-25 全量首跑 8 failed
+    # 的根因;失败原件保留于 full_regression_20260925/)。
+    base_env["PYTHONPATH"] = (
+        str(deploy_root / "src") + os.pathsep
+        + str(deploy_root / "stage2_6_1_runner"))
     base_env["R21_AUDIT_MANIFEST"] = str(manifest_path)
     policy = {
         "inherited": drop_report["inherited"],
