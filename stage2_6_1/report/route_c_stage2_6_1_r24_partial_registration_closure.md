@@ -132,5 +132,23 @@ None → 重复消费 `admission_already_consumed`(probe_v1/legal_chain)。
 
 ## 6. 结果
 
-见 `full_regression_20260926_v1/`(受监护适用全量回归,新候选
-提交后执行;summary/record/监护 crossref 以该目录原件为准)。
+受监护适用全量回归(`full_regression_20260926_v1/`,候选
+`d085590d00c6214c2f33d56a6f861f57e284faea`,真实收集,不硬编码
+总数):
+
+- **GREEN:2470 passed / 0 failed / 0 errors + 7 skipped(恰历史
+  skip 身份,r12-r16 ancestry/wrapper 系),两段 rc=0,ok=true**;
+  verify(collection_tests=2470,static_tests=1989,test_files=146);
+  较 R23 的 2456 增 14 = 本轮 TestPartialRegistrationR24 新增
+  14 项测试;
+- record v6(`cur261-r17-candidate-regression-evidence-v6`),
+  record sha256
+  `5b1bc98ee5401158b92c4db3d408faa5f53387a1bc007a14f2070bc5e9dccbaa`;
+  每段审计 format v3、verdict=pass、register_guard 证明段在场;
+- 监护 run `20260925T221421_6579_1058`(engineering,42m05s):
+  incidents=0,business_rc=0;record.supervision.present=false 为
+  事实(监护记录在业务退出后落盘),外部 argv token 交叉绑定见
+  `supervision_crossref.json`(out-dir token 精确匹配);
+- 只读复验:同源核验器以 deploy_root 重放 record 通过
+  (2470/1989/146);probe_v1 index 复核(late rc=3、合法链
+  issue rc=0、重复消费拒)。
