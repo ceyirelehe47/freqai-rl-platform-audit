@@ -1972,11 +1972,17 @@ class TestSyncScriptA09:
                                        matched.group(2))
             return text_
 
-        repo_root = _TESTS_DIR.parents[2]
+        candidates = [
+            _TESTS_DIR.parents[2],
+            Path("/mnt/f/trading/freqai-rl-audit"),
+        ]
+        repo_root = next(
+            (c for c in candidates
+             if (c / "stage2_6_1" / "runner" / "r21_sync.sh").is_file()),
+            None)
+        if repo_root is None:
+            pytest.skip("发布仓布局不可达(仓库与部署树均无 runner)")
         script = repo_root / "stage2_6_1" / "runner" / "r21_sync.sh"
-        if not script.is_file():
-            pytest.skip("repo 布局不在场(WSL 部署树运行;本测试在"
-                        "发布仓布局验证同步脚本)")
         dest = tmp_path / "deploy_sync"
         env = {k: v for k, v in os.environ.items()
                if not k.startswith("PYTEST_")}
