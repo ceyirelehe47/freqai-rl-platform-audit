@@ -87,15 +87,31 @@ R20、未触碰 R19 终态。
 
 ## 3. 最终 WSL 完整回归(A10)
 
-- 监护 run:`20260925T101000_7204_1019`(engineering;外层 supervisor
-  真实启动,业务 argv 含执行器与 out-dir)。
-- 执行器:`/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r21_full_collection_regression.py`
-  `--repo /mnt/f/trading/freqai-rl-audit --commit-a 7c5324b… --deploy-root
-  /home/cryptorl/projects/crypto_rl --out-dir …/r22_effective_collection_closure/full_regression_20260925`。
-- 收集:2411 展开实例(= 上轮 2345 + 本轮 66 项新测试,精确吻合),
-  审计 verdict=pass。
-- 执行/自验结果:见 `full_regression_20260925/summary.json`
-  (本节数值以原件为准;完成后回填)。
+计划内三次尝试,失败原件全部保留(每次独立持久目录,不清理复用):
+
+| run | 候选 | 结果 | 处置 |
+|---|---|---|---|
+| `full_regression_20260925`(监护 `20260925T101000_7204_1019`) | 7c5324b | 收集 2411/审计 pass;执行 8 failed/2395 passed/8 skipped,rc=4 | 根因:受控环境 PYTHONPATH 仅含 runner 面,r11/r12 确定性探测与 r8/r9 CLI roundtrip 子进程以 `PYTHONPATH` setdefault 假定该键缺失,import 不到 `rl_curriculum`(既有 env 敏感缺陷被受控环境暴露)。修复:强制 PYTHONPATH 改为显式两元导入域 `deploy/src:deploy/stage2_6_1_runner`(ef82133) |
+| `full_regression_20260925_v2`(监护 `20260925T110211_2145_1709`) | ef82133 | 执行 2403 passed/8 skipped/0 failed;自验 rc=3 `regression_skip_ids_outside_allowed_table` | 根因:A09 同步测试在部署树布局正当跳过,构成 full 协议外第 8 个 skip(允许表恰 7 项,fail closed 符合设计)。修复:该测试在部署布局下直接对发布仓(/mnt/f/trading/freqai-rl-audit)执行真实同步验证,不再跳过(49550cb0) |
+| `full_regression_20260925_v3`(监护 `20260925T115516_0082_3064`) | 49550cb0 | **最终 GREEN**:2404 passed / 7 skipped(恰历史允许表)/ 0 failed;summary ok=true;2411 collected==executed;static 1936;145 文件;record sha `2895b1c9…`;rc=0;监护 incidents=0 | — |
+
+监护关联披露:执行器在 record 绑定时刻读不到自身 run_record
+(supervisor 于业务进程结束后才写盘),故 record 内
+`supervision.present=false` 如实反映该时序;三次运行的真实监护由
+`supervision_crossref.json`(本目录)外部绑定:out-dir token 逐字
+出现于 business argv,run_record 起止时间与执行窗口吻合。这是
+v4 关联机制的已知时序限制,非虚报;后续轮次可让 supervisor 在
+启动时即落盘 run_record 使执行器当场绑定。
+
+- 监护:三次均经 `r17_monitored_entry.sh engineering`(真实
+  supervisor 启动,业务 argv 含执行器与 out-dir)。
+- 执行器:`/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r21_full_collection_regression.py
+  --repo /mnt/f/trading/freqai-rl-audit --commit-a <候选>
+  --deploy-root /home/cryptorl/projects/crypto_rl --out-dir …/full_regression_20260925[_v2|_v3]`。
+- v3 收集:2411 展开实例(= 上轮 2345 + 本轮 66 项新测试,精确
+  吻合),collection/execution 审计 verdict 均 pass(三阶段齐全);
+  子进程环境 15 键全在白名单+强制域内,PYTHONPATH 为显式两元
+  导入域,manifest 生成 hook 批准为空(真实树零绑定,恰等)。
 
 ## 4. 边界
 
