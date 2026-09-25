@@ -1,0 +1,274 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+...............................F.FF..................................... [  8%]
+..............................F.FF...................................... [ 11%]
+......................s................................................s [ 14%]
+........................................................................ [ 17%]
+.....................s.................................................. [ 20%]
+........................................................................ [ 23%]
+......................................................................s. [ 26%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+.......................................................s.s.s............ [ 35%]
+........................................................................ [ 38%]
+........................................................s............... [ 41%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+.............................................R17ALERT {"event":"t06","n":1,"utc":"2026-09-25T10:20:06Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-25T10:20:06Z","run_id":"run"}
+........................... [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+............................................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-25T10:31:03Z","run_id":"run"}
+............................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 77%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 89%]
+........................................................................ [ 92%]
+..F..........................................................F.......... [ 95%]
+........................................................................ [ 98%]
+...................................                                      [100%]
+=================================== FAILURES ===================================
+______________________ test_r10_five_attempt_seeds_replay ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r10_five_attempt_seeds_re0')
+
+    def test_r10_five_attempt_seeds_replay(tmp_path):
+        """R10 正式失败的五个 outer attempt seeds 逐一重放(确定性)。
+    
+        重放按 first_pass 停止:若 attempt 0 即接受,则只执行 1 个
+        attempt —— 派生一致性按前缀逐位比较。
+        """
+        res = _probe(tmp_path, "r10", target="r10")
+>       assert res["ok"], res.get("stderr_tail", "")
+E       AssertionError: Traceback (most recent call last):
+E           File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r11_determinism.py", line 36, in <module>
+E             from rl_curriculum.curriculum261_generation_envelope import (
+E         ModuleNotFoundError: No module named 'rl_curriculum'
+E         
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py:127: AssertionError
+____________________ test_stress_r11_target_seeds_derivable ____________________
+
+    def test_stress_r11_target_seeds_derivable():
+        """矩阵目标调用的 outer seeds 可从派生字段独立复算。"""
+        base = _base(__import__("tempfile").mkdtemp())
+>       for seed in base["attempt_outer_seeds"]:
+E       TypeError: 'NoneType' object is not iterable
+
+tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py:152: TypeError
+_______________________ test_same_process_twice_bitwise ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_same_process_twice_bitwis0')
+
+    def test_same_process_twice_bitwise(tmp_path):
+        res2 = _run_probe(tmp_path, "twice2", target="r11",
+                          repeat_twice=True)
+>       assert res2["ok"], res2.get("stderr_tail", "")
+E       AssertionError: Traceback (most recent call last):
+E           File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r11_determinism.py", line 36, in <module>
+E             from rl_curriculum.curriculum261_generation_envelope import (
+E         ModuleNotFoundError: No module named 'rl_curriculum'
+E         
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py:162: AssertionError
+______________________ test_r10_five_attempt_seeds_replay ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r10_five_attempt_seeds_re1')
+
+    def test_r10_five_attempt_seeds_replay(tmp_path):
+        """R10 正式失败的五个 outer attempt seeds 逐一重放(确定性)。
+    
+        重放按 first_pass 停止:若 attempt 0 即接受,则只执行 1 个
+        attempt —— 派生一致性按前缀逐位比较。
+        """
+        res = _probe(tmp_path, "r10", target="r10")
+>       assert res["ok"], res.get("stderr_tail", "")
+E       AssertionError: Traceback (most recent call last):
+E           File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r12_determinism.py", line 36, in <module>
+E             from rl_curriculum.curriculum261_generation_envelope import (
+E         ModuleNotFoundError: No module named 'rl_curriculum'
+E         
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py:127: AssertionError
+____________________ test_stress_r12_target_seeds_derivable ____________________
+
+    def test_stress_r12_target_seeds_derivable():
+        """矩阵目标调用的 outer seeds 可从派生字段独立复算。"""
+        base = _base(__import__("tempfile").mkdtemp())
+>       for seed in base["attempt_outer_seeds"]:
+E       TypeError: 'NoneType' object is not iterable
+
+tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py:152: TypeError
+_______________________ test_same_process_twice_bitwise ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_same_process_twice_bitwis1')
+
+    def test_same_process_twice_bitwise(tmp_path):
+        res2 = _run_probe(tmp_path, "twice2", target="r12",
+                          repeat_twice=True)
+>       assert res2["ok"], res2.get("stderr_tail", "")
+E       AssertionError: Traceback (most recent call last):
+E           File "/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r12_determinism.py", line 36, in <module>
+E             from rl_curriculum.curriculum261_generation_envelope import (
+E         ModuleNotFoundError: No module named 'rl_curriculum'
+E         
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py:162: AssertionError
+______________________ test_cli_plan_roundtrip_subcommand ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_cli_plan_roundtrip_subcom1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x714e0d0933d0>
+
+    def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
+        """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。"""
+        import pathlib
+    
+        from rl_curriculum.curriculum261_r8_cli import main
+    
+        monkeypatch.setenv("CURRICULUM261_R8_LOCK_DIR",
+                           str(tmp_path / "lock"))
+        out = tmp_path / "art"
+        _write_preplan_inputs(out)
+>       rc = main(["plan-roundtrip", "--out-dir", str(out)])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r8_cli.py:1252: in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r8_cli.py:466: in cmd_plan_roundtrip
+    loaded = _subproc_python(_SUBPROC_LOADER_DESIGN, str(tmp))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+code = "from rl_curriculum.curriculum261_r8_design import (design_plan_digest_r8, load_locked_design_plan_r8);import json,sys...ormal_block_options'],'semantic_blocks':plan['semantic_corpora']['blocks_per_corpus'],'iteration':plan['iteration']}))"
+argsv = ('/tmp/tmp4yqljl19',)
+
+    def _subproc_python(code: str, *argsv: str) -> dict:
+        import os
+        import sys
+    
+        env = dict(os.environ)
+        proj = Path(__file__).resolve().parents[2]
+        env.setdefault("PYTHONPATH", str(proj / "src"))
+        res = subprocess.run(
+            [sys.executable, "-c", code, *argsv],
+            capture_output=True, text=True, timeout=600, env=env, cwd=str(proj))
+        if res.returncode != 0:
+>           raise RuntimeError(
+                f"子进程 loader 失败(rc={res.returncode}): "
+                f"{res.stderr[-600:]}")
+E           RuntimeError: 子进程 loader 失败(rc=1): Traceback (most recent call last):
+E             File "<string>", line 1, in <module>
+E           ModuleNotFoundError: No module named 'rl_curriculum'
+
+src/rl_curriculum/curriculum261_r8_cli.py:370: RuntimeError
+______________________ test_cli_plan_roundtrip_subcommand ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_cli_plan_roundtrip_subcom2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x714e0d05d150>
+
+    def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
+        """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。"""
+        import pathlib
+    
+        from rl_curriculum.curriculum261_r9_cli import main
+    
+        monkeypatch.setenv("CURRICULUM261_R9_LOCK_DIR",
+                           str(tmp_path / "lock"))
+        out = tmp_path / "art"
+        _write_preplan_inputs(out)
+>       rc = main(["plan-roundtrip", "--out-dir", str(out)])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r9_cli.py:1446: in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r9_cli.py:616: in cmd_plan_roundtrip
+    loaded = _subproc_python(_SUBPROC_LOADER_DESIGN, str(tmp))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+code = "from rl_curriculum.curriculum261_r9_design import (design_plan_digest_r9, load_locked_design_plan_r9);import json,sys...ormal_block_options'],'semantic_blocks':plan['semantic_corpora']['blocks_per_corpus'],'iteration':plan['iteration']}))"
+argsv = ('/tmp/tmp9b_8uuw3',)
+
+    def _subproc_python(code: str, *argsv: str) -> dict:
+        import os
+        import sys
+    
+        env = dict(os.environ)
+        proj = Path(__file__).resolve().parents[2]
+        env.setdefault("PYTHONPATH", str(proj / "src"))
+        res = subprocess.run(
+            [sys.executable, "-c", code, *argsv],
+            capture_output=True, text=True, timeout=600, env=env, cwd=str(proj))
+        if res.returncode != 0:
+>           raise RuntimeError(
+                f"子进程 loader 失败(rc={res.returncode}): "
+                f"{res.stderr[-600:]}")
+E           RuntimeError: 子进程 loader 失败(rc=1): Traceback (most recent call last):
+E             File "<string>", line 1, in <module>
+E           ModuleNotFoundError: No module named 'rl_curriculum'
+
+src/rl_curriculum/curriculum261_r9_cli.py:515: RuntimeError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py::test_r10_five_attempt_seeds_replay
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py::test_stress_r11_target_seeds_derivable
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py::test_same_process_twice_bitwise
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py::test_r10_five_attempt_seeds_replay
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py::test_stress_r12_target_seeds_derivable
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py::test_same_process_twice_bitwise
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py::test_cli_plan_roundtrip_subcommand
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py::test_cli_plan_roundtrip_subcommand
+8 failed, 2395 passed, 8 skipped, 10 warnings in 2192.23s (0:36:32)
