@@ -1,0 +1,318 @@
+{
+ "format": "cur261-r17-candidate-regression-evidence-v6",
+ "scope": "formal",
+ "protocol": "full",
+ "commit_a_sha": "27864080d7380cc64e63b267bf2dd899d767d0db",
+ "run": {
+  "run_id": "r21_20260926_060915",
+  "label": "r21_full_collection_regression",
+  "deploy_root": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy",
+  "tests_target": "tests/route_c_stage2_6_1",
+  "hostname": "Forst",
+  "user": "cryptorl",
+  "executor_face": {
+   "executor": {
+    "source_path": "stage2_6_1/runner/r21_full_collection_regression.py",
+    "blob_sha256": "c5b10121e5e21eea4913590b05213e946a76084c42fce21992fb0d4bdf66bc7c",
+    "deploy_sha256": "c5b10121e5e21eea4913590b05213e946a76084c42fce21992fb0d4bdf66bc7c"
+   },
+   "auditor": {
+    "source_path": "stage2_6_1/runner/r21_collection_auditor.py",
+    "blob_sha256": "b97363347963e37d56032a6cb5ff501af3ee7953cb4cf60e8517db9740e0e7a1",
+    "deploy_sha256": "b97363347963e37d56032a6cb5ff501af3ee7953cb4cf60e8517db9740e0e7a1"
+   }
+  },
+  "supervision": {
+   "present": false
+  }
+ },
+ "collection_run": {
+  "runs": [
+   {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "-p",
+     "r21_collection_auditor",
+     "tests/route_c_stage2_6_1",
+     "--collect-only",
+     "-q"
+    ],
+    "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy",
+    "returncode": 0,
+    "started_utc": "2026-09-25T22:09:10Z",
+    "finished_utc": "2026-09-25T22:09:12Z",
+    "stdout": {
+     "path": "collection.stdout.txt",
+     "sha256": "80a97078d1b96efe802db07d591f1030e36d1be44eec6b1aa4445cb7b1ffac4a"
+    },
+    "stderr": {
+     "path": "collection.stderr.txt",
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "audit": {
+     "path": "audit_collection.json",
+     "sha256": "14b551a4d34ba1a5c2dbdef75a02e1d226b909b6555cad4d976e929bb175c417"
+    },
+    "audit_lifecycle": {
+     "path": "audit_collection.json.lifecycle.jsonl",
+     "sha256": "366d877cecf724cc1a5717a7e45e9007811dac9b523428cbb15013ab00f5eee6"
+    },
+    "env": {
+     "python_version": "3.11.16",
+     "pytest_version_output": "This is pytest version 9.1.1, imported from /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pytest/__init__.py",
+     "child_env_policy": {
+      "inherited": [
+       "HOME",
+       "LANG",
+       "LOGNAME",
+       "PATH",
+       "SHELL",
+       "TERM",
+       "USER",
+       "WSL_DISTRO_NAME",
+       "WSL_INTEROP"
+      ],
+      "forced": {
+       "PYTHONDONTWRITEBYTECODE": "1",
+       "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+       "PYTHONPATH": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/src:/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/stage2_6_1_runner",
+       "R21_AUDIT_OUT": "per-run audit_<stem>.json",
+       "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_manifest.json"
+      },
+      "dropped_keys": [
+       "DBUS_SESSION_BUS_ADDRESS",
+       "DISPLAY",
+       "HOSTTYPE",
+       "NAME",
+       "OLDPWD",
+       "PULSE_SERVER",
+       "PWD",
+       "PYTHONDONTWRITEBYTECODE",
+       "PYTHONPATH",
+       "SHLVL",
+       "WAYLAND_DISPLAY",
+       "WSL2_GUI_APPS_ENABLED",
+       "WSLENV",
+       "WT_PROFILE_ID",
+       "WT_SESSION",
+       "XDG_RUNTIME_DIR",
+       "_"
+      ]
+     },
+     "config_scan": [
+      {
+       "path": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/tests/route_c_stage2_6_1/conftest.py",
+       "sha256": "e223e1b5f49421776bc8b07da86cde6a3b7cfb0ce492dbda03363616bc63260a"
+      }
+     ],
+     "child_env": {
+      "SHELL": "/bin/bash",
+      "WSL_DISTRO_NAME": "CryptoRL-Ubuntu-24.04",
+      "LOGNAME": "cryptorl",
+      "HOME": "/home/cryptorl",
+      "LANG": "C.UTF-8",
+      "WSL_INTEROP": "/run/WSL/295_interop",
+      "TERM": "xterm-256color",
+      "USER": "cryptorl",
+      "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/c/Program Files/PlasticSCM5/client:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Strawberry/c/bin:/mnt/c/Strawberry/perl/site/bin:/mnt/c/Strawberry/perl/bin:/mnt/c/Program Files/MySQL/MySQL Server 5.7/bin:/mnt/c/_Code/Plug/MinGW/bin:/mnt/c/_Code/Plug/Python311:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/tools/dart-sdk/bin:/mnt/c/_Code/Plug/Flutter/flutter/bin:/mnt/c/Users/15027/AppData/Local/Android/Sdk:/mnt/d/_Code/微信web开发者工具/dll:/mnt/c/_Co:/mnt/c/_Code/Plug/Python311/Scripts/pip3.11.exe:/mnt/c/_Code/Plug/Python311/Scripts/pip3.exe:/mnt/c/Program Files (x86)/ZeroTier/One/:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/lib:/mnt/d/_Code/VS/本体/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/mnt/d/_Code/_plug/opencv/build/x64/vc15/bin:/mnt/c/_Code/Plug/sqlite-tools-win-x64-3440200:/mnt/c/Program Files/dotnet/:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA app/NvDLISR:/mnt/d/software/XShell8/:/mnt/c/Users/15027/.m2/wrapper/dists/apache-maven-3.9.9/977a63e90f436cd6ade95b4c0e10c20c/bin:/mnt/c/tools/vcpkg:/mnt/c/ProgramData/nvm:/mnt/c/nvm4w/nodejs:/mnt/c/Program Files/GitHub CLI/:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files (x86)/Incredibuild:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/:/mnt/c/Program Files/PowerShell/7/:/mnt/c/Users/15027/.local/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/Scripts/:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/:/mnt/c/Users/Public/xlings/.xlings_data/bin:/mnt/c/Users/15027/.cargo/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/Scripts/:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/:/mnt/c/Users/15027/AppData/Local/Microsoft/WindowsApps:/mnt/c/_Code/Microsoft VS Code/bin:/mnt/c/Users/15027/AppData/Roaming/Pub/Cache/bin:/mnt/c/Users/15027/.dotnet/tools:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/bin:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/include:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/bin:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/include:/mnt/c/Users/15027/AppData/Roaming/npm:/mnt/c/Program Files/OpenSSL-Win64/bin:/mnt/d/SQL/MySql/MySql8/bin:/mnt/c/Users/15027/xmake:/mnt/c/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin:/mnt/c/Users/15027/AppData/Local/bin/NASM:/mnt/c/Users/15027/.bun/bin:/mnt/c/Program Files/Git/bin:/mnt/c/Program Files/Git/usr/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "PYTHONPATH": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/src:/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/stage2_6_1_runner",
+      "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_manifest.json",
+      "R21_AUDIT_OUT": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_collection.json"
+     }
+    }
+   }
+  ]
+ },
+ "execution": {
+  "runs": [
+   {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "-p",
+     "r21_collection_auditor",
+     "tests/route_c_stage2_6_1",
+     "-q",
+     "--junitxml=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/junit.xml"
+    ],
+    "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy",
+    "returncode": 0,
+    "started_utc": "2026-09-25T22:09:12Z",
+    "finished_utc": "2026-09-25T22:09:14Z",
+    "stdout": {
+     "path": "execution.stdout.txt",
+     "sha256": "de4477d225d818641aad93fffe478fb3f2f33158fb1ff86d4a14f85f2c6770a9"
+    },
+    "stderr": {
+     "path": "execution.stderr.txt",
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "audit": {
+     "path": "audit_execution.json",
+     "sha256": "b56b5327c3d4e4d8bd9f1b69669bfdab947c3c425eaba55b29d3e81aedc97821"
+    },
+    "audit_lifecycle": {
+     "path": "audit_execution.json.lifecycle.jsonl",
+     "sha256": "cd32defb6ff3896f5e30e2599faa8c847767ac74179ebd89a740160699ef6f1e"
+    },
+    "env": {
+     "python_version": "3.11.16",
+     "pytest_version_output": "This is pytest version 9.1.1, imported from /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pytest/__init__.py",
+     "child_env_policy": {
+      "inherited": [
+       "HOME",
+       "LANG",
+       "LOGNAME",
+       "PATH",
+       "SHELL",
+       "TERM",
+       "USER",
+       "WSL_DISTRO_NAME",
+       "WSL_INTEROP"
+      ],
+      "forced": {
+       "PYTHONDONTWRITEBYTECODE": "1",
+       "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+       "PYTHONPATH": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/src:/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/stage2_6_1_runner",
+       "R21_AUDIT_OUT": "per-run audit_<stem>.json",
+       "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_manifest.json"
+      },
+      "dropped_keys": [
+       "DBUS_SESSION_BUS_ADDRESS",
+       "DISPLAY",
+       "HOSTTYPE",
+       "NAME",
+       "OLDPWD",
+       "PULSE_SERVER",
+       "PWD",
+       "PYTHONDONTWRITEBYTECODE",
+       "PYTHONPATH",
+       "SHLVL",
+       "WAYLAND_DISPLAY",
+       "WSL2_GUI_APPS_ENABLED",
+       "WSLENV",
+       "WT_PROFILE_ID",
+       "WT_SESSION",
+       "XDG_RUNTIME_DIR",
+       "_"
+      ]
+     },
+     "config_scan": [
+      {
+       "path": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/tests/route_c_stage2_6_1/conftest.py",
+       "sha256": "e223e1b5f49421776bc8b07da86cde6a3b7cfb0ce492dbda03363616bc63260a"
+      }
+     ],
+     "child_env": {
+      "SHELL": "/bin/bash",
+      "WSL_DISTRO_NAME": "CryptoRL-Ubuntu-24.04",
+      "LOGNAME": "cryptorl",
+      "HOME": "/home/cryptorl",
+      "LANG": "C.UTF-8",
+      "WSL_INTEROP": "/run/WSL/295_interop",
+      "TERM": "xterm-256color",
+      "USER": "cryptorl",
+      "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/c/Program Files/PlasticSCM5/client:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Strawberry/c/bin:/mnt/c/Strawberry/perl/site/bin:/mnt/c/Strawberry/perl/bin:/mnt/c/Program Files/MySQL/MySQL Server 5.7/bin:/mnt/c/_Code/Plug/MinGW/bin:/mnt/c/_Code/Plug/Python311:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/tools/dart-sdk/bin:/mnt/c/_Code/Plug/Flutter/flutter/bin:/mnt/c/Users/15027/AppData/Local/Android/Sdk:/mnt/d/_Code/微信web开发者工具/dll:/mnt/c/_Co:/mnt/c/_Code/Plug/Python311/Scripts/pip3.11.exe:/mnt/c/_Code/Plug/Python311/Scripts/pip3.exe:/mnt/c/Program Files (x86)/ZeroTier/One/:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/lib:/mnt/d/_Code/VS/本体/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/mnt/d/_Code/_plug/opencv/build/x64/vc15/bin:/mnt/c/_Code/Plug/sqlite-tools-win-x64-3440200:/mnt/c/Program Files/dotnet/:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA app/NvDLISR:/mnt/d/software/XShell8/:/mnt/c/Users/15027/.m2/wrapper/dists/apache-maven-3.9.9/977a63e90f436cd6ade95b4c0e10c20c/bin:/mnt/c/tools/vcpkg:/mnt/c/ProgramData/nvm:/mnt/c/nvm4w/nodejs:/mnt/c/Program Files/GitHub CLI/:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files (x86)/Incredibuild:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/:/mnt/c/Program Files/PowerShell/7/:/mnt/c/Users/15027/.local/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/Scripts/:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/:/mnt/c/Users/Public/xlings/.xlings_data/bin:/mnt/c/Users/15027/.cargo/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/Scripts/:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/:/mnt/c/Users/15027/AppData/Local/Microsoft/WindowsApps:/mnt/c/_Code/Microsoft VS Code/bin:/mnt/c/Users/15027/AppData/Roaming/Pub/Cache/bin:/mnt/c/Users/15027/.dotnet/tools:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/bin:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/include:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/bin:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/include:/mnt/c/Users/15027/AppData/Roaming/npm:/mnt/c/Program Files/OpenSSL-Win64/bin:/mnt/d/SQL/MySql/MySql8/bin:/mnt/c/Users/15027/xmake:/mnt/c/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin:/mnt/c/Users/15027/AppData/Local/bin/NASM:/mnt/c/Users/15027/.bun/bin:/mnt/c/Program Files/Git/bin:/mnt/c/Program Files/Git/usr/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "PYTHONPATH": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/src:/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy/stage2_6_1_runner",
+      "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_manifest.json",
+      "R21_AUDIT_OUT": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero/audit_execution.json"
+     }
+    }
+   }
+  ]
+ },
+ "junit": [
+  {
+   "path": "junit.xml",
+   "sha256": "27697dc28f9a648a67657df04540e629f3b64af0d6c8a2e6130afc02bb8e4758"
+  }
+ ],
+ "audit_manifest": {
+  "path": "audit_manifest.json",
+  "sha256": "acf3a674987ca944eaa25990af08fe8de7061247102be2ac81ae099bf7e12a9c"
+ },
+ "counts": {
+  "tests": 15,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 7
+ },
+ "historical_skip_ids": [
+  "tests.route_c_stage2_6_1.test_curriculum261_r12_governance_r12.TestHistoricalEvidenceBinding::test_ancestry_semantics_pass",
+  "tests.route_c_stage2_6_1.test_curriculum261_r13_governance.TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r14_governance.TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r15_governance.TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_runner_shell_scripts_lf",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestHistoricalEvidenceBindingR16::test_ancestry_and_r15_clean_chain"
+ ],
+ "test_files": [
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/conftest.py",
+   "deploy_path": "tests/route_c_stage2_6_1/conftest.py",
+   "deploy_sha256": "e223e1b5f49421776bc8b07da86cde6a3b7cfb0ce492dbda03363616bc63260a",
+   "deploy_size": 708,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_governance_r12.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_governance_r12.py",
+   "deploy_sha256": "d71db92036af3c288b7fa244c254ccca17510d44be7f8506816760f5f0c407d1",
+   "deploy_size": 250,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r13_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r13_governance.py",
+   "deploy_sha256": "6e5b3d785805b9cc9d72a398d1468655d7bde49b66f4581d0529d0ae717ea185",
+   "deploy_size": 258,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py",
+   "deploy_sha256": "5adb42a43d7cc8ec4dbbb466ee8dc27dda872ce39498cb2756855bb1f96505ed",
+   "deploy_size": 258,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py",
+   "deploy_sha256": "8d27e91688fc46a8d5362e5332dcf70ea6cdc6a40a97de4a6f958ac689172b9d",
+   "deploy_size": 258,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_governance.py",
+   "deploy_sha256": "e806b9b0edd006770b61fd58552f6e548e32704c38963b014eb124b6e90d002b",
+   "deploy_size": 614,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_sandbox.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_sandbox.py",
+   "deploy_sha256": "e0d45225cc30bb7f5128a1da3499ce1fc9103e4a243b909e31aabf5864de368f",
+   "deploy_size": 433,
+   "is_test": true
+  }
+ ],
+ "import_surface": {
+  "members": {
+   "stage2_6_1/src/rl_curriculum/__init__.py": "7aa2541d571b16be13c83ddcb2894970b7b32c4000095bb7a7d26e0209897285",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_admission_substance.py": "51707053b739acaddeef81f3db087029dff5473d5fb6a6aa00ef7d5a8da1e484"
+  },
+  "deploy_extra_modules": []
+ },
+ "bound_utc": "2026-09-25T22:09:15Z",
+ "notes": "collected and executed at run time by r21_full_collection_regression; artifacts byte-bound in this record"
+}

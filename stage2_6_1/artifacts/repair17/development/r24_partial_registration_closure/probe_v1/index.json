@@ -1,0 +1,336 @@
+{
+ "format": "r24-partial-registration-probe-v1",
+ "created_utc": "2026-09-25T22:08:27Z",
+ "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+ "cwd": "/home/cryptorl/projects/crypto_rl",
+ "pid": 1045,
+ "steps": {
+  "mechanism_anchor": {
+   "behavior": {
+    "error_type": "PluginValidationError",
+    "remains_registered": true,
+    "installed_hooks": [
+     "pytest_collection_finish",
+     "pytest_pycollect_makeitem"
+    ],
+    "filter_participates": true,
+    "after_unregister_is_registered": false,
+    "zero_remains_registered": true,
+    "zero_installed_hooks": []
+   },
+   "versions": {
+    "python": "3.11.16",
+    "pytest": "9.1.1",
+    "pluggy": "1.6.0"
+   },
+   "finished_utc": "2026-09-25T22:08:27Z"
+  },
+  "executor_late": {
+   "variant": "late",
+   "raw": {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "tests/route_c_stage2_6_1",
+     "-q"
+    ],
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_late/deploy",
+    "started_utc": "2026-09-25T22:08:32Z",
+    "finished_utc": "2026-09-25T22:08:33Z",
+    "rc": 0,
+    "stdout_tail": "sssssss...                                                               [100%]\n3 passed, 7 skipped in 0.48s\n",
+    "stderr_tail": ""
+   },
+   "conftest_events": [
+    {
+     "event": "registration_exception_caught",
+     "error_type": "PluginValidationError",
+     "remains_registered": true,
+     "active_filter": true
+    },
+    {
+     "event": "filter_called",
+     "generated": [
+      "test_parameter[0]",
+      "test_parameter[1]",
+      "test_parameter[2]"
+     ],
+     "kept": [
+      "test_parameter[0]",
+      "test_parameter[2]"
+     ]
+    },
+    {
+     "event": "unregistered",
+     "remains_registered": false
+    }
+   ],
+   "executor_rc": 3,
+   "summary_ok": false,
+   "summary_error": "audit_verdict_not_pass",
+   "audit_verdict": "violations",
+   "audit_stages": [
+    "configure",
+    "collection_finish",
+    "sessionfinish"
+   ],
+   "violation_kinds": [
+    "lifecycle_registration_exception_partial_install"
+   ],
+   "exception_events": [
+    {
+     "seq": 41,
+     "classification": "unapproved",
+     "remains_registered": true,
+     "installed_hooks": [
+      "pytest_collection_finish",
+      "pytest_pycollect_makeitem"
+     ],
+     "error_type": "PluginValidationError"
+    }
+   ],
+   "register_guard_doc": {
+    "coverage": "exception-exit state recheck",
+    "installed_utc": "2026-09-25T22:08:38Z",
+    "manager_class": "PytestPluginManager",
+    "original_qualname": "PytestPluginManager.register",
+    "pid": 1123,
+    "wrapped_hook": "register"
+   },
+   "register_guard_stream_rows": 1,
+   "verify_regression_evidence": "regression_collection_run_audit_verdict_not_pass:[{\"error_type\": \"PluginValidationError\", \"hooks\": [\"pytest_collection_finish\", \"pytest_pycollect_makeitem\"], \"kind\": \"lifecycle_registration_exception_",
+   "originals": {
+    "run_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_late",
+    "record_sha256": "679327b7a6094394b23df1a9eff1f9bd65304703e5e81f4b445c17c32ca2b66e",
+    "audit_sha256": "da34b321dd84e7489e5ec1e4dd57e3a1f666035c165d8e5691d918cc6bdf264c",
+    "lifecycle_stream_sha256": "a4661c3cd00c414946b2dc3b5aad4b7365141fc3564d77a3dba8119ffa869b93"
+   },
+   "finished_utc": "2026-09-25T22:08:46Z"
+  },
+  "executor_immediate": {
+   "variant": "immediate",
+   "raw": {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "tests/route_c_stage2_6_1",
+     "-q"
+    ],
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_immediate/deploy",
+    "started_utc": "2026-09-25T22:08:50Z",
+    "finished_utc": "2026-09-25T22:08:51Z",
+    "rc": 1,
+    "stdout_tail": "sssssss..F.                                                              [100%]\n=================================== FAILURES ===================================\n______________________________ test_parameter[1] _______________________________\n\nx = 1\n\n    @pytest.mark.parametrize(\"x\", [0, 1, 2])\n    def test_parameter(x):\n>       assert x != 1\nE       assert 1 != 1\n\ntests/route_c_stage2_6_1/test_sandbox.py:11: AssertionError\n=========================== short test summary info ============================\nFAILED tests/route_c_stage2_6_1/test_sandbox.py::test_parameter[1] - assert 1...\n1 failed, 3 passed, 7 skipped in 0.52s\n",
+    "stderr_tail": ""
+   },
+   "conftest_events": [
+    {
+     "event": "registration_exception_caught",
+     "error_type": "PluginValidationError",
+     "remains_registered": true,
+     "active_filter": true
+    },
+    {
+     "event": "cleaned_up",
+     "remains_registered": false
+    }
+   ],
+   "executor_rc": 4,
+   "summary_ok": false,
+   "summary_error": "run_returncode_nonzero",
+   "audit_verdict": "violations",
+   "audit_stages": [
+    "configure",
+    "collection_finish",
+    "sessionfinish"
+   ],
+   "violation_kinds": [
+    "lifecycle_registration_exception_partial_install"
+   ],
+   "exception_events": [
+    {
+     "seq": 41,
+     "classification": "unapproved",
+     "remains_registered": true,
+     "installed_hooks": [
+      "pytest_pycollect_makeitem"
+     ],
+     "error_type": "PluginValidationError"
+    }
+   ],
+   "register_guard_doc": {
+    "coverage": "exception-exit state recheck",
+    "installed_utc": "2026-09-25T22:08:57Z",
+    "manager_class": "PytestPluginManager",
+    "original_qualname": "PytestPluginManager.register",
+    "pid": 1244,
+    "wrapped_hook": "register"
+   },
+   "register_guard_stream_rows": 1,
+   "verify_regression_evidence": "regression_not_green",
+   "originals": {
+    "run_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_immediate",
+    "record_sha256": "d694d8738404fa20ae808a921ea0e7bc3a79e018b07015106e72c364495b6ce0",
+    "audit_sha256": "30c3e70f670c0311b61252d0c3e059011436c871d106254b47ce448d4b97ec87",
+    "lifecycle_stream_sha256": "a11819e4a1725fed71d40a1a89a8255b1c65e305edeb0ad08ab8e60da5cd57a4"
+   },
+   "finished_utc": "2026-09-25T22:09:01Z"
+  },
+  "executor_zero": {
+   "variant": "zero",
+   "raw": {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "tests/route_c_stage2_6_1",
+     "-q"
+    ],
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_zero/deploy",
+    "started_utc": "2026-09-25T22:09:06Z",
+    "finished_utc": "2026-09-25T22:09:06Z",
+    "rc": 0,
+    "stdout_tail": "sssssss........                                                          [100%]\n8 passed, 7 skipped in 0.42s\n",
+    "stderr_tail": ""
+   },
+   "conftest_events": [],
+   "executor_rc": 3,
+   "summary_ok": false,
+   "summary_error": "audit_verdict_not_pass",
+   "audit_verdict": "violations",
+   "audit_stages": [
+    "configure",
+    "collection_finish",
+    "sessionfinish"
+   ],
+   "violation_kinds": [
+    "lifecycle_registration_exception_unclean"
+   ],
+   "exception_events": [
+    {
+     "seq": 41,
+     "classification": "unapproved",
+     "remains_registered": true,
+     "installed_hooks": [],
+     "error_type": "PluginValidationError"
+    }
+   ],
+   "register_guard_doc": {
+    "coverage": "exception-exit state recheck",
+    "installed_utc": "2026-09-25T22:09:11Z",
+    "manager_class": "PytestPluginManager",
+    "original_qualname": "PytestPluginManager.register",
+    "pid": 1322,
+    "wrapped_hook": "register"
+   },
+   "register_guard_stream_rows": 1,
+   "verify_regression_evidence": "regression_collection_run_audit_verdict_not_pass:[{\"error_type\": \"PluginValidationError\", \"kind\": \"lifecycle_registration_exception_unclean\", \"origin\": \"/mnt/f/trading/freqai-rl-audit/stage2_6_1/artif",
+   "originals": {
+    "run_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_zero",
+    "record_sha256": "48e1923a2fd3238c03c80f02c33fe167afb7e64464f841c761c9d93339579c4e",
+    "audit_sha256": "14b551a4d34ba1a5c2dbdef75a02e1d226b909b6555cad4d976e929bb175c417",
+    "lifecycle_stream_sha256": "366d877cecf724cc1a5717a7e45e9007811dac9b523428cbb15013ab00f5eee6"
+   },
+   "finished_utc": "2026-09-25T22:09:18Z"
+  },
+  "executor_rejected": {
+   "variant": "rejected",
+   "raw": {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "tests/route_c_stage2_6_1",
+     "-q"
+    ],
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_rejected/deploy",
+    "started_utc": "2026-09-25T22:09:22Z",
+    "finished_utc": "2026-09-25T22:09:23Z",
+    "rc": 0,
+    "stdout_tail": "sssssss........                                                          [100%]\n8 passed, 7 skipped in 0.39s\n",
+    "stderr_tail": ""
+   },
+   "conftest_events": [],
+   "executor_rc": 0,
+   "summary_ok": true,
+   "summary_error": "",
+   "audit_verdict": "pass",
+   "audit_stages": [
+    "configure",
+    "collection_finish",
+    "sessionfinish"
+   ],
+   "violation_kinds": [],
+   "exception_events": [
+    {
+     "seq": 41,
+     "classification": "rejected",
+     "remains_registered": false,
+     "installed_hooks": [],
+     "error_type": "ValueError"
+    }
+   ],
+   "register_guard_doc": {
+    "coverage": "exception-exit state recheck",
+    "installed_utc": "2026-09-25T22:09:27Z",
+    "manager_class": "PytestPluginManager",
+    "original_qualname": "PytestPluginManager.register",
+    "pid": 1431,
+    "wrapped_hook": "register"
+   },
+   "register_guard_stream_rows": 1,
+   "verify_regression_evidence": "UNEXPECTED-ACCEPT",
+   "originals": {
+    "run_dir": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_rejected",
+    "record_sha256": "bd8e02921f0d24e7903893363ab38860d850bf9ce0b1b0c6f86d27fc476d457a",
+    "audit_sha256": "182c813eeb0f1669c13138c1e90717e1955f64ab750365fdc61bb755d63b76f0",
+    "lifecycle_stream_sha256": "d1ab2c5d9ff45bbad2f31d09a7a8a2f3f248ca286e869599bd505cd7196dfdf4"
+   },
+   "finished_utc": "2026-09-25T22:09:40Z"
+  },
+  "legal_chain": {
+   "legal_rc": 0,
+   "summary_ok": true,
+   "record_format": "cur261-r17-candidate-regression-evidence-v6",
+   "guard_bound": {
+    "coverage": "exception-exit state recheck",
+    "installed_utc": "2026-09-25T22:09:48Z",
+    "manager_class": "PytestPluginManager",
+    "original_qualname": "PytestPluginManager.register",
+    "pid": 1579,
+    "wrapped_hook": "register"
+   },
+   "issue_rc": 0,
+   "issue": {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r17_admission_issue.py",
+     "--repo",
+     "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal/relrepo",
+     "--deploy-root",
+     "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal/deploy",
+     "--state-root",
+     "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal/deploy/artifacts/route_c_stage2_6_1_repair18/state",
+     "--commit-a",
+     "cc9de8e7ee844cfc7618d84e2a447e20153facca",
+     "--preregistration",
+     "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal/prereg.json"
+    ],
+    "cwd": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal",
+    "started_utc": "2026-09-25T22:09:57Z",
+    "finished_utc": "2026-09-25T22:10:01Z",
+    "rc": 0,
+    "stdout_tail": "{\"admission_id\": \"r24-probe-legal-0001\", \"authorization\": \"test-harness:沙箱实质绑定验证,不触碰正式部署面\", \"commit_a_sha\": \"cc9de8e7ee844cfc7618d84e2a447e20153facca\", \"deployed_state_root\": \"/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/sandbox_legal/deploy/artifacts/route_c_stage2_6_1_repair18/state\", \"format\": \"cur261-r17-formal-admission-v2\", \"issued_utc\": \"2026-09-25T22:10:01Z\", \"iteration\": \"r18\", \"plan_digest\": \"3efde35716df61bc31c346cf3d48aea95227d612\", \"substance\": {\"format\": \"cur261-r17-admission-substance-v1\", \"plan_digest_claimed\": \"3efde35716df61bc31c346cf3d48aea95227d612\", \"plan_digest_method\": \"git_tree_digest\", \"plan_digest_recomputed\": \"3efde35716df61bc31c346cf3d48aea95227d612\", \"regression_evidence\": {\"collection_tests\": 15, \"counts\": {\"errors\": 0, \"failures\": 0, \"skipped\": 7, \"tests\": 15}, \"path\": \"/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r24_partial_registration_closure/probe_v1/executor_legal_run/regression_evidence_v3_record.json\", \"protocol\": \"full\", \"scope\": \"formal\", \"sha256\": \"e40371016fcff0e176eb2be5d1ef586251e066b738290f8017ca2d33198d34e9\", \"test_files\": 7}, \"verified_utc\": \"2026-09-25T22:10:01Z\"}, \"substance_digest\": \"r17sub-7acbc5adbbc0c92d3e031705ba6b60d6d753d4154e0d4ff43b53938d2916cf36\"}\n",
+    "stderr_tail": ""
+   },
+   "validate_admission_ok": true,
+   "validate_reason": "ok",
+   "consume_result": null,
+   "consume_again_result": "admission_already_consumed",
+   "finished_utc": "2026-09-25T22:10:11Z"
+  }
+ },
+ "finished_utc": "2026-09-25T22:10:11Z"
+}

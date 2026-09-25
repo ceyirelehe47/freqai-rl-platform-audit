@@ -61,6 +61,7 @@ from r17_admission_substance_test_support import (
     substance_src,
     sync_deploy_surface,
     write_preregistration,
+    runner_repo_path,
 )
 
 _TESTS_DIR = Path(__file__).resolve().parent
@@ -1735,7 +1736,7 @@ class TestEffectiveCollectionA02A05:
         run = r17_canonical_full_run
         doc = read_record(run.run_dir)
         assert doc["format"] == (
-            "cur261-r17-candidate-regression-evidence-v5")
+            "cur261-r17-candidate-regression-evidence-v6")
         manifest_sha = hashlib.sha256(
             (run.run_dir / doc["audit_manifest"]["path"]).read_bytes()
         ).hexdigest()
@@ -1751,7 +1752,7 @@ class TestEffectiveCollectionA02A05:
                 (run.run_dir / block["audit"]["path"]).read_text(
                     encoding="utf-8"))
             assert audit["format"] == (
-                "cur261-r23-collection-audit-v2")
+                "cur261-r24-collection-audit-v3")
             assert audit["verdict"] == "pass"
             assert [s["stage"] for s in audit["stages"]] == [
                 "configure", "collection_finish", "sessionfinish"]
@@ -1914,13 +1915,13 @@ class TestEffectiveCollectionA06:
         proc = self._issuer_run(run, run.deploy, record_path(copied),
                                 tmp_path, "v3")
         assert proc.returncode != 0
-        assert "format v5" in (proc.stdout + proc.stderr)
+        assert "format v6" in (proc.stdout + proc.stderr)
         assert not (run.deploy / ".r17_formal_admission.json").exists()
 
     def test_issuer_refuses_v4_format_record_for_new_issuance(
             self, r17_canonical_full_run, tmp_path):
         """v4(无生命周期段)历史形状:同源核验器按 v4 历史面接受
-        不可;此处只证明签发器对"新签发"要求 v5——把 record 格式
+        不可;此处只证明签发器对"新签发"要求 v6——把 record 格式
         字段改为 v4 即拒,零副作用。"""
         run = r17_canonical_full_run
         copied = copy_run(run.run_dir, tmp_path / "v4")
@@ -2166,7 +2167,7 @@ class TestPluginLifecycleR23:
         run = r17_canonical_full_run
         doc = read_record(run.run_dir)
         assert doc["format"] == (
-            "cur261-r17-candidate-regression-evidence-v5")
+            "cur261-r17-candidate-regression-evidence-v6")
         for block in (doc["collection_run"]["runs"]
                       + doc["execution"]["runs"]):
             stream = block.get("audit_lifecycle")
@@ -2175,6 +2176,426 @@ class TestPluginLifecycleR23:
             assert path.is_file()
             assert hashlib.sha256(path.read_bytes()).hexdigest() == \
                 stream["sha256"]
+
+
+
+class TestPartialRegistrationR24:
+    """R24/d872f41 审查反例迁移(A01-A06):register() 抛异常但
+    先前 hookimpl 已装入(部分安装)——v5 成功通知零事件;v6
+    注册边界守卫按实际对象核查并粘住违规,早拒/清理/回滚不可清除,
+    真实前置失败如实留痕不阻断。"""
+
+    @staticmethod
+    def _partial_tree(tmp: Path, variant: str):
+        repo, commit_a, parent = git_repo_with_candidate(
+            tmp, partial=variant)
+        deploy = tmp / "deploy"
+        sync_deploy_surface(repo, commit_a, deploy)
+        return repo, commit_a, deploy
+
+    def test_no_defense_baseline_reproduced(self, tmp_path):
+        """A01(审查原件迁移,目标环境):对照树 11 项含 1 失败;
+        partial 树 register 抛 PluginValidationError 被捕获后对象
+        仍在册、filter 仍活跃,收集/执行一致 10 项全绿(rc=0);
+        conftest 事件原件复刻审查 plugin_events 形状。"""
+        env = _proc_env()
+        repo, commit_a, _ = git_repo_with_candidate(tmp_path, probe=True)
+        control = tmp_path / "control"
+        sync_deploy_surface(repo, commit_a, control)
+        collect = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "--collect-only", "-q"],
+            cwd=str(control), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert "11 tests collected" in collect.stdout
+        _, _, deploy = self._partial_tree(tmp_path / "late", "late")
+        partial_collect = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "--collect-only", "-q"],
+            cwd=str(deploy), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert "10 tests collected" in partial_collect.stdout
+        partial_run = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(deploy), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert partial_run.returncode == 0
+        assert "3 passed" in partial_run.stdout
+        assert "failed" not in partial_run.stdout
+        events = [
+            json.loads(line) for line in
+            (deploy / "partial_plugin_events.jsonl").read_text(
+                encoding="utf-8").splitlines() if line.strip()]
+        kinds = [row["event"] for row in events]
+        caught = next(row for row in events
+                      if row["event"] == "registration_exception_caught")
+        assert caught["error_type"] == "PluginValidationError"
+        assert caught["remains_registered"] is True
+        assert caught["active_filter"] is True
+        assert kinds[-3:] == [
+            "registration_exception_caught", "filter_called",
+            "unregistered"]
+
+    def test_executor_refuses_partial_registration(self, tmp_path):
+        """A02(迁移到真实执行链):收集 rc=0(10 项全绿)但审计
+        verdict=violations ⇒ summary fail-closed、rc=3、同源核验器
+        拒;违规含部分装入的两个实际 hook 与异常类型。"""
+        repo, commit_a, deploy = self._partial_tree(tmp_path, "late")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "run", repo, commit_a, deploy, expect_rc=(3,))
+        assert rc == 3
+        assert summary["ok"] is False
+        assert "audit_verdict_not_pass" in summary.get("error", "")
+        collection = (run_dir / "collection.stdout.txt").read_text(
+            encoding="utf-8")
+        assert "10 tests collected" in collection  # 过滤确实生效
+        audit = json.loads(
+            (run_dir / "audit_collection.json").read_text(
+                encoding="utf-8"))
+        assert audit["verdict"] == "violations"
+        assert [s["stage"] for s in audit["stages"]] == [
+            "configure", "collection_finish", "sessionfinish"]
+        violations = audit["lifecycle"]["violations"]
+        assert any(v["kind"] ==
+                   "lifecycle_registration_exception_partial_install"
+                   and set(v["hooks"]) == {
+                       "pytest_pycollect_makeitem",
+                       "pytest_collection_finish"}
+                   and v["error_type"] == "PluginValidationError"
+                   for v in violations)
+        exc_events = [event for event in audit["lifecycle"]["events"]
+                      if event.get("phase") == "registration_exception"]
+        assert len(exc_events) == 1
+        assert exc_events[0]["classification"] == "unapproved"
+        assert exc_events[0]["remains_registered"] is True
+        stream = [
+            json.loads(line) for line in
+            (run_dir / "audit_collection.json.lifecycle.jsonl"
+             ).read_text(encoding="utf-8").splitlines() if line.strip()]
+        assert any(row.get("kind") == "violation"
+                   and row["violation"]["kind"] ==
+                   "lifecycle_registration_exception_partial_install"
+                   for row in stream)
+        assert sum(1 for row in stream
+                   if row.get("kind") == "register_guard") == 1
+        with pytest.raises(SubstanceError,
+                           match="audit_verdict_not_pass"):
+            verify_regression_evidence(
+                record_path(run_dir), repo, commit_a)
+
+    def test_immediate_cleanup_violation_stuck(self, tmp_path):
+        """A03(异常后立即清理):捕获后立刻公开注销,过滤从未
+        发生(收集完整、失败实例如实在场)——已发生的"未获准
+        实现曾装入"事实不可被清理抹掉;执行器按实际形状拒绝,
+        审计违规仍在。"""
+        repo, commit_a, deploy = self._partial_tree(
+            tmp_path, "immediate")
+        env = _proc_env()
+        raw = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(deploy), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert raw.returncode == 1  # 过滤未发生:失败参数实例在场
+        assert "1 failed" in raw.stdout
+        run_dir, summary, rc = run_executor(
+            tmp_path / "run", repo, commit_a, deploy, expect_rc=(3, 4))
+        assert rc != 0 and summary["ok"] is False
+        audit = json.loads(
+            (run_dir / "audit_collection.json").read_text(
+                encoding="utf-8"))
+        assert audit["verdict"] == "violations"
+        kinds = {v["kind"] for v in audit["lifecycle"]["violations"]}
+        assert "lifecycle_registration_exception_partial_install" \
+            in kinds
+        events = [
+            json.loads(line) for line in
+            (deploy / "partial_plugin_events.jsonl").read_text(
+                encoding="utf-8").splitlines() if line.strip()]
+        assert [row["event"] for row in events][-2:] == [
+            "registration_exception_caught", "cleaned_up"]
+        with pytest.raises(SubstanceError):
+            verify_regression_evidence(
+                record_path(run_dir), repo, commit_a)
+
+    def test_zero_install_residue_refused(self, tmp_path):
+        """A03(零装入残留):树本身全绿,唯一异常是未获准对象
+        注册失败后残留注册表——unclean 违规,rc=3,不因"没装入
+        任何实现"放行。"""
+        repo, commit_a, deploy = self._partial_tree(tmp_path, "zero")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "run", repo, commit_a, deploy, expect_rc=(3,))
+        assert rc == 3
+        assert summary["ok"] is False
+        audit = json.loads(
+            (run_dir / "audit_collection.json").read_text(
+                encoding="utf-8"))
+        violations = audit["lifecycle"]["violations"]
+        assert any(v["kind"] ==
+                   "lifecycle_registration_exception_unclean"
+                   and v["remains_registered"] is True
+                   for v in violations)
+        exc_events = [event for event in audit["lifecycle"]["events"]
+                      if event.get("phase") == "registration_exception"]
+        assert exc_events[0]["installed_hooks"] == []  # 不伪造参与
+
+    def test_pre_insertion_failure_eligible(self, tmp_path):
+        """A03(真实前置失败,不阻断不伪造):重名 ValueError 在写
+        注册表前抛出 ⇒ rejected 事件(未入册/零装入)如实留痕,
+        树保持合法,full 运行与核验全绿——守卫不无差别打击一切
+        注册异常。"""
+        repo, commit_a, deploy = self._partial_tree(
+            tmp_path, "rejected")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "run", repo, commit_a, deploy, expect_rc=(0,))
+        assert rc == 0 and summary["ok"] is True
+        for stem in ("audit_collection.json", "audit_execution.json"):
+            audit = json.loads(
+                (run_dir / stem).read_text(encoding="utf-8"))
+            assert audit["verdict"] == "pass"
+            exc_events = [event
+                          for event in audit["lifecycle"]["events"]
+                          if event.get("phase")
+                          == "registration_exception"]
+            assert len(exc_events) == 1
+            assert exc_events[0]["classification"] == "rejected"
+            assert exc_events[0]["remains_registered"] is False
+            assert exc_events[0]["installed_hooks"] == []
+        result = verify_regression_evidence(
+            record_path(run_dir), repo, commit_a)
+        assert result["collection_tests"] > 0
+
+    def test_v6_guard_bound_in_canonical_run(
+            self, r17_canonical_full_run):
+        """A04/A05 正例:合法 canonical 运行的每段审计都携带
+        register_guard 证明段(文档+流水一致),核心/合法参数化
+        不受守卫影响。"""
+        run = r17_canonical_full_run
+        doc = read_record(run.run_dir)
+        assert doc["format"] == (
+            "cur261-r17-candidate-regression-evidence-v6")
+        for block in (doc["collection_run"]["runs"]
+                      + doc["execution"]["runs"]):
+            audit = json.loads(
+                (run.run_dir / block["audit"]["path"]).read_text(
+                    encoding="utf-8"))
+            guard = audit["lifecycle"]["register_guard"]
+            assert isinstance(guard, dict)
+            assert guard["wrapped_hook"] == "register"
+            assert guard["manager_class"] == "PytestPluginManager"
+            assert guard["installed_utc"]
+            stream = [
+                json.loads(line) for line in
+                (run.run_dir / (block["audit"]["path"]
+                                + ".lifecycle.jsonl")).read_text(
+                    encoding="utf-8").splitlines() if line.strip()]
+            guard_rows = [row for row in stream
+                          if row.get("kind") == "register_guard"]
+            assert len(guard_rows) == 1
+            assert {key: value for key, value
+                    in guard_rows[0].items() if key != "kind"} == guard
+
+    def test_guard_missing_from_document_refused(
+            self, r17_canonical_full_run, tmp_path):
+        """A05(守卫缺失):从审计文档删 register_guard 段 ⇒
+        v6 核验拒绝;不能回退成仅旧成功注册事件/末尾快照通过。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "noguard")
+        audit_path = copied / "audit_collection.json"
+        doc = json.loads(audit_path.read_text(encoding="utf-8"))
+        doc["lifecycle"]["register_guard"] = None
+        audit_path.write_text(
+            json.dumps(doc, indent=1, ensure_ascii=False, sort_keys=True)
+            + "\n", encoding="utf-8")
+        rehash_artifact(copied, "audit_collection.json")
+        with pytest.raises(SubstanceError,
+                           match="register_guard_invalid"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_guard_stream_mismatch_refused(
+            self, r17_canonical_full_run, tmp_path):
+        """A05(证明不一致):文档 guard 保留、流水补写第二条
+        register_guard 行 ⇒ 两侧不一致拒(单侧补写无通道)。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "guarddup")
+        stream_path = copied / "audit_collection.json.lifecycle.jsonl"
+        with open(stream_path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(
+                {"kind": "register_guard", "wrapped_hook": "register",
+                 "manager_class": "PytestPluginManager",
+                 "installed_utc": "1970-01-01T00:00:00Z", "pid": 1},
+                sort_keys=True, ensure_ascii=False) + "\n")
+        rehash_artifact(
+            copied, "audit_collection.json.lifecycle.jsonl")
+        with pytest.raises(SubstanceError,
+                           match="register_guard_stream_mismatch"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_old_v5_shape_historical_face_only(
+            self, r17_canonical_full_run, tmp_path):
+        """A05(兼容边界):v5 形状(record v5+审计 v2)仍走历史
+        核验面可核验(父链递归用),但缺新防线证明不可为新候选
+        供证——新签发要求 v6(见签发侧测试)。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "v5shape")
+
+        def _downgrade(record: dict) -> None:
+            record["format"] = (
+                "cur261-r17-candidate-regression-evidence-v5")
+        edit_record(copied, _downgrade)
+        for stem in ("audit_collection.json", "audit_execution.json"):
+            audit_path = copied / stem
+            doc = json.loads(audit_path.read_text(encoding="utf-8"))
+            doc["format"] = "cur261-r23-collection-audit-v2"
+            audit_path.write_text(
+                json.dumps(doc, indent=1, ensure_ascii=False,
+                           sort_keys=True) + "\n", encoding="utf-8")
+            rehash_artifact(copied, stem)
+        result = verify_regression_evidence(
+            record_path(copied), run.repo, run.commit_a)
+        assert result["collection_tests"] > 0  # 历史核验面
+
+    def test_auditor_write_failure_fails_closed(self, tmp_path):
+        """A05(记录写失败):R21_AUDIT_OUT 指向不存在目录 ⇒
+        无 verdict=pass 文档、运行非零(fail closed,不静默)。"""
+        _, _, deploy = self._partial_tree(tmp_path / "c", "rejected")
+        manifest = tmp_path / "c" / "manifest.json"
+        manifest.write_text(
+            json.dumps(_audit_manifest(deploy)), encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "-p",
+             "r21_collection_auditor",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(deploy),
+            env=_auditor_run_env(
+                deploy, manifest,
+                tmp_path / "missing_dir" / "audit.json"),
+            capture_output=True, text=True, timeout=300)
+        assert proc.returncode != 0
+        assert not (tmp_path / "missing_dir" / "audit.json").exists()
+
+    def test_guard_not_installable_violation(self, tmp_path):
+        """A05(守卫不可装):管理器实例拒绝属性写入 ⇒
+        register_guard_not_installable 违规(fail closed 分支)。"""
+        import importlib.util as _ilu
+        auditor = runner_repo_path("r21_collection_auditor.py")
+        spec = _ilu.spec_from_file_location(
+            "r21_auditor_unit", auditor)
+        module = _ilu.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class RigidManager:
+            __slots__ = ()
+
+        guard = module._install_register_guard(RigidManager())
+        assert guard is None
+        kinds = [v["kind"] for v in module._STATE["violations"]]
+        assert "register_guard_not_installable" in kinds
+
+    def test_independent_manager_not_polluted(self):
+        """A04(隔离):测试自建的独立 pluggy 管理器触发同类
+        PluginValidationError 不触碰父运行收集管理器(守卫仅包
+        本次运行的实际管理器实例);受监护全量中父审计保持零
+        违规即为本测试通过的前提。"""
+        import pluggy
+        from _pytest.config import PytestPluginManager
+
+        class Independent:
+            @pytest.hookimpl(specname="pytest_configure")
+            def pytest_z_invalid(self, not_a_pytest_argument):
+                pass
+
+        manager = PytestPluginManager()  # 独立实例,非父运行管理器
+        with pytest.raises(pluggy.PluginValidationError):
+            manager.register(Independent(), "independent_bad")
+        auditor = sys.modules.get("r21_collection_auditor")
+        if auditor is not None:  # 受监护运行中在进程内可直接核验
+            assert not auditor._STATE["violations"]
+            guard = auditor._STATE["lifecycle"]["register_guard"]
+            assert guard and guard["wrapped_hook"] == "register"
+
+    def _issuer_neg(self, repo, commit_a, deploy, record, tmp,
+                    admission_id):
+        """A06 公共负例驱动:真签发器子进程 + 前后沙箱状态。"""
+        state = (deploy / "artifacts" /
+                 "route_c_stage2_6_1_repair18" / "state")
+        state.mkdir(parents=True, exist_ok=True)
+        try:
+            prereg = write_preregistration(
+                tmp / "prereg.json", repo, commit_a, record,
+                admission_id=admission_id)
+            proc = subprocess.run(
+                [sys.executable, str(_issuer()), "--repo", str(repo),
+                 "--deploy-root", str(deploy),
+                 "--state-root", str(state),
+                 "--commit-a", commit_a,
+                 "--preregistration", str(prereg)],
+                capture_output=True, text=True, timeout=300)
+            side = {
+                "admission_file":
+                    (deploy / ".r17_formal_admission.json").exists(),
+                "issuance_log":
+                    (deploy / "r17_admission_issued.jsonl").exists(),
+            }
+            return proc, side
+        finally:
+            for path in (deploy / ".r17_formal_admission.json",
+                         deploy / "r17_admission_issued.jsonl",
+                         state / "r17_admission_consumed.jsonl"):
+                path.unlink(missing_ok=True)
+
+    def test_issuer_refuses_partial_registration_evidence(
+            self, tmp_path):
+        """A06:部分注册异常产生的坏材料(真实执行器 rc=3 产物)
+        被真签发器拒,零许可写入/零成功签发副作用。"""
+        repo, commit_a, deploy = self._partial_tree(
+            tmp_path / "late", "late")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "late" / "run", repo, commit_a, deploy,
+            expect_rc=(3,))
+        assert rc == 3 and summary["ok"] is False
+        proc, side = self._issuer_neg(
+            repo, commit_a, deploy, record_path(run_dir),
+            tmp_path / "late", "r24-partial-neg")
+        assert proc.returncode != 0
+        message = proc.stdout + proc.stderr
+        assert ("audit_verdict_not_pass" in message
+                or "substance verification failed" in message), message
+        assert side == {"admission_file": False,
+                                       "issuance_log": False}
+
+    def test_issuer_refuses_v5_shape_for_new_issuance(
+            self, r17_canonical_full_run, tmp_path):
+        """A06(版本边界):v5 形状(缺注册守卫证明)可历史核验
+        但不可为新候选供证——真签发器拒,零副作用。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "v5issue")
+
+        def _downgrade(record: dict) -> None:
+            record["format"] = (
+                "cur261-r17-candidate-regression-evidence-v5")
+        edit_record(copied, _downgrade)
+        for stem in ("audit_collection.json", "audit_execution.json"):
+            audit_path = copied / stem
+            doc = json.loads(audit_path.read_text(encoding="utf-8"))
+            doc["format"] = "cur261-r23-collection-audit-v2"
+            audit_path.write_text(
+                json.dumps(doc, indent=1, ensure_ascii=False,
+                           sort_keys=True) + "\n", encoding="utf-8")
+            rehash_artifact(copied, stem)
+        verify_regression_evidence(
+            record_path(copied), run.repo, run.commit_a)  # 历史面过
+        proc, side = self._issuer_neg(
+            run.repo, run.commit_a, run.deploy, record_path(copied),
+            tmp_path / "v5issue", "r24-v5shape-neg")
+        assert proc.returncode != 0
+        assert "evidence format v6" in (proc.stdout + proc.stderr)
+        assert side == {"admission_file": False,
+                                       "issuance_log": False}
+
 
 
 class TestSupervisionLinkA08:

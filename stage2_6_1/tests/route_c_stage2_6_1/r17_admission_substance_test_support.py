@@ -159,6 +159,168 @@ def pytest_sessionstart(session):
     _event("registered")
 '''
 
+#: R24/A02 反例树(审查 d872f41 partial_registration_failure 形状):
+#: 同一插件三个 hookimpl——filter(specname 别名 pytest_pycollect_
+#: makeitem,hookwrapper)+release(pytest_collection_finish tryfirst)
+#: 先按 dir() 序装入,后置非法签名(pytest_configure spec 不支持
+#: 的参数)触发 PluginValidationError;宿主捕获后过滤真实生效,
+#: release 在 collection_finish 注销自身。pluggy 1.6.0 register
+#: 先写 _name2plugin 再逐个 verify/装入,异常不回滚;成功通知
+#: 只在 super().register() 正常返回后发出——v5 成功通知路径对此
+#: 零事件(审查原件:remains_registered=true、active_filter=true)。
+_PARTIAL_LATE_CONFTEST = '''# sandbox conftest (partial registration failure; review probe)
+import json
+from pathlib import Path
+
+import pluggy
+import pytest
+
+
+def _event(name, **values):
+    with Path("partial_plugin_events.jsonl").open("a") as handle:
+        handle.write(json.dumps({"event": name, **values}) + "\\n")
+
+
+class PartialRegistrationPlugin:
+    @pytest.hookimpl(specname="pytest_pycollect_makeitem",
+                     hookwrapper=True)
+    def pytest_a_filter(self, collector, name, obj):
+        outcome = yield
+        if name == "test_parameter":
+            items = outcome.get_result()
+            if isinstance(items, list):
+                kept = [item for item in items
+                        if getattr(item, "callspec", None) is None
+                        or item.callspec.params.get("x") != 1]
+                _event("filter_called",
+                       generated=[item.name for item in items],
+                       kept=[item.name for item in kept])
+                outcome.force_result(kept)
+
+    @pytest.hookimpl(specname="pytest_collection_finish",
+                     tryfirst=True)
+    def pytest_b_release(self, session):
+        session.config.pluginmanager.unregister(self)
+        _event("unregistered", remains_registered=(
+            session.config.pluginmanager.is_registered(self)))
+
+    @pytest.hookimpl(specname="pytest_configure")
+    def pytest_z_invalid_signature(self, not_a_pytest_argument):
+        pass
+
+
+def pytest_sessionstart(session):
+    plugin = PartialRegistrationPlugin()
+    try:
+        session.config.pluginmanager.register(
+            plugin, "partial_registration")
+    except pluggy.PluginValidationError as exc:
+        manager = session.config.pluginmanager
+        _event("registration_exception_caught",
+               error_type=type(exc).__name__,
+               remains_registered=manager.is_registered(plugin),
+               active_filter=any(
+                   impl.plugin is plugin for impl in
+                   manager.hook.pytest_pycollect_makeitem
+                   .get_hookimpls()))
+    else:
+        raise AssertionError("probe expected validation failure")
+'''
+
+#: R24/A03 变体:同一部分安装故障,宿主捕获后**立即**公开注销
+#: (无过滤调用,收集完整——违规事实=未获准实现曾装入,已粘住)。
+_PARTIAL_IMMEDIATE_CONFTEST = '''# sandbox conftest (partial install, immediate cleanup)
+import json
+from pathlib import Path
+
+import pluggy
+import pytest
+
+
+def _event(name, **values):
+    with Path("partial_plugin_events.jsonl").open("a") as handle:
+        handle.write(json.dumps({"event": name, **values}) + "\\n")
+
+
+class PartialImmediatePlugin:
+    @pytest.hookimpl(specname="pytest_pycollect_makeitem",
+                     hookwrapper=True)
+    def pytest_a_filter(self, collector, name, obj):
+        outcome = yield
+        if name == "test_parameter":
+            items = outcome.get_result()
+            if isinstance(items, list):
+                _event("filter_called_unexpectedly")
+                outcome.force_result(items)
+
+    @pytest.hookimpl(specname="pytest_configure")
+    def pytest_z_invalid_signature(self, not_a_pytest_argument):
+        pass
+
+
+def pytest_sessionstart(session):
+    plugin = PartialImmediatePlugin()
+    try:
+        session.config.pluginmanager.register(
+            plugin, "partial_immediate")
+    except pluggy.PluginValidationError as exc:
+        manager = session.config.pluginmanager
+        _event("registration_exception_caught",
+               error_type=type(exc).__name__,
+               remains_registered=manager.is_registered(plugin),
+               active_filter=any(
+                   impl.plugin is plugin for impl in
+                   manager.hook.pytest_pycollect_makeitem
+                   .get_hookimpls()))
+        manager.unregister(plugin)
+        _event("cleaned_up", remains_registered=(
+            manager.is_registered(plugin)))
+    else:
+        raise AssertionError("probe expected validation failure")
+'''
+#: R24/A03 变体:首个(字母序)方法即非法 ⇒ 零装入但对象残留
+#: 注册表(lifecycle_registration_exception_unclean);canonical
+#: conftest(generate_tests)保留,拒绝完全来自注册异常残留。
+_PARTIAL_ZERO_CONFTEST = _SANDBOX_CONFTEST + '''
+import pluggy  # noqa: F401 —— 保留审查夹具形状
+import pytest
+
+
+class ZeroInstallPlugin:
+    @pytest.hookimpl(specname="pytest_configure")
+    def pytest_a_invalid_signature(self, not_a_pytest_argument):
+        pass
+
+
+def pytest_sessionstart(session):
+    try:
+        session.config.pluginmanager.register(
+            ZeroInstallPlugin(), "zero_install")
+    except Exception:  # noqa: BLE001 —— PluginValidationError 被捕获
+        pass
+    else:
+        raise AssertionError("probe expected validation failure")
+'''
+
+#: R24/A03 正例:写入注册表**前**抛出的前置失败(重名
+#: ValueError——"pytestconfig" 是 sessionstart 时刻必在册的核心
+#: 名(实测锚定 pytest 9.1.1);pluggy 重名检查先于任何写入/
+#: 装入)⇒ rejected 事件留痕,不伪造参与、不阻断;树保持合法
+#: (canonical + generate_tests 批准),full 仍 eligible。raw
+#: (无审计器)运行中该注册同样前置失败,无副作用。
+_PARTIAL_REJECTED_CONFTEST = _SANDBOX_CONFTEST + '''
+
+
+def pytest_sessionstart(session):
+    try:
+        session.config.pluginmanager.register(
+            object(), "pytestconfig")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("probe expected duplicate-name failure")
+'''
+
 _TESTS_DIR = Path(__file__).resolve().parent
 _EXECUTOR_CANDIDATES = (
     _TESTS_DIR.parents[1] / "runner" / "r21_full_collection_regression.py",
@@ -233,7 +395,8 @@ def _skip_module_sources() -> dict[str, str]:
 
 def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
                             imported_hook: bool = False,
-                            scoped: bool = False) -> None:
+                            scoped: bool = False,
+                            partial: str | None = None) -> None:
     """把沙箱测试源树 + src/rl_curriculum 写入仓工作区
     (调用方负责 git add/commit)。
 
@@ -242,7 +405,13 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
     一致——副本而非符号链接,避免 git mode 120000 进入映射。
     imported_hook=True 写入 R22/A01 反例树(import 式收集钩子);
     scoped=True 写入 R23/A01 反例树(sessionstart 注册 specname
-    别名临时插件,collection_finish 注销;静态扫描干净)。"""
+    别名临时插件,collection_finish 注销;静态扫描干净)。
+    partial 写入 R24 审查反例树(d872f41
+    partial_registration_failure):"late"=部分安装后异常被捕获、
+    过滤真实生效、collection_finish 注销(审查原形状);
+    "immediate"=同一故障、捕获后立即注销(过滤未发生);
+    "zero"=首个方法即非法(零装入、注册表残留);"rejected"=
+    写注册表前的重名前置失败(canonical 树 + 事件留痕不阻断)。"""
     test_dir = repo / "stage2_6_1" / "tests" / "route_c_stage2_6_1"
     test_dir.mkdir(parents=True, exist_ok=True)
     if imported_hook:
@@ -259,6 +428,23 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
         (test_dir / "__init__.py").write_text("", encoding="utf-8")
         (test_dir / "conftest.py").write_text(
             _SCOPED_CONFTEST, encoding="utf-8")
+    elif partial in ("late", "immediate"):
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _PROBE_SOURCE, encoding="utf-8")
+        (test_dir / "__init__.py").write_text("", encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            _PARTIAL_LATE_CONFTEST if partial == "late"
+            else _PARTIAL_IMMEDIATE_CONFTEST, encoding="utf-8")
+    elif partial == "zero":
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _CANONICAL_SOURCE, encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            _PARTIAL_ZERO_CONFTEST, encoding="utf-8")
+    elif partial == "rejected":
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _CANONICAL_SOURCE, encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            _PARTIAL_REJECTED_CONFTEST, encoding="utf-8")
     else:
         (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
             _PROBE_SOURCE if probe else _CANONICAL_SOURCE,
@@ -286,7 +472,8 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
 
 def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
                             imported_hook: bool = False,
-                            scoped: bool = False
+                            scoped: bool = False,
+                            partial: str | None = None
                             ) -> tuple[Path, str, str]:
     """两提交沙箱仓(Commit A 需有 parent,满足签发器校验)。
 
@@ -295,7 +482,8 @@ def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
     2 通过 + 1 失败 + 7 历史 skip;imported_hook 树 = R22 审查
     反例(import 式收集钩子);scoped 树 = R23 审查反例
     (sessionstart 注册 specname 别名临时插件,11 项含 1 失败,
-    门控后 10 项全绿)。"""
+    门控后 10 项全绿);partial 树 = R24 审查反例(注册异常部分
+    安装,见 write_sandbox_test_tree)。"""
     repo = tmp / "relrepo"
     repo.mkdir(parents=True)
     for args in (
@@ -307,7 +495,7 @@ def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
     (repo / "base.txt").write_text("base\n")
     write_sandbox_test_tree(repo, probe=probe,
                             imported_hook=imported_hook,
-                            scoped=scoped)
+                            scoped=scoped, partial=partial)
     subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True)
     subprocess.run(["git", "commit", "-qm", "base"], cwd=str(repo),
                    check=True)
