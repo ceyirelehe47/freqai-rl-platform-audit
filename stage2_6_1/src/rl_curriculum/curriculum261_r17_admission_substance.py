@@ -802,7 +802,10 @@ def _verify_import_surface(record: dict, repo: Path, commit_a: str,
     want = {}
     for rel in rels:
         blob = _git_out(repo, "show", f"{commit_a}:{rel}")
-        want[rel] = hashlib.sha256(blob).hexdigest()
+        # 与执行器/部署面同口径:历史 blob 含 CRLF(如 r15 系),
+        # 成员身份按 CR 删除规范化字节比较。
+        want[rel] = hashlib.sha256(
+            blob.replace(b"\r", b"")).hexdigest()
     members = {str(k): str(v) for k, v in surface["members"].items()}
     if members != want:
         raise SubstanceError(
