@@ -1,0 +1,657 @@
+{
+ "format": "r20-design-calc-v3",
+ "generated_by": "stage2_6_1/report/r20_design_calc_v3.py (design-only)",
+ "inputs": {
+  "p_analytic": 0.950431552876822,
+  "valid_point": 0.9459313536444273,
+  "valid_se": 0.0019410552950364546,
+  "valid_se_status": "READ-ONLY historical R19 anchor",
+  "n_clusters_r19_anchor": 500,
+  "n_bootstrap_reps": 20000,
+  "alpha": 0.05,
+  "target_power": 0.9,
+  "delta_star_proposed": 0.003,
+  "delta_star_status": "待审开发界限 PENDING_REVIEW (no downstream tolerance basis)",
+  "delta_star_sensitivity": [
+   0.002,
+   0.003,
+   0.004
+  ],
+  "rho_grid": [
+   1.0,
+   1.25,
+   1.5
+  ],
+  "planning_rho": 1.5,
+  "near_zero_delta_pre_stated": 0.0005,
+  "beyond_delta_pre_stated": 0.005,
+  "delta_scenarios_pre_stated": [
+   0.0,
+   0.0005,
+   0.003,
+   -0.003,
+   0.005
+  ],
+  "direction_convention": "delta = p_analytic - recall(validation); delta>0 即实测 recall 低于解析预测"
+ },
+ "A_min_k_and_zero_bias_power": {
+  "formula": "max(0, 2*Phi(margin*sqrt(K)/s - z_(1-alpha)) - 1)",
+  "search_rule": "same power function evaluated upward from K=1; power(j) < target for all j < K is verified pointwise",
+  "required_margin_over_se_for_90pct": 3.289707253902943,
+  "old_v2_wrong_ratio_z95_plus_z90": 2.9264051924960723,
+  "old_v2_ratio_actual_continuous_power": 0.8,
+  "rows": [
+   {
+    "margin": 0.002,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546,
+    "min_K_power90_at_zero": 11,
+    "power_at_min_K": 0.9236864589708058,
+    "power_at_K_minus_one": 0.893354096014985,
+    "power_at_K8": 0.795724852849675
+   },
+   {
+    "margin": 0.002,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568,
+    "min_K_power90_at_zero": 16,
+    "power_at_min_K": 0.9015310512244743,
+    "power_at_K_minus_one": 0.8782868713374785,
+    "power_at_K8": 0.5076661430914138
+   },
+   {
+    "margin": 0.002,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682,
+    "min_K_power90_at_zero": 23,
+    "power_at_min_K": 0.9009462650721667,
+    "power_at_K_minus_one": 0.8852153373954748,
+    "power_at_K8": 0.23431643607866226
+   },
+   {
+    "margin": 0.003,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546,
+    "min_K_power90_at_zero": 5,
+    "power_at_min_K": 0.9298751722715559,
+    "power_at_K_minus_one": 0.851892463372879,
+    "power_at_K8": 0.9936014252023164
+   },
+   {
+    "margin": 0.003,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568,
+    "min_K_power90_at_zero": 8,
+    "power_at_min_K": 0.9360214241815692,
+    "power_at_K_minus_one": 0.8961484388557075,
+    "power_at_K8": 0.9360214241815692
+   },
+   {
+    "margin": 0.003,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682,
+    "min_K_power90_at_zero": 11,
+    "power_at_min_K": 0.9236864589708058,
+    "power_at_K_minus_one": 0.8933540960149853,
+    "power_at_K8": 0.795724852849675
+   },
+   {
+    "margin": 0.004,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546,
+    "min_K_power90_at_zero": 3,
+    "power_at_min_K": 0.9457009928506297,
+    "power_at_K_minus_one": 0.795724852849675,
+    "power_at_K8": 0.9999713303839699
+   },
+   {
+    "margin": 0.004,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568,
+    "min_K_power90_at_zero": 4,
+    "power_at_min_K": 0.9015310512244743,
+    "power_at_K_minus_one": 0.773945171723379,
+    "power_at_K8": 0.9974559870691762
+   },
+   {
+    "margin": 0.004,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682,
+    "min_K_power90_at_zero": 6,
+    "power_at_min_K": 0.9146242649649601,
+    "power_at_K_minus_one": 0.8464513159057507,
+    "power_at_K8": 0.9749677698404962
+   }
+  ]
+ },
+ "B_power_scenarios_corrected_analysis_se": {
+  "margin": 0.003,
+  "alpha": 0.05,
+  "scenario_deltas_pre_stated": [
+   0.0,
+   0.0005,
+   0.003,
+   -0.003,
+   0.005
+  ],
+  "se_model": "s_analysis = s_true = rho * VALID_SE on both truth and interval",
+  "rows": [
+   {
+    "rho": 1.0,
+    "delta_true": 0.0,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.9298751722715559,
+    "power_at_K8": 0.9936014252023164,
+    "power_at_K11_recommended": 0.9995007513707757,
+    "K_min_for_rho": 5
+   },
+   {
+    "rho": 1.0,
+    "delta_true": 0.0005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.8831143209810088,
+    "power_at_K8": 0.9768691754061198,
+    "power_at_K11_recommended": 0.9956834301577039,
+    "K_min_for_rho": 5
+   },
+   {
+    "rho": 1.0,
+    "delta_true": 0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.04999993068730235,
+    "power_at_K8": 0.04999999999936777,
+    "power_at_K11_recommended": 0.050000000000000044,
+    "K_min_for_rho": 5
+   },
+   {
+    "rho": 1.0,
+    "delta_true": -0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.04999993068730224,
+    "power_at_K8": 0.04999999999936777,
+    "power_at_K11_recommended": 0.050000000000000044,
+    "K_min_for_rho": 5
+   },
+   {
+    "rho": 1.0,
+    "delta_true": 0.005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 3.9267858375546805e-05,
+    "power_at_K8": 2.567777725726028e-06,
+    "power_at_K11_recommended": 2.072278240672354e-07,
+    "K_min_for_rho": 5
+   },
+   {
+    "rho": 1.25,
+    "delta_true": 0.0,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.9360214241815692,
+    "power_at_K8": 0.9360214241815692,
+    "power_at_K11_recommended": 0.9859489892920048,
+    "K_min_for_rho": 8
+   },
+   {
+    "rho": 1.25,
+    "delta_true": 0.0005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.8904205004276073,
+    "power_at_K8": 0.8904205004276073,
+    "power_at_K11_recommended": 0.9609968308583253,
+    "K_min_for_rho": 8
+   },
+   {
+    "rho": 1.25,
+    "delta_true": 0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.04999995590411366,
+    "power_at_K8": 0.04999995590411366,
+    "power_at_K11_recommended": 0.049999999972506703,
+    "K_min_for_rho": 8
+   },
+   {
+    "rho": 1.25,
+    "delta_true": -0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.04999995590411366,
+    "power_at_K8": 0.04999995590411366,
+    "power_at_K11_recommended": 0.049999999972506703,
+    "K_min_for_rho": 8
+   },
+   {
+    "rho": 1.25,
+    "delta_true": 0.005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 3.499661338635107e-05,
+    "power_at_K8": 3.499661338635107e-05,
+    "power_at_K11_recommended": 5.968723956917277e-06,
+    "K_min_for_rho": 8
+   },
+   {
+    "rho": 1.5,
+    "delta_true": 0.0,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.9236864589708058,
+    "power_at_K8": 0.795724852849675,
+    "power_at_K11_recommended": 0.9236864589708058,
+    "K_min_for_rho": 11
+   },
+   {
+    "rho": 1.5,
+    "delta_true": 0.0005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.875909349076329,
+    "power_at_K8": 0.7437914519600428,
+    "power_at_K11_recommended": 0.875909349076329,
+    "K_min_for_rho": 11
+   },
+   {
+    "rho": 1.5,
+    "delta_true": 0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.04999989475701255,
+    "power_at_K8": 0.04998566519198516,
+    "power_at_K11_recommended": 0.04999989475701255,
+    "K_min_for_rho": 11
+   },
+   {
+    "rho": 1.5,
+    "delta_true": -0.003,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 0.0499998947570125,
+    "power_at_K8": 0.04998566519198511,
+    "power_at_K11_recommended": 0.0499998947570125,
+    "K_min_for_rho": 11
+   },
+   {
+    "rho": 1.5,
+    "delta_true": 0.005,
+    "analysis_se_corrected": true,
+    "power_at_K_min_for_rho": 4.371177016210259e-05,
+    "power_at_K8": 0.00016678239849282628,
+    "power_at_K11_recommended": 4.371177016210259e-05,
+    "K_min_for_rho": 11
+   }
+  ]
+ },
+ "C_false_equivalence_unadjusted_analysis_se": {
+  "margin": 0.003,
+  "true_delta": 0.003,
+  "definition": "P(z-CI built with ORIGINAL SE falls inside +/-margin) while true SE is rho*SE and true delta = +margin",
+  "rows": [
+   {
+    "rho": 1.0,
+    "K": 8,
+    "true_delta": 0.003,
+    "true_single_se": 0.0019410552950364546,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.04999999999936777
+   },
+   {
+    "rho": 1.0,
+    "K": 11,
+    "true_delta": 0.003,
+    "true_single_se": 0.0019410552950364546,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.050000000000000044
+   },
+   {
+    "rho": 1.25,
+    "K": 8,
+    "true_delta": 0.003,
+    "true_single_se": 0.002426319118795568,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.09410666745056223
+   },
+   {
+    "rho": 1.25,
+    "K": 11,
+    "true_delta": 0.003,
+    "true_single_se": 0.002426319118795568,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.09410667424243024
+   },
+   {
+    "rho": 1.5,
+    "K": 8,
+    "true_delta": 0.003,
+    "true_single_se": 0.002911582942554682,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.13641379282587868
+   },
+   {
+    "rho": 1.5,
+    "K": 11,
+    "true_delta": 0.003,
+    "true_single_se": 0.002911582942554682,
+    "analysis_single_se": 0.0019410552950364546,
+    "analysis_se_corrected": false,
+    "false_equivalence_probability": 0.13641489925413858
+   }
+  ]
+ },
+ "D_aggregate_se_model": {
+  "equal_weight_independent_formula": "sqrt(sum(SE_k**2))/K",
+  "mean_over_sqrtK_valid_only_if_equal": "mean(SE_k)/sqrt(K) equals the baseline only when all SE_k are equal",
+  "counterexample": {
+   "coordinate_SEs": [
+    0.001,
+    0.003
+   ],
+   "correct_mean_SE": 0.0015811388300841897,
+   "incorrect_mean_over_sqrtK": 0.001414213562373095
+  },
+  "shared_anchor_formula": "Var(mean) = sum(s_k^2)/K^2 + Var(anchor); anchor enters ONCE",
+  "anchor_sensitivity_at_recommended_design": [
+   {
+    "K": 11,
+    "rho": 1.5,
+    "shared_anchor_se": 0.0,
+    "aggregate_se": 0.0008778752878593436,
+    "margin_over_se": 3.4173418952427226,
+    "power_at_zero": 0.9236864589708058
+   },
+   {
+    "K": 11,
+    "rho": 1.5,
+    "shared_anchor_se": 0.0002,
+    "aggregate_se": 0.0009003693803290545,
+    "margin_over_se": 3.3319658192991874,
+    "power_at_zero": 0.9084182189232235
+   },
+   {
+    "K": 11,
+    "rho": 1.5,
+    "shared_anchor_se": 0.0005,
+    "aggregate_se": 0.0010102796746614896,
+    "margin_over_se": 2.9694747654952063,
+    "power_at_zero": 0.8147031587920892
+   }
+  ],
+  "anchor_does_not_shrink_with_K": [
+   {
+    "K": 1,
+    "aggregate_se": 0.0029542029773486083
+   },
+   {
+    "K": 11,
+    "aggregate_se": 0.0010102796746614896
+   },
+   {
+    "K": 100,
+    "aggregate_se": 0.0005785958453996656
+   },
+   {
+    "K": 1000,
+    "aggregate_se": 0.0005084066435751753
+   }
+  ],
+  "breakeven_shared_anchor_se_for_90pct_at_K11_rho1p5": 0.000246902562297993,
+  "cross_coordinate_correlation_formula": "equal-SE case: SE(mean) = s*sqrt((1+(K-1)*rho_c)/K); general case requires full covariance, stated not hand-waved",
+  "correlation_inflation_at_K11": [
+   {
+    "pairwise_correlation": 0.05,
+    "inflation_factor": 1.224744871391589
+   },
+   {
+    "pairwise_correlation": 0.1,
+    "inflation_factor": 1.4142135623730951
+   },
+   {
+    "pairwise_correlation": 0.2,
+    "inflation_factor": 1.7320508075688772
+   }
+  ]
+ },
+ "E_bootstrap_numerical_error": {
+  "bootstrap_reps": 20000,
+  "resampling_relative_error_bound": 0.005,
+  "of_what": "该 0.5% 是'给定固定原始 blocks 时,bootstrap SE 估计本身的重抽样数值误差'的近似上界(正态理论下 SD 估计的相对MC误差~1/sqrt(2B));它不是统计不确定性的整体度量",
+  "not_covered": [
+   "有限原始 blocks(500/语料)导致的 SE 统计不确定性",
+   "跨坐标/实现级散布(需 K 个坐标的经验,单坐标 bootstrap 无法给出)",
+   "percentile bootstrap 的模型误差与正态近似偏差"
+  ],
+  "handling": "上述未覆盖项由 rho 敏感性与 K 的保守规划部分覆盖,不能靠增加 bootstrap 次数消除"
+ },
+ "F_action_classification": {
+  "magnitude_classes_mutually_exclusive": [
+   "within_equivalence_bounds",
+   "beyond_positive_margin",
+   "beyond_negative_margin",
+   "inconclusive"
+  ],
+  "direction_labels": [
+   "positive",
+   "negative",
+   "not_resolved"
+  ],
+  "touching_or_crossing_or_missing": "inconclusive",
+  "action_mapping": {
+   "within_equivalence_bounds": "报告:在待审开发界限内等效(条件结论);方向偏差另报;无强制后续动作",
+   "beyond_positive_margin": "研究建议:实测系统性偏高超过待审界限,转校准路线(先修analytic/语料缺口);不自动授予正式实验权限",
+   "beyond_negative_margin": "研究建议:实测系统性偏低超过待审界限,转校准路线;不自动授予正式实验权限",
+   "inconclusive": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作"
+  },
+  "worked_example": {
+   "estimate_delta": 0.0015,
+   "K": 8,
+   "analysis_single_se": 0.0019410552950364546,
+   "alpha": 0.05,
+   "lower90": 0.00037119176088350756,
+   "upper90": 0.0026288082391164925,
+   "margin": 0.003,
+   "magnitude": "within_equivalence_bounds",
+   "direction": "positive",
+   "statement": "检测到正向小偏差,且在待审等效界内;不触发'超过重要界→必须校准'动作"
+  },
+  "cases": {
+   "in_bounds": {
+    "magnitude": "within_equivalence_bounds",
+    "direction": "positive"
+   },
+   "beyond_positive": {
+    "magnitude": "beyond_positive_margin",
+    "direction": "positive"
+   },
+   "beyond_negative": {
+    "magnitude": "beyond_negative_margin",
+    "direction": "negative"
+   },
+   "touching_bound": {
+    "magnitude": "inconclusive",
+    "direction": "positive"
+   },
+   "straddling_bound": {
+    "magnitude": "inconclusive",
+    "direction": "positive"
+   },
+   "missing_data": {
+    "magnitude": "inconclusive",
+    "direction": "not_resolved"
+   }
+  }
+ },
+ "G_blocks_derivation": {
+  "scaling_assumption": "SE(B) = VALID_SE * sqrt(500/B); single-anchor extrapolation, exponent not verifiable from one point (stated assumption)",
+  "recommended_blocks_per_coordinate_corpus": 500,
+  "why_anchor_matched": [
+   "与 R19 锚同规模,避免把 1/sqrt(B) 外推到远离 500 的区域",
+   "每坐标 bootstrap 的原始簇数保持历史可复算口径"
+  ],
+  "blocks_to_offset_rho_at_fixed_se_target": {
+   "target_single_se": 0.0019410552950364546,
+   "formula": "B = ceil(500 * rho^2)",
+   "rows": [
+    {
+     "rho": 1.0,
+     "blocks": 500
+    },
+    {
+     "rho": 1.25,
+     "blocks": 782
+    },
+    {
+     "rho": 1.5,
+     "blocks": 1125
+    }
+   ]
+  },
+  "k_times_b_invariance": {
+   "formula": "zero-bias margin ratio = margin*sqrt(K*B/500)/VALID_SE depends only on the product K*B",
+   "recommended_KB": 5500,
+   "equal_power_splits": [
+    {
+     "K": 11,
+     "B": 500,
+     "ratio": 5.126012842864084
+    },
+    {
+     "K": 5,
+     "B": 1100,
+     "ratio": 5.1260128428640845
+    },
+    {
+     "K": 10,
+     "B": 550,
+     "ratio": 5.1260128428640845
+    }
+   ],
+   "why_more_coordinates": "同等总预算下多坐标还能覆盖跨坐标/实现级散布,而加blocks只压缩单坐标重抽噪声;故选 (K=11, B=500)"
+  },
+  "se_scaling_examples": [
+   {
+    "blocks": 125,
+    "se": 0.003882110590072909
+   },
+   {
+    "blocks": 500,
+    "se": 0.0019410552950364546
+   },
+   {
+    "blocks": 2000,
+    "se": 0.0009705276475182273
+   }
+  ]
+ },
+ "H_design_only_mc_coherence": {
+  "coherence_check_only": true,
+  "seed": 20260925,
+  "repetitions": 100000,
+  "sim_world_assumptions": [
+   "delta_hat ~ N(delta_true, s_true/sqrt(K)), K个独立等方差坐标",
+   "s_true = rho * VALID_SE(设计旋钮,非观测量)"
+  ],
+  "analysis_side_assumptions": [
+   "区间 = delta_hat ± z_(1-alpha) * s_analysis/sqrt(K),z=1.6449",
+   "s_analysis 按场景取 rho*VALID_SE(修正)或 VALID_SE(不修正)"
+  ],
+  "interpretation": "仿真世界与分析端假设同源;一致仅证明公式算术正确,不证明该正态已知SE模型对真实生成器/簇结构成立",
+  "rows": [
+   {
+    "rho": 1.25,
+    "analysis_se_corrected": true,
+    "true_delta": 0.0,
+    "K": 8,
+    "exact_probability": 0.9360214241815692,
+    "simulation_probability": 0.93723,
+    "repetitions": 100000,
+    "mc_standard_error": 0.0007738560438135513,
+    "within_five_mc_se": true
+   },
+   {
+    "rho": 1.25,
+    "analysis_se_corrected": false,
+    "true_delta": 0.0,
+    "K": 8,
+    "exact_probability": 0.9708387545490389,
+    "simulation_probability": 0.97089,
+    "repetitions": 100000,
+    "mc_standard_error": 0.0005320795731346008,
+    "within_five_mc_se": true
+   },
+   {
+    "rho": 1.25,
+    "analysis_se_corrected": false,
+    "true_delta": 0.003,
+    "K": 8,
+    "exact_probability": 0.09410666745056223,
+    "simulation_probability": 0.09494,
+    "repetitions": 100000,
+    "mc_standard_error": 0.0009233125288433572,
+    "within_five_mc_se": true
+   },
+   {
+    "rho": 1.5,
+    "analysis_se_corrected": true,
+    "true_delta": 0.0,
+    "K": 11,
+    "exact_probability": 0.9236864589708058,
+    "simulation_probability": 0.9253,
+    "repetitions": 100000,
+    "mc_standard_error": 0.0008395819464756236,
+    "within_five_mc_se": true
+   },
+   {
+    "rho": 1.0,
+    "analysis_se_corrected": true,
+    "true_delta": 0.003,
+    "K": 8,
+    "exact_probability": 0.04999999999936777,
+    "simulation_probability": 0.05044,
+    "repetitions": 100000,
+    "mc_standard_error": 0.0006892024376003831,
+    "within_five_mc_se": true
+   }
+  ]
+ },
+ "I_recommended_design": {
+  "status": "待审设计;本轮不批准任何新抽样,R20 未注册",
+  "primary_analysis_path": "每坐标正态点估计(有符号偏差 delta_k = p_analytic - recall(validation)) + R19 同口径 block-cluster bootstrap SE; 聚合 SE = sqrt(sum(SE_k^2))/K(等SE特例=s/√K),共享解析锚可选项显式条件化;判定 = 聚合均值对称TOST(双侧90%CI落入±Delta);设计层用已知SE正态公式,rho敏感性覆盖SE估计误差;不引入第二套竞争框架",
+  "design_targets": {
+   "margin_delta_star": 0.003,
+   "margin_status": "待审开发界限(PENDING_REVIEW);无下游容忍度依据,不得由R19噪声倒写",
+   "alpha": 0.05,
+   "target_power_at_zero_delta": 0.9,
+   "planning_rho": 1.5
+  },
+  "K_derivation": {
+   "rule": "min K with zero-bias power >= 0.90 at alpha=0.05, single-SE = rho*VALID_SE (rho=1.5 conservative)",
+   "K": 11,
+   "power_at_K": 0.9236864589708058,
+   "power_at_K_minus_one": 0.8933540960149853,
+   "aggregate_se_equal_se_case": 0.0008778752878593437
+  },
+  "blocks_per_coordinate": {
+   "validation_corpus": 500,
+   "model_corpus": 500,
+   "note": "model 语料仅描述性次要结果,同规模以保持同口径"
+  },
+  "budget_and_stop_rules": [
+   "每坐标一次 audit 叶(语料生成+既有三路闭合重算);主判定语料=validation;K 与坐标清单批准后冻结,无追加、无重抽、无失败替换",
+   "首坐标兼作预算标定:若单坐标实测超15分钟即停止并披露实际成本,重新申请后再继续;总预算以用户/启动器为准",
+   "提前停止时只按已完成坐标做描述性报告,不得以完整K=11预注册TOST作推断,不得宣称达到90%功效设计",
+   "研究(dev)数据与未来正式确认数据物理隔离:独立 namespace 前缀 + 只读归档,不写 journal/准入面;等效成立不自动许可正式链"
+  ],
+  "alternative_single": {
+   "margin": 0.002,
+   "K_at_rho1p25": 16,
+   "power_at_alt_K_rho1p25": 0.9015310512244743,
+   "K_at_rho1p5": 23,
+   "power_at_alt_K_rho1p5": 0.9009462650721667,
+   "when": "仅当审查方认定 0.002 以下偏差亦重要;预算约翻倍,不推荐首选"
+  }
+ },
+ "assumptions_and_limits": [
+  "已知SE正态模型是主分析路径的设计层近似;实际分析以bootstrap 估计SE代入同一区间式,其操作特性与已知SE情形的差异已披露,由rho敏感性与保守规划部分覆盖,不另立t分布第二框架",
+  "坐标独立性(rho_c=0)是设计假设:预注册新namespace/attempt/种子;正相关会使聚合SE按sqrt(1+(K-1)rho_c)放大,超出rho敏感性口径",
+  "SE∝1/sqrt(B) 为单点锚外推假设,指数未经第二锚点验证",
+  "Delta=0.003待审;敏感性Delta∈{0.002,0.003,0.004}已给出",
+  "MC仅为算术自洽复核(coherence),不证明真实簇结构/解析锚满足模型",
+  "本轮无新项目抽样;R19终态、journal、准入面原样"
+ ]
+}

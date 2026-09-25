@@ -33,9 +33,14 @@ from pathlib import Path
 import pytest
 
 from rl_curriculum.curriculum261_r17_admission_substance import (
+    AUDIT_MANIFEST_FORMAT,
+    FILTERING_HOOKS,
+    GENERATION_HOOKS,
     HISTORICAL_SKIP_IDS,
     SubstanceError,
+    candidate_hook_bindings,
     candidate_test_map,
+    scan_hook_bindings,
     junit_nodeid,
     parse_junit,
     verify_preregistration_substance,
@@ -98,6 +103,14 @@ def _issuer() -> Path:
 
 def _read_doc(rec: Path) -> dict:
     return json.loads(Path(rec).read_text(encoding="utf-8"))
+
+
+def _proc_env() -> dict:
+    """直驱执行器子进程的环境:剥离 pytest harness 自身的
+    PYTEST_* 键(真实部署从 shell/监护入口启动时无这些键;
+    执行器据此拒绝任何 PYTEST_* 环境污染)。"""
+    return {k: v for k, v in os.environ.items()
+            if not k.startswith("PYTEST_")}
 
 
 def _write_doc(rec: Path, doc: dict) -> Path:
@@ -517,7 +530,7 @@ class TestParametricFullCollection:
         edit_record(copied, _fix)
         with pytest.raises(SubstanceError,
                            match="regression_collection_execution_"
-                                 "mismatch"):
+                                 "mismatch|audit_collected_count_mismatch"):
             verify_regression_evidence(
                 record_path(copied), run.repo, run.commit_a)
 
@@ -552,6 +565,8 @@ class TestParametricFullCollection:
         rehash_artifact(copied, "collection.stdout.txt")
         with pytest.raises(SubstanceError,
                            match="regression_collection_execution_"
+                                 "mismatch|"
+                                 "regression_audit_collected_count_"
                                  "mismatch"):
             verify_regression_evidence(
                 record_path(copied), run.repo, run.commit_a)
@@ -566,7 +581,9 @@ class TestParametricFullCollection:
         rewrite_collection_stdout(copied, ids)
         rehash_artifact(copied, "collection.stdout.txt")
         with pytest.raises(SubstanceError,
-                           match="regression_collection_static_mismatch"):
+                           match="regression_collection_static_mismatch|"
+                                 "regression_audit_collected_count_"
+                                 "mismatch"):
             verify_regression_evidence(
                 record_path(copied), run.repo, run.commit_a)
 
@@ -686,6 +703,7 @@ class TestSubsetMimickingFull:
         def _fix(doc):
             run0 = doc["execution"]["runs"][0]
             run0["command"] = [run0["command"][0], "-m", "pytest",
+                               "-p", "r21_collection_auditor",
                                "tests/route_c_stage2_6_1/test_sandbox.py"
                                "::test_parameter[0]",
                                "-q", "--junitxml=junit.xml"]
@@ -742,9 +760,9 @@ class TestRunProvenanceBinding:
 
         def _fix(doc):
             doc["collection_run"]["runs"][0]["command"].insert(
-                4, "-k")
+                5, "-k")
             doc["collection_run"]["runs"][0]["command"].insert(
-                5, "ok")
+                6, "ok")
         edit_record(copied, _fix)
         with pytest.raises(SubstanceError,
                            match="regression_run_argv_filter:-k"):
@@ -860,7 +878,8 @@ class TestRunProvenanceBinding:
                     "sha256": conftest_sha}]
         edit_record(scan_mismatch, _cwd_a)
         with pytest.raises(SubstanceError,
-                           match="regression_config_scan_mismatch"):
+                           match="regression_config_scan_mismatch|"
+                                 "child_env_pythonpath_not_runner"):
             verify_regression_evidence(
                 record_path(scan_mismatch), run.repo, run.commit_a,
                 deploy_root=poisoned)
@@ -881,7 +900,8 @@ class TestRunProvenanceBinding:
                      "sha256": ini_sha}]
         edit_record(copied, _fix)
         with pytest.raises(SubstanceError,
-                           match="regression_config_addopts_filter"):
+                           match="regression_config_addopts_filter|"
+                                 "child_env_pythonpath_not_runner"):
             verify_regression_evidence(
                 record_path(copied), run.repo, run.commit_a,
                 deploy_root=poisoned)
@@ -892,7 +912,8 @@ class TestRunProvenanceBinding:
              "--deploy-root", str(poisoned),
              "--out-dir", str(tmp_path / "refused_run"),
              "--substance-src", str(substance_src())],
-            capture_output=True, text=True, timeout=300)
+            capture_output=True, text=True, timeout=300,
+            env=_proc_env())
         assert proc.returncode != 0
         assert "refused" in (proc.stdout + proc.stderr)
         assert not (tmp_path / "refused_run" / "summary.json").exists()
@@ -921,7 +942,8 @@ class TestRunProvenanceBinding:
              "--deploy-root", str(deploy),
              "--out-dir", str(tmp_path / "refused_run"),
              "--substance-src", str(substance_src())],
-            capture_output=True, text=True, timeout=300)
+            capture_output=True, text=True, timeout=300,
+            env=_proc_env())
         assert proc.returncode != 0
         assert "regression_config_filter_hook" in (proc.stdout
                                                    + proc.stderr)
@@ -1031,9 +1053,12 @@ class TestDifferentialParentChain:
     @staticmethod
     def _to_differential(doc: dict, parent_commit: str,
                          parent_rec: Path, targets: list[str],
-                         other=("cand.txt",)) -> None:
+                         other=("cand.txt",),
+                         run_dir: Path | None = None) -> None:
         """把 full record 原地改写为形状自洽的差分 record
-        (protocol/差分块/两段 argv positionals=delta 目标)。"""
+        (protocol/差分块/两段 argv positionals=delta 目标;
+        run_dir 在场时同步改写各 run 审计原件的 pytest_args,
+        保持 v4 审计-argv 绑定自洽)。"""
         doc["protocol"] = "differential"
         doc["differential"] = {
             "parent_commit": parent_commit,
@@ -1048,9 +1073,30 @@ class TestDifferentialParentChain:
             for entry in doc[block_key]["runs"]:
                 command = entry["command"]
                 head = command[:3]
-                tail = [tok for tok in command[3:]
-                        if tok.startswith("-")]
+                tail = []
+                expect_value = False
+                for tok in command[3:]:
+                    if expect_value:
+                        tail.append(tok)
+                        expect_value = False
+                    elif tok.startswith("-"):
+                        tail.append(tok)
+                        if tok.split("=", 1)[0] == "-p" \
+                                and "=" not in tok:
+                            expect_value = True
                 entry["command"] = head + targets + tail
+                if run_dir is not None and isinstance(
+                        entry.get("audit"), dict):
+                    audit_path = Path(run_dir) / entry["audit"]["path"]
+                    audit_doc = json.loads(
+                        audit_path.read_text(encoding="utf-8"))
+                    audit_doc["pytest_args"] = entry["command"][3:]
+                    audit_path.write_text(
+                        json.dumps(audit_doc, indent=1, sort_keys=True,
+                                   ensure_ascii=False) + "\n",
+                        encoding="utf-8")
+                    entry["audit"]["sha256"] = hashlib.sha256(
+                        audit_path.read_bytes()).hexdigest()
 
     def test_invalid_parent_refused(self, r17_canonical_full_run,
                                     tmp_path):
@@ -1063,7 +1109,8 @@ class TestDifferentialParentChain:
 
         def _fix(doc):
             self._to_differential(
-                doc, run.parent, fake, [self._DELTA_TARGET])
+                doc, run.parent, fake, [self._DELTA_TARGET],
+                run_dir=copied)
         edit_record(copied, _fix)
         with pytest.raises(
                 SubstanceError,
@@ -1083,7 +1130,8 @@ class TestDifferentialParentChain:
 
         def _fix(doc):
             self._to_differential(
-                doc, run.parent, v2rec, [self._DELTA_TARGET])
+                doc, run.parent, v2rec, [self._DELTA_TARGET],
+                run_dir=copied)
         edit_record(copied, _fix)
         with pytest.raises(
                 SubstanceError,
@@ -1129,7 +1177,8 @@ class TestDifferentialParentChain:
         def _fix(doc):
             self._to_differential(
                 doc, run.parent, record_path(parent_copy),
-                [self._DELTA_TARGET], other=("cand.txt",))
+                [self._DELTA_TARGET], other=("cand.txt",),
+                run_dir=copied)
         edit_record(copied, _fix)
         with pytest.raises(
                 SubstanceError,
@@ -1439,3 +1488,532 @@ class TestIssuerConsumerEndToEnd:
                         "r17_admission_issued.jsonl").exists()
         finally:
             self._cleanup(run.deploy, state)
+
+
+# ------------- R22:有效收集环境(A01-A09) -------------
+
+def _audit_manifest(deploy: Path, approved: dict | None = None) -> dict:
+    """手工构造运行期审计器用的 manifest(与执行器生成同形)。"""
+    import hashlib as _hl
+    auditor = deploy / "stage2_6_1_runner" / (
+        "r21_collection_auditor.py")
+    return {
+        "format": AUDIT_MANIFEST_FORMAT,
+        "filtering_hooks": sorted(FILTERING_HOOKS),
+        "generation_hooks": sorted(GENERATION_HOOKS),
+        "test_root": "tests/route_c_stage2_6_1",
+        "auditor": {
+            "module": "r21_collection_auditor",
+            "sha256": _hl.sha256(auditor.read_bytes()).hexdigest()},
+        "approved_generate_tests": approved or {},
+    }
+
+
+def _auditor_run_env(deploy: Path, manifest_path: Path,
+                     out_path: Path, **extra: str) -> dict:
+    """直接驱动 pytest + 审计器(不经执行器预检)的最小环境。"""
+    env = {k: v for k, v in os.environ.items()
+           if not k.startswith("PYTEST_")}
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PYTHONPATH"] = str(deploy / "stage2_6_1_runner")
+    env["R21_AUDIT_MANIFEST"] = str(manifest_path)
+    env["R21_AUDIT_OUT"] = str(out_path)
+    env.update(extra)
+    return env
+
+
+class TestEffectiveCollectionA01:
+    """审查反例迁移:导入式 pytest_pycollect_makeitem +
+    LOCAL_QUICK_TESTS 门控(收集/执行一致缩减仍全绿)。"""
+
+    @staticmethod
+    def _hook_tree(tmp_path: Path):
+        repo, commit_a, parent = git_repo_with_candidate(
+            tmp_path, imported_hook=True)
+        deploy = tmp_path / "deploy"
+        sync_deploy_surface(repo, commit_a, deploy)
+        return repo, commit_a, deploy
+
+    def test_counterexample_reproduced_without_defense(self, tmp_path):
+        """无防护基线(审查数字迁移):同树同完整目录命令,门控
+        使真实收集/执行 10 项含 1 失败 → 9 项全绿。"""
+        _, _, deploy = self._hook_tree(tmp_path)
+
+        def _collect(gated: bool):
+            env = {k: v for k, v in os.environ.items()
+                   if not k.startswith("PYTEST_")}
+            if gated:
+                env["LOCAL_QUICK_TESTS"] = "1"
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest",
+                 "tests/route_c_stage2_6_1", "--collect-only", "-q"],
+                cwd=str(deploy), env=env, capture_output=True,
+                text=True, timeout=300)
+            return proc.stdout
+
+        def _execute(gated: bool):
+            env = {k: v for k, v in os.environ.items()
+                   if not k.startswith("PYTEST_")}
+            if gated:
+                env["LOCAL_QUICK_TESTS"] = "1"
+            return subprocess.run(
+                [sys.executable, "-m", "pytest",
+                 "tests/route_c_stage2_6_1", "-q"],
+                cwd=str(deploy), env=env, capture_output=True,
+                text=True, timeout=300)
+
+        full, gate = _collect(False), _collect(True)
+        # 反例树 = 审查 probe_worktree + test_probe_plain_ok:
+        # 11 项(1 failed/3 passed/7 skipped)→ 门控移除 [1] 后 10 项全绿。
+        assert "11 tests collected" in full
+        assert "10 tests collected" in gate
+        proc_full = _execute(False)
+        assert proc_full.returncode == 1
+        assert "1 failed" in proc_full.stdout
+        proc_gate = _execute(True)
+        assert proc_gate.returncode == 0
+        assert "failed" not in proc_gate.stdout
+
+    def test_executor_preflight_rejects_imported_hook(self, tmp_path):
+        """静态层:候选树 import 式钩子绑定在运行前被拒
+        (regression_static_hook_binding, kind=import)。"""
+        repo, commit_a, deploy = self._hook_tree(tmp_path)
+        proc = subprocess.run(
+            [sys.executable, str(executor_path()),
+             "--repo", str(repo), "--commit-a", commit_a,
+             "--deploy-root", str(deploy),
+             "--out-dir", str(tmp_path / "refused"),
+             "--substance-src", str(substance_src())],
+            capture_output=True, text=True, timeout=300,
+            env=_proc_env())
+        assert proc.returncode != 0
+        assert "regression_static_hook_binding" in (
+            proc.stdout + proc.stderr)
+        assert "import" in (proc.stdout + proc.stderr)
+        assert not (tmp_path / "refused" / "summary.json").exists()
+
+    def test_runtime_auditor_rejects_imported_hook(self, tmp_path):
+        """运行期层(独立于预检):直接 -p 审计器 + 门控环境,
+        实际注册的钩子实现来源分类失败 ⇒ 非 rc + 审计违规
+        (来源归因到真实定义模块 selection_support.py)。"""
+        _, _, deploy = self._hook_tree(tmp_path / "rt")
+        manifest = tmp_path / "rt" / "manifest.json"
+        manifest.write_text(json.dumps(_audit_manifest(deploy)),
+                            encoding="utf-8")
+        audit_out = tmp_path / "rt" / "audit.json"
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "-p",
+             "r21_collection_auditor",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(deploy),
+            env=_auditor_run_env(deploy, manifest, audit_out,
+                                 LOCAL_QUICK_TESTS="1"),
+            capture_output=True, text=True, timeout=300)
+        assert proc.returncode != 0
+        document = json.loads(audit_out.read_text(encoding="utf-8"))
+        assert document["verdict"] == "violations"
+        kinds = {row["kind"] for row in document["violations"]}
+        assert "guarded_hook_origin_unapproved" in kinds
+        assert any("selection_support.py" in row.get("origin", "")
+                   for row in document["violations"])
+
+    def test_auditor_control_run_green(self, tmp_path):
+        """对照正例:canonical 树 + 合法 generate_tests 批准,
+        同一运行期审计全绿(动态参数化不受影响)。"""
+        repo, commit_a, parent = git_repo_with_candidate(tmp_path)
+        deploy = tmp_path / "deploy"
+        sync_deploy_surface(repo, commit_a, deploy)
+        import hashlib as _hl
+        conf = "tests/route_c_stage2_6_1/conftest.py"
+        approved = {conf: _hl.sha256(
+            (deploy / conf).read_bytes()).hexdigest()}
+        manifest = tmp_path / "manifest.json"
+        manifest.write_text(json.dumps(_audit_manifest(deploy, approved)),
+                            encoding="utf-8")
+        audit_out = tmp_path / "audit.json"
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "-p",
+             "r21_collection_auditor",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(deploy),
+            env=_auditor_run_env(deploy, manifest, audit_out),
+            capture_output=True, text=True, timeout=300)
+        assert proc.returncode == 0
+        assert "8 passed" in proc.stdout and "7 skipped" in proc.stdout
+        document = json.loads(audit_out.read_text(encoding="utf-8"))
+        assert document["verdict"] == "pass"
+
+
+class TestEffectiveCollectionA03:
+    """A03:别名/包装/赋值/setattr/外部注册不得因非顶层同名 def 漏过。"""
+
+    @pytest.mark.parametrize("source,kind", [
+        ("from .sel import wrapped as pytest_pycollect_makeitem\n",
+         "import"),
+        ("pytest_pycollect_makeitem = _wrapper\n", "assign"),
+        ("import sys\n"
+         "setattr(sys.modules[__name__], "
+         "'pytest_collection_modifyitems', fn)\n", "setattr"),
+        ("class Plugin:\n"
+         "    def pytest_ignore_collect(self, path, config):\n"
+         "        return False\n", "def"),
+    ])
+    def test_binding_forms_detected(self, source, kind):
+        rows = scan_hook_bindings(source.encode("utf-8"), "unit")
+        assert rows and all(row["kind"] == kind for row in rows)
+
+    def test_string_template_not_false_positive(self):
+        """字符串模板内的 hook 名不是绑定(沙箱支撑模块合法)。"""
+        rows = scan_hook_bindings(
+            b'_T = """\ndef pytest_pycollect_makeitem(x):\n    pass\n"""\n',
+            "unit")
+        assert rows == []
+
+    def test_generate_tests_requires_manifest_approval(self):
+        """未批准的 pytest_generate_tests 在无 manifest 批准时
+        被拒(fail closed);批准必须对应真实绑定。"""
+        from rl_curriculum.curriculum261_r17_admission_substance \
+            import evaluate_static_hook_policy
+        source = b"def pytest_generate_tests(metafunc):\n    pass\n"
+        rows = scan_hook_bindings(source, "unit")
+        assert [r["hook"] for r in rows] == ["pytest_generate_tests"]
+        with pytest.raises(SubstanceError,
+                           match="generate_tests_unapproved"):
+            evaluate_static_hook_policy(
+                {"tests/route_c_stage2_6_1/conftest.py": rows}, {})
+
+    def test_external_plugin_registration_rejected(self, tmp_path):
+        """conftest 声明 pytest_plugins 加载树外模块(静态扫描
+        干净)⇒ 运行期审计在真实链路拒绝(执行器非零 rc,审计
+        plugin_unapproved,summary fail-closed)。"""
+        repo, commit_a, parent = git_repo_with_candidate(tmp_path / "x")
+        test_dir = repo / "stage2_6_1" / "tests" / "route_c_stage2_6_1"
+        rogue = tmp_path / "rogue_plugin.py"
+        rogue.write_text(
+            "def pytest_pycollect_makeitem(collector, name, obj):\n"
+            "    return None\n", encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            "pytest_plugins = ['rogue_plugin']\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-qm",
+                        "rogue"], check=True)
+        head = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True).stdout.strip()
+        deploy = tmp_path / "x" / "deploy"
+        sync_deploy_surface(repo, head, deploy)
+        command = [sys.executable, str(executor_path()),
+                   "--repo", str(repo), "--commit-a", head,
+                   "--deploy-root", str(deploy),
+                   "--out-dir", str(tmp_path / "x" / "run"),
+                   "--substance-src", str(substance_src())]
+        env = {k: v for k, v in os.environ.items()
+               if not k.startswith("PYTEST_")}
+        env["PYTHONPATH"] = str(tmp_path) + os.pathsep +             env.get("PYTHONPATH", "")
+        proc = subprocess.run(command, capture_output=True, text=True,
+                              timeout=300, env=env)
+        assert proc.returncode != 0
+        run_dir = tmp_path / "x" / "run"
+        summary = json.loads(
+            (run_dir / "summary.json").read_text(encoding="utf-8"))
+        assert not summary.get("ok")
+        audit_path = run_dir / "audit_collection.json"
+        if audit_path.is_file():
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            assert audit["verdict"] == "violations"
+            kinds = {row["kind"] for row in audit["violations"]}
+            assert "plugin_unapproved" in kinds or \
+                "guarded_hook_origin_unapproved" in kinds
+
+
+class TestEffectiveCollectionA02A05:
+    """v4 record 的审计/环境受控面正反例(canonical 真实 run)。"""
+
+    def test_v4_blocks_and_env_policy(self, r17_canonical_full_run):
+        run = r17_canonical_full_run
+        doc = read_record(run.run_dir)
+        assert doc["format"] == (
+            "cur261-r17-candidate-regression-evidence-v4")
+        manifest_sha = hashlib.sha256(
+            (run.run_dir / doc["audit_manifest"]["path"]).read_bytes()
+        ).hexdigest()
+        assert manifest_sha == doc["audit_manifest"]["sha256"]
+        face = doc["run"]["executor_face"]
+        assert face["executor"]["source_path"] == (
+            "stage2_6_1/runner/r21_full_collection_regression.py")
+        assert face["auditor"]["source_path"] == (
+            "stage2_6_1/runner/r21_collection_auditor.py")
+        for block in (doc["collection_run"]["runs"]
+                      + doc["execution"]["runs"]):
+            audit = json.loads(
+                (run.run_dir / block["audit"]["path"]).read_text(
+                    encoding="utf-8"))
+            assert audit["verdict"] == "pass"
+            assert [s["stage"] for s in audit["stages"]] == [
+                "configure", "collection_finish", "sessionfinish"]
+            child = block["env"]["child_env"]
+            assert "PYTEST_ADDOPTS" not in child
+            assert "PYTEST_PLUGINS" not in child
+            assert child["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
+            assert child["PYTHONPATH"].replace("\\", "/").endswith(
+                "stage2_6_1_runner")
+            policy = block["env"]["child_env_policy"]
+            assert set(policy["forced"]) == {
+                "PYTHONDONTWRITEBYTECODE",
+                "PYTEST_DISABLE_PLUGIN_AUTOLOAD", "PYTHONPATH",
+                "R21_AUDIT_OUT", "R21_AUDIT_MANIFEST"}
+
+    def test_unknown_env_keys_not_inherited(
+            self, r17_canonical_full_run, monkeypatch, tmp_path):
+        """环境控制:ambient LOCAL_QUICK_TESTS 不进入子进程环境,
+        运行不受影响(白名单继承)。"""
+        run = r17_canonical_full_run
+        monkeypatch.setenv("LOCAL_QUICK_TESTS", "1")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "env_run", run.repo, run.commit_a, run.deploy,
+            expect_rc=(0,))
+        assert rc == 0 and summary["ok"]
+        doc = read_record(run_dir)
+        for block in (doc["collection_run"]["runs"]
+                      + doc["execution"]["runs"]):
+            assert "LOCAL_QUICK_TESTS" not in block["env"]["child_env"]
+            assert "LOCAL_QUICK_TESTS" in block["env"][
+                "child_env_policy"]["dropped_keys"]
+
+    def test_ambient_pytest_env_refused(self, r17_canonical_full_run,
+                                        tmp_path):
+        run = r17_canonical_full_run
+        env = _proc_env()
+        env["PYTEST_ADDOPTS"] = "-k ok"
+        proc = subprocess.run(
+            [sys.executable, str(executor_path()),
+             "--repo", str(run.repo), "--commit-a", run.commit_a,
+             "--deploy-root", str(run.deploy),
+             "--out-dir", str(tmp_path / "refused"),
+             "--substance-src", str(substance_src())],
+            capture_output=True, text=True, timeout=300, env=env)
+        assert proc.returncode != 0
+        assert "PYTEST_" in (proc.stdout + proc.stderr)
+
+    def test_audit_block_removed_refused(self, r17_canonical_full_run,
+                                         tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "noaudit")
+
+        def _fix(doc):
+            del doc["collection_run"]["runs"][0]["audit"]
+        edit_record(copied, _fix)
+        with pytest.raises(SubstanceError,
+                           match="regression_collection_run_audit_"
+                                 "block_missing"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_audit_verdict_violations_refused(
+            self, r17_canonical_full_run, tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "vd")
+        path = copied / "audit_collection.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["verdict"] = "violations"
+        document["violations"] = [{"kind": "forged"}]
+        path.write_text(json.dumps(document, indent=1, sort_keys=True),
+                        encoding="utf-8")
+        rehash_artifact(copied, "audit_collection.json")
+        with pytest.raises(SubstanceError,
+                           match="regression_collection_run_audit_"
+                                 "verdict_not_pass"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_audit_stage_missing_refused(self, r17_canonical_full_run,
+                                         tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "stage")
+        path = copied / "audit_execution.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["stages"] = document["stages"][:2]
+        path.write_text(json.dumps(document, indent=1, sort_keys=True),
+                        encoding="utf-8")
+        rehash_artifact(copied, "audit_execution.json")
+        with pytest.raises(SubstanceError,
+                           match="regression_execution_run0_audit_"
+                                 "stages_invalid"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_manifest_phantom_approval_refused(
+            self, r17_canonical_full_run, tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "ph")
+        path = copied / "audit_manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["approved_generate_tests"][
+            "tests/route_c_stage2_6_1/test_sandbox.py"] = "0" * 64
+        path.write_text(json.dumps(manifest, indent=1, sort_keys=True),
+                        encoding="utf-8")
+        rehash_artifact(copied, "audit_manifest.json")
+        with pytest.raises(SubstanceError, match="phantom_approval"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+
+class TestEffectiveCollectionA06:
+    """新签发必须绑定 v4(有效收集环境受控)证据。"""
+
+    def test_issuer_refuses_v3_format_record(
+            self, r17_canonical_full_run, tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "v3")
+
+        def _fix(doc):
+            doc["format"] = "cur261-r17-candidate-regression-evidence-v3"
+            doc["run"].pop("executor_face", None)
+            doc["run"].pop("supervision", None)
+            doc.pop("audit_manifest", None)
+            for block_key in ("collection_run", "execution"):
+                for entry in doc[block_key]["runs"]:
+                    entry.pop("audit", None)
+                    entry["env"].pop("child_env", None)
+                    entry["env"].pop("child_env_policy", None)
+                    kept = []
+                    skip = False
+                    for tok in entry["command"][3:]:
+                        if skip:
+                            skip = False
+                            continue
+                        if tok == "-p":
+                            skip = True
+                            continue
+                        kept.append(tok)
+                    entry["command"] = entry["command"][:3] + kept
+        edit_record(copied, _fix)
+        # v3 历史核验面仍可核验(父链递归用途;不可用于新签发)
+        verify_regression_evidence(
+            record_path(copied), run.repo, run.commit_a)
+        deploy = run.deploy
+        state = deploy / "artifacts" / "route_c_stage2_6_1_repair18" \
+            / "state"
+        state.mkdir(parents=True, exist_ok=True)
+        prereg = tmp_path / "prereg.json"
+        write_preregistration(
+            prereg, run.repo, run.commit_a, record_path(copied))
+        proc = subprocess.run(
+            [sys.executable, str(_issuer()), "--repo", str(run.repo),
+             "--deploy-root", str(deploy), "--state-root", str(state),
+             "--commit-a", run.commit_a,
+             "--preregistration", str(prereg)],
+            capture_output=True, text=True, timeout=300)
+        assert proc.returncode != 0
+        assert "format v4" in (proc.stdout + proc.stderr)
+        assert not (deploy / ".r17_formal_admission.json").exists()
+
+
+class TestSupervisionLinkA08:
+    """v4 外层监护关联:声明的 run 必须能在 run_supervision
+    运行史中按 argv token 定位;伪造关联拒。"""
+
+    def test_bogus_link_refused(self, r17_canonical_full_run, tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "bogus")
+
+        def _fix(doc):
+            doc["run"]["supervision"] = {
+                "present": True, "run_id": "r22_fake",
+                "run_dir": str(run.repo / "nope" / "r22_fake"),
+                "argv_token": str(run.run_dir)}
+        edit_record(copied, _fix)
+        with pytest.raises(SubstanceError,
+                           match="supervision_run_dir_unbound"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_valid_link_accepted(self, r17_canonical_full_run, tmp_path):
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "ok")
+        runs_root = run.repo / "stage2_6_1" / "artifacts" / (
+            "repair17") / "development" / "run_supervision" / "runs"
+        run_dir = runs_root / "r22_supervised_0001"
+        run_dir.mkdir(parents=True)
+        (run_dir / "run_record.json").write_text(json.dumps({
+            "schema": "r17-run-record-v1",
+            "run_id": "r22_supervised_0001",
+            "argv": ["python", "executor", "--out-dir",
+                     str(run.run_dir)],
+            "started_utc": "2026-09-25T00:00:00Z",
+            "ended_utc": "2026-09-25T00:01:00Z"}), encoding="utf-8")
+
+        def _fix(doc):
+            doc["run"]["supervision"] = {
+                "present": True, "run_id": "r22_supervised_0001",
+                "run_dir": str(run_dir),
+                "argv_token": str(run.run_dir)}
+        edit_record(copied, _fix)
+        result = verify_regression_evidence(
+            record_path(copied), run.repo, run.commit_a)
+        assert result["collection_tests"] > 0
+
+
+class TestSyncScriptA09:
+    """r21_sync.sh 隔离同步:临时 RELEASE_DEST,逐文件 CR 规范化
+    字节校验(auditor/executor/issuer/substance/tests 全覆盖)。"""
+
+    def test_sync_bytes_isolated(self, tmp_path):
+        if shutil.which("bash") is None:
+            pytest.skip("bash 不可达")
+        import re as _re
+
+        def _bash_path(path):
+            text_ = str(path.resolve()).replace("\\", "/")
+            matched = _re.match(r"^([A-Za-z]):/(.*)$", text_)
+            if matched:
+                return "/mnt/%s/%s" % (matched.group(1).lower(),
+                                       matched.group(2))
+            return text_
+
+        repo_root = _TESTS_DIR.parents[2]
+        script = repo_root / "stage2_6_1" / "runner" / "r21_sync.sh"
+        if not script.is_file():
+            pytest.skip("repo 布局不在场(WSL 部署树运行;本测试在"
+                        "发布仓布局验证同步脚本)")
+        dest = tmp_path / "deploy_sync"
+        env = {k: v for k, v in os.environ.items()
+               if not k.startswith("PYTEST_")}
+        # wsl.exe/bash.exe 经 subprocess 传参不稳定(坑 #54 同族):
+        # 路径直接内嵌 -c 脚本串,位置参数只用于 bash -s 的 REPO/DEST。
+        inner = (f'tr -d "\\r" < "{_bash_path(script)}" '
+                 f'| bash -s -- "{_bash_path(repo_root)}" '
+                 f'"{_bash_path(dest)}"')
+        proc = subprocess.run(["bash", "-c", inner],
+                              capture_output=True, text=True, timeout=300,
+                              env=env)
+        assert proc.returncode == 0, proc.stderr
+        import glob as _glob
+        expected = []
+        for src in sorted(_glob.glob(
+                str(repo_root / "stage2_6_1" / "src" / (
+                    "rl_curriculum") / "*.py"))):
+            expected.append(
+                (Path(src),
+                 dest / "src" / "rl_curriculum" / Path(src).name))
+        for leaf in ("r21_full_collection_regression.py",
+                     "r21_collection_auditor.py",
+                     "r17_admission_issue.py"):
+            expected.append(
+                (repo_root / "stage2_6_1" / "runner" / leaf,
+                 dest / "stage2_6_1_runner" / leaf))
+        for leaf in ("conftest.py",
+                     "r17_admission_substance_test_support.py",
+                     "test_curriculum261_r17_admission_substance.py",
+                     "test_curriculum261_r17_supervision_unit.py",
+                     "test_r18_launch_behavioral.py"):
+            expected.append(
+                (repo_root / "stage2_6_1" / "tests" / (
+                    "route_c_stage2_6_1") / leaf,
+                 dest / "tests" / "route_c_stage2_6_1" / leaf))
+        assert expected
+        for src, dst in expected:
+            assert dst.is_file(), dst
+            assert dst.read_bytes() == src.read_bytes().replace(
+                b"\r", b""), dst

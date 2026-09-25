@@ -1,0 +1,136 @@
+{
+  "scope": "Independent normal-model design arithmetic, not project sampling.",
+  "inputs": {
+    "SE": 0.0019410552950364546,
+    "alpha": 0.05,
+    "target_power": 0.9
+  },
+  "zero_bias_formula": "power = max(0, 2*Phi(margin*sqrt(K)/SE-z_0.95)-1)",
+  "required_margin_ratio_for_power90": 3.289707253902943,
+  "agent_used_ratio": 2.9264051924960723,
+  "actual_power_at_agent_ratio": 0.8,
+  "sample_size_rows": [
+    {
+      "margin": 0.002,
+      "rho": 1.0,
+      "claimed_min_K_using_z90": 9,
+      "achieved_power_at_claimed_K": 0.851892463372879,
+      "correct_min_K": 11,
+      "achieved_power_at_correct_K": 0.9236864589708058,
+      "power_K8": 0.7957248528496748
+    },
+    {
+      "margin": 0.002,
+      "rho": 1.25,
+      "claimed_min_K_using_z90": 13,
+      "achieved_power_at_claimed_K": 0.8155509269827736,
+      "correct_min_K": 16,
+      "achieved_power_at_correct_K": 0.9015310512244743,
+      "power_K8": 0.5076661430914142
+    },
+    {
+      "margin": 0.002,
+      "rho": 1.5,
+      "claimed_min_K_using_z90": 19,
+      "achieved_power_at_claimed_K": 0.8227672322440842,
+      "correct_min_K": 23,
+      "achieved_power_at_correct_K": 0.9009462650721667,
+      "power_K8": 0.23431643607866232
+    },
+    {
+      "margin": 0.003,
+      "rho": 1.0,
+      "claimed_min_K_using_z90": 4,
+      "achieved_power_at_claimed_K": 0.851892463372879,
+      "correct_min_K": 5,
+      "achieved_power_at_correct_K": 0.9298751722715561,
+      "power_K8": 0.9936014252023164
+    },
+    {
+      "margin": 0.003,
+      "rho": 1.25,
+      "claimed_min_K_using_z90": 6,
+      "achieved_power_at_claimed_K": 0.8335789120326687,
+      "correct_min_K": 8,
+      "achieved_power_at_correct_K": 0.9360214241815692,
+      "power_K8": 0.9360214241815692
+    },
+    {
+      "margin": 0.003,
+      "rho": 1.5,
+      "claimed_min_K_using_z90": 9,
+      "achieved_power_at_claimed_K": 0.851892463372879,
+      "correct_min_K": 11,
+      "achieved_power_at_correct_K": 0.9236864589708058,
+      "power_K8": 0.7957248528496748
+    }
+  ],
+  "unadjusted_SE_typeI_rows": [
+    {
+      "rho": 1.0,
+      "actual_SE": 0.0019410552950364546,
+      "analysis_SE": 0.0019410552950364546,
+      "K": 8,
+      "false_equivalence_at_true_positive_margin": 0.04999999999936777
+    },
+    {
+      "rho": 1.25,
+      "actual_SE": 0.002426319118795568,
+      "analysis_SE": 0.0019410552950364546,
+      "K": 8,
+      "false_equivalence_at_true_positive_margin": 0.09410666745056218
+    },
+    {
+      "rho": 1.5,
+      "actual_SE": 0.002911582942554682,
+      "analysis_SE": 0.0019410552950364546,
+      "K": 8,
+      "false_equivalence_at_true_positive_margin": 0.13641379282587873
+    }
+  ],
+  "old_vote_rows": [
+    {
+      "delta": 0.0,
+      "joint_pass_probability": 0.9025,
+      "vote_ge4_of5": 0.9221543994917968
+    },
+    {
+      "delta": 0.001,
+      "joint_pass_probability": 0.8731270860648365,
+      "vote_ge4_of5": 0.8761223536526
+    },
+    {
+      "delta": 0.0015,
+      "joint_pass_probability": 0.8353187142719518,
+      "vote_ge4_of5": 0.807575756846812
+    },
+    {
+      "delta": 0.002,
+      "joint_pass_probability": 0.7812008078617472,
+      "vote_ge4_of5": 0.6983893063190229
+    },
+    {
+      "delta": 0.003,
+      "joint_pass_probability": 0.6274619735835129,
+      "vote_ge4_of5": 0.38598952642721207
+    },
+    {
+      "delta": 0.004,
+      "joint_pass_probability": 0.43684536318879646,
+      "vote_ge4_of5": 0.11845245208222321
+    }
+  ],
+  "decision_overlap_example": {
+    "K": 8,
+    "mean": 0.0015,
+    "lower90": 0.00037119176088350756,
+    "upper90": 0.0026288082391164925,
+    "equivalence": true,
+    "report_directional_calibration_rule": true
+  },
+  "limitations": [
+    "Normal known-variance model assumed for the sample-size table.",
+    "Inflation type-I rows keep the analysis SE fixed while true SE increases.",
+    "The substantive equivalence margin itself is not approved by this calculation."
+  ]
+}

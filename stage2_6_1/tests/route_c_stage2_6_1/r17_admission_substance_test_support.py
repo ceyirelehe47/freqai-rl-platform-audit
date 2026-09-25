@@ -19,11 +19,13 @@ import hashlib
 import json
 import shutil
 import subprocess
+import os
 import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from rl_curriculum.curriculum261_r17_admission_substance import (
     HISTORICAL_SKIP_IDS,
+    candidate_hook_bindings,
     REGRESSION_EVIDENCE_FORMAT,
     candidate_test_map,
     junit_nodeid,
@@ -86,6 +88,27 @@ def test_parameter(x):
     assert x != 1
 '''
 
+#: R22/A01 反例树(审查 probe_worktree 形状):conftest 以 import
+#: 形式引入 pytest_pycollect_makeitem(绕过 v3 只查顶层 def 的
+#: _CONFT_HOOKS),LOCAL_QUICK_TESTS 门控在收集早期移除失败参数
+#: 实例——收集/执行一致缩减(10→9)仍可全绿。
+_HOOK_SUPPORT_SOURCE = '''# sandbox selection_support (imported collection hook; review probe)
+import os
+import pytest
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_pycollect_makeitem(collector, name, obj):
+    outcome = yield
+    if os.environ.get("LOCAL_QUICK_TESTS") == "1":
+        items = outcome.get_result()
+        if isinstance(items, list):
+            outcome.force_result([item for item in items
+                                   if item.name != "test_parameter[1]"])
+'''
+_HOOK_CONFTEST = ("# sandbox conftest (imported hook counterexample)\n"
+                  "from .selection_support import pytest_pycollect_makeitem\n")
+
 _TESTS_DIR = Path(__file__).resolve().parent
 _EXECUTOR_CANDIDATES = (
     _TESTS_DIR.parents[1] / "runner" / "r21_full_collection_regression.py",
@@ -94,6 +117,12 @@ _EXECUTOR_CANDIDATES = (
     _TESTS_DIR.parents[1] / "stage2_6_1_runner" / (
         "r21_full_collection_regression.py"),
 )
+
+def runner_repo_path(leaf: str) -> Path:
+    """发布仓 runner 面文件(执行器/审计器/签发器字节来源)。"""
+    return executor_path().parent / leaf
+
+
 _SUBSTANCE_SRC_CANDIDATES = (
     _TESTS_DIR.parents[1] / "src",
     _TESTS_DIR.parents[2] / "src",
@@ -147,25 +176,38 @@ def _skip_module_sources() -> dict[str, str]:
                         "reason='sandbox historical allowlist stub')",
                         f"    def {m}(self):",
                         "        raise AssertionError('unreachable')"]
-                lines.append("")
+                    lines.append("")
         sources[f"{module}.py"] = "\n".join(lines) + "\n"
     return sources
 
 
-def write_sandbox_test_tree(repo: Path, *, probe: bool = False) -> None:
+def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
+                            imported_hook: bool = False) -> None:
     """把沙箱测试源树 + src/rl_curriculum 写入仓工作区
     (调用方负责 git add/commit)。
 
     src 面含真实 substance 模块字节副本:签发器要求发布仓内存在
     该模块,v3 import_surface 又要求候选 src 成员与部署 src 字节
-    一致——副本而非符号链接,避免 git mode 120000 进入映射。"""
+    一致——副本而非符号链接,避免 git mode 120000 进入映射。
+    imported_hook=True 写入 R22/A01 反例树(审查 probe_worktree
+    形状:import 式 pycollect 钩子 + LOCAL_QUICK_TESTS 门控)。"""
     test_dir = repo / "stage2_6_1" / "tests" / "route_c_stage2_6_1"
     test_dir.mkdir(parents=True, exist_ok=True)
-    (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
-        _PROBE_SOURCE if probe else _CANONICAL_SOURCE, encoding="utf-8")
-    (test_dir / "conftest.py").write_text(
-        "# sandbox conftest\n" if probe else _SANDBOX_CONFTEST,
-        encoding="utf-8")
+    if imported_hook:
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _PROBE_SOURCE, encoding="utf-8")
+        (test_dir / "__init__.py").write_text("", encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            _HOOK_CONFTEST, encoding="utf-8")
+        (test_dir / "selection_support.py").write_text(
+            _HOOK_SUPPORT_SOURCE, encoding="utf-8")
+    else:
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _PROBE_SOURCE if probe else _CANONICAL_SOURCE,
+            encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            "# sandbox conftest\n" if probe else _SANDBOX_CONFTEST,
+            encoding="utf-8")
     for leaf, source in _skip_module_sources().items():
         (test_dir / leaf).write_text(source, encoding="utf-8")
     src_dir = repo / "stage2_6_1" / "src" / "rl_curriculum"
@@ -176,15 +218,23 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False) -> None:
         substance_src() / "rl_curriculum" / (
             "curriculum261_r17_admission_substance.py"),
         src_dir / "curriculum261_r17_admission_substance.py")
+    runner_dir = repo / "stage2_6_1" / "runner"
+    runner_dir.mkdir(parents=True, exist_ok=True)
+    for leaf in ("r21_full_collection_regression.py",
+                 "r21_collection_auditor.py",
+                 "r17_admission_issue.py"):
+        shutil.copyfile(runner_repo_path(leaf), runner_dir / leaf)
 
 
-def git_repo_with_candidate(tmp: Path, *, probe: bool = False
+def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
+                            imported_hook: bool = False
                             ) -> tuple[Path, str, str]:
     """两提交沙箱仓(Commit A 需有 parent,满足签发器校验)。
 
-    base 提交携带完整测试源树 + src 根,cand 提交为候选。
-    canonical 树真实展开 = 8 通过 + 7 历史 skip;probe 树 =
-    2 通过 + 1 失败 + 7 历史 skip。"""
+    base 提交携带完整测试源树 + src 根 + runner 面,cand 提交为
+    候选。canonical 树真实展开 = 8 通过 + 7 历史 skip;probe 树 =
+    2 通过 + 1 失败 + 7 历史 skip;imported_hook 树 = 审查反例
+    形状(import 式收集钩子,10 项含 1 失败)。"""
     repo = tmp / "relrepo"
     repo.mkdir(parents=True)
     for args in (
@@ -194,7 +244,8 @@ def git_repo_with_candidate(tmp: Path, *, probe: bool = False
     ):
         subprocess.run(args, cwd=str(repo), check=True)
     (repo / "base.txt").write_text("base\n")
-    write_sandbox_test_tree(repo, probe=probe)
+    write_sandbox_test_tree(repo, probe=probe,
+                            imported_hook=imported_hook)
     subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True)
     subprocess.run(["git", "commit", "-qm", "base"], cwd=str(repo),
                    check=True)
@@ -235,6 +286,18 @@ def sync_deploy_surface(repo: Path, commit_a: str, deploy_root: Path) -> Path:
             capture_output=True, check=True).stdout
         (src_dir / rel.rsplit("/", 1)[-1]).write_bytes(
             blob.replace(b"\r", b""))
+    # v4 执行面:runner 目录(executor/auditor/issuer)按候选 blob
+    # CR 规范化字节同步(record executor_face 绑定部署字节)。
+    runner_dir = Path(deploy_root) / "stage2_6_1_runner"
+    runner_dir.mkdir(parents=True, exist_ok=True)
+    for rel in ("stage2_6_1/runner/r21_full_collection_regression.py",
+                "stage2_6_1/runner/r21_collection_auditor.py",
+                "stage2_6_1/runner/r17_admission_issue.py"):
+        blob = subprocess.run(
+            ["git", "-C", str(repo), "show", f"{commit_a}:{rel}"],
+            capture_output=True, check=True).stdout
+        (runner_dir / rel.rsplit("/", 1)[-1]).write_bytes(
+            blob.replace(b"\r", b""))
     return target
 
 
@@ -252,14 +315,23 @@ def run_executor(out_dir: Path, repo: Path, commit_a: str,
         "--deploy-root", str(deploy_root), "--out-dir", str(out_dir),
         "--substance-src", str(substance_src()),
     ]
+    # v4:合法生成 hook 批准 = 候选树静态绑定集合(canonical 沙箱
+    # conftest 的 pytest_generate_tests;真实树为空)。
+    bindings = candidate_hook_bindings(
+        repo, commit_a, candidate_test_map(repo, commit_a))
+    for deploy_path, rows in sorted(bindings.items()):
+        if any(row["hook"] == "pytest_generate_tests" for row in rows):
+            command += ["--approved-generate-tests", deploy_path]
     if protocol != "full":
         command += ["--protocol", protocol]
     if differential is not None:
         command += ["--differential", str(differential)]
     for shard in (shards or []):
         command += ["--shard", shard]
+    proc_env = {k: v for k, v in os.environ.items()
+                if not k.startswith("PYTEST_")}
     proc = subprocess.run(command, capture_output=True, text=True,
-                          timeout=900)
+                          timeout=900, env=proc_env)
     assert proc.returncode in expect_rc, (
         f"executor rc={proc.returncode}\n{proc.stdout}\n{proc.stderr}")
     summary = json.loads((Path(out_dir) / "summary.json").read_text(
@@ -310,7 +382,13 @@ def rehash_artifact(run_dir: Path, name: str) -> str:
         for entry in doc.get("junit", []):
             if entry.get("path") == name:
                 entry["sha256"] = digest
-
+        for block in (doc.get("collection_run", {}).get("runs", [])
+                      + doc.get("execution", {}).get("runs", [])):
+            art = block.get("audit") or {}
+            if art.get("path") == name:
+                art["sha256"] = digest
+        if doc.get("audit_manifest", {}).get("path") == name:
+            doc["audit_manifest"]["sha256"] = digest
     edit_record(run_dir, _fix)
     return digest
 

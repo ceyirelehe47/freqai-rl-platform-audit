@@ -1,0 +1,56 @@
+{
+  "scope": "Real local pytest runs plus specified verifier function excerpts; not full issuer/consumer or WSL verification.",
+  "runtime": {
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "pytest": "9.0.2"
+  },
+  "original_commit": "9be9f1f61075936a20d27254e4cff6462959e3f6",
+  "control": {
+    "collected": 10,
+    "junit": {
+      "tests": 10,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 7
+    },
+    "rc": 1
+  },
+  "filtered": {
+    "collected": 9,
+    "junit": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 7
+    },
+    "rc": 0
+  },
+  "missing_ids": [
+    "tests/route_c_stage2_6_1/test_parameter.py::test_parameter[1]"
+  ],
+  "checks": {
+    "same_source_files_control_and_filtered": true,
+    "imported_hook_config_guard_accepts": true,
+    "direct_hook_control_rejected": "regression_config_filter_hook:pytest_collection_modifyitems",
+    "full_directory_argv_accepted": true,
+    "raw_filtered_collection_equals_execution": true,
+    "filtered_base_ids_equal_static_full_function_set": true,
+    "filtered_all_test_files_still_covered": true,
+    "filtered_historical_skip_set_exact": true,
+    "filtered_stdout_summary_matches_junit": true,
+    "tracked_identity_fields_compatible": true
+  },
+  "source_snapshot": {
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/route_c_stage2_6_1/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/route_c_stage2_6_1/conftest.py": "5f50c46c6bc6437e04f7b5ab7870f6c7cf6fc8e14b579b7c734d75d72217f585",
+    "tests/route_c_stage2_6_1/selection_support.py": "43fa84151a72f9c6399ac0eb192daf0017d56d6e52ce807208fafa5d62753d2a",
+    "tests/route_c_stage2_6_1/test_curriculum261_r12_governance_r12.py": "a3ea3803ff1e22b048024382028c2dc850aaadc93a2713e54a8d3029171fa1cd",
+    "tests/route_c_stage2_6_1/test_curriculum261_r13_governance.py": "89bbe769b1673236527680a823653b9a7562894e026321ee7bc5efbaaf10b298",
+    "tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py": "28c4834bc0694285be2e8ff9bf60de2939e0f2dc99683b871c3286d7851dfdce",
+    "tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py": "918678b3de6139b6aff78e68f9daa4506ae1d38f5dfd77263790a170431cc76c",
+    "tests/route_c_stage2_6_1/test_curriculum261_r16_governance.py": "ba4d656789783b98df6efd665de7db234433bd32115b58c696f8c5f57d61bd23",
+    "tests/route_c_stage2_6_1/test_parameter.py": "875deadc59fa03885b2fcf7d8179cab003401f5e746f08cf00229b401a338c4a"
+  },
+  "conclusion": "An imported effective collection hook is not detected by the current top-level-def config scan. Raw collect+run agreement does not establish absence of shared filtering."
+}

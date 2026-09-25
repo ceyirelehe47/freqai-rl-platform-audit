@@ -132,6 +132,20 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     except (ValueError, KeyError) as exc:
         raise SystemExit(
             "refused: substance verifier output unreadable") from exc
+    # v4(2026-09-25/R22):新签发必须绑定有效收集环境受控面证据
+    # (运行期审计/最小环境/执行面身份);v3 历史 record 不可用于
+    # 新签发(核验器仍接受其历史核验面,父链递归用)。
+    evidence_path = Path(preregistration["regression_evidence"])
+    try:
+        record_doc = json.loads(
+            evidence_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(
+            "refused: regression evidence unreadable") from exc
+    if record_doc.get("format") != (
+            "cur261-r17-candidate-regression-evidence-v4"):
+        raise SystemExit(
+            "refused: new issuance requires evidence format v4")
     admission = {
         "format": ADMISSION_FORMAT,
         "commit_a_sha": commit_a,
