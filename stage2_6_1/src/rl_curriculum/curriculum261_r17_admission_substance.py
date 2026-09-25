@@ -115,6 +115,9 @@ _OUT_OF_ROOT_ID_RE = re.compile(r"^\s*\S+\.py::\S+")
 _COLLECT_SUMMARY_RE = re.compile(r"^(\d+) tests? collected in ")
 _PASSED_SUMMARY_RE = re.compile(
     r"(\d+) passed(?:, (\d+) skipped)?[^\n]*\bin\b")
+_COLLECTED_ID_RE = re.compile(
+    r"^tests/route_c_stage2_6_1/\S+\.py::.*$")
+_OUT_OF_ROOT_ID_RE = re.compile(r"^\s*\S+\.py::\S+")
 
 #: 全量回归固定历史 skip 允许表(与 runner/r17_v2_c13_admission_guard.py
 #: 的 HISTORICAL_SKIP_IDS 同值;此处为准入实质绑定的独立权威副本,
@@ -126,8 +129,6 @@ HISTORICAL_SKIP_IDS = frozenset({
     "TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain",
     "tests.route_c_stage2_6_1.test_curriculum261_r14_governance."
     "TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain",
-    "tests.route_c_stage2_6_1.test_curriculum261_r15_governance."
-    "TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain",
     "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
     "TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present",
     "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
