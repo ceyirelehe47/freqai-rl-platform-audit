@@ -129,6 +129,8 @@ HISTORICAL_SKIP_IDS = frozenset({
     "TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain",
     "tests.route_c_stage2_6_1.test_curriculum261_r14_governance."
     "TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain",
+    "tests.route_c_stage2_6_1.test_curriculum261_r15_governance."
+    "TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain",
     "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
     "TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present",
     "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
