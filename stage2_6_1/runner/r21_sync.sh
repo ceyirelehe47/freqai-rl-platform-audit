@@ -10,11 +10,13 @@ D="$HOME/projects/crypto_rl"
 
 mkdir -p "$D/src/rl_curriculum" "$D/tests/route_c_stage2_6_1" "$D/stage2_6_1_runner"
 
-# 1) 本轮变更的 src 模块(substance v3)
-tr -d '\r' < "$REPO/stage2_6_1/src/rl_curriculum/curriculum261_r17_admission_substance.py" \
-  > "$D/src/rl_curriculum/curriculum261_r17_admission_substance.py"
-
-# 2) runner(v3 执行器;签发器/闸门未变,一并重放保证一致)
+# 1) src 面:候选全体 rl_curriculum 模块(v3 import_surface 要求
+#    部署 src 与候选 Git blob 逐成员 CR 规范化字节一致;漏同步
+#    会在全量自验 fail-closed——见 attempt4_deploy_drift_reject)
+for f in "$REPO"/stage2_6_1/src/rl_curriculum/*.py; do
+  tr -d '\r' < "$f" > "$D/src/rl_curriculum/$(basename "$f")"
+done
+# 2) runner(v3 执行器;签发器一并重放保证一致)
 tr -d '\r' < "$REPO/stage2_6_1/runner/r21_full_collection_regression.py" \
   > "$D/stage2_6_1_runner/r21_full_collection_regression.py"
 tr -d '\r' < "$REPO/stage2_6_1/runner/r17_admission_issue.py" \
