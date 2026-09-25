@@ -1,0 +1,1813 @@
+# -*- coding: utf-8 -*-
+"""R17 正式准入实质绑定(外部审查 RouteC_R18_Report_Review_4a5d2fd
+§4.2 收口;erratum 开放门 §4.2)。
+
+签发端(runner/r17_admission_issue.py)与消费端
+(curriculum261_r17_admission.py)共用的**唯一**验证实现(同源核验):
+
+1. plan 身份实算:preregistration.plan_digest 必须等于 Commit A 的
+   git tree digest 复算值(git rev-parse <sha>^{tree};现行
+   preregistration 口径)。只接受该口径;未知口径 fail closed。
+   签发时写一个 digest 字段本身不构成验证——必须重算比对。
+2. 候选回归证据核验:机读 regression evidence record
+   (cur261-r17-candidate-regression-evidence-v3),绑定 commit_a:
+   - junit 原件逐个重解析(sha256 先行比对),聚合计数与 record
+     声明一致;0 failures / 0 errors;
+   - skipped 测试 ID 集合 == HISTORICAL_SKIP_IDS 允许表
+     (scope=="formal" 强制;差分 parent 证据同规则);
+   - 多文件唯一性(F3):同一 junit 文件以路径别名或同内容重复
+     引用一律拒绝;跨文件 testcase ID 重叠拒绝。合法分片 = 不重
+     叠 ID 的并集;不同完整运行的相同测试属不同 record,分别
+     判定,绝不叠加计数,也不静默去重掩盖错误;
+   - 完整参数实例(F1,v3):期望全集来自 record 携带的
+     collection_run 原件——同候选、受控环境下真实 pytest
+     --collect-only -q 的 stdout 原件(sha256 绑定),由本模块
+     自行重解析出展开后的 node-ID 全集(参数化 fixture/
+     generate_tests 展开全在其中),并与 junit 实际 testcase
+     multiset 精确相等;静态 AST 基础函数全集降级为旁证交叉
+     核对(base(collection)==静态全集、文件覆盖==候选测试文件
+     集、候选树 conftest 不得携带收集过滤 hook)。子集 collection
+     与子集 JUnit 彼此一致、同数换实例、仅跑部分参数实例均拒绝;
+   - 执行来源绑定(v3):collection_run 与 execution 两段各自携带
+     真实 command/interpreter/cwd/returncode==0/起止时间与
+     stdout/stderr 原件(sha256 绑定);execution stdout 的 pytest
+     摘要行必须与 junit 元素级计数一致;两段 interpreter/cwd/
+     python 版本/pytest 版本+插件清单/PYTEST_ADDOPTS/配置扫描
+     必须彼此一致(full 协议 argv 不得携带任何范围筛选入口,
+     提供部署面时 cwd==deploy_root、interpreter==验证进程解释器、
+     配置候选文件字节与收集时一致且无过滤内容);
+   - import 面(v3):record.import_surface.members 必须等于候选
+     Git 树 stage2_6_1/src/rl_curriculum 全体 .py blob 的 sha256
+     映射;提供部署面时逐成员字节必须与部署 src 一致,部署侧
+     多出的模块必须恰为 record 声明的 deploy_extra_modules;
+   - 差分协议(F2):parent 为 commit_a 祖先且 parent!=commit_a、
+     parent 证据**递归经过同一完整核验**(v3;部署面除外——
+     parent 是历史提交,部署面只对当前候选执行)、delta 无
+     src/rl_curriculum 统计面变更(git diff --name-only 实算比对
+     声明清单)。差分子记录自身的收集/执行原件按同一 v3 规则
+     绑定(positionals=声明的 delta 目标)。父 JUnit 缺失、有
+     失败、被替换或未全量覆盖时子差分证据拒绝;
+   - 部署面(可选维度):签发/消费端在部署机上提供 deploy_root
+     时,部署 tests/route_c_stage2_6_1 扁平面字节必须与候选 Git
+     树规范化映射一致。离线核验(未提供 deploy_root)无法触及
+     部署面,该维度仅在提供时执行;其余维度始终执行。
+
+职责边界(2026-09-20 澄清,防误读):
+1) 的实算只完成**代码身份绑定**——在 preregistration 将
+plan_digest 口径定义为 "Commit A 的 git tree digest" 的前提下,
+它证明"准入所指代码 = 该 tree"。它**不构成实验计划内容绑定**:
+不验证计划文档/参数与审查方所见一致,也不验证 tree 内任何计划
+文本的哈希。实验计划内容的约束由各自合同承担(design 侧
+plan-lock 的 plan digest 口径与链上 provenance-lock),不在本模块。
+2) 的回归证据核验完成**回归绿绑定**(junit 元素级 + sha256 +
+commit_a 绑定 + 完整集合/唯一性/差分链),与 1) 相互独立、
+缺一不可。
+杜绝"签发与消费各说各话"。
+
+v2 record(cur261-r17-candidate-regression-evidence-v2)无收集原件
+与执行来源绑定,2026-09-25 起格式不符即拒绝(fail closed;仓库内
+v2 原件保留为历史证据,不迁移、不倒填,不可用于新签发)。
+"""
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import time
+import xml.etree.ElementTree as ET
+from collections import Counter
+from pathlib import Path, PurePosixPath
+
+#: 准入格式 v2:新增必填 substance 块(v1 无实质绑定,永久停用)。
+ADMISSION_FORMAT_V2 = "cur261-r17-formal-admission-v2"
+SUBSTANCE_FORMAT = "cur261-r17-admission-substance-v1"
+#: v3(2026-09-25):完整收集原件/执行来源绑定;v2 及更早 record 无
+#: collection_run 原件与两段同源身份,不满足新完整实例规则,fail
+#: closed(历史 v2 原件保留历史意义,不迁移、不倒填,不可用于新签发)。
+REGRESSION_EVIDENCE_FORMAT = "cur261-r17-candidate-regression-evidence-v3"
+#: v4(2026-09-25/R22):有效收集环境受控面。v3 只挡 conftest 顶层
+#: def 的两个收集修改 hook——导入式/别名/包装/外部注册的
+#: pytest_pycollect_makeitem 可同时缩减收集与执行仍获 full(审查
+#: 反例 probe_worktree:LOCAL_QUICK_TESTS 门控,10 项/1 failed →
+#: 9 项全绿)。v4 在 v3 全部核验之上追加:静态 hook 绑定扫描(全
+#: 树、含 import/assign/setattr 绑定)、运行期有效插件/钩子审计
+#: (in-process 审计器经执行端固定 -p 注入)、最小子进程环境与
+#: 插件自动加载关闭。
+REGRESSION_EVIDENCE_FORMAT_V4 = "cur261-r17-candidate-regression-evidence-v4"
+#: v5(2026-09-25/R23):插件生命周期覆盖。v4 三阶段快照对"会话中
+#: 途注册→影响收集→注销"的临时插件不可见(审查反例
+#: probe_cases/scoped_specname:sessionstart 注册 specname 别名
+#: 过滤插件,collection_finish tryfirst 注销,三快照全 pass 仍
+#: 缩减 10→9)。v5 在 v4 全部核验之上追加:审计器实现
+#: pytest_plugin_registered(historic 重放+实时通知),逐注册
+#: 事件按实际对象来源分类、append-only JSONL 落盘、违规后
+#: verdict 永久 violations(注销/清理不可恢复);v4/v3 历史
+#: record 维持可核验(父链递归),不可用于新签发(签发器要求
+#: v5)。
+REGRESSION_EVIDENCE_FORMAT_V5 = "cur261-r17-candidate-regression-evidence-v5"
+_REGRESSION_FORMATS = (REGRESSION_EVIDENCE_FORMAT,
+                       REGRESSION_EVIDENCE_FORMAT_V4,
+                       REGRESSION_EVIDENCE_FORMAT_V5)
+AUDIT_MANIFEST_FORMAT = "cur261-r22-collection-audit-manifest-v1"
+#: 审计原件格式:v2(R23)= v1 三阶段快照 + 生命周期事件/违规/
+#: 对账段 + JSONL 流水绑定。v1 原件仅随 v4 及更早 record 出现
+#: (历史核验面);v5 record 要求 v2。
+AUDIT_RECORD_FORMAT = "cur261-r23-collection-audit-v2"
+_AUDIT_RECORD_FORMATS = ("cur261-r22-collection-audit-v1",
+                         AUDIT_RECORD_FORMAT)
+_LIFECYCLE_MONITOR_HOOK = "pytest_plugin_registered"
+_AUDITOR_MODULE_NAME = "r21_collection_auditor"
+_AUDITOR_PLUGIN_ARGS = ("-p", _AUDITOR_MODULE_NAME)
+_AUDIT_STAGES = ("configure", "collection_finish", "sessionfinish")
+#: 影响收集"集合"的过滤 hook:def/import/assign/setattr 任何形式
+#: 的名字绑定(全树静态)与任何来源的运行期实现均拒绝。审计器
+#: (runner/r21_collection_auditor.py)持同值常量,漂移由测试交叉
+#: 断言暴露。
+FILTERING_HOOKS = frozenset({
+    "pytest_pycollect_makeitem", "pytest_collection_modifyitems",
+    "pytest_ignore_collect", "pytest_collect_file",
+    "pytest_collect_directory", "pytest_collection",
+})
+#: 生成 hook:项目合法动态参数化形态,仅允许经 manifest 预先批准
+#: (deploy 相对路径 + CR 规范化 sha 与候选 blob 逐字节一致)。
+GENERATION_HOOKS = frozenset({"pytest_generate_tests"})
+GUARDED_HOOKS = FILTERING_HOOKS | GENERATION_HOOKS
+#: v4 子进程环境:显式继承白名单(键名或前缀)+ 执行端强制键。
+#: 白名单外环境变量(含任何 PYTEST_* 与未知快速模式键)不进入
+#: 收集/执行子进程;被剥离键只记录存在性(键名),不记录值。
+_ENV_INHERIT_KEYS = frozenset({
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG",
+    "TMPDIR", "TEMP", "TMP", "HOSTNAME", "WSL_DISTRO_NAME",
+    "WSL_INTEROP",
+})
+_ENV_INHERIT_PREFIXES = ("LC_",)
+_ENV_FORCED_KEYS = frozenset({
+    "PYTHONDONTWRITEBYTECODE", "PYTEST_DISABLE_PLUGIN_AUTOLOAD",
+    "PYTHONPATH", "R21_AUDIT_OUT", "R21_AUDIT_MANIFEST",
+})
+PLAN_DIGEST_METHOD_TREE = "git_tree_digest"
+
+#: v3 全量运行 argv 过滤面:任何会改变测试范围/收集语义的入口
+#: 出现在 full 协议 command 中即拒绝(fail closed;targeted 定向
+#: 开发测试不经过本模块 full 路径)。
+_ARGV_FORBIDDEN = frozenset({
+    "-k", "-m", "-M", "--marker", "--deselect", "--ignore",
+    "--ignore-glob", "--lf", "--last-failed", "--ff", "--failed-first",
+    "-x", "--exitfirst", "--maxfail", "--stepwise", "--sw", "-p",
+    "--rootdir", "--pyargs",
+})
+#: 允许出现的非过滤旗标(执行段 --collect-only 出现即拒绝)。
+_VALUE_FLAGS = frozenset({"--junitxml", "--timeout", "-n"})
+_CONFT_HOOKS = frozenset({"pytest_collection_modifyitems",
+                          "pytest_ignore_collect"})
+_CONFIG_CANDIDATES = ("pytest.ini", "pyproject.toml", "tox.ini",
+                     "setup.cfg", "conftest.py")
+_ENV_IDENTITY_KEYS = ("python_version", "pytest_version_output",
+                      "pytest_addopts", "pytest_plugins_env",
+                      "config_scan")
+_COLLECTED_ID_RE = re.compile(
+    r"^tests/route_c_stage2_6_1/\S+\.py::\S+$")
+_OUT_OF_ROOT_ID_RE = re.compile(r"^\s*\S+\.py::\S+")
+_COLLECT_SUMMARY_RE = re.compile(r"^(\d+) tests? collected in ")
+_PASSED_SUMMARY_RE = re.compile(
+    r"(\d+) passed(?:, (\d+) skipped)?[^\n]*\bin\b")
+_COLLECTED_ID_RE = re.compile(
+    r"^tests/route_c_stage2_6_1/\S+\.py::.*$")
+_OUT_OF_ROOT_ID_RE = re.compile(r"^\s*\S+\.py::\S+")
+
+#: 全量回归固定历史 skip 允许表(与 runner/r17_v2_c13_admission_guard.py
+#: 的 HISTORICAL_SKIP_IDS 同值;此处为准入实质绑定的独立权威副本,
+#: 两表漂移由 test_admission_substance 的交叉断言暴露)。
+HISTORICAL_SKIP_IDS = frozenset({
+    "tests.route_c_stage2_6_1.test_curriculum261_r12_governance_r12."
+    "TestHistoricalEvidenceBinding::test_ancestry_semantics_pass",
+    "tests.route_c_stage2_6_1.test_curriculum261_r13_governance."
+    "TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain",
+    "tests.route_c_stage2_6_1.test_curriculum261_r14_governance."
+    "TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain",
+    "tests.route_c_stage2_6_1.test_curriculum261_r15_governance."
+    "TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain",
+    "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
+    "TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present",
+    "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
+    "TestExecutionSurfaceBytes::test_runner_shell_scripts_lf",
+    "tests.route_c_stage2_6_1.test_curriculum261_r16_governance."
+    "TestHistoricalEvidenceBindingR16::test_ancestry_and_r15_clean_chain",
+})
+
+_SRC_PREFIX = "stage2_6_1/src/rl_curriculum/"
+_TEST_SOURCE_ROOT = "stage2_6_1/tests/"
+_DEPLOYED_TEST_ROOT = "tests/route_c_stage2_6_1/"
+_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
+
+
+class SubstanceError(RuntimeError):
+    """实质绑定失败(fail closed;message 即拒绝原因)。"""
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _canonical(obj) -> str:
+    return json.dumps(obj, sort_keys=True, ensure_ascii=False,
+                      separators=(",", ":"))
+
+
+def substance_digest(substance: dict) -> str:
+    return "r17sub-" + hashlib.sha256(
+        _canonical(substance).encode("utf-8")).hexdigest()
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(repo), *args],
+                          capture_output=True, text=True, timeout=120)
+
+
+def _git_out(repo: Path, *args: str) -> bytes:
+    proc = subprocess.run(["git", "-C", str(repo), *args],
+                          capture_output=True, timeout=120)
+    if proc.returncode != 0:
+        raise SubstanceError(
+            "git_failed:" + " ".join(args[:2]))
+    return proc.stdout
+
+
+def git_tree_digest(repo: Path, commit_a: str) -> str:
+    """Commit A 的 git tree digest 实算(唯一接受的 plan 身份口径)。"""
+    proc = _git(repo, "rev-parse", "--verify", commit_a + "^{tree}")
+    if proc.returncode != 0:
+        raise SubstanceError("commit_a_tree_unavailable")
+    out = proc.stdout.strip()
+    if not out:
+        raise SubstanceError("commit_a_tree_unavailable")
+    return out
+
+
+def _plan_method_supported(preregistration: dict) -> bool:
+    method = str(preregistration.get("plan_digest_method", ""))
+    return (method == PLAN_DIGEST_METHOD_TREE
+            or ("^{tree}" in method and "rev-parse" in method))
+
+
+# ----------------------------------------------------------- 测试源树映射
+
+def candidate_test_map(repo: Path, commit_a: str) -> dict[str, dict]:
+    """候选 Git 测试源树 → r17_sync 部署映射(与 runner/
+    r17_v2_c13_admission_guard.candidate_test_map 同规则:递归
+    stage2_6_1/tests/ 下全部 .py(含 conftest/支撑模块),basename
+    展平到 tests/route_c_stage2_6_1/,CR 字节删除规范化;casefold
+    碰撞与非 regular blob 拒绝。候选树——而非调用方清单——决定
+    完整成员集。"""
+    repo = Path(repo)
+    if _COMMIT_RE.fullmatch(commit_a or "") is None:
+        raise SubstanceError("test_source_mapping_invalid:commit_malformed")
+    _git_out(repo, "cat-file", "-e", commit_a + "^{commit}")
+    tree = _git_out(repo, "ls-tree", "-r", "-z", "--full-tree", commit_a,
+                    "--", _TEST_SOURCE_ROOT.rstrip("/"))
+    result: dict[str, dict] = {}
+    folded: dict[str, str] = {}
+    for item in tree.split(b"\0"):
+        if not item:
+            continue
+        try:
+            header, raw = item.split(b"\t", 1)
+            mode, kind, oid = header.decode("ascii").split()
+            source = raw.decode("utf-8", errors="strict")
+        except (ValueError, UnicodeError) as exc:
+            raise SubstanceError(
+                "test_source_mapping_invalid:malformed_tree") from exc
+        if not source.endswith(".py"):
+            continue
+        parts = PurePosixPath(source).parts
+        if not source.startswith(_TEST_SOURCE_ROOT) or ".." in parts \
+                or any(c in source for c in ("\r", "\n", "\t", "\\")):
+            raise SubstanceError(
+                f"test_source_mapping_invalid:unsafe_path:{source}")
+        if mode not in ("100644", "100755") or kind != "blob":
+            raise SubstanceError(
+                f"test_source_mapping_invalid:nonregular:{source}")
+        leaf = parts[-1]
+        destination = _DEPLOYED_TEST_ROOT + leaf
+        key = destination.casefold()
+        if key in folded:
+            raise SubstanceError("test_source_collision:" + source)
+        body = _git_out(repo, "cat-file", "blob", oid)
+        normalized = body.replace(b"\r", b"")
+        result[destination] = {
+            "source_path": source,
+            "deploy_path": destination,
+            "deploy_sha256": hashlib.sha256(normalized).hexdigest(),
+            "deploy_size": len(normalized),
+            "is_test": leaf.startswith("test_"),
+        }
+        folded[key] = destination
+    if not result or not any(r["is_test"] for r in result.values()):
+        raise SubstanceError("test_source_mapping_empty")
+    return dict(sorted(result.items()))
+
+
+def static_collection_ids(repo: Path, commit_a: str) -> set[str]:
+    """从候选 Git 树静态推导应收集测试的 node-ID 全集(模块级
+    test_* 函数 + Test* 类一级 test_* 方法;与该仓 pytest 收集
+    语义一致——2026-09-20 在真实树 b2c345e 活体验证:
+    base(2303 个收集 ID)==静态 1840 全集,零幻影/零遗漏)。
+    参数化维度([...] 后缀)由 multiset 精确匹配承载,不在此展开。"""
+    mapping = candidate_test_map(repo, commit_a)
+    ids: set[str] = set()
+    for row in mapping.values():
+        if not row["is_test"]:
+            continue
+        blob = _git_out(repo, "show", f"{commit_a}:{row['source_path']}")
+        try:
+            module = ast.parse(blob)
+        except SyntaxError as exc:
+            raise SubstanceError(
+                f"test_source_unparseable:{row['source_path']}") from exc
+        prefix = row["deploy_path"] + "::"
+        for node in module.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                    and node.name.startswith("test_"):
+                ids.add(prefix + node.name)
+            elif isinstance(node, ast.ClassDef) \
+                    and node.name.startswith("Test"):
+                for sub in node.body:
+                    if isinstance(sub, (ast.FunctionDef,
+                                        ast.AsyncFunctionDef)) \
+                            and sub.name.startswith("test_"):
+                        ids.add(prefix + node.name + "::" + sub.name)
+    if not ids:
+        raise SubstanceError("static_collection_empty")
+    return ids
+
+
+def junit_nodeid(classname: str, name: str) -> str:
+    """junit classname::name → pytest node-ID(与 runner/
+    r17_v2_c13_admission_guard.junit_nodeid 同转换;两实现漂移由
+    test_admission_substance 交叉断言暴露)。"""
+    parts = classname.split(".")
+    if parts[:2] != ["tests", "route_c_stage2_6_1"] or len(parts) < 3 \
+            or not parts[2].startswith("test_"):
+        raise SubstanceError(
+            f"regression_junit_classname_unknown:{classname}")
+    return "/".join(parts[:3]) + ".py::" + "::".join(parts[3:] + [name])
+
+
+def _param_base(node_id: str) -> str:
+    head, sep, last = node_id.rpartition("::")
+    if "[" in last:
+        last = last[:last.index("[")]
+    return head + sep + last if sep else last
+
+
+def verify_deployment_surface(deploy_root: Path, mapping: dict) -> None:
+    """部署测试面只读核验:tests/route_c_stage2_6_1 扁平面成员与
+    字节必须等于候选映射(与 guard.deployment_test_errors 同规则;
+    不一致即 SubstanceError)。"""
+    directory = Path(deploy_root) / _DEPLOYED_TEST_ROOT
+    if not directory.is_dir():
+        raise SubstanceError(
+            "regression_deployment_surface_mismatch:missing_dir")
+    found: dict[str, Path] = {}
+    for path in sorted(directory.iterdir()):
+        st = path.lstat()
+        if path.name == "__pycache__" and stat.S_ISDIR(st.st_mode):
+            continue
+        if path.suffix == ".py":
+            found[_DEPLOYED_TEST_ROOT + path.name] = path
+        elif stat.S_ISDIR(st.st_mode) or stat.S_ISLNK(st.st_mode):
+            raise SubstanceError(
+                "regression_deployment_surface_mismatch:unexpected:"
+                + path.name)
+    if set(found) != set(mapping):
+        raise SubstanceError(
+            "regression_deployment_surface_mismatch:"
+            + json.dumps({
+                "missing": sorted(set(mapping) - set(found))[:3],
+                "extra": sorted(set(found) - set(mapping))[:3]},
+                ensure_ascii=False))
+    for dp, path in found.items():
+        body = path.read_bytes()
+        if hashlib.sha256(body).hexdigest() != mapping[dp]["deploy_sha256"] \
+                or len(body) != mapping[dp]["deploy_size"]:
+            raise SubstanceError(
+                f"regression_deployment_surface_mismatch:bytes:{dp}")
+
+
+# ----------------------------------------------------------- junit 解析
+
+def parse_junit(path: Path) -> dict:
+    """junit XML 元素级重解析(不信 record 声明,也不信 suite 汇总属性)。
+
+    计数全部从 <testcase> 子元素逐个清点(failure/error/skipped),
+    再与 testsuite 聚合属性交叉核对:两边不一致 => 拒绝(捕捉
+    "属性为绿但实际含 failure/error"的伪造/损坏 junit)。
+    skipped 测试 ID、用例 ID 唯一性与非空性一并核验;
+    返回 case_id 列表(classname::name,保序)供多文件唯一性与
+    执行 multiset 核验。
+    """
+    try:
+        root = ET.parse(path).getroot()
+    except (OSError, ET.ParseError) as exc:
+        raise SubstanceError(
+            f"regression_junit_unreadable:{path.name}") from exc
+
+    def _int(el, key) -> int:
+        raw = el.get(key, "0") or "0"
+        try:
+            return int(float(raw))
+        except ValueError:
+            return 0
+
+    attr_totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    element_totals = {"tests": 0, "failures": 0, "errors": 0,
+                      "skipped": 0}
+    skipped_ids: list[str] = []
+    case_ids: list[str] = []
+    seen_cases: set[str] = set()
+    suites = [root] if root.tag == "testsuite" else []
+    suites.extend(root.iter("testsuite"))
+    seen_roots = set()
+    for suite in suites:
+        if id(suite) in seen_roots:
+            continue
+        seen_roots.add(id(suite))
+        for key in attr_totals:
+            attr_totals[key] += _int(suite, key)
+        for case in suite.iter("testcase"):
+            cid = case.get("classname", "") + "::" + case.get("name", "")
+            if not case.get("name"):
+                raise SubstanceError(
+                    f"regression_junit_testcase_malformed:{path.name}")
+            if cid in seen_cases:
+                raise SubstanceError(
+                    f"regression_junit_duplicate_testcase:{cid}")
+            seen_cases.add(cid)
+            case_ids.append(cid)
+            element_totals["failures"] += len(case.findall("failure"))
+            element_totals["errors"] += len(case.findall("error"))
+            if case.find("skipped") is not None:
+                element_totals["skipped"] += 1
+                skipped_ids.append(cid)
+    element_totals["tests"] = len(seen_cases)
+    if element_totals["tests"] == 0:
+        raise SubstanceError(f"regression_junit_empty:{path.name}")
+    for key in ("tests", "failures", "errors", "skipped"):
+        if attr_totals[key] != element_totals[key]:
+            raise SubstanceError(
+                f"regression_junit_element_attribute_mismatch:{key}"
+                f"({element_totals[key]}!={attr_totals[key]})")
+    return {**element_totals, "skipped_ids": skipped_ids,
+            "case_ids": case_ids}
+
+
+def _resolve(record_path: Path, raw: str) -> Path:
+    p = Path(raw)
+    return p if p.is_absolute() else (record_path.parent / p)
+
+
+def _verify_counts(record: dict, aggregate: dict, skipped_ids: list[str],
+                   label: str) -> None:
+    declared = record.get("counts", {})
+    for key in ("tests", "failures", "errors", "skipped"):
+        if aggregate[key] != declared.get(key):
+            raise SubstanceError(
+                f"{label}_count_mismatch:{key}"
+                f"({aggregate[key]}!={declared.get(key)})")
+    if aggregate["failures"] != 0 or aggregate["errors"] != 0:
+        raise SubstanceError(f"{label}_not_green")
+    allowed = set(record.get("historical_skip_ids", []))
+    if len(allowed) != len(record.get("historical_skip_ids", [])):
+        raise SubstanceError(f"{label}_skip_ids_duplicated")
+    if set(skipped_ids) != allowed:
+        raise SubstanceError(f"{label}_skip_ids_mismatch")
+    if record.get("scope") == "formal":
+        # full:skip 恰为历史允许表;差分:delta 内允许的 skip 必须
+        # 仍在表内(差分子集不含全部历史 skip 属正常)。
+        if record.get("protocol") == "full":
+            if allowed != HISTORICAL_SKIP_IDS:
+                raise SubstanceError(
+                    f"{label}_skip_ids_outside_allowed_table")
+        elif allowed - HISTORICAL_SKIP_IDS:
+            raise SubstanceError(
+                f"{label}_skip_ids_outside_allowed_table")
+
+
+def _verify_test_files_manifest(record: dict, mapping: dict) -> None:
+    rows = record.get("test_files")
+    if not isinstance(rows, list) or not rows:
+        raise SubstanceError("regression_test_files_missing")
+    by_deploy: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise SubstanceError("regression_test_files_missing:row")
+        dp = row.get("deploy_path")
+        if not isinstance(dp, str) or not dp or dp in by_deploy:
+            raise SubstanceError(
+                "regression_test_files_mismatch:duplicate_or_bad_row")
+        by_deploy[dp] = row
+    if set(by_deploy) != set(mapping):
+        raise SubstanceError(
+            "regression_test_files_mismatch:"
+            + json.dumps({
+                "missing": sorted(set(mapping) - set(by_deploy))[:3],
+                "extra": sorted(set(by_deploy) - set(mapping))[:3],
+                "missing_n": len(set(mapping) - set(by_deploy)),
+                "extra_n": len(set(by_deploy) - set(mapping))},
+                ensure_ascii=False))
+    for dp, row in by_deploy.items():
+        if row != mapping[dp]:
+            raise SubstanceError(f"regression_test_files_mismatch:{dp}")
+
+
+def parse_collection_stdout(text: str) -> list[str]:
+    """真实 ``pytest --collect-only -q`` stdout 原件 → 展开 node-ID。
+
+    只接受本项目测试根(``tests/route_c_stage2_6_1/``)下合法的
+    node-ID 行;要求恰好一行 ``N tests collected in ...`` 且 N 与
+    ID 行数一致;根外 ``*.py::`` 行视为收集范围泄漏直接拒绝。
+    参数化 fixture / pytest_generate_tests 的展开实例全部体现为
+    各自的 node-ID 行——这就是 v3 期望全集的权威来源,不再接受
+    调用方自报 ID 列表。
+    """
+    ids: list[str] = []
+    counts: list[int] = []
+    for raw in text.splitlines():
+        line = raw.rstrip("\r").strip()
+        if not line:
+            continue
+        matched = _COLLECT_SUMMARY_RE.match(line)
+        if matched:
+            counts.append(int(matched.group(1)))
+            continue
+        if _COLLECTED_ID_RE.match(line):
+            ids.append(line)
+            continue
+        if _OUT_OF_ROOT_ID_RE.match(line):
+            raise SubstanceError(
+                "regression_collection_scope_leak:" + line[:160])
+    if len(counts) != 1:
+        raise SubstanceError(
+            "regression_collection_summary_lines:" + str(len(counts)))
+    if counts[0] != len(ids):
+        raise SubstanceError(
+            f"regression_collection_count_mismatch"
+            f"({counts[0]}!={len(ids)})")
+    if not ids:
+        raise SubstanceError("regression_collection_empty")
+    if len(set(ids)) != len(ids):
+        raise SubstanceError("regression_collection_duplicate")
+    return ids
+
+
+def _artifact_bytes(record_path: Path, block, label: str) -> bytes:
+    """record 内 {path, sha256} 原件引用:存在 + 字节重算一致。"""
+    if not (isinstance(block, dict)
+            and isinstance(block.get("path"), str) and block["path"]
+            and isinstance(block.get("sha256"), str)):
+        raise SubstanceError(f"{label}_artifact_invalid")
+    path = _resolve(record_path, block["path"])
+    if not path.is_file():
+        raise SubstanceError(f"{label}_artifact_missing")
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != block["sha256"]:
+        raise SubstanceError(f"{label}_artifact_sha_mismatch")
+    return data
+
+
+def _verify_run_argv(command, *, collect_only: bool,
+                     positionals_rule,
+                     auditor_plugin_ok: bool = False) -> None:
+    """argv 过滤面:任何范围筛选入口即拒;positionals 必须与规则
+    精确一致——完整目录(单 run full)、根内分片/差分目标
+    ("under_root" 时仅要求全部落在测试根下,成员完整性由
+    collection/junit 并集规则承载)。
+
+    v4:-p 仍属禁用入口,唯一例外是执行端固定注入的审计器
+    (恰为 ["-p", "r21_collection_auditor"] 一个键值对,值不可
+    换);调用方任意 -p 覆盖照旧拒绝。
+    """
+    if not (isinstance(command, list) and len(command) >= 3
+            and all(isinstance(a, str) and a for a in command)
+            and command[1] == "-m" and command[2] == "pytest"):
+        raise SubstanceError("regression_run_command_shape_invalid")
+    args = command[3:]
+    positionals: list[str] = []
+    expect_value = False
+    auditor_pairs = 0
+    for index, tok in enumerate(args):
+        if expect_value:
+            expect_value = False
+            continue
+        if tok.startswith("-"):
+            name = tok.split("=", 1)[0]
+            if name == "-p":
+                value = tok.split("=", 1)[1] if "=" in tok else None
+                if value is None:
+                    value = args[index + 1] if index + 1 < len(args) \
+                        else None
+                    expect_value = value is not None
+                if not auditor_plugin_ok or value != _AUDITOR_MODULE_NAME:
+                    raise SubstanceError("regression_run_argv_filter:-p")
+                auditor_pairs += 1
+                continue
+            if name in _ARGV_FORBIDDEN:
+                raise SubstanceError(f"regression_run_argv_filter:{name}")
+            if "=" not in tok and name in _VALUE_FLAGS:
+                expect_value = True
+            continue
+        positionals.append(tok)
+    if auditor_plugin_ok and auditor_pairs != 1:
+        raise SubstanceError("regression_run_argv_auditor_pair_missing")
+    if collect_only and "--collect-only" not in args:
+        raise SubstanceError("regression_run_collect_only_missing")
+    if not collect_only and "--collect-only" in args:
+        raise SubstanceError("regression_run_collect_only_unexpected")
+    if positionals_rule == "under_root":
+        if not positionals:
+            raise SubstanceError("regression_run_shard_targets_missing")
+        for target in positionals:
+            if not target.startswith(_DEPLOYED_TEST_ROOT):
+                raise SubstanceError(
+                    "regression_run_target_outside_root:" + target)
+    else:
+        if positionals != list(positionals_rule):
+            raise SubstanceError(
+                "regression_run_argv_target_mismatch:"
+                + json.dumps(positionals[:3]))
+
+
+def _scan_config_files(root: Path, target_dir: str) -> list[Path]:
+    """cwd(root) → 测试目录链上的 pytest 配置候选文件(只读)。"""
+    base = (root / target_dir).resolve()
+    chain = [base]
+    top = Path(root).resolve()
+    guard = 0
+    while chain[-1] != top:
+        parent = chain[-1].parent
+        if parent == chain[-1] or guard > 64:
+            raise SubstanceError("regression_config_scan_failed")
+        chain.append(parent)
+        guard += 1
+    files: list[Path] = []
+    for directory in chain:
+        for name in _CONFIG_CANDIDATES:
+            candidate = directory / name
+            if candidate.is_file():
+                files.append(candidate)
+    return sorted(files)
+
+
+def _reject_config_filters(path: Path, data: bytes) -> None:
+    """配置候选文件内容过滤面:addopts 携带筛选旗标或 conftest 定义
+    收集修改 hook 即拒绝(full fail closed)。"""
+    if path.name == "conftest.py":
+        try:
+            module = ast.parse(data)
+        except SyntaxError as exc:
+            raise SubstanceError(
+                f"regression_config_unparseable:{path.name}") from exc
+        for node in module.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                    and node.name in _CONFT_HOOKS:
+                raise SubstanceError(
+                    "regression_config_filter_hook:" + node.name)
+        return
+    for raw in data.replace(b"\r", b"").splitlines():
+        line = raw.strip().decode("utf-8", "replace")
+        key = line.split("=", 1)[0].split(":", 1)[0].strip()
+        if key not in ("addopts", "-addopts"):
+            continue
+        value = line.split("=", 1)[-1] if "=" in line else line
+        for token in value.replace(":", " ").split():
+            if token.split("=", 1)[0] in _ARGV_FORBIDDEN:
+                raise SubstanceError(
+                    "regression_config_addopts_filter:" + token)
+
+# ------------------------------------------------- 静态 hook 绑定扫描(v4)
+
+def scan_hook_bindings(data: bytes, label: str) -> list[dict]:
+    """AST 扫描单个 py 源:受控收集 hook 名字的任何绑定形态。
+
+    覆盖 def/async def(任意作用域,含类方法——插件类以方法名
+    注册)、import 的 as 别名、from-import 的目标名/别名、赋值
+    语句的 Name 目标(含元组/列表解包)、setattr 字面名注入。
+    字符串模板里的 hook 名不是命名空间绑定,不误报(沙箱支撑
+    模块以字符串生成合成树属合法用法)。
+    """
+    try:
+        tree = ast.parse(data.replace(b"\r", b""))
+    except SyntaxError as exc:
+        raise SubstanceError(
+            f"regression_source_unparseable:{label}") from exc
+    found: list[dict] = []
+
+    def _bind(hook: str, kind: str, lineno: int) -> None:
+        found.append({"hook": hook, "kind": kind, "lineno": lineno})
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name in GUARDED_HOOKS:
+                _bind(node.name, "def", node.lineno)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                bound = alias.asname or alias.name
+                if bound in GUARDED_HOOKS:
+                    _bind(bound, "import", node.lineno)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.asname and alias.asname in GUARDED_HOOKS:
+                    _bind(alias.asname, "import", node.lineno)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) \
+                else [node.target]
+            for target in targets:
+                names = [target] if isinstance(target, ast.Name) else [
+                    n for n in ast.walk(target)
+                    if isinstance(n, ast.Name)] \
+                    if isinstance(target, (ast.Tuple, ast.List)) else []
+                for name_node in names:
+                    if name_node.id in GUARDED_HOOKS:
+                        _bind(name_node.id, "assign", node.lineno)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                and node.func.id == "setattr" and len(node.args) >= 2 \
+                and isinstance(node.args[1], ast.Constant) \
+                and isinstance(node.args[1].value, str) \
+                and node.args[1].value in GUARDED_HOOKS:
+            _bind(node.args[1].value, "setattr", node.lineno)
+    return found
+
+
+def candidate_hook_bindings(repo: Path, commit_a: str,
+                            mapping: dict) -> dict[str, list[dict]]:
+    """候选 Git 树(权威)全体测试面 .py 的 hook 绑定扫描。
+
+    返回 {deploy_path: [binding...]};部署面同字节由部署面核验
+    承载,候选侧是批准/拒绝的权威依据。
+    """
+    out: dict[str, list[dict]] = {}
+    for deploy_path, row in mapping.items():
+        blob = _git_out(repo, "show", f"{commit_a}:{row['source_path']}")
+        bindings = scan_hook_bindings(blob, row["source_path"])
+        if bindings:
+            out[deploy_path] = bindings
+    return out
+
+
+def evaluate_static_hook_policy(
+        bindings: dict[str, list[dict]],
+        approved_generate_tests: dict[str, str]) -> dict:
+    """静态策略:过滤 hook 零容忍;生成 hook 仅允许 manifest 预批准
+    (deploy_path → CR 规范化 sha256),且批准项必须对应真实绑定
+    (拒绝幻影批准)。返回 {deploy_path: sha} 的合法生成绑定;违规
+    抛 SubstanceError(fail closed)。
+    """
+    for deploy_path, rows in sorted(bindings.items()):
+        for row in rows:
+            if row["hook"] in FILTERING_HOOKS:
+                raise SubstanceError(
+                    "regression_static_hook_binding:"
+                    + json.dumps({"file": deploy_path, **row},
+                                 ensure_ascii=False))
+    generate_files: dict[str, str] = {}
+    for deploy_path, rows in sorted(bindings.items()):
+        for row in rows:
+            if row["hook"] in GENERATION_HOOKS:
+                generate_files.setdefault(deploy_path, "")
+    if not isinstance(approved_generate_tests, dict) or not all(
+            isinstance(k, str) and isinstance(v, str)
+            for k, v in approved_generate_tests.items()):
+        raise SubstanceError("regression_audit_manifest_approvals_invalid")
+    phantom = sorted(set(approved_generate_tests) - set(generate_files))
+    if phantom:
+        raise SubstanceError(
+            "regression_audit_manifest_phantom_approval:"
+            + json.dumps(phantom[:3]))
+    unapproved = sorted(set(generate_files) - set(approved_generate_tests))
+    if unapproved:
+        raise SubstanceError(
+            "regression_static_generate_tests_unapproved:"
+            + json.dumps(unapproved[:3]))
+    return dict(approved_generate_tests)
+
+
+# ------------------------------------------------- v4 环境策略核验
+
+def _verify_child_env_policy(env: dict, label: str,
+                             deploy_root: Path | None) -> None:
+    """v4 运行条目 env:子进程环境必须由白名单继承 + 执行端强制键
+    构成,与运行时记录一致;强制键值域受检(autoload 关闭、字节码
+    关闭、审计接线与 PYTHONPATH 指向部署 runner 面)。"""
+    policy = env.get("child_env_policy")
+    child_env = env.get("child_env")
+    if not (isinstance(policy, dict) and isinstance(child_env, dict)):
+        raise SubstanceError(f"{label}_child_env_missing")
+    inherited = policy.get("inherited")
+    forced = policy.get("forced")
+    if not (isinstance(inherited, list)
+            and all(isinstance(k, str) for k in inherited)
+            and isinstance(forced, dict)):
+        raise SubstanceError(f"{label}_child_env_policy_invalid")
+    expected_keys = (set(inherited) | set(forced))
+    if set(child_env) != expected_keys:
+        raise SubstanceError(f"{label}_child_env_keys_mismatch")
+    bad_inherited = [k for k in inherited
+                     if k not in _ENV_INHERIT_KEYS
+                     and not k.startswith(_ENV_INHERIT_PREFIXES)]
+    if bad_inherited:
+        raise SubstanceError(
+            f"{label}_child_env_inherit_outside_allowlist:"
+            + json.dumps(bad_inherited[:3]))
+    if set(forced) != set(_ENV_FORCED_KEYS):
+        raise SubstanceError(f"{label}_child_env_forced_keys_mismatch")
+    if forced.get("PYTHONDONTWRITEBYTECODE") != "1" \
+            or forced.get("PYTEST_DISABLE_PLUGIN_AUTOLOAD") != "1":
+        raise SubstanceError(f"{label}_child_env_forced_value_invalid")
+    for key in ("R21_AUDIT_OUT", "R21_AUDIT_MANIFEST"):
+        value = forced.get(key)
+        if not isinstance(value, str) or not value:
+            raise SubstanceError(f"{label}_child_env_forced_value_invalid:{key}")
+    pythonpath = forced.get("PYTHONPATH")
+    if not isinstance(pythonpath, str) or not pythonpath:
+        raise SubstanceError(f"{label}_child_env_pythonpath_invalid")
+    if deploy_root is not None:
+        parts = pythonpath.split(os.pathsep)
+        if len(parts) != 2 \
+                or Path(parts[0]) != (Path(deploy_root) / "src") \
+                or Path(parts[1]) != (Path(deploy_root) / "stage2_6_1_runner"):
+            raise SubstanceError(
+                f"{label}_child_env_pythonpath_not_runner")
+    if any(key.startswith("PYTEST_")
+           for key in inherited):
+        raise SubstanceError(f"{label}_child_env_pytest_leak")
+
+
+# ------------------------------------------------- v4 审计原件核验
+
+def _classify_hook_origin(origin_file: str, hook: str,
+                          approved_generate_tests: dict[str, str],
+                          deploy_root: Path | None, mapping: dict,
+                          auditor_sha: str,
+                          origin_sha: str = "") -> str:
+    """运行期 hook 实现来源分类:pytest/pluggy 核心安装目录 /
+    manifest 预批准生成 hook(字节经部署映射与审计记录双重绑定)/
+    审计器自身 / 其余即违规。origin_sha = 审计原件记录的实现文件
+    sha;部署面在场时对文件另行重哈希(防记录值伪造)。"""
+    if not origin_file or origin_file == "<nonfile>":
+        return "violation_unresolved_origin"
+    path = Path(origin_file)
+    posix = path.as_posix()
+    if hook not in GUARDED_HOOKS:
+        return "violation_unknown_hook"
+    try:
+        import _pytest
+        import pytest
+        import pluggy
+        core_roots = (Path(pytest.__file__).resolve().parent,
+                      Path(_pytest.__file__).resolve().parent,
+                      Path(pluggy.__file__).resolve().parent)
+    except ImportError:  # pragma: no cover - 核验端必在 pytest 环境
+        core_roots = ()
+    if any(posix.startswith(str(root).replace("\\", "/"))
+           for root in core_roots):
+        return "core"
+    if auditor_sha and origin_sha == auditor_sha:
+        return "auditor"
+    if hook == "pytest_generate_tests":
+        rel = ""
+        if deploy_root is not None:
+            rel = _deploy_relative(path, deploy_root)
+        else:
+            for dp in approved_generate_tests:
+                if posix.endswith("/" + dp) or posix.endswith("\\" + dp) \
+                        or posix == dp:
+                    rel = dp
+                    break
+        if rel in approved_generate_tests and rel in mapping \
+                and mapping[rel]["deploy_sha256"] \
+                == approved_generate_tests[rel]:
+            if origin_sha and origin_sha == approved_generate_tests[rel]:
+                return "approved_generate_tests"
+            if deploy_root is not None \
+                    and _sha_of_file_if_exists(path) \
+                    == approved_generate_tests[rel]:
+                return "approved_generate_tests"
+    return "violation_noncore_origin"
+
+
+def _sha_of_file_if_exists(path: Path) -> str:
+    try:
+        return _sha256_file(path)
+    except OSError:
+        return ""
+
+
+def _deploy_relative(path: Path, deploy_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(
+            Path(deploy_root).resolve()).as_posix().lstrip("/")
+    except ValueError:
+        return ""
+
+
+def _verify_audit_manifest(record_path: Path, record: dict, repo: Path,
+                           commit_a: str, mapping: dict,
+                           deploy_root: Path | None) -> dict:
+    """record 顶层 audit_manifest 原件:sha 绑定 + 格式 + 受控钩子集
+    与本模块常量一致 + 生成 hook 批准恰等于候选侧静态绑定集合
+    (sha 逐字节),不允许幻影/缺失批准。"""
+    block = record.get("audit_manifest")
+    if not isinstance(block, dict):
+        raise SubstanceError("regression_audit_manifest_missing")
+    data = _artifact_bytes(record_path, block, "regression_audit_manifest")
+    try:
+        manifest = json.loads(data.decode("utf-8"))
+    except ValueError as exc:
+        raise SubstanceError(
+            "regression_audit_manifest_unreadable") from exc
+    if not isinstance(manifest, dict) \
+            or manifest.get("format") != AUDIT_MANIFEST_FORMAT:
+        raise SubstanceError("regression_audit_manifest_format_invalid")
+    if set(manifest.get("filtering_hooks", ())) != FILTERING_HOOKS \
+            or set(manifest.get("generation_hooks", ())) != GENERATION_HOOKS:
+        raise SubstanceError("regression_audit_manifest_hooks_mismatch")
+    test_root = manifest.get("test_root")
+    if not isinstance(test_root, str) or not test_root:
+        raise SubstanceError("regression_audit_manifest_test_root_invalid")
+    auditor = manifest.get("auditor")
+    if not (isinstance(auditor, dict) and auditor.get("module")
+            == _AUDITOR_MODULE_NAME
+            and isinstance(auditor.get("sha256"), str)):
+        raise SubstanceError("regression_audit_manifest_auditor_invalid")
+    approvals = manifest.get("approved_generate_tests")
+    if not isinstance(approvals, dict):
+        raise SubstanceError("regression_audit_manifest_approvals_invalid")
+    bindings = candidate_hook_bindings(repo, commit_a, mapping)
+    evaluate_static_hook_policy(bindings, approvals)
+    if deploy_root is not None:
+        auditor_path = Path(deploy_root) / "stage2_6_1_runner" / (
+            _AUDITOR_MODULE_NAME + ".py")
+        if not auditor_path.is_file() \
+                or _sha256_file(auditor_path) != auditor["sha256"]:
+            raise SubstanceError(
+                "regression_audit_manifest_auditor_deploy_mismatch")
+    return manifest
+
+
+def _verify_lifecycle(record_path: Path, entry: dict, audit: dict,
+                      label: str) -> None:
+    """审计原件生命周期段核验(v5 record / 审计格式 v2)。
+
+    - 监测必须已建立(monitor hook = pytest_plugin_registered)且
+      configure 对账 uncovered 为空(监测未建立/覆盖不全 fail closed);
+    - 事件序列 seq 严格连续递增;任何 unapproved 分类的事件必须
+      伴随生命周期违规(注册即事实,注销不可恢复);
+    - append-only JSONL 流水原件与内嵌段严格一致(事件/违规逐条
+      相等):从审计文档清除违规事实、或事后补写流水,均拒绝。
+    """
+    block = audit.get("lifecycle")
+    if not isinstance(block, dict):
+        raise SubstanceError(f"{label}_audit_lifecycle_missing")
+    monitor = block.get("monitor")
+    if not isinstance(monitor, dict) \
+            or monitor.get("hook") != _LIFECYCLE_MONITOR_HOOK \
+            or not isinstance(monitor.get("established_utc"), str) \
+            or not monitor["established_utc"]:
+        raise SubstanceError(f"{label}_audit_lifecycle_monitor_invalid")
+    events = block.get("events")
+    if not isinstance(events, list) or not events:
+        raise SubstanceError(f"{label}_audit_lifecycle_events_missing")
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) \
+                or event.get("seq") != index \
+                or not isinstance(event.get("classification"), str):
+            raise SubstanceError(
+                f"{label}_audit_lifecycle_event_invalid:{index}")
+        if event["classification"] not in ("core", "auditor", "conftest"):
+            raise SubstanceError(
+                f"{label}_audit_lifecycle_registration_unapproved:"
+                + json.dumps(event, ensure_ascii=False)[:200])
+    violations = block.get("violations")
+    if not isinstance(violations, list) or violations:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_violations:"
+            + json.dumps(violations[:2], ensure_ascii=False))
+    reconcile = block.get("reconcile")
+    if not isinstance(reconcile, dict) \
+            or reconcile.get("uncovered") != []:
+        raise SubstanceError(f"{label}_audit_lifecycle_reconcile_invalid")
+    stream_block = entry.get("audit_lifecycle")
+    if not isinstance(stream_block, dict):
+        raise SubstanceError(f"{label}_audit_lifecycle_stream_unbound")
+    stream_bytes = _artifact_bytes(record_path, stream_block,
+                                   f"{label}_audit_lifecycle_stream")
+    try:
+        rows = [json.loads(line) for line in
+                stream_bytes.decode("utf-8").splitlines() if line.strip()]
+    except ValueError as exc:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_unreadable") from exc
+    if not rows or rows[0].get("kind") != "monitor":
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_monitor_missing")
+    stream_events = [row for row in rows if row.get("kind") == "event"]
+    stream_violations = [row.get("violation") for row in rows
+                         if row.get("kind") == "violation"]
+    doc_events = [{**event, "kind": "event"} for event in events]
+    if stream_events != doc_events:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_events_mismatch")
+    if stream_violations != violations:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_violations_mismatch")
+
+
+def _verify_audit_entry(record_path: Path, entry: dict, label: str, *,
+                        manifest: dict, deploy_root: Path | None,
+                        mapping: dict, command: list,
+                        lifecycle: bool = False) -> dict:
+    """单运行条目审计原件:三阶段齐全且有序、verdict=pass、argv
+    与条目 command 一致、各阶段插件/钩子快照通过来源分类、阶段间
+    快照零漂移(注册后未再变化)。lifecycle=True(v5 record)另加
+    生命周期段核验且只接受审计格式 v2。"""
+    audit_block = entry.get("audit")
+    if not isinstance(audit_block, dict):
+        raise SubstanceError(f"{label}_audit_block_missing")
+    data = _artifact_bytes(record_path, audit_block, f"{label}_audit")
+    try:
+        audit = json.loads(data.decode("utf-8"))
+    except ValueError as exc:
+        raise SubstanceError(f"{label}_audit_unreadable") from exc
+    if not isinstance(audit, dict) \
+            or audit.get("format") not in _AUDIT_RECORD_FORMATS:
+        raise SubstanceError(f"{label}_audit_format_invalid")
+    if lifecycle and audit.get("format") != AUDIT_RECORD_FORMAT:
+        raise SubstanceError(f"{label}_audit_format_invalid")
+    if audit.get("verdict") != "pass" or audit.get("violations"):
+        raise SubstanceError(
+            f"{label}_audit_verdict_not_pass:"
+            + json.dumps(audit.get("violations", [])[:2],
+                         ensure_ascii=False))
+    if audit.get("pytest_args") != command[3:]:
+        raise SubstanceError(f"{label}_audit_argv_mismatch")
+    audit_cwd = audit.get("cwd")
+    entry_cwd = entry.get("cwd")
+    if isinstance(audit_cwd, str) and isinstance(entry_cwd, str) \
+            and audit_cwd != entry_cwd:
+        raise SubstanceError(f"{label}_audit_cwd_mismatch")
+    env_snap = audit.get("env")
+    if not (isinstance(env_snap, dict)
+            and env_snap.get("PYTEST_DISABLE_PLUGIN_AUTOLOAD") == "1"
+            and env_snap.get("PYTEST_ADDOPTS") is None
+            and env_snap.get("PYTEST_PLUGINS") is None):
+        raise SubstanceError(f"{label}_audit_env_invalid")
+    stages = audit.get("stages")
+    if not isinstance(stages, list) \
+            or [s.get("stage") for s in stages] != list(_AUDIT_STAGES):
+        raise SubstanceError(f"{label}_audit_stages_invalid")
+    auditor_sha = manifest["auditor"]["sha256"]
+    approved = manifest["approved_generate_tests"]
+    reference_hooks: dict | None = None
+    collected_counts = []
+    for stage in stages:
+        snapshot = stage.get("snapshot")
+        if not isinstance(snapshot, dict):
+            raise SubstanceError(
+                f"{label}_audit_snapshot_missing:{stage.get('stage')}")
+        hooks = snapshot.get("hooks", {})
+        for plugin in snapshot.get("plugins", []):
+            if plugin.get("classification") not in ("core", "auditor",
+                                                     "conftest"):
+                raise SubstanceError(
+                    f"{label}_audit_plugin_unapproved:"
+                    + json.dumps(plugin, ensure_ascii=False)[:200])
+            if plugin.get("classification") == "conftest" \
+                    and deploy_root is not None:
+                rel = plugin.get("deploy_relative", "")
+                path = Path(deploy_root) / rel
+                if rel not in mapping \
+                        or _sha_of_file_if_exists(path) \
+                        != mapping[rel]["deploy_sha256"]:
+                    raise SubstanceError(
+                        f"{label}_audit_conftest_unbound:{rel}")
+            if plugin.get("classification") == "auditor" \
+                    and plugin.get("origin_sha256") != auditor_sha:
+                raise SubstanceError(
+                    f"{label}_audit_auditor_sha_mismatch")
+        if set(hooks) != GUARDED_HOOKS:
+            raise SubstanceError(f"{label}_audit_hook_set_mismatch")
+        for hook, impls in sorted(hooks.items()):
+            for impl in impls:
+                verdict = _classify_hook_origin(
+                    impl.get("origin_file", ""), hook, approved,
+                    deploy_root, mapping, auditor_sha,
+                    origin_sha=impl.get("origin_sha256") or "")
+                if verdict.startswith("violation"):
+                    raise SubstanceError(
+                        f"{label}_audit_hook_origin_{verdict}:"
+                        + json.dumps({"hook": hook,
+                                      "origin":
+                                      impl.get("origin_file", "")[:200],
+                                      "qualname":
+                                      impl.get("qualname", "")[:120]},
+                                     ensure_ascii=False))
+        core = snapshot.get("core_roots") or []
+
+        def _noncore(hook_map: dict) -> str:
+            kept = {}
+            for hook, impls in hook_map.items():
+                rows = [impl for impl in impls
+                        if not any(
+                            impl.get("origin_file", "").startswith(root)
+                            for root in core)]
+                if rows:
+                    kept[hook] = rows
+            return json.dumps(kept, sort_keys=True)
+
+        key = _noncore(hooks)
+        if reference_hooks is None:
+            reference_hooks = key
+        elif key != reference_hooks:
+            raise SubstanceError(
+                f"{label}_audit_hook_snapshot_drift:{stage.get('stage')}")
+        if isinstance(stage.get("collected_items"), int):
+            collected_counts.append(stage["collected_items"])
+    if lifecycle or audit.get("format") == AUDIT_RECORD_FORMAT:
+        _verify_lifecycle(record_path, entry, audit, label)
+    return {"audit": audit, "collected_counts": collected_counts}
+
+
+def _verify_run_entry(record_path: Path, entry, label: str, *,
+                      collect_only: bool, positionals_rule,
+                      deploy_root: Path | None,
+                      v4: bool = False) -> bytes:
+    """单个运行条目(command/interpreter/cwd/rc/起止/stdout/stderr/env)
+    的原件绑定与过滤面核验;返回 stdout 原件字节。
+
+    v4:argv 允许恰一对执行端固定 -p 审计器;env 必须携带最小
+    子进程环境策略(child_env_policy/child_env)并通过白名单核验。
+    """
+    if not isinstance(entry, dict):
+        raise SubstanceError(f"{label}_entry_invalid")
+    _verify_run_argv(entry.get("command"), collect_only=collect_only,
+                     positionals_rule=positionals_rule,
+                     auditor_plugin_ok=v4)
+    for key in ("interpreter", "cwd", "started_utc", "finished_utc"):
+        if not isinstance(entry.get(key), str) or not entry[key]:
+            raise SubstanceError(f"{label}_field_invalid:{key}")
+    if type(entry.get("returncode")) is not int or entry["returncode"] != 0:
+        raise SubstanceError(f"{label}_returncode_nonzero")
+    if deploy_root is not None:
+        if entry["cwd"] != str(deploy_root):
+            raise SubstanceError(f"{label}_cwd_not_deploy_root")
+        if Path(entry["interpreter"]).resolve() != \
+                Path(sys.executable).resolve():
+            raise SubstanceError(f"{label}_interpreter_mismatch")
+    env = entry.get("env")
+    if not isinstance(env, dict):
+        raise SubstanceError(f"{label}_env_missing")
+    if v4:
+        _verify_child_env_policy(env, label, deploy_root)
+    for key in ("python_version", "pytest_version_output"):
+        if not isinstance(env.get(key), str) or not env[key]:
+            raise SubstanceError(f"{label}_env_field_invalid:{key}")
+    for key in ("pytest_addopts", "pytest_plugins_env"):
+        if env.get(key) not in (None, ""):
+            raise SubstanceError(f"{label}_env_filtered:{key}")
+    scan = env.get("config_scan")
+    if not isinstance(scan, list) or not scan \
+            or any(not (isinstance(row, dict)
+                        and isinstance(row.get("path"), str) and row["path"]
+                        and isinstance(row.get("sha256"), str))
+                   for row in scan):
+        raise SubstanceError(f"{label}_config_scan_invalid")
+    stdout = _artifact_bytes(record_path, entry.get("stdout"),
+                             label + "_stdout")
+    _artifact_bytes(record_path, entry.get("stderr"), label + "_stderr")
+    return stdout
+
+
+def _verify_config_surface(deploy_root: Path, scan_rows) -> None:
+    """部署面在场时:配置候选文件集合与字节必须与运行时扫描一致,
+    且当前内容不含过滤入口(封口后配置被替换在此暴露)。"""
+    found = _scan_config_files(Path(deploy_root),
+                               _DEPLOYED_TEST_ROOT.rstrip("/"))
+    want = {row["path"]: row["sha256"] for row in scan_rows}
+    got = {str(p): _sha256_file(p) for p in found}
+    if want != got:
+        raise SubstanceError("regression_config_scan_mismatch")
+    for path in found:
+        _reject_config_filters(path, path.read_bytes())
+
+
+def _verify_run_identity(entries: list, reference: dict, label: str,
+                         *, v4: bool = False) -> None:
+    """collection_run 与全部 execution runs 必须共享同一执行身份
+    (interpreter/cwd/python/pytest 版本+插件/配置扫描/PYTEST_* 环境;
+    v4 另加:子进程环境策略一致,child_env 除各 run 自身的审计
+    输出路径外逐值一致)。收集与执行来自不同环境(借用运行)在此
+    暴露。"""
+    for entry in entries:
+        for key in ("interpreter", "cwd"):
+            if entry.get(key) != reference.get(key):
+                raise SubstanceError(f"regression_run_identity_mismatch:{key}")
+        for key in _ENV_IDENTITY_KEYS:
+            if entry.get("env", {}).get(key) != \
+                    reference.get("env", {}).get(key):
+                raise SubstanceError(
+                    f"regression_run_identity_mismatch:{key}")
+        if v4:
+            def _strip(env: dict) -> dict:
+                child = dict(env.get("child_env") or {})
+                child.pop("R21_AUDIT_OUT", None)
+                return child
+            if entry.get("env", {}).get("child_env_policy") != \
+                    reference.get("env", {}).get("child_env_policy") \
+                    or _strip(entry.get("env", {})) != \
+                    _strip(reference.get("env", {})):
+                raise SubstanceError(
+                    f"regression_run_identity_mismatch:child_env")
+
+def _verify_collection_run(record_path: Path, record: dict,
+                           *, full: bool, deploy_root: Path | None,
+                           v4: bool = False, manifest: dict | None = None,
+                           mapping: dict | None = None,
+                           lifecycle: bool = False) -> list[str]:
+    """collection_run(单进程)核验:期望全集 = stdout 原件重解析。
+
+    v4:审计原件三阶段核验 + collection_finish 阶段记录的收集数
+    必须等于 stdout 期望全集实例数(审计与收集原件互绑)。
+    lifecycle(v5):审计原件另须通过生命周期段核验。
+    """
+    block = record.get("collection_run")
+    label = "regression_collection_run"
+    if not isinstance(block, dict) \
+            or not isinstance(block.get("runs"), list) \
+            or len(block["runs"]) != 1:
+        raise SubstanceError(f"{label}_runs_invalid")
+    delta_targets = (None if full else
+                     record.get("differential", {}).get("delta_targets"))
+    if not full and not isinstance(delta_targets, list):
+        raise SubstanceError("regression_run_delta_targets_invalid")
+    stdout = _verify_run_entry(
+        record_path, block["runs"][0], label, collect_only=True,
+        positionals_rule=(["tests/route_c_stage2_6_1"] if full
+                          else delta_targets),
+        deploy_root=deploy_root, v4=v4)
+    if v4:
+        audit_result = _verify_audit_entry(
+            record_path, block["runs"][0], label, manifest=manifest,
+            deploy_root=deploy_root, mapping=mapping,
+            command=block["runs"][0]["command"], lifecycle=lifecycle)
+    if deploy_root is not None:
+        _verify_config_surface(
+            deploy_root, block["runs"][0]["env"]["config_scan"])
+    ids = parse_collection_stdout(
+        stdout.decode("utf-8", errors="replace"))
+    if v4:
+        counts = audit_result["collected_counts"]
+        if counts and counts[-1] != len(ids):
+            raise SubstanceError(
+                f"regression_audit_collected_count_mismatch"
+                f"({counts[-1]}!={len(ids)})")
+    if not full:
+        for node_id in ids:
+            if not node_id.startswith(_DEPLOYED_TEST_ROOT):
+                raise SubstanceError(
+                    "regression_run_delta_target_outside_root:" + node_id)
+    return ids
+
+
+def _verify_execution_runs(record_path: Path, record: dict, *,
+                           full: bool, junit_paths: list[Path],
+                           shard_aggregates: list[dict],
+                           deploy_root: Path | None,
+                           v4: bool = False, manifest: dict | None = None,
+                           mapping: dict | None = None,
+                           lifecycle: bool = False) -> None:
+    """execution runs 核验:每 run 绑定自身 junit(sha 已在外层核验)
+    与 stdout 摘要;full 单 run 必须指向完整目录,sharded run 各自
+    指向根内分片目标;全部 run 与 collection_run 同执行身份。
+
+    v4:每 run 审计原件三阶段核验 + collection_finish 收集数必须
+    等于该 run junit 元素级实例数(无删减执行)。
+    lifecycle(v5):审计原件另须通过生命周期段核验。
+    """
+    block = record.get("execution")
+    label = "regression_execution"
+    runs = block.get("runs") if isinstance(block, dict) else None
+    if not isinstance(runs, list) or not runs:
+        raise SubstanceError(f"{label}_runs_invalid")
+    if len(runs) != len(junit_paths) or len(runs) != len(shard_aggregates):
+        raise SubstanceError(f"{label}_runs_junit_count_mismatch")
+    delta_targets = (None if full else
+                     record.get("differential", {}).get("delta_targets"))
+    all_positionals: list[str] = []
+    for index, entry in enumerate(runs):
+        if full and len(runs) == 1:
+            rule = [_DEPLOYED_TEST_ROOT.rstrip("/")]
+        else:
+            rule = "under_root"
+        stdout = _verify_run_entry(
+            record_path, entry, f"{label}_run{index}",
+            collect_only=False, positionals_rule=rule,
+            deploy_root=deploy_root, v4=v4)
+        if v4:
+            audit_result = _verify_audit_entry(
+                record_path, entry, f"{label}_run{index}",
+                manifest=manifest, deploy_root=deploy_root,
+                mapping=mapping, command=entry["command"],
+                lifecycle=lifecycle)
+            counts = audit_result["collected_counts"]
+            if counts and counts[-1] != shard_aggregates[index]["tests"]:
+                raise SubstanceError(
+                    f"{label}_run{index}_audit_collected_count_mismatch"
+                    f"({counts[-1]}!={shard_aggregates[index]['tests']})")
+        _verify_execution_summary(stdout, shard_aggregates[index])
+        command = entry.get("command")
+        positionals = []
+        expect_value = False
+        for tok in command[3:]:
+            if expect_value:
+                expect_value = False
+                continue
+            if tok.startswith("-"):
+                if tok.split("=", 1)[0] == "-p" and "=" not in tok:
+                    expect_value = True
+                continue
+            positionals.append(tok)
+        if rule == "under_root":
+            for target in positionals:
+                if not target.startswith(_DEPLOYED_TEST_ROOT) \
+                        or target == _DEPLOYED_TEST_ROOT.rstrip("/"):
+                    raise SubstanceError(
+                        f"{label}_shard_target_invalid:{target}")
+        all_positionals.extend(positionals)
+    if not full:
+        if sorted(all_positionals) != sorted(delta_targets):
+            raise SubstanceError("regression_run_delta_target_mismatch")
+    collection_ref = record.get("collection_run", {}).get("runs", [None])[0]
+    _verify_run_identity(runs, collection_ref, label, v4=v4)
+
+
+def _verify_execution_summary(stdout: bytes, aggregate: dict) -> None:
+    """execution stdout 摘要行必须与该 run 的 junit 元素级聚合计数
+    一致(借来的运行日志与 junit 错配在此暴露)。全 skipped 的分片
+    stdout 只有 "N skipped in ..." 摘要,同样要求计数一致。"""
+    text = stdout.decode("utf-8", errors="replace")
+    found = _PASSED_SUMMARY_RE.findall(text)
+    want = (aggregate["tests"] - aggregate["failures"]
+            - aggregate["errors"] - aggregate["skipped"],
+            aggregate["skipped"])
+    if found:
+        passed, skipped = (int(found[-1][0]), int(found[-1][1] or "0"))
+    else:
+        skipped_only = re.findall(r"(\d+) skipped[^\n]*\bin\b", text)
+        if not skipped_only:
+            raise SubstanceError(
+                "regression_execution_stdout_summary_missing")
+        passed, skipped = 0, int(skipped_only[-1])
+    if (passed, skipped) != want:
+        raise SubstanceError(
+            "regression_execution_stdout_summary_mismatch:"
+            + json.dumps({"stdout": [passed, skipped], "junit": want}))
+
+def _verify_import_surface(record: dict, repo: Path, commit_a: str,
+                           deploy_root: Path | None) -> None:
+    """候选 src/rl_curriculum 全体成员 blob sha 必须与 record 一致;
+    提供部署面时逐成员与部署 src 字节比对,部署侧多余模块必须恰为
+    声明的 deploy_extra_modules(import 身份漂移即拒)。"""
+    surface = record.get("import_surface")
+    if not (isinstance(surface, dict)
+            and isinstance(surface.get("members"), dict) and surface["members"]
+            and isinstance(surface.get("deploy_extra_modules"), list)
+            and all(isinstance(n, str) for n in surface["deploy_extra_modules"])):
+        raise SubstanceError("regression_import_surface_missing")
+    tree = _git_out(repo, "ls-tree", "-r", "--name-only", commit_a,
+                    "--", _SRC_PREFIX.rstrip("/"))
+    rels = [ln for ln in tree.decode("utf-8").splitlines()
+            if ln.endswith(".py")]
+    if not rels:
+        raise SubstanceError("regression_import_surface_empty_tree")
+    want = {}
+    for rel in rels:
+        blob = _git_out(repo, "show", f"{commit_a}:{rel}")
+        # 与执行器/部署面同口径:历史 blob 含 CRLF(如 r15 系),
+        # 成员身份按 CR 删除规范化字节比较。
+        want[rel] = hashlib.sha256(
+            blob.replace(b"\r", b"")).hexdigest()
+    members = {str(k): str(v) for k, v in surface["members"].items()}
+    if members != want:
+        raise SubstanceError(
+            "regression_import_surface_candidate_mismatch:"
+            + json.dumps({
+                "missing": sorted(set(want) - set(members))[:3],
+                "extra": sorted(set(members) - set(want))[:3]},
+                ensure_ascii=False))
+    if deploy_root is not None:
+        deploy_dir = Path(deploy_root) / "src" / "rl_curriculum"
+        if not deploy_dir.is_dir():
+            raise SubstanceError("regression_import_surface_deploy_missing")
+        deploy_names = {p.name for p in deploy_dir.glob("*.py")}
+        for rel, sha in want.items():
+            path = deploy_dir / rel.rsplit("/", 1)[-1]
+            if not path.is_file() \
+                    or _sha256_file(path) != sha:
+                raise SubstanceError(
+                    "regression_import_surface_deploy_mismatch:" + rel)
+        extra = sorted(deploy_names
+                       - {rel.rsplit("/", 1)[-1] for rel in want})
+        if extra != sorted(surface["deploy_extra_modules"]):
+            raise SubstanceError(
+                "regression_import_surface_extra_drift:"
+                + json.dumps(extra[:3]))
+
+
+def _verify_conftest_hooks(repo: Path, commit_a: str, mapping: dict) -> None:
+    """候选测试树内 conftest.py 不得定义收集修改 hook(候选侧权威;
+    部署侧同字节由部署面核验承载)。"""
+    for row in mapping.values():
+        if row["source_path"].rsplit("/", 1)[-1] != "conftest.py":
+            continue
+        blob = _git_out(repo, "show", f"{commit_a}:{row['source_path']}")
+        _reject_config_filters(Path(row["source_path"]), blob)
+
+def _verify_executor_face(record: dict, repo: Path, commit_a: str,
+                          deploy_root: Path | None) -> None:
+    """v4 执行面身份:record 声明的 executor/auditor 源路径与
+    CR 规范化 blob sha 必须与候选 Git 树一致;部署面在场时逐
+    文件比对部署字节(部署执行面漂移在此暴露)。"""
+    face = (record.get("run") or {}).get("executor_face")
+    if not isinstance(face, dict):
+        raise SubstanceError("regression_executor_face_missing")
+    for role, source_path in (
+            ("executor", "stage2_6_1/runner/r21_full_collection_regression.py"),
+            ("auditor", f"stage2_6_1/runner/{_AUDITOR_MODULE_NAME}.py")):
+        entry = face.get(role)
+        if not (isinstance(entry, dict)
+                and entry.get("source_path") == source_path
+                and isinstance(entry.get("blob_sha256"), str)):
+            raise SubstanceError(
+                f"regression_executor_face_invalid:{role}")
+        blob = _git_out(repo, "show", f"{commit_a}:{source_path}")
+        want = hashlib.sha256(blob.replace(b"\r", b"")).hexdigest()
+        if entry["blob_sha256"] != want:
+            raise SubstanceError(
+                f"regression_executor_face_blob_mismatch:{role}")
+        if deploy_root is not None:
+            path = Path(deploy_root) / "stage2_6_1_runner" / (
+                source_path.rsplit("/", 1)[-1])
+            if not path.is_file() or _sha256_file(path) != want:
+                raise SubstanceError(
+                    f"regression_executor_face_deploy_mismatch:{role}")
+
+
+def _verify_supervision_link(record: dict, repo: Path) -> None:
+    """v4 外层监护关联:声明存在时必须能在发布仓 run_supervision
+    运行史中定位对应 run_record.json,且其 business argv 含本 run
+    的输出目录(时间窗重叠由 run_record 起止与 record 绑定时间
+    承载)。声明缺失如实通过(沙箱/差分轮次无外层监护),不虚报。"""
+    link = (record.get("run") or {}).get("supervision")
+    if link is None:
+        return
+    if not isinstance(link, dict) \
+            or not isinstance(link.get("present"), bool):
+        raise SubstanceError("regression_supervision_link_invalid")
+    if not link["present"]:
+        return
+    run_id = link.get("run_id")
+    run_dir = link.get("run_dir")
+    token = link.get("argv_token")
+    if not (isinstance(run_id, str) and run_id
+            and isinstance(run_dir, str) and run_dir
+            and isinstance(token, str) and token):
+        raise SubstanceError("regression_supervision_link_invalid")
+    base = Path(repo) / "stage2_6_1" / "artifacts" / "repair17" / (
+        "development") / "run_supervision" / "runs"
+    run_record = Path(run_dir) / "run_record.json"
+    if not run_record.is_file() \
+            or Path(run_dir).parent != base \
+            or Path(run_dir).name != run_id:
+        raise SubstanceError("regression_supervision_run_dir_unbound")
+    try:
+        doc = json.loads(run_record.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SubstanceError(
+            "regression_supervision_run_record_unreadable") from exc
+    argv = doc.get("argv")
+    if isinstance(argv, str):
+        argv_texts = [argv]
+    elif isinstance(argv, list):
+        argv_texts = [json.dumps(argv, ensure_ascii=False),
+                      " ".join(str(part) for part in argv)]
+    else:
+        argv_texts = []
+    if doc.get("run_id") != run_id or not any(
+            token in text for text in argv_texts):
+        raise SubstanceError(
+            "regression_supervision_argv_token_unmatched")
+
+
+def verify_regression_evidence(record_path: Path, repo: Path,
+                               commit_a: str, *,
+                               deploy_root: Path | None = None) -> dict:
+    """核验候选回归证据原件(v3/v4;F1/F2/F3 + 收集原件/执行来源绑定)。
+
+    junit 逐个重解析计数比对 + 多文件唯一性 + 独立完整收集原件
+    重解析期望全集 + 两段运行身份/过滤面 + (差分)父证据同一
+    完整核验;可选 deploy_root 时加部署面/配置面/import 面字节
+    核验。任何维度不符 => SubstanceError(fail closed)。
+
+    v4 record 另要求:执行面身份绑定(executor/auditor 候选 blob +
+    部署字节)、审计 manifest 与逐运行审计原件、最小子进程环境
+    策略、收集/执行审计计数互绑。v3 record 走历史核验面(父链
+    递归用),不可用于新签发。
+    """
+    record_path = Path(record_path)
+    if not record_path.is_file():
+        raise SubstanceError("regression_evidence_missing")
+    record_sha = _sha256_file(record_path)
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SubstanceError("regression_evidence_unreadable") from exc
+    if not isinstance(record, dict) \
+            or record.get("format") not in _REGRESSION_FORMATS:
+        raise SubstanceError("regression_evidence_format_mismatch")
+    v4 = record.get("format") in (REGRESSION_EVIDENCE_FORMAT_V4,
+                                  REGRESSION_EVIDENCE_FORMAT_V5)
+    lifecycle = record.get("format") == REGRESSION_EVIDENCE_FORMAT_V5
+    if record.get("commit_a_sha") != commit_a:
+        raise SubstanceError("regression_evidence_commit_unbound")
+    if record.get("scope") != "formal":
+        raise SubstanceError("regression_evidence_scope_not_formal")
+    manifest = None
+    if v4:
+        _verify_executor_face(record, repo, commit_a, deploy_root)
+        _verify_supervision_link(record, repo)
+    junit_files = record.get("junit")
+    if not isinstance(junit_files, list) or not junit_files:
+        raise SubstanceError("regression_evidence_junit_empty")
+    aggregate = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    skipped_ids: list[str] = []
+    executed: Counter = Counter()
+    seen_paths: set[Path] = set()
+    seen_shas: set[str] = set()
+    case_owner: dict[str, str] = {}
+    junit_paths: list[Path] = []
+    shard_aggregates: list[dict] = []
+    for entry in junit_files:
+        if not isinstance(entry, dict) or "path" not in entry:
+            raise SubstanceError("regression_evidence_junit_entry_invalid")
+        jp = _resolve(record_path, entry["path"])
+        resolved = jp.resolve()
+        if resolved in seen_paths:
+            raise SubstanceError(
+                f"regression_junit_duplicate_path:{jp.name}")
+        seen_paths.add(resolved)
+        if not jp.is_file():
+            raise SubstanceError(f"regression_junit_missing:{jp.name}")
+        sha = _sha256_file(jp)
+        if sha != entry.get("sha256"):
+            raise SubstanceError(f"regression_junit_sha_mismatch:{jp.name}")
+        if sha in seen_shas:
+            raise SubstanceError(
+                f"regression_junit_duplicate_content:{sha[:12]}")
+        seen_shas.add(sha)
+        parsed = parse_junit(jp)
+        junit_paths.append(jp)
+        shard_aggregates.append(
+            {key: parsed[key] for key in aggregate})
+        for key in aggregate:
+            aggregate[key] += parsed[key]
+        skipped_ids.extend(parsed["skipped_ids"])
+        for cid in parsed["case_ids"]:
+            if cid in case_owner:
+                raise SubstanceError(
+                    "regression_junit_duplicate_testcase_across_files:"
+                    + cid)
+            case_owner[cid] = jp.name
+            classname, _, name = cid.partition("::")
+            executed[junit_nodeid(classname, name)] += 1
+    _verify_counts(record, aggregate, skipped_ids, "regression")
+
+    protocol = record.get("protocol")
+    if protocol == "differential":
+        diff_scope = record.get("differential", {})
+        parent = diff_scope.get("parent_commit", "")
+        if not parent:
+            raise SubstanceError("differential_parent_missing")
+        if parent == commit_a:
+            raise SubstanceError("differential_parent_is_candidate")
+        anc = _git(repo, "merge-base", "--is-ancestor", parent, commit_a)
+        if anc.returncode != 0:
+            raise SubstanceError("differential_parent_not_ancestor")
+        parent_ev = diff_scope.get("parent_evidence", {})
+        parent_path = _resolve(record_path, parent_ev.get("path", ""))
+        if not parent_path.is_file() \
+                or _sha256_file(parent_path) != parent_ev.get("sha256"):
+            raise SubstanceError("differential_parent_evidence_invalid")
+        parent_rec = json.loads(parent_path.read_text(encoding="utf-8"))
+        if parent_rec.get("protocol") != "full" \
+                or parent_rec.get("commit_a_sha") != parent:
+            raise SubstanceError("differential_parent_not_full_green_bound")
+        name_only = _git(repo, "diff", "--name-only", parent, commit_a)
+        if name_only.returncode != 0:
+            raise SubstanceError("differential_diff_unreadable")
+        changed = [ln for ln in name_only.stdout.splitlines() if ln]
+        declared = diff_scope.get("delta_scope", {})
+        src_changed = [f for f in changed if f.startswith(_SRC_PREFIX)]
+        if src_changed:
+            raise SubstanceError("differential_src_changed")
+        for region in ("tests_files", "runner_files", "other_files"):
+            declared_list = declared.get(region, [])
+            if not isinstance(declared_list, list):
+                raise SubstanceError("differential_delta_scope_invalid")
+        declared_all = set(declared.get("tests_files", [])
+                           + declared.get("runner_files", [])
+                           + declared.get("other_files", []))
+        undeclared = [f for f in changed
+                      if not f.startswith(_SRC_PREFIX)
+                      and f not in declared_all]
+        if undeclared:
+            raise SubstanceError("differential_undeclared_files")
+    elif protocol != "full":
+        raise SubstanceError("regression_evidence_protocol_invalid")
+
+    # ---- 完整集合(F1,v3):收集原件为期望全集权威,静态全集旁证
+    mapping = candidate_test_map(repo, commit_a)
+    _verify_test_files_manifest(record, mapping)
+    static_ids = static_collection_ids(repo, commit_a)
+    if v4:
+        manifest = _verify_audit_manifest(record_path, record, repo,
+                                          commit_a, mapping, deploy_root)
+    else:
+        _verify_conftest_hooks(repo, commit_a, mapping)
+    full = protocol == "full"
+    collection = _verify_collection_run(record_path, record, full=full,
+                                        deploy_root=deploy_root, v4=v4,
+                                        manifest=manifest, mapping=mapping,
+                                        lifecycle=lifecycle)
+    bases = {_param_base(c) for c in collection}
+    if full:
+        if bases != static_ids:
+            raise SubstanceError(
+                "regression_collection_static_mismatch:"
+                + json.dumps({
+                    "static": len(static_ids), "collected_bases": len(bases),
+                    "not_collected": sorted(static_ids - bases)[:3],
+                    "unknown": sorted(bases - static_ids)[:3]},
+                    ensure_ascii=False))
+        expected_files = {dp for dp, r in mapping.items() if r["is_test"]}
+        represented = {c.split("::", 1)[0] for c in collection}
+        if represented != expected_files:
+            raise SubstanceError(
+                "regression_collection_file_coverage_mismatch")
+    else:
+        unknown = bases - static_ids
+        if unknown:
+            raise SubstanceError(
+                "regression_collection_static_mismatch:"
+                + json.dumps({"unknown": sorted(unknown)[:3]},
+                             ensure_ascii=False))
+        expected_files = {dp for dp, r in mapping.items() if r["is_test"]}
+        represented = {c.split("::", 1)[0] for c in collection}
+        if not represented <= expected_files:
+            raise SubstanceError(
+                "regression_collection_file_coverage_mismatch")
+    if Counter(collection) != executed:
+        raise SubstanceError("regression_collection_execution_mismatch")
+    _verify_execution_runs(record_path, record, full=full,
+                           junit_paths=junit_paths,
+                           shard_aggregates=shard_aggregates,
+                           deploy_root=deploy_root, v4=v4,
+                           manifest=manifest, mapping=mapping,
+                           lifecycle=lifecycle)
+    _verify_import_surface(record, repo, commit_a, deploy_root)
+    if deploy_root is not None:
+        verify_deployment_surface(deploy_root, mapping)
+
+    # ---- 差分父证据(F2):递归同一完整核验(部署面除外——历史提交)
+    if protocol == "differential":
+        try:
+            verify_regression_evidence(parent_path, repo, parent)
+        except SubstanceError as exc:
+            raise SubstanceError(
+                f"differential_parent_evidence_rejected:{exc}") from None
+    return {"record": record, "record_sha256": record_sha,
+            "aggregate": aggregate,
+            "collection_tests": len(collection),
+            "static_tests": len(static_ids),
+            "test_files": len(mapping)}
+
+
+def verify_preregistration_substance(repo: Path, commit_a: str,
+                                     preregistration: dict, *,
+                                     deploy_root: Path | None = None
+                                     ) -> dict:
+    """签发端实质验证:plan digest 实算 + 回归证据核验 → substance。"""
+    if not _plan_method_supported(preregistration):
+        raise SubstanceError("plan_digest_method_unsupported")
+    tree = git_tree_digest(repo, commit_a)
+    if preregistration.get("plan_digest") != tree:
+        raise SubstanceError("plan_digest_mismatch")
+    raw_ev = preregistration.get("regression_evidence")
+    if not raw_ev:
+        raise SubstanceError("regression_evidence_not_preregistered")
+    evidence = verify_regression_evidence(Path(raw_ev), repo, commit_a,
+                                          deploy_root=deploy_root)
+    rec = evidence["record"]
+    return {
+        "format": SUBSTANCE_FORMAT,
+        "plan_digest_method": PLAN_DIGEST_METHOD_TREE,
+        "plan_digest_claimed": preregistration["plan_digest"],
+        "plan_digest_recomputed": tree,
+        "regression_evidence": {
+            "path": str(Path(raw_ev)),
+            "sha256": evidence["record_sha256"],
+            "protocol": rec.get("protocol"),
+            "counts": rec.get("counts", {}),
+            "scope": rec.get("scope"),
+            "collection_tests": evidence["collection_tests"],
+            "test_files": evidence["test_files"],
+        },
+        "verified_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                      time.gmtime()),
+    }
+
+
+def verify_admission_substance(admission: dict, repo: Path, *,
+                               deploy_root: Path | None = None
+                               ) -> tuple[bool, str]:
+    """消费端同源复验:同一实现重算比对 admission 携带的 substance。"""
+    substance = admission.get("substance")
+    if not isinstance(substance, dict) \
+            or substance.get("format") != SUBSTANCE_FORMAT:
+        return False, "admission_substance_missing"
+    if admission.get("substance_digest") != substance_digest(substance):
+        return False, "admission_substance_digest_mismatch"
+    try:
+        tree = git_tree_digest(repo, admission["commit_a_sha"])
+    except SubstanceError as exc:
+        return False, f"admission_substance_invalid:{exc}"
+    if tree != substance.get("plan_digest_recomputed") \
+            or tree != admission.get("plan_digest"):
+        return False, "admission_plan_digest_mismatch"
+    ev = substance.get("regression_evidence", {})
+    ev_path = ev.get("path", "")
+    if not ev_path:
+        return False, "admission_substance_invalid:evidence_path_missing"
+    try:
+        evidence = verify_regression_evidence(
+            Path(ev_path), repo, admission["commit_a_sha"],
+            deploy_root=deploy_root)
+    except SubstanceError as exc:
+        return False, f"admission_substance_invalid:{exc}"
+    if evidence["record_sha256"] != ev.get("sha256"):
+        return False, "admission_evidence_replaced"
+    return True, "ok"
+
+
+def main(argv: list[str] | None = None) -> int:
+    """签发器子进程入口:verify --repo R --commit-a SHA
+    --preregistration P [--deploy-root D]
+
+    成功打印 substance JSON(rc=0);失败打印 SubstanceError 原因(rc=2)。
+    --deploy-root 提供时执行部署测试面字节核验(签发端在部署机上)。
+    """
+    import argparse
+
+    ap = argparse.ArgumentParser(description="R17 准入实质绑定验证(同源)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    v = sub.add_parser("verify")
+    v.add_argument("--repo", type=Path, required=True)
+    v.add_argument("--commit-a", required=True)
+    v.add_argument("--preregistration", type=Path, required=True)
+    v.add_argument("--deploy-root", type=Path, default=None)
+    args = ap.parse_args(argv)
+    try:
+        prereg = json.loads(
+            args.preregistration.read_text(encoding="utf-8"))
+        substance = verify_preregistration_substance(
+            args.repo, args.commit_a, prereg,
+            deploy_root=args.deploy_root)
+    except SubstanceError as exc:
+        print(str(exc))
+        return 2
+    print(json.dumps({"substance": substance,
+                      "substance_digest": substance_digest(substance)},
+                     ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
