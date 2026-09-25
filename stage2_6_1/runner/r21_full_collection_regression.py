@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""R21 完整参数收集回归执行器(v4 证据采集端)。
+"""R21 完整参数收集回归执行器(v5 证据采集端)。
 
 在受控部署面上于执行发生时采集 cur261-r17-candidate-regression-
-evidence-v4 record 的全部原件:
+evidence-v5 record 的全部原件:
 
   步骤 0 预检:候选测试树 → 部署面字节核验(substance 同源实现);
            PYTEST_* 环境污染拒绝;部署面 pytest 配置候选扫描 +
@@ -144,6 +144,7 @@ def _run_pytest(mod, interp: str, cwd: Path, env: dict,
     并返回 (run 条目, env 快照)。"""
     command = [interp, "-m", "pytest", "-p", _AUDITOR_MODULE, *args]
     audit_path = out_dir / f"audit_{stem}.json"
+    lifecycle_path = out_dir / f"audit_{stem}.json.lifecycle.jsonl"
     env = dict(env)
     env["R21_AUDIT_OUT"] = str(audit_path)
     stdout_path = out_dir / f"{stem}.stdout.txt"
@@ -171,6 +172,12 @@ def _run_pytest(mod, interp: str, cwd: Path, env: dict,
     if audit_path.is_file():
         entry["audit"] = {"path": audit_path.name,
                           "sha256": _sha256_file(audit_path)}
+    if lifecycle_path.is_file():
+        # v5:append-only 注册事件流水与审计文档互绑;缺流水 ⇒
+        # 核验器拒绝(audit_lifecycle_stream_unbound,fail closed)。
+        entry["audit_lifecycle"] = {
+            "path": lifecycle_path.name,
+            "sha256": _sha256_file(lifecycle_path)}
     return entry, env_id
 
 
@@ -328,7 +335,8 @@ def main(argv: list[str] | None = None) -> int:
         out_dir, "collection")
     collection_entry["env"] = collection_env
     run_rc_ok = collection_entry["returncode"] == 0
-    audit_ok = _audit_ok_collection(collection_entry, out_dir)
+    audit_ok = _audit_ok_collection(collection_entry, out_dir,
+                                    mod.AUDIT_RECORD_FORMAT)
 
     # ---- 步骤 2:执行(每分片一个真实子进程)
     junit_entries = []
@@ -343,7 +351,8 @@ def main(argv: list[str] | None = None) -> int:
             out_dir, stem)
         entry["env"] = entry_env
         run_rc_ok = run_rc_ok and entry["returncode"] == 0
-        audit_ok = audit_ok and _audit_ok_collection(entry, out_dir)
+        audit_ok = audit_ok and _audit_ok_collection(
+            entry, out_dir, mod.AUDIT_RECORD_FORMAT)
         execution_runs.append(entry)
         if not junit_path.is_file():
             (out_dir / "summary.json").write_text(json.dumps({
@@ -383,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
     extra = sorted(deploy_names
                    - {rel.rsplit("/", 1)[-1] for rel in members})
     record = {
-        "format": mod.REGRESSION_EVIDENCE_FORMAT_V4,
+        "format": mod.REGRESSION_EVIDENCE_FORMAT_V5,
         "scope": "formal",
         "protocol": args.protocol,
         "commit_a_sha": args.commit_a,
@@ -463,8 +472,12 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if summary["ok"] else 3
 
 
-def _audit_ok_collection(entry: dict, out_dir: Path) -> bool:
-    """审计原件核验:路径在 out_dir 内、sha 一致、verdict=pass。"""
+def _audit_ok_collection(entry: dict, out_dir: Path,
+                         audit_format: str) -> bool:
+    """审计原件核验:路径在 out_dir 内、sha 一致、verdict=pass;
+    v5 另要求审计格式 v2 + 生命周期监测已建立且无违规 + configure
+    对账干净 + append-only 流水原件绑定在场(缺任一 ⇒ 非 pass,
+    由 summary/record fail closed)。"""
     audit = entry.get("audit")
     if not isinstance(audit, dict):
         return False
@@ -472,12 +485,32 @@ def _audit_ok_collection(entry: dict, out_dir: Path) -> bool:
         audit["path"]).is_absolute() else Path(audit["path"])
     if not path.is_file() or _sha256_file(path) != audit.get("sha256"):
         return False
+    stream = entry.get("audit_lifecycle")
+    if not isinstance(stream, dict):
+        return False
+    stream_path = out_dir / stream["path"] if not Path(
+        stream["path"]).is_absolute() else Path(stream["path"])
+    if not stream_path.is_file() \
+            or _sha256_file(stream_path) != stream.get("sha256"):
+        return False
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except ValueError:
         return False
-    return document.get("verdict") == "pass" and not document.get(
-        "violations")
+    if document.get("verdict") != "pass" or document.get("violations"):
+        return False
+    if document.get("format") != audit_format:
+        return False
+    lifecycle = document.get("lifecycle")
+    if not isinstance(lifecycle, dict) \
+            or not isinstance(lifecycle.get("monitor"), dict) \
+            or not lifecycle["monitor"].get("established_utc") \
+            or lifecycle.get("violations") \
+            or not lifecycle.get("events") \
+            or not isinstance(lifecycle.get("reconcile"), dict) \
+            or lifecycle["reconcile"].get("uncovered"):
+        return False
+    return True
 
 
 if __name__ == "__main__":

@@ -1728,13 +1728,14 @@ class TestEffectiveCollectionA03:
 
 
 class TestEffectiveCollectionA02A05:
-    """v4 record 的审计/环境受控面正反例(canonical 真实 run)。"""
+    """v5 record 的审计/环境/生命周期受控面正反例(canonical
+    真实 run)。"""
 
-    def test_v4_blocks_and_env_policy(self, r17_canonical_full_run):
+    def test_v5_blocks_env_and_audit_format(self, r17_canonical_full_run):
         run = r17_canonical_full_run
         doc = read_record(run.run_dir)
         assert doc["format"] == (
-            "cur261-r17-candidate-regression-evidence-v4")
+            "cur261-r17-candidate-regression-evidence-v5")
         manifest_sha = hashlib.sha256(
             (run.run_dir / doc["audit_manifest"]["path"]).read_bytes()
         ).hexdigest()
@@ -1749,6 +1750,8 @@ class TestEffectiveCollectionA02A05:
             audit = json.loads(
                 (run.run_dir / block["audit"]["path"]).read_text(
                     encoding="utf-8"))
+            assert audit["format"] == (
+                "cur261-r23-collection-audit-v2")
             assert audit["verdict"] == "pass"
             assert [s["stage"] for s in audit["stages"]] == [
                 "configure", "collection_finish", "sessionfinish"]
@@ -1860,7 +1863,22 @@ class TestEffectiveCollectionA02A05:
 
 
 class TestEffectiveCollectionA06:
-    """新签发必须绑定 v4(有效收集环境受控)证据。"""
+    """新签发必须绑定 v5(有效收集环境受控 + 插件生命周期覆盖)
+    证据;v4/v3 历史 record 可核验但不可用于新签发。"""
+
+    @staticmethod
+    def _issuer_run(run, deploy, evidence, tmp_path, tag):
+        state = deploy / "artifacts" / "route_c_stage2_6_1_repair18" \
+            / "state"
+        state.mkdir(parents=True, exist_ok=True)
+        prereg = tmp_path / f"prereg_{tag}.json"
+        write_preregistration(prereg, run.repo, run.commit_a, evidence)
+        return subprocess.run(
+            [sys.executable, str(_issuer()), "--repo", str(run.repo),
+             "--deploy-root", str(deploy), "--state-root", str(state),
+             "--commit-a", run.commit_a,
+             "--preregistration", str(prereg)],
+            capture_output=True, text=True, timeout=300)
 
     def test_issuer_refuses_v3_format_record(
             self, r17_canonical_full_run, tmp_path):
@@ -1875,6 +1893,7 @@ class TestEffectiveCollectionA06:
             for block_key in ("collection_run", "execution"):
                 for entry in doc[block_key]["runs"]:
                     entry.pop("audit", None)
+                    entry.pop("audit_lifecycle", None)
                     entry["env"].pop("child_env", None)
                     entry["env"].pop("child_env_policy", None)
                     kept = []
@@ -1892,22 +1911,270 @@ class TestEffectiveCollectionA06:
         # v3 历史核验面仍可核验(父链递归用途;不可用于新签发)
         verify_regression_evidence(
             record_path(copied), run.repo, run.commit_a)
-        deploy = run.deploy
-        state = deploy / "artifacts" / "route_c_stage2_6_1_repair18" \
-            / "state"
-        state.mkdir(parents=True, exist_ok=True)
-        prereg = tmp_path / "prereg.json"
-        write_preregistration(
-            prereg, run.repo, run.commit_a, record_path(copied))
-        proc = subprocess.run(
-            [sys.executable, str(_issuer()), "--repo", str(run.repo),
-             "--deploy-root", str(deploy), "--state-root", str(state),
-             "--commit-a", run.commit_a,
-             "--preregistration", str(prereg)],
-            capture_output=True, text=True, timeout=300)
+        proc = self._issuer_run(run, run.deploy, record_path(copied),
+                                tmp_path, "v3")
         assert proc.returncode != 0
-        assert "format v4" in (proc.stdout + proc.stderr)
-        assert not (deploy / ".r17_formal_admission.json").exists()
+        assert "format v5" in (proc.stdout + proc.stderr)
+        assert not (run.deploy / ".r17_formal_admission.json").exists()
+
+    def test_issuer_refuses_v4_format_record_for_new_issuance(
+            self, r17_canonical_full_run, tmp_path):
+        """v4(无生命周期段)历史形状:同源核验器按 v4 历史面接受
+        不可;此处只证明签发器对"新签发"要求 v5——把 record 格式
+        字段改为 v4 即拒,零副作用。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "v4")
+
+        def _fix(doc):
+            doc["format"] = "cur261-r17-candidate-regression-evidence-v4"
+        edit_record(copied, _fix)
+        proc = self._issuer_run(run, run.deploy, record_path(copied),
+                                tmp_path, "v4")
+        assert not (run.deploy / "r17_admission_issued.jsonl").exists()
+
+
+class TestPluginLifecycleR23:
+    """R23/102e9b2 审查反例迁移(A01-A05):sessionstart 注册
+    specname 别名临时插件 → 实际过滤 → collection_finish tryfirst
+    注销;v5 注册通知使违规事实不可清除,签发/消费链继承拒绝。"""
+
+    @staticmethod
+    def _scoped_tree(tmp: Path):
+        repo, commit_a, parent = git_repo_with_candidate(
+            tmp, scoped=True)
+        deploy = tmp / "deploy"
+        sync_deploy_surface(repo, commit_a, deploy)
+        return repo, commit_a, deploy
+
+    def test_no_defense_baseline_reproduced(self, tmp_path):
+        """无防护基线(审查对照形状):同测试正文、无插件 conftest
+        的对照树 11 项含 1 失败;scoped 树(sessionstart 注册临时
+        插件)收集/执行一致 10 项全绿(rc=0)。"""
+        repo, commit_a, _ = git_repo_with_candidate(tmp_path, probe=True)
+        control = tmp_path / "control"
+        sync_deploy_surface(repo, commit_a, control)
+        env = _proc_env()
+        collect = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "--collect-only", "-q"],
+            cwd=str(control), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert "11 tests collected" in collect.stdout
+        control_run = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(control), env=env, capture_output=True, text=True,
+            timeout=300)
+        assert control_run.returncode == 1
+        assert "1 failed" in control_run.stdout
+
+        _, _, scoped_deploy = self._scoped_tree(tmp_path / "scoped")
+        scoped_collect = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "--collect-only", "-q"],
+            cwd=str(scoped_deploy), env=env, capture_output=True,
+            text=True, timeout=300)
+        assert "10 tests collected" in scoped_collect.stdout
+        scoped_run = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/route_c_stage2_6_1", "-q"],
+            cwd=str(scoped_deploy), env=env, capture_output=True,
+            text=True, timeout=300)
+        assert scoped_run.returncode == 0
+        assert "3 passed" in scoped_run.stdout
+        assert "failed" not in scoped_run.stdout
+        events = [
+            json.loads(line) for line in
+            (scoped_deploy / "scoped_plugin_events.jsonl").read_text(
+                encoding="utf-8").splitlines() if line.strip()]
+        assert [row["event"] for row in events][-3:] == [
+            "registered", "filtered", "unregistered"]
+
+    def test_executor_refuses_scoped_temp_plugin(self, tmp_path):
+        """真实执行器 + 审计器:收集 rc=0(10 项全绿)但审计
+        verdict=violations ⇒ summary fail-closed、rc=3、核验器拒。
+        "测试 rc=0 但审计不合格"不得被写成 full PASS。"""
+        repo, commit_a, deploy = self._scoped_tree(tmp_path)
+        run_dir, summary, rc = run_executor(
+            tmp_path / "run", repo, commit_a, deploy, expect_rc=(3,))
+        assert rc == 3
+        assert summary["ok"] is False
+        assert "audit_verdict_not_pass" in summary.get("error", "")
+        collection = (run_dir / "collection.stdout.txt").read_text(
+            encoding="utf-8")
+        assert "10 tests collected" in collection  # 过滤确实生效
+        audit = json.loads(
+            (run_dir / "audit_collection.json").read_text(
+                encoding="utf-8"))
+        assert audit["verdict"] == "violations"
+        lifecycle = audit["lifecycle"]
+        kinds = {row["kind"] for row in lifecycle["violations"]}
+        assert "lifecycle_guarded_hook_registration" in kinds
+        events = lifecycle["events"]
+        scoped = [event for event in events
+                  if event["plugin_name"] == "scoped_collection"]
+        assert len(scoped) == 1
+        assert scoped[0]["classification"] == "unapproved"
+        assert "pytest_pycollect_makeitem" in scoped[0]["guarded_hooks"]
+        stream = [
+            json.loads(line) for line in
+            (run_dir / "audit_collection.json.lifecycle.jsonl"
+             ).read_text(encoding="utf-8").splitlines() if line.strip()]
+        assert any(row.get("kind") == "violation"
+                   and row.get("violation", {}).get("plugin_name")
+                   == "scoped_collection"
+                   for row in stream)
+        with pytest.raises(SubstanceError,
+                           match="audit_verdict_not_pass"):
+            verify_regression_evidence(
+                record_path(run_dir), repo, commit_a)
+
+    def test_violation_facts_unclearable_from_document(
+            self, r17_canonical_full_run, tmp_path):
+        """A02(文档侧清除):向 append-only 流水注入一条违规(并重绑
+        流水 sha),再把审计文档保持"干净"——文档与流水不一致 ⇒
+        核验器拒。等价于 scoped 运行后从文档删违规:流水为真。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "streaminject")
+        stream_path = copied / "audit_collection.json.lifecycle.jsonl"
+        injected = {"kind": "violation",
+                    "type": "lifecycle_guarded_hook_registration",
+                    "plugin_name": "scoped_collection"}
+        with open(stream_path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(injected, sort_keys=True,
+                                    ensure_ascii=False) + "\n")
+        rehash_artifact(copied, "audit_collection.json.lifecycle.jsonl")
+        with pytest.raises(SubstanceError,
+                           match="lifecycle_stream_violations_mismatch"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_document_violation_without_stream_refused(
+            self, r17_canonical_full_run, tmp_path):
+        """A02(反向):只在文档里补违规、流水没有 ⇒ 同样拒——
+        两侧必须严格一致,不存在单向补写通道。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "docinject")
+        audit_path = copied / "audit_collection.json"
+        doc = json.loads(audit_path.read_text(encoding="utf-8"))
+        doc["lifecycle"]["violations"].append({
+            "kind": "lifecycle_unapproved_registration",
+            "plugin_name": "scoped_collection", "origin": "x"})
+        audit_path.write_text(
+            json.dumps(doc, indent=1, ensure_ascii=False, sort_keys=True)
+            + "\n", encoding="utf-8")
+        rehash_artifact(copied, "audit_collection.json")
+        with pytest.raises(SubstanceError,
+                           match="audit_lifecycle_violations"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_scoped_run_final_snapshot_clean_but_refused(
+            self, tmp_path):
+        """A02(原件路径):scoped 运行的 sessionfinish 快照中已无
+        临时插件(注销生效),仍拒绝;直接读运行原件断言。"""
+        repo, commit_a, deploy = self._scoped_tree(tmp_path / "x")
+        run_dir, summary, rc = run_executor(
+            tmp_path / "x" / "run", repo, commit_a, deploy,
+            expect_rc=(3,))
+        audit = json.loads(
+            (run_dir / "audit_collection.json").read_text(
+                encoding="utf-8"))
+        final = audit["stages"][-1]["snapshot"]["plugins"]
+        names = [row.get("plugin_name") for row in final]
+        assert "scoped_collection" not in names
+        assert audit["verdict"] == "violations"
+        assert any(event["plugin_name"] == "scoped_collection"
+                   for event in audit["lifecycle"]["events"])
+
+    def test_lifecycle_events_cover_early_and_late(
+            self, r17_canonical_full_run):
+        """A03:监测经 historic 重放覆盖启动前注册(核心插件全量
+        事件),configure 对账 uncovered 为空;晚注册(session 等
+        核心对象)亦分类为 core,不误拒。"""
+        run = r17_canonical_full_run
+        doc = read_record(run.run_dir)
+        audit = json.loads(
+            (run.run_dir / doc["collection_run"]["runs"][0]["audit"][
+                "path"]).read_text(encoding="utf-8"))
+        lifecycle = audit["lifecycle"]
+        events = lifecycle["events"]
+        assert events, "monitor must be established"
+        assert lifecycle["monitor"]["hook"] == \
+            "pytest_plugin_registered"
+        assert lifecycle["reconcile"]["uncovered"] == []
+        classes = {event["classification"] for event in events}
+        assert classes <= {"core", "auditor", "conftest"}
+        assert "core" in classes and "conftest" in classes
+        conftest_seq = max(event["seq"] for event in events
+                           if event["classification"] == "conftest")
+        assert any(event["classification"] == "core"
+                   and event["seq"] > conftest_seq
+                   for event in events), "late core registration covered"
+        # 判定与流水一致
+        assert audit["verdict"] == "pass"
+        stream = [
+            json.loads(line) for line in
+            (run.run_dir / (doc["collection_run"]["runs"][0][
+                "audit"]["path"] + ".lifecycle.jsonl")).read_text(
+                encoding="utf-8").splitlines() if line.strip()]
+        assert stream[0]["kind"] == "monitor"
+        assert len([row for row in stream
+                    if row["kind"] == "event"]) == len(events)
+
+    def test_missing_lifecycle_section_refused(
+            self, r17_canonical_full_run, tmp_path):
+        """A03(fail closed):v5 record 的审计原件缺生命周期段
+        ⇒ 核验器拒绝(兼容入口不为新候选提供本轮保证)。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "nolc")
+        audit_path = copied / "audit_collection.json"
+        doc = json.loads(audit_path.read_text(encoding="utf-8"))
+        doc.pop("lifecycle", None)
+        audit_path.write_text(
+            json.dumps(doc, indent=1, ensure_ascii=False, sort_keys=True)
+            + "\n", encoding="utf-8")
+        rehash_artifact(copied, "audit_collection.json")
+        with pytest.raises(SubstanceError,
+                           match="lifecycle_missing"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_audit_format_v1_refused_for_v5_record(
+            self, r17_canonical_full_run, tmp_path):
+        """v5 record 内审计原件必须是 v2 格式(旧 v1 快照式审计
+        不能为新候选供证)。"""
+        run = r17_canonical_full_run
+        copied = copy_run(run.run_dir, tmp_path / "v1fmt")
+        audit_path = copied / "audit_collection.json"
+        doc = json.loads(audit_path.read_text(encoding="utf-8"))
+        doc["format"] = "cur261-r22-collection-audit-v1"
+        audit_path.write_text(
+            json.dumps(doc, indent=1, ensure_ascii=False, sort_keys=True)
+            + "\n", encoding="utf-8")
+        rehash_artifact(copied, "audit_collection.json")
+        with pytest.raises(SubstanceError,
+                           match="audit_format_invalid"):
+            verify_regression_evidence(
+                record_path(copied), run.repo, run.commit_a)
+
+    def test_record_format_v5_and_stream_bound(
+            self, r17_canonical_full_run):
+        """A05 前置:canonical 真实运行的 record/审计原件/流水
+        绑定面(合法路径全绿——动态参数化、已批准生成钩子、正常
+        核心晚注册不受影响)。"""
+        run = r17_canonical_full_run
+        doc = read_record(run.run_dir)
+        assert doc["format"] == (
+            "cur261-r17-candidate-regression-evidence-v5")
+        for block in (doc["collection_run"]["runs"]
+                      + doc["execution"]["runs"]):
+            stream = block.get("audit_lifecycle")
+            assert isinstance(stream, dict)
+            path = run.run_dir / stream["path"]
+            assert path.is_file()
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == \
+                stream["sha256"]
 
 
 class TestSupervisionLinkA08:
@@ -2005,13 +2272,16 @@ class TestSyncScriptA09:
                  dest / "src" / "rl_curriculum" / Path(src).name))
         for leaf in ("r21_full_collection_regression.py",
                      "r21_collection_auditor.py",
-                     "r17_admission_issue.py"):
+                     "r17_admission_issue.py",
+                     "r23_plugin_lifecycle_probe.py"):
             expected.append(
                 (repo_root / "stage2_6_1" / "runner" / leaf,
                  dest / "stage2_6_1_runner" / leaf))
         for leaf in ("conftest.py",
                      "r17_admission_substance_test_support.py",
                      "test_curriculum261_r17_admission_substance.py",
+                     "test_curriculum261_r20_design_math.py",
+                     "test_curriculum261_r20_design_math_v4.py",
                      "test_curriculum261_r17_supervision_unit.py",
                      "test_r18_launch_behavioral.py"):
             expected.append(

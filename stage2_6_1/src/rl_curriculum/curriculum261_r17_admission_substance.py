@@ -97,13 +97,30 @@ REGRESSION_EVIDENCE_FORMAT = "cur261-r17-candidate-regression-evidence-v3"
 #: 9 项全绿)。v4 在 v3 全部核验之上追加:静态 hook 绑定扫描(全
 #: 树、含 import/assign/setattr 绑定)、运行期有效插件/钩子审计
 #: (in-process 审计器经执行端固定 -p 注入)、最小子进程环境与
-#: 插件自动加载关闭。v3 历史 record 维持可核验(父链递归),不可
-#: 用于新签发(签发器要求 v4)。
+#: 插件自动加载关闭。
 REGRESSION_EVIDENCE_FORMAT_V4 = "cur261-r17-candidate-regression-evidence-v4"
+#: v5(2026-09-25/R23):插件生命周期覆盖。v4 三阶段快照对"会话中
+#: 途注册→影响收集→注销"的临时插件不可见(审查反例
+#: probe_cases/scoped_specname:sessionstart 注册 specname 别名
+#: 过滤插件,collection_finish tryfirst 注销,三快照全 pass 仍
+#: 缩减 10→9)。v5 在 v4 全部核验之上追加:审计器实现
+#: pytest_plugin_registered(historic 重放+实时通知),逐注册
+#: 事件按实际对象来源分类、append-only JSONL 落盘、违规后
+#: verdict 永久 violations(注销/清理不可恢复);v4/v3 历史
+#: record 维持可核验(父链递归),不可用于新签发(签发器要求
+#: v5)。
+REGRESSION_EVIDENCE_FORMAT_V5 = "cur261-r17-candidate-regression-evidence-v5"
 _REGRESSION_FORMATS = (REGRESSION_EVIDENCE_FORMAT,
-                       REGRESSION_EVIDENCE_FORMAT_V4)
+                       REGRESSION_EVIDENCE_FORMAT_V4,
+                       REGRESSION_EVIDENCE_FORMAT_V5)
 AUDIT_MANIFEST_FORMAT = "cur261-r22-collection-audit-manifest-v1"
-AUDIT_RECORD_FORMAT = "cur261-r22-collection-audit-v1"
+#: 审计原件格式:v2(R23)= v1 三阶段快照 + 生命周期事件/违规/
+#: 对账段 + JSONL 流水绑定。v1 原件仅随 v4 及更早 record 出现
+#: (历史核验面);v5 record 要求 v2。
+AUDIT_RECORD_FORMAT = "cur261-r23-collection-audit-v2"
+_AUDIT_RECORD_FORMATS = ("cur261-r22-collection-audit-v1",
+                         AUDIT_RECORD_FORMAT)
+_LIFECYCLE_MONITOR_HOOK = "pytest_plugin_registered"
 _AUDITOR_MODULE_NAME = "r21_collection_auditor"
 _AUDITOR_PLUGIN_ARGS = ("-p", _AUDITOR_MODULE_NAME)
 _AUDIT_STAGES = ("configure", "collection_finish", "sessionfinish")
@@ -946,12 +963,82 @@ def _verify_audit_manifest(record_path: Path, record: dict, repo: Path,
     return manifest
 
 
+def _verify_lifecycle(record_path: Path, entry: dict, audit: dict,
+                      label: str) -> None:
+    """审计原件生命周期段核验(v5 record / 审计格式 v2)。
+
+    - 监测必须已建立(monitor hook = pytest_plugin_registered)且
+      configure 对账 uncovered 为空(监测未建立/覆盖不全 fail closed);
+    - 事件序列 seq 严格连续递增;任何 unapproved 分类的事件必须
+      伴随生命周期违规(注册即事实,注销不可恢复);
+    - append-only JSONL 流水原件与内嵌段严格一致(事件/违规逐条
+      相等):从审计文档清除违规事实、或事后补写流水,均拒绝。
+    """
+    block = audit.get("lifecycle")
+    if not isinstance(block, dict):
+        raise SubstanceError(f"{label}_audit_lifecycle_missing")
+    monitor = block.get("monitor")
+    if not isinstance(monitor, dict) \
+            or monitor.get("hook") != _LIFECYCLE_MONITOR_HOOK \
+            or not isinstance(monitor.get("established_utc"), str) \
+            or not monitor["established_utc"]:
+        raise SubstanceError(f"{label}_audit_lifecycle_monitor_invalid")
+    events = block.get("events")
+    if not isinstance(events, list) or not events:
+        raise SubstanceError(f"{label}_audit_lifecycle_events_missing")
+    for index, event in enumerate(events):
+        if not isinstance(event, dict) \
+                or event.get("seq") != index \
+                or not isinstance(event.get("classification"), str):
+            raise SubstanceError(
+                f"{label}_audit_lifecycle_event_invalid:{index}")
+        if event["classification"] not in ("core", "auditor", "conftest"):
+            raise SubstanceError(
+                f"{label}_audit_lifecycle_registration_unapproved:"
+                + json.dumps(event, ensure_ascii=False)[:200])
+    violations = block.get("violations")
+    if not isinstance(violations, list) or violations:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_violations:"
+            + json.dumps(violations[:2], ensure_ascii=False))
+    reconcile = block.get("reconcile")
+    if not isinstance(reconcile, dict) \
+            or reconcile.get("uncovered") != []:
+        raise SubstanceError(f"{label}_audit_lifecycle_reconcile_invalid")
+    stream_block = entry.get("audit_lifecycle")
+    if not isinstance(stream_block, dict):
+        raise SubstanceError(f"{label}_audit_lifecycle_stream_unbound")
+    stream_bytes = _artifact_bytes(record_path, stream_block,
+                                   f"{label}_audit_lifecycle_stream")
+    try:
+        rows = [json.loads(line) for line in
+                stream_bytes.decode("utf-8").splitlines() if line.strip()]
+    except ValueError as exc:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_unreadable") from exc
+    if not rows or rows[0].get("kind") != "monitor":
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_monitor_missing")
+    stream_events = [row for row in rows if row.get("kind") == "event"]
+    stream_violations = [row.get("violation") for row in rows
+                         if row.get("kind") == "violation"]
+    doc_events = [{**event, "kind": "event"} for event in events]
+    if stream_events != doc_events:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_events_mismatch")
+    if stream_violations != violations:
+        raise SubstanceError(
+            f"{label}_audit_lifecycle_stream_violations_mismatch")
+
+
 def _verify_audit_entry(record_path: Path, entry: dict, label: str, *,
                         manifest: dict, deploy_root: Path | None,
-                        mapping: dict, command: list) -> dict:
+                        mapping: dict, command: list,
+                        lifecycle: bool = False) -> dict:
     """单运行条目审计原件:三阶段齐全且有序、verdict=pass、argv
     与条目 command 一致、各阶段插件/钩子快照通过来源分类、阶段间
-    快照零漂移(注册后未再变化)。"""
+    快照零漂移(注册后未再变化)。lifecycle=True(v5 record)另加
+    生命周期段核验且只接受审计格式 v2。"""
     audit_block = entry.get("audit")
     if not isinstance(audit_block, dict):
         raise SubstanceError(f"{label}_audit_block_missing")
@@ -961,7 +1048,9 @@ def _verify_audit_entry(record_path: Path, entry: dict, label: str, *,
     except ValueError as exc:
         raise SubstanceError(f"{label}_audit_unreadable") from exc
     if not isinstance(audit, dict) \
-            or audit.get("format") != AUDIT_RECORD_FORMAT:
+            or audit.get("format") not in _AUDIT_RECORD_FORMATS:
+        raise SubstanceError(f"{label}_audit_format_invalid")
+    if lifecycle and audit.get("format") != AUDIT_RECORD_FORMAT:
         raise SubstanceError(f"{label}_audit_format_invalid")
     if audit.get("verdict") != "pass" or audit.get("violations"):
         raise SubstanceError(
@@ -1052,6 +1141,8 @@ def _verify_audit_entry(record_path: Path, entry: dict, label: str, *,
                 f"{label}_audit_hook_snapshot_drift:{stage.get('stage')}")
         if isinstance(stage.get("collected_items"), int):
             collected_counts.append(stage["collected_items"])
+    if lifecycle or audit.get("format") == AUDIT_RECORD_FORMAT:
+        _verify_lifecycle(record_path, entry, audit, label)
     return {"audit": audit, "collected_counts": collected_counts}
 
 
@@ -1149,11 +1240,13 @@ def _verify_run_identity(entries: list, reference: dict, label: str,
 def _verify_collection_run(record_path: Path, record: dict,
                            *, full: bool, deploy_root: Path | None,
                            v4: bool = False, manifest: dict | None = None,
-                           mapping: dict | None = None) -> list[str]:
+                           mapping: dict | None = None,
+                           lifecycle: bool = False) -> list[str]:
     """collection_run(单进程)核验:期望全集 = stdout 原件重解析。
 
     v4:审计原件三阶段核验 + collection_finish 阶段记录的收集数
     必须等于 stdout 期望全集实例数(审计与收集原件互绑)。
+    lifecycle(v5):审计原件另须通过生命周期段核验。
     """
     block = record.get("collection_run")
     label = "regression_collection_run"
@@ -1174,7 +1267,7 @@ def _verify_collection_run(record_path: Path, record: dict,
         audit_result = _verify_audit_entry(
             record_path, block["runs"][0], label, manifest=manifest,
             deploy_root=deploy_root, mapping=mapping,
-            command=block["runs"][0]["command"])
+            command=block["runs"][0]["command"], lifecycle=lifecycle)
     if deploy_root is not None:
         _verify_config_surface(
             deploy_root, block["runs"][0]["env"]["config_scan"])
@@ -1199,13 +1292,15 @@ def _verify_execution_runs(record_path: Path, record: dict, *,
                            shard_aggregates: list[dict],
                            deploy_root: Path | None,
                            v4: bool = False, manifest: dict | None = None,
-                           mapping: dict | None = None) -> None:
+                           mapping: dict | None = None,
+                           lifecycle: bool = False) -> None:
     """execution runs 核验:每 run 绑定自身 junit(sha 已在外层核验)
     与 stdout 摘要;full 单 run 必须指向完整目录,sharded run 各自
     指向根内分片目标;全部 run 与 collection_run 同执行身份。
 
     v4:每 run 审计原件三阶段核验 + collection_finish 收集数必须
     等于该 run junit 元素级实例数(无删减执行)。
+    lifecycle(v5):审计原件另须通过生命周期段核验。
     """
     block = record.get("execution")
     label = "regression_execution"
@@ -1230,7 +1325,8 @@ def _verify_execution_runs(record_path: Path, record: dict, *,
             audit_result = _verify_audit_entry(
                 record_path, entry, f"{label}_run{index}",
                 manifest=manifest, deploy_root=deploy_root,
-                mapping=mapping, command=entry["command"])
+                mapping=mapping, command=entry["command"],
+                lifecycle=lifecycle)
             counts = audit_result["collected_counts"]
             if counts and counts[-1] != shard_aggregates[index]["tests"]:
                 raise SubstanceError(
@@ -1447,7 +1543,9 @@ def verify_regression_evidence(record_path: Path, repo: Path,
     if not isinstance(record, dict) \
             or record.get("format") not in _REGRESSION_FORMATS:
         raise SubstanceError("regression_evidence_format_mismatch")
-    v4 = record.get("format") == REGRESSION_EVIDENCE_FORMAT_V4
+    v4 = record.get("format") in (REGRESSION_EVIDENCE_FORMAT_V4,
+                                  REGRESSION_EVIDENCE_FORMAT_V5)
+    lifecycle = record.get("format") == REGRESSION_EVIDENCE_FORMAT_V5
     if record.get("commit_a_sha") != commit_a:
         raise SubstanceError("regression_evidence_commit_unbound")
     if record.get("scope") != "formal":
@@ -1557,7 +1655,8 @@ def verify_regression_evidence(record_path: Path, repo: Path,
     full = protocol == "full"
     collection = _verify_collection_run(record_path, record, full=full,
                                         deploy_root=deploy_root, v4=v4,
-                                        manifest=manifest, mapping=mapping)
+                                        manifest=manifest, mapping=mapping,
+                                        lifecycle=lifecycle)
     bases = {_param_base(c) for c in collection}
     if full:
         if bases != static_ids:
@@ -1591,7 +1690,8 @@ def verify_regression_evidence(record_path: Path, repo: Path,
                            junit_paths=junit_paths,
                            shard_aggregates=shard_aggregates,
                            deploy_root=deploy_root, v4=v4,
-                           manifest=manifest, mapping=mapping)
+                           manifest=manifest, mapping=mapping,
+                           lifecycle=lifecycle)
     _verify_import_surface(record, repo, commit_a, deploy_root)
     if deploy_root is not None:
         verify_deployment_surface(deploy_root, mapping)

@@ -23,7 +23,8 @@ done
 #    blob 一致(record executor_face 绑定))
 for f in r21_full_collection_regression.py \
          r21_collection_auditor.py \
-         r17_admission_issue.py; do
+         r17_admission_issue.py \
+         r23_plugin_lifecycle_probe.py; do
   tr -d '\r' < "$REPO/stage2_6_1/runner/$f" > "$D/stage2_6_1_runner/$f"
 done
 
@@ -32,6 +33,7 @@ for f in conftest.py \
          r17_admission_substance_test_support.py \
          test_curriculum261_r17_admission_substance.py \
          test_curriculum261_r20_design_math.py \
+         test_curriculum261_r20_design_math_v4.py \
          test_curriculum261_r17_supervision_unit.py \
          test_r18_launch_behavioral.py; do
   tr -d '\r' < "$REPO/stage2_6_1/tests/route_c_stage2_6_1/$f" \
@@ -46,5 +48,12 @@ tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v3.json" \
   > "$D/report/r20_design_calc_v3.json"
 tr -d '\r' < "$REPO/stage2_6_1/report/route_c_stage2_6_1_r20_research_design_v3.md" \
   > "$D/report/route_c_stage2_6_1_r20_research_design_v3.md"
+# 5) report v4(R23:C 设计计算现行入口 + 机读 JSON + 修订说明)
+tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v4.py" \
+  > "$D/report/r20_design_calc_v4.py"
+tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v4.json" \
+  > "$D/report/r20_design_calc_v4.json"
+tr -d '\r' < "$REPO/stage2_6_1/report/route_c_stage2_6_1_r20_research_design_v4.md" \
+  > "$D/report/route_c_stage2_6_1_r20_research_design_v4.md"
 
-echo "r21_sync: done (substance v4 + executor + auditor + tests -> $D)"
+echo "r21_sync: done (substance v5 + executor + auditor + probe + tests + report v4 -> $D)"

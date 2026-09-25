@@ -1,0 +1,460 @@
+{
+ "A_min_k_matched_scale_retained": {
+  "formula": "max(0, 2*Phi(margin*sqrt(K)/s - z_(1-alpha)) - 1)",
+  "rows": [
+   {
+    "margin": 0.002,
+    "min_K_power90_at_zero": 11,
+    "power_at_K8": 0.7957248528496748,
+    "power_at_K_minus_one": 0.893354096014985,
+    "power_at_min_K": 0.9236864589708058,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546
+   },
+   {
+    "margin": 0.002,
+    "min_K_power90_at_zero": 16,
+    "power_at_K8": 0.5076661430914142,
+    "power_at_K_minus_one": 0.8782868713374785,
+    "power_at_min_K": 0.9015310512244743,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568
+   },
+   {
+    "margin": 0.002,
+    "min_K_power90_at_zero": 23,
+    "power_at_K8": 0.23431643607866232,
+    "power_at_K_minus_one": 0.885215337395475,
+    "power_at_min_K": 0.9009462650721667,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682
+   },
+   {
+    "margin": 0.003,
+    "min_K_power90_at_zero": 5,
+    "power_at_K8": 0.9936014252023164,
+    "power_at_K_minus_one": 0.851892463372879,
+    "power_at_min_K": 0.9298751722715561,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546
+   },
+   {
+    "margin": 0.003,
+    "min_K_power90_at_zero": 8,
+    "power_at_K8": 0.9360214241815692,
+    "power_at_K_minus_one": 0.8961484388557075,
+    "power_at_min_K": 0.9360214241815692,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568
+   },
+   {
+    "margin": 0.003,
+    "min_K_power90_at_zero": 11,
+    "power_at_K8": 0.7957248528496748,
+    "power_at_K_minus_one": 0.893354096014985,
+    "power_at_min_K": 0.9236864589708058,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682
+   },
+   {
+    "margin": 0.004,
+    "min_K_power90_at_zero": 3,
+    "power_at_K8": 0.9999713303839699,
+    "power_at_K_minus_one": 0.7957248528496748,
+    "power_at_min_K": 0.9457009928506297,
+    "rho": 1.0,
+    "single_se": 0.0019410552950364546
+   },
+   {
+    "margin": 0.004,
+    "min_K_power90_at_zero": 4,
+    "power_at_K8": 0.9974559870691762,
+    "power_at_K_minus_one": 0.7739451717233792,
+    "power_at_min_K": 0.9015310512244743,
+    "rho": 1.25,
+    "single_se": 0.002426319118795568
+   },
+   {
+    "margin": 0.004,
+    "min_K_power90_at_zero": 6,
+    "power_at_K8": 0.9749677698404962,
+    "power_at_K_minus_one": 0.8464513159057505,
+    "power_at_min_K": 0.9146242649649601,
+    "rho": 1.5,
+    "single_se": 0.002911582942554682
+   }
+  ],
+  "status": "v3 已接受的算术参照(mmatched r_analysis=r_true);不是主案随真实情景自动换尺度的执行规则"
+ },
+ "F_action_classification": {
+  "action_mapping": {
+   "beyond_negative_margin": "研究建议:实测 recall 系统性偏高(解析预测低估实测 recall)超过待审界限,转校准路线;不自动授予正式实验权限",
+   "beyond_positive_margin": "研究建议:实测 recall 系统性偏低(解析预测高估实测 recall)超过待审界限,转校准路线(先修 analytic/语料缺口);不自动授予正式实验权限",
+   "inconclusive": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作",
+   "within_equivalence_bounds": "报告:在待审开发界限内等效(条件结论);非零方向偏差另报;无强制后续动作"
+  },
+  "cases": {
+   "beyond_negative": {
+    "action": "研究建议:实测 recall 系统性偏高(解析预测低估实测 recall)超过待审界限,转校准路线;不自动授予正式实验权限",
+    "direction": "negative",
+    "magnitude": "beyond_negative_margin"
+   },
+   "beyond_positive": {
+    "action": "研究建议:实测 recall 系统性偏低(解析预测高估实测 recall)超过待审界限,转校准路线(先修 analytic/语料缺口);不自动授予正式实验权限",
+    "direction": "positive",
+    "magnitude": "beyond_positive_margin"
+   },
+   "missing_data": {
+    "action": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作",
+    "direction": "not_resolved",
+    "magnitude": "inconclusive"
+   },
+   "straddling_bound": {
+    "action": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作",
+    "direction": "positive",
+    "magnitude": "inconclusive"
+   },
+   "touching_bound": {
+    "action": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作",
+    "direction": "positive",
+    "magnitude": "inconclusive"
+   },
+   "within_bounds_nonzero_direction": {
+    "action": "报告:在待审开发界限内等效(条件结论);非零方向偏差另报;无强制后续动作",
+    "direction": "positive",
+    "magnitude": "within_equivalence_bounds"
+   }
+  },
+  "direction_convention": "delta = p_analytic - recall(validation);delta>0 即实测 recall 低于解析预测(解析预测高估),delta<0 即实测 recall 高于解析预测(解析预测低估)",
+  "direction_labels": [
+   "positive",
+   "negative",
+   "not_resolved"
+  ],
+  "insufficient_coordinates_not_full_k_inference": {
+   "k_coordinates": 5,
+   "magnitude": "inconclusive",
+   "not_resolved_reason": "insufficient_coordinates",
+   "note": "提前停止只做描述性报告,不得宣称达到完整K设计的推断",
+   "planned_k": 11
+  },
+  "magnitude_classes_mutually_exclusive": [
+   "within_equivalence_bounds",
+   "beyond_positive_margin",
+   "beyond_negative_margin",
+   "inconclusive"
+  ],
+  "touching_or_crossing_or_missing": "inconclusive"
+ },
+ "G_blocks_and_budget": {
+  "blocks_to_offset_rho_at_fixed_se_target": {
+   "formula": "B = ceil(500 * rho^2)",
+   "rows": [
+    {
+     "blocks": 500,
+     "rho": 1.0
+    },
+    {
+     "blocks": 782,
+     "rho": 1.25
+    },
+    {
+     "blocks": 1125,
+     "rho": 1.5
+    }
+   ]
+  },
+  "k_times_b_invariance": {
+   "note": "同等总预算下多坐标覆盖跨坐标散布;加blocks只压缩单坐标重抽噪声;故选 (K=11, B=500)",
+   "recommended_KB": 5500
+  },
+  "recommended_blocks_per_coordinate_corpus": 500,
+  "scaling_assumption": "SE(B) = VALID_SE * sqrt(500/B); single-anchor extrapolation, exponent not verifiable from one point (stated assumption)"
+ },
+ "H_design_only_mc_coherence": {
+  "coherence_check_only": true,
+  "interpretation": "仿真世界与分析端假设同源;一致仅证明公式算术正确,不证明该正态已知SE模型对真实生成器/簇结构成立",
+  "repetitions": 100000,
+  "rows": [
+   {
+    "K": 11,
+    "exact_probability": 0.9236864589708058,
+    "mc_standard_error": 0.0008395819464756236,
+    "r_analysis": 1.5,
+    "r_true": 1.5,
+    "repetitions": 100000,
+    "simulation_probability": 0.92483,
+    "true_delta": 0.0,
+    "within_five_mc_se": true
+   },
+   {
+    "K": 11,
+    "exact_probability": 0.9921564766163051,
+    "mc_standard_error": 0.00027896240830305977,
+    "r_analysis": 1.5,
+    "r_true": 1.0,
+    "repetitions": 100000,
+    "simulation_probability": 0.99231,
+    "true_delta": 0.0,
+    "within_five_mc_se": true
+   },
+   {
+    "K": 11,
+    "exact_probability": 0.966578747073142,
+    "mc_standard_error": 0.0005683684788907372,
+    "r_analysis": 1.5,
+    "r_true": 1.25,
+    "repetitions": 100000,
+    "simulation_probability": 0.96662,
+    "true_delta": 0.0,
+    "within_five_mc_se": true
+   },
+   {
+    "K": 11,
+    "exact_probability": 0.13641489925413858,
+    "mc_standard_error": 0.0010853841463538236,
+    "r_analysis": 1.0,
+    "r_true": 1.5,
+    "repetitions": 100000,
+    "simulation_probability": 0.13606,
+    "true_delta": 0.003,
+    "within_five_mc_se": true
+   },
+   {
+    "K": 8,
+    "exact_probability": 0.04998566519198516,
+    "mc_standard_error": 0.0006891088336924722,
+    "r_analysis": 1.5,
+    "r_true": 1.5,
+    "repetitions": 100000,
+    "simulation_probability": 0.0504,
+    "true_delta": 0.003,
+    "within_five_mc_se": true
+   }
+  ],
+  "seed": 20260925
+ },
+ "I_proposal_pending_review": {
+  "budget_and_stop_rules": [
+   "每坐标一次 audit 叶;K 与坐标清单批准后冻结,无追加、无重抽、无失败替换",
+   "提前停止只按已完成坐标做描述性报告,不得以完整K=11预注册TOST作推断",
+   "研究(dev)数据与未来正式确认数据物理隔离;等效成立不自动许可正式链"
+  ],
+  "design_targets": {
+   "K": 11,
+   "alpha": 0.05,
+   "margin_delta_star": 0.003,
+   "margin_status": "待审开发界限;无下游容忍度依据",
+   "planning_worst_case_r_true": 1.5,
+   "r_analysis_fixed": 1.5,
+   "target_power_at_zero_delta": 0.9
+  },
+  "limits_and_boundaries": [
+   "1.5 是拟议固定安全系数,不是真实误差必然小于该值的证明",
+   "条件模型:正态、给定尺度、独立坐标、解析锚条件固定;5% 只按明示条件解释,非真实生成器经验保证",
+   "有限原始 blocks 的 SE 统计不确定性、跨坐标相关、随机解析锚不确定性不被敏感性表或多bootstrap消除;共享锚敏感性沿用独立加一次公式(s_anchor 只加一次)",
+   "若未来流程每坐标重估解析锚、共享随机权重或目标变为无条件平均,现有简单式不能直接沿用,缺项须显式建模",
+   "SE∝1/sqrt(B) 为单点锚外推假设,指数未经第二锚点验证"
+  ],
+  "primary_analysis_path": "每坐标有符号偏差 delta_k = p_analytic - recall(validation) + R19 同口径 block-cluster bootstrap 原始SE s_k;delta_bar=mean(delta_k);S_raw=sqrt(sum(s_k^2))/K;S_analysis=1.5*S_raw;CI90=delta_bar±z*S_analysis;互斥幅度类别+方向标签;坐标数<K=11 时不做完整K推断",
+  "single_pending_decision": "是否采纳本设计及预算:Delta=0.003(待审),alpha=0.05,主分析固定 r_analysis=1.5,K=11,每语料 500 blocks",
+  "status": "待审设计(PENDING_REVIEW);本轮不批准任何新抽样,R20 未注册;完成 A/C 工程与设计收敛不构成研究授权"
+ },
+ "K_recompute_under_primary_rule": {
+  "alternative_margin_0.002": {
+   "K_at_r_true_1.25": 20,
+   "K_at_r_true_1.5": 23,
+   "when": "仅当审查方认定 0.002 以下偏差亦重要;预算更高,不推荐首选"
+  },
+  "fixed_analysis_min_k": [
+   {
+    "min_K_power90_at_zero": 8,
+    "power_at_K_minus_one": 0.8951673593915508,
+    "power_at_min_K": 0.9431155979052765,
+    "r_analysis": 1.5,
+    "r_true": 1.0
+   },
+   {
+    "min_K_power90_at_zero": 9,
+    "power_at_K_minus_one": 0.8723309363309575,
+    "power_at_min_K": 0.9173473834349459,
+    "r_analysis": 1.5,
+    "r_true": 1.25
+   },
+   {
+    "min_K_power90_at_zero": 11,
+    "power_at_K_minus_one": 0.893354096014985,
+    "power_at_min_K": 0.9236864589708058,
+    "r_analysis": 1.5,
+    "r_true": 1.5
+   }
+  ],
+  "recommended": {
+   "K": 11,
+   "justification": "主案规划最坏场景 r_true=1.5(与 r_analysis 同值),matched-scale 与固定分析规则在该场景一致 ⇒ K=11",
+   "power_at_K_minus_one_worst_case": 0.893354096014985,
+   "power_at_K_zero_bias_worst_case": 0.9236864589708058
+  },
+  "rule": "min K with zero-bias power >= 0.90 at alpha=0.05; interval SE fixed at r_analysis=1.5×VALID_SE, truth SE = r_true×VALID_SE"
+ },
+ "L1_primary_analysis_rule": {
+  "delta_convention": "delta = p_analytic - recall(validation);delta>0 即实测 recall 低于解析预测(解析预测高估),delta<0 即实测 recall 高于解析预测(解析预测低估)",
+  "formula": "S_raw = sqrt(sum(s_k^2))/K; S_analysis = r_analysis*S_raw; CI90 = delta_bar ± z_(1-alpha)*S_analysis; alpha=0.05",
+  "guard_case_k8_same_inputs": {
+   "note": "同一组输入(delta_bar=0.0015,K=8,原SE=VALID_SE):乘1.5前在拟议等效界内,乘1.5后上端越过0.003 ⇒ 不决;防止规划表乘1.5而实际报告漏乘",
+   "r_analysis_1": {
+    "action": "报告:在待审开发界限内等效(条件结论);非零方向偏差另报;无强制后续动作",
+    "alpha": 0.05,
+    "delta_bar": 0.0015,
+    "direction": "positive",
+    "k_coordinates": 8,
+    "lower90": 0.00037119176088350756,
+    "magnitude": "within_equivalence_bounds",
+    "margin": 0.003,
+    "not_resolved_reason": "",
+    "planned_k": null,
+    "r_analysis": 1.0,
+    "s_analysis": 0.0006862666808891658,
+    "s_raw": 0.0006862666808891658,
+    "upper90": 0.0026288082391164925
+   },
+   "r_analysis_1_5": {
+    "action": "不决:如实报告设计能力不足/数据缺失;不得改称'涨落主导';无强制后续动作",
+    "alpha": 0.05,
+    "delta_bar": 0.0015,
+    "direction": "not_resolved",
+    "k_coordinates": 8,
+    "lower90": -0.00019321235867473868,
+    "magnitude": "inconclusive",
+    "margin": 0.003,
+    "not_resolved_reason": "",
+    "planned_k": null,
+    "r_analysis": 1.5,
+    "s_analysis": 0.0010294000213337488,
+    "s_raw": 0.0006862666808891658,
+    "upper90": 0.0031932123586747387
+   }
+  },
+  "r_analysis": 1.5,
+  "r_analysis_one_role": "r_analysis=1 仅作'区间未修正'负对照,不参与主要行动选择,不得按哪个区间更容易通过挑选主结果",
+  "r_analysis_status": "拟议固定安全系数(抽样前固定);不是真实误差上界的证明;实际报告区间与规划同一实现",
+  "worked_example_k11": {
+   "action": "报告:在待审开发界限内等效(条件结论);非零方向偏差另报;无强制后续动作",
+   "alpha": 0.05,
+   "delta_bar": 0.0015,
+   "direction": "positive",
+   "k_coordinates": 11,
+   "lower90": 5.6023648753491346e-05,
+   "magnitude": "within_equivalence_bounds",
+   "margin": 0.003,
+   "not_resolved_reason": "",
+   "planned_k": null,
+   "r_analysis": 1.5,
+   "s_analysis": 0.0008778752878593437,
+   "s_raw": 0.0005852501919062291,
+   "upper90": 0.0029439763512465085
+  }
+ },
+ "L2_fixed_analysis_scenarios": {
+  "alpha": 0.05,
+  "margin": 0.003,
+  "planning_boundary_note": "r_true=2 为规划范围外失配示例,不构成任何普适保证;近零/非零真偏差不保证同样功效,如实列出",
+  "primary_rule": "analysis SE fixed at r_analysis=1.5",
+  "r_true_role": "design-only 情景变量(真实误差相对原口径SE的倍数);不是运行后挑出的校正参数,不进入实际区间",
+  "rows": [
+   {
+    "K": 11,
+    "analysis_se_fixed": 0.002911582942554682,
+    "false_equivalence_at_boundary": 0.006807184247378473,
+    "power_at_negative_boundary": 0.006807184247378473,
+    "power_at_positive_boundary": 0.006807184247378473,
+    "power_beyond_0.005": 1.9948197538255386e-09,
+    "power_near_zero_0.0005": 0.9641939657451077,
+    "power_zero": 0.9921564766163051,
+    "r_analysis": 1.5,
+    "r_true": 1.0
+   },
+   {
+    "K": 11,
+    "analysis_se_fixed": 0.002911582942554682,
+    "false_equivalence_at_boundary": 0.02420085916102055,
+    "power_at_negative_boundary": 0.02420085916102055,
+    "power_at_positive_boundary": 0.02420085916102055,
+    "power_beyond_0.005": 1.252650272953737e-06,
+    "power_near_zero_0.0005": 0.9230890521509643,
+    "power_zero": 0.966578747073142,
+    "r_analysis": 1.5,
+    "r_true": 1.25
+   },
+   {
+    "K": 11,
+    "analysis_se_fixed": 0.002911582942554682,
+    "false_equivalence_at_boundary": 0.04999989475701255,
+    "power_at_negative_boundary": 0.0499998947570125,
+    "power_at_positive_boundary": 0.04999989475701255,
+    "power_beyond_0.005": 4.371177016210259e-05,
+    "power_near_zero_0.0005": 0.875909349076329,
+    "power_zero": 0.9236864589708058,
+    "r_analysis": 1.5,
+    "r_true": 1.5
+   },
+   {
+    "K": 11,
+    "analysis_se_fixed": 0.002911582942554682,
+    "false_equivalence_at_boundary": 0.108618865059536,
+    "power_at_negative_boundary": 0.108618865059536,
+    "power_at_positive_boundary": 0.108618865059536,
+    "power_beyond_0.005": 0.0016288513450171127,
+    "power_near_zero_0.0005": 0.7770256338780095,
+    "power_zero": 0.816272817012734,
+    "r_analysis": 1.5,
+    "r_true": 2.0
+   }
+  ],
+  "scenario_deltas_pre_stated": [
+   0.0,
+   0.0005,
+   0.003,
+   -0.003,
+   0.005
+  ],
+  "unadjusted_negative_control": {
+   "K": 11,
+   "false_equivalence_at_positive_boundary": 0.13641489925413858,
+   "r_analysis": 1.0,
+   "r_true": 1.5,
+   "role": "未修正区间负对照(不参与主要行动选择)"
+  }
+ },
+ "format": "r20-design-calc-v4",
+ "generated_by": "stage2_6_1/report/r20_design_calc_v4.py (design-only)",
+ "inputs": {
+  "K_proposed": 11,
+  "alpha": 0.05,
+  "delta_star_proposed": 0.003,
+  "delta_star_status": "待审开发界限 PENDING_REVIEW",
+  "direction_convention": "delta = p_analytic - recall(validation);delta>0 即实测 recall 低于解析预测(解析预测高估),delta<0 即实测 recall 高于解析预测(解析预测低估)",
+  "n_bootstrap_reps": 20000,
+  "n_clusters_r19_anchor": 500,
+  "p_analytic": 0.950431552876822,
+  "planning_worst_case_r_true": 1.5,
+  "r_analysis_fixed": 1.5,
+  "r_true_grid": [
+   1.0,
+   1.25,
+   1.5,
+   2.0
+  ],
+  "scenario_deltas_pre_stated": [
+   0.0,
+   0.0005,
+   0.003,
+   -0.003,
+   0.005
+  ],
+  "target_power": 0.9,
+  "valid_point": 0.9459313536444273,
+  "valid_se": 0.0019410552950364546,
+  "valid_se_status": "READ-ONLY historical R19 anchor"
+ }
+}

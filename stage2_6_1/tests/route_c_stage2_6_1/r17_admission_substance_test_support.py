@@ -109,6 +109,56 @@ def pytest_pycollect_makeitem(collector, name, obj):
 _HOOK_CONFTEST = ("# sandbox conftest (imported hook counterexample)\n"
                   "from .selection_support import pytest_pycollect_makeitem\n")
 
+#: R23/A01 反例树(审查 probe_cases/scoped_specname 形状):conftest
+#: 在 pytest_sessionstart 注册临时插件,hookimpl 用 specname 别名
+#: 绑定 pytest_pycollect_makeitem 过滤失败参数实例,并在
+#: pytest_collection_finish 的 tryfirst 回调注销自身(早于审计器
+#: 结束快照)。注册包 try/except(审查 A02"异常被捕获"窄变体):
+#: 审计器在注册通知处已记录事实,捕获不影响判定。静态扫描无受控
+#: 钩子名字面绑定(方法名与 specname 均非受控名)。
+_SCOPED_CONFTEST = '''# sandbox conftest (scoped specname temporary plugin; review probe)
+import json
+from pathlib import Path
+
+import pytest
+
+
+def _event(name, **values):
+    with Path("scoped_plugin_events.jsonl").open("a") as handle:
+        handle.write(json.dumps({"event": name, **values}) + "\\n")
+
+
+class ScopedCollectionPlugin:
+    @pytest.hookimpl(specname="pytest_pycollect_makeitem",
+                     hookwrapper=True)
+    def pytest_scoped_parameter(self, collector, name, obj):
+        outcome = yield
+        if name == "test_parameter":
+            items = outcome.get_result()
+            if isinstance(items, list):
+                kept = [item for item in items
+                        if getattr(item, "callspec", None) is None
+                        or item.callspec.params.get("x") != 1]
+                _event("filtered",
+                       generated=[item.name for item in items],
+                       kept=[item.name for item in kept])
+                outcome.force_result(kept)
+
+    @pytest.hookimpl(specname="pytest_collection_finish", tryfirst=True)
+    def pytest_release_scope(self, session):
+        session.config.pluginmanager.unregister(self)
+        _event("unregistered")
+
+
+def pytest_sessionstart(session):
+    try:
+        session.config.pluginmanager.register(
+            ScopedCollectionPlugin(), "scoped_collection")
+    except Exception:  # noqa: BLE001 —— 审查 A02:注册异常被捕获
+        pass
+    _event("registered")
+'''
+
 _TESTS_DIR = Path(__file__).resolve().parent
 _EXECUTOR_CANDIDATES = (
     _TESTS_DIR.parents[1] / "runner" / "r21_full_collection_regression.py",
@@ -182,15 +232,17 @@ def _skip_module_sources() -> dict[str, str]:
 
 
 def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
-                            imported_hook: bool = False) -> None:
+                            imported_hook: bool = False,
+                            scoped: bool = False) -> None:
     """把沙箱测试源树 + src/rl_curriculum 写入仓工作区
     (调用方负责 git add/commit)。
 
     src 面含真实 substance 模块字节副本:签发器要求发布仓内存在
     该模块,v3 import_surface 又要求候选 src 成员与部署 src 字节
     一致——副本而非符号链接,避免 git mode 120000 进入映射。
-    imported_hook=True 写入 R22/A01 反例树(审查 probe_worktree
-    形状:import 式 pycollect 钩子 + LOCAL_QUICK_TESTS 门控)。"""
+    imported_hook=True 写入 R22/A01 反例树(import 式收集钩子);
+    scoped=True 写入 R23/A01 反例树(sessionstart 注册 specname
+    别名临时插件,collection_finish 注销;静态扫描干净)。"""
     test_dir = repo / "stage2_6_1" / "tests" / "route_c_stage2_6_1"
     test_dir.mkdir(parents=True, exist_ok=True)
     if imported_hook:
@@ -201,6 +253,12 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
             _HOOK_CONFTEST, encoding="utf-8")
         (test_dir / "selection_support.py").write_text(
             _HOOK_SUPPORT_SOURCE, encoding="utf-8")
+    elif scoped:
+        (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
+            _PROBE_SOURCE, encoding="utf-8")
+        (test_dir / "__init__.py").write_text("", encoding="utf-8")
+        (test_dir / "conftest.py").write_text(
+            _SCOPED_CONFTEST, encoding="utf-8")
     else:
         (test_dir / f"{_SANDBOX_MODULE}.py").write_text(
             _PROBE_SOURCE if probe else _CANONICAL_SOURCE,
@@ -227,14 +285,17 @@ def write_sandbox_test_tree(repo: Path, *, probe: bool = False,
 
 
 def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
-                            imported_hook: bool = False
+                            imported_hook: bool = False,
+                            scoped: bool = False
                             ) -> tuple[Path, str, str]:
     """两提交沙箱仓(Commit A 需有 parent,满足签发器校验)。
 
     base 提交携带完整测试源树 + src 根 + runner 面,cand 提交为
     候选。canonical 树真实展开 = 8 通过 + 7 历史 skip;probe 树 =
-    2 通过 + 1 失败 + 7 历史 skip;imported_hook 树 = 审查反例
-    形状(import 式收集钩子,10 项含 1 失败)。"""
+    2 通过 + 1 失败 + 7 历史 skip;imported_hook 树 = R22 审查
+    反例(import 式收集钩子);scoped 树 = R23 审查反例
+    (sessionstart 注册 specname 别名临时插件,11 项含 1 失败,
+    门控后 10 项全绿)。"""
     repo = tmp / "relrepo"
     repo.mkdir(parents=True)
     for args in (
@@ -245,7 +306,8 @@ def git_repo_with_candidate(tmp: Path, *, probe: bool = False,
         subprocess.run(args, cwd=str(repo), check=True)
     (repo / "base.txt").write_text("base\n")
     write_sandbox_test_tree(repo, probe=probe,
-                            imported_hook=imported_hook)
+                            imported_hook=imported_hook,
+                            scoped=scoped)
     subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True)
     subprocess.run(["git", "commit", "-qm", "base"], cwd=str(repo),
                    check=True)
@@ -385,6 +447,11 @@ def rehash_artifact(run_dir: Path, name: str) -> str:
         for block in (doc.get("collection_run", {}).get("runs", [])
                       + doc.get("execution", {}).get("runs", [])):
             art = block.get("audit") or {}
+            if art.get("path") == name:
+                art["sha256"] = digest
+        for block in (doc.get("collection_run", {}).get("runs", [])
+                      + doc.get("execution", {}).get("runs", [])):
+            art = block.get("audit_lifecycle") or {}
             if art.get("path") == name:
                 art["sha256"] = digest
         if doc.get("audit_manifest", {}).get("path") == name:

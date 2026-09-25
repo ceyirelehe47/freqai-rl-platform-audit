@@ -135,6 +135,9 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
     # v4(2026-09-25/R22):新签发必须绑定有效收集环境受控面证据
     # (运行期审计/最小环境/执行面身份);v3 历史 record 不可用于
     # 新签发(核验器仍接受其历史核验面,父链递归用)。
+    # v5(2026-09-25/R23):插件生命周期覆盖——审计器注册通知 +
+    # append-only 生命周期流水,临时注册/影响收集/注销不能再以
+    # 末尾干净快照获得准入。v4 及更早 record 不可用于新签发。
     evidence_path = Path(preregistration["regression_evidence"])
     try:
         record_doc = json.loads(
@@ -143,9 +146,10 @@ def issue(repo: Path, deploy_root: Path, state_root: Path,
         raise SystemExit(
             "refused: regression evidence unreadable") from exc
     if record_doc.get("format") != (
-            "cur261-r17-candidate-regression-evidence-v4"):
+            "cur261-r17-candidate-regression-evidence-v5"):
         raise SystemExit(
-            "refused: new issuance requires evidence format v4")
+            "refused: new issuance requires evidence format v5 "
+            "(plugin lifecycle coverage)")
     admission = {
         "format": ADMISSION_FORMAT,
         "commit_a_sha": commit_a,
