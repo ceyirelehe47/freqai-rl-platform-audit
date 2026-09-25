@@ -69,6 +69,8 @@ _ISSUER_CANDIDATES = (
     _TESTS_DIR.parents[1] / "runner" / "r17_admission_issue.py",
     _TESTS_DIR.parents[1] / "stage2_6_1" / "runner" / (
         "r17_admission_issue.py"),
+    _TESTS_DIR.parents[1] / "stage2_6_1_runner" / (
+        "r17_admission_issue.py"),
 )
 
 _CANONICAL_TOTAL = 15          # 8 通过实例 + 7 历史 skip
