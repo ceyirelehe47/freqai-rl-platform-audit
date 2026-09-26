@@ -658,6 +658,18 @@ CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "cue_semantic_qualification_r17",
 ) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR
 
+#: R25 cue-bias 开发研究一次性 namespace(RouteC_CueBias_DevelopmentStudy_
+#: _v1;engineering-only 开发估计研究,不属正式资格面;11 对研究坐标
+#: c01..c11 + 3 对工程 smoke s1..s3,显式枚举——守卫不接受任意字符串,
+#: 正式名单 CURRICULUM261_R17_FORMAL_NAMESPACES 不变)。
+CURRICULUM261_R25_DEV_NAMESPACES = tuple(
+    f"cue_dev_r25_c{idx:02d}_{role}"
+    for idx in range(1, 12) for role in ("model", "validation")
+) + tuple(
+    f"cue_dev_smoke_s{idx}_{role}"
+    for idx in range(1, 4) for role in ("model", "validation")
+)
+
 CURRICULUM261_R17_NAMESPACE_ROLES = {
     name: {"iteration": "r17", "class": "engineering"}
     for name in CURRICULUM261_R17_NAMESPACES
@@ -681,7 +693,7 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R14_NAMESPACES) + (
     CURRICULUM261_R15_NAMESPACES) + (
     CURRICULUM261_R16_NAMESPACES) + (
-    CURRICULUM261_R17_NAMESPACES)
+    CURRICULUM261_R17_NAMESPACES) + (CURRICULUM261_R25_DEV_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对

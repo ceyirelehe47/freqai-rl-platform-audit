@@ -25,7 +25,8 @@ for f in r21_full_collection_regression.py \
          r21_collection_auditor.py \
          r17_admission_issue.py \
          r23_plugin_lifecycle_probe.py \
-         r24_partial_registration_probe.py; do
+         r24_partial_registration_probe.py \
+         r25_cue_bias_dev_entry.py; do
   tr -d '\r' < "$REPO/stage2_6_1/runner/$f" > "$D/stage2_6_1_runner/$f"
 done
 
@@ -57,4 +58,5 @@ tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v4.json" \
 tr -d '\r' < "$REPO/stage2_6_1/report/route_c_stage2_6_1_r20_research_design_v4.md" \
   > "$D/report/route_c_stage2_6_1_r20_research_design_v4.md"
 
+tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v4.py" > "$D/stage2_6_1_runner/r20_design_calc_v4.py"
 echo "r21_sync: done (substance v6 + executor + auditor + probes r23/r24 + tests + report v4 -> $D)"

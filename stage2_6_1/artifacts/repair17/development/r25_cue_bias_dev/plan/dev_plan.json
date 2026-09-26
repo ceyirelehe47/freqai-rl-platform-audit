@@ -1,0 +1,191 @@
+{
+ "format": "r25-cue-bias-dev-plan-v1",
+ "created_utc": "2026-09-26T11:46:46+00:00",
+ "task": "RouteC_CueBias_DevelopmentStudy_v1",
+ "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+ "argv0": "/home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r25_cue_bias_dev_entry.py",
+ "entry_sha256": "6aa45601138f4a76f33196fe4e645b91caea952d769e13c06b7078ae8c8f94a1",
+ "generation_code_identity": {
+  "curriculum261_api.py": "ec0203371284943055481ad4758cafd48f13a478ca0d63deec3197b52fd539aa",
+  "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+  "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+  "curriculum261_r17_noise_replay.py": "5b55c04608a14e3c1087909c2e56623b90766da7d389739955070135adfa7e8a",
+  "curriculum261_r17_cue_contract.py": "b9eb0edd1ab788c1dd9b23573f146f67d1311704a59636973260226ed26d9dec",
+  "curriculum261_r17_cue_eval.py": "8715f54883a8c9778c97e14c5cb8f50f0cb45d68a70d8af33068d80d9f33ef42",
+  "curriculum261_r17_global_k.py": "b911f44bff8600b9530cae560976b17b1fa282df799bbbb37c8c763ef02bfdc5"
+ },
+ "study": {
+  "p0_fixed_reference": 0.950431552876822,
+  "delta_definition": "P0 - recall(validation)",
+  "planned_k": 11,
+  "margin": 0.003,
+  "alpha": 0.05,
+  "r_analysis": 1.5,
+  "aggregation": "delta_k 等权平均; S_raw=sqrt(sum(s_k^2))/K; CI90=delta_bar±z_(1-alpha)×r_analysis×S_raw (v4 classify_primary)",
+  "main_analysis_entry": "report/r20_design_calc_v4.py::classify_primary"
+ },
+ "generation": {
+  "model_mode": "once",
+  "validation_mode": "attempts(first_pass, max_attempts=5 整 block 重试)",
+  "block_seed": "derive261_block_seed(namespace, block_index, AUDIT_ATTEMPT=0)",
+  "canonical_observation": "D0/A unique positive cue event",
+  "cluster_unit": "matched_block",
+  "bootstrap": {
+   "n_boot": 20000,
+   "seed": 20270102
+  },
+  "sentinel": "冻结 cur261-c2-v9 默认 D0-D3(candidate-independent;不调参)",
+  "detector": {
+   "cue_thr": 0.0105,
+   "wick_dir_thr": 0.0,
+   "wick_width_thr": 0.012
+  },
+  "episode_bars": 288
+ },
+ "not_run_diagnostic_items": [
+  "monte_carlo_1e6",
+  "global_k_audit",
+  "tail_mirror_bound_integrity",
+  "noninferiority_gate",
+  "cue_contract_audit_pass_verdict"
+ ],
+ "budget": {
+  "per_coordinate_max_seconds": 2700,
+  "total_wall_clock_seconds": 28800,
+  "finalize_reserve_seconds": 2700
+ },
+ "namespaces_authority": "curriculum261_api.CURRICULUM261_R25_DEV_NAMESPACES",
+ "namespaces_registered": [
+  "cue_dev_r25_c01_model",
+  "cue_dev_r25_c01_validation",
+  "cue_dev_r25_c02_model",
+  "cue_dev_r25_c02_validation",
+  "cue_dev_r25_c03_model",
+  "cue_dev_r25_c03_validation",
+  "cue_dev_r25_c04_model",
+  "cue_dev_r25_c04_validation",
+  "cue_dev_r25_c05_model",
+  "cue_dev_r25_c05_validation",
+  "cue_dev_r25_c06_model",
+  "cue_dev_r25_c06_validation",
+  "cue_dev_r25_c07_model",
+  "cue_dev_r25_c07_validation",
+  "cue_dev_r25_c08_model",
+  "cue_dev_r25_c08_validation",
+  "cue_dev_r25_c09_model",
+  "cue_dev_r25_c09_validation",
+  "cue_dev_r25_c10_model",
+  "cue_dev_r25_c10_validation",
+  "cue_dev_r25_c11_model",
+  "cue_dev_r25_c11_validation",
+  "cue_dev_smoke_s1_model",
+  "cue_dev_smoke_s1_validation",
+  "cue_dev_smoke_s2_model",
+  "cue_dev_smoke_s2_validation",
+  "cue_dev_smoke_s3_model",
+  "cue_dev_smoke_s3_validation"
+ ],
+ "coordinates": [
+  {
+   "id": "c01",
+   "model_namespace": "cue_dev_r25_c01_model",
+   "validation_namespace": "cue_dev_r25_c01_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c02",
+   "model_namespace": "cue_dev_r25_c02_model",
+   "validation_namespace": "cue_dev_r25_c02_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c03",
+   "model_namespace": "cue_dev_r25_c03_model",
+   "validation_namespace": "cue_dev_r25_c03_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c04",
+   "model_namespace": "cue_dev_r25_c04_model",
+   "validation_namespace": "cue_dev_r25_c04_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c05",
+   "model_namespace": "cue_dev_r25_c05_model",
+   "validation_namespace": "cue_dev_r25_c05_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c06",
+   "model_namespace": "cue_dev_r25_c06_model",
+   "validation_namespace": "cue_dev_r25_c06_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c07",
+   "model_namespace": "cue_dev_r25_c07_model",
+   "validation_namespace": "cue_dev_r25_c07_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c08",
+   "model_namespace": "cue_dev_r25_c08_model",
+   "validation_namespace": "cue_dev_r25_c08_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c09",
+   "model_namespace": "cue_dev_r25_c09_model",
+   "validation_namespace": "cue_dev_r25_c09_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c10",
+   "model_namespace": "cue_dev_r25_c10_model",
+   "validation_namespace": "cue_dev_r25_c10_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  },
+  {
+   "id": "c11",
+   "model_namespace": "cue_dev_r25_c11_model",
+   "validation_namespace": "cue_dev_r25_c11_validation",
+   "blocks_per_corpus": 500,
+   "role": "study"
+  }
+ ],
+ "smoke_coordinates": [
+  {
+   "id": "s1",
+   "model_namespace": "cue_dev_smoke_s1_model",
+   "validation_namespace": "cue_dev_smoke_s1_validation",
+   "blocks_per_corpus": 4,
+   "role": "engineering_smoke"
+  },
+  {
+   "id": "s2",
+   "model_namespace": "cue_dev_smoke_s2_model",
+   "validation_namespace": "cue_dev_smoke_s2_validation",
+   "blocks_per_corpus": 4,
+   "role": "engineering_smoke"
+  },
+  {
+   "id": "s3",
+   "model_namespace": "cue_dev_smoke_s3_model",
+   "validation_namespace": "cue_dev_smoke_s3_validation",
+   "blocks_per_corpus": 4,
+   "role": "engineering_smoke"
+  }
+ ],
+ "plan_digest": "r25dp-54841c4f731a46c00bc61d89b1c1baa6e2f54d11f7cc6e05554310cb7eaaca63"
+}
