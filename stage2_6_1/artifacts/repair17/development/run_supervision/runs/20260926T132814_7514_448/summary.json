@@ -1,0 +1,253 @@
+{
+ "schema": "r17-supervision-summary-v1",
+ "run_id": "20260926T132814_7514_448",
+ "policy_id": "R17-SUPERVISION-POLICY-v1",
+ "policy_sha256": "ade247f8d51b3b708f22247410d2f9803fb46f90fa86bcaa09275d71d0862d6c",
+ "argv": [
+  "bash",
+  "/mnt/f/trading/tmp_r25_batch.sh"
+ ],
+ "business": {
+  "rc": 0,
+  "signal": null,
+  "protector": {
+   "pgid": 502,
+   "requested": false,
+   "term_sent": false,
+   "kill_sent": false,
+   "terminal_confirmed": false,
+   "identity_mismatch": false,
+   "survivors": []
+  }
+ },
+ "stop_requested_reasons": [],
+ "incidents": [
+  {
+   "incident_id": "20260926T13281-progress_stall-2721",
+   "kind": "progress_stall",
+   "detail": "任务树 CPU 增量≈0 已 1270s(进展未证实;不推断死锁)",
+   "severity": "WARNING",
+   "first_seen_mono": 2721.6,
+   "last_seen_mono": 2721.6,
+   "samples": 1,
+   "peak": {
+    "cpu_delta": 0.0,
+    "tasks": 2
+   },
+   "recovered": false,
+   "stopped_requested": false,
+   "delivered_count": 1
+  }
+ ],
+ "peaks": {
+  "guest_memavail_min_gib": 37.6129035949707,
+  "task_tree_rss_max_gib": 0.13802719116210938,
+  "win_free_phys_min_gib": 37.196,
+  "win_commit_max_pct": 44.77,
+  "task_cpu_max_delta_s": 0.01
+ },
+ "coverage": {
+  "guest_last_mono": 2719.5807366080003,
+  "win_last_mono": 2721.630733337,
+  "win_parse_errors": 0,
+  "win_invalid_samples": 0,
+  "win_duplicate_seq": 0,
+  "win_seq_regressions": 0,
+  "win_stale_replayed": 0,
+  "win_read_failures": 0,
+  "win_read_failure_consecutive": 0,
+  "win_read_failure_last_op": null,
+  "win_read_failure_last_utc": null,
+  "win_read_failure_last_err": null,
+  "guest_duplicate_seq": 0,
+  "guest_seq_regressions": 0,
+  "guest_stale_replayed": 0,
+  "guest_invalid_samples": 0,
+  "coverage_gaps": null,
+  "obs_ready_at_mono": 1.968557543000001,
+  "telemetry_capped": false,
+  "stdout_failures": 0,
+  "log_failures": 0
+ },
+ "admission": {
+  "ok": true,
+  "reasons": [],
+  "optional_degraded": [],
+  "checked_utc": "2026-09-26T13:28:17Z"
+ },
+ "io": {
+  "submitted": 11971,
+  "accepted": 11971,
+  "ok": 11971,
+  "failed": 0,
+  "in_flight": 0,
+  "executed": 11971,
+  "dropped": 0,
+  "dropped_critical": 0,
+  "rejected_after_seal": 0,
+  "io_stuck": false,
+  "closed": true,
+  "thread_joined": true,
+  "failures": [],
+  "queued": 0,
+  "pending": 0
+ },
+ "residual_unconfirmed": false,
+ "startup_rejected": null,
+ "writers": {
+  "guest": {
+   "stop_requested": true,
+   "started": true,
+   "joined": true,
+   "alive_after_join": false,
+   "thread_ident": 125776596821696
+  },
+  "win": {
+   "protocol": "r17-native-sampler-v1",
+   "stop_requested": true,
+   "started": true,
+   "native_exit_confirmed": true,
+   "exited": true,
+   "waited": true,
+   "unconfirmed": false,
+   "terminal_verified": true,
+   "errors": [],
+   "token": "0132740a741a38e09d4a4a70191bf23dcccfba183336a804ee0fcfa140977f4c",
+   "run_id": "20260926T132814_7514_448",
+   "windows_pid": 32824,
+   "creation_filetime": "134349028962701115",
+   "native_status": "exited",
+   "forced": false,
+   "native_proof": {
+    "token": "0132740a741a38e09d4a4a70191bf23dcccfba183336a804ee0fcfa140977f4c",
+    "creation_filetime": "134349028962701115",
+    "identity_matched": true,
+    "finished_utc": "2026-09-26T14:13:21.9519871Z",
+    "native_exited": true,
+    "actual_creation_filetime": "134349028962701115",
+    "pid": 32824,
+    "win32_error": 0,
+    "forced": false,
+    "run_id": "20260926T132814_7514_448",
+    "status": "exited",
+    "protocol": "r17-native-sampler-v1"
+   },
+   "telemetry": {
+    "bytes": 419437,
+    "sha256": "c5f5ab27da4e13bdbc026ee5ef6572d4ad806b928e12c50535877e19f0449f0e",
+    "stable_during_read": true
+   },
+   "terminal_reason": "stop_requested",
+   "interop_pid": 499,
+   "interop_exited": true
+  },
+  "io": {
+   "close_requested": true,
+   "joined": true,
+   "alive_after": false,
+   "thread_shielded": true
+  },
+  "business_live": false
+ },
+ "publication": {
+  "summary_failed": false,
+  "summary_failure": null,
+  "run_record_failed": false,
+  "cutoff_premise_ok": true,
+  "cutoff_premise_detail": "all_threads_shielded",
+  "control_failures": []
+ },
+ "external_stop_sig": null,
+ "external_stop_consumed": false,
+ "external_stop_sig_count": 0,
+ "finalize_budget": {
+  "window_s": 120.0,
+  "established_at_mono": 2721.641898669,
+  "establish_reason": "finalize",
+  "remaining_at_write": 118.745,
+  "notes": [
+   {
+    "phase": "budget_established",
+    "requested": 120.0,
+    "remaining": 120.0,
+    "reason": "finalize"
+   },
+   {
+    "phase": "guest_join",
+    "requested": 15.0,
+    "remaining": 120.0,
+    "allowed": 15.0
+   },
+   {
+    "phase": "win_native_stop_confirm",
+    "requested": 30.0,
+    "remaining": 119.889,
+    "allowed": 30.0
+   },
+   {
+    "phase": "win_interop_reap",
+    "requested": 1.0,
+    "remaining": 118.848,
+    "allowed": 1.0
+   },
+   {
+    "phase": "io_drain",
+    "requested": 15.0,
+    "remaining": 118.848,
+    "allowed": 15.0
+   },
+   {
+    "phase": "io_writer_join",
+    "requested": 5.0,
+    "remaining": 118.828,
+    "allowed": 5.0
+   }
+  ]
+ },
+ "shutdown_step_failures": {},
+ "telemetry_bytes": 5160353,
+ "stage_marks": [
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T13:28:16Z",
+   "stage": "observation_starting",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T13:28:17Z",
+   "stage": "observation_ready",
+   "note": "ready_after=2.0s"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T13:28:17Z",
+   "stage": "startup_admitted",
+   "note": "ok"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T13:28:17Z",
+   "stage": "business_spawn",
+   "note": ""
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T14:13:20Z",
+   "stage": "business_exited",
+   "note": "rc=0"
+  },
+  {
+   "event": "stage_mark",
+   "utc": "2026-09-26T14:13:20Z",
+   "stage": "finalize_begin",
+   "note": ""
+  }
+ ],
+ "emergency_win_dir": "/mnt/c/Users/15027/AppData/Local/r17_supervision_emergency",
+ "win_pids": {
+  "interop": 499,
+  "windows": 32824
+ },
+ "written_utc": "2026-09-26T14:13:22Z"
+}

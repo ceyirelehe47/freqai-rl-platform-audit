@@ -1,0 +1,1700 @@
+{
+ "format": "cur261-r17-candidate-regression-evidence-v6",
+ "scope": "formal",
+ "protocol": "full",
+ "commit_a_sha": "617b61ac89400f2fc9261b51c1e9a420fe08f016",
+ "run": {
+  "run_id": "r21_20260926_212144",
+  "label": "r21_full_collection_regression",
+  "deploy_root": "/home/cryptorl/projects/crypto_rl",
+  "tests_target": "tests/route_c_stage2_6_1",
+  "hostname": "Forst",
+  "user": "cryptorl",
+  "executor_face": {
+   "executor": {
+    "source_path": "stage2_6_1/runner/r21_full_collection_regression.py",
+    "blob_sha256": "c5b10121e5e21eea4913590b05213e946a76084c42fce21992fb0d4bdf66bc7c",
+    "deploy_sha256": "c5b10121e5e21eea4913590b05213e946a76084c42fce21992fb0d4bdf66bc7c"
+   },
+   "auditor": {
+    "source_path": "stage2_6_1/runner/r21_collection_auditor.py",
+    "blob_sha256": "b97363347963e37d56032a6cb5ff501af3ee7953cb4cf60e8517db9740e0e7a1",
+    "deploy_sha256": "b97363347963e37d56032a6cb5ff501af3ee7953cb4cf60e8517db9740e0e7a1"
+   }
+  },
+  "supervision": {
+   "present": false
+  }
+ },
+ "collection_run": {
+  "runs": [
+   {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "-p",
+     "r21_collection_auditor",
+     "tests/route_c_stage2_6_1",
+     "--collect-only",
+     "-q"
+    ],
+    "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "cwd": "/home/cryptorl/projects/crypto_rl",
+    "returncode": 0,
+    "started_utc": "2026-09-26T12:40:10Z",
+    "finished_utc": "2026-09-26T12:40:14Z",
+    "stdout": {
+     "path": "collection.stdout.txt",
+     "sha256": "554cb687d56c46834fb7e18e2ffba37be096b29e37653896e740c45bc52804c7"
+    },
+    "stderr": {
+     "path": "collection.stderr.txt",
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "audit": {
+     "path": "audit_collection.json",
+     "sha256": "597ae966abeebdb2876ceb786d9610e2fa80f07d49c65aa3d165a3eb1d2a229a"
+    },
+    "audit_lifecycle": {
+     "path": "audit_collection.json.lifecycle.jsonl",
+     "sha256": "7679b4f60af6f49e43108b2f1641274c8eae22de78da08af8b7fffbd0756a3ef"
+    },
+    "env": {
+     "python_version": "3.11.16",
+     "pytest_version_output": "This is pytest version 9.1.1, imported from /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pytest/__init__.py",
+     "child_env_policy": {
+      "inherited": [
+       "HOME",
+       "LANG",
+       "LOGNAME",
+       "PATH",
+       "SHELL",
+       "TERM",
+       "USER",
+       "WSL_DISTRO_NAME",
+       "WSL_INTEROP"
+      ],
+      "forced": {
+       "PYTHONDONTWRITEBYTECODE": "1",
+       "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+       "PYTHONPATH": "/home/cryptorl/projects/crypto_rl/src:/home/cryptorl/projects/crypto_rl/stage2_6_1_runner",
+       "R21_AUDIT_OUT": "per-run audit_<stem>.json",
+       "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_manifest.json"
+      },
+      "dropped_keys": [
+       "CONDA_DEFAULT_ENV",
+       "CONDA_EXE",
+       "CONDA_PREFIX",
+       "CONDA_PROMPT_MODIFIER",
+       "CONDA_PYTHON_EXE",
+       "CONDA_SHLVL",
+       "DBUS_SESSION_BUS_ADDRESS",
+       "DISPLAY",
+       "FREQTRADE_UPSTREAM",
+       "FREQTRADE_USERDIR",
+       "HOSTTYPE",
+       "LAUNCH_EVIDENCE",
+       "NAME",
+       "OLDPWD",
+       "PULSE_SERVER",
+       "PWD",
+       "PYTHONDONTWRITEBYTECODE",
+       "PYTHONPATH",
+       "R17_PROJECT_ROOT",
+       "SHLVL",
+       "WAYLAND_DISPLAY",
+       "WSL2_GUI_APPS_ENABLED",
+       "WSLENV",
+       "WT_PROFILE_ID",
+       "WT_SESSION",
+       "XDG_RUNTIME_DIR",
+       "_CE_CONDA",
+       "_CE_M",
+       "_CONDA_EXE",
+       "_CONDA_ROOT"
+      ]
+     },
+     "config_scan": [
+      {
+       "path": "/home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/conftest.py",
+       "sha256": "3f18b250285a1a95c26be0ed617411dd970a374cb2255a0746e2cfa09fc1595e"
+      }
+     ],
+     "child_env": {
+      "SHELL": "/bin/bash",
+      "WSL_DISTRO_NAME": "CryptoRL-Ubuntu-24.04",
+      "LOGNAME": "cryptorl",
+      "HOME": "/home/cryptorl",
+      "LANG": "C.UTF-8",
+      "WSL_INTEROP": "/run/WSL/283_interop",
+      "TERM": "xterm-256color",
+      "USER": "cryptorl",
+      "PATH": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin:/home/cryptorl/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/c/Program Files/PlasticSCM5/client:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Windows/System32/OpenSSH:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Strawberry/c/bin:/mnt/c/Strawberry/perl/site/bin:/mnt/c/Strawberry/perl/bin:/mnt/c/Program Files/MySQL/MySQL Server 5.7/bin:/mnt/c/_Code/Plug/MinGW/bin:/mnt/c/_Code/Plug/Python311:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/tools/dart-sdk/bin:/mnt/c/_Code/Plug/Flutter/flutter/bin:/mnt/c/Users/15027/AppData/Local/Android/Sdk:/mnt/d/_Code/微信web开发者工具/dll:/mnt/c/_Co:/mnt/c/_Code/Plug/Python311/Scripts/pip3.11.exe:/mnt/c/_Code/Plug/Python311/Scripts/pip3.exe:/mnt/c/Program Files (x86)/ZeroTier/One:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/lib:/mnt/d/_Code/VS/本体/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/mnt/d/_Code/_plug/opencv/build/x64/vc15/bin:/mnt/c/_Code/Plug/sqlite-tools-win-x64-3440200:/mnt/c/Program Files/dotnet:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA app/NvDLISR:/mnt/d/software/XShell8:/mnt/c/Users/15027/.m2/wrapper/dists/apache-maven-3.9.9/977a63e90f436cd6ade95b4c0e10c20c/bin:/mnt/c/tools/vcpkg:/mnt/c/ProgramData/nvm:/mnt/c/nvm4w/nodejs:/mnt/c/Program Files/GitHub CLI:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files (x86)/Incredibuild:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit:/mnt/c/Program Files/PowerShell/7:/mnt/c/Users/15027/.local/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/Scripts:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313:/mnt/c/Users/Public/xlings/.xlings_data/bin:/mnt/c/Users/15027/.cargo/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/Scripts:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311:/mnt/c/Users/15027/AppData/Local/Microsoft/WindowsApps:/mnt/c/_Code/Microsoft VS Code/bin:/mnt/c/Users/15027/AppData/Roaming/Pub/Cache/bin:/mnt/c/Users/15027/.dotnet/tools:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/bin:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/include:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/bin:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/include:/mnt/c/Users/15027/AppData/Roaming/npm:/mnt/c/Program Files/OpenSSL-Win64/bin:/mnt/d/SQL/MySql/MySql8/bin:/mnt/c/Users/15027/xmake:/mnt/c/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin:/mnt/c/Users/15027/AppData/Local/bin/NASM:/mnt/c/Users/15027/.bun/bin:/mnt/c/Program Files/Git/bin:/mnt/c/Program Files/Git/usr/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "PYTHONPATH": "/home/cryptorl/projects/crypto_rl/src:/home/cryptorl/projects/crypto_rl/stage2_6_1_runner",
+      "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_manifest.json",
+      "R21_AUDIT_OUT": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_collection.json"
+     }
+    }
+   }
+  ]
+ },
+ "execution": {
+  "runs": [
+   {
+    "command": [
+     "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+     "-m",
+     "pytest",
+     "-p",
+     "r21_collection_auditor",
+     "tests/route_c_stage2_6_1",
+     "-q",
+     "--junitxml=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/junit.xml"
+    ],
+    "interpreter": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "cwd": "/home/cryptorl/projects/crypto_rl",
+    "returncode": 0,
+    "started_utc": "2026-09-26T12:40:14Z",
+    "finished_utc": "2026-09-26T13:21:10Z",
+    "stdout": {
+     "path": "execution.stdout.txt",
+     "sha256": "e9411c6eca36818ee773bd32d2be3f30687b0b9bf024ccf197e9e304d5fe5fdb"
+    },
+    "stderr": {
+     "path": "execution.stderr.txt",
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "audit": {
+     "path": "audit_execution.json",
+     "sha256": "50924931bce461006ac07c5e21809e7112b46223a9eba2a4f3b5a325f732e8e3"
+    },
+    "audit_lifecycle": {
+     "path": "audit_execution.json.lifecycle.jsonl",
+     "sha256": "9591c3279db4f16812175471951444a66d5eadf4f2c02658afe8c033e7853185"
+    },
+    "env": {
+     "python_version": "3.11.16",
+     "pytest_version_output": "This is pytest version 9.1.1, imported from /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/pytest/__init__.py",
+     "child_env_policy": {
+      "inherited": [
+       "HOME",
+       "LANG",
+       "LOGNAME",
+       "PATH",
+       "SHELL",
+       "TERM",
+       "USER",
+       "WSL_DISTRO_NAME",
+       "WSL_INTEROP"
+      ],
+      "forced": {
+       "PYTHONDONTWRITEBYTECODE": "1",
+       "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+       "PYTHONPATH": "/home/cryptorl/projects/crypto_rl/src:/home/cryptorl/projects/crypto_rl/stage2_6_1_runner",
+       "R21_AUDIT_OUT": "per-run audit_<stem>.json",
+       "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_manifest.json"
+      },
+      "dropped_keys": [
+       "CONDA_DEFAULT_ENV",
+       "CONDA_EXE",
+       "CONDA_PREFIX",
+       "CONDA_PROMPT_MODIFIER",
+       "CONDA_PYTHON_EXE",
+       "CONDA_SHLVL",
+       "DBUS_SESSION_BUS_ADDRESS",
+       "DISPLAY",
+       "FREQTRADE_UPSTREAM",
+       "FREQTRADE_USERDIR",
+       "HOSTTYPE",
+       "LAUNCH_EVIDENCE",
+       "NAME",
+       "OLDPWD",
+       "PULSE_SERVER",
+       "PWD",
+       "PYTHONDONTWRITEBYTECODE",
+       "PYTHONPATH",
+       "R17_PROJECT_ROOT",
+       "SHLVL",
+       "WAYLAND_DISPLAY",
+       "WSL2_GUI_APPS_ENABLED",
+       "WSLENV",
+       "WT_PROFILE_ID",
+       "WT_SESSION",
+       "XDG_RUNTIME_DIR",
+       "_CE_CONDA",
+       "_CE_M",
+       "_CONDA_EXE",
+       "_CONDA_ROOT"
+      ]
+     },
+     "config_scan": [
+      {
+       "path": "/home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/conftest.py",
+       "sha256": "3f18b250285a1a95c26be0ed617411dd970a374cb2255a0746e2cfa09fc1595e"
+      }
+     ],
+     "child_env": {
+      "SHELL": "/bin/bash",
+      "WSL_DISTRO_NAME": "CryptoRL-Ubuntu-24.04",
+      "LOGNAME": "cryptorl",
+      "HOME": "/home/cryptorl",
+      "LANG": "C.UTF-8",
+      "WSL_INTEROP": "/run/WSL/283_interop",
+      "TERM": "xterm-256color",
+      "USER": "cryptorl",
+      "PATH": "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin:/home/cryptorl/miniforge3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/c/Program Files/PlasticSCM5/client:/mnt/c/Program Files (x86)/Common Files/Intel/Shared Libraries/redist/intel64/compiler:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Windows/System32/OpenSSH:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Strawberry/c/bin:/mnt/c/Strawberry/perl/site/bin:/mnt/c/Strawberry/perl/bin:/mnt/c/Program Files/MySQL/MySQL Server 5.7/bin:/mnt/c/_Code/Plug/MinGW/bin:/mnt/c/_Code/Plug/Python311:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/tools/dart-sdk/bin:/mnt/c/_Code/Plug/Flutter/flutter/bin:/mnt/c/Users/15027/AppData/Local/Android/Sdk:/mnt/d/_Code/微信web开发者工具/dll:/mnt/c/_Co:/mnt/c/_Code/Plug/Python311/Scripts/pip3.11.exe:/mnt/c/_Code/Plug/Python311/Scripts/pip3.exe:/mnt/c/Program Files (x86)/ZeroTier/One:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/lib:/mnt/d/_Code/VS/本体/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin:/mnt/d/_Code/_plug/opencv/build/x64/vc15/bin:/mnt/c/_Code/Plug/sqlite-tools-win-x64-3440200:/mnt/c/Program Files/dotnet:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA app/NvDLISR:/mnt/d/software/XShell8:/mnt/c/Users/15027/.m2/wrapper/dists/apache-maven-3.9.9/977a63e90f436cd6ade95b4c0e10c20c/bin:/mnt/c/tools/vcpkg:/mnt/c/ProgramData/nvm:/mnt/c/nvm4w/nodejs:/mnt/c/Program Files/GitHub CLI:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files (x86)/Incredibuild:/mnt/c/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit:/mnt/c/Program Files/PowerShell/7:/mnt/c/Users/15027/.local/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313/Scripts:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python313:/mnt/c/Users/Public/xlings/.xlings_data/bin:/mnt/c/Users/15027/.cargo/bin:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311/Scripts:/mnt/c/Users/15027/AppData/Local/Programs/Python/Python311:/mnt/c/Users/15027/AppData/Local/Microsoft/WindowsApps:/mnt/c/_Code/Microsoft VS Code/bin:/mnt/c/Users/15027/AppData/Roaming/Pub/Cache/bin:/mnt/c/Users/15027/.dotnet/tools:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/bin:/mnt/d/_Code/Qt/6.2.4/msvc2019_64/include:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/bin:/mnt/d/_Code/Qt/5.15.2/msvc2019_64/include:/mnt/c/Users/15027/AppData/Roaming/npm:/mnt/c/Program Files/OpenSSL-Win64/bin:/mnt/d/SQL/MySql/MySql8/bin:/mnt/c/Users/15027/xmake:/mnt/c/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin:/mnt/c/Users/15027/AppData/Local/bin/NASM:/mnt/c/Users/15027/.bun/bin:/mnt/c/Program Files/Git/bin:/mnt/c/Program Files/Git/usr/bin",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "PYTHONPATH": "/home/cryptorl/projects/crypto_rl/src:/home/cryptorl/projects/crypto_rl/stage2_6_1_runner",
+      "R21_AUDIT_MANIFEST": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_manifest.json",
+      "R21_AUDIT_OUT": "/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/full_regression_20260926_v2/audit_execution.json"
+     }
+    }
+   }
+  ]
+ },
+ "junit": [
+  {
+   "path": "junit.xml",
+   "sha256": "7a513b6930a4c051dec8c8c9045ae2205411c64cc89f79325ccdf4d48aec7e11"
+  }
+ ],
+ "audit_manifest": {
+  "path": "audit_manifest.json",
+  "sha256": "cb82e2321ed28ee92187125063f2c0bbb88b261ca7e141797abac411035219f0"
+ },
+ "counts": {
+  "tests": 2484,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 7
+ },
+ "historical_skip_ids": [
+  "tests.route_c_stage2_6_1.test_curriculum261_r12_governance_r12.TestHistoricalEvidenceBinding::test_ancestry_semantics_pass",
+  "tests.route_c_stage2_6_1.test_curriculum261_r13_governance.TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r14_governance.TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r15_governance.TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_runner_shell_scripts_lf",
+  "tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestHistoricalEvidenceBindingR16::test_ancestry_and_r15_clean_chain"
+ ],
+ "test_files": [
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/conftest.py",
+   "deploy_path": "tests/route_c_stage2_6_1/conftest.py",
+   "deploy_sha256": "3f18b250285a1a95c26be0ed617411dd970a374cb2255a0746e2cfa09fc1595e",
+   "deploy_size": 2456,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/r17_admission_substance_test_support.py",
+   "deploy_path": "tests/route_c_stage2_6_1/r17_admission_substance_test_support.py",
+   "deploy_sha256": "52c4fbd6008323e77c3e0348b991424d4e3270eb980c58439bbbb1c842f959eb",
+   "deploy_size": 30234,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/r17_c2_consumer_fixtures.py",
+   "deploy_path": "tests/route_c_stage2_6_1/r17_c2_consumer_fixtures.py",
+   "deploy_sha256": "986ed9c662cc897b0ee56e2f00d75567312635a4ce890e1be61c56c5e860af45",
+   "deploy_size": 6815,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/r17_c2_native_fixtures.py",
+   "deploy_path": "tests/route_c_stage2_6_1/r17_c2_native_fixtures.py",
+   "deploy_sha256": "b3f871a9c82f7ca7629804aefd21ad572832f77a26d0807d478561e7e291e85e",
+   "deploy_size": 8296,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/r17_r16_journal_test_support.py",
+   "deploy_path": "tests/route_c_stage2_6_1/r17_r16_journal_test_support.py",
+   "deploy_sha256": "070d470e408f08b0b627aa5b415d85463e08992c80b4059dbb2dedf3803d473c",
+   "deploy_size": 17564,
+   "is_test": false
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py",
+   "deploy_sha256": "44ee7193d75e3fa1ce5ee499b29c1368b509e118d25afa963d26c46ceab3e1da",
+   "deploy_size": 8007,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_causality.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_causality.py",
+   "deploy_sha256": "7dd0f4c2437198197175684950d43977a4e7b6e2c3bd70f7e16f975b43ee999d",
+   "deploy_size": 4187,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_families.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_families.py",
+   "deploy_sha256": "33aaba14076dab7a19cbdf947a9975c3fedac03524fedf41f1510915125bd8eb",
+   "deploy_size": 5993,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_production_obs.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_production_obs.py",
+   "deploy_sha256": "6a23a9119037955ba3db7208ecec6027c58d20c951c1ff31dc325653351e6f67",
+   "deploy_size": 7628,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_cue_contract.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_cue_contract.py",
+   "deploy_sha256": "12ae664f969d0c4a519fde66c92d243a5ae4fb478e542b2c4c2b94ab4cba315a",
+   "deploy_size": 6988,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_cue_eval.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_cue_eval.py",
+   "deploy_sha256": "bf13d4fbd4258c71fff4bd47842692fe613b6e8d41c315ce2c02ea15d042ebee",
+   "deploy_size": 7354,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_delegation.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_delegation.py",
+   "deploy_sha256": "c5dacb15313a342ebdb824735818dee9dd471971ee549dc8f67269bd2b504d84",
+   "deploy_size": 5291,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_design.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_design.py",
+   "deploy_sha256": "9734dfd7d71e332ad58105ed02396b609c8f5b781a2016d8a295fe3de44cd6b5",
+   "deploy_size": 11776,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_governance.py",
+   "deploy_sha256": "e4f0974400c30f138c3cd89f0cbe2bc8d0609de3d62f62ab3661ccbf6017c76d",
+   "deploy_size": 7097,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_integration.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_integration.py",
+   "deploy_sha256": "e224a81e79cffbfd77b9561d3a4e7f2427e78a181d3894cb0d5775dbb8ccc4bf",
+   "deploy_size": 15064,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_labels.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_labels.py",
+   "deploy_sha256": "c95340e9cf794a7926b218c7bcf32588cc5858c86a6cffc5d3925306891f5746",
+   "deploy_size": 7215,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_namespaces.py",
+   "deploy_sha256": "e89a051097b77ed60626fdd78d5b4ae863a1d0924ada165bd7a7ccc4d53cc603",
+   "deploy_size": 7069,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_noise_replay.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_noise_replay.py",
+   "deploy_sha256": "4780d1f2b2b9c9f8312e92b29d987b45501369f171e8d6b1efbb5374cb3b44be",
+   "deploy_size": 6836,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_param_pack.py",
+   "deploy_sha256": "cb0072da20d51a8c931e12090b17bfd870f58fbd4a9c3aa80bb210c16d75ac92",
+   "deploy_size": 4894,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py",
+   "deploy_sha256": "c79fa010dcd2dd3aecf925f5c542277396be132a1fd49cdac8e4a46591f119da",
+   "deploy_size": 8220,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_reference.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_reference.py",
+   "deploy_sha256": "d179a7209fd4501c262a87a44126f73bae2baea308cc44f9008f358bf44ec0e5",
+   "deploy_size": 9499,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py",
+   "deploy_sha256": "297067b012ea89c30ce4dfff65dbf9cba048260255a7da8970014a18a79fa98a",
+   "deploy_size": 5838,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r10_routing.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r10_routing.py",
+   "deploy_sha256": "42f3f75c924d6334ffe902b8132bc9e26bff7cc00ad16de72897e672156f62f7",
+   "deploy_size": 5511,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_determinism.py",
+   "deploy_sha256": "3df740bd506b85949cf33a120732c7c04840e964b401becdf6d09f94455302d3",
+   "deploy_size": 6279,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_envelope.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_envelope.py",
+   "deploy_sha256": "37e732806314e09ddf788539ed57d035b757899a96b0be1c4976d764b2351351",
+   "deploy_size": 10893,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_governance.py",
+   "deploy_sha256": "86e1030a97a1f84283c47dd9efd8a1471040f00097234853d02509c9161f2f74",
+   "deploy_size": 8915,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_integration.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_integration.py",
+   "deploy_sha256": "bf32bf8e8049d0eca42bcba91bc78c885777e2ef4a16c815a75abb24b1f7da1e",
+   "deploy_size": 5014,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_labels.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_labels.py",
+   "deploy_sha256": "02d4d7dd1acd3d006ad3f5fc10eca796e0cd1b396cebf326b50216b64ef8231e",
+   "deploy_size": 10372,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_namespaces.py",
+   "deploy_sha256": "a14c160f43bad29bbcb7bd7c1bf5e0a87105cdb1849b6b50229473b2a277382c",
+   "deploy_size": 6086,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r11_shadow.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r11_shadow.py",
+   "deploy_sha256": "8a98fcc8574e9ec650ed20a5c5a145c3277896cdfec6bd24ec64699f043764ca",
+   "deploy_size": 7216,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_determinism.py",
+   "deploy_sha256": "bbe369590bd438b2f8e8b069d22d85ec8cc4fd364832dcbba1c968bbe981c8da",
+   "deploy_size": 6279,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_envelope.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_envelope.py",
+   "deploy_sha256": "e92f6faf1892eb6ae9cad41ab0e9214c98de55fc28bf884f650b8255355daa7b",
+   "deploy_size": 10955,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_global_k.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_global_k.py",
+   "deploy_sha256": "a190ef7d06258517fea2c9d4d366d8339f7e0e102cc8082b35e7861a2c90e519",
+   "deploy_size": 20617,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_governance.py",
+   "deploy_sha256": "85833af8b4fabb62acd0e1afc9af8123f3cc08cbefae1274a970bc04c6347c42",
+   "deploy_size": 8915,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_governance_r12.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_governance_r12.py",
+   "deploy_sha256": "a6eba7bed213ebd8f60286453121adf3898f0bed69ac2692cf33095b5a6ecbe3",
+   "deploy_size": 11350,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_integration.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_integration.py",
+   "deploy_sha256": "fa5731ea4789b1a09c5ab071c8d61c7d92a30f2fcd0e6e4e54de31bd2d7e8006",
+   "deploy_size": 4733,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_labels.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_labels.py",
+   "deploy_sha256": "07ccccf9081a6f510ed4b9784f64f9ccb3bb08a93587acea8044f91caf23999e",
+   "deploy_size": 10372,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_namespaces.py",
+   "deploy_sha256": "6f5d09f0326d3981d65233eb31c12d23dac0682576248375f1777997a73102c9",
+   "deploy_size": 6086,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r12_shadow.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r12_shadow.py",
+   "deploy_sha256": "65c38d3246d176c015c5247e7691f4dda0e4b4d9f6ae82c2a8f222ab5b90965e",
+   "deploy_size": 7216,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r13_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r13_governance.py",
+   "deploy_sha256": "41cc2a897656005c35e45010c4cd009f367e9cc96faa827c535a9974d41dd423",
+   "deploy_size": 15497,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r13_roundtrip.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r13_roundtrip.py",
+   "deploy_sha256": "311c043a924bc90eddfe061279a3589fb91d4cd72ed22fd5e6567355d1fc8600",
+   "deploy_size": 14705,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_allowlist.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_allowlist.py",
+   "deploy_sha256": "75374a484db1e111e888cbe9bc2fb2cd524f98b275cc83b967fedeb844cd3e26",
+   "deploy_size": 8009,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_freeze.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_freeze.py",
+   "deploy_sha256": "d7e530e3121b657a8e7991ee4329398362baf64b9c89fe0a5b3802df2a57cf4c",
+   "deploy_size": 9589,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_full_cold_reader.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_full_cold_reader.py",
+   "deploy_sha256": "14acc6aa5268b00c72c89fcf30deea8780f4d307dabfb6cec9c0ebbbdb50b2d4",
+   "deploy_size": 6011,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_gate_topology.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_gate_topology.py",
+   "deploy_sha256": "5d1f9f3d36b3a226a0036635fa13ad6e706624325f112ab24650f9b2d841b365",
+   "deploy_size": 12817,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py",
+   "deploy_sha256": "40935a9ff6dd7135e171b0c8d6a517b079060b99ca2cab7c9a82459e473590d3",
+   "deploy_size": 20443,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_identity.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_identity.py",
+   "deploy_sha256": "7e602af7aa678ae3c47866d28febbcf5f6cf142364193cdbd5053fe60a46ed77",
+   "deploy_size": 5600,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_no_post_exposure.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_no_post_exposure.py",
+   "deploy_sha256": "e1300184a3318a0657bfa1c1374db4ee92ceaeb39296ca9121dc3a4e3e536518",
+   "deploy_size": 5493,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r14_roundtrip.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r14_roundtrip.py",
+   "deploy_sha256": "00f1caeb0187a2ba86be0a969ab68368ca7688658d3df75fec3e2c9003cd7866",
+   "deploy_size": 15145,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_allowlist.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_allowlist.py",
+   "deploy_sha256": "0495bc30884e9300436d844e681f79ab82a1af77ed4cc601f35af499bb9be5c1",
+   "deploy_size": 9512,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_fail_closure_phases.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_fail_closure_phases.py",
+   "deploy_sha256": "817a0b48a88f9d9bc4e956aa69d4eedcafa0c48a069b8f2b64d3801ba12c2ffc",
+   "deploy_size": 8533,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_freeze.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_freeze.py",
+   "deploy_sha256": "f787a2922a4660fc07a6df9baeded33d95da6b4ef2f965dbb29a87583dc2e53a",
+   "deploy_size": 9589,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_full_cold_reader.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_full_cold_reader.py",
+   "deploy_sha256": "6190371d092b376062c2720c5be318d8d346399496fd3e4201b89f9d773e2f6e",
+   "deploy_size": 6011,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_gate_topology.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_gate_topology.py",
+   "deploy_sha256": "01ebc767c9d1509a2b568d0fe432db8f9ff3ea7939d958d5cc1640b99aed3e2d",
+   "deploy_size": 14428,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py",
+   "deploy_sha256": "c0328bdb2f73b03ffe43223b6da15a088d24f0785c7b7f2a0010d1b2d0885d55",
+   "deploy_size": 22784,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_identity.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_identity.py",
+   "deploy_sha256": "b2e68e298dcf5aa47e71ae638e3ce5b76ebe6641c2d1631d1e0c7923c3dae742",
+   "deploy_size": 5791,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_lineage.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_lineage.py",
+   "deploy_sha256": "04a21132fbaa3fd131f4d4f44dfa0ec52db784dfc505e10dfd28fe11fb1597d4",
+   "deploy_size": 17310,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_no_post_exposure.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_no_post_exposure.py",
+   "deploy_sha256": "994e2f8082f6225822e84a6e54db5d6db86b037ef4faa8d062f9fe9c2d6382d0",
+   "deploy_size": 5493,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_roundtrip.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_roundtrip.py",
+   "deploy_sha256": "74558ea1bcd11035eca93d98818690b5041fd06d9223350c54a915c982bb7401",
+   "deploy_size": 15145,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r15_workflow.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r15_workflow.py",
+   "deploy_sha256": "95f71238fb471d7b3ac7d9414a29d3a6c4a531c1e3617b02d0a19d078eac7e53",
+   "deploy_size": 9609,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_execgov.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_execgov.py",
+   "deploy_sha256": "d1e04632867e4dcc8a4fdf2242c677e5a3c8907321c4b3b3df74daa76d9f9532",
+   "deploy_size": 14203,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_final_lifecycle.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_final_lifecycle.py",
+   "deploy_sha256": "5be8a36b3cf484d1180601ac040ff7501fc148517072febec44480feee10154a",
+   "deploy_size": 9441,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_governance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_governance.py",
+   "deploy_sha256": "fd1ff9167ff909bf6a6f0f499b0160167594047eb1851b860611f63e4cc08640",
+   "deploy_size": 6553,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_governance_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_governance_unit.py",
+   "deploy_sha256": "6f81522abb5696c53f54f775ff781191602ef2d0da3cd8787dfef2eb480d4ec6",
+   "deploy_size": 11172,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r16_journal_serialization.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r16_journal_serialization.py",
+   "deploy_sha256": "42414dc8794004798fae9f52fbe6713b5b5e6da9c43136ea8c0389d7d89b1c78",
+   "deploy_size": 9223,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_admission_substance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_admission_substance.py",
+   "deploy_sha256": "ce4ecafb388f6c953f192ce3ac5c4f8c32ad6846ce752aa506d6c65d12e47a31",
+   "deploy_size": 127145,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c2_consumer.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c2_consumer.py",
+   "deploy_sha256": "e9789753864471b52663f767a4ae2aa4f374d737ee9c22c949ed774b6097f5f0",
+   "deploy_size": 14500,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c2_launch_prep.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c2_launch_prep.py",
+   "deploy_sha256": "e59b6cfc45a9e29f07d85a64d983cf45cbcf1eacf4bc0974888ea8209a83ceac",
+   "deploy_size": 8791,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_calibration_bridge.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c3_calibration_bridge.py",
+   "deploy_sha256": "457d1646ac86cd9b5eb37dffcbe883ed7713f13f12834d744040bfc774c0333c",
+   "deploy_size": 20127,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_evidence_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c3_evidence_unit.py",
+   "deploy_sha256": "85868cdcbab659cf04917de1551d535942b42c8239411a5be053e06458d6531f",
+   "deploy_size": 24192,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_reserve_batch.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c3_reserve_batch.py",
+   "deploy_sha256": "853d121c7323c7936250b5d0662cb9ebaeab018109122df0c0707da84462331e",
+   "deploy_size": 18097,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_c3_slice_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_c3_slice_unit.py",
+   "deploy_sha256": "76d178baa87ff6a609717da478c83032f5cf05a3499f6bb46db196b7e851da07",
+   "deploy_size": 86850,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_cold_copy_unit.py",
+   "deploy_sha256": "0134f04505854db6cd7180bb766472e4cd7e8c0f4056cb55782bf368481d8bde",
+   "deploy_size": 10292,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_control_path_unit.py",
+   "deploy_sha256": "9266dd063c2bed661c6bd38dda81043e95b0c3331e8fa7bd950d98e6ad561b05",
+   "deploy_size": 56460,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_design_cue_binding.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_design_cue_binding.py",
+   "deploy_sha256": "74aa8b0038ddb76c320f5f5afe038055341f718a5eb4fa601447eeeb3115b204",
+   "deploy_size": 10636,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_execgov.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_execgov.py",
+   "deploy_sha256": "ce4ebfc1b62d7cc3af21ca09324d82d58afc1cb793b75a2e87590f063c38fbf7",
+   "deploy_size": 21238,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py",
+   "deploy_sha256": "44cab54070f3fdb7abdb313102d85724d209e9c0cd38509967e8a40540ffe2c8",
+   "deploy_size": 25657,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py",
+   "deploy_sha256": "c2cfffe917b31db1f2e613d8c6847fc5e64c83bb8db48f1ced4cf85b0b7db170",
+   "deploy_size": 25485,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_native_sampler_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_native_sampler_unit.py",
+   "deploy_sha256": "c5b5183d66a201be6e5397f93c61608aa66e0ba327ce7861dd7eb5c9edad70dc",
+   "deploy_size": 9133,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_read_signal_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_read_signal_unit.py",
+   "deploy_sha256": "b5b86c2744cfc8cbf08b2fc47495562462ef5ce55c22a85ecd44646b308f61b4",
+   "deploy_size": 32094,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_receipt_entry_cleanup_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_receipt_entry_cleanup_unit.py",
+   "deploy_sha256": "deae2201f13dfb00f100ab98184824bd0b9ec7a85719751d1b2a8e4b6967c67a",
+   "deploy_size": 20106,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_required_bytes_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_required_bytes_unit.py",
+   "deploy_sha256": "4fbf86cc98c5a88e85fbe4b658924244a95c48583a0a490457e2f8c3330f6fdf",
+   "deploy_size": 5813,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_result_seal_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_result_seal_unit.py",
+   "deploy_sha256": "ddf4545162ac5d7ef066b58079f5207958559da7aa5e5fce4e64db453f1fff9e",
+   "deploy_size": 48977,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_shutdown_fault_budget_cutoff_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_shutdown_fault_budget_cutoff_unit.py",
+   "deploy_sha256": "96a7b682c46433391bd4767ad06f9dbdec3ee3292ca8f0d7b0809d40448ef789",
+   "deploy_size": 47721,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_stop_publication_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_stop_publication_unit.py",
+   "deploy_sha256": "8738e8c40347cd89921503ff90130bdb1729ea25b49b2acea858e7d2b844d2d4",
+   "deploy_size": 33423,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py",
+   "deploy_sha256": "49eadc0cf33386d530fd8b5e5e1a5a0f5db5510a9b7f601261854873b617413f",
+   "deploy_size": 81173,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_unified_shutdown_unit.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_unified_shutdown_unit.py",
+   "deploy_sha256": "1c70515b7fd2be94000a7987f117a334b802ea3a8972ef38d7fd2d213d55f707",
+   "deploy_size": 26072,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_admission_guard.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_admission_guard.py",
+   "deploy_sha256": "bf6f3b5738b4fcd4c38886270ca7ebac64dd0fad41d0ac273552354edec802b0",
+   "deploy_size": 15223,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_claim_protocol.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_claim_protocol.py",
+   "deploy_sha256": "aef966363748135686ca327275564f84eb184c0e5dacb8c897d72a91cc44894f",
+   "deploy_size": 22137,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py",
+   "deploy_sha256": "98d7b675280e6c18107c667c05ea2158e53189df2104b58d1bd7a94c32469a20",
+   "deploy_size": 71828,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_reader_binding.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_reader_binding.py",
+   "deploy_sha256": "14a9b63446b7bfc5c809c93d6b55aa60e46e183d0660aae59c88694dd8560914",
+   "deploy_size": 17270,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_regression_evidence.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_regression_evidence.py",
+   "deploy_sha256": "becfa2ec801080936c92c57ca8716257d3f14c0af858d367743404eeb65d05da",
+   "deploy_size": 25107,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_source_provenance.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_source_provenance.py",
+   "deploy_sha256": "cb827aa5595412aeb18c1d9c0c2d200ae63382da9cfcf7a3e485725772c92ad4",
+   "deploy_size": 7905,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_synthetic_chain.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_synthetic_chain.py",
+   "deploy_sha256": "978a6520c3da75013244fedc6e23dd24319ee9da94ff8fa63be9673631c30442",
+   "deploy_size": 28007,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r20_design_math.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r20_design_math.py",
+   "deploy_sha256": "54f6888508512f04d3c1ce486f79d0fcba1902088e34e949cb8394be0f3f5a11",
+   "deploy_size": 20241,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py",
+   "deploy_sha256": "3a2888299fd61d19046a2b5695c2b547b46a40f66fd3c8e4c3177aba7b268ea3",
+   "deploy_size": 16747,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py",
+   "deploy_sha256": "775f18e2e20be724e0e2ac35205c7f79a1e11a95be112a46398e0a74cb783940",
+   "deploy_size": 14412,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r2_protocol.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r2_protocol.py",
+   "deploy_sha256": "ce6526cdfaede1b00490173e829c62fe0fff0b105ef4aa4b0bd60ed950fd862e",
+   "deploy_size": 11125,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r3_preprocessing.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r3_preprocessing.py",
+   "deploy_sha256": "d1354b94ec44552b866863d9a7711999701e45bdcf92c3caca702bdacfdb7bcf",
+   "deploy_size": 9956,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r3_protocol.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r3_protocol.py",
+   "deploy_sha256": "9553bf892d01c95969f079b5e9ebb3abe17651a99503450834a74a16fa3b9c06",
+   "deploy_size": 7799,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r3_reference.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r3_reference.py",
+   "deploy_sha256": "07bda2bd3dc9593b7f811387ff0b56691cf28e9e7fca110fb7c5785778e2d843",
+   "deploy_size": 9630,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r4_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r4_namespaces.py",
+   "deploy_sha256": "db8b3fb4c465f90c009912947bcecd6fa7bfbac2197e18f9a6579f26d2af03b5",
+   "deploy_size": 7545,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r4_pairs.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r4_pairs.py",
+   "deploy_sha256": "dd80a5bffb56ec8c437992e727e20da56f642641d79cf5c6050959bd45c61a54",
+   "deploy_size": 11926,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r4_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r4_param_pack.py",
+   "deploy_sha256": "ff8c3c4f90b297e7a13eec66bc58012f487ebe0e27a9c37d70845b0dd5fac4c4",
+   "deploy_size": 7169,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r4_power_gate.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r4_power_gate.py",
+   "deploy_sha256": "b911a68d539f6522810fbd62c88d4bb3835125b79ce6ab2f83fca46ad7e2d29e",
+   "deploy_size": 4180,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r4_preprocessing.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r4_preprocessing.py",
+   "deploy_sha256": "4075053ead3a436d944730e44b35f3629ec86ad8555f047320ed6213c9e399fc",
+   "deploy_size": 8562,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_design.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_design.py",
+   "deploy_sha256": "ffd008ceb1def2a7ff82801877fd0c542a3a4b5186b84e0b71929ca0b181147c",
+   "deploy_size": 6819,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_gate.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_gate.py",
+   "deploy_sha256": "c1a5c8d286217fb25c1b2914fa1e2ee22bda2a8d3a0d5726b319ed4ead472837",
+   "deploy_size": 10104,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_namespaces.py",
+   "deploy_sha256": "669e14b21810d070ba99c49eb6bf8acfced757484c7f63ae749bf2935fe54f29",
+   "deploy_size": 9366,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_param_pack.py",
+   "deploy_sha256": "4a68b38b2c176a34c2d7222a8791ded943c618515523550791bb6f43c62450b3",
+   "deploy_size": 6380,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_preflight.py",
+   "deploy_sha256": "3bde2cb7a1546fe79ad7e7fd1cefaa497da7dada3944c642fe925f0c256310c6",
+   "deploy_size": 6884,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_preprocessing.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_preprocessing.py",
+   "deploy_sha256": "ffe669c5daf1969ccf7a9b26a5e167311376dc94c784dbaa6d7101a0634cfa35",
+   "deploy_size": 5092,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r5_statistics.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r5_statistics.py",
+   "deploy_sha256": "1ac75498a31aa8f40db5429e81b203a3381b39898b36c7dd28423479d1411884",
+   "deploy_size": 6020,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_namespaces.py",
+   "deploy_sha256": "7f9780e54788976843324cc25d07354c4372bb0068f2ea903a66019dee5096d9",
+   "deploy_size": 7899,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_param_pack.py",
+   "deploy_sha256": "4a1a81007408728d0ec0656d8c05e0c707a02181a0c839cf8068dd39c4a149a0",
+   "deploy_size": 5709,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_preflight.py",
+   "deploy_sha256": "aa8fe67a77eb4b223e5af21920e46de3dbe0cfa1039d7e78cdf85a029aaae9ff",
+   "deploy_size": 8809,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_selection.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_selection.py",
+   "deploy_sha256": "2ad65814ec2b436f3366f8adc4b626d3c82f301b08eef02b71fd0d1e43e6a253",
+   "deploy_size": 10755,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_statistics.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_statistics.py",
+   "deploy_sha256": "7d40d62e2f9584a1ade24e9c05017c94d6f60e5b21eeaded0c84c8f96b887188",
+   "deploy_size": 9841,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r6_tape.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r6_tape.py",
+   "deploy_sha256": "353183ca2aeadc2c3876216976bbf0cc67dce8e94b46ce1d1051fa5befe6b7a8",
+   "deploy_size": 11495,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_cue_contract.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_cue_contract.py",
+   "deploy_sha256": "76e760c28cc5069359ca805bcfc1bae267004041e52ace9505168696f164fc67",
+   "deploy_size": 5410,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_cue_eval.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_cue_eval.py",
+   "deploy_sha256": "e64b40cc05bca25abdafa4a22f25a98250a9b831519d8611e956bd78906018c3",
+   "deploy_size": 7731,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_namespaces.py",
+   "deploy_sha256": "93e90abcb90a0f874395a62935d56d79e035e497fe137858c918e0b44a537231",
+   "deploy_size": 5252,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_param_pack.py",
+   "deploy_sha256": "79fc7efda659f1d65922da52ac1c49b1b208b239db4361b4c2d1b59c1fdbe34f",
+   "deploy_size": 5283,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_preflight.py",
+   "deploy_sha256": "b7b3adb29c04f531dba13c5f34e692d2ad554d5e0e95461e6b49a4f8853ac97c",
+   "deploy_size": 9499,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r7_selection.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py",
+   "deploy_sha256": "17a7d9ee49b6bbe59472b5402140683ee9a4f6b65aab34c3b20b984f6e916a68",
+   "deploy_size": 11455,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_cue_contract.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_cue_contract.py",
+   "deploy_sha256": "aaa2f1063770187b054731403ccaaa3f79b52a2d7ce75986fc97d8decb041a30",
+   "deploy_size": 6070,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_cue_eval.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_cue_eval.py",
+   "deploy_sha256": "827c37c142d97c418a7528c53ed71e464fe8667343a6b7b4186acc20cebad3d1",
+   "deploy_size": 7346,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_design.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_design.py",
+   "deploy_sha256": "054890d5202e4cff52f65ab25a0d2cafbc0b8f642d17baaa90ec68c785149f9d",
+   "deploy_size": 11658,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_namespaces.py",
+   "deploy_sha256": "b92a3cc63dea969d1e1fceb876fe680cec4e6ae8307c1a6b523b3342a3410283",
+   "deploy_size": 6095,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_noise_replay.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_noise_replay.py",
+   "deploy_sha256": "ce186b2977f073e5e8193d410d04d8d23608cb52289a8f199aecc76c5ec5e013",
+   "deploy_size": 6833,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_param_pack.py",
+   "deploy_sha256": "1d54434d5b42d2a9dbe5c5fd023f07762285078c5a351557be2d7c691518d2ef",
+   "deploy_size": 4211,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/test_curriculum261_r8_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py",
+   "deploy_sha256": "104baedfb91bc6224b28a8938cfad5a9d5a85ecb4446beb83268606774eb15b2",
+   "deploy_size": 5012,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_cue_contract.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_cue_contract.py",
+   "deploy_sha256": "a4e05a188bf5c2a890b95f67430a1fe0e4df271b2f768c384bb1979b57dbdc5a",
+   "deploy_size": 6980,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_cue_eval.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_cue_eval.py",
+   "deploy_sha256": "9842afeb93da11aa13f617cef7ecdfba7727eb87b13bd4424ca092079fb86838",
+   "deploy_size": 7346,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_design.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_design.py",
+   "deploy_sha256": "cb6316310e9a70ba80f26ea8f2cd3ebd77ccaf7fadeb53e5a640630adad608ab",
+   "deploy_size": 11729,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_integration.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_integration.py",
+   "deploy_sha256": "4454161b9f18fb6fcc954d213d9cabe34dd2affb95dda0808ab5a15bc55b027e",
+   "deploy_size": 14927,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_namespaces.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_namespaces.py",
+   "deploy_sha256": "ae76ca0a69b5414f1cfc7186b4c63697076e3944c04007fbfcd94cab7b9a5dad",
+   "deploy_size": 6621,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_noise_replay.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_noise_replay.py",
+   "deploy_sha256": "5692540de6f64dcb3e88d69a4e8a703c08d46c84eb147318535e30051b697d2c",
+   "deploy_size": 6833,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_param_pack.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_param_pack.py",
+   "deploy_sha256": "505255ffda05849376b4218af128be58d2d394aa39612ccdc021ce1366c88ea8",
+   "deploy_size": 4485,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py",
+   "deploy_sha256": "76018413b02ef99f59b7b1392dec289df3642ea13ae678b3f527e6be4372834a",
+   "deploy_size": 5233,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_reproducibility.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_curriculum261_reproducibility.py",
+   "deploy_sha256": "dbd2cb838158fe7b724a272d471dce894208528dfffc2f4204611dbb21359eb5",
+   "deploy_size": 5579,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_codec.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r17_c2_native_codec.py",
+   "deploy_sha256": "a2588c5e741d6fc351aeed45e39c7960127a87a87cc105ba9eb6b681893ddf3c",
+   "deploy_size": 4220,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c2_native_components.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r17_c2_native_components.py",
+   "deploy_sha256": "ddb940c04fed189436604e16b49131207ac8d659ea2ab2ce2dce83fe49273d26",
+   "deploy_size": 7707,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_c3_finite_reserve.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r17_c3_finite_reserve.py",
+   "deploy_sha256": "947f07917fa5141bcc821c0c0dab8b2ed88ae224141fca79533d3fbd9df98e20",
+   "deploy_size": 7005,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_r18_attempt.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r17_r18_attempt.py",
+   "deploy_sha256": "d6978def1815374365fa135035755d6899b4055f50c28b719c9f3eb5d1d687f4",
+   "deploy_size": 5508,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r17_r19_attempt.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r17_r19_attempt.py",
+   "deploy_sha256": "1f772dd52aa126ed9764521a8d69581b565173e8ce1b307990778f2ec9508897",
+   "deploy_size": 7313,
+   "is_test": true
+  },
+  {
+   "source_path": "stage2_6_1/tests/route_c_stage2_6_1/test_r18_launch_behavioral.py",
+   "deploy_path": "tests/route_c_stage2_6_1/test_r18_launch_behavioral.py",
+   "deploy_sha256": "d2535e424eba74a8c8151fb41b28fee982efdf2fffdc0a498ec3d183671ee31f",
+   "deploy_size": 13167,
+   "is_test": true
+  }
+ ],
+ "import_surface": {
+  "members": {
+   "stage2_6_1/src/rl_curriculum/curriculum261_api.py": "ec0203371284943055481ad4758cafd48f13a478ca0d63deec3197b52fd539aa",
+   "stage2_6_1/src/rl_curriculum/curriculum261_c1.py": "28673215d4832dae8098acf375a69ae25a1b25150b26e94e5feeaca1cb2c2b5b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_c3.py": "773742424e9d98d3fba1c39dfcc713812118229fd07af00ec3870b087d95fb72",
+   "stage2_6_1/src/rl_curriculum/curriculum261_cli.py": "a76d39631c6e06e07677213bcd70e6696186b15ffc926f5d1a056265edc4b4ba",
+   "stage2_6_1/src/rl_curriculum/curriculum261_final.py": "afee73bd2747c30f85d78fe587042a57e9c7beac57d5d60abb1c61d3a8ef3e8e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_generation_envelope.py": "bcb9a8a6882566457d403461e7746216ace98865045aec9353aefadecce8e09d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_pairs.py": "f3b75a011639938e6a61d11fd41f739897a932d04757dc1a4a90c3f17dab48fd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_plan.py": "d13cd14743838c777322fdf30a4cde1e313c60cd1643d2c1f5114c5dea765fd7",
+   "stage2_6_1/src/rl_curriculum/curriculum261_production_obs.py": "d7d5b0b731721419d28c9aceebe3854dd839c320e902d0cc3fb6725f1712e849",
+   "stage2_6_1/src/rl_curriculum/curriculum261_qualification.py": "2499981a3d938de7592229924d21c50ee6d04a657e6e612823de81a07b68ee67",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_calibration.py": "35c1146240fd5726399ebf7d462a609d7be5cbc3a480a1c7e7ae16b35c334d95",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_cli.py": "ed7b26db91991a97f242e56a6b33c4cbcb1159d89bda23ff53b3065de0cc24f0",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_cue_contract.py": "d35bcea42d8766745e19e64136b4cbbf9d2dc8e42177516e15bbe33a67b8eddc",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_cue_eval.py": "e3217b4b6760714ffaacc3fb7dde90bcc82bdb5256c2e9f44509df15f9af2cd1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_delegation.py": "2be297ce0a3269c4d6689217dd53ca215bd4aa99bf2bb9427db384f5d7f09f64",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_dependencies.py": "5084a198fd7280ce311eee18acf1a71abd781d481f27f57785dd9ef9a892befa",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_design.py": "476ef84f65ea57b0ba343fa917485275013b2ed39167f904f7383271eaffe142",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_final.py": "b64c7081cf9146dba2f064dc1f2dd9cc06b33c0a040946d60d0a0fdfa26b6bb3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_labels.py": "1ab0b5f6ffa816c202934420b7d82752ede44f5691ba6f8d67d28a62fcebe787",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_namespaces.py": "a786e566bf08716b6e22a834948aa69adc3d50b2c4bd29e2117680925cc6c967",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_noise_replay.py": "00743b56c4f15f3f32dfe331dc7e0a6ce64eb1b0d4c9b3fb31da40938f4f7cb5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_orchestrator.py": "a8d1c3d4fcd727f1915c0646d2d2088a7ff78db3ff94686c64cd828c82cb1787",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_param_pack.py": "7372bbfb873200939417ef7823378c369b96e314318707a25ce81a5bf99c5d1c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_plan.py": "4085fa8ed73790cc151c3a80346d79545497a98514c749c5872ee090d9b55414",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_preflight.py": "23614269fc9918a7903a2ff77d5df4830842f3083778ef3605c0abb3e5c51b8f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_preplan.py": "a7f4f102265bea55d934af551105a60db50837c034adaebdd67bbd4ba6554b12",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_reference.py": "b2ddcd175fb16a6889fc5b48f5fe7f0021c5c0ae733eeae9261e751548d63aa2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_rehearsal.py": "b732776363c8dde9614c09a174c3cb7875a69b26d173c49b4cad204241c1ed01",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_routing.py": "cf1b6ac108b8496a83ef13a1f1b2875dbc486b467e2998a176ab4ffa33c71d26",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r10_smoke.py": "c7490b06e77b664d5f1c83f6d837149e22ee09c7da2551d0161c5bc318c5edf6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_calibration.py": "ebba3a8dc86b11b857322f6bb2b3c378169d22c2ca0f5fc77eb40147c515dd46",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_cli.py": "141b6a91770b49765a7f2ecb4f403a583921e932456d2566d718d7a4d5e28b32",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_cue_contract.py": "9dcdb0773d3681268f5a9f19dcdfdd9de33e0cfa7f1eb439df7a7d0cdf629a2b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_cue_eval.py": "0b4c78ad83832b4ce07f6bc6f96763a2359cc45e3186136274d4ea3f02f479b2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_delegation.py": "8d416c8cb6067065c3ba547753fdad53f2500951487539f70163fa3c3cf73834",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_dependencies.py": "aa537e1cbfe2046b6d319fe1acc9c4dbd9a4a404efc8434d80e1b69bd9f7994a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_design.py": "a67433fc428701cf89526200e6d5646b8a15308ccda17506de9bd36d88941988",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_determinism.py": "01f41db8be5d4ff6735aeb08ddaf46cbbc92f56876a9cf095c78595122c0f570",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_final.py": "c3aca09f0e4bd63c84bff601b1391e1c6106aab40085c44c29c05d1103b76e31",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_labels.py": "bbecddd83211ae70576621d924c0719f7dcaff793f529da2c59f594fe07c0e31",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_namespaces.py": "7c2536dcbdf9e74176697d11219f0af0c83da177b5e4e88340a2cc964f7e013e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_noise_replay.py": "91e5aa877d24a3328a0db7081d13f3ced4fbba1f62cafd80fc5f1db63e2d9b93",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_orchestrator.py": "4017486da7a303fdc72d94e6e9c4cc010a40b5fa98fd2766201f6dc6cc2a95a9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_param_pack.py": "993062bcac5391e986f11e26c17c412d485db66a6e2ca02de158625af8bf999a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_plan.py": "94f98f6aea738593f66fbd615f61641e6c2ba8b45ad4359f7e86b1483c651a65",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_preflight.py": "c1af87455e46a55483a4ddcef57eaab00a113c334a205cf6f35738084cea042b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_preplan.py": "5d4030b62f106fcd3e73ebc9352140b88c6587f34ce83dd00b0b887abf6fb94a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_reference.py": "ed9a0c82502545b6c5275d33ce9199f3faa763aacc86fba1157710ea6fb43713",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_rehearsal.py": "e34456bee3b6dd035f96fc1f0ee481f8020d1c2343ffce17a7f997ad3bd95d30",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_routing.py": "4a0ee9b0b58321a0ebc18f66a5839f96871f6e6c3b872aa03dd3998825fcafe8",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_shadow.py": "0b8e1839635a17b5ddc5b143c8fc7cd444073f198bfe80e22a5b9c6d2baeb709",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r11_smoke.py": "1b2bb767ad2ad3ad5aa277479848b0dc47bcc056f22aa7494b2d5a00eb318312",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_calibration.py": "acfd385fa6b99bd65c909f4ef7d6d62c2e936226c9d6ecae45a28705f3c64a27",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_cli.py": "4e2efe4f15da9c4b606befa822df4cb0d3734085cce0f0fdbed765f6bc93a0f6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_cue_contract.py": "e7814d6ac80b3c825b926b758fdaec9e6b8492fb2f51d47d473c1185d9c8761b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_cue_eval.py": "64f9566d0c03df43c8a805c053a427ea88891e2b54f480f7a0eff7f8e6016662",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_delegation.py": "94fd35b3443b4addae88f5e8da00e750e203207c3c908cf99f38e16607ec7dad",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_dependencies.py": "b8c2e3157dcd63c670e7af17839c832db6671263325617c7d81d2aa2b4a6ddbc",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_design.py": "bf01794aeb9834662c283b7afce278daebe63eca95c755b9ed016ce8ab8f1356",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_determinism.py": "d13328e31c29f5ae950e4a5911d5aa1c5c2471f196e70f76f3555a4cf8e189c9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_final.py": "5fed52230383d899cfa291ba3c6571a1f8492089f4ea9f59fdca4e0081cce622",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_generation_evidence.py": "46c95d92809a9d2b3efd7bb19ce8741ee0ef45759cd5f5b6f55c92914a158dba",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_global_k.py": "c58b0f03c0249b5dc5f94ca60125ba81308f6ebbc8d6a5a6cb66348879e898d4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_historical.py": "ebc3c04aa0bb896818b1809c8c5f5244d3f0dab28040c7a1b23426746b4bf627",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_labels.py": "b995fae0b96c65e53158244820d36881034fdbb603c2b53fd5ba2d3dbed5bbb5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_namespaces.py": "b8034a2b0d338c04ed250042a764134f366afb72c22443e124fdb0e5cac8d26b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_noise_replay.py": "4d9df2154effb175c4035b0e76f6c759fa1f567fb8ec613a7caf854b80c0a6a2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_orchestrator.py": "f996183e8acfb17c7e3ea3e2dd7aa35c7a3422117870c7dd0e972e86dfaa0d80",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_param_pack.py": "ba4a744eefa3d4838547e3ff00a823b460c7afa56490b54af3b5997056af2c71",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_plan.py": "d37b349d0810f2de057dab79dfbc335001304b17b1271b9330dbb02108c40866",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_preflight.py": "507d20707ee2680f96ca710add1bc2db524dc9decf898c4c56d34ebb8f2f729d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_preplan.py": "3098b8811cdb9925e47d0914c82a494a614c10cedc1c80dd7cd80ca60a38b284",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_reference.py": "6864a2900ad704cf0d4da4107a225b26c89608ac64e76b78bc3cf4f040fb2598",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_rehearsal.py": "1ebbb11fdbb993b8c77e0a92921bed6f9e955511b3ba314a780dcdc1664c7eb0",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_routing.py": "415dfcb242a04f012378c6ffafdf6bc5aeb9d381fb91575f74251d3960b2bcd4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_shadow.py": "0128350d6cbdaecdf20b685e62408bc94d868a9ba603b29c7931be19c739325a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_smoke.py": "e962d267daa9ee86cd069c3c27466d0615c7da709aaf9a626b502681d99d7bbb",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r12_validate_stats.py": "7b37287340d9395e951d4e32507c90621015b1ebbac4f697d6cca6cbadcb3d08",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_calibration.py": "c0db1b1b229040f6639bc364883da32b967ad9d4958c4c57a93e6ee937ade348",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_cli.py": "5e5695e52c25346ff944980222a6ef74ee9f5bc784cb8bd1e8daa76c932b7987",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_cue_contract.py": "41f743ac7eedb28effe9b52b3ae587b7462bbc529387e10d355ec866f6371310",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_cue_eval.py": "9395220932c5afe82203a41893a399822f202c4dbf68a4146818f0d0c19c9a61",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_delegation.py": "2790cbb934f3b8bed3e776d36b5bfe15010911122b9fc7dbdbf4e90ea5e8c4d3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_dependencies.py": "d260edcefba1334e7675143b2f0998a28f7bfdd947cbba516ff7125a8de79e10",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_design.py": "295d4a56ef775a852e87ed18c544244d08519d043b2e74a5c701fa5bc746105f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_determinism.py": "1620a9fec11436c012d6c88d7d7017e9057c2b000ccfe0bbd07042412dfd5cb4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_final.py": "3fec58e9723e1e802d451bf6d4c179bba2499c4f1a8a18199fdc20586b293c15",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_generation_evidence.py": "c8f5fdca00debc04279e2f716776951e4d3d8ffb97f84d20915281e6531c604d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_global_k.py": "b2751dcc8e727ed09d02917eca327c5a4a1ad5db69591ba94222ad1504396cf9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_historical.py": "6c2bb5923dbaf354bc1ab61d67048af2c9ef83802c129c57523891d70f07c054",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_labels.py": "94cff1e501043b578cd20769149faa2e25f3ed8642dfca61175767bc3cb3d5c7",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_namespaces.py": "3cc703265b8c9ff18177f06119f5cef9d289ab4505f8e45e77465aed010fbc72",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_noise_replay.py": "b108a055e848e40012bce1445ac1c4029fd08ceceadffaee994a8c15bcc1c7da",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_orchestrator.py": "2f027dbc9fe6ed6a3e347bf8f6883b420319740a2e981c4adc1a74f538661d30",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_param_pack.py": "2daeb1a048ea3a3479a12d14cf02468439e8e5e8888c782da808adda6cabc150",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_plan.py": "e9f38c7b1df73f0a8b615f2304e27148b3949b2d62a42090ee40816a311556e1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_preflight.py": "2027b233102d62e38e73922833f601eac3f78d305895eed732083f2806fa9dd0",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_preplan.py": "d889a24dd35631d524cdd31ce643fe7519f7c951d344d71c5c1f1608077d6618",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_reference.py": "37bcb3b3fe022cdd6cb1fc467c366752c0442426c9db179dc954f2fbde68f526",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_rehearsal.py": "f35819728671ad7de729ed896a08099ce1252c10b564160027f5e5e4b783cbcd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_routing.py": "59988a3638df401b40717700a2d2351b411c8b1733914598da4b43839141b2a5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_shadow.py": "bbf0d75f9767dd07384cc47dfa249c8c1d8453d882430a2a83ef7ff494e6c87a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r13_smoke.py": "bf74949a9abe0ec77a1c8fbe28d1d967cc717423f7564218fc1325b970d9bf85",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_calibration.py": "e39f3b31482a8c164d93d93381b4e3c11017690f7ab768c605403c2af590ad24",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_cli.py": "cf04f3b577f3470c8c3a6cc79deb9d577bf91ef3f2b9eb46b2587a406e40f625",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_cue_contract.py": "10c4888e86be9c0b09aa8250bff98ee03e9edcd4bc998fb80d27f60702e59a13",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_cue_eval.py": "850e7a3f1c6f410c5b1df249f5297360ddc8474b47522924d585bced98ca68e7",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_delegation.py": "3c4a92976706547c3f40da96a5b7389c6c7859ef70f9ba00006563304b31c697",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_dependencies.py": "2291f314fb23b75c7b1143b78e3aa736776be8c3ae13a96fd57991f3afae6ab3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_design.py": "7812c535f38c5b9d3525549fa0be590f7b6015aca0a3aa13081e7532d0a45396",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_determinism.py": "264cbca088730c0653bb5f1320d5dcaf71f401d7c249f4d39e7bd8f2ef019cb6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_final.py": "ba97bc7144f273d6615ee7bc9043b034f6077c4cfc4da9afed1674deb18b9d17",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_full_cold.py": "eb44fbf056ac01dec4259b55508b13938c55df900d4ebb649512bb3aa8a36977",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_gate_topology.py": "9a40b940be8884f102f19dd509f76a3dd920efcda21cd62e6df2a65202329bb8",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_generation_evidence.py": "1e0db369636488661d4ccc6ddd65518d0e8e4347f9aa03b37d343136f88a9b44",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_global_k.py": "06c713e2e07b5bc42dbf0d6f2d665d7255e292d9ac95ad443b676ef38a055717",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_historical.py": "d9b09b9f22529a88aca08cdb6735dc224be49d8e29c2b865ebcd290e032d8a76",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_labels.py": "65d2c4a7be37486a409e6995a5961e5126d2c4738a40a8ec2673be9d9faaf5c0",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_namespaces.py": "e6d20ba286c655f46970046b996bf04bde9f07931ad1eca8771d8cf00cc8911f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_noise_replay.py": "4b302150d7aba8d401c0ef277b445e46f1fa09ad50a9d96426ae31112c87da6c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_orchestrator.py": "120683e84959badd1e2f5e33c2832e9cb7b7c1cd45c13f4697a935d9ec38caa5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_param_pack.py": "8c928337b5f8521eee170ad8fa76d9bc1dd666e6d207d7079b2c489b2b2f555e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_plan.py": "b9651bc806ac4a035aa20f2c60c3a236d90c9e0d8870f08c501d9f02470a834a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_preflight.py": "247a5336d77151fdcfd46d0005c0590c271999adf7a52b80ca117cc7b7e83dbd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_preplan.py": "51fab9b491f15cbde072ddfa1b37b52f64c68af90bf788477162a35a72eeeb63",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_provenance.py": "c50cfa2fb6b5859314237f259d8f9e2cc58be0854535f03ae350fc4928b8ec58",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_reference.py": "424d07bed09bedd1339a55343efabf33f55b3e81454840c1db3638b3710db35f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_rehearsal.py": "3f416ee117468254654631e675c9f7bfc0a18f61d565d3fa67357fe079071284",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_routing.py": "1f73d8b88864951e00b26769defb2b19bf60e63f867111ae8575ba8af5b48efe",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_shadow.py": "d175207cf99a7dd1ecc4bb126e9eeff74363b302fda01b98422bfb5347ea39f9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r14_smoke.py": "500826266ead4490cbbd4078d95815fb626643a39b87293bf28a1dd60597d9e2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_calibration.py": "1c7b113d825411796a6aae9ab2901ecdab2b1b2fa17430b95855f927247c7cf2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_cli.py": "df40b8b27921eb81a2784d6897972ada120c978536e6a5b440858b87404e4233",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_cue_contract.py": "b1ef854dd11d9be8b9ffc555bd7e8d8c2004d3942280ef31cac6dccaad8d7d37",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_cue_eval.py": "4184c6f8bf8842637fa73e6a9fac36434b5f94aef1a16ba73231ddf7445f204f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_delegation.py": "f0faf79b48cdb8c2a9cad896fe563a35b2cb1a7589862c53520870f75cd3d48a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_dependencies.py": "df6f6503bfc3fe1c73038af264230b9a1d58f9d0cb5bde4d15d81fc22fb87ca9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_design.py": "bbd7b40697c4a790f6be82d593c9e80ddbc100015504825069fc11951260ea19",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_determinism.py": "beed653209a36275c803e376bbb711a5fc2c2668bb1b095b367d3ecebbe923cf",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_fail_closure.py": "b72936ae2df9a2a4a8d73d4a1e76bcf0e3350fa9ae45ae512a6c3813d9fa98a6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_final.py": "9087267bf1d6a841156273eaa2d8ead20ff833069beb4f42b06ed96cca201755",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_full_cold.py": "fa9fddc3949a71e1f06dbb5df07517dc0c34dba51832d85f9e959700383b2887",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_gate_topology.py": "0443605e48abfb9efc060759fb72b9f1828224726437e07c8dd2fdcbe08dd047",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_generation_evidence.py": "7e5ceab31f4c3ad39a685c5328f230578c9b077cd116987ba1415b5a34a6753f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_global_k.py": "65678d9fd0cd088412a9e2af871f088f8bbffc774fdf8560dde92e2f676db817",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_historical.py": "8d437375d2e93c67edd4329e5e44131b0888f4498ab957237fbf5cf036fc2814",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_labels.py": "d9a3deaea3b04277f6b9ddbf383352c7cc302e871e1929e4bb6027545d5d1b6c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_namespaces.py": "f13a8e23397470017837b16950a4318ab1fb2e03d223a847731d3ef8a3dea6ef",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_noise_replay.py": "cbc00c0a51e7568ca77c1d481079d9ed00305c97b2e3b6a1fe2f5b429d36668b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_orchestrator.py": "181d8ca5168c5e92e402e683d1d2e0ac53fa0edd907f126bf382f96deec2208e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_param_pack.py": "11123c073a834783fb192c99b374305a3d69bddf70843078605662687bb63c22",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_plan.py": "e7fae3bcbe2cb3af66af471788cac9e44ddcf8959a7cbbb136e11911fc891388",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_preflight.py": "72b5e111e664adb44d1b848c3c76c7c777da37079021f8e0cdbaeb3ed1e3eff8",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_preplan.py": "6ae6ddab19406d2bef3515522c2541fd90a872e9f80e5f04760c3198c1121a21",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_provenance.py": "cc4e60b986a9456b0fb6e136519d14d0ec5b858687bc892edb0c6e8f73e34b9f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_reference.py": "71226cbe8dd446a8281222052775cecbb81f2e857266dab1be0ca1ec614f3711",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_rehearsal.py": "71d6462e1a97b9aaaf6e6b7ad445f40a6bb2dd0a3e584c060d247da15110f5c5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_routing.py": "217212f6c4a6fbfd694dbaa9386c2e171bdd1fa7ed46923b2c97edbf0beb258b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_shadow.py": "a474137b7c98d4530fb23ab61864c224c37cf916ab784d2c2f89379ecc1eb42c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_smoke.py": "d3209b0c6c8d56ab1742559dfa34902a3cb78a94a240d34ef0a4a4a774ad7290",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r15_workflow.py": "a62712d8533c686d6c4bf72ed7bf260619d2f3c703888a0a876c6d025ddc43ff",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_calibration.py": "10f656801f78b3c73f28b75fc390e282eb3ff2bea6cb2091ef14d701298cd117",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_cli.py": "ad36b7b7ca8eda87a5e4a59380617ad5720dde2aba89805a3fba85338d19284c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_cue_contract.py": "ee269fd6d43c30b3a163ba5cbe319ffb05b9fa72e2293a408285d8744c4c66cc",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_cue_eval.py": "42512bcfe2f7dffe38333cadbeaed5535020f137e05f5e1ff980857ed476b78c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_delegation.py": "8113954d9ec18d955e878f10a790143ed329037010c07be12992058fae57692e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_dependencies.py": "abb45c6037ca59168773a139a72298fdc2c0943e947195a1f1f2cbd4fc5543d6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_design.py": "595301fe77bca00cc5bb13bd255055d42886ad1b647a6d996509ad431243b3a2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_determinism.py": "b42f639884a32a9ce760ed021047b49e88704ec4cdbe8274de1eb04be72f1b1f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_execgov.py": "fd20b28e950871538eff8e43886e6dfd0a707c37fb525c5ed8e7b4b2e5a8b12d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_fail_closure.py": "cc22c82db8379c5e5939a823e93c4e0714225dd5436b7a0517c5e07e44573852",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_final.py": "b462ccd45849dd8204dc3098109fd567db9ba96f059ab2db6398eaf7f1d03e6a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_final_core.py": "cd174cc43f49367faf87b5b1326134c9529c1403ccddc4f99b551f02feacec25",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_full_cold.py": "a708c7fa14e10c3edcbffdf65c940dd8f7696f0e701205caef96180352526080",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_gate_topology.py": "fa6ee4ab2dc3e663a523c878e4013ebac1aeacaad58cf781ec569caf4d87f729",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_generation_evidence.py": "146c45fe455c367fd6608092c6c3cdce9a0c6148779d21d6f6cd11b6de4c9cbe",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_global_k.py": "1228a0165b8e14c302ea118e3d1f14e587eb7846e88687cf25c5e46f3018b527",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_historical.py": "df2f5e93d549bd2281d9169b16b141729d48414c70e06109a2f67b7e5dc1f6e0",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_labels.py": "5326bc3385bf7e3571b13efb7d8643b0a3c3b430917e4b2a4b34c16ae4cb9ebd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_namespaces.py": "973b46d7ffc2ba947e5e86e8238eba8b6e9565a4c96d6cd7fb451ba5d927e0e6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_noise_replay.py": "c0151457b8084dfa890341e20bead3832de0a2988bd52e3f2f19617238b6a8fc",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_orchestrator.py": "9f0a4a6fcd67c56df8fc26e1eb38367ecfe3ac62c24182ebb0b437f092b68191",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_param_pack.py": "53f2cc155911cc8e0e8003226561520aff6259c7e0422d130c890cd56aaa31bb",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_plan.py": "91e64a778a2100e7904dbbeefbbaad432fbc8e893748ce8957fa7960030e46bf",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_preflight.py": "9bbecadd6fc8b95cfdaa90db090ce5a60269f3c544a1876b7b069d76bde6be7c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_preplan.py": "043bb8dc9d20c9b2a101b1d8b427e84324a7674a518e66a249f23c3792184c3d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_provenance.py": "96b9b26d5c1c98e522ef6b1ebfa518e0a8f811534fa677cc2fa1bede27564bf7",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_reference.py": "6a7d3436ec6c952604b53be20e6f2e0501c31976e2f6db9fbf18dc4e694b8e2a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_rehearsal.py": "e5ba3c80fb5097906293d0cf28fa7ea70136f4e9a322f1b4762bdef410d38709",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_routing.py": "239a1d0d3a363074f207bcf862d3f0cb67aae7ea10ee2051393f1465a172c29c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_shadow.py": "fea53cc4475b1c39f4d6fd2b5410f802b9afe26e04bb1130a52ce1130ca77035",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_smoke.py": "54c626a9e524044b26fd3d459526934c09aac301966cba5b1867fadb03e9a6ba",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r16_workflow.py": "251378b33fce67e9d8c0bb19542df6a6c1ae3959b84648510806cb4f90a66d4d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_admission.py": "e8d3ce261a7280ed1a7bf9fc36e21976aaf56d5b2e7cb9c6ee5856636e3b8c11",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_admission_substance.py": "51707053b739acaddeef81f3db087029dff5473d5fb6a6aa00ef7d5a8da1e484",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_consumer.py": "ec7bea3471a6df79f905e3c70d560d13d535a43313458eb2583b2480cb4fd7fe",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_launch_prep.py": "4b21a068918fbb8428d11f18eb1590324bce131d6cf30f4893bd841b5af45036",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native.py": "8243f8dde8a32b12a001deb456f3e93d8574d3debbda365c541d82665161336f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_codec.py": "a720edbc605121d646edaf264e5271dc587156824eb122a8664f6c3d16241faf",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c2_native_inputs.py": "4b37c34b3510e30d7f339f89335146fb2fcb9a39599cc7a75dfb46d719453de5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_c3_finite_reserve.py": "e7c163a28b9b8b1981117fda9d7a9b6fd27df858bc604a8d363bec09f6097113",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_calibration.py": "ff39897925c92e85593647b6d47c39fc6df4030dc184b9350707218043bab20d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_cli.py": "17dbfdc830184c3171bff38f9aeddff9ece14c30e4a41994fb53456219bccbac",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_cue_contract.py": "b9eb0edd1ab788c1dd9b23573f146f67d1311704a59636973260226ed26d9dec",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_cue_eval.py": "8715f54883a8c9778c97e14c5cb8f50f0cb45d68a70d8af33068d80d9f33ef42",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_delegation.py": "94c27a5dd3a914bfc660c4aabf9842a19ba774a32a8bfee90ac2db48ea1491be",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_dependencies.py": "39b4a148848b7cf62c79c139bd71362967ba5c38cf21c9c7e201832e72850353",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_design.py": "21020da8f864829e92fe5f2c5be7c20ce0f7331091600d67dc0e844c6e8a96d3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_determinism.py": "9803766d272b135f08d4e8af8bed2b394ddf9d1c44177a9757d89a6c9ea85447",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_execgov.py": "5c68d5c2a497bd8e94c97836da852acf554d0cf122d330323e81ffe9fb57f0cb",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_fail_closure.py": "cd5c3a755f3a7cfc5af3d142d6bdd19cbb882f9a58d9b65b3e4e6331e7e47c0a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_final.py": "43f6d79ea562fad87aa9bae33276b3e4da92bff21a642687571e955df2e14740",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_final_core.py": "c30c86f95d85d59ec39363d003e8278adafe7f8e137d64ba0fbf368112ffa7f9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_full_cold.py": "9097f7cd9e613ea2335097fa262b4080ed0d0c62248b0c7c2b25829f4b3c6254",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_gate_topology.py": "1dd4dc75bd99f28fe0fb4c2bbaf8c92ed56c8236267764939f8f7155e748f21e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_generation_evidence.py": "f0404dad843ed179da553d99e9377ecc1556baac1c9dc399f164a8897e082ccd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_global_k.py": "b911f44bff8600b9530cae560976b17b1fa282df799bbbb37c8c763ef02bfdc5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_historical.py": "33cbf628f97afd19bf4ba529886c6865039ad832bf0251c95ef8fe06d9f316fb",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_labels.py": "0bc22836cce6794d509ed6a74c02b134b3f890283fb87b49d59e7564cb219351",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_noise_replay.py": "5b55c04608a14e3c1087909c2e56623b90766da7d389739955070135adfa7e8a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_orchestrator.py": "7a514f50dda0f9b22194672cf459639aedaed4eecb1c304c6535f0890956f44b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_param_pack.py": "427886de7abc1ff98e0772e4932587b8d54390cb92d14b5f4797e866ca5ca893",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_plan.py": "72e9e74d1fda1d71d8f63241d00c0c85be4583f728217f91e5a750c0a0354281",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_preflight.py": "44130626c336d61b977fc7974369f3f350d6e343a08a7a810ef80cddaeb8b98f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_preplan.py": "cefe44137a03a8158665468d94e7b7d2721af7acb528bb001010a6ffa98c1f9f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_provenance.py": "2430e227f36b0517c6a49dc3a4dd72eb3e1e715dd080c14f09617809eba78c4c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_reference.py": "52eb72dedcdc46ad25839fb5762cbdf1c9b4f4cc9f1d24ddf213e452b47fcdca",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_registry.py": "9b60800acf0f6b75a7569ff5183eb41e4b0ea537c9c13f322079cdc37bcbe03d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_rehearsal.py": "b1fca1189498f2e102972781a90c791df2f813d8ae080a92eca3c342b05b91c5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_routing.py": "bdc03ae103c645dcf37fd7ec845c4e892d19d2edb46e3ff71dc1a1a641d62f76",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_shadow.py": "8a2b02237d4e460feb2a27951bb1022449b04c11538c66a3a675e5a6c7fdf899",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_smoke.py": "fe3d56722def840c7d7c5a211fe065e608187bb213ab1a50b9f95612aed69a0d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r17_workflow.py": "ac4523415f788b4c7fe079fe78b603f679dbe903ecb0ac34b9fa955b5c0691f8",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r18_attempt.py": "f68bc85207abc638e3e60068c6fc56f0e31b875d351fd4898c832b64c21ae210",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r19_attempt.py": "1e7804ddc5c68eae34e7156a1255279add0077ffc1ad2d2da32e9b7e389e7142",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_calibration.py": "df97a4bc37ba99e51bef879aea1c27131c852592089ceab82b17280f25e9557e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_cli.py": "3a30e78e4c95f29a2bf3b1ae7f79257ffcde2fe136081b839864e72d87559712",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_final.py": "a85c4d1be2037ae02588d9face4b4e4d77f91a5463dda6773319598893d15e6e",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_namespaces.py": "0d9bef2b8a25b8b6d20356dc9686778ade63cf42b49959312954ee020fec8676",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_obs.py": "f97ec301e903ec606f0e3266674bd7a9ab45741175f280d63ee89adcb462bc12",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_plan.py": "b88b5479f6b2ac60e20f12a39e56e08bc9b4490b2d38f6e0bfffb20fc180a145",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_preprocessing.py": "b0a0325e3350f129a8154d8e7a62283bcf2a9bf287d835870a85c4e088d68a0d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r3_smoke.py": "633c3e62b426522fe2ddb732185bea87374e1833df08108d8bbf12bcdb2aaf96",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_calibration.py": "77df5eeb5f0238d66bb68d6726b54f7ce24c3ad68892ba75b29fe9db35912fa1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_cli.py": "809d46f491e66c37e1d49e4367478e51e2ff85edb2fb65da6489ccd9fe0eca4b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_final.py": "f3ace3a4610bd39b7d740a0a0415a53a01da116b5ba05a6b1a432885ae0a6343",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_namespaces.py": "4827797cd8fa5612aa62b12ee798e9852c028d1d3fc7e764e546b500f81be96d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_obs.py": "04b5674987da207516ef2c92bd47fbd59fd6c61197d5a169da24db891dc0eb32",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_pairs.py": "65247420adc5a1acc3f6b5af16eac22560742edeef688c2fad6561068d67c880",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_param_pack.py": "08d7765cfd45d7fe408cab09def51ea20b72450386165c10b8065e1c15212bdd",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_plan.py": "12309ac74157a14a0dfd67c977d3e6b1b0ccb8912f34d87afe5d0a886335e4e6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_power.py": "c519a23a40ac61a539d62a3af83d5f5c8120ddfdd1714cb401adaaa320e63582",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_preprocessing.py": "795cccde1cb2af471ac2cc182dded0ebc2d17179196614e59b729c171979c1a6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r4_smoke.py": "3f233ca254fa3c57fbacfaa7219b73a1c6a62fbbafac07ba1c83226155df25a9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_calibration.py": "efa7978c7f6e6d2bb0c76e65f40d75d2474e4a7577937a83ad1e54c0689bb479",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_cli.py": "11cebcb9a0c8f8450aedabd2f74b69cf75991b9f179881efa44ef361c1755956",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_design.py": "dfc493c5ef28bb989b07b8928b1aa75cface389d0353c8db29808cc0b1d632e1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_final.py": "2d8255a67ac99d2a840221790e4c4d8f4bb7faedad3fc2f1580267da9881f7d3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_namespaces.py": "7a4b4c4d75c3057e1628e114286a567cb9a3eb1121fd58c014df72fe5fd5cc97",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_pairs.py": "ab87531d073ae0429cb64bab338b63a0d1a560eb5c13947091dffd78a9438b86",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_param_pack.py": "00e48474a6c7cd62b5f6b2a866f22d1c9317e41c56e12fe548ad8ef6e0d9bb4b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_plan.py": "0cb1c817809c5dc8d12f7b3b83342fe4c98e944f23508e715c7af2c3768f97da",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_preflight.py": "6f919d316a9726dfa7a7572c280c4e64b1ae23534663e107bba085ad15cdcedf",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r5_smoke.py": "0b9f611983e1380c38beb6e6962cbd6e84e9a37e2deb13ac58b207421ce43216",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_calibration.py": "0e9afdfdd5782c2dd03b28ec7062194ba2560d048bf9ea34885168d9d5553a1d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_cli.py": "5ccb7de102a15b2c9d5b112c2dd34bfd4b7589744221815072f55df7b00c0a3b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_design.py": "80765edefdd1c78f405180cb883b5f49b06f949833da3c63bc9e0a0f6555cda4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_final.py": "eebff5c1f5a8fd6ecd368bca23b35ea6325a9b6a8a12dce5ce7cb4d6877212d3",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_namespaces.py": "80c03ae1b0f6af56bc407a4bd038ea71cc0f49971f02df92501331bc8b5ba54b",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_pairs.py": "dc7b52580105b76e423fa8ce504150e1944caf8d97b110154f1e917adfe6e5e4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_param_pack.py": "c86153681a72859676fc89973e669e1774bacd339f23feb1092061df7d316afc",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_plan.py": "41654e31d9952626cb1928e41940fdc2acd4df7f4eb5193bda7324ab44d1edf4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_preflight.py": "18f4df5966b1471f06d192b50e36d82bcd680de4094496fe5c9c7754fd87971c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_smoke.py": "142fd76f3eba0d2edb87d3e527f0f5907023f42cc3dc40b7fb923eebb33935d2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_calibration.py": "90b6047d1d3ae6864ebb552185475d2b05260d6136819a3f50b7adca44329060",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_cli.py": "ce8f3789c6b61e2870fcfffb18fe8fbd5e9579c2b3c82e447253317039f6fcf9",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_cue_contract.py": "ea03318e97738427a1caa5fbd352e8fee6dbf4c626982a34c6ed4863c78fc91a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_cue_eval.py": "68ef7771a6726c3f16e250029c2b654d25897a9a981887a938ab351e5306c3d7",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_design.py": "eaece7b640ba40bef67df5a4b06059828dd89e421310f1863f286d5eac6fac3a",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_final.py": "27d7d35127a562fbaba2e64954e22e08e46b536c4e8bea734817e8751ae7a529",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_namespaces.py": "f0374b1c125273ea5ffae2fc95e5d113860193771be7ef79ff206f8b0cad92c2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_param_pack.py": "7fce5078af442feb3529baf789035e28a9abbc0e253214630bb46928989e2d85",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_plan.py": "aad5d5f2610f18eb3de103a079182156ed347ba652dbb07027520c6ecb07e5ab",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_preflight.py": "aeeab403bc69aec91124235199706531bf58755fa539d70bc9a248010584f018",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r7_smoke.py": "20f278729b9277e3d74071d959b9b4788bf44a600045e5d7575ac15f93689577",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_calibration.py": "a1d72708b2de593c1fb3ae6ef185f1a221a32b8a3181c89e3d2aaba854a8a0c6",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_cli.py": "017d33ec616293290c3492ca2d20e28e51053901d24e614b97cc5d015b849910",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_cue_contract.py": "bc6f02917dd54e02e1e32631fd6ba91401ae113451ec05713918693da950d7ce",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_cue_eval.py": "71f969a8a657f624322756752275701d620cac037e13e25cb672c479eecbfc20",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_design.py": "06fc6c927f9a441213acef5459f5ab9f9c9e3449ebed9dd5628030e506d3af2c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_final.py": "1d74b81187fcab5d60a195962af4659bccc7743f36bcc5d7b6f7ba6bc4cb8692",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_namespaces.py": "0355a3161d45048d3665fe31113ea682c8454717ca2332c71b8d83b96833dad5",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_noise_replay.py": "48c3ceff07acdcd44c1b9ca5c1329dfa5828fd625e1de100344834398a500c3f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_param_pack.py": "8cce040c61eb2ec9b8d12ec17c8249a373415752fc355b40be89cfe4672f5f27",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_plan.py": "772189ea124179deddc813345d3e740e24ae04c7eb570ee4bc2414a146aec8cb",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_preflight.py": "f841ec2d3f3079388cb9c67fb5539b23195a0f69b367a7942c41e4ebbb2e79d4",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r8_smoke.py": "39d820ebb28fcca9508f448d46ffe54c2bc1f7da006656776600f7785bf7081c",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_calibration.py": "90f18d9485117eb45e9b5d4041bcfdd5e41ab34ec48664d384de36c60f9fc8bf",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_cli.py": "908d92127c2b4795f040016f7ca16ca800f200bba3af76242fa8f5b788da6726",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_cue_contract.py": "faf90d564052ffb63b8d59610b4e698624fc93ac00db80e5244d7ad1d9b0cf03",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_cue_eval.py": "5b89a2a35d57317906a90d4e310ba373209b05997610f9e21f8ba03717b3c390",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_dependencies.py": "a0bcd840ac1ee163f7e37be8a57d8c5817fbf93bd379194b5e1e8e56ec5fe100",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_design.py": "aab17f22bef7cbf5ba8e1d21bb63edcf02f5e39b23fe5971386701c180a79540",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_final.py": "255fd057a373dc4769bd7ba94ccc9aa7f92ee80349ff034416b75513904cbf44",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_namespaces.py": "b00a4a5267f73312646bc91fc9bde3086fe4c7498c9f052c393ff148235d1300",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_noise_replay.py": "0282ee3ce3ae22d8f8bcd48b9163d4923dadf46abdff5a33520c97a79fa0fbc1",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_param_pack.py": "f7cf7827f07814a7536606436156b265dd765927fcacb22587df424c44b1713d",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_plan.py": "cc6dc1e086f7d5eb277c4929c654d4a1a41b78e35c8aaa1e884dd3b80964b776",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_preflight.py": "9571a48ead9bdf6de7c818c4b95b7d9beeee98f90b1ecfb0607daad003a1c86f",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_preplan.py": "026a7909a2abb0e2b8bacd9b0ecbff2a921242b44e74cc82181870a5791de4d2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_r9_smoke.py": "3ec48ad442169d217f2fbd1ed2c3fcb90a7fbfc7346c6ea426f50dcf314fcea2",
+   "stage2_6_1/src/rl_curriculum/curriculum261_smoke.py": "86c46fd56880c4bab128dbee01cd6db236b2fc90aaeb2e80d331c0adefdea54d",
+   "stage2_6_1/src/rl_curriculum/ppo262_input_lock.py": "4fd6d3daf74bdcf139f7bcd8db379ac3321a122f4f28acacdc9fce65d743e4c8"
+  },
+  "deploy_extra_modules": [
+   "__init__.py",
+   "access_guard.py",
+   "attempt_registry.py",
+   "attestation.py",
+   "builder_evidence.py",
+   "builder_identity.py",
+   "builder_provenance.py",
+   "builder_runner.py",
+   "candidate_worker.py",
+   "charter.py",
+   "checkpoints.py",
+   "counterfactual.py",
+   "evaluator.py",
+   "exam_pack.py",
+   "formal_exam.py",
+   "generator_api.py",
+   "generator_binding.py",
+   "generators.py",
+   "grades.py",
+   "hidden_exam_cli.py",
+   "mock_sealed_exam.py",
+   "null_duration_contract.py",
+   "null_friction.py",
+   "null_pack_validation.py",
+   "null_power_analysis.py",
+   "null_power_reverification.py",
+   "null_qualification.py",
+   "null_qualification_spec.py",
+   "observation_schema.py",
+   "param_resolution.py",
+   "policies.py",
+   "policy_api.py",
+   "ppo262_banks.py",
+   "ppo262_cli.py",
+   "ppo262_config.py",
+   "ppo262_diag_metrics.py",
+   "ppo262_diag_namespaces.py",
+   "ppo262_diag_train.py",
+   "ppo262_diagnose_cli.py",
+   "ppo262_env.py",
+   "ppo262_final.py",
+   "ppo262_g5.py",
+   "ppo262_g5b.py",
+   "ppo262_g5c.py",
+   "ppo262_metrics.py",
+   "ppo262_namespaces.py",
+   "ppo262_r2_cli.py",
+   "ppo262_r2_evaluator.py",
+   "ppo262_r2_namespaces.py",
+   "ppo262_r2_supervised.py",
+   "ppo262_r2_train.py",
+   "ppo262_smoke.py",
+   "ppo262_train.py",
+   "probe_charter.py",
+   "probes.py",
+   "sandbox.py",
+   "sealed_exam.py",
+   "timebase.py",
+   "transfer.py",
+   "verdict_spec.py",
+   "verdicts.py",
+   "versions.py"
+  ]
+ },
+ "bound_utc": "2026-09-26T13:21:47Z",
+ "notes": "collected and executed at run time by r21_full_collection_regression; artifacts byte-bound in this record"
+}
