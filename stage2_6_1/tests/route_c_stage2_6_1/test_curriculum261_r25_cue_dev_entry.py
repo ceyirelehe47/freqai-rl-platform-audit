@@ -6,9 +6,11 @@ namespace(s3;与 c01..c11 研究坐标完全不重);无 mock recall。
 """
 
 import json
+import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -103,20 +105,31 @@ def _forge_seal(coord_dir: Path) -> None:
         json.dumps(seal, indent=1, ensure_ascii=False) + "\n",
         encoding="utf-8")
 
+def _binding_for(plan: Path, tmp: Path, *extra: str) -> Path:
+    """用真实 CLI 为给定计划创建执行绑定(锚=该计划 digest)。"""
+    binding = tmp / f"binding_{id(plan) & 0xffff}.json"
+    if not binding.exists():
+        proc = _run("execution-binding", "--out", str(binding),
+                    "--plan", str(plan), *extra)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+    return binding
+
 
 @pytest.fixture(scope="module")
 def mini_run(tmp_path_factory):
     """一次真实 mini 生成(4+4 blocks,smoke s3 namespace),全模块共享。"""
     base = tmp_path_factory.mktemp("r25_mini")
     plan = _mini_plan(base)
+    binding = _binding_for(plan, base)
     proc = _run("run-coordinate", "--plan", str(plan),
                 "--coordinate", "c01",
-                "--out-root", str(base / "out"))
+                "--out-root", str(base / "out"),
+                "--execution-binding", str(binding))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     coord = base / "out" / "coord_c01"
     summary = json.loads((coord / "summary.json").read_text(
         encoding="utf-8"))
-    return base, plan, coord, summary
+    return base, plan, coord, summary, binding
 
 
 class TestNamespaceIsolationD02:
@@ -178,27 +191,29 @@ class TestNamespaceIsolationD02:
 
 class TestWriteOnceOriginalsD05D08:
     def test_sealed_dir_refuses_rerun(self, mini_run):
-        base, plan, coord, _ = mini_run
+        base, plan, coord, _, _b = mini_run
         proc = _run("run-coordinate", "--plan", str(plan),
                     "--coordinate", "c01", "--out-root",
-                    str(base / "out"))
+                    str(base / "out"),
+                    "--execution-binding", str(_b))
         assert proc.returncode != 0
         assert "sealed" in (proc.stdout + proc.stderr)
 
     def test_interrupted_dir_refuses_rerun(self, mini_run, tmp_path):
-        base, plan, coord, _ = mini_run
+        base, plan, coord, _, _b = mini_run
         victim = tmp_path / "out" / "coord_c01"
         victim.mkdir(parents=True)
         proc = _run("run-coordinate", "--plan", str(plan),
                     "--coordinate", "c01", "--out-root",
-                    str(tmp_path / "out"))
+                    str(tmp_path / "out"),
+                    "--execution-binding", str(_b))
         assert proc.returncode != 0
         assert "interrupted" in (proc.stdout + proc.stderr)
 
 
 class TestRealPipelineD01D04D06:
     def test_events_recomputable_from_originals(self, mini_run):
-        _, _, coord, summary = mini_run
+        _, _, coord, summary, _b = mini_run
         events = [
             json.loads(line) for line in
             (coord / "validation_events.jsonl").read_text(
@@ -233,14 +248,14 @@ class TestRealPipelineD01D04D06:
         assert v["first_pass_bitwise_check"]["bitwise_ok"] is True
 
     def test_local_p_contract_is_diagnostic_only(self, mini_run):
-        _, _, _, summary = mini_run
+        _, _, _, summary, _b = mini_run
         local = summary["model"]["local_p_contract_diagnostic"]
         assert 0.5 < local < 1.0
         # 诊断保留真实局部值;主参考 P0 是常量,不被其覆盖
         assert local != P0_STUDY
 
     def test_cold_read_recomputes_and_classifies(self, mini_run):
-        base, plan, coord, summary = mini_run
+        base, plan, coord, summary, _b = mini_run
         result_path = base / "cold_result.json"
         proc = _run("cold-read", "--plan", str(plan),
                     "--out-root", str(base / "out"),
@@ -264,7 +279,7 @@ class TestRealPipelineD01D04D06:
         assert result["contrast_r1"]["r_analysis"] == 1.0
 
     def test_cold_read_detects_member_tamper(self, mini_run, tmp_path):
-        base, plan, coord, _ = mini_run
+        base, plan, coord, _, _b = mini_run
         copied_root = tmp_path / "out"
         shutil.copytree(base / "out", copied_root)
         events_path = copied_root / "coord_c01" / (
@@ -288,7 +303,7 @@ class TestRealPipelineD01D04D06:
         assert "primary" not in result and "contrast_r1" not in result
 
     def test_cold_read_insufficient_k_inconclusive(self, mini_run):
-        base, plan, coord, _ = mini_run
+        base, plan, coord, _, _b = mini_run
         result_path = base / "cold_partial.json"
         proc = _run("cold-read", "--plan", str(plan),
                     "--out-root", str(base / "out"),
@@ -568,10 +583,12 @@ def two_coord_run(tmp_path_factory):
             "id": "c02", "model_namespace": S2_MODEL_NS,
             "validation_namespace": S2_VALIDATION_NS,
             "blocks_per_corpus": 4, "role": "study"}])
+    binding = _binding_for(plan, base2)
     out = base2 / "out"
     for coord in ("c01", "c02"):
         proc = _run("run-coordinate", "--plan", str(plan),
-                    "--coordinate", coord, "--out-root", str(out))
+                    "--coordinate", coord, "--out-root", str(out),
+                    "--execution-binding", str(binding))
         assert proc.returncode == 0, proc.stdout + proc.stderr
     return base2, plan, out
 
@@ -841,3 +858,232 @@ class TestReaderBehaviorsB07B08:
             delta_bar, ses, 0.003, r_analysis=1.5, alpha=0.05,
             planned_k=2)
         assert result["primary"] == expected
+
+
+# ============ R25 复收敛轮(RouteC_R25_BindingAndDescendantClosure_v1):
+# A 出口——执行绑定强制 + 当前计划锚 ================================
+_LAUNCHER = _DEPLOY_ROOT / "stage2_6_1_runner" / "r25_batch_launcher_v2.sh"
+_OLD_STUDY_PLAN = _DEPLOY_ROOT / (
+    "artifacts/repair17/development/r25_cue_bias_dev/plan/dev_plan.json")
+
+
+def _last_refusal(out_root: Path) -> dict:
+    refusals = sorted((Path(out_root) / "refusals").glob("*.json"))
+    assert refusals, "应有 refusal 日志"
+    return json.loads(refusals[-1].read_text(encoding="utf-8"))
+
+
+class TestBindingEnforcementA01A06:
+    """A01-A06:绑定是生成必要条件;锚=当前计划;无免检通道。"""
+
+    def test_a01_missing_binding_refused_pre_generation(self, tmp_path):
+        """真实旧研究计划只读副本 + c01 + 省略绑定:零生成拒绝。"""
+        plan_copy = tmp_path / "dev_plan_copy.json"
+        plan_copy.write_bytes(_OLD_STUDY_PLAN.read_bytes())
+        out_root = tmp_path / "o"
+        proc = _run("run-coordinate", "--plan", str(plan_copy),
+                    "--coordinate", "c01", "--out-root", str(out_root))
+        assert proc.returncode == 3
+        refusal = _last_refusal(out_root)
+        assert any("缺失" in r for r in refusal["reasons"])
+        assert refusal["generation_boundary_calls"]["total"] == 0
+        assert refusal["plan_digest"].startswith("r25dp-54841c4f")
+        # 零副作用:无坐标目录、无封存
+        assert not (out_root / "coord_c01").exists()
+        assert not list(out_root.rglob("SEALED.json"))
+
+    def test_a01_empty_and_nonexistent_binding_paths(self, tmp_path):
+        plan = _mini_plan(tmp_path)
+        for bad in ("", str(tmp_path / "nope.json")):
+            out_root = tmp_path / "o"
+            proc = _run("run-coordinate", "--plan", str(plan),
+                        "--coordinate", "c01", "--out-root",
+                        str(out_root), "--execution-binding", bad)
+            assert proc.returncode == 3
+            refusal = _last_refusal(out_root)
+            assert refusal["generation_boundary_calls"]["total"] == 0
+            assert not (out_root / "coord_c01").exists()
+
+    def test_a01_unparseable_binding_refused(self, tmp_path):
+        plan = _mini_plan(tmp_path)
+        bad = tmp_path / "bad.json"
+        bad.write_text("{not json", encoding="utf-8")
+        proc = _run("run-coordinate", "--plan", str(plan),
+                    "--coordinate", "c01", "--out-root",
+                    str(tmp_path / "o"), "--execution-binding",
+                    str(bad))
+        assert proc.returncode == 3
+        assert any("无法读取/解析" in r
+                   for r in _last_refusal(tmp_path / "o")["reasons"])
+
+    def test_a02_binding_of_plan_a_rejected_for_plan_b(self, tmp_path):
+        """两份各自合法且摘要不同的计划;A 的绑定原样用于 B → 拒绝。"""
+        plan_a = tmp_path / "a.json"
+        plan_b = tmp_path / "b.json"
+        assert _run("plan-create", "--out", str(plan_a),
+                    "--engineering").returncode == 0
+        time.sleep(1.2)  # created_utc 秒级分辨率:确保摘要不同
+        assert _run("plan-create", "--out", str(plan_b),
+                    "--engineering").returncode == 0
+        da = json.loads(plan_a.read_text(encoding="utf-8"))["plan_digest"]
+        db = json.loads(plan_b.read_text(encoding="utf-8"))["plan_digest"]
+        assert da != db
+        binding = _binding_for(plan_a, tmp_path)
+        out_root = tmp_path / "o"
+        proc = _run("run-coordinate", "--plan", str(plan_b),
+                    "--coordinate", "s1", "--out-root", str(out_root),
+                    "--allow-smoke", "--execution-binding", str(binding))
+        assert proc.returncode == 3
+        refusal = _last_refusal(out_root)
+        assert any("计划锚不符" in r for r in refusal["reasons"])
+        assert refusal["generation_boundary_calls"]["total"] == 0
+        assert not (out_root / "coord_s1").exists()
+
+    def test_a03_selfconsistent_binding_without_anchor_rejected(
+            self, tmp_path):
+        """自洽(重算 binding_sha256)但缺 plan_anchor 的绑定 → 拒绝。"""
+        plan = _mini_plan(tmp_path)
+        binding = _binding_for(plan, tmp_path)
+        data = json.loads(binding.read_text(encoding="utf-8"))
+        del data["plan_digest"]
+        import hashlib
+        body = json.dumps(data, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":")).encode("utf-8")
+        data["binding_sha256"] = hashlib.sha256(body).hexdigest()
+        forged = tmp_path / "forged.json"
+        forged.write_text(json.dumps(data, indent=1, ensure_ascii=False),
+                          encoding="utf-8")
+        proc = _run("run-coordinate", "--plan", str(plan),
+                    "--coordinate", "c01", "--out-root",
+                    str(tmp_path / "o"), "--execution-binding",
+                    str(forged))
+        assert proc.returncode == 3
+        reasons = _last_refusal(tmp_path / "o")["reasons"]
+        assert any("缺计划锚" in r for r in reasons)
+
+    def test_a03_binding_creation_requires_plan(self, tmp_path):
+        proc = _run("execution-binding", "--out",
+                    str(tmp_path / "b.json"))
+        assert proc.returncode != 0  # argparse:--plan 必需
+        assert not (tmp_path / "b.json").exists()
+
+    def test_a04_existing_identity_guards_still_hold(self, tmp_path):
+        """错入口摘要(既有防线)在强制绑定下继续零生成拒绝。"""
+        plan = _mini_plan(tmp_path)
+        binding = _binding_for(plan, tmp_path)
+        data = json.loads(binding.read_text(encoding="utf-8"))
+        data["entry"]["sha256"] = "f" * 64
+        binding.write_text(json.dumps(data, indent=1), encoding="utf-8")
+        proc = _run("run-coordinate", "--plan", str(plan),
+                    "--coordinate", "c01", "--out-root",
+                    str(tmp_path / "o"), "--execution-binding",
+                    str(binding))
+        assert proc.returncode == 3
+        assert not (tmp_path / "o" / "coord_c01").exists()
+
+    def test_a05_relocated_identical_plan_passes(self, tmp_path):
+        """计划移位但字节相同 → 同一绑定仍通过;完成有限 smoke。"""
+        (tmp_path / "dir1").mkdir()
+        plan = _mini_plan(tmp_path / "dir1")
+        binding = _binding_for(plan, tmp_path)
+        relocated = tmp_path / "dir2" / "moved_plan.json"
+        relocated.parent.mkdir(parents=True)
+        relocated.write_bytes(plan.read_bytes())
+        out_root = tmp_path / "o"
+        proc = _run("run-coordinate", "--plan", str(relocated),
+                    "--coordinate", "c01", "--out-root", str(out_root),
+                    "--execution-binding", str(binding))
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        manifest = json.loads((out_root / "coord_c01" / "manifest.json")
+                              .read_text(encoding="utf-8"))
+        assert manifest["execution"]["execution_binding"][
+            "verified_ok"] is True
+        # 冷读兼容(有界 smoke;行为 3 不触发,v2 manifest 来源已证)
+        result_path = tmp_path / "cold.json"
+        assert _run("cold-read", "--plan", str(relocated),
+                    "--out-root", str(out_root),
+                    "--result", str(result_path)).returncode == 0
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        assert result["integrity"] == "valid"
+        assert "historical_execution_provenance" not in result
+
+    def test_a06_engineering_and_smoke_flags_grant_no_exemption(
+            self, tmp_path):
+        """engineering/allow-smoke 不能让研究坐标免绑定进入生成。"""
+        plan = _mini_plan(tmp_path)  # study 坐标 c01(smoke ns)
+        for extra in ([], ["--allow-smoke"]):
+            out_root = tmp_path / "o"
+            proc = _run("run-coordinate", "--plan", str(plan),
+                        "--coordinate", "c01", "--out-root",
+                        str(out_root), *extra)
+            assert proc.returncode == 3  # 缺绑定拒绝,与 flag 无关
+            assert not (out_root / "coord_c01").exists()
+        eng = tmp_path / "eng.json"
+        assert _run("plan-create", "--out", str(eng),
+                    "--engineering").returncode == 0
+        proc = _run("run-coordinate", "--plan", str(eng),
+                    "--coordinate", "c01", "--out-root",
+                    str(tmp_path / "o2"))
+        assert proc.returncode != 0
+        assert "engineering" in (proc.stdout + proc.stderr)
+
+
+class TestLauncherWiringA07:
+    """A07:批次 launcher 传递并验证同一计划绑定;前置失败不重签。"""
+
+    def _eng_plan(self, tmp_path):
+        plan = tmp_path / "plan.json"
+        assert _run("plan-create", "--out", str(plan),
+                    "--engineering").returncode == 0
+        return plan
+
+    def test_launcher_smoke_success_passes_binding(self, tmp_path):
+        import subprocess
+        plan = self._eng_plan(tmp_path)
+        out_root = tmp_path / "o"
+        proc = subprocess.run(
+            ["bash", str(_LAUNCHER), "smoke", str(plan), str(out_root),
+             "s1"], capture_output=True, text=True, timeout=600,
+            env={**os.environ, "R25BATCH_PYTHON": _PY})
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        binding_path = out_root / "execution_binding.json"
+        binding = json.loads(binding_path.read_text(encoding="utf-8"))
+        plan_digest = json.loads(plan.read_text(encoding="utf-8"))[
+            "plan_digest"]
+        assert binding["plan_digest"] == plan_digest
+        manifest = json.loads(
+            (out_root / "coord_s1" / "manifest.json").read_text(
+                encoding="utf-8"))
+        assert manifest["execution"]["execution_binding"][
+            "verified_ok"] is True
+        assert (out_root / "coord_s1" / "SEALED.json").is_file()
+
+    def test_launcher_preexisting_binding_not_overwritten(self, tmp_path):
+        import subprocess
+        plan = self._eng_plan(tmp_path)
+        out_root = tmp_path / "o"
+        out_root.mkdir(parents=True)
+        pre = out_root / "execution_binding.json"
+        pre.write_text('{"sentinel": true}', encoding="utf-8")
+        proc = subprocess.run(
+            ["bash", str(_LAUNCHER), "smoke", str(plan), str(out_root),
+             "s1"], capture_output=True, text=True, timeout=120,
+            env={**os.environ, "R25BATCH_PYTHON": _PY})
+        assert proc.returncode == 3  # 绑定 write-once:不覆盖、不重签
+        assert json.loads(pre.read_text(encoding="utf-8")) == {
+            "sentinel": True}
+        assert not (out_root / "coord_s1").exists()
+
+    def test_launcher_bad_coordinate_zero_generation(self, tmp_path):
+        import subprocess
+        plan = self._eng_plan(tmp_path)
+        out_root = tmp_path / "o"
+        proc = subprocess.run(
+            ["bash", str(_LAUNCHER), "smoke", str(plan), str(out_root),
+             "c99"], capture_output=True, text=True, timeout=120,
+            env={**os.environ, "R25BATCH_PYTHON": _PY})
+        assert proc.returncode == 1  # DONE fail=1
+        assert "不在计划名单" in proc.stdout + proc.stderr
+        assert not (out_root / "coord_c99").exists()
+        # 绑定未被消耗性破坏,仍可用于后续合法运行
+        assert (out_root / "execution_binding.json").is_file()

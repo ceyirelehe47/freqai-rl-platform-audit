@@ -38,10 +38,11 @@ cold-read 的行为三分类:
   - 统计负结果(audit 式 pass=false 等)不是研究失败,不中断批次;
   - 封存目录(write-once)不可重跑;计划 digest 数据后不可改;
   - namespace 走 api 显式 R25 开发名单,不接受任意字符串;
-  - engineering 标记计划永不启动 c01—c11 研究坐标。
+  - engineering 标记计划永不启动 c01—c11 研究坐标;
+  - 执行绑定是所有新生成(含工程 smoke)的必要条件:缺失/坏件/
+    锚不属于本次计划,在创建坐标目录与首次生成之前拒绝(rc=3,
+    refusal 日志,零生成边界计数)。
 """
-from __future__ import annotations
-
 import argparse
 import hashlib
 import importlib.util
@@ -310,9 +311,8 @@ def cmd_execution_binding(args: argparse.Namespace) -> int:
         launcher_path = Path(args.launcher).resolve()
         binding["launcher"] = {"path": str(launcher_path),
                                "sha256": _sha256_file(launcher_path)}
-    if args.plan:
-        plan = _load_plan(Path(args.plan))
-        binding["plan_digest"] = plan["plan_digest"]
+    plan = _load_plan(Path(args.plan))   # 锚必需:无计划不产生执行绑定
+    binding["plan_digest"] = plan["plan_digest"]
     binding["binding_sha256"] = _sha256_bytes(
         _canonical_json(
             {k: v for k, v in binding.items()
@@ -326,11 +326,30 @@ def cmd_execution_binding(args: argparse.Namespace) -> int:
     return 0
 
 
-def _verify_execution_binding(binding_path: Path, measured: dict) -> \
-        tuple[bool, list[str], dict]:
-    """实测身份 vs 预定绑定;返回(ok, 差异清单, binding 原文)。"""
-    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+def _verify_execution_binding(binding_path: Path | None, measured: dict,
+                              plan: dict) -> tuple[bool, list[str], dict]:
+    """加载并全面核验执行绑定;返回(ok, 差异清单, binding 原文)。
+
+    R25 复收敛轮(A-binding)修复:绑定是生成的必要条件——
+    缺参数/空值/文件不存在/不可读/不可解析一律拒绝,不回退到无绑定
+    路径;且绑定必须锚定**当前实际加载并已通过 digest 复验的计划**
+    (plan_anchor),甲计划的合法绑定不得用于乙计划。
+    """
     problems: list[str] = []
+    binding: dict = {}
+    if binding_path is None or not str(binding_path).strip():
+        return False, ["execution-binding 缺失:生成必须携带预定执行"
+                       "绑定(无免检通道)"], binding
+    bp = Path(str(binding_path))
+    if not bp.is_file():
+        return False, [f"execution-binding 文件不存在/非普通文件: {bp}"], \
+            binding
+    try:
+        binding = json.loads(bp.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return False, [f"execution-binding 无法读取/解析: {exc}"], {}
+    if not isinstance(binding, dict):
+        return False, ["execution-binding 结构非法(非对象)"], {}
     if binding.get("format") != BINDING_FORMAT:
         problems.append(f"binding format 不符: {binding.get('format')!r}")
         return False, problems, binding
@@ -339,18 +358,25 @@ def _verify_execution_binding(binding_path: Path, measured: dict) -> \
     recomputed = _sha256_bytes(_canonical_json(body).encode("utf-8"))
     if recomputed != binding.get("binding_sha256"):
         problems.append("binding_sha256 不一致(绑定文件被改动)")
-    if binding["entry"]["sha256"] != measured["entry_sha256"]:
+    anchor = binding.get("plan_digest")
+    if not isinstance(anchor, str) or not anchor:
+        problems.append("binding 缺计划锚 plan_digest(不能当完整许可)")
+    elif anchor != plan["plan_digest"]:
+        problems.append(
+            f"计划锚不符: binding 锚 {anchor} ≠ 本次计划 "
+            f"{plan['plan_digest']}(甲计划的绑定不能用于乙计划)")
+    if binding.get("entry", {}).get("sha256") != measured["entry_sha256"]:
         problems.append(
             "入口身份不符: binding="
-            f"{binding['entry']['sha256'][:12]}… 实测="
+            f"{str(binding.get('entry', {}).get('sha256'))[:12]}… 实测="
             f"{measured['entry_sha256'][:12]}…")
-    for name, digest in binding.get("code_identity", {}).items():
+    for name, digest in (binding.get("code_identity") or {}).items():
         actual = measured["code_identity"].get(name, "MISSING")
         if actual != digest:
             problems.append(f"生成模块身份不符: {name} binding="
                             f"{str(digest)[:12]}… 实测={str(actual)[:12]}…")
     extra = set(measured["code_identity"]) - set(
-        binding.get("code_identity", {}))
+        binding.get("code_identity") or {})
     if extra:
         problems.append(f"实测存在绑定未覆盖的模块: {sorted(extra)}")
     launcher = binding.get("launcher")
@@ -384,45 +410,48 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
             raise SystemExit(f"{key}={row[key]!r} 未在 api 开发名单")
 
     out_root = Path(args.out_root)
-    # ---- 首次生成前核对预定执行绑定(实测,非 plan 字段复制) ----
-    binding_record = None
-    if args.execution_binding:
-        measured = {
-            "entry_sha256": _sha256_file(Path(__file__).resolve()),
-            "code_identity": _measured_code_identity(contract),
+    # ---- 首次生成前核对预定执行绑定(强制;实测,非 plan 字段复制) ----
+    # A-binding 修复:绑定是所有新生成(含工程 smoke)的必要条件;
+    # 缺件/坏件/错计划一律在创建坐标目录与首次生成之前拒绝。
+    measured = {
+        "entry_sha256": _sha256_file(Path(__file__).resolve()),
+        "code_identity": _measured_code_identity(contract),
+    }
+    ok, mismatches, binding_doc = _verify_execution_binding(
+        args.execution_binding, measured, plan)
+    binding_record = {
+        "file": (str(Path(args.execution_binding).resolve())
+                 if args.execution_binding else None),
+        "sha256": (_sha256_file(Path(args.execution_binding))
+                   if args.execution_binding
+                   and Path(args.execution_binding).is_file() else None),
+        "verified_ok": ok,
+    }
+    if not ok:
+        refusal = {
+            "format": "r25-execution-refusal-v1",
+            "refused_utc": _utc(),
+            "coordinate": row["id"],
+            "plan_digest": plan["plan_digest"],
+            "reasons": mismatches,
+            "measured": measured,
+            "generation_boundary_calls": dict(
+                _GENERATION_BOUNDARY_CALLS),
+            "note": "在首次生成前拒绝;未创建坐标目录、未生成 "
+                    "episode、未推进坐标、未写成功封存。",
         }
-        ok, mismatches, binding = _verify_execution_binding(
-            Path(args.execution_binding), measured)
-        binding_record = {
-            "file": str(Path(args.execution_binding).resolve()),
-            "sha256": _sha256_file(Path(args.execution_binding)),
-            "verified_ok": ok,
-        }
-        if not ok:
-            refusal = {
-                "format": "r25-execution-refusal-v1",
-                "refused_utc": _utc(),
-                "coordinate": row["id"],
-                "plan_digest": plan["plan_digest"],
-                "reasons": mismatches,
-                "measured": measured,
-                "generation_boundary_calls": dict(
-                    _GENERATION_BOUNDARY_CALLS),
-                "note": "在首次生成前拒绝;未创建坐标目录、未生成 "
-                        "episode、未推进坐标、未写成功封存。",
-            }
-            refusal_dir = out_root / "refusals"
-            refusal_dir.mkdir(parents=True, exist_ok=True)
-            refusal_path = (refusal_dir /
-                            f"coord_{row['id']}_"
-                            f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')[:-3]}.json")
-            refusal_path.write_text(
-                json.dumps(refusal, indent=1, ensure_ascii=False) + "\n",
-                encoding="utf-8")
-            print(json.dumps(refusal, ensure_ascii=False))
-            print(f"REFUSED coord {row['id']}: 执行绑定不符,零生成拒绝",
-                  file=sys.stderr)
-            return 3
+        refusal_dir = out_root / "refusals"
+        refusal_dir.mkdir(parents=True, exist_ok=True)
+        refusal_path = (refusal_dir /
+                        f"coord_{row['id']}_"
+                        f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')[:-3]}.json")
+        refusal_path.write_text(
+            json.dumps(refusal, indent=1, ensure_ascii=False) + "\n",
+            encoding="utf-8")
+        print(json.dumps(refusal, ensure_ascii=False))
+        print(f"REFUSED coord {row['id']}: 执行绑定不符,零生成拒绝",
+              file=sys.stderr)
+        return 3
 
     out_dir = out_root / f"coord_{row['id']}"
     if out_dir.exists():
@@ -1226,8 +1255,8 @@ def main(argv: list[str] | None = None) -> int:
     p_bind = sub.add_parser(
         "execution-binding", help="运行前冻结预定执行绑定(实测身份)")
     p_bind.add_argument("--out", required=True)
-    p_bind.add_argument("--plan", default=None,
-                        help="可选:记录对应计划 digest")
+    p_bind.add_argument("--plan", required=True,
+                        help="对应计划(必须已通过 digest 复验;锚必需)")
     p_bind.add_argument("--launcher", default=None,
                         help="可选:启动器脚本路径(实测其字节身份)")
     p_bind.set_defaults(func=cmd_execution_binding)
@@ -1238,7 +1267,8 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--out-root", required=True)
     p_run.add_argument("--allow-smoke", action="store_true")
     p_run.add_argument("--execution-binding", default=None,
-                       help="预定执行绑定 JSON;不符则在首次生成前拒绝")
+                       help="预定执行绑定 JSON(生成必要条件,含工程"
+                            " smoke;缺失/坏件/错计划在首生成前拒绝)")
     p_run.set_defaults(func=cmd_run_coordinate)
 
     p_read = sub.add_parser("cold-read", help="只读冷读 + v4 主分析")

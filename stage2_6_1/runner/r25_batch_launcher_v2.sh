@@ -79,38 +79,54 @@ case "$MODE" in
     BINDING_FILE="$LOGDIR/probe_binding_note.json"
     echo "{\"note\":\"probe mode 无研究生成;执行绑定机制见 study/smoke 路径\",\"launcher\":\"${BASH_SOURCE[0]}\",\"started_utc\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$BINDING_FILE"
     PROBE_T="${R25BATCH_PROBE_TIMEOUT_SECONDS:-60}"
+    PROBE_T="${R25BATCH_PROBE_TIMEOUT_SECONDS:-60}"
+    check_reg() {  # label registry
+      local label="$1" reg="$2" crc=0
+      "$PYTHON" "$WORKER" --check-registry --identity "$reg" \
+        | tee "$LOGDIR/${label}_check.json" || crc=${PIPESTATUS[0]}
+      echo "R25BATCH checker $label rc=$crc"
+      [ "$crc" -ne 0 ] && FAIL=1
+      return 0
+    }
 
     # -- C02:顺序工作者 + 子/孙进程,持续多个采样周期,实际 CPU/RSS --
     echo "R25BATCH probe start w1-burn-with-children $(ts)"
+    w1rc=0
     timeout --foreground "$PROBE_T" "$PYTHON" "$WORKER" \
       --label w1 --mode burn --seconds 45 --spawn-child \
       --heartbeat "$LOGDIR/w1_heartbeat.jsonl" \
-      --identity-out "$LOGDIR/w1_identity.json" || FAIL=1
-    echo "R25BATCH probe end w1 rc=$? $(ts)"
+      --identity-out "$LOGDIR/w1_identity.json" \
+      --registry-out "$LOGDIR/w1_registry.json" || w1rc=$?
+    echo "R25BATCH probe end w1 rc=$w1rc $(ts)"
+    [ "$w1rc" -ne 0 ] && FAIL=1
+    check_reg w1 "$LOGDIR/w1_registry.json"
 
     echo "R25BATCH probe start w2-burn $(ts)"
+    w2rc=0
     timeout --foreground "$PROBE_T" "$PYTHON" "$WORKER" \
       --label w2 --mode burn --seconds 30 \
       --heartbeat "$LOGDIR/w2_heartbeat.jsonl" \
-      --identity-out "$LOGDIR/w2_identity.json" || FAIL=1
-    echo "R25BATCH probe end w2 rc=$? $(ts)"
+      --identity-out "$LOGDIR/w2_identity.json" \
+      --registry-out "$LOGDIR/w2_registry.json" || w2rc=$?
+    echo "R25BATCH probe end w2 rc=$w2rc $(ts)"
+    [ "$w2rc" -ne 0 ] && FAIL=1
+    check_reg w2 "$LOGDIR/w2_registry.json"
 
-    # -- C03:短超时正反例(受控子树真实退出,无存活后代) --
+
+    # -- C03:短超时正例(保留原始 rc;登记实例逐一确认,非仅凭 124) --
     echo "R25BATCH probe start w3-sleep-timeout-12s $(ts)"
     rc3=0
     timeout --foreground 12 "$PYTHON" "$WORKER" \
       --label w3 --mode sleep --seconds 300 --spawn-child \
       --heartbeat "$LOGDIR/w3_heartbeat.jsonl" \
-      --identity-out "$LOGDIR/w3_identity.json" || rc3=$?
+      --identity-out "$LOGDIR/w3_identity.json" \
+      --registry-out "$LOGDIR/w3_registry.json" || rc3=$?
     echo "R25BATCH probe end w3 rc=$rc3 $(ts)"
     if [ "$rc3" -ne 124 ]; then
       echo "R25BATCH w3 EXPECTED timeout rc=124, got $rc3" >&2
       FAIL=1
     fi
-    # 子树退出核验:身份文件里的 pid 及其后代必须全部消失
-    "$PYTHON" "$WORKER" --check-subtree-gone \
-      --identity "$LOGDIR/w3_identity.json" \
-      || FAIL=1
+    check_reg w3 "$LOGDIR/w3_registry.json"
     echo "R25BATCH DONE fail=$FAIL $(date -u +%Y%m%dT%H%M%SZ)"
     exit "$FAIL"
     ;;

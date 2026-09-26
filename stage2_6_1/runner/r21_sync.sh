@@ -43,7 +43,8 @@ for f in conftest.py \
          test_curriculum261_r20_design_math_v4.py \
          test_curriculum261_r17_supervision_unit.py \
          test_r18_launch_behavioral.py \
-         test_curriculum261_r25_cue_dev_entry.py; do
+         test_curriculum261_r25_cue_dev_entry.py \
+         test_curriculum261_r25_probe_registry.py; do
   tr -d '\r' < "$REPO/stage2_6_1/tests/route_c_stage2_6_1/$f" \
     > "$D/tests/route_c_stage2_6_1/$f"
 done
