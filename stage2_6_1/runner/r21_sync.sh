@@ -59,4 +59,9 @@ tr -d '\r' < "$REPO/stage2_6_1/report/route_c_stage2_6_1_r20_research_design_v4.
   > "$D/report/route_c_stage2_6_1_r20_research_design_v4.md"
 
 tr -d '\r' < "$REPO/stage2_6_1/report/r20_design_calc_v4.py" > "$D/stage2_6_1_runner/r20_design_calc_v4.py"
+# R25:研究计划(数据前固定)同步到部署树同相对路径,使 R25 计划
+# 冻结断言在受监护全量中真跑(否则结构性 skip 越出执行器允许表)。
+R25PLAN="$D/artifacts/repair17/development/r25_cue_bias_dev/plan"
+mkdir -p "$R25PLAN"
+tr -d '\r' < "$REPO/stage2_6_1/artifacts/repair17/development/r25_cue_bias_dev/plan/dev_plan.json" > "$R25PLAN/dev_plan.json"
 echo "r21_sync: done (substance v6 + executor + auditor + probes r23/r24 + tests + report v4 -> $D)"
