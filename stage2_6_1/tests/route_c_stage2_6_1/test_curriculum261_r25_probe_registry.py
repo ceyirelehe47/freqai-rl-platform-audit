@@ -23,6 +23,10 @@ _PROBE = _DEPLOY_ROOT / "stage2_6_1_runner" / "r25_worker_probe.py"
 _PY = sys.executable
 
 
+#: 本模块创建/拥有的全部实例 pid(收尾核验口径;与全局进程无关)
+_OWNED: set[int] = set()
+
+
 def _run_probe(*args, timeout=60):
     return subprocess.run(
         [_PY, str(_PROBE), *args], capture_output=True, text=True,
@@ -109,6 +113,7 @@ class TestOrphanNegativesC02C03C07:
             [_PY, str(_PROBE), "--label", "c02root", "--mode", "orphan",
              "--seconds", "60", "--registry-out", str(reg)],
             stdout=subprocess.PIPE, text=True)
+        _OWNED.add(proc.pid)
         root_line = json.loads(proc.stdout.readline())
         proc.wait(timeout=30)
         assert proc.returncode == 0
@@ -116,6 +121,8 @@ class TestOrphanNegativesC02C03C07:
         assert root_line["pid"] == registry["root_pid"]
         inst = {i["role"]: i for i in registry["instances"]}
         assert set(inst) == {"root", "child", "grandchild"}
+        for row in inst.values():
+            _OWNED.add(row["pid"])
         try:
             yield reg, inst
         finally:
@@ -214,6 +221,7 @@ class TestRegistryInvalidC04C05:
         """
         holder = subprocess.Popen([_PY, "-c",
                                    "import time; time.sleep(30)"])
+        _OWNED.add(holder.pid)
         try:
             inst = _proc_instance(holder.pid)
             assert inst and inst[0]
@@ -241,24 +249,15 @@ class TestRegistryInvalidC04C05:
 
 
 class TestFinalCleanupC07:
-    def test_no_owned_children_left_after_suite(self):
-        """负例收尾后:本测试进程没有未回收的直接子进程。
-
-        /proc 直读(不 spawn 子进程,避免 ps 自身成为观察伪影)。
+    def test_no_owned_instances_left_after_suite(self):
+        """C07:本模块登记的全部自有实例均已退出(模块口径,不假设
+        共享套件里其他模块没有自己的子进程;/proc 直读,不 spawn)。
         """
-        me = os.getpid()
-        own = []
-        for name in os.listdir("/proc"):
-            if not name.isdigit() or int(name) == me:
-                continue
-            try:
-                with open(f"/proc/{name}/stat", encoding="utf-8") as fh:
-                    text = fh.read()
-                rp = text.rindex(")")
-                fields = text[rp + 2:].split()
-                if int(fields[1]) == me:
-                    own.append(f"{name}({text[text.index('(') + 1:rp]},"
-                               f"{fields[0]})")
-            except (OSError, ValueError, IndexError):
-                continue
-        assert not own, f"仍有子进程未回收: {own}"
+        leftover = []
+        for pid in sorted(_OWNED):
+            inst = _proc_instance(pid)
+            if inst is None:
+                leftover.append(f"{pid}(unobservable)")
+            elif inst[0]:
+                leftover.append(f"{pid}({inst[1]},start={inst[2]})")
+        assert not leftover, f"仍有本模块自有实例存活: {leftover}"
