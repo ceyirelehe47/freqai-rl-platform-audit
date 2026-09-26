@@ -24,11 +24,16 @@ done
 for f in r21_full_collection_regression.py \
          r21_collection_auditor.py \
          r17_admission_issue.py \
+         r17_guest_sampler.py \
          r23_plugin_lifecycle_probe.py \
          r24_partial_registration_probe.py \
-         r25_cue_bias_dev_entry.py; do
+         r25_cue_bias_dev_entry.py \
+         r25_batch_launcher_v2.sh \
+         r25_worker_probe.py; do
   tr -d '\r' < "$REPO/stage2_6_1/runner/$f" > "$D/stage2_6_1_runner/$f"
 done
+chmod +x "$D/stage2_6_1_runner/r25_batch_launcher_v2.sh" \
+         "$D/stage2_6_1_runner/r25_worker_probe.py"
 
 # 3) 测试(v3 支撑 + substance 测试 + 监护/r18 消费方)
 for f in conftest.py \
@@ -37,10 +42,12 @@ for f in conftest.py \
          test_curriculum261_r20_design_math.py \
          test_curriculum261_r20_design_math_v4.py \
          test_curriculum261_r17_supervision_unit.py \
-         test_r18_launch_behavioral.py; do
+         test_r18_launch_behavioral.py \
+         test_curriculum261_r25_cue_dev_entry.py; do
   tr -d '\r' < "$REPO/stage2_6_1/tests/route_c_stage2_6_1/$f" \
     > "$D/tests/route_c_stage2_6_1/$f"
 done
+
 
 # 4) report(C 设计计算被测对象;math 测试 import 该脚本与 JSON)
 mkdir -p "$D/report"

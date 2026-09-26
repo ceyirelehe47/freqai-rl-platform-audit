@@ -239,17 +239,28 @@ def proc_table() -> dict[int, dict]:
 
 def task_tree(table: dict[int, dict], pgids: set[int],
               root_pids: set[int]) -> list[int]:
-    """pgid 匹配为主(重托管稳定),根 PID 后代为辅。"""
+    """pgid 匹配为主(重托管稳定),根 PID 后代为辅。
+
+    R25 复收敛修复(2026-09-26):旧实现 `if cur in out: continue`
+    在根先被 pgid 命中时短路,根的子进程从不展开——注册根(business
+    leader)恒属自身 pgid,故后代走查实际永不执行,任务枚举退化为
+    pgid-only;批次工作者一旦被包装器置入新进程组(如 GNU timeout
+    默认建组)即整体不可见(监护 run 20260926T132814_7514_448 的
+    534 样本仅见 bash/python 各一,11 个生成 PID 出现 0 次)。
+    修复:根后代无条件展开(seen 防重复入栈)。
+    """
     out = {pid for pid, info in table.items()
            if info.get("pgrp") in pgids}
     children: dict[int, list[int]] = {}
     for pid, info in table.items():
         children.setdefault(info["ppid"], []).append(pid)
     stack = [p for p in root_pids if p in table]
+    seen: set[int] = set()
     while stack:
         cur = stack.pop()
-        if cur in out:
+        if cur in seen:
             continue
+        seen.add(cur)
         out.add(cur)
         stack.extend(children.get(cur, ()))
     return sorted(out)

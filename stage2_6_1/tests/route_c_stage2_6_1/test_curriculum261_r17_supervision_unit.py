@@ -162,6 +162,25 @@ class TestSamplingIdentity:
             p.kill()
             p.wait(timeout=10)
 
+    def test_task_tree_root_in_pgid_still_expands_descendants(self):
+        """R25 复收敛回归:根先被 pgid 命中不得短路后代展开。
+
+        旧 bug:注册根(business leader,恒属自身 pgid)命中 pgid 集
+        后 `continue`,其子进程永不展开 → 任务枚举退化为 pgid-only,
+        新进程组工作者(如 GNU timeout 默认建组)整体不可见
+        (run 20260926T132814_7514_448:11 个生成 PID 出现 0 次)。
+        """
+        synth = {
+            100: {"pgrp": 100, "ppid": 1},   # 根 = business leader
+            101: {"pgrp": 999, "ppid": 100},  # 子:timeout 建新组
+            102: {"pgrp": 999, "ppid": 101},  # 孙
+            103: {"pgrp": 100, "ppid": 1},    # 同组无关进程
+            104: {"pgrp": 777, "ppid": 1},    # 组外无关进程
+        }
+        real = task_tree(synth, {100}, {100})
+        assert set(real) == {100, 101, 102, 103}
+        assert 104 not in real
+
 
 # ================================================= M04/M05/M06/M09 判定
 class TestPolicyEngine:
