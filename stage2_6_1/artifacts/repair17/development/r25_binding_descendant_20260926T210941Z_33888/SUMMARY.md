@@ -2,7 +2,7 @@
 
 轮次:R25 执行绑定与后代退出检查收敛(发包基线 4bbb31c)。
 代码候选:**990dbcfc247d2f3eda107fb3c257c561a3aac748**(721b314 实现 +
-C07 断言口径修正;已提交,待 push)。
+C07 断言口径修正);已 push,远端 HEAD=0f1d8ea(证据提交)。
 
 修复审查 §2.2/§2.3 两组复现反例:
 
@@ -73,7 +73,9 @@ c01-c11;历史来源 not_established 与 MISSING 限制保留;不追认旧
 
 ## 六、Git 与回传
 
-- 候选提交 721b314(代码面);证据提交:<<待填>>;push 回执:
-  见 `git_receipts/`。
+- 提交(基线 4bbb31c 之后):990dbcf(代码面:721b314 实现 +
+  C07 口径修正)→ 0f1d8ea(证据,无代码变更);
+- push 回执:`git_receipts/`(push.txt / ls_remote.txt / commits.txt /
+  两个 diffstat);远端 HEAD = 0f1d8ea9bb9500c30a5101f2d75c61eb8760134c。
 - 回传 ZIP:`RouteC_R25_BindingAndDescendantClosure_v1_RETURN_TO_CHATGPT.zip`
   (SHA-256 见同目录 .sha256.txt)。
