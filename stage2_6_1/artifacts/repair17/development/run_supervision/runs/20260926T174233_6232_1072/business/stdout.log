@@ -1,0 +1,15 @@
+R25BATCH probe start w1-burn-with-children 17:42:37
+{"label": "w1", "pid": 1122, "ppid": 1121, "pgid": 1114, "sid": 1114, "utc": "2026-09-26T17:42:37Z", "mode": "burn", "seconds": 45.0}
+{"role": "child", "pid": 1123, "grandchild": 1124}
+{"label": "w1", "pid": 1122, "ppid": 1121, "pgid": 1114, "sid": 1114, "utc": "2026-09-26T17:43:21Z", "ended": true}
+R25BATCH probe end w1 rc=0 17:43:21
+R25BATCH probe start w2-burn 17:43:21
+{"label": "w2", "pid": 1133, "ppid": 1132, "pgid": 1114, "sid": 1114, "utc": "2026-09-26T17:43:21Z", "mode": "burn", "seconds": 30.0}
+{"label": "w2", "pid": 1133, "ppid": 1132, "pgid": 1114, "sid": 1114, "utc": "2026-09-26T17:43:51Z", "ended": true}
+R25BATCH probe end w2 rc=0 17:43:51
+R25BATCH probe start w3-sleep-timeout-12s 17:43:51
+{"label": "w3", "pid": 1139, "ppid": 1138, "pgid": 1114, "sid": 1114, "utc": "2026-09-26T17:43:51Z", "mode": "sleep", "seconds": 300.0}
+{"role": "child", "pid": 1140, "grandchild": 1141}
+R25BATCH probe end w3 rc=124 17:44:02
+{"subtree_check": "clean", "target_pid": 1139}
+R25BATCH DONE fail=0 20260926T174403Z
