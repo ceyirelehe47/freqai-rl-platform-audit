@@ -1,0 +1,80 @@
+{
+ "cases": [
+  {
+   "case": "control",
+   "rc": 0,
+   "expect_rc": 0,
+   "fails": [],
+   "ok": true
+  },
+  {
+   "case": "seq_anomaly",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] C_win_seq_clean :: recomputed dup=1 reg=1 replay=1; summary=0/0",
+    "FAIL [20260928T160934_4301_1088] C_win_seq_clean :: recomputed dup=1 reg=1 replay=1; summary=0/0",
+    "FAIL [20260926T212149_1124_424] C_win_seq_clean :: recomputed dup=1 reg=1 replay=1; summary=0/0",
+    "FAIL [20260926T212354_1984_392] C_win_seq_clean :: recomputed dup=1 reg=1 replay=1; summary=0/0",
+    "FAIL [20260926T220905_5450_537] C_win_seq_clean :: recomputed dup=1 reg=1 replay=1; summary=0/0"
+   ],
+   "ok": true
+  },
+  {
+   "case": "empty_coverage",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260928T160626_7004_367] E_positive_cpu_increments :: count=0",
+    "FAIL [20260928T160934_4301_1088] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260928T160934_4301_1088] E_positive_cpu_increments :: count=0",
+    "FAIL [20260926T212149_1124_424] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T212149_1124_424] E_positive_cpu_increments :: count=0",
+    "FAIL [20260926T212354_1984_392] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T212354_1984_392] E_positive_cpu_increments :: count=0",
+    "FAIL [20260926T220905_5450_537] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T220905_5450_537] E_positive_cpu_increments :: count=0"
+   ],
+   "ok": true
+  },
+  {
+   "case": "false_peaks",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] D_task_rss_max :: recomputed=0.010013580322265625 declared=9999.0 (KiB max=10500)",
+    "FAIL [20260928T160626_7004_367] D_task_cpu_max_delta :: recomputed=0.1 declared=9999.0",
+    "FAIL [20260928T160934_4301_1088] D_task_rss_max :: recomputed=0.010013580322265625 declared=9999.0 (KiB max=10500)",
+    "FAIL [20260928T160934_4301_1088] D_task_cpu_max_delta :: recomputed=0.1 declared=9999.0",
+    "FAIL [20260926T212149_1124_424] D_task_rss_max :: recomputed=0.010013580322265625 declared=9999.0 (KiB max=10500)",
+    "FAIL [20260926T212149_1124_424] D_task_cpu_max_delta :: recomputed=0.1 declared=9999.0",
+    "FAIL [20260926T212354_1984_392] D_task_rss_max :: recomputed=0.010013580322265625 declared=9999.0 (KiB max=10500)",
+    "FAIL [20260926T212354_1984_392] D_task_cpu_max_delta :: recomputed=0.1 declared=9999.0",
+    "FAIL [20260926T220905_5450_537] D_task_rss_max :: recomputed=0.010013580322265625 declared=9999.0 (KiB max=10500)",
+    "FAIL [20260926T220905_5450_537] D_task_cpu_max_delta :: recomputed=0.1 declared=9999.0"
+   ],
+   "ok": true
+  },
+  {
+   "case": "sha_tamper",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] A_required_all_verified :: n=9 bad=[('telemetry_win', 'SIZE')]",
+    "FAIL [20260928T160626_7004_367] D_win_phys_min :: recomputed=12.34 declared=39.5",
+    "FAIL [20260928T160934_4301_1088] A_required_all_verified :: n=9 bad=[('telemetry_win', 'SIZE')]",
+    "FAIL [20260928T160934_4301_1088] D_win_phys_min :: recomputed=12.34 declared=39.5",
+    "FAIL [20260926T212149_1124_424] A_required_all_verified :: n=9 bad=[('telemetry_win', 'SIZE')]",
+    "FAIL [20260926T212149_1124_424] D_win_phys_min :: recomputed=12.34 declared=39.5",
+    "FAIL [20260926T212354_1984_392] A_required_all_verified :: n=9 bad=[('telemetry_win', 'SIZE')]",
+    "FAIL [20260926T212354_1984_392] D_win_phys_min :: recomputed=12.34 declared=39.5",
+    "FAIL [20260926T220905_5450_537] A_required_all_verified :: n=9 bad=[('telemetry_win', 'SIZE')]",
+    "FAIL [20260926T220905_5450_537] D_win_phys_min :: recomputed=12.34 declared=39.5"
+   ],
+   "ok": true
+  }
+ ],
+ "all_ok": true,
+ "note": "SYNTHETIC_ONLY fixtures; content mutations carry recomputed required SHA (except sha_tamper negative control) to isolate content-level recompute from checksum checks."
+}

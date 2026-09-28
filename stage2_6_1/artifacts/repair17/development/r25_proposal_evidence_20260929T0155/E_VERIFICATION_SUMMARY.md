@@ -36,6 +36,31 @@
 
 包内↔repo 对拍：FinalClosure RETURN 内 run_supervision_runs/ 26 成员与 repo 原件**逐字节相同** ✓。
 
+### 3.1 正文级复核（第二轮，REVIEW §2 修复后）
+
+独立审查（REVIEW.md §2，2026-09-29）指出首版 `e03_verify_supervision.py` 的 `telemetry_sequence_clean` 取自 summary.coverage 计数、逐行仅 json.loads、未复核实例覆盖/正 CPU 增量/峰值，并以 SYNTHETIC 反例证明漏检。修复 = 新增 `e03b_verify_supervision_content.py`（从遥测原文重算）：
+
+- **seq/回放**：guest/win 两侧 seq 重复/回退/同(seq,mono) 完整重放重算，与 summary.coverage 计数一致（全部 0）。
+- **峰值**：guest_memavail_min_gib / task_tree_rss_max_gib（KiB/2^20 精确）、task_cpu_max_delta_s、win_free_phys_min_gib、win_commit_max_pct（两位小数舍入容差）逐 run 重算==declared。
+- **工作者/后代覆盖**：业务任务树 per-pid 观测（11/243/11/227/240 个 distinct pid）、inst_start_ticks 全程稳定、reused_pid 全 false、相邻样本正 CPU 增量计数 12/473/12/473/486>0。
+- **registry 身份级覆盖**（集成 run）：w1/w2/w3 registry 全部实例 pid ⊆ 遥测观测集合（missing=∅）。
+- **首样本语义**：seq=1 的 guest_sample `tasks=None`（业务树建立前）属记录语义，显式认可并在 detail 说明；invalid 判据=meminfo 非对象/缺 mono/tasks 非 null 非 list。
+- 结果：**5/5 run ALL PASS，rc=0**（原始 stdout/argv/rc 归档 `E03B_REAL_RUNS_EXECUTION.log`；结果 `E03B_SUPERVISION_CONTENT_VERIFICATION.json`）。
+
+### 3.2 合成反例（证明正文重算真实生效，SYNTHETIC_ONLY）
+
+`synth_e03b_counterexamples.py` 构建内容变异且**重算 required SHA** 的合成夹具（隔离内容复核与 checksum 复核；不触碰真实材料），用未修改的核验器（R25PE_RUNS_ROOT 注入）逐例运行：
+
+| 用例 | 构造 | 结果 |
+|---|---|---|
+| control | 内容一致健康夹具 | rc=0 ALL PASS |
+| seq_anomaly | win seq=1,1,0，summary 计数仍 0 | rc=2，`C_win_seq_clean` FAIL（重算 dup=1 reg=1 replay=1） |
+| empty_coverage | tasks 全空/零 CPU，summary 保留 | rc=2，`E_tasks_observed`+`E_positive_cpu_increments` FAIL |
+| false_peaks | summary 峰值 9999 与正文不符 | rc=2，`D_task_rss_max`+`D_task_cpu_max_delta` FAIL |
+| sha_tamper | 遥测字节变异但不更新 required SHA（负对照） | rc=2，`A_required_all_verified` FAIL |
+
+全部符合预期（`E03B_SYNTH_COUNTEREXAMPLES.json` + 每例 `run_log.txt`；总执行记录 `E03B_SYNTH_EXECUTION.log`）。旧 summary/遥测/registry 零改动；口径差异无一发现（重算==declared 于全部 5 run）。
+
 ## 4. 执行记录（命令/解释器/cwd/rc）
 
 | # | 命令 | 解释器 | cwd | rc |
@@ -44,7 +69,9 @@
 | 2 | WSL `verify_regression_evidence`×3（final_closure+deploy / binding_v2+deploy / binding_v1_FAILED+deploy） | /home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python（模块身份 wt==候选 blob 57f0425d 前置校验） | /mnt/f/trading/freqai-rl-audit | 0；结果 E02_WSL_AUTHORITATIVE_VERIFY.json |
 | 3 | WSL `verify_regression_evidence`（binding_v2, deploy_root=None） | 同上 | 同上 | 0；结果 E02_WSL_BINDING_V2_REPOONLY.json |
 | 4 | `python e03_verify_supervision.py` | Windows CPython 3.13.x | 同 #1 | 0（ALL PASS；E03_SUPERVISION_VERIFICATION.json） |
-| 5 | `git rev-parse HEAD:<tree>`（冻结树×3）+ vendor rev-parse | git / Windows+WSL | repo / vendor | 全部匹配（P01） |
+| 5 | `python e03b_verify_supervision_content.py`（真实 5 run 正文复核） | Windows CPython 3.13.x | 同 #1 | 0（ALL PASS；原始输出 `E03B_REAL_RUNS_EXECUTION.log`） |
+| 6 | `python synth_e03b_counterexamples.py`（SYNTHETIC_ONLY 反例×5） | 同上 | 同 #1 | 0（4 反例全部按预期触发+对照通过；`E03B_SYNTH_EXECUTION.log`） |
+| 7 | `git rev-parse HEAD:<tree>`（冻结树×3）+ vendor rev-parse | git / Windows+WSL | repo / vendor | 全部匹配（P01） |
 
 stderr：#1/#4 无错误输出；#2/#3 WSL 侧仅 .wslconfig 警告（与核验无关）。
 

@@ -13,9 +13,9 @@
 
 1. 撤回「r_true≈0.98（及一切同义表述）」——估计 SE 比值（≈0.98，同量级描述）不是 r_true 的估计；r_analysis=1.5 是抽样前固定分析约定，不是已证真实上界；±0.003 是开发分析分界，不是生产容忍度。
 2. 撤回「input-lock 13 项已可绑定新资格/数据前门槛全部已有入口」——现有锁硬绑历史 R2（固定 digest 常量 qp-8f64a1b5…、R2 artifact 目录、causal-unscaled 边界、14 项 checks）；§4 给出 A1–A8 最小接入清单（已有/待实现/待决定逐项）+6 正反例 + 主分区角色映射。
-3. 撤回「批准后现有入口可直接推进（无缺口）」——v4 聚合在正式链**无消费者**（唯一消费者=开发研究入口）；§5 落实判据关系（附加确认层，不替代/不豁免任何既有 gate；分区 gate FAIL 不可被聚合 CI 救回）、K 消费入口待实现、不足 K 代码事实强制不决、停止规则三语义（D-2 事前二选一）、链外 provenance-lock 时序与状态根/admission 源码事实。
+3. 撤回「批准后现有入口可直接推进（无缺口）」——v4 聚合在正式链**无消费者**（唯一消费者=开发研究入口），且现有 `cmd_cue_audit` 单次运行=单 namespace 对，**无 K 自动生产路径**；§5 落实判据关系（附加确认层，不替代/不豁免任何既有 gate；分区 gate FAIL 不可被聚合 CI 救回）、K 输入的生产与消费入口均显式待实现（r20_formal_coordinate_runner / r20-formal-aggregate）、不足 K 代码事实强制不决、停止规则 Level A/B 分层（D-2 事前二选一）、链外 provenance-lock 时序、新迭代/状态根隔离适配。
 
-推荐路径（§6）：P0 签收→P1 科学决定（D-1 v4+正式链授权 / D-2 停止规则 / D-3 新训练迭代 / D-4 C3 时机）→P2 Commit A+provenance-lock→P3 admission→P4 17 步正式链→P5 K 聚合（待实现）→P6 接入工程轮（待实现）→P7 训练阶梯（ppo-smoke=首次参数更新→config-dev→probe→core→final）。预算只用实测锚（回归 2619.25s、开发批次≈50min），正式链全链/MC/global-K/core/final 如实标未知并给监护上限。
+推荐路径（§6）：P0 签收→P1 科学决定（D-1/D-2/D-3/D-4）→P2 provenance-lock（Commit A 前）→Commit A→同步→P3 admission（含坐标清单 manifest）→P4 Level A 资格链（17 步）→P5 Level B 确认性研究（坐标 runner+聚合，待实现）→P6 接入工程轮（待实现）→P7 训练阶梯（ppo-smoke=首次参数更新→config-dev→probe→core→final）。预算只用实测锚（回归 2619.25s、开发批次≈50min），正式链全链/MC/global-K/core/final 如实标未知并给监护上限。
 
 SELF_REVIEW_CASES 14 条实际回答见提案附表 B（逐条指向章节/源码定位）。
 
@@ -34,6 +34,14 @@ SELF_REVIEW_CASES 14 条实际回答见提案附表 B（逐条指向章节/源�
 已执行：只读核验（含 WSL 权威核验器×4 与 vendor 只读检查）、提案 v2 撰写、README 索引追加（只增不改）、用户授权的工作区清理（goal_incoming 旧轮归档+分支清理，账目 archive/REORG_MANIFEST_F_20260929.tsv，不影响任何本轮证据）。
 未执行：正式 R20 注册/抽样、正式 cue-audit/audit、资格/exposure 消费、BC/PPO 训练、11 坐标重跑、G5c 重训、任何 pytest 全量（复用 7e9e547 原件）、A2–A7 接入实现（提案方案，非实现）。
 
-## 5. 本 ZIP 身份
 
+## 5. 独立审查后的第二轮修订（2026-09-29，REVIEW.md）
+
+独立审查结论 NOT_ACCEPTED_AS_SELF_ACCEPTANCE_PASS，两项实质缺陷已在本轮内修复并重验：
+
+1. **E03 正文复核（REVIEW §2）**：首版核验器的序列/覆盖检查取自 summary 计数、未重算遥测正文，审查方以 SYNTHETIC 反例证明漏检。新增 `e03b_verify_supervision_content.py`：guest/win seq 重复/回放、五项峰值、per-pid 身份稳定（inst_start_ticks/reused_pid）、相邻样本正 CPU 增量、registry 实例 pid⊆遥测观测集，全部从原文重算——真实 5 run **ALL PASS（重算==declared，rc=0）**。`synth_e03b_counterexamples.py` 以 SYNTHETIC_ONLY 夹具复现审查反例：seq=1,1,0、空覆盖、伪峰值均被 rc=2 拒绝；sha_tamper 负对照正确触发 required 防线；健康对照 rc=0。旧 summary/遥测零改动；本轮核验命令 argv/rc/stdout 全部落盘（E03B_REAL_RUNS_EXECUTION.log / E03B_SYNTH_EXECUTION.log / synthetic_cases/*/run_log.txt）。
+2. **T03/T04 依赖闭合（REVIEW §3）**：提案 v2 第二版（文件头修订记录显式标注，非默默替换）——§5.3 补 K 坐标**生产**入口 `r20_formal_coordinate_runner`（admission 预注册冻结坐标清单 → 逐坐标调用现有 `cmd_cue_audit` → manifest digest 绑定）与消费入口 `r20-formal-aggregate`；§5.4 停止规则按 Level A（资格链，现有规则不变）/ Level B（K 坐标确认性研究，D-2 事前二选一）分层；§5.5 新迭代/状态根隔离适配（独立确认性研究根、不经环境变量、白名单扩展、验证方法=错根拒绝+旧根零写入断言）；§6.1 P2 顺序统一为 provenance-lock（Commit A 前）→Commit A→r21_sync；§6.3 分层失败出口。附表 A 增补"单 namespace 对运行/无 K 自动生产路径"与"白名单机制"两行。
+3. **S01/D01**：自验收报告 §2.1 如实记录第二轮失败→修复→重验；第一轮（976e1e96 前）原始命令输出未逐字落盘属事实，不追溯补写；本轮重新提交并重新封包，外部回执锚定**新 HEAD 与新 ZIP 最终字节**（旧 ZIP/旧回执作废，见 DELIVERY_RECEIPT）。
+
+## 6. 本 ZIP 身份（第二版封包）
 主文件：`RouteC_R25_ProposalEvidence_SelfAcceptance_v1_RETURN_TO_CHATGPT.zip`；SHA256/字节数见并列 `.sha256.txt` 与外部 `DELIVERY_RECEIPT.md`。上轮 FinalClosure 原 ZIP 原字节嵌套于 `previous_round/`（其内 Binding ZIP 原样保留）。任务包 `RouteC_R25_ProposalEvidence_SelfAcceptance_v1.zip`（输入）不重复携带，其 SHA 记录于 DELIVERY_RECEIPT。

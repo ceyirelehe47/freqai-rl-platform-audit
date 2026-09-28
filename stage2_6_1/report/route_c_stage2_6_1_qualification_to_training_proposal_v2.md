@@ -2,8 +2,10 @@
 
 任务：`RouteC_R25_ProposalEvidence_SelfAcceptance_v1` 出口 T。性质：只读整理 + 待审提案；本轮未创建/锁定任何正式 plan、未注册 namespace、未签发 admission、未消耗 exposure、未生成正式数据、未训练模型。
 
-## 0. 本版替代旧版的哪些主张（撤回声明）
+> **修订记录（2026-09-29 第二版，按独立审查 REVIEW.md §3 修正，非默默替换）**：§5.3 补 K 坐标**生产**入口（`r20_formal_coordinate_runner`：锁前冻结坐标清单 + 逐坐标调用现有 `cmd_cue_audit` + manifest 绑定）；§5.4 停止规则按 Level A（资格链）/Level B（确认性研究）分层；§5.5 补新迭代/状态根隔离适配（独立确认性研究根 + 白名单扩展 + 验证方法）；§6.1 P2 顺序统一为 provenance-lock（Commit A 前）→ Commit A → 同步；§6.3 分层失败出口。首版（commit 976e1e96 内的本文）与上述冲突的表述以本版为准；撤回声明（§0）不变。
 
+
+## 0. 本版替代旧版的哪些主张（撤回声明）
 修订对象：`route_c_stage2_6_1_qualification_to_training_proposal.md`（v1，原件保留不改，blob f6c0f4b9…）。以下 v1 主张**全部撤回**，v2 不得以任何同义表述延续：
 
 1. **【撤回·T-1】** v1 §1/§3 的「r_true≈0.98 与 v4 规划锚同量级」「r_true≈0.98 在规划前提内」。估计 SE 比值（≈0.98）只是两个估计尺度的比较，**不是** r_true 的估计，不能据此声称真实误差倍率 ≤1.5 获证或"在规划前提内"。v2 §2.2 给出如实的条件表述。
@@ -14,7 +16,7 @@
 
 ## 1. 结论（推荐路径一句话）
 
-**先批科学（D-1：v4 采纳 + 一次当前身份正式链授权），再跑正式链（17 步，产出新版资格判定）；资格 PASS 后，先做一个明确的"新资格→训练最小接入"工程轮（本提案 §4，待实现清单），再做训练阶梯（ppo-smoke → config-dev → probe → core staged/mixed → sealed final）。** 训练入口在本提案通过时**尚未建成**；通过的是接入方案与验证设计，不是"已实现"。
+**先批科学（D-1：v4 采纳 + 一次当前身份正式链授权），再跑 Level A 资格链（17 步）与 Level B 确认性研究（K=11 坐标；生产/消费入口待实现，§5.3）；资格 PASS 后，先做一个明确的"新资格→训练最小接入"工程轮（本提案 §4，待实现清单），再做训练阶梯（ppo-smoke → config-dev → probe → core staged/mixed → sealed final）。** 训练入口与 K 坐标入口在本提案通过时**均尚未建成**；通过的是接入方案与验证设计，不是"已实现"。
 
 ## 2. 当前事实（已做 / 未做，统计量如实表述）
 
@@ -95,16 +97,28 @@ R25 已回答（开发面）：开发坐标下估计 SE 与规划锚同量级、
 - v4 等权聚合（S_raw=√(Σs_k²)/K，S_analysis=1.5·S_raw，CI90，互斥四类+方向标签，`r20_design_calc_v4.py:116-259`）在本提案中定位为**附加确认层（diagnostic/additional validation），不替代、不豁免任何既有正式 gate**。
 - 冻结判据下：**任一既有正式 gate FAIL 不能被跨坐标平均 CI 救回**（SELF_REVIEW #7）。若审查方希望聚合结果改变任一 gate 的通过条件，必须作为**显式、单独、未执行**的待批科学决定提出；本提案不提议任何替代。
 
-### 5.3 K 坐标的消费入口（现状 + 拟议最小适配）
+### 5.3 K 坐标的生产与消费入口（现状 = 均不存在；生产在前，消费在后）
 
-- 现状：`classify_primary` 的唯一消费者是开发研究入口 `runner/r25_cue_bias_dev_entry.py:104-110`（加载 v4 calc 于开发坐标）；正式链 cue-audit 步是单语料审计，**无 K 坐标聚合面**；17 步表（`curriculum261_r17_workflow.py:77-287`）不含聚合步骤。
-- 拟议最小适配（待实现，属 D-1 批准后的工程项）：独立 `r20-formal-aggregate` 入口——输入=预注册坐标清单+逐坐标 cue-audit 原件（digest 绑定），输出=`classify_primary(planned_k=11)` 主分类+方向+行动文字；**不足 K=11 时强制 inconclusive/insufficient_coordinates**（`r20_design_calc_v4.py:237-243` 代码事实），提前停止只出描述性报告。是否将该步纳入 17 步表或保持链后独立步，随 D-1 一并定（建议：链后独立步，不改 17 步冻结序）。
+**现状（生产侧缺失）**：`classify_primary` 的唯一消费者是开发研究入口 `runner/r25_cue_bias_dev_entry.py:104-110`；正式 `cmd_cue_audit`（`curriculum261_r17_cli.py:1312-1388`）一次运行只处理**一对** model/validation namespace（先锁定单一 audit plan，再跑一次三路闭合审计）——17 步链只含一个 cue-audit 步。**没有任何现有入口会在传新 SHA 后自动产出 K=11 组正式坐标原件**；只实现聚合读取器补不出尚不存在的 K 份输入。
 
-### 5.4 停止规则（事前锁定，D-2）
+**拟议最小生产入口（待实现，工程协调器，非科学规则）**：`r20_formal_coordinate_runner`——
+1. **锁前冻结坐标清单**：admission 预注册记录内含 K=11 坐标 manifest（每坐标 = 独立坐标 id + 独立 model/validation namespace 对 + 独立 out-dir；对应 `cmd_cue_audit` 逐坐标锁定的 audit plan：namespaces/500×2/once-attempts/seeds/判据/code identity）。任何数据生成前冻结。
+2. **逐坐标生产**：按 manifest 串行调用**现有未改的** `cmd_cue_audit`（每坐标一次完整三路闭合审计，独立 out-dir，产出 `cue_contract_audit.json`/`cue_event_trace.jsonl`）；运行属外层确认性研究（Level B，见 §5.4），不是 17 步链的步骤。
+3. **清单绑定**：runner 产出 coordinate manifest（坐标 id/namespace/audit plan digest/结果 digest），作为聚合的唯一合法输入。
 
+**拟议最小消费入口（待实现）**：`r20-formal-aggregate`——逐 digest 校验 manifest 指向的原件（拒绝清单外/缺件/digest 不匹配），再 `classify_primary(planned_k=11)`；**不足 K 强制 inconclusive/insufficient_coordinates**（`r20_design_calc_v4.py:237-243` 代码事实），提前停止只出描述性报告。纳入 17 步表或保持链后独立步随 D-1 定（建议独立步，不改 17 步冻结序）。
+
+两个入口都属 D-1 批准后的待实现工程项；本提案不为其写 PASS。
+
+### 5.4 停止规则的分层（事前锁定，D-2；两层互不改写）
+
+**Level A — 资格链（17 步）**：任一步 FAIL → 整链 FAIL 封口（verify-formal-logs 机械封口），科学负结果与 R19 并列披露，不重抽/不换 namespace/不放宽 margin。**现有规则原样保留**；Level B 不得放宽或改写它。
+
+**Level B — 外层确认性研究（K 坐标）**：坐标审计是 Level B 自己的独立运行（§5.3 runner），不是链步骤：
 - 数据级无效（生成失败/结构性违约/audit plan 违约）：该坐标**无效**，不计入 K，如实登记；不静默补抽。
 - 运行中断（超时/监护切断）：该坐标**未完成**，不得事后补抽或续跑同一坐标冒充完整。
-- 统计负结果（单坐标 audit FAIL 或聚合越界）：按 D-2 事前选择处理；两案都不允许换 seed/namespace 重抽救援。
+- 统计负结果（单坐标审计 FAIL）：按 D-2 事前选择——(a) 允许继续收齐 K（逐坐标 FAIL 如实入记录，收齐有效 K 后聚合）或 (b) 任一坐标 FAIL 即停（此后只有描述性报告，无完整 K 主分类）。
+- Level A 失败时 Level B 是否继续执行/如何披露，属 D-1 预注册的附带子决定（**默认：确认性研究按预注册坐标独立运行与报告，不冒充资格、不救援 Level A**）。
 - 任何出口：与 R19 终态并列披露，不改旧终态。
 
 ### 5.5 状态根、迭代与链外前置（源码事实）
@@ -112,6 +126,8 @@ R25 已回答（开发面）：开发坐标下估计 SE 与规划锚同量级、
 - `r17_formal_chain.sh:43` 固定正式产物根 `$PROJECT_ROOT/artifacts/route_c_stage2_6_1_repair17`；`:64-66` `R17_ART_ROOT/R17_STATE_ROOT` 环境重定向被拒（不能偷转 root 绕守卫）；`:67-75` admission 闸门前置于任何正式写入（无许可→rc=96，不建 $ART）。
 - admission：`r17_admission_issue.py:50-88` 预注册记录必含 `admission_id/iteration/plan_digest/...`，**create-only，一个 state root 一个 admission_id 只发一次**；state root 路径形态校验。
 - 链外前置时序（Commit A 前后）：`provenance-lock`（链外，一次且仅一次，`curriculum261_r17_cli.py:3491-3508`、`:3863`）产出 `gate_topology_reconciliation.json`，是链内第一步 `provenance-verify` 的 `requires_artifacts`（workflow `:82-86`）——**必须在 Commit A 前完成**。完整时序：provenance-lock（链外）→ Commit A（Windows git push + r21_sync 同步部署树）→ admission 预注册+issue → `bash r17_formal_chain.sh <commit_a_sha>`（gate → 环境 → `chain-run --out-dir --freeze-sha`，17 步）。当前部署面无任何有效许可（链注释明示：许可由未来独立授权流程放置）。
+
+**新正式迭代/namespace/状态根的隔离适配（待实现，不借用旧根）**：§5.3 的 `r20_formal_coordinate_runner` 创建并固定使用**独立确认性研究产物根**（建议 `artifacts/route_c_stage2_6_1_r20_confirm/`，代码内固定常量，**不经环境变量解析**——沿用 `r17_formal_chain.sh:64-66` 对 env 重定向的拒绝语义）；坐标 namespace 按既有白名单机制追加进 261 seed 白名单（`curriculum261_api.py:683-696`），并纳入 262 隔离枚举扩展（§4.1 A5/A6）；admission 预注册绑定该根与坐标清单 digest。验证方法（接入轮定向测试）：错误根/环境变量重定向被拒；旧 R17/R19 状态根**零写入**断言；R17/R19 旧终态不变。内部字段与函数签名由实现轮决定；本轮不创建任何此类正式状态。
 
 ## 6. 执行顺序与预算（T-4）
 
@@ -121,10 +137,10 @@ R25 已回答（开发面）：开发坐标下估计 SE 与规划锚同量级、
 |---|---|---|---|
 | P0 | 本轮 F/V/I/E 签收（证据核验） | 已完成（本轮） | — |
 | P1 | D-1..D-4 科学决定 | 审查方 | P0 |
-| P2 | Commit A 冻结 + r21_sync 同步 + **provenance-lock（链外一次）** | 命令已有（`r21_sync.sh`、`r17_cli provenance-lock`） | P1 |
-| P3 | admission 预注册记录（格式/授权来源文本=审查方决定，**无现成模板**）+ `r17_admission_issue.py issue` | issue 命令已有；预注册记录格式待审查方定 | P2 |
-| P4 | `r17_formal_chain.sh <freeze_sha>` 17 步（监护单作业） | 命令已有 | P3 |
-| P5 | `r20-formal-aggregate`（K 聚合，若 D-1 采链后独立步） | **待实现**（§5.3） | P4 |
+| P2 | **provenance-lock（链外一次，Commit A 前）** → Commit A 冻结 + push → `r21_sync` 同步部署树 | 命令已有（`r17_cli provenance-lock`、`r21_sync.sh`）；顺序=§5.5 时序 | P1 |
+| P3 | admission 预注册记录（含 K 坐标清单 manifest + 授权来源文本；格式细节=审查方决定，**无现成模板**）+ `r17_admission_issue.py issue` | issue 命令已有；坐标 manifest 生产入口**待实现**（§5.3） | P2 |
+| P4 | **Level A 资格链**：`r17_formal_chain.sh <freeze_sha>` 17 步（监护单作业） | 命令已有 | P3 |
+| P5 | **Level B 确认性研究**：`r20_formal_coordinate_runner` 逐坐标 cue-audit（K=11）→ `r20-formal-aggregate` | **待实现**（§5.3 生产+消费两个入口） | P3（与 P4 分层并行预注册；执行按单作业串行，通常 P4 后） |
 | P6 | （若 qualify PASS 且 D-3 批）**接入工程轮**：A2–A7 实现+正反例+适用回归 | **待实现**（§4） | P4/P5 |
 | P7 | 训练阶梯：ppo-smoke(256 步冒烟) → config-dev(每候选 20,090×3 步) → probe(45,920–68,880 步/族, gate 0.10/0.10) → core staged/mixed(640 eps×3 rep=183,680 步/rep) → final-lock/final-run(sealed) | 命令已有但**输入面待 P6 接通** | P6 |
 
@@ -136,14 +152,14 @@ R25 已回答（开发面）：开发坐标下估计 SE 与规划锚同量级、
 |---|---|---|
 | 全量回归（若 P6 改执行面后新候选适用验证） | 本轮核验原件实测 2619.25s（0:43:39），E02 | 单作业监护上限 3600s；2541 项为 7e9e547 候选口径，新候选不得硬编码总数 |
 | 正式链 P4 | **无近期全链实测=未知**；组成锚：R25 开发批次 11 坐标（500+500/坐标）历史记录 ≈50 min；MC 1e6 与 global-K 无近期实测（未知） | 建议 `--max-seconds 3600` 监护上限分步执行；超时如实收口保留现场；**不以开发批次时长保证正式链时长** |
-| P5 聚合步 | 计算量=分类函数+输入读取 | 秒级（v4 selftest 同级） |
+| P5 坐标审计轮+聚合 | 坐标审计=K 次完整三路闭合审计：**无正式面实测=未知**；最近似锚=R25 开发批次 11 坐标(500+500/坐标)≈50 min 历史记录（开发面，不作保证）；聚合=秒级 | 逐坐标监护上限；超时=该坐标未完成（§5.4），如实登记不补抽 |
 | P6 接入轮 | 测试级（262 测试套历史 150 项级别分钟级）+ 定向正反例 | 分钟–小时级，单作业 |
 | P7 ppo-smoke/config-dev/probe | 262 r0 预算表（`ppo262_config.py:81-118`）；G5c probe 历史开发证据=分钟–小时级 | 按预注册；core/final **未实测=未知**，上限由预注册锁定 |
 | 全部 | 本机 WSL 单作业串行 | 任何时刻 ≤1 重型任务 |
 
 ### 6.3 失败出口（每阶段）
 
-P2/P3 任一失败→不进链，保留现场；P4 任一步 FAIL→整链 FAIL 收口（verify-formal-logs 前提下的机械封口），科学负结果与 R19 并列披露，不重抽/不换 namespace/不放宽 margin；P5 聚合不决（inconclusive/insufficient_coordinates）→如实报告，不冒用完整 K 推断；P6 正反例任一失败→接入未建成，不进 P7；P7 probe FAIL→不烧 core 预算、不造空 artifact，负结果如实报告；final 一次性空间一旦 exposure 即终态。
+P2/P3 任一失败→不进链，保留现场。**Level A（P4 资格链）**：任一步 FAIL→整链 FAIL 收口（verify-formal-logs 前提下的机械封口），科学负结果与 R19 并列披露，不重抽/不换 namespace/不放宽 margin。**Level B（P5 确认性研究）**：按 §5.4 分层——数据级无效/中断的坐标如实登记不补抽；单坐标统计 FAIL 按 D-2 事前选择（(a) 收齐有效 K 后聚合 / (b) 早停只有描述性报告）；聚合不决（inconclusive/insufficient_coordinates）如实报告，不冒用完整 K 推断；Level B 不救援/不放宽 Level A。P6 正反例任一失败→接入未建成，不进 P7；P7 probe FAIL→不烧 core 预算、不造空 artifact，负结果如实报告；final 一次性空间一旦 exposure 即终态。
 
 ## 7. 与旧版的关系
 
@@ -182,7 +198,7 @@ v1 的六问框架与预算锚中仍成立的部分（R25 数值、G5c 限定结
 3. 新 result 放 R2 路径+固定 digest 会自动接通？**不会**。§4.0 源码事实；需 §4.1 A2 最小适配，不伪造旧产物。
 4. 只换 digest、bank/env 旧参数可通过审查？**不能**。§4.1 A2–A4 同身份闭合；§4.2 反例 2/3/4。
 5. seed 只排 qualification_r2？**不足**。§4.1 A6：扩展到新资格+开发（R25_DEV）+评估空间+model seeds，给枚举范围依据；"namespace 不同"不单独当验证。
-6. 传新 SHA 给 r17_formal_chain.sh 即自动具备 K=11/状态根/链外前置？**不自动**。§5.3 聚合入口待实现；§5.5 状态根/admission/provenance-lock 时序；旧状态不动。
+6. 传新 SHA 给 r17_formal_chain.sh 即自动具备 K=11/状态根/链外前置？**不自动**。§5.3 K 输入的生产与消费入口均待实现（现有 cmd_cue_audit 单 namespace 对运行，无自动 K 生产路径）；§5.5 状态根/admission/provenance-lock 时序与新根隔离适配；旧状态不动。
 7. 分区 gate FAIL 被聚合 CI 救回？**不能**。§5.2 冻结判据；任何改变关系=单独待批未执行决定。
 8. K 未收齐给完整主分类？**不能**。§5.3（代码事实 planned_k）；负结果/无效/中断三语义分开（§5.4）。
 9. config-dev 训练后又称"完成后才首次训练"？**不能**。§6.1 首次参数更新=ppo-smoke，分层表述。
