@@ -1,0 +1,172 @@
+{
+  "purpose": "baseline_defect_characterization_NOT_project_acceptance",
+  "source_blob": "21c74292ab989f91ac09b5448063ad1ac5ff2c51",
+  "source_sha256": "29e985bed0130efc4cb94d470d296cb41abff5207819008f9b968db8bf63b6d2",
+  "source_bytes": 14350,
+  "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "executable": "/usr/bin/python3",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "research_generation_calls": 0,
+  "cases": [
+    {
+      "name": "valid_live_control",
+      "fault": "none",
+      "omitted_child_record": false,
+      "root_gone": true,
+      "child_alive_same_instance_before_and_after": true,
+      "child_reparented_to_review_driver": true,
+      "registry_instances": [
+        {
+          "pid": 418,
+          "start_ticks": 7173,
+          "role": "root"
+        },
+        {
+          "pid": 419,
+          "start_ticks": 7193,
+          "role": "child"
+        }
+      ],
+      "checker_returncode": 3,
+      "checker_verdict": "leaked_alive",
+      "defect_reproduced": false,
+      "cleanup": {
+        "identity_checked": {
+          "pid": 419,
+          "exists": true,
+          "state": "S",
+          "ppid": 416,
+          "start_ticks": 7193
+        },
+        "signal_via": "pidfd",
+        "waitpid_status": 15,
+        "after": {
+          "pid": 419,
+          "exists": false
+        },
+        "reaped": true
+      },
+      "valid_clean_positive_after_reap": true
+    },
+    {
+      "name": "permission_at_registration",
+      "fault": "permission",
+      "omitted_child_record": false,
+      "root_gone": true,
+      "child_alive_same_instance_before_and_after": true,
+      "child_reparented_to_review_driver": true,
+      "registry_instances": [
+        {
+          "pid": 422,
+          "start_ticks": 7230,
+          "role": "root"
+        },
+        {
+          "pid": 423,
+          "start_ticks": -1,
+          "role": "child"
+        }
+      ],
+      "checker_returncode": 0,
+      "checker_verdict": "clean",
+      "defect_reproduced": true,
+      "cleanup": {
+        "identity_checked": {
+          "pid": 423,
+          "exists": true,
+          "state": "S",
+          "ppid": 416,
+          "start_ticks": 7251
+        },
+        "signal_via": "pidfd",
+        "waitpid_status": 15,
+        "after": {
+          "pid": 423,
+          "exists": false
+        },
+        "reaped": true
+      }
+    },
+    {
+      "name": "not_found_at_registration",
+      "fault": "not_found",
+      "omitted_child_record": false,
+      "root_gone": true,
+      "child_alive_same_instance_before_and_after": true,
+      "child_reparented_to_review_driver": true,
+      "registry_instances": [
+        {
+          "pid": 425,
+          "start_ticks": 7273,
+          "role": "root"
+        },
+        {
+          "pid": 426,
+          "start_ticks": -1,
+          "role": "child"
+        }
+      ],
+      "checker_returncode": 0,
+      "checker_verdict": "clean",
+      "defect_reproduced": true,
+      "cleanup": {
+        "identity_checked": {
+          "pid": 426,
+          "exists": true,
+          "state": "S",
+          "ppid": 416,
+          "start_ticks": 7294
+        },
+        "signal_via": "pidfd",
+        "waitpid_status": 15,
+        "after": {
+          "pid": 426,
+          "exists": false
+        },
+        "reaped": true
+      }
+    },
+    {
+      "name": "child_record_omitted",
+      "fault": "none",
+      "omitted_child_record": true,
+      "root_gone": true,
+      "child_alive_same_instance_before_and_after": true,
+      "child_reparented_to_review_driver": true,
+      "registry_instances": [
+        {
+          "pid": 428,
+          "start_ticks": 7329,
+          "role": "root"
+        }
+      ],
+      "checker_returncode": 0,
+      "checker_verdict": "clean",
+      "defect_reproduced": true,
+      "cleanup": {
+        "identity_checked": {
+          "pid": 429,
+          "exists": true,
+          "state": "S",
+          "ppid": 416,
+          "start_ticks": 7349
+        },
+        "signal_via": "pidfd",
+        "waitpid_status": 15,
+        "after": {
+          "pid": 429,
+          "exists": false
+        },
+        "reaped": true
+      }
+    }
+  ],
+  "result": "BASELINE_DEFECTS_REPRODUCED",
+  "limitations": [
+    "Observation failures are deliberately injected in the writer process only.",
+    "Child omission is a copy-mutation of a fresh valid registry.",
+    "Not evidence that an historical WSL run leaked or encountered these faults.",
+    "Not a WSL regression, not an entire previous RETURN validation."
+  ],
+  "subreaper_previous_flag_restored": true
+}

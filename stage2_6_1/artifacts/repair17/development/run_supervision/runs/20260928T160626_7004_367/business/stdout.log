@@ -1,0 +1,20 @@
+R25BATCH probe start w1-burn-with-children 16:06:31
+{"label": "w1", "pid": 431, "ppid": 430, "pgid": 422, "sid": 422, "utc": "2026-09-28T16:06:31Z", "mode": "burn", "seconds": 45.0}
+{"role": "root", "event": "spawned", "spawned": {"child": {"pid": 432, "start_ticks": 20525}, "grandchild": {"pid": 433, "start_ticks": 20527}}}
+{"label": "w1", "pid": 431, "ppid": 430, "pgid": 422, "sid": 422, "utc": "2026-09-28T16:07:14Z", "ended": true}
+R25BATCH probe end w1 rc=0 16:07:14
+{"verdict": "clean", "rc": 0, "checked_utc": "2026-09-28T16:07:14Z", "instances": [{"pid": 431, "start_ticks": 20521, "role": "root", "status": "dead_gone"}, {"pid": 432, "start_ticks": 20525, "role": "child", "status": "dead_gone"}, {"pid": 433, "start_ticks": 20527, "role": "grandchild", "status": "dead_gone"}]}
+R25BATCH checker w1 rc=0
+R25BATCH probe start w2-burn 16:07:14
+{"label": "w2", "pid": 448, "ppid": 447, "pgid": 422, "sid": 422, "utc": "2026-09-28T16:07:14Z", "mode": "burn", "seconds": 30.0}
+{"label": "w2", "pid": 448, "ppid": 447, "pgid": 422, "sid": 422, "utc": "2026-09-28T16:07:42Z", "ended": true}
+R25BATCH probe end w2 rc=0 16:07:42
+{"verdict": "clean", "rc": 0, "checked_utc": "2026-09-28T16:07:42Z", "instances": [{"pid": 448, "start_ticks": 25052, "role": "root", "status": "dead_gone"}]}
+R25BATCH checker w2 rc=0
+R25BATCH probe start w3-sleep-timeout-12s 16:07:42
+{"label": "w3", "pid": 456, "ppid": 455, "pgid": 422, "sid": 422, "utc": "2026-09-28T16:07:42Z", "mode": "sleep", "seconds": 300.0}
+{"role": "root", "event": "spawned", "spawned": {"child": {"pid": 457, "start_ticks": 28083}, "grandchild": {"pid": 458, "start_ticks": 28086}}}
+R25BATCH probe end w3 rc=124 16:07:54
+{"verdict": "clean", "rc": 0, "checked_utc": "2026-09-28T16:07:55Z", "instances": [{"pid": 456, "start_ticks": 28080, "role": "root", "status": "dead_gone"}, {"pid": 457, "start_ticks": 28083, "role": "child", "status": "dead_gone"}, {"pid": 458, "start_ticks": 28086, "role": "grandchild", "status": "dead_gone"}]}
+R25BATCH checker w3 rc=0
+R25BATCH DONE fail=0 20260928T160755Z
