@@ -1,10 +1,11 @@
-# E03B 真实 5 run 正文复核（第三版核验器，REVIEW(1) §7 交回动作）
-executed_utc: 2026-09-28T19:46:24Z
+# E03B 真实 5 run 正文复核（第三版核验器+P3 补丁，reviewer 内容验收后自测重跑）
+executed_utc: 2026-09-28T20:33:18Z
 argv: C:\Users\15027\AppData\Local\Programs\Python\Python313\python.exe e03b_verify_supervision_content.py
 interpreter: C:\Users\15027\AppData\Local\Programs\Python\Python313\python.exe 3.13.7
 cwd: F:\trading\freqai-rl-audit\stage2_6_1\artifacts\repair17\development\r25_proposal_evidence_20260929T0155
 --- stdout ---
 PASS [20260928T160626_7004_367] A_required_all_verified :: n=9 bad=[]
+PASS [20260928T160626_7004_367] B_telemetry_no_bad_lines :: guest_bad_lines=[] win_bad_lines=[]
 PASS [20260928T160626_7004_367] C_guest_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260928T160626_7004_367] C_win_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260928T160626_7004_367] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 1 例=业务树建立前记录语义) win_invalid=0/classified_sample_records=17/valid=17
@@ -17,8 +18,9 @@ PASS [20260928T160626_7004_367] D_win_commit_max :: recomputed=37.07688239253775
 PASS [20260928T160626_7004_367] E_tasks_observed :: distinct_identities=11 total_task_rows=68
 PASS [20260928T160626_7004_367] E_pid_identity_stable :: unstable_pid_ticks={} reused_flags_observed=none (reused 标记≠泄漏断言，仅记录；身份稳定性=每 pid 恰一 inst_start_ticks)
 PASS [20260928T160626_7004_367] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w1:431(burn 45.0s own-increments=7/8)', 'w2:448(burn 30.0s own-increments=5/6)', 'w3:456(sleep identity observed)'] fails=[]
-PASS [20260928T160626_7004_367] F_registry_identities_in_telemetry :: missing={} observed_identities=11 (registry 实例按完整 (pid,start_ticks) 逐一匹配；遥测多出的外壳进程属监护树正常)
+PASS [20260928T160626_7004_367] F_registry_identities_in_telemetry :: missing={} observed_identities=11 (registry 实例按完整 (pid,start_ticks) 逐一匹配，两侧缺 ticks 视为不完整身份；遥测多出的外壳进程属监护树正常)
 PASS [20260928T160934_4301_1088] A_required_all_verified :: n=9 bad=[]
+PASS [20260928T160934_4301_1088] B_telemetry_no_bad_lines :: guest_bad_lines=[] win_bad_lines=[]
 PASS [20260928T160934_4301_1088] C_guest_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260928T160934_4301_1088] C_win_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260928T160934_4301_1088] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 1 例=业务树建立前记录语义) win_invalid=0/classified_sample_records=500/valid=500
@@ -32,6 +34,7 @@ PASS [20260928T160934_4301_1088] E_tasks_observed :: distinct_identities=243 tot
 PASS [20260928T160934_4301_1088] E_pid_identity_stable :: unstable_pid_ticks={} reused_flags_observed=none (reused 标记≠泄漏断言，仅记录；身份稳定性=每 pid 恰一 inst_start_ticks)
 PASS [20260928T160934_4301_1088] E_positive_cpu_increments :: count=473
 PASS [20260926T212149_1124_424] A_required_all_verified :: n=9 bad=[]
+PASS [20260926T212149_1124_424] B_telemetry_no_bad_lines :: guest_bad_lines=[] win_bad_lines=[]
 PASS [20260926T212149_1124_424] C_guest_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T212149_1124_424] C_win_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T212149_1124_424] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 1 例=业务树建立前记录语义) win_invalid=0/classified_sample_records=17/valid=17
@@ -45,6 +48,7 @@ PASS [20260926T212149_1124_424] E_tasks_observed :: distinct_identities=11 total
 PASS [20260926T212149_1124_424] E_pid_identity_stable :: unstable_pid_ticks={} reused_flags_observed=none (reused 标记≠泄漏断言，仅记录；身份稳定性=每 pid 恰一 inst_start_ticks)
 PASS [20260926T212149_1124_424] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w1:473(burn 45.0s own-increments=7/8)', 'w2:486(burn 30.0s own-increments=5/6)', 'w3:494(sleep identity observed)'] fails=[]
 PASS [20260926T212354_1984_392] A_required_all_verified :: n=9 bad=[]
+PASS [20260926T212354_1984_392] B_telemetry_no_bad_lines :: guest_bad_lines=[] win_bad_lines=[]
 PASS [20260926T212354_1984_392] C_guest_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T212354_1984_392] C_win_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T212354_1984_392] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 1 例=业务树建立前记录语义) win_invalid=0/classified_sample_records=499/valid=499
@@ -58,6 +62,7 @@ PASS [20260926T212354_1984_392] E_tasks_observed :: distinct_identities=227 tota
 PASS [20260926T212354_1984_392] E_pid_identity_stable :: unstable_pid_ticks={} reused_flags_observed=none (reused 标记≠泄漏断言，仅记录；身份稳定性=每 pid 恰一 inst_start_ticks)
 PASS [20260926T212354_1984_392] E_positive_cpu_increments :: count=473
 PASS [20260926T220905_5450_537] A_required_all_verified :: n=9 bad=[]
+PASS [20260926T220905_5450_537] B_telemetry_no_bad_lines :: guest_bad_lines=[] win_bad_lines=[]
 PASS [20260926T220905_5450_537] C_guest_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T220905_5450_537] C_win_seq_clean :: recomputed dup=0 reg=0 replay=0; summary=0/0
 PASS [20260926T220905_5450_537] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 1 例=业务树建立前记录语义) win_invalid=0/classified_sample_records=513/valid=513
@@ -72,6 +77,4 @@ PASS [20260926T220905_5450_537] E_pid_identity_stable :: unstable_pid_ticks={} r
 PASS [20260926T220905_5450_537] E_positive_cpu_increments :: count=486
 
 OVERALL: ALL PASS -> E03B_SUPERVISION_CONTENT_VERIFICATION.json
---- stderr ---
-(empty)
 rc: 0

@@ -69,11 +69,16 @@ def verify_run(rid: str, *, registry_idents: dict | None = None):
    # 生命周期记录 = event in {sampler_end,...} 或含 perf_api_ok/token 的 start 行。
    # 无效 sample = 分类为 sample 但 perf 非 dict 或必需数值键缺失；不得先筛后数。
     w_sample_records = [r for r in wrecs if ('seq' in r) or r.get('event') == 'sample']
-    w_samples = [r for r in w_sample_records if isinstance(r.get('perf'), dict)]
-    w_invalid = sum(1 for r in w_sample_records if not isinstance(r.get('perf'), dict)
-                    or not isinstance(r['perf'].get('phys_avail_gb'), (int, float))
-                    or not isinstance(r['perf'].get('commit_total_gb'), (int, float))
-                    or not isinstance(r['perf'].get('commit_limit_gb'), (int, float)))
+    w_valid_perf = lambda r: (isinstance(r.get('perf'), dict)
+                              and isinstance(r['perf'].get('phys_avail_gb'), (int, float))
+                              and isinstance(r['perf'].get('commit_total_gb'), (int, float))
+                              and isinstance(r['perf'].get('commit_limit_gb'), (int, float)))
+    w_samples = [r for r in w_sample_records if w_valid_perf(r)]
+    w_invalid = sum(1 for r in w_sample_records if not w_valid_perf(r))
+    # 遥测坏行（JSON 解析失败）纳入判定：非零即 FAIL（与旧核验器 telemetry_jsonl_parseable 语义一致，
+    # 消除双核验器判据不一致；数值字段类型非法的 perf 亦按无效样本计，不再进入后续 min/max 引发 TypeError）
+    check(rid, 'B_telemetry_no_bad_lines', not gbad and not wbad,
+          f'guest_bad_lines={gbad} win_bad_lines={wbad}')
     # 无效样本判据：meminfo 非对象 / 缺 mono / tasks 既非 null(首样本业务树未建)也非 list；
     # 首样本 tasks=None 属记录语义(观测开始前无任务树)，显式认可并在 C 检查 detail 说明，不静默放行其他类型。
     g_invalid = sum(1 for r in g_samples if not isinstance(r.get('meminfo'), dict) or 'mono' not in r
@@ -209,11 +214,19 @@ def verify_run(rid: str, *, registry_idents: dict | None = None):
         missing = {}
         for w, idents in registry_idents.items():
             for (pid, ticks, role) in idents:
-                if (pid, ticks) not in observed:
+                # P3-b：两侧任一缺 start_ticks 时不得退化为纯 PID 匹配——ticks 缺失本身即不完整身份
+                if ticks is None:
+                    missing.setdefault(w, []).append(f'pid={pid},start_ticks=MISSING,role={role}')
+                elif (pid, ticks) not in observed:
                     missing.setdefault(w, []).append(f'pid={pid},start_ticks={ticks},role={role}')
+        obs_none_ticks = sorted(p for (p, t) in per_ident if t is None)
+        if obs_none_ticks:
+            missing.setdefault('(telemetry)', []).append(
+                f'telemetry inst_start_ticks=MISSING for pids {obs_none_ticks}')
         check(rid, 'F_registry_identities_in_telemetry', not missing,
               f'missing={missing} observed_identities={len(observed)} '
-              f'(registry 实例按完整 (pid,start_ticks) 逐一匹配；遥测多出的外壳进程属监护树正常)')
+              f'(registry 实例按完整 (pid,start_ticks) 逐一匹配，两侧缺 ticks 视为不完整身份；'
+              f'遥测多出的外壳进程属监护树正常)')
 
 ALL = ['20260928T160626_7004_367', '20260928T160934_4301_1088',
        '20260926T212149_1124_424', '20260926T212354_1984_392', '20260926T220905_5450_537']

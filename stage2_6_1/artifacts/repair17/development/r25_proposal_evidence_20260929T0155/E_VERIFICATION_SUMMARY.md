@@ -70,6 +70,10 @@
 - **E03-c 样本完整性**：win 侧先按协议分类（sample 记录=含 'seq' 键或 event=='sample'，**无论 perf 是否合法**），再在全集校验必需字段/类型；无效计数与 summary.win_invalid_samples 的矛盾即 FAIL；JSON 坏行计入 `B_parse_no_bad_lines` 判定（既有）。
 - 重验：真实 5 run **ALL PASS rc=0**（66 项检查；w1 burn own-increments=7/8、w2=5/6、w3 sleep 豁免；registry 元组 0 缺失）；合成反例扩至 **8 用例**全部按预期（新增 identity_mismatch→F 拒、burn_cpu_flat→G 拒、null_perf_sample→C_invalid 拒；integration_control 含 registry+mode 健康对照过；旧 4 反例保留）。执行日志以**真实时间戳/解释器/cwd/rc/stdout** 落盘（E03B_REAL_RUNS_EXECUTION.log / E03B_SYNTH_EXECUTION.log，第二轮版本已被自然替换；旧原件在 git 39f38770 保留）。
 
+### 3.4 reviewer 内容验收后的 P2/P3 处置（2026-09-29，glm-5.3-flash 独立验收意见）
+
+独立内容验收 PASS（correct, 0.88）附 1 项 P2+3 项 P3。处置：**P2**（975e16a4 提交声称 prune 但 489 个夹具文件仍被 git 追踪——.gitignore 对已追踪文件无效）→ 本轮真删（`git rm` 462 个 runs/+i01/ 追踪文件，保留 SYNTHETIC_ONLY.md/run_log.txt/verification_result.json 24 件）并以本提交如实描述。**P3-a** e03b 峰值段对类型非法 perf 崩溃 rc=1 → 数值字段类型过滤并入无效样本判定（w_valid_perf），拒绝保持结构化 rc=2。**P3-b** 两侧缺 start_ticks 时 F 退化为 PID 匹配 → 缺 ticks（registry 侧或遥测侧）即记 missing，不再退化。**P3-c** 坏行收集不判定 → 新增 `B_telemetry_no_bad_lines`（与旧核验器 parseable 语义一致）。自测重跑：真实 5 run rc=0（71 项 PASS）、合成 8 用例 rc=0 全按预期；执行日志以真实时间戳重新落盘。已交回同一 reviewer 复验。
+
 ## 4. 执行记录（命令/解释器/cwd/rc）
 
 | # | 命令 | 解释器 | cwd | rc |
