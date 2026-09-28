@@ -49,11 +49,19 @@ class CurriculumMultiEpisodeEnv(gym.Env):
         self, bank: list[LoadedEpisode], *,
         eval_config: EvalConfig | None = None,
         schema=None,
+        preprocessor=None,
     ):
+        """preprocessor:冻结的 RouteCPreprocessorV2(新版资格输入的
+        V2 bundle)。传入时 episode 特征列经冻结 transform 缩放,内层
+        env 外再包 RouteCPreprocessingEnvV2(9 维 V2 outer space:feature
+        无界、position [0,1];值透传不 clip);价格列保持 raw(账本/
+        成交语义与无预处理路径逐位一致,V03)。缺省 None = 历史行为
+        逐位不变(旧 R2 路径不受影响)。"""
         super().__init__()
         if not bank:
             raise ValueError("bank 不能为空")
         self.bank = list(bank)
+        self.preprocessor = preprocessor
         self.eval_config = eval_config or curriculum261_eval_config()
         self.schema = schema or production_observation_schema()
         if self.eval_config.window_size != self.schema.window_size:
@@ -74,12 +82,33 @@ class CurriculumMultiEpisodeEnv(gym.Env):
         self.episode_trace: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------ 内层构造
-    def _build_inner(self, loaded: LoadedEpisode) -> AlignedLongFlatEnv:
+    def _build_inner(self, loaded: LoadedEpisode):
         ep = loaded.episode
-        features = select_features_strict(ep.df, self.schema)
-        return AlignedLongFlatEnv(
+        if self.preprocessor is None:
+            features = select_features_strict(ep.df, self.schema)
+            return AlignedLongFlatEnv(
+                features=features,
+                prices=ep.df[list(PRICE_COLUMNS)],
+                fee=self.eval_config.fee,
+                slippage_bps=self.eval_config.slippage_bps,
+                initial_cash=self.eval_config.initial_cash,
+                reward_scale=self.eval_config.reward_scale,
+                window_size=self.eval_config.window_size,
+                price_tick=self.eval_config.price_tick,
+                execution_mode="market_open_causal",
+            )
+        # 新版资格输入路径:特征列经冻结 V2 transform(8 列 scaled,
+        # 价格列 raw),内层 env 外包 V2 outer wrapper(真实空间声明)。
+        # 构造期与每次 reset 都走本分支(SOURCE_FACTS:V2 接入必须覆盖
+        # 构造与 reset 的实际环境,而非只改文档)。
+        from rl_curriculum.curriculum261_r4_preprocessing import (
+            RouteCPreprocessingEnvV2,
+        )
+        scaled_df = self.preprocessor.transform_episode_df(ep.df)
+        features = select_features_strict(scaled_df, self.schema)
+        inner = AlignedLongFlatEnv(
             features=features,
-            prices=ep.df[list(PRICE_COLUMNS)],
+            prices=scaled_df[list(PRICE_COLUMNS)],
             fee=self.eval_config.fee,
             slippage_bps=self.eval_config.slippage_bps,
             initial_cash=self.eval_config.initial_cash,
@@ -88,6 +117,8 @@ class CurriculumMultiEpisodeEnv(gym.Env):
             price_tick=self.eval_config.price_tick,
             execution_mode="market_open_causal",
         )
+        return RouteCPreprocessingEnvV2(
+            inner, bundle_hash=self.preprocessor.bundle_hash)
 
     # ------------------------------------------------------------ 审计辅助
     def _attribution(self) -> dict[str, Any]:

@@ -132,6 +132,7 @@ def generate262_pair(
     family: str, rung: str, pair_index: int, *, namespace: str,
     locked_rung_params: dict[str, Any],
     derive_seed_fn=None,
+    param_recorder=None,
 ) -> dict[str, GeneratedEpisode]:
     """2.6.2 的确定性 pair 生成(2.6.1 attempt 语义 + 262 seed 派生)。
 
@@ -140,7 +141,12 @@ def generate262_pair(
     - 与 2.6.1 generate_pair 的唯一差异:seed = derive262_seed(...)
       (2.6.1 派生函数的 namespace 列表属冻结合同,不可扩充);
     - derive_seed_fn(repair1 诊断):诊断语料走
-      derive262_diag_seed(s262_diag_r1 流);缺省 official 流。
+      derive262_diag_seed(s262_diag_r1 流);缺省 official 流;
+    - param_recorder(engineering bridge):真实 generator 调用边界的
+      参数观察钩子 —— 每个 side 在 spec.generator.generate 被调用前
+      以 (family, rung, side, params) 调用一次;缺省 None = 行为
+      逐位不变。只观察,不改变参数/seed/接受条件(与 R11 passive
+      recorder 同一纪律)。
     """
     if rung not in CURRICULUM261_RUNGS:
         raise GeneratorError(f"未知 rung {rung!r}")
@@ -153,6 +159,9 @@ def generate262_pair(
         side: spec.generator.base_params(params_src, side)
         for side in PPO262_SIDES
     }
+    if param_recorder is not None:
+        for side in PPO262_SIDES:
+            param_recorder(family, rung, side, dict(base_params[side]))
     issues_all: list[list[str]] = []
     for attempt in range(5):
         seed = derive_seed_fn(namespace, family, rung, pair_index, attempt)
@@ -177,11 +186,12 @@ def generate262_pair(
 
 def generate262_bank(
     keys: list[EpisodeKey], *, locked_plan_rung_params: dict[str, Any],
-    progress: bool = False, derive_seed_fn=None,
+    progress: bool = False, derive_seed_fn=None, param_recorder=None,
 ) -> list[LoadedEpisode]:
     """按 key 列表生成 episode bank(pair A/B 一次生成两份)。
 
     derive_seed_fn:诊断语料传 derive262_diag_seed;缺省 official 流。
+    param_recorder:透传 generate262_pair(真实 generator 边界观察)。
     """
     pair_cache: dict[tuple, dict[str, GeneratedEpisode]] = {}
     out: list[LoadedEpisode] = []
@@ -194,7 +204,8 @@ def generate262_bank(
         pair_cache[sk] = generate262_pair(
             family, rung, pair_index, namespace=namespace,
             locked_rung_params=locked_plan_rung_params[family],
-            derive_seed_fn=derive_seed_fn)
+            derive_seed_fn=derive_seed_fn,
+            param_recorder=param_recorder)
         if progress and (i + 1) % 50 == 0:
             print(f"  generated {i + 1}/{len(pair_keys)} pairs", flush=True)
     for k in keys:

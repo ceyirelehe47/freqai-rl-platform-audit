@@ -1,0 +1,1157 @@
+{
+  "format": "ppo262e-route-profile-inputs-v1",
+  "iteration": "s262e_r1",
+  "qualified_input": {
+    "iteration": "s262e_r1",
+    "qualification_plan_digest": "qp262e-c7e99e9dab11aa216ec9ea427e91e1721b348795d3aeb77edb0daa9185a6acd3",
+    "qualification_source_iteration": "s262e_fixture_v1",
+    "qualification_scope": "engineering",
+    "parameter_pack_digest": "e262pk-f77d77468915370800bebcc402d353fbcef7a4025317e1db314bc0162df53292",
+    "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+    "profile": "ppo262_engineering_v1",
+    "authorization_binding_digest": "e262az-fefdd436fa9a4cc3dcc967e4ac150437dbf740dfbc7fef02fabfd0d6f77834d5",
+    "consumer_common_contract": {
+      "production_observation_identity": {
+        "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+        "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+        "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+        "feature_columns": [
+          "%-ret-1",
+          "%-ret-4",
+          "%-vol-24",
+          "%-price-ma-ratio",
+          "%-raw_open",
+          "%-raw_high",
+          "%-raw_low",
+          "%-raw_close"
+        ],
+        "observation_dim": 9,
+        "env_core_version": "RouteCEnvCore-v1.0.0",
+        "observation_spec_version": "ObservationSpec-v1",
+        "window_size": 1
+      },
+      "family_versions": {
+        "c1_opportunity": "cur261-c1-v5",
+        "c2_context": "cur261-c2-v9",
+        "c3_cost": "cur261-c3-v4"
+      },
+      "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+    }
+  },
+  "entry_classes": [
+    "smoke",
+    "config_dev",
+    "probe",
+    "core",
+    "dev_eval",
+    "final"
+  ],
+  "routes": {
+    "smoke": {
+      "rung_params_source": "qualified_input.pack",
+      "bank_namespace": "ppo_eng_bank_262e",
+      "bank_keys": [
+        "ppo_eng_bank_262e|c1_opportunity|D1|0|A",
+        "ppo_eng_bank_262e|c1_opportunity|D1|0|B",
+        "ppo_eng_bank_262e|c2_context|D1|0|A",
+        "ppo_eng_bank_262e|c2_context|D1|0|B",
+        "ppo_eng_bank_262e|c3_cost|D1|0|A",
+        "ppo_eng_bank_262e|c3_cost|D1|0|B"
+      ],
+      "preprocessor": "qualified_input.bundle(frozen V2)",
+      "ppo_config": {
+        "policy": "MlpPolicy",
+        "learning_rate": 0.0003,
+        "n_steps": 256,
+        "batch_size": 64,
+        "n_epochs": 10,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "clip_range": 0.2,
+        "ent_coef": 0.01,
+        "vf_coef": 0.5,
+        "max_grad_norm": 0.5,
+        "net_arch": [
+          128,
+          128
+        ],
+        "activation_fn": "Tanh",
+        "device": "cpu"
+      },
+      "steps": 256
+    },
+    "config_dev": {
+      "rung_params_source": "qualified_input.pack",
+      "rung_params": {
+        "c1_opportunity": {
+          "D0": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 46.0,
+            "opp_drift_bps": 60.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D1": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 33.0,
+            "opp_drift_bps": 45.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 27.0
+          },
+          "D2": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 27.0,
+            "opp_drift_bps": 34.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D3": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 16.0,
+            "opp_drift_bps": 21.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          }
+        },
+        "c2_context": {
+          "D0": {
+            "alpha_bps": 68.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.8,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D1": {
+            "alpha_bps": 50.0,
+            "cue_rate": 0.8,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.55,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D2": {
+            "alpha_bps": 40.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.38,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D3": {
+            "alpha_bps": 32.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.25,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          }
+        },
+        "c3_cost": {
+          "D0": {
+            "alpha_bps": 70.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.015,
+            "mixture": [
+              0.6,
+              0.25,
+              0.15
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D1": {
+            "alpha_bps": 58.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.025,
+            "mixture": [
+              0.46,
+              0.32,
+              0.22
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D2": {
+            "alpha_bps": 54.0,
+            "cue_rate": 0.22,
+            "distractor_rate": 0.04,
+            "mixture": [
+              0.34,
+              0.35,
+              0.31
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D3": {
+            "alpha_bps": 46.0,
+            "cue_rate": 0.23,
+            "distractor_rate": 0.06,
+            "mixture": [
+              0.14,
+              0.36,
+              0.5
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          }
+        }
+      },
+      "reference_thresholds": {
+        "c1_opportunity": {
+          "ma_sigma_mult": 1.0
+        },
+        "c2_context": {
+          "cue_thr": 0.0105,
+          "wick_dir_thr": 0.0,
+          "wick_width_thr": 0.012
+        },
+        "c3_cost": {
+          "any_signal_s": 0.22,
+          "margin": 1.1
+        }
+      },
+      "train_namespace": "ppo_eng_bank_262e",
+      "rung": "D1",
+      "note": "本轮只测路由:解析到的参数/坐标记录在案,不运行config-dev 教学预算"
+    },
+    "probe": {
+      "rung_params_source": "qualified_input.pack",
+      "rung_params": {
+        "c1_opportunity": {
+          "D0": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 46.0,
+            "opp_drift_bps": 60.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D1": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 33.0,
+            "opp_drift_bps": 45.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 27.0
+          },
+          "D2": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 27.0,
+            "opp_drift_bps": 34.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D3": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 16.0,
+            "opp_drift_bps": 21.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          }
+        },
+        "c2_context": {
+          "D0": {
+            "alpha_bps": 68.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.8,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D1": {
+            "alpha_bps": 50.0,
+            "cue_rate": 0.8,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.55,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D2": {
+            "alpha_bps": 40.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.38,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D3": {
+            "alpha_bps": 32.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.25,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          }
+        },
+        "c3_cost": {
+          "D0": {
+            "alpha_bps": 70.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.015,
+            "mixture": [
+              0.6,
+              0.25,
+              0.15
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D1": {
+            "alpha_bps": 58.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.025,
+            "mixture": [
+              0.46,
+              0.32,
+              0.22
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D2": {
+            "alpha_bps": 54.0,
+            "cue_rate": 0.22,
+            "distractor_rate": 0.04,
+            "mixture": [
+              0.34,
+              0.35,
+              0.31
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D3": {
+            "alpha_bps": 46.0,
+            "cue_rate": 0.23,
+            "distractor_rate": 0.06,
+            "mixture": [
+              0.14,
+              0.36,
+              0.5
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          }
+        }
+      },
+      "reference_thresholds": {
+        "c1_opportunity": {
+          "ma_sigma_mult": 1.0
+        },
+        "c2_context": {
+          "cue_thr": 0.0105,
+          "wick_dir_thr": 0.0,
+          "wick_width_thr": 0.012
+        },
+        "c3_cost": {
+          "any_signal_s": 0.22,
+          "margin": 1.1
+        }
+      },
+      "train_namespace": "ppo_eng_bank_262e",
+      "note": "本轮只测路由:probe 预算不运行"
+    },
+    "core": {
+      "rung_params_source": "qualified_input.pack",
+      "rung_params": {
+        "c1_opportunity": {
+          "D0": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 46.0,
+            "opp_drift_bps": 60.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D1": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 33.0,
+            "opp_drift_bps": 45.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 27.0
+          },
+          "D2": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 27.0,
+            "opp_drift_bps": 34.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D3": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 16.0,
+            "opp_drift_bps": 21.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          }
+        },
+        "c2_context": {
+          "D0": {
+            "alpha_bps": 68.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.8,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D1": {
+            "alpha_bps": 50.0,
+            "cue_rate": 0.8,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.55,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D2": {
+            "alpha_bps": 40.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.38,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D3": {
+            "alpha_bps": 32.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.25,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          }
+        },
+        "c3_cost": {
+          "D0": {
+            "alpha_bps": 70.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.015,
+            "mixture": [
+              0.6,
+              0.25,
+              0.15
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D1": {
+            "alpha_bps": 58.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.025,
+            "mixture": [
+              0.46,
+              0.32,
+              0.22
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D2": {
+            "alpha_bps": 54.0,
+            "cue_rate": 0.22,
+            "distractor_rate": 0.04,
+            "mixture": [
+              0.34,
+              0.35,
+              0.31
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D3": {
+            "alpha_bps": 46.0,
+            "cue_rate": 0.23,
+            "distractor_rate": 0.06,
+            "mixture": [
+              0.14,
+              0.36,
+              0.5
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          }
+        }
+      },
+      "reference_thresholds": {
+        "c1_opportunity": {
+          "ma_sigma_mult": 1.0
+        },
+        "c2_context": {
+          "cue_thr": 0.0105,
+          "wick_dir_thr": 0.0,
+          "wick_width_thr": 0.012
+        },
+        "c3_cost": {
+          "any_signal_s": 0.22,
+          "margin": 1.1
+        }
+      },
+      "train_namespace": "ppo_eng_bank_262e",
+      "staged_mixed_orders": [
+        "staged_order/generate262_bank 同一多重集 mixed_order"
+      ],
+      "note": "本轮只测路由:core 教学预算不运行"
+    },
+    "dev_eval": {
+      "rung_params_source": "qualified_input.pack",
+      "rung_params": {
+        "c1_opportunity": {
+          "D0": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 46.0,
+            "opp_drift_bps": 60.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D1": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 33.0,
+            "opp_drift_bps": 45.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 27.0
+          },
+          "D2": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 27.0,
+            "opp_drift_bps": 34.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D3": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 16.0,
+            "opp_drift_bps": 21.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          }
+        },
+        "c2_context": {
+          "D0": {
+            "alpha_bps": 68.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.8,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D1": {
+            "alpha_bps": 50.0,
+            "cue_rate": 0.8,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.55,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D2": {
+            "alpha_bps": 40.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.38,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D3": {
+            "alpha_bps": 32.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.25,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          }
+        },
+        "c3_cost": {
+          "D0": {
+            "alpha_bps": 70.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.015,
+            "mixture": [
+              0.6,
+              0.25,
+              0.15
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D1": {
+            "alpha_bps": 58.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.025,
+            "mixture": [
+              0.46,
+              0.32,
+              0.22
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D2": {
+            "alpha_bps": 54.0,
+            "cue_rate": 0.22,
+            "distractor_rate": 0.04,
+            "mixture": [
+              0.34,
+              0.35,
+              0.31
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D3": {
+            "alpha_bps": 46.0,
+            "cue_rate": 0.23,
+            "distractor_rate": 0.06,
+            "mixture": [
+              0.14,
+              0.36,
+              0.5
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          }
+        }
+      },
+      "reference_thresholds": {
+        "c1_opportunity": {
+          "ma_sigma_mult": 1.0
+        },
+        "c2_context": {
+          "cue_thr": 0.0105,
+          "wick_dir_thr": 0.0,
+          "wick_width_thr": 0.012
+        },
+        "c3_cost": {
+          "any_signal_s": 0.22,
+          "margin": 1.1
+        }
+      },
+      "eval_config": "EvalConfig 沿 curriculum261_eval_config()(冻结账本一致口径,fee=0.001/无滑点/100 现金;V03:价格列 raw,账本语义不因缩放变化)",
+      "preprocessor": "qualified_input.bundle(frozen V2,零 refit)",
+      "note": "本轮只测路由:dev-eval bank 不生成"
+    },
+    "final": {
+      "rung_params_source": "qualified_input.pack",
+      "rung_params": {
+        "c1_opportunity": {
+          "D0": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 46.0,
+            "opp_drift_bps": 60.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D1": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 33.0,
+            "opp_drift_bps": 45.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 27.0
+          },
+          "D2": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 27.0,
+            "opp_drift_bps": 34.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          },
+          "D3": {
+            "distractor_rate": 0.0,
+            "neg_drift_bps": 16.0,
+            "opp_drift_bps": 21.0,
+            "seg_len_range": [
+              24,
+              24
+            ],
+            "state_weights": [
+              0.36,
+              0.28,
+              0.36
+            ],
+            "vol_bps": 26.0
+          }
+        },
+        "c2_context": {
+          "D0": {
+            "alpha_bps": 68.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.8,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D1": {
+            "alpha_bps": 50.0,
+            "cue_rate": 0.8,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.55,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D2": {
+            "alpha_bps": 40.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.38,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          },
+          "D3": {
+            "alpha_bps": 32.0,
+            "cue_rate": 0.82,
+            "dir_len_range": [
+              56,
+              80
+            ],
+            "narrow_wick_bps": 30.0,
+            "payoff_bars": 1,
+            "pulse_bps": 150.0,
+            "vol_bps": 20.0,
+            "wick_base_bps": 80.0,
+            "wick_kappa": 0.25,
+            "wide_wick_bps": 110.0,
+            "width_len_range": [
+              96,
+              136
+            ]
+          }
+        },
+        "c3_cost": {
+          "D0": {
+            "alpha_bps": 70.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.015,
+            "mixture": [
+              0.6,
+              0.25,
+              0.15
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D1": {
+            "alpha_bps": 58.0,
+            "cue_rate": 0.2,
+            "distractor_rate": 0.025,
+            "mixture": [
+              0.46,
+              0.32,
+              0.22
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D2": {
+            "alpha_bps": 54.0,
+            "cue_rate": 0.22,
+            "distractor_rate": 0.04,
+            "mixture": [
+              0.34,
+              0.35,
+              0.31
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          },
+          "D3": {
+            "alpha_bps": 46.0,
+            "cue_rate": 0.23,
+            "distractor_rate": 0.06,
+            "mixture": [
+              0.14,
+              0.36,
+              0.5
+            ],
+            "payoff_bars": 1,
+            "vol_bps": 18.0
+          }
+        }
+      },
+      "reference_thresholds": {
+        "c1_opportunity": {
+          "ma_sigma_mult": 1.0
+        },
+        "c2_context": {
+          "cue_thr": 0.0105,
+          "wick_dir_thr": 0.0,
+          "wick_width_thr": 0.012
+        },
+        "c3_cost": {
+          "any_signal_s": 0.22,
+          "margin": 1.1
+        }
+      },
+      "note": "final 入口属正式链:本轮不存在 formal 授权,任何请求在生成/更新前拒绝(见 eng-input-lock --scope formal)"
+    }
+  },
+  "r2_default_still_available": {
+    "rung_params_keys": [
+      "c1_opportunity",
+      "c2_context",
+      "c3_cost"
+    ],
+    "reference_thresholds_keys": [
+      "c1_opportunity",
+      "c2_context",
+      "c3_cost"
+    ]
+  },
+  "pack_differs_from_r2": true,
+  "note": "六类入口在新 profile 下均从同一 QualifiedInput 快照取参;官方 R2 默认路径保持不变(缺省行为不受影响)"
+}

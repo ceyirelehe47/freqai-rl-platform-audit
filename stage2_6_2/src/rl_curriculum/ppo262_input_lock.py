@@ -170,6 +170,20 @@ R17_FRAMEWORK_REGISTERED_CODE_CHANGES = {
         "e461115c7c75f1c9e3c2d5b7021094e3df9c86e32e5af2155a0c319c950c70b9",
 }
 
+#: R25 结项基线登记(2026-09-29;覆盖同名键,合并视图取最新):
+#: api.py 于 R17 登记锚 92818db2 之后至 R25 收口 5ac420a1 之间的
+#: 全部已提交演进 = R18/R19 尝试族接入(已由 R17_FRAMEWORK 登记项
+#: 注释覆盖语义)+ R25 cue-bias 开发研究一次性 namespace 白名单
+#: (commit 5849accc:CURRICULUM261_R25_DEV_NAMESPACES 28 个显式枚举
+#: 开发 namespace 追加进 seed 派生白名单;正式名单不变;
+#: _derive261_seed_raw payload 构造与黄金向量不变,仅新增 namespace
+#: 字符串进哈希;generator/family/production obs 语义不变)。
+#: 登记哈希 = 当前树实际 sha256;再漂移仍 fail(下一轮须显式再登记)。
+R25_BASELINE_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "ec0203371284943055481ad4758cafd48f13a478ca0d63deec3197b52fd539aa",
+}
+
 
 #: 全部迭代登记的合并视图(R6-R11 覆盖同名键;run_input_lock 的
 #: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
@@ -179,7 +193,8 @@ REGISTERED_261_CODE_CHANGES = {
     **R5_REGISTERED_CODE_CHANGES, **R6_REGISTERED_CODE_CHANGES,
     **R7_REGISTERED_CODE_CHANGES, **R8_REGISTERED_CODE_CHANGES,
     **R9_REGISTERED_CODE_CHANGES, **R10_REGISTERED_CODE_CHANGES,
-    **R11_REGISTERED_CODE_CHANGES, **R17_FRAMEWORK_REGISTERED_CODE_CHANGES}
+    **R11_REGISTERED_CODE_CHANGES, **R17_FRAMEWORK_REGISTERED_CODE_CHANGES,
+    **R25_BASELINE_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)

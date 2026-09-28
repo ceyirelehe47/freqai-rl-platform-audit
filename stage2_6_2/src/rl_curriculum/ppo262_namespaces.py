@@ -60,12 +60,15 @@ PPO262_PROBE_NAMESPACES = {
 }
 
 #: 全部 2.6.2 namespace(显式枚举;replicate 子 namespace 按规则展开)
+#: ppo_eng_bank_262e = engineering bridge 的隔离工程训练/bank namespace
+#: (qualified input 工程沙箱;seed 派生自动进入隔离合同枚举)
 PPO262_BASE_NAMESPACES = (
     "ppo_config_dev_262",
     "ppo_probe_eval_262",
     "ppo_dev_eval_262",
     "ppo_final_eval_262",
     "ppo_smoke_262",
+    "ppo_eng_bank_262e",
 ) + tuple(sorted(PPO262_PROBE_NAMESPACES.values()))
 
 

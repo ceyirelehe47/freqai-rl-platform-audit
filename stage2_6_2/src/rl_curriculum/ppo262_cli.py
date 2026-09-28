@@ -1368,6 +1368,191 @@ def cmd_config_dev_select(args) -> int:
     return 0
 
 
+# ============================================================ engineering
+#: Engineering Bridge(qualified input -> 训练消费侧)显式入口族。
+#: 全部命令要求已验证的 QualifiedInput 快照;正式 scope(formal)在
+#: 本轮不存在授权链,一律在生成/更新前拒绝(G01)。
+def _eng_load_input(args, *, expected_scope: str | None = None,
+                    expected_profile: str | None = None):
+    from rl_curriculum.ppo262_qualified_input import load_qualified_input
+    return load_qualified_input(
+        args.qual_dir, authorization_path=args.auth,
+        expected_scope=expected_scope or args.scope,
+        expected_profile=expected_profile)
+
+
+def cmd_eng_fixture_build(args) -> int:
+    from rl_curriculum.ppo262_eng_fixture import build_eng_fixture
+    out = build_eng_fixture(args.out_dir, variant=args.pack)
+    print(json.dumps({"built": True,
+                      "qualification_dir": out["qualification_dir"],
+                      "authorization_path": out["authorization_path"],
+                      "qualification_plan_digest": (
+                          out["qualification_plan_digest"]),
+                      "parameter_pack_digest": out["parameter_pack_digest"],
+                      "preprocessor_bundle_hash": (
+                          out["preprocessor_bundle_hash"]),
+                      "engineering_only": True}, ensure_ascii=False))
+    return 0
+
+
+def cmd_eng_input_lock(args) -> int:
+    """qualified input 校验入口(scope=formal 即正式消费位:工程件拒绝)。"""
+    from rl_curriculum.ppo262_qualified_input import QualifiedInputError
+    try:
+        qi = _eng_load_input(args)
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    ids = qi.identities()
+    print(json.dumps({"pass": True, "identities": ids,
+                      "report": qi.validation_report,
+                      "engineering_only": True}, ensure_ascii=False,
+                     default=_np_default))
+    return 0
+
+
+def cmd_eng_route_check(args) -> int:
+    """M02:六类消费入口的新 profile 路由检查(零生成零更新)。"""
+    from rl_curriculum.ppo262_eng_profile import route_profile_inputs
+    from rl_curriculum.ppo262_qualified_input import QualifiedInputError
+    try:
+        qi = _eng_load_input(args, expected_scope="engineering")
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    art = route_profile_inputs(qi)
+    _write_json(args.out_dir / "eng_route_check.json", art)
+    print(json.dumps({"pass": True,
+                      "entry_classes": art["entry_classes"],
+                      "pack_differs_from_r2": art["pack_differs_from_r2"],
+                      "note": "v1_r2_reference pack 与 R2 数值相同属预期"
+                              "(工程拷贝);参数来源路由证据以 v2_perturbed"
+                              "夹具为准"}, ensure_ascii=False))
+    return 0
+
+
+def cmd_eng_run(args) -> int:
+    """E01+E02 单进程工程运行:bank 生成审计 + 256 步真实 PPO 更新。
+
+    固定数据集重放配额(2 次)与 optimizer smoke 配额(8 次/2048 步)
+    由 QuotaLedger 强制;同一进程内完成 bank 审计与 PPO smoke,使主
+    Agent 的一次数据集重放同时覆盖 E01/E02 证据面。
+    """
+    from rl_curriculum.ppo262_eng_profile import (
+        QuotaLedger, engineering_ppo_run, generate_eng_bank,
+    )
+    from rl_curriculum.ppo262_qualified_input import QualifiedInputError
+    try:
+        qi = _eng_load_input(args, expected_scope="engineering")
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    out_dir = args.out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ledger = QuotaLedger(args.ledger or (out_dir / "ppo262e_quota_ledger.jsonl"))
+
+    recorded: list[dict[str, Any]] = []
+
+    def recorder(family, rung, side, params):
+        recorded.append({"family": family, "rung": rung, "side": side,
+                         "params": params})
+
+    try:
+        bank = generate_eng_bank(qi, ledger, param_recorder=recorder)
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    from rl_curriculum.curriculum261_production_obs import (
+        PRODUCTION_FEATURE_COLUMNS,
+    )
+    from rl_curriculum.ppo262_banks import bank_manifest
+    e01 = {
+        "format": "ppo262e-bank-smoke-v1",
+        "engineering_only": True,
+        "namespace_isolation": {
+            "bank_namespace": "ppo_eng_bank_262e",
+            "isolate_from_261_and_262": (
+                "verify_namespace_isolation 显式枚举覆盖(见 "
+                "seed_namespace_integrity 与 test_ppo262e_*)"),
+        },
+        "bank_manifest": bank_manifest(bank),
+        "episodes": [e.canonical() for e in bank],
+        "generator_boundary_params": recorded,
+        "feature_columns_present": all(
+            all(c in e.episode.df.columns
+                for c in PRODUCTION_FEATURE_COLUMNS)
+            for e in bank),
+        "params_source": {
+            "parameter_pack_digest": qi.pack_digest,
+            "episode_spec_params_match_pack": True,
+        },
+        "checks": {
+            "episodes_6": len(bank) == 6,
+            "three_families_ab": sorted(
+                (e.key.family, e.key.variant) for e in bank) == sorted(
+                (f, v) for f in ("c1_opportunity", "c2_context",
+                                 "c3_cost") for v in ("A", "B")),
+            "boundary_records_6": len(recorded) == 6,
+            "feature_columns_present": all(
+                all(c in e.episode.df.columns
+                    for c in PRODUCTION_FEATURE_COLUMNS)
+                for e in bank),
+        },
+    }
+    e01["pass"] = all(e01["checks"].values())
+    _write_json(out_dir / "eng_bank_smoke.json", e01)
+    if not e01["pass"]:
+        print(json.dumps({"pass": False, "stage": "E01",
+                          "checks": e01["checks"]}, ensure_ascii=False))
+        return 2
+    try:
+        run = engineering_ppo_run(qi, bank, ledger, out_dir)
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    print(json.dumps({
+        "pass": bool(e01["pass"] and run["pass"]),
+        "E01_bank": e01["pass"],
+        "E02_ppo_smoke": run["pass"],
+        "steps": run["steps"],
+        "optimizer_updates": len(run["optimizer_update_records"]),
+        "params_changed": run["params_sha256_before"] != (
+            run["params_sha256_after"]),
+        "model_sha256": run["model_sha256"],
+        "quota": ledger.sums(),
+        "engineering_only": True}, ensure_ascii=False))
+    return 0 if (e01["pass"] and run["pass"]) else 2
+
+
+def cmd_eng_cold_read(args) -> int:
+    """E03:新进程冷读 checkpoint + 绑定核对 + 冻结观察对拍。"""
+    from rl_curriculum.ppo262_eng_profile import cold_read_checkpoint
+    from rl_curriculum.ppo262_qualified_input import QualifiedInputError
+    try:
+        result = cold_read_checkpoint(
+            args.qual_dir, args.auth, args.model_dir, args.out_dir,
+            expected_profile=getattr(args, "profile", None))
+    except QualifiedInputError as exc:
+        print(json.dumps({"pass": False,
+                          "report": exc.report}, ensure_ascii=False))
+        return 2
+    print(json.dumps({"pass": result["pass"],
+                      "model_sha256": result["model_sha256"],
+                      "actions_match": result["deterministic_actions_match"],
+                      "prob_max_abs_diff": (
+                          result["action_probability_max_abs_diff"]),
+                      "atol_prior": result["prob_atol_prior"]},
+                     ensure_ascii=False))
+    return 0 if result["pass"] else 2
+
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="ppo262")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -1389,6 +1574,41 @@ def main(argv=None) -> int:
     sub.add_parser("final-lock").set_defaults(func=cmd_final_lock)
     sub.add_parser("final-run").set_defaults(func=cmd_final_run)
     sub.add_parser("summarize").set_defaults(func=cmd_summarize)
+
+    # ---- engineering bridge(qualified input;显式入口,默认路径不变)
+    p = sub.add_parser("eng-fixture-build")
+    p.add_argument("--out-dir", type=Path, required=True)
+    p.add_argument("--pack", default="v1_r2_reference",
+                   choices=["v1_r2_reference", "v2_perturbed"])
+    p.set_defaults(func=cmd_eng_fixture_build)
+    p = sub.add_parser("eng-input-lock")
+    p.add_argument("--qual-dir", type=Path, required=True)
+    p.add_argument("--auth", type=Path, required=True)
+    p.add_argument("--scope", default="engineering",
+                   choices=["engineering", "formal"])
+    p.set_defaults(func=cmd_eng_input_lock)
+    p = sub.add_parser("eng-route-check")
+    p.add_argument("--qual-dir", type=Path, required=True)
+    p.add_argument("--auth", type=Path, required=True)
+    p.add_argument("--scope", default="engineering",
+                   choices=["engineering", "formal"])
+    p.add_argument("--out-dir", type=Path, required=True)
+    p.set_defaults(func=cmd_eng_route_check)
+    p = sub.add_parser("eng-run")
+    p.add_argument("--qual-dir", type=Path, required=True)
+    p.add_argument("--auth", type=Path, required=True)
+    p.add_argument("--scope", default="engineering",
+                   choices=["engineering", "formal"])
+    p.add_argument("--out-dir", type=Path, required=True)
+    p.add_argument("--ledger", type=Path, default=None)
+    p.set_defaults(func=cmd_eng_run)
+    p = sub.add_parser("eng-cold-read")
+    p.add_argument("--qual-dir", type=Path, required=True)
+    p.add_argument("--auth", type=Path, required=True)
+    p.add_argument("--model-dir", type=Path, required=True)
+    p.add_argument("--out-dir", type=Path, required=True)
+    p.add_argument("--profile", default=None)
+    p.set_defaults(func=cmd_eng_cold_read)
 
     # ---- diagnostic workflow(Repair R1:独立命令族,写 repair1/ 目录;
     # 不生成 official PASS / 不写 official final plan / 不消费
