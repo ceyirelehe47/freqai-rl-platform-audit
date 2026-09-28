@@ -1,0 +1,28 @@
+#!/bin/bash
+set -u
+export R17_PROJECT_ROOT=$HOME/projects/crypto_rl
+BASE=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/tb_training_bridge_v1
+OUT=$BASE/full_regression_v1
+rc=0
+bash $HOME/projects/crypto_rl/stage2_6_1_runner/r17_monitored_entry.sh engineering --max-seconds 3600 -- \
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python \
+  /home/cryptorl/projects/crypto_rl/stage2_6_1_runner/r21_full_collection_regression.py \
+  --repo /mnt/f/trading/freqai-rl-audit \
+  --commit-a 803fe66e0cffd05a52cb13106be6dc2c9ab333f8 \
+  --deploy-root /home/cryptorl/projects/crypto_rl \
+  --out-dir "$OUT" || rc=$?
+printf "%s\n" "$rc" > "$BASE/full_regression_v1.launcher_rc.txt"
+
+# 262 全套 JUnit 归档(候选 C 树)
+cd $HOME/projects/crypto_rl
+source activate-freqtrade.sh >/dev/null 2>&1 || true
+export PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1
+mkdir -p "$BASE/regression_262_v1"
+rc2=0
+/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python -m pytest \
+  tests/route_c_stage2_6_2 -q \
+  --junitxml="$BASE/regression_262_v1/junit.xml" \
+  > "$BASE/regression_262_v1/stdout.txt" 2> "$BASE/regression_262_v1/stderr.txt" || rc2=$?
+printf "%s\n" "$rc2" > "$BASE/regression_262_v1/rc.txt"
+printf '261_rc=%s 262_rc=%s\n' "$rc" "$rc2" > "$BASE/ALL_RC.txt"
+exit 0

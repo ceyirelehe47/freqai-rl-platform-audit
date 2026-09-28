@@ -158,3 +158,59 @@ official final namespace 未解锁/未生成/未暴露。
   相应更新,并新增 R2 seed 派生黄金向量测试(证明 R3 变更不改变
   R2 corpus 的 seed 派生);
 - Stage 2.6.2 official 状态保持 **FAIL**;C3 PPO Branch D 仍开放。
+
+## Engineering Bridge:新版资格输入到训练的消费侧接通(2026-09-29)
+
+任务 `RouteC_QualifiedInput_TrainingBridge_v1`(候选 C `803fe66e`)把
+"新版资格输入身份"接通到 PPO 训练消费侧(工程沙箱),**不改变** official
+s262_r0 FAIL 结论与 R2 默认路径:
+
+**已实现(消费面)**
+
+- `ppo262_qualified_input.py`:统一输入锁——plan digest 重算 + result
+  绑定同 digest 且 verdict=PASS + one-shot exposure 终态 + 参数 pack
+  digest 绑定(三族 rung_params/thresholds 唯一来源)+ 冻结 V2 bundle
+  (RouteCPreprocessorV2 envelope,三层哈希篡改检测)+ Cq/Ct 共同执行
+  语义核验(observation identity/family versions/vendor pin/V2 合同
+  摘要;不要求 commit 相等)+ 目录外授权锚(自授权拒绝;engineering
+  scope 不能解锁 formal;formal admission 注册表为空 => formal 恒拒);
+  任何缺失/错配/R2 冒充/工程件冒充正式在 bank 生成与 optimizer 更新前
+  拒绝;
+- `ppo262_eng_fixture.py`:确定性合成 fit 夹具构建器(SYNTHETIC/
+  ENGINEERING_ONLY;v1=R2 拷贝 pack,v2=合法扰动对照);
+- `ppo262_eng_profile.py`:配额账本(数据集重放<=2、smoke<=8 次/2048
+  步)、快照驱动 bank 生成(generator 边界参数记录 + episode
+  spec.params 产物对拍)、恰好 256 环境步真实 PPO 更新(build_diagnosed_
+  ppo 同构造路径;steps/更新数/参数摘要变化全部来自实际计数)、
+  checkpoint 全绑定 manifest、新进程冷读(冻结观察确定性动作逐位对拍,
+  容差事前 1e-9)、六类消费入口路由检查;
+- `ppo262_env.py`:可选冻结 V2 preprocessor(特征列缩放、价格列 raw
+  =>账本语义不变;构造期与 reset 都走 V2 outer space);
+- CLI:`eng-fixture-build` / `eng-input-lock` / `eng-route-check` /
+  `eng-run` / `eng-cold-read`(显式入口,缺省路径不变);
+- 测试 38 项(零原生生成、零 optimizer):I01-I04/K01-K02/V01-V03/
+  N01/M01/M02/G01;262 全套 204 项全绿。
+
+**工程 E2E 证据**(`artifacts/eng_training_bridge_v1/`,runner
+`runner/eng_training_bridge_v1.sh`)
+
+- E01:原生 bank 6 episodes(三族 D1 各 1 A/B pair,namespace
+  `ppo_eng_bank_262e`,参数来自锁定 pack);
+- E02:恰好 256 环境步、1 次真实 optimizer 更新、参数前后摘要不同、
+  模型 `eng_ppo_smoke_256.zip`(sha256 `11bc9a99…`);
+- E03:新进程冷读绑定核对 + 冻结观察动作逐位一致(概率最大残差 0.0);
+- G01:formal scope 请求 rc=2 拒绝;配额账本 1 次重放/6 成功/1 次
+  smoke/256 步。
+
+**未实现/未运行(如实说明)**
+
+- 正式 Level A/B 生成入口与正式资格链未实现(FORMAL_ADMISSION_
+  REGISTRY 为空,formal 一律拒绝);真实新资格未成立
+  (qualification=NOT_RUN);正式教学/研究实验未运行
+  (teaching_experiment=NOT_RUN);工程夹具的 PASS 是结构自洽性,
+  不是课程资格判定;模型一律 ENGINEERING_ONLY,不得进入正式模型
+  选择或 sealed final。
+
+另:`ppo262_input_lock.py` 新增 `R25_BASELINE_REGISTERED_CODE_CHANGES`
+登记 api.py 的已提交演进(R25 dev namespaces,5849accc;黄金 seed
+向量不变),修复 262 套件自 R25 起未跑导致的预存登记缺口。
