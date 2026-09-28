@@ -61,6 +61,15 @@
 
 全部符合预期（`E03B_SYNTH_COUNTEREXAMPLES.json` + 每例 `run_log.txt`；总执行记录 `E03B_SYNTH_EXECUTION.log`）。旧 summary/遥测/registry 零改动；口径差异无一发现（重算==declared 于全部 5 run）。
 
+### 3.3 第三轮正文复核（REVIEW(1) §3.3 三分支修复，2026-09-29）
+
+独立审查（REVIEW v2 §3）用联合运行复现三个组合漏检（PID 出现≠登记实例出现 / 任意进程 CPU 增量≠指定 burn 工作者增量 / 先过滤坏样本再报 0）。`e03b_verify_supervision_content.py` 第三版修复：
+
+- **E03-a 身份覆盖**：覆盖键=完整 `(pid, inst_start_ticks)` 元组；集成 run 的 registry 实例（pid,start_ticks,role）与遥测观测元组**逐一匹配**（`F_registry_identities_in_telemetry`）；遥测多出的 timeout/bash 外壳属监护树正常（不判失败）；reused 标记仅记录不冒充泄漏断言。
+- **E03-b 角色绑定 CPU**：期望来源=本 run `business/stdout.log` 的 `{"label","pid","mode","seconds"}` JSON 行（证据驱动，非硬编码）；mode=burn 的工作者必须以完整身份被观测≥2 次且**自身**相邻样本正 CPU 增量>0（`G_burn_workers_own_cpu_increments`）；mode=sleep 仅要求身份被观测（等待中的子孙不要求烧 CPU）；无 mode 声明的旧监护 run 保留全局任意身份正增量判据。
+- **E03-c 样本完整性**：win 侧先按协议分类（sample 记录=含 'seq' 键或 event=='sample'，**无论 perf 是否合法**），再在全集校验必需字段/类型；无效计数与 summary.win_invalid_samples 的矛盾即 FAIL；JSON 坏行计入 `B_parse_no_bad_lines` 判定（既有）。
+- 重验：真实 5 run **ALL PASS rc=0**（66 项检查；w1 burn own-increments=7/8、w2=5/6、w3 sleep 豁免；registry 元组 0 缺失）；合成反例扩至 **8 用例**全部按预期（新增 identity_mismatch→F 拒、burn_cpu_flat→G 拒、null_perf_sample→C_invalid 拒；integration_control 含 registry+mode 健康对照过；旧 4 反例保留）。执行日志以**真实时间戳/解释器/cwd/rc/stdout** 落盘（E03B_REAL_RUNS_EXECUTION.log / E03B_SYNTH_EXECUTION.log，第二轮版本已被自然替换；旧原件在 git 39f38770 保留）。
+
 ## 4. 执行记录（命令/解释器/cwd/rc）
 
 | # | 命令 | 解释器 | cwd | rc |
@@ -70,8 +79,10 @@
 | 3 | WSL `verify_regression_evidence`（binding_v2, deploy_root=None） | 同上 | 同上 | 0；结果 E02_WSL_BINDING_V2_REPOONLY.json |
 | 4 | `python e03_verify_supervision.py` | Windows CPython 3.13.x | 同 #1 | 0（ALL PASS；E03_SUPERVISION_VERIFICATION.json） |
 | 5 | `python e03b_verify_supervision_content.py`（真实 5 run 正文复核） | Windows CPython 3.13.x | 同 #1 | 0（ALL PASS；原始输出 `E03B_REAL_RUNS_EXECUTION.log`） |
-| 6 | `python synth_e03b_counterexamples.py`（SYNTHETIC_ONLY 反例×5） | 同上 | 同 #1 | 0（4 反例全部按预期触发+对照通过；`E03B_SYNTH_EXECUTION.log`） |
+| 6 | `python synth_e03b_counterexamples.py`（SYNTHETIC_ONLY 反例×5，第二轮） | 同上 | 同 #1 | 0（4 反例全部按预期触发+对照通过） |
 | 7 | `git rev-parse HEAD:<tree>`（冻结树×3）+ vendor rev-parse | git / Windows+WSL | repo / vendor | 全部匹配（P01） |
+| 8 | `python e03b_verify_supervision_content.py`（第三版：身份元组/burn 绑定/协议分类，真实 5 run） | Windows CPython 3.13.x | 同 #1 | 0（ALL PASS 66 项；真实时间戳日志 `E03B_REAL_RUNS_EXECUTION.log` 第三轮版） |
+| 9 | `python synth_e03b_counterexamples.py`（第三版 8 用例） | 同上 | 同 #1 | 0（8/8 按预期；真实时间戳日志 `E03B_SYNTH_EXECUTION.log` 第三轮版） |
 
 stderr：#1/#4 无错误输出；#2/#3 WSL 侧仅 .wslconfig 警告（与核验无关）。
 

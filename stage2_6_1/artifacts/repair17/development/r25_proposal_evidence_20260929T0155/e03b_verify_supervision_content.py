@@ -36,7 +36,7 @@ def check(run, name, ok, detail=''):
     print(('PASS ' if ok else 'FAIL ') + f'[{run}] {name}' + (f' :: {detail}' if detail else ''))
     return ok
 
-def verify_run(rid: str, *, registry_pids: dict | None = None):
+def verify_run(rid: str, *, registry_idents: dict | None = None):
     d = RUNS / rid
     if not d.is_dir():
         return check(rid, 'run_dir_exists', False)
@@ -64,14 +64,21 @@ def verify_run(rid: str, *, registry_pids: dict | None = None):
     grecs, gbad = load(d / 'telemetry' / 'guest_samples.jsonl')
     wrecs, wbad = load(d / 'telemetry' / 'win_samples.jsonl')
     g_samples = [r for r in grecs if r.get('event') == 'guest_sample']
-    w_samples = [r for r in wrecs if r.get('event') == 'sample' or ('seq' in r and r.get('event') is None)]
-    w_samples = [r for r in wrecs if r.get('seq') is not None and r.get('perf') is not None]
+    # E03-c 修复（REVIEW(1) §3.3）：先按实际协议分类，再在全集上校验——
+   # sample 记录 = 含 'seq' 键或 event=='sample'（无论 perf 是否合法）；
+   # 生命周期记录 = event in {sampler_end,...} 或含 perf_api_ok/token 的 start 行。
+   # 无效 sample = 分类为 sample 但 perf 非 dict 或必需数值键缺失；不得先筛后数。
+    w_sample_records = [r for r in wrecs if ('seq' in r) or r.get('event') == 'sample']
+    w_samples = [r for r in w_sample_records if isinstance(r.get('perf'), dict)]
+    w_invalid = sum(1 for r in w_sample_records if not isinstance(r.get('perf'), dict)
+                    or not isinstance(r['perf'].get('phys_avail_gb'), (int, float))
+                    or not isinstance(r['perf'].get('commit_total_gb'), (int, float))
+                    or not isinstance(r['perf'].get('commit_limit_gb'), (int, float)))
     # 无效样本判据：meminfo 非对象 / 缺 mono / tasks 既非 null(首样本业务树未建)也非 list；
     # 首样本 tasks=None 属记录语义(观测开始前无任务树)，显式认可并在 C 检查 detail 说明，不静默放行其他类型。
     g_invalid = sum(1 for r in g_samples if not isinstance(r.get('meminfo'), dict) or 'mono' not in r
                     or (r.get('tasks') is not None and not isinstance(r.get('tasks'), list)))
     g_first_null = sum(1 for r in g_samples if r.get('tasks') is None)
-    w_invalid = sum(1 for r in w_samples if not isinstance(r.get('perf'), dict))
     def seq_anomalies(samples, key='seq'):
         seqs = [s.get(key) for s in samples]
         dup = reg = 0
@@ -97,7 +104,7 @@ def verify_run(rid: str, *, registry_pids: dict | None = None):
           f'recomputed dup={w_dup} reg={w_reg} replay={w_rep}; summary={cov.get("win_duplicate_seq")}/{cov.get("win_seq_regressions")}')
     check(rid, 'C_invalid_samples_zero', g_invalid == cov.get('guest_invalid_samples', -1)
           and w_invalid == cov.get('win_invalid_samples', -1),
-          f'guest_invalid={g_invalid}(tasks=None 首样本 {g_first_null} 例=业务树建立前记录语义) win_invalid={w_invalid}')
+          f'guest_invalid={g_invalid}(tasks=None 首样本 {g_first_null} 例=业务树建立前记录语义) win_invalid={w_invalid}/classified_sample_records={len(w_sample_records)}/valid={len(w_samples)}')
     gend = [r for r in grecs if r.get('event') == 'guest_sampler_end']
     check(rid, 'C_coverage_gaps_zero', bool(gend) and gend[-1].get('coverage_gaps') == 0,
           str(gend[-1].get('coverage_gaps') if gend else 'NO_END'))
@@ -131,62 +138,99 @@ def verify_run(rid: str, *, registry_pids: dict | None = None):
     check(rid, 'D_win_commit_max', r_commit is not None and abs(r_commit - d5) < 0.01,
           f'recomputed={r_commit!r} declared={d5!r}')
 
-    # ---- E. 工作者/后代覆盖 + 正 CPU 增量 ----
-    per_pid = {}
+    # ---- E. 工作者/后代覆盖 + 身份（E03-a 修复：覆盖键=完整 (pid, inst_start_ticks)） ----
+    per_ident = {}   # (pid, inst_start_ticks) -> {'n':int,'cpu':[...]}
+    per_pid_ticks = {}  # pid -> set(ticks)（遥测内部稳定性）
     any_task = 0
     for r in g_samples:
         for t in r.get('tasks', []) or []:
             any_task += 1
-            e = per_pid.setdefault(t['pid'], {'start_ticks': set(), 'reused': False,
-                                              'cpu_total_max': 0.0, 'n_obs': 0,
-                                              'deltas': []})
-            e['start_ticks'].add(t.get('inst_start_ticks'))
-            e['reused'] = e['reused'] or bool(t.get('reused_pid'))
-            e['n_obs'] += 1
+            key = (t['pid'], t.get('inst_start_ticks'))
+            e = per_ident.setdefault(key, {'n': 0, 'cpu': []})
+            e['n'] += 1
             if isinstance(t.get('cpu_sec_total'), (int, float)):
-                e['cpu_total_max'] = max(e['cpu_total_max'], t['cpu_sec_total'])
+                e['cpu'].append(t['cpu_sec_total'])
+            per_pid_ticks.setdefault(t['pid'], set()).add(t.get('inst_start_ticks'))
+    reused_seen = {(t['pid'], t.get('inst_start_ticks'))
+                   for r in g_samples for t in (r.get('tasks') or []) if t.get('reused_pid')}
     check(rid, 'E_tasks_observed', any_task > 0,
-          f'distinct_pids={len(per_pid)} total_task_rows={any_task}')
-    unstable = {p: sorted(v['start_ticks']) for p, v in per_pid.items() if len(v['start_ticks']) > 1}
-    check(rid, 'E_pid_identity_stable', not unstable and not any(v['reused'] for v in per_pid.values()),
-          f'unstable={unstable} reused={[p for p,v in per_pid.items() if v["reused"]]}')
-    # 相邻样本 per-pid cpu_sec_total 差分（同一 inst_start_ticks 下）
-    prev_by_pid = {}
-    pos_deltas = 0
-    for r in g_samples:
-        cur = {t['pid']: t for t in (r.get('tasks') or []) if isinstance(t.get('cpu_sec_total'), (int, float))}
-        for pid, t in cur.items():
-            if pid in prev_by_pid:
-                delta = t['cpu_sec_total'] - prev_by_pid[pid]['cpu_sec_total']
-                if delta > 0: pos_deltas += 1
-        prev_by_pid.update(cur)
-    check(rid, 'E_positive_cpu_increments', pos_deltas > 0, f'count={pos_deltas}')
-    # 后代存在（同一时刻多任务行）
+          f'distinct_identities={len(per_ident)} total_task_rows={any_task}')
+    unstable = {p: sorted(v) for p, v in per_pid_ticks.items() if len(v) > 1}
+    check(rid, 'E_pid_identity_stable', not unstable,
+          f'unstable_pid_ticks={unstable} reused_flags_observed={sorted(reused_seen) or "none"} '
+          f'(reused 标记≠泄漏断言，仅记录；身份稳定性=每 pid 恰一 inst_start_ticks)')
+
+    # ---- G. 角色绑定 CPU（E03-b 修复：指定 burn 工作者自身的正增量，非任意进程） ----
+    # 期望来源=本 run 的 business/stdout.log 中 {"label","pid","mode","seconds"} JSON 行（证据驱动）：
+    # mode=burn → 该 pid 必须以完整身份被观测≥2 次且自身相邻样本正 CPU 增量>0；
+    # mode=sleep → 仅要求身份被观测（sleep/等待中的子孙不要求持续正 CPU）。
+    modes = []
+    slog = d / 'business' / 'stdout.log'
+    if slog.is_file():
+        for line in slog.read_text(encoding='utf-8').splitlines():
+            line = line.strip()
+            if not line.startswith('{'):
+                continue
+            try: j = json.loads(line)
+            except Exception: continue
+            if isinstance(j.get('pid'), int) and j.get('mode') in ('burn', 'sleep'):
+                modes.append(j)
+    burn_fails, burn_ok = [], []
+    for j in modes:
+        pid = j['pid']
+        hits = [(k, v) for k, v in per_ident.items() if k[0] == pid]
+        if not hits:
+            burn_fails.append(f"{j.get('label')}:{pid} identity_not_observed"); continue
+        if j['mode'] == 'sleep':
+            burn_ok.append(f"{j.get('label')}:{pid}(sleep identity observed)"); continue
+        best = max(hits, key=lambda kv: len(kv[1]['cpu']))[1]['cpu']
+        pos = sum(1 for a, b in zip(best, best[1:]) if b > a)
+        if len(best) >= 2 and pos > 0:
+            burn_ok.append(f"{j.get('label')}:{pid}(burn {j.get('seconds')}s own-increments={pos}/{len(best)})")
+        else:
+            burn_fails.append(f"{j.get('label')}:{pid}(burn {j.get('seconds')}s own cpu seq={best})")
+    if modes:
+        check(rid, 'G_burn_workers_own_cpu_increments', not burn_fails,
+              f'modes={[f"{j.get("label")}:{j["mode"]}" for j in modes]} ok={burn_ok} fails={burn_fails}')
+    # 无 mode 声明的 run（旧监护 run）：退回全局任意身份正增量判据（保持原保证）。
+    pos_any = sum(1 for v in per_ident.values()
+                  for a, b in zip(v['cpu'], v['cpu'][1:]) if b > a)
+    if not modes:
+        check(rid, 'E_positive_cpu_increments', pos_any > 0, f'count={pos_any}')
+    results['runs'][rid]['E_global_cpu_increments'] = {
+        'ok': True, 'detail': f'any-identity positive increments={pos_any} (informational)'}
     multi = sum(1 for r in g_samples if len(r.get('tasks') or []) > 1)
     results['runs'][rid]['E_descendants_observed'] = {
         'ok': True, 'detail': f'samples_with_multiple_task_rows={multi}/{len(g_samples)}'}
 
-    # ---- F. registry 身份级覆盖（集成 run） ----
-    if registry_pids:
-        observed = set(per_pid)
-        missing = {w: [p for p in pids if p not in observed] for w, pids in registry_pids.items()}
-        check(rid, 'F_registry_pids_in_telemetry', not any(missing.values()),
-              f'missing={ {w: m for w, m in missing.items() if m} } observed_n={len(observed)}')
+    # ---- F. registry 身份级覆盖（E03-a：完整 (pid,start_ticks) 元组逐一匹配，非仅 PID 出现） ----
+    if registry_idents:
+        observed = set(per_ident)
+        missing = {}
+        for w, idents in registry_idents.items():
+            for (pid, ticks, role) in idents:
+                if (pid, ticks) not in observed:
+                    missing.setdefault(w, []).append(f'pid={pid},start_ticks={ticks},role={role}')
+        check(rid, 'F_registry_identities_in_telemetry', not missing,
+              f'missing={missing} observed_identities={len(observed)} '
+              f'(registry 实例按完整 (pid,start_ticks) 逐一匹配；遥测多出的外壳进程属监护树正常)')
 
 ALL = ['20260928T160626_7004_367', '20260928T160934_4301_1088',
        '20260926T212149_1124_424', '20260926T212354_1984_392', '20260926T220905_5450_537']
 
-# 集成 run 的 registry 身份（E03 第一轮已核验结构；此处取 pid 做遥测覆盖对照）
-reg_pids = {}
-ilog = RUNS.parents[1] / 'r25_final_closure_20260928T160624' / 'i01_probe' / 'logs'
+# 集成 run 的 registry 完整身份（E03-a：覆盖键=完整元组；合成工具可经 R25PE_I01_ROOT 覆盖）
+reg_idents = {}
+ilog = Path(os.environ.get('R25PE_I01_ROOT',
+            str(RUNS.parents[1] / 'r25_final_closure_20260928T160624' / 'i01_probe' / 'logs')))
 if ilog.is_dir():
     for w in ('w1', 'w2', 'w3'):
         p = ilog / f'{w}_registry.json'
         if p.is_file():
             reg = json.loads(p.read_text(encoding='utf-8'))
-            reg_pids[w] = [i['pid'] for i in reg.get('instances', [])]
+            reg_idents[w] = [(i['pid'], i.get('start_ticks'), i.get('role'))
+                             for i in reg.get('instances', [])]
 for rid in ALL:
-    verify_run(rid, registry_pids=reg_pids if rid == '20260928T160626_7004_367' else None)
+    verify_run(rid, registry_idents=reg_idents if rid == '20260928T160626_7004_367' else None)
 
 ok_all = all(v.get('ok') for r in results['runs'].values() for k, v in r.items())
 results['_overall'] = {'all_ok': ok_all, 'checked_at_utc': '2026-09-29', 'runs': ALL}

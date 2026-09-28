@@ -25,15 +25,15 @@
    "rc": 2,
    "expect_rc": 2,
    "fails": [
-    "FAIL [20260928T160626_7004_367] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260928T160626_7004_367] E_tasks_observed :: distinct_identities=0 total_task_rows=0",
     "FAIL [20260928T160626_7004_367] E_positive_cpu_increments :: count=0",
-    "FAIL [20260928T160934_4301_1088] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260928T160934_4301_1088] E_tasks_observed :: distinct_identities=0 total_task_rows=0",
     "FAIL [20260928T160934_4301_1088] E_positive_cpu_increments :: count=0",
-    "FAIL [20260926T212149_1124_424] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T212149_1124_424] E_tasks_observed :: distinct_identities=0 total_task_rows=0",
     "FAIL [20260926T212149_1124_424] E_positive_cpu_increments :: count=0",
-    "FAIL [20260926T212354_1984_392] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T212354_1984_392] E_tasks_observed :: distinct_identities=0 total_task_rows=0",
     "FAIL [20260926T212354_1984_392] E_positive_cpu_increments :: count=0",
-    "FAIL [20260926T220905_5450_537] E_tasks_observed :: distinct_pids=0 total_task_rows=0",
+    "FAIL [20260926T220905_5450_537] E_tasks_observed :: distinct_identities=0 total_task_rows=0",
     "FAIL [20260926T220905_5450_537] E_positive_cpu_increments :: count=0"
    ],
    "ok": true
@@ -73,8 +73,50 @@
     "FAIL [20260926T220905_5450_537] D_win_phys_min :: recomputed=12.34 declared=39.5"
    ],
    "ok": true
+  },
+  {
+   "case": "integration_control",
+   "rc": 0,
+   "expect_rc": 0,
+   "fails": [],
+   "ok": true
+  },
+  {
+   "case": "identity_mismatch",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] F_registry_identities_in_telemetry :: missing={'w1': ['pid=110,start_ticks=610,role=root', 'pid=113,start_ticks=612,role=child', 'pid=114,start_ticks=614,role=grandchild'], 'w2': ['pid=111,start_ticks=620,role=root'], 'w3': ['pid=112,start_ticks=630,role=root']} observed_identities=5 (registry 实例按完整 (pid,start_ticks) 逐一匹配；遥测多出的外壳进程属监护树正常)"
+   ],
+   "ok": true
+  },
+  {
+   "case": "burn_cpu_flat",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w3:112(sleep identity observed)'] fails=['w1:110(burn 45.0s own cpu seq=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5])', 'w2:111(burn 30.0s own cpu seq=[0.3, 0.3, 0.3, 0.3, 0.3, 0.3])']",
+    "FAIL [20260928T160934_4301_1088] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w3:112(sleep identity observed)'] fails=['w1:110(burn 45.0s own cpu seq=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5])', 'w2:111(burn 30.0s own cpu seq=[0.3, 0.3, 0.3, 0.3, 0.3, 0.3])']",
+    "FAIL [20260926T212149_1124_424] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w3:112(sleep identity observed)'] fails=['w1:110(burn 45.0s own cpu seq=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5])', 'w2:111(burn 30.0s own cpu seq=[0.3, 0.3, 0.3, 0.3, 0.3, 0.3])']",
+    "FAIL [20260926T212354_1984_392] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w3:112(sleep identity observed)'] fails=['w1:110(burn 45.0s own cpu seq=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5])', 'w2:111(burn 30.0s own cpu seq=[0.3, 0.3, 0.3, 0.3, 0.3, 0.3])']",
+    "FAIL [20260926T220905_5450_537] G_burn_workers_own_cpu_increments :: modes=['w1:burn', 'w2:burn', 'w3:sleep'] ok=['w3:112(sleep identity observed)'] fails=['w1:110(burn 45.0s own cpu seq=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5])', 'w2:111(burn 30.0s own cpu seq=[0.3, 0.3, 0.3, 0.3, 0.3, 0.3])']"
+   ],
+   "ok": true
+  },
+  {
+   "case": "null_perf_sample",
+   "rc": 2,
+   "expect_rc": 2,
+   "fails": [
+    "FAIL [20260928T160626_7004_367] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 0 例=业务树建立前记录语义) win_invalid=1/classified_sample_records=7/valid=6",
+    "FAIL [20260928T160934_4301_1088] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 0 例=业务树建立前记录语义) win_invalid=1/classified_sample_records=7/valid=6",
+    "FAIL [20260926T212149_1124_424] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 0 例=业务树建立前记录语义) win_invalid=1/classified_sample_records=7/valid=6",
+    "FAIL [20260926T212354_1984_392] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 0 例=业务树建立前记录语义) win_invalid=1/classified_sample_records=7/valid=6",
+    "FAIL [20260926T220905_5450_537] C_invalid_samples_zero :: guest_invalid=0(tasks=None 首样本 0 例=业务树建立前记录语义) win_invalid=1/classified_sample_records=7/valid=6"
+   ],
+   "ok": true
   }
  ],
  "all_ok": true,
- "note": "SYNTHETIC_ONLY fixtures; content mutations carry recomputed required SHA (except sha_tamper negative control) to isolate content-level recompute from checksum checks."
+ "note": "SYNTHETIC_ONLY fixtures (round1 REVIEW §2.3 + round2 REVIEW(1) §3.3); content mutations carry recomputed required SHA (except sha_tamper negative control); registry injected via R25PE_I01_ROOT."
 }

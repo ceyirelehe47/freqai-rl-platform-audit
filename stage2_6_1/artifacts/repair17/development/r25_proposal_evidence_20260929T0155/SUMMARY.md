@@ -45,3 +45,9 @@ SELF_REVIEW_CASES 14 条实际回答见提案附表 B（逐条指向章节/源�
 
 ## 6. 本 ZIP 身份（第二版封包）
 主文件：`RouteC_R25_ProposalEvidence_SelfAcceptance_v1_RETURN_TO_CHATGPT.zip`；SHA256/字节数见并列 `.sha256.txt` 与外部 `DELIVERY_RECEIPT.md`。上轮 FinalClosure 原 ZIP 原字节嵌套于 `previous_round/`（其内 Binding ZIP 原样保留）。任务包 `RouteC_R25_ProposalEvidence_SelfAcceptance_v1.zip`（输入）不重复携带，其 SHA 记录于 DELIVERY_RECEIPT。
+
+## 7. 第三轮返修（2026-09-29，REVIEW v2 + REVIEW(1)；强制 glm-5.3-flash 独立验收）
+
+1. **E03 三分支**（REVIEW(1) §3.3）：e03b 第三版——身份覆盖键=完整 (pid,inst_start_ticks)（registry 实例逐一匹配，`F_registry_identities_in_telemetry`）；burn 工作者**自身**正 CPU 增量（期望来自 business/stdout.log mode 行：w1 45s/w2 30s burn、w3 sleep 豁免，`G_burn_workers_own_cpu_increments`）；win 样本先按协议分类再校验（null perf 计入无效并与 summary 矛盾即 FAIL）。真实 5 run ALL PASS rc=0（66 项）；合成反例 8 用例全按预期（新增 identity_mismatch/burn_cpu_flat/null_perf_sample，integration_control 健康对照过，旧 4 例保留）。执行日志=真实时间戳/解释器/cwd/rc。
+2. **T03/T04**（REVIEW(1) §4）：提案第三版——§5.3 改为**受控坐标适配层**（源码事实：formal=四参数全缺省、传 namespace 即非正式+require_locked_plan 抛错、锁定 plan 无坐标参数、换 out-dir≠换坐标；适配=坐标级 plan 锁定变体+显式坐标 namespace 调用未改内核+旧默认接口历史行为保持）；§5.2 聚合解析锚（事前固定锚+各坐标 plan digest 各自绑定）；§5.5 Level A 新迭代适配（iteration/state root/license/profile）独立待实现；§6.1 新增 **P1.5**（全部工程适配先于正式数据/许可消费/Commit A）；附表 A 增 formal 判定行。
+3. **交付流程**（REVIEW v2）：修复+基础自测 → **真实 glm-5.3-flash 独立内容验收**（harness completion 的 smol 角色=zhipu-coding-plan/glm-5.3-flash，往返原文归档 reviewer_flash/）→ FAIL 自修复复验 → 内容 PASS 封包 → reviewer 冷读最终 ZIP → reviewer 包外 REVIEWER_FINAL_RECEIPT（绑定最终 SHA/字节）。主 Agent 不自签完成。
