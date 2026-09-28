@@ -154,6 +154,37 @@ R11_REGISTERED_CODE_CHANGES = {
         "542f356dea9252392e212ffd3c2b2e06d49e296d128f27239a59b84a943d12ef",
 }
 
+#: R17 框架轮登记(2026-09-20;覆盖 R11 同名键,合并视图取最新):
+#: api.py 变更 = (a) R17 正式族/工程族 namespace 白名单追加;
+#: (b) R18/R19 尝试族(CURRICULUM261_R18/R19_NAMESPACES via
+#: attempt 模块镜像,各 +30)与正式四件套拼接;(c) envelope
+#: iteration 派生接受 r18/r19 后缀;(d) §15b 候选级 dedicated
+#: semantic 派生命名空间(C2_LADDER_CANDIDATE_ID_SUFFIXES +
+#: _is_candidate_semantic_namespace)进 derive261_seed/
+#: _derive261_seed_raw 受控白名单。历史 namespace 的 seed 派生
+#: payload/黄金向量不变(仅新增 namespace 字符串进哈希)。
+#: 漂移跨度 = route-c-stage2-6-1-repair17 分支 885e338f..92818db2
+#: 的 api 演进;登记值锚定 92818db2。
+R17_FRAMEWORK_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "e461115c7c75f1c9e3c2d5b7021094e3df9c86e32e5af2155a0c319c950c70b9",
+}
+
+#: R25 结项基线登记(2026-09-29;覆盖同名键,合并视图取最新):
+#: api.py 于 R17 登记锚 92818db2 之后至 R25 收口 5ac420a1 之间的
+#: 全部已提交演进 = R18/R19 尝试族接入(已由 R17_FRAMEWORK 登记项
+#: 注释覆盖语义)+ R25 cue-bias 开发研究一次性 namespace 白名单
+#: (commit 5849accc:CURRICULUM261_R25_DEV_NAMESPACES 28 个显式枚举
+#: 开发 namespace 追加进 seed 派生白名单;正式名单不变;
+#: _derive261_seed_raw payload 构造与黄金向量不变,仅新增 namespace
+#: 字符串进哈希;generator/family/production obs 语义不变)。
+#: 登记哈希 = 当前树实际 sha256;再漂移仍 fail(下一轮须显式再登记)。
+R25_BASELINE_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "ec0203371284943055481ad4758cafd48f13a478ca0d63deec3197b52fd539aa",
+}
+
+
 #: 全部迭代登记的合并视图(R6-R11 覆盖同名键;run_input_lock 的
 #: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
@@ -162,7 +193,8 @@ REGISTERED_261_CODE_CHANGES = {
     **R5_REGISTERED_CODE_CHANGES, **R6_REGISTERED_CODE_CHANGES,
     **R7_REGISTERED_CODE_CHANGES, **R8_REGISTERED_CODE_CHANGES,
     **R9_REGISTERED_CODE_CHANGES, **R10_REGISTERED_CODE_CHANGES,
-    **R11_REGISTERED_CODE_CHANGES}
+    **R11_REGISTERED_CODE_CHANGES, **R17_FRAMEWORK_REGISTERED_CODE_CHANGES,
+    **R25_BASELINE_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)
