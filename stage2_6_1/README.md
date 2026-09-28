@@ -58,3 +58,7 @@
 ## 一句话语义
 
 三个能力维度不同的课程族(C1 机会识别 / C2 上下文门控 / C3 成本敏感择时),每族四档难度(D0 sanity → D3 stretch),pair 级 nuisance 控制 + 因果映射换位;policy observation 一律经生产 RouteCStrategy 特征构造 + 冻结 AlignedLongFlatEnv(repair R1 起);全部收益经冻结 Route C 账本计算;calibration(双语料+robustness gate)与 qualification seed 隔离;计划锁定后一次性最终资格运行,失败如实报告。
+
+## 追加（2026-09-29，只增不改）
+
+- **资格到训练提案 v2（当前有效版本）**：[route_c_stage2_6_1_qualification_to_training_proposal_v2.md](route_c_stage2_6_1_qualification_to_training_proposal_v2.md) —— 撤回 v1 的「r_true≈0.98」「input-lock 已可绑定新资格」「批准后直接可跑 17 步无缺口」三项主张；给出新资格→训练最小接入清单（A1–A8，含待实现面）与 v4↔正式链判据关系；v1 原件保留于 [route_c_stage2_6_1_qualification_to_training_proposal.md](route_c_stage2_6_1_qualification_to_training_proposal.md)（历史证据，不改）。
