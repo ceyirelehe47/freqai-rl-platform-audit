@@ -26,7 +26,7 @@
 | R01 | PASS | 261 R17-first 全收集(collection/JUnit/source map/auditor/lifecycle)于 C2 树 + 262 全套 JUnit;首轮 v1 因陈旧镜像 surface mismatch rc=3(测试 2534+7 全过)如实保留,C2 修复后 v2 全绿;无新 skip/xfail/缩集合 | TB/full_regression_v2/;TB/full_regression_v1/(失败原件);TB/regression_262_v2/(204 passed);regression_262_v1 |
 | P01 | PASS | R25 三树/plan/claim/终态未触碰(git diff 限定);配额可重算(账本 JSONL);无正式研究/教学/交易 | git diff 候选 C 范围;ENG/ppo262e_quota_ledger.jsonl |
 | D01 | PASS | README 已实现/未实现/资格与教学状态分开;不重复旧 K=11 待办 | stage2_6_2/README.md 工程桥接章节 |
-| A01 | 见 REVIEWER_CONTENT_REPORT | 独立 reviewer(glm-5.3-flash)全矩阵核验 | REVIEWER_CONTENT_REPORT.md(包内) |
+| A01 | PASS | 独立 reviewer(task agent=reviewer,配置 zhipu-coding-plan/glm-5.3-flash;运行时后端模型元数据未提供,如实记录)全矩阵核验+43 项独立断言+8 类反例;消耗 replay 2/2、smoke 2/8 复验;唯一 P3(rcs 漏记 formal rc)已按报告层修正(eng_run_rcs_note.md + runner 修正提交) | return_stage/REVIEWER_CONTENT_REPORT.md(包内) |
 | A02 | 见 REVIEWER_FINAL_RECEIPT | 最终 ZIP 冷读+内部清单+模型重载证据+git 回执对拍 | 包外 REVIEWER_FINAL_RECEIPT.md |
 
 reviewer 最低独立反例集落点:1=>G01(formal 注册表+scope);

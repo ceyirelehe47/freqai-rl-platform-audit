@@ -63,6 +63,6 @@ echo "rc_cold_read=$rc6"
 
 echo "=== quota ledger ==="
 cat "$LEDGER" || true
-printf 'rcs: fixture_v1=%s fixture_v2=%s input_lock=%s route=%s eng_run=%s cold_read=%s\n' \
-  "$rc1" "$rc2" "$rc3" "$rc4" "$rc5" "$rc6" > "$ART/eng_run_rcs.txt"
+printf 'rcs: fixture_v1=%s fixture_v2=%s input_lock=%s route=%s formal_reject=%s eng_run=%s cold_read=%s\n' \
+  "$rc1" "$rc2" "$rc3" "$rc4" "$rc_formal" "$rc5" "$rc6" > "$ART/eng_run_rcs.txt"
 cat "$ART/eng_run_rcs.txt"
