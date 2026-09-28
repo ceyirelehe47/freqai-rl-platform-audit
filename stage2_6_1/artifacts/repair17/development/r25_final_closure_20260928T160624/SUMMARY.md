@@ -91,8 +91,12 @@ r17_admission_issue.py+r17_formal_chain.sh 17 步推进;input-lock
   可制造的观测故障(与上轮相同的既有缺口,如实说明)。
 - 除上述外无 PARTIAL 项;F01/F02/F03 对应本包新反例全部成立。
 
-## 8. Git 回执
+## 8. Git 回执与本 ZIP 身份
 
-- 候选 C push:75343094..7e9e5470(Windows git,普通 push,
-  无 amend/force/rebase/reset),见 `candidate_C_push_receipt.txt`。
-- 最终 HEAD 与 ls-remote 回执:`git_receipts/`(证据提交 E 后)。
+- 候选 C push:75343094..7e9e5470;证据 E push:7e9e5470..30d856ab
+  (Windows git,普通 push,无 amend/force/rebase/reset)。两份
+  push+ls-remote 回执见 `git_receipts/`;ls-remote 终值=
+  `30d856ab12bd150fc6573d326e85aaaefac39230`
+  refs/heads/route-c-stage2-6-1-repair17。
+- 本 ZIP:sha256 见同目录 `.zip.sha256.txt` 回执;自检 PASS
+  (无重复/安全成员/CRC/摘要精确覆盖,`return_selfcheck.json`)。

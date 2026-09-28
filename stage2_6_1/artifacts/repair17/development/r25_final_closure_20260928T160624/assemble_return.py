@@ -57,16 +57,14 @@ def main() -> int:
     # 1) 轮次文档与记录
     for name in ("SUMMARY.md", "F_FINALCLOSURE_RECORD.md",
                  "protection_before.txt", "protection_after.txt",
-                 "candidate_C_push_receipt.txt",
                  "repro_driver_stdout.txt", "repro_driver_stderr.txt"):
         p = ROUND / name
         if p.exists():
             copy(p, name)
-    copy(REPO / "stage2_6_1/report"
-         "/route_c_stage2_6_1_qualification_to_training_proposal.md",
-         "TRAINING_TRANSITION_PROPOSAL.md")
-
-    # 2) 候选代码(与 commit 7e9e5470 相同字节)
+    # 1b) git 回执(候选 C 与证据 E)
+    copy(ROUND / "git_receipts", "git_receipts")
+    # 1c) 组装器自身与自检报告(如有)
+    copy(ROUND / "assemble_return.py", "assemble_return.py")
     copy(REPO / "stage2_6_1/runner/r25_worker_probe.py",
          "candidate_code/r25_worker_probe.py")
     copy(REPO / "stage2_6_1/tests/route_c_stage2_6_1"
