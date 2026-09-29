@@ -313,32 +313,54 @@ def test_v03_ledger_invariant_under_scaling(preproc):
 # ---------------------------------------------------------------- M01
 @pytest.fixture(scope="module")
 def checkpoint_dir(fixture_v1, preproc, tmp_path_factory):
-    """构造未训练 checkpoint(零 learn 调用 = 零 optimizer 配额)。"""
+    """构造未训练 checkpoint(零 learn 调用 = 零 optimizer 配额)+
+    冷读跨文件运行原件(bank/smoke)。"""
     from rl_curriculum.ppo262_qualified_input import load_qualified_input
     from rl_curriculum.ppo262_eng_profile import (
+        PPO262E_MODEL_SEED, PPO262E_SMOKE_CONFIG, PPO262E_SMOKE_STEPS,
         collect_frozen_probe, engineering_manifest,
     )
     from rl_curriculum.ppo262_train import save_model_with_manifest
     from rl_curriculum.ppo262_diag_train import build_diagnosed_ppo
     from rl_curriculum.ppo262_env import CurriculumMultiEpisodeEnv
-    from rl_curriculum.ppo262_eng_profile import PPO262E_SMOKE_CONFIG
     qi = load_qualified_input(
         fixture_v1["qualification_dir"],
         authorization_path=fixture_v1["authorization_path"],
         expected_scope="engineering")
     bank = [_loaded(0), _loaded(1, family="c2_context")]
     env = CurriculumMultiEpisodeEnv(bank, preprocessor=preproc)
-    model = build_diagnosed_ppo(dict(PPO262E_SMOKE_CONFIG), 262501, env)
+    model = build_diagnosed_ppo(dict(PPO262E_SMOKE_CONFIG),
+                                PPO262E_MODEL_SEED, env)
     out = tmp_path_factory.mktemp("ckpt")
     manifest = engineering_manifest(
-        qi, bank=bank, steps=0, updates=0, config=PPO262E_SMOKE_CONFIG,
-        model_seed=262501)
+        qi, bank=bank, steps=PPO262E_SMOKE_STEPS, updates=0,
+        config=PPO262E_SMOKE_CONFIG, model_seed=PPO262E_MODEL_SEED)
     saved = save_model_with_manifest(
         model, out / "eng_ppo_smoke_256", manifest=manifest)
     probe = collect_frozen_probe(
         preproc, bank, model, bundle_hash=qi.bundle_hash)
+    import hashlib as _hl
+    probe["binding_digest"] = "e262pb-" + _hl.sha256(json.dumps(
+        [saved["model_sha256"], qi.bundle_hash, probe["steps"],
+         probe["reset_seed"]],
+        sort_keys=True, separators=(",", ":")).encode(
+        "utf-8")).hexdigest()
     (out / "eng_frozen_probe.json").write_text(
         json.dumps(probe), encoding="utf-8")
+    (out / "eng_bank_smoke.json").write_text(json.dumps({
+        "episodes": manifest["bank"]["keys"],
+        "bank_manifest": {"manifest_sha256": manifest["bank"][
+            "manifest_sha256"]},
+        "synthetic_binding_fixture": True,
+    }), encoding="utf-8")
+    (out / "eng_ppo_smoke.json").write_text(json.dumps({
+        "steps": PPO262E_SMOKE_STEPS,
+        "optimizer_update_records": [],
+        "model_sha256": saved["model_sha256"],
+        "bank_manifest_sha256": manifest["bank"]["manifest_sha256"],
+        "synthetic_binding_fixture": True,
+        "note": "零 learn 绑定夹具:updates=0 是真实值(未训练)",
+    }), encoding="utf-8")
     return out, saved, manifest
 
 
@@ -357,7 +379,6 @@ def test_m01_cold_read_positive(fixture_v1, checkpoint_dir, tmp_path):
 
 def test_m01_cold_read_rejects_wrong_input_binding(
         fixture_v1, fixture_v2, checkpoint_dir, tmp_path):
-    """训练元数据指向 v1,冷读输入却是 v2 => 绑定不一致拒绝。"""
     from rl_curriculum.ppo262_eng_profile import cold_read_checkpoint
     from rl_curriculum.ppo262_qualified_input import QualifiedInputError
     out, _, _ = checkpoint_dir

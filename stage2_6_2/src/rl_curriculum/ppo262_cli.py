@@ -68,11 +68,29 @@ def _locked_plan():
 
 
 def _locked_rung_params() -> dict[str, Any]:
+    """B1:真实消费入口的共享参数解析器。
+
+    - 已验证 profile 上下文存在(activated_profile_input)时,返回该
+      QualifiedInput 的 pack 参数(解析前 verify_integrity,缓存污染
+      在消费前拒绝);
+    - 缺省(无上下文)维持历史 R2 行为逐字节不变(config-dev/probe/
+      core/dev-eval/final/smoke 官方默认路径不受影响)。
+    """
+    from rl_curriculum.ppo262_qualified_input import active_profile_input
+    qi = active_profile_input()
+    if qi is not None:
+        qi.verify_integrity()
+        return qi.rung_params()
     plan, _ = _locked_plan()
     return {fam: fp["rung_params"] for fam, fp in plan["families"].items()}
 
 
 def _locked_reference_thresholds() -> dict[str, Any]:
+    from rl_curriculum.ppo262_qualified_input import active_profile_input
+    qi = active_profile_input()
+    if qi is not None:
+        qi.verify_integrity()
+        return qi.reference_thresholds()
     plan, _ = _locked_plan()
     return {fam: fp["reference_thresholds"]
             for fam, fp in plan["families"].items()}
@@ -327,43 +345,37 @@ def _mini_bank_keys(family: str, n_episodes: int, *, namespace: str,
 
 def cmd_config_dev(args) -> int:
     """3 candidates x 3 family mini-runs + 评估 + 选择(§9/§10)。"""
-    from rl_curriculum.ppo262_banks import (
-        generate262_bank, staged_order,
+    from rl_curriculum.ppo262_entry_specs import (
+        config_dev_train_keys, prepare_config_dev_inputs,
     )
     from rl_curriculum.ppo262_train import (
         model_manifest_base, save_model_with_manifest, train_run,
     )
     from rl_curriculum.ppo262_metrics import (
-        build_261_policy_set, capture_table, config_dev_d1_capture,
-        evaluate_policy_on_bank, load_sb3_policy,
+        capture_table, config_dev_d1_capture, evaluate_policy_on_bank,
+        load_sb3_policy,
     )
 
-    rung_params = _locked_rung_params()
-    thresholds = _locked_reference_thresholds()
-    ns = "ppo_config_dev_262"
-    steps_per_family = (
-        PPO262_CONFIG_DEV_EPISODES_PER_FAMILY * 287)
+    # B1:输入解析与 bank 坐标走共享 prepare 管线(profile 上下文 =
+    # 已验证 pack;缺省 R2 不变);generator 消费边界 = spec.build_bank
+    spec = prepare_config_dev_inputs()
+    rung_params = spec.rung_params
+    thresholds = spec.reference_thresholds
+    ns = spec.namespace
+    steps_per_family = spec.extra["episodes_per_family"] * 287
 
     results: dict[str, Any] = {"candidates": {}, "eval_bank": {}}
     # 评估 bank(三族 D1 各 4 pairs)
-    eval_keys = []
-    for fam in PPO262_CONFIG_DEV_FAMILIES:
-        eval_keys.extend(_mini_bank_keys(
-            fam, PPO262_CONFIG_DEV_EVAL_PAIRS_PER_FAMILY * 2,
-            namespace=ns, rung=PPO262_CONFIG_DEV_RUNG,
-            pair_base=PPO262_CONFIG_DEV_EVAL_PAIR_BASE))
-    eval_bank = generate262_bank(
-        eval_keys, locked_plan_rung_params=rung_params)
+    eval_bank = spec.build_bank()
     results["eval_bank"] = [e.key.canonical() for e in eval_bank]
 
-    # reference + required baselines 在评估集上重跑(口径与 core/final 一致)
+    # reference + required baselines 在评估集上重跑(口径与 core/final 一致;
+    # 消费边界 = spec.build_reference,参数/阈值同源)
     ref_rows_all: list[dict[str, Any]] = []
     baseline_rows: dict[str, list[dict[str, Any]]] = {}
     for fam in PPO262_CONFIG_DEV_FAMILIES:
         fam_bank = [e for e in eval_bank if e.key.family == fam]
-        pols = build_261_policy_set(
-            fam, rung_params[fam][PPO262_CONFIG_DEV_RUNG],
-            thresholds[fam])
+        pols = spec.build_reference(fam, spec.extra["rung"])
         ref_rows_all.extend(evaluate_policy_on_bank(
             pols["reference"], fam_bank, collect_actions=False))
         for bname, pol in pols.items():
@@ -377,12 +389,8 @@ def cmd_config_dev(args) -> int:
         cand_result: dict[str, Any] = {"family_runs": {}}
         fam_tables = {}
         for fam in PPO262_CONFIG_DEV_FAMILIES:
-            keys = staged_order(_mini_bank_keys(
-                fam, PPO262_CONFIG_DEV_EPISODES_PER_FAMILY,
-                namespace=ns, rung=PPO262_CONFIG_DEV_RUNG,
-                pair_base=PPO262_CONFIG_DEV_TRAIN_PAIR_BASE))
-            bank = generate262_bank(
-                keys, locked_plan_rung_params=rung_params)
+            keys = config_dev_train_keys(spec, fam)
+            bank = spec.build_bank(keys=keys)
             mp = MODELS_DIR / f"configdev_{cand_name}_{fam}"
             run = train_run(
                 bank, config_name=cand_name, config=cfg, model_seed=26201,
@@ -494,21 +502,15 @@ def cmd_probe(args) -> int:
     cand_name = sel["selected_candidate"]
     cfg = sel["config"]
 
-    rung_params = _locked_rung_params()
-    thresholds = _locked_reference_thresholds()
-    from rl_curriculum.ppo262_namespaces import PPO262_PROBE_NAMESPACES
-    ns = PPO262_PROBE_NAMESPACES[family]
-
-    layout = PPO262_PROBE_BUDGETS[family]
-    keys = []
-    for rung, n in ((r, layout[r]) for r in CURRICULUM261_RUNGS):
-        n_pairs = n // 2
-        for j in range(n_pairs):
-            for variant in ("A", "B"):
-                keys.append(EpisodeKey(ns, family, rung, j, variant))
-    keys = staged_order(keys)
-    total_eps = sum(layout.values())
-    bank = generate262_bank(keys, locked_plan_rung_params=rung_params)
+    # B1:共享 prepare 管线(含 probe eval 坐标)
+    from rl_curriculum.ppo262_entry_specs import prepare_probe_inputs
+    spec = prepare_probe_inputs(
+        family, config_name=cand_name, config=cfg)
+    rung_params = spec.rung_params
+    thresholds = spec.reference_thresholds
+    ns = spec.namespace
+    total_eps = spec.extra["budget_episodes"]
+    bank = spec.build_bank()
 
     mp = MODELS_DIR / f"probe_{family.split('_')[0]}"
     run = train_run(
@@ -524,15 +526,20 @@ def cmd_probe(args) -> int:
             config_name=cand_name, config=cfg, model_seed=26201,
             order_name="staged(probe)", run_label=f"probe/{family}"))
 
-    # probe eval bank(该族 4 rung x 4 pairs,独立 namespace)
+    # probe eval bank(该族 4 rung x 4 pairs):官方缺省 = 独立评估
+    # namespace ppo_probe_eval_262(pair 0..3);profile 上下文 = 同隔离
+    # 工程 namespace 的独立 pair 区间(500..)
+    from rl_curriculum.ppo262_entry_specs import PROFILE_BANK_NAMESPACE
+    eval_ns, pair_base = "ppo_probe_eval_262", 0
+    if spec.namespace == PROFILE_BANK_NAMESPACE:
+        eval_ns, pair_base = PROFILE_BANK_NAMESPACE, 500
     eval_keys = []
     for rung in CURRICULUM261_RUNGS:
         for j in range(4):
             for variant in ("A", "B"):
                 eval_keys.append(EpisodeKey(
-                    "ppo_probe_eval_262", family, rung, j, variant))
-    eval_bank = generate262_bank(
-        eval_keys, locked_plan_rung_params=rung_params)
+                    eval_ns, family, rung, pair_base + j, variant))
+    eval_bank = spec.build_bank(keys=eval_keys)
 
     policy = load_sb3_policy(mp, f"probe/{family}")
     rows = evaluate_policy_on_bank(policy, eval_bank)
@@ -628,20 +635,20 @@ def cmd_core(args) -> int:
     cfg = sel["config"]
     model_seed = PPO262_MODEL_SEEDS[replicate - 1]
 
-    rung_params = _locked_rung_params()
-    base_keys = core_bank_keys(replicate)
-    keys = staged_order(base_keys) if order == "staged" else mixed_order(
-        base_keys, model_seed=model_seed)
-    if order == "mixed":
-        eq = manifest_equality(staged_order(base_keys), keys)
+    # B1:共享 prepare 管线(官方 staged/mixed multiset 语义保留;profile
+    # 上下文 = 工程坐标)
+    from rl_curriculum.ppo262_entry_specs import prepare_core_inputs
+    spec = prepare_core_inputs(replicate, order)
+    rung_params = spec.rung_params
+    keys = spec.bank_keys
+    if order == "mixed" and spec.namespace.startswith("ppo_core_train_262"):
+        eq = manifest_equality(staged_order(core_bank_keys(replicate)), keys)
         _write_json(
             _art() / f"manifest_pairing_integrity_rep{replicate}.json", eq)
         if not eq["pass"]:
             print(f"manifest equality 失败: {eq}", file=sys.stderr)
             return 2
-
-    bank = generate262_bank(
-        keys, locked_plan_rung_params=rung_params, progress=True)
+    bank = spec.build_bank(progress=True)
     total_steps = len(bank) * 287
 
     prefix = MODELS_DIR / f"core_rep{replicate}_{order}"
@@ -758,7 +765,6 @@ def _eval_matrix(bank, model_paths: dict[str, Path],
 
 def cmd_dev_eval(args) -> int:
     """core 训练后的 development evaluation(可重复使用,非 sealed)。"""
-    from rl_curriculum.ppo262_banks import generate262_bank
     from rl_curriculum.ppo262_metrics import (
         aggregate_capture, behavior_metrics, capture_table,
         family_core_capture,
@@ -769,10 +775,10 @@ def cmd_dev_eval(args) -> int:
         print(f"Probe Gate 拒绝 dev-eval: {probe_info['reason']}",
               file=sys.stderr)
         return 2
-    rung_params = _locked_rung_params()
-    bank = generate262_bank(
-        _dev_eval_bank_keys(), locked_plan_rung_params=rung_params,
-        progress=True)
+    # B1:共享 prepare 管线 + 消费边界
+    from rl_curriculum.ppo262_entry_specs import prepare_dev_eval_inputs
+    spec = prepare_dev_eval_inputs()
+    bank = spec.build_bank(progress=True)
     model_paths: dict[str, Path] = {}
     for rep in (1, 2, 3):
         for order in ("staged", "mixed"):
@@ -987,10 +993,11 @@ def cmd_final_run(args) -> int:
 
     begin_final_execution(digest)
 
-    rung_params = _locked_rung_params()
-    bank = generate262_bank(
-        _final_eval_bank_keys(), locked_plan_rung_params=rung_params,
-        progress=True)
+    # B1:共享 prepare 管线(final gate 已过;工程上下文不签发正式
+    # 许可——formal admission 防线在 qualified_input 层)
+    from rl_curriculum.ppo262_entry_specs import prepare_final_inputs
+    spec = prepare_final_inputs()
+    bank = spec.build_bank(progress=True)
     matrix = _eval_matrix(bank, model_paths, with_actions=True)
     ref_rows = matrix.pop("__reference__")
     baseline_rows = matrix.pop("__baselines__")
@@ -1425,13 +1432,18 @@ def cmd_eng_route_check(args) -> int:
         return 2
     art = route_profile_inputs(qi)
     _write_json(args.out_dir / "eng_route_check.json", art)
-    print(json.dumps({"pass": True,
+    print(json.dumps({"pass": bool(art.get("pass")),
                       "entry_classes": art["entry_classes"],
+                      "default_context_official_r2": art.get(
+                          "default_context_official_r2"),
+                      "cached_pack_tamper_rejected": art.get(
+                          "cached_pack_tamper_rejected"),
                       "pack_differs_from_r2": art["pack_differs_from_r2"],
-                      "note": "v1_r2_reference pack 与 R2 数值相同属预期"
-                              "(工程拷贝);参数来源路由证据以 v2_perturbed"
-                              "夹具为准"}, ensure_ascii=False))
-    return 0
+                      "note": "真实 prepare 管线 + 消费边界哨兵;"
+                              "v1_r2_reference pack 与 R2 数值相同属预期"
+                              "(工程拷贝),路由证据含正/负对照"},
+                     ensure_ascii=False))
+    return 0 if art.get("pass") else 2
 
 
 def cmd_eng_run(args) -> int:

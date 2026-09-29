@@ -440,9 +440,8 @@ def test_n01_planted_same_seed_not_possible():
     assert not (eng_seeds & old_seeds)
     assert len(CURRICULUM261_SEED_NAMESPACES) > 0  # 261 枚举面存在
 
-
-# ---------------------------------------------------------------- M01/M02
 def test_m02_route_profile_inputs(v2, tmp_path):
+    """B1 修复后:CLI 驱动真实 prepare 管线 + 消费边界哨兵。"""
     from rl_curriculum.ppo262_cli import main
     rc = main(["eng-route-check",
                "--qual-dir", v2["qualification_dir"],
@@ -454,11 +453,15 @@ def test_m02_route_profile_inputs(v2, tmp_path):
     assert set(art["entry_classes"]) == {
         "smoke", "config_dev", "probe", "core", "dev_eval", "final"}
     qi = _load(v2)
-    for cls in ("config_dev", "probe", "core", "dev_eval", "final"):
-        assert art["routes"][cls]["rung_params"] == qi.rung_params()
-        assert art["routes"][cls]["reference_thresholds"] == (
-            qi.reference_thresholds())
-    assert art["routes"]["smoke"]["ppo_config"]["n_steps"] == 256
+    for cls in art["entry_classes"]:
+        route = art["routes"][cls]
+        assert route["rung_params_source"].startswith(
+            "qualified_input.pack")
+        assert route["namespace"] == "ppo_eng_bank_262e"
+        assert route["consumer_boundary_hits"]["generate262_bank"] >= 1
+    assert art["default_context_official_r2"] is True
+    assert art["cached_pack_tamper_rejected"] is True
+    assert art["pass"] is True
     assert art["pack_differs_from_r2"] is True
 
 

@@ -21,15 +21,19 @@ import numpy as np
 from rl_curriculum.curriculum261_api import (
     CURRICULUM261_TIMEFRAME,
 )
-from rl_curriculum.ppo262_banks import (
-    EpisodeKey, generate262_bank,
-)
 from rl_curriculum.ppo262_config import PPO262_CANDIDATES
 from rl_curriculum.ppo262_env import CurriculumMultiEpisodeEnv
 from rl_curriculum.ppo262_train import build_ppo
 
 
 def _locked_rung_params() -> dict[str, Any]:
+    """B1:与 ppo262_cli._locked_rung_params 同一共享语义(profile
+    上下文优先 + verify_integrity;缺省 R2 不变)。"""
+    from rl_curriculum.ppo262_qualified_input import active_profile_input
+    qi = active_profile_input()
+    if qi is not None:
+        qi.verify_integrity()
+        return qi.rung_params()
     from rl_curriculum.curriculum261_plan import load_locked_plan
     from rl_curriculum.curriculum261_api import qualification_r2_lock_marker
     plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
@@ -42,15 +46,12 @@ def run_ppo262_smoke(out_dir: Path | None = None) -> dict[str, Any]:
 
     checks: dict[str, bool] = {}
     details: dict[str, Any] = {}
-    rung_params = _locked_rung_params()
-
-    # --- smoke bank(ppo_smoke_262:3 family 各 D1 1 pair 双端 = 6 eps)
-    keys: list[EpisodeKey] = []
-    for fam in ("c1_opportunity", "c2_context", "c3_cost"):
-        for variant in ("A", "B"):
-            keys.append(EpisodeKey(
-                "ppo_smoke_262", fam, "D1", 0, variant))
-    bank = generate262_bank(keys, locked_plan_rung_params=rung_params)
+    # B1:共享 prepare 管线(profile 上下文 = pack;缺省 R2 不变)。
+    # 注意:ppo-smoke 属工程诊断命令——profile 上下文未激活时保持
+    # 官方 ppo_smoke_262 坐标与 R2 参数。
+    from rl_curriculum.ppo262_entry_specs import prepare_smoke_inputs
+    spec = prepare_smoke_inputs()
+    bank = spec.build_bank()
     details["bank"] = [e.key.canonical() for e in bank]
 
     env = CurriculumMultiEpisodeEnv(bank)

@@ -167,6 +167,17 @@ def _check_code_compatibility(plan: dict[str, Any],
     """Cq(plan.code_identity)vs Ct(现场重算)共同执行语义比对。"""
     cq = plan.get("code_identity") or {}
     ct = consumer_common_contract_now()
+    # B2.1(反例 missing_producer_identity):资格生产者身份是来源证据
+    # 的组成部分,缺 producer 的 plan 不装载;版本标签(如
+    # family_version)不能替代生产者与共同执行语义证据
+    producer = cq.get("producer") or {}
+    checks["producer_identity_present"] = bool(
+        producer.get("module") and (
+            producer.get("module_sha256") or producer.get("sha256")))
+    if not checks["producer_identity_present"]:
+        problems.append(
+            "plan.code_identity 缺 producer 身份(生产者模块+哈希;"
+            "来源证据不完整)")
     drift: dict[str, dict[str, Any]] = {}
     for key in _CONTRACT_KEYS:
         cq_v, ct_v = cq.get(key), ct.get(key)
@@ -252,6 +263,83 @@ class QualifiedInput:
             "consumer_common_contract": {
                 k: self.contract_now[k] for k in _CONTRACT_KEYS},
         }
+
+    # ------------------------------------------------- 消费边界完整性重验
+    def verify_integrity(self) -> None:
+        """B2.2(反例 bank_cached_pack_mutation):消费边界重验已验证
+        绑定——缓存对象在装载后被正常可达代码污染时,任何真实消费
+        (bank 生成/env 训练/冷读/路由解析)之前拒绝。
+
+        重验面:pack digest(含全部 rung_params/thresholds 字节)、
+        authorization binding digest、V2 bundle hash、Ct 共同执行
+        语义(family versions/vendor/V2 合同摘要,现场重算)。
+        """
+        problems: list[str] = []
+        pack_now = parameter_pack_digest(self._pack)
+        if pack_now != self.pack_digest:
+            problems.append(
+                f"pack 缓存完整性重验失败: 重算 {pack_now} != 已验证 "
+                f"{self.pack_digest}(缓存被污染;消费拒绝)")
+        auth = self.authorization or {}
+        bindings = auth.get("bindings", {})
+        expected_binding = authorization_binding_digest({
+            **bindings, "profile": auth.get("profile"),
+            "scope": auth.get("scope")})
+        if auth.get("binding_digest") != expected_binding:
+            problems.append("authorization 缓存完整性重验失败(binding "
+                            "digest 重算不一致)")
+        try:
+            bundle_now = self.preprocessor.bundle_hash
+        except Exception as exc:  # pragma: no cover - 防御性
+            problems.append(f"bundle 重验异常: {exc}")
+            bundle_now = None
+        if bundle_now != self.bundle_hash:
+            problems.append(
+                f"bundle 缓存完整性重验失败: 重算 {bundle_now} != 已验证 "
+                f"{self.bundle_hash}")
+        ct_now = consumer_common_contract_now()
+        for key in _CONTRACT_KEYS:
+            if _canonical(ct_now.get(key)) != _canonical(
+                    self.contract_now.get(key)):
+                problems.append(f"共同执行语义漂移(消费时重算): {key}")
+        if problems:
+            raise QualifiedInputError({
+                "format": "ppo262e-snapshot-integrity-reject-v1",
+                "problems": problems,
+                "checks": {},
+                "rejected": True,
+            })
+
+
+# ---------------------------------------------------------------- profile
+#: B1:进程级已验证 profile 输入上下文(官方消费入口的共享输入源)。
+#: 缺省 None = 全部入口维持 R2 默认;上下文存在时,_locked_rung_params
+#: 等共享解析器返回 pack 参数(并在每次解析前做 verify_integrity)。
+_ACTIVE_PROFILE: dict[str, Any] = {}
+
+
+class activated_profile_input:
+    """上下文管理器:激活已验证 QualifiedInput 供真实消费入口共享。"""
+
+    def __init__(self, qi: "QualifiedInput"):
+        self._qi = qi
+
+    def __enter__(self) -> "QualifiedInput":
+        if not isinstance(self._qi, QualifiedInput):
+            raise QualifiedInputError({
+                "format": "ppo262e-profile-ctx-reject-v1",
+                "problems": ["profile 上下文要求已验证的 QualifiedInput"],
+            })
+        _ACTIVE_PROFILE["qi"] = self._qi
+        return self._qi
+
+    def __exit__(self, *exc) -> None:
+        _ACTIVE_PROFILE.pop("qi", None)
+
+
+def active_profile_input() -> "QualifiedInput | None":
+    qi = _ACTIVE_PROFILE.get("qi")
+    return qi if isinstance(qi, QualifiedInput) else None
 
 
 # ---------------------------------------------------------------- 装载
@@ -356,6 +444,10 @@ def load_qualified_input(
         result.get("iteration") == plan.get("iteration"))
     checks["result_source_iteration_present"] = bool(
         result.get("source_iteration"))
+    # B2.1(ChatGPT 终审反例 source_iteration_mismatch):source 迭代
+    # 身份必须与 plan 实际关联,不是"非空字符串"即可
+    checks["result_source_iteration_matches_plan"] = (
+        result.get("source_iteration") == plan.get("source_iteration"))
     for ok, msg in (
             (checks["result_format"], "result format 不识别"),
             (checks["result_binds_plan"], "result 未绑定 plan digest"),
@@ -364,7 +456,10 @@ def load_qualified_input(
             (checks["result_iteration_matches"],
              "result 与 plan 的 iteration 不一致"),
             (checks["result_source_iteration_present"],
-             "result 缺 source iteration 身份")):
+             "result 缺 source iteration 身份"),
+            (checks["result_source_iteration_matches_plan"],
+             "result source_iteration 与 plan source_iteration 不一致"
+             "(来源/终态关联未核验)")):
         if not ok:
             problems.append(msg)
 
@@ -377,13 +472,26 @@ def load_qualified_input(
     checks["exposure_binds_plan"] = exposure.get("plan_digest") == digest
     checks["exposure_completed"] = exposure.get("status") == "completed"
     checks["exposure_one_shot"] = exposure.get("one_shot") is True
+    # B2.1(反例 exposure_iteration_mismatch):终态必须绑定同一执行
+    # iteration(与 plan/result 三方一致);可选 source 字段若出现也须一致
+    checks["exposure_iteration_matches"] = (
+        exposure.get("iteration") == plan.get("iteration"))
+    exposure_src = exposure.get("source_iteration")
+    checks["exposure_source_iteration_consistent"] = (
+        exposure_src is None
+        or exposure_src == plan.get("source_iteration"))
     for ok, msg in (
             (checks["exposure_format"], "exposure format 不识别"),
             (checks["exposure_binds_plan"], "exposure 未绑定 plan digest"),
             (checks["exposure_completed"],
              f"exposure status = {exposure.get('status')!r} != completed"),
             (checks["exposure_one_shot"],
-             "exposure 未声明一次性终态语义")):
+             "exposure 未声明一次性终态语义"),
+            (checks["exposure_iteration_matches"],
+             "exposure iteration 与 plan iteration 不一致(终态与源"
+             "迭代未关联)"),
+            (checks["exposure_source_iteration_consistent"],
+             "exposure source_iteration 与 plan 不一致")):
         if not ok:
             problems.append(msg)
 
@@ -429,6 +537,28 @@ def load_qualified_input(
         problems.append(
             f"bundle hash {bundle_hash} != plan 绑定 "
             f"{plan.get('preprocessor_bundle_hash')!r}")
+
+    # 6b. N01(反例 declared_fit_training_namespace_overlap):输入声明
+    # 的 fit 来源 namespace 不得兼任任何 seed 派生 namespace(261 全部
+    # 正式/研究 namespace 与 262 全部训练/评估 namespace)——声明面与
+    # 消费派生面必须隔离;fit manifest 内部 entries 的 namespace 也须
+    # 与声明一致(envelope 自校验已覆盖单一批次,这里核声明面)
+    from rl_curriculum.curriculum261_api import (
+        CURRICULUM261_SEED_NAMESPACES,
+    )
+    from rl_curriculum.ppo262_namespaces import all_262_namespaces
+
+    seed_side = set(CURRICULUM261_SEED_NAMESPACES) | set(
+        all_262_namespaces())
+    fit_ns = str((plan.get("preprocessing") or {}).get(
+        "fit_namespace", ""))
+    checks["fit_namespace_isolated_from_seed_derivation"] = (
+        bool(fit_ns) and fit_ns not in seed_side)
+    if not checks["fit_namespace_isolated_from_seed_derivation"]:
+        problems.append(
+            f"声明的 fit namespace {fit_ns!r} 为空或与 seed 派生 "
+            f"namespace 重合(fit 来源面与训练/评估派生面必须隔离;"
+            f"同源串用拒绝)")
 
     # 7. Cq/Ct 共同执行语义
     contract_now = _check_code_compatibility(plan, checks, problems)
