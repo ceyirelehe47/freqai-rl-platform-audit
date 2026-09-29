@@ -51,6 +51,10 @@
   225 passed;`c4_verification/` 零配额四连(lock rc0/route rc0/
   formal-reject rc2/cold-read rc0)。绑定 C4 的 261 全收集见
   `full_regression_v4`。
+- **C5** `7c5fcc4f`(reviewer delta FAIL→修复→PASS):env 模块迁移解析
+  改 stage2_6_0* 家族展开(真归档根)+`_repo_root()` 公共解析;G2 未篡改
+  对照入测试;262 套件 225 passed;绑定 C5 的 261 全收集见
+  `full_regression_v5`;reviewer C5 delta PASS(6/6,零配额)。
 - 返修全程零原生生成、零 fit、零新增 smoke(账本 replay 2/2、成功
   12/12、smoke 2/8、512/2048 步不变)。
 

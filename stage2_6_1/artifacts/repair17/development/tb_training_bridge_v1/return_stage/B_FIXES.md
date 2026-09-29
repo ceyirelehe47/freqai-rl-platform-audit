@@ -66,6 +66,18 @@ git blob 复算通过后写入;冷读重新复算;v1 原件零改写)。
   pair_attempts;候选数 = 计划 + 重试超出(不低估)。注入 5 次派生
   重试 → pair_attempts=5、候选 10。
 
+
+## C5(reviewer delta FAIL→修复→PASS)
+
+- reviewer 在 C4 增量复验发现单点缺陷:`../rl_platform/env.py` 迁移解析
+  兜底命中 stage2_5_2 旧版 blob,含 env 键的未篡改 manifest 迁移恒拒。
+- C5 `7c5fcc4f`:stage2_6_0* 家族展开(ls-tree)为真归档根;`_repo_root()`
+  公共解析(部署树无 .git 场景);G2 未篡改正向断言入测试;262 全套
+  225 passed;绑定 C5 的 261 全收集见 full_regression_v5。
+- reviewer C5 delta 复验 PASS(6/6 独立探针,零配额):G2 对照 True、
+  篡改仍拒、v1 归档冷读复跑通过;新 P3(非法 commit + env 键时
+  ls-tree 异常路径为崩溃栈而非干净拒绝,fail-closed 无绕过)记录为
+  下轮顺手项,本轮不阻塞。
 ## §6 补件:reviewer 原始脚本与输出
 
 `return_stage/reviewer_originals/`(= 主 Agent 工作区 `tmp_reviewer_tb_v1`

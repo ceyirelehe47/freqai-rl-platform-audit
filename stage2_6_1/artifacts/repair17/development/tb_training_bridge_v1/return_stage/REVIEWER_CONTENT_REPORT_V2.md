@@ -277,3 +277,141 @@ ledger_before.jsonl。未见重建或倒填痕迹(内容与上轮报告引用一
 包外 REVIEWER_FINAL_RECEIPT_V2.md(绑定最终 SHA-256/大小/成员数/候选
 与证据 HEAD/本报告身份)。qualification=NOT_RUN、teaching_experiment=
 NOT_RUN、formal 恒拒(空注册表)为预期真实状态, 不因工程 PASS 改变。
+
+---
+
+# 附录: C4 delta 复验(增补轮, 2026-09-29 16:20-17:00 +08:00)
+
+- 对象: C4 = `dec94b85`(C3 之上, 声明仅闭合本报告 P2/P3); 证据 HEAD =
+  `5f2affaa`(E4), 实际 `git ls-remote origin` = `5f2affaa`(Windows git
+  实测); C3 为 C4 祖先(merge-base 实测)
+- 方法: 独立探针 `probe_c4_delta.py`(隔离目录, 6 用例) + C3→C4 diff
+  逐文件审阅 + v4/v4-262 记录实读 + c4_verification 原件复核
+
+## C4.1 diff 范围核验 — PASS
+
+C3..C4 共 98 文件: 代码面**恰为** `ppo262_eng_profile.py`(+27/-7:
+_CONSUMER_CODE_MODULES 增 6 模块 + _verify_identity_at_commit 多根解析)
+与 `test_ppo262e_review_fixes.py`(+19: 新 P2 测试); 其余 96 个全部为
+新增证据工件(v3/v4 回归原件、return_stage 归档、c3/c4_verification、
+candidate_source 快照、push 回执)。无其他 src/tests 改动。
+
+## C4.2 P2 闭合有效性 — **部分成立, 一处结构缺陷 → 本增补轮 FAIL**
+
+独立实测(部署树, PYTHONPATH=src):
+- **成立面**: `_consumer_code_identity()` 18 键, 6 个新模块全部 64 位
+  hex, env 模块路径存在; 17/18 模块对 C4 blob 逐一生成验证一致; 篡改
+  `curriculum261_c1.py` / `../rl_platform/env.py` 记录哈希 → 迁移路径
+  均拒绝; 端到端: C4 树新建合成 checkpoint 冷读通过(18 键记录), 篡改
+  其 generator/env 哈希 → **PPO.load 前拒绝**(哨兵证明); **generator
+  行为漂移检测完整生效**;
+- **缺陷面(G2 未篡改对照 FAIL)**: `_verify_identity_at_commit(
+  当前全部 18 键真实哈希, dec94b85)` 返回 **False**。根因(逐 blob
+  实证): 部署树 `src/rl_platform/env.py`(f03e354f…)在 C4 的真实归档
+  位置是 **`stage2_6_0g/src/rl_platform/env.py`**(字节完全一致,
+  cat-file 实测), 而 `../rl_platform/env.py` 的多根列表只含
+  stage2_6_2 / stage2_6_1 / src / stage2_5_2——前三者在 C4 无此文件,
+  stage2_5_2 的 blob(9a899eaa…)与部署字节实质不同(2.5.2a 演进版),
+  → 兜底命中错误 blob → **含 env 键的任何 manifest 迁移验证恒拒**
+  (误拒, fail-closed, 无绕过)。后果: 未来任何记录了 env 键的新
+  checkpoint 在树前进后不可迁移验证(恒拒); generator 侧不受影响
+  (v1 归档件 recorded-keys-only, G4 实测迁移路径完好, via_candidate
+  =true, 残差 0.0; c4_verification 原件 lock=0/route=0/formal=2/
+  cold_read=0 复核一致)。
+
+**修复建议(单点)**: 在 `_verify_identity_at_commit` 的 `../` 分支
+rels 中补 `stage2_6_0g/src/rl_platform/env.py`(或按 stage2_6_0* 家族
+展开/按内容归一解析), 并补一条"未篡改 18 键身份对 dec94b85 验证为
+True"的正向断言测试(现有新测试只测了篡改拒绝, 未测未篡改通过, 故
+缺陷漏网)。修复后仅须复验: 该断言 + G2 对照 + 一次归档件冷读, 零配额。
+
+## C4.3 其余委托项 — PASS
+
+- v1 归档 checkpoint 冷读(迁移路径)在 C4 树完好: G4 pass + 
+  c4_verification/eng_cold_read.json pass=true/via_candidate=true/
+  残差 0.0(复核一致);
+- P3: 部署树 `test_ppo262e_review_fixes.py` 已为 LF(`file` 实测无
+  CRLF 标记), 与 C4 blob 哈希一致;
+- 部署树 `ppo262_eng_profile.py` 与 C4 blob 逐字节一致
+  (32bd1807…); 262 套件提交记录 225(0 fail/err/skip)与
+  full_regression_v4(ok=true, 2541=2534+7skip, rc=[0,0], run
+  r21_20260929_162704, commit_a=dec94b85, 执行器/审计器 deploy==blob
+  双哈希一致)实读核验通过; 远端 tip 实测 = 5f2affaa。
+
+## C4.4 配额声明
+
+共享账本审查前后 sha256 相同(2f10ed18…, 恒 6 行): **本增补轮零原生
+生成/零 fit/零新增 smoke**; 全部检查以哨兵边界/合成夹具/既有原件
+复跑完成, 输出仅在隔离目录 `F:/trading/tmp_reviewer_tb_v1_fix/`
+(out_c4/PROBE_C4_RESULT.json: 5/6, 唯一 FAIL 即 C4.2 缺陷对照)。
+
+## C4.5 增补轮判定
+
+**FAIL(单点结构缺陷)** —— P2 闭合的 generator 侧完整生效; env 侧
+检测在树内生效、但跨 commit 迁移验证因根列表遗漏 `stage2_6_0g`
+而恒拒(误拒), 未篡改对照不能通过, 不符合 `_verify_identity_at_commit`
+自身契约("记录哈希与归档 blob 一致 → 绑定有效")。差异恰一处、修复
+明确; 修复并复验(C4.2 建议的三项, 零配额)后本增补轮即可转 PASS。
+C3 主判定与全部既有结论不变。
+
+---
+
+# 附录: C5 delta 复验(2026-09-29 17:40-18:00 +08:00)
+
+- 对象: C5 = `7c5fcc4f`(C4 之上, 修复 C4.2 缺陷); 实测 HEAD 与
+  `git ls-remote origin` 均 = `7c5fcc4f`; C4 为 C5 祖先
+- 方法: 独立探针 `probe_c5_delta.py`(6 用例, 隔离目录) + C4→C5 diff
+  审阅 + 部署树同步对拍 + 新正向断言测试部署树实跑
+
+## C5.1 diff 范围 — PASS
+
+代码面恰两文件: `ppo262_eng_profile.py`(_repo_root 抽取 + "../" 分支
+改为 stage2_6_0* 家族展开——`git ls-tree --name-only <commit>` 过滤
+stage2_6_0 前缀, stage2_5_2 降为家族之后兜底)与
+`test_ppo262e_review_fixes.py`(+17: G2 未篡改正向断言); 其余全部为
+证据工件(v4 归档、reviewer_originals_v2、candidate_source 重排)。部署
+树 eng_profile 与 C5 blob 逐字节一致(0016eb8d…)。
+
+## C5.2 三项复验(委托项) — 全部 PASS
+
+1. **G2 未篡改对照**: 构造 C4 时刻 18 键身份(活树身份 + 仅
+   ppo262_eng_profile.py 替换为 dec94b85 blob 哈希)→
+   `_verify_identity_at_commit(…, dec94b85)` = **True**; env 键实测经
+   stage2_6_0 家族根解析命中 stage2_6_0g blob(f03e354f 逐字节一致);
+   18/18 键全部可验证——上轮恒拒缺陷消除;
+2. **篡改对照**: 伪造 curriculum261_c1 哈希 → 拒; 伪造 env 哈希 → 拒;
+   C2 时刻 legacy 伪造 ppo262_env → 拒——检测语义无回退;
+3. **v1 归档 checkpoint 冷读**: 新进程复跑 → pass=true,
+   via_candidate=true, 动作残差 0.0——迁移路径完好。
+
+附加回归守卫(独立): C5 树新建合成 checkpoint(18 键)冷读通过(残差
+0.0); 篡改其 generator / env 哈希 → **PPO.load 前拒绝**(哨兵证明)。
+新正向断言测试在部署树实跑通过
+(`test_p2_consumer_identity_covers_generator_and_env_modules`,
+1 passed, PPO262E_REPO_ROOT=/mnt/f/trading/freqai-rl-audit)——与我
+上轮要求的正向断言一致。
+
+## C5.3 非阻塞 P3 观察一条(新引入, 如实记录)
+
+`_verify_identity_at_commit` 的 "../" 分支中 `git ls-tree …
+--name-only <candidate_commit>` 带 check=True 且位于逐 rel try 之外:
+若迁移 sidecar 携带**非法/不存在的 candidate_commit** 且 manifest 含
+env 键, 则抛 CalledProcessError 直接逸出 cold_read(CLI 只捕
+QualifiedInputError → 崩溃栈而非干净拒绝; 实测复现
+INVALID_COMMIT: raises CalledProcessError; 非 env 键为干净 False)。
+fail-closed、无绕过, 仅健壮性: 建议对该 ls-tree 包 try/except 返回
+False。不阻塞本轮。
+
+## C5.4 配额声明
+
+共享账本审查前后 sha256 相同(2f10ed18…, 恒 6 行): **本轮零原生生成/
+零 fit/零新增 smoke**; 探针输出仅在我隔离目录
+(tmp_reviewer_tb_v1_fix/out_c5/PROBE_C5_RESULT.json: 6/6)。
+
+## C5.5 增补轮判定
+
+**PASS** —— C4.2 缺陷按建议单点修复且经独立对照复验(未篡改 True +
+篡改仍拒 + 迁移路径完好 + 端到端守卫), P2 闭合自本轮起在 generator
+与 env 两侧均完整生效。绑定 C5 的 261 全收集 v5 回归由主 Agent 在跑,
+其 ok=true 到位后可进入封包; A02(封包后字节冷读)仍为封包阶段事项。
+C3/C4 主结论不变; C4 delta 的 FAIL 由本 PASS 取代。

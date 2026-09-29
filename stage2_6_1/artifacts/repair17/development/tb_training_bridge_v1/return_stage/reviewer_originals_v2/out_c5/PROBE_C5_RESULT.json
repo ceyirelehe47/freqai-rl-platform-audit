@@ -1,0 +1,57 @@
+{
+  "probe": "reviewer_c5_delta_v1",
+  "candidate": "7c5fcc4f",
+  "cases": [
+    {
+      "name": "1_G2_untampered_c4_moment_identity_verifies_true",
+      "expectation_met": true,
+      "detail": {
+        "untampered_true": true,
+        "env_key_matches_stage2_6_0g_blob": true,
+        "n_keys": 18
+      }
+    },
+    {
+      "name": "2_tamper_controls_still_reject",
+      "expectation_met": true,
+      "detail": {
+        "forged_generator_rejected": true,
+        "forged_env_rejected": true,
+        "legacy_forged_rejected": true
+      }
+    },
+    {
+      "name": "3_v1_archive_cold_read_migration_still_passes",
+      "expectation_met": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "via_candidate": true
+      }
+    },
+    {
+      "name": "4_fresh_c5_ckpt_cold_read_positive",
+      "expectation_met": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "identity_keys": 18
+      }
+    },
+    {
+      "name": "5_generator_drift_still_rejected_pre_load",
+      "expectation_met": true,
+      "detail": "消费代码身份 Ct 漂移(checkpoint 绑定的执行面与当前树/已归档候选均不一致)"
+    },
+    {
+      "name": "6_env_drift_still_rejected_pre_load",
+      "expectation_met": true,
+      "detail": "消费代码身份 Ct 漂移(checkpoint 绑定的执行面与当前树/已归档候选均不一致)"
+    }
+  ],
+  "passed": 6,
+  "total": 6,
+  "limits": {
+    "native_episodes_generated": 0,
+    "optimizer_updates": 0,
+    "fit_calls": 0
+  }
+}
