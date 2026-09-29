@@ -1,0 +1,122 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+....................s................................................s.. [ 16%]
+........................................................................ [ 19%]
+...................s.................................................... [ 22%]
+........................................................................ [ 24%]
+....................................................................s... [ 27%]
+........................................................................ [ 30%]
+........................................................................ [ 33%]
+.....................................................s.s.s.............. [ 35%]
+........................................................................ [ 38%]
+........................................................................ [ 41%]
+........................................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 49%]
+........................................................................ [ 52%]
+...................................................................R17ALERT {"event":"t06","n":1,"utc":"2026-09-29T20:08:27Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-29T20:08:27Z","run_id":"run"}
+..... [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+.................................................F..................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-09-29T20:19:00Z","run_id":"run"}
+.... [ 68%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+...................                                                      [100%]
+=================================== FAILURES ===================================
+_ TestFormalAdmissionIsolation.test_c01_observation_wiring_functions_sandboxed _
+
+self = <test_curriculum261_r17_supervision_unit.TestFormalAdmissionIsolation object at 0x75ed29155c50>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_c01_observation_wiring_fu0')
+
+    def test_c01_observation_wiring_functions_sandboxed(
+            self, tmp_path):
+        """准入拒绝路径不启动观测;bootstrap/teardown 函数级验证
+        (沙箱请求目录;补原 D5 观测覆盖,不经 formal 入口)。"""
+        runner = self.SYNC / "stage2_6_1_runner"
+        req_dir = tmp_path / "req"
+        req_dir.mkdir()
+        script = (
+            'source "{r}/r17_entry_common.sh"\n'
+            'REQ_DIR="{d}"\n'
+            'LAUNCH_EVIDENCE="$REQ_DIR/launch_evidence.jsonl"\n'
+            'if r17_monitored_bootstrap "$REQ_DIR" c01obs; then\n'
+            '  emit_launch bootstrap_ok "win sampler started"\n'
+            'fi\n'
+            'r17_monitored_teardown "$REQ_DIR"\n'
+        ).format(r=runner, d=req_dir)
+        proc = subprocess.run(
+            ["bash", "-c", script], capture_output=True, text=True,
+            timeout=60, cwd=str(tmp_path))
+        assert proc.returncode == 0, proc.stderr
+        ev = (req_dir / "launch_evidence.jsonl").read_text(
+            encoding="utf-8")
+        assert "observation_closed" in ev  # teardown 必然封口
+        obs_file = req_dir / "observation.json"
+        if obs_file.is_file():
+            pid = json.loads(
+                obs_file.read_text(encoding="utf-8")
+            )["win_sampler_interop_pid"]
+>           assert not os.path.exists(f"/proc/{pid}"), \
+                f"采样器 interop pid={pid} 未被 teardown 停止"
+E           AssertionError: 采样器 interop pid=10155 未被 teardown 停止
+E           assert not True
+E            +  where True = <function exists at 0x75ed3938f740>('/proc/10155')
+E            +    where <function exists at 0x75ed3938f740> = <module 'posixpath' (frozen)>.exists
+E            +      where <module 'posixpath' (frozen)> = os.path
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py:990: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_supervision_unit.py::TestFormalAdmissionIsolation::test_c01_observation_wiring_functions_sandboxed
+1 failed, 2603 passed, 7 skipped, 10 warnings in 2383.95s (0:39:43)

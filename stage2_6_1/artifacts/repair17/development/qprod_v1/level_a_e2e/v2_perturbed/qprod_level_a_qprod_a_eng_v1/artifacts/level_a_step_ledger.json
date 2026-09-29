@@ -1,0 +1,142 @@
+{
+  "format": "cur261-qprod-levela-step-ledger-v1",
+  "steps": [
+    {
+      "step": "provenance-verify",
+      "execution": "real",
+      "ok": true,
+      "note": "链外 gate topology 夹具输入存在性核验(真实检查)",
+      "evidence": "gate_topology_reconciliation.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "determinism-matrix",
+      "execution": "fixture_double",
+      "ok": true,
+      "note": "原生生成替身(engineering_fixture 标注)",
+      "evidence": "determinism/generation_determinism_contract.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "audit",
+      "execution": "real",
+      "ok": true,
+      "note": "控制面模块冻结身份实算(历史绑定面属正式链;本轮工程面记录声明索引)",
+      "evidence": "qprod_code_freeze.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "cue-audit",
+      "execution": "fixture_double",
+      "ok": true,
+      "note": "cue 审计报告=工程原件替身(判定 gate 仍真实计算;原生坐标审计见 Level B)",
+      "evidence": "cue_contract_audit.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "preplan-smoke",
+      "execution": "fixture_double",
+      "ok": true,
+      "note": "preplan 原生 smoke 替身",
+      "evidence": "preplan_engineering_smoke.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "plan-roundtrip",
+      "execution": "real",
+      "ok": true,
+      "note": "前置产物真实解析核验(替身输入,真实校验)",
+      "evidence": "plan_roundtrip_validation.json",
+      "utc": "2026-09-29T22:58:50+00:00"
+    },
+    {
+      "step": "design-plan-lock",
+      "execution": "real",
+      "ok": true,
+      "note": "设计计划 create-only 锁定(数据=工程夹具,锁定真实)",
+      "evidence": "qprod_design_plan.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "design",
+      "execution": "fixture_double",
+      "ok": true,
+      "note": "参数 pack=工程夹具设计输出(digest 实算)",
+      "evidence": "parameter_pack.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "calibrate",
+      "execution": "fixture_double",
+      "ok": true,
+      "note": "原生校准=替身;产物 digest 实算供 lock-plan 绑定",
+      "evidence": "preprocessor_bundle_calibration.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "preflight-static",
+      "execution": "real",
+      "ok": true,
+      "note": "pack 三族×D0-D3 结构静态核验(真实)",
+      "evidence": "prelock_static_preflight.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "lock-plan",
+      "execution": "real",
+      "ok": true,
+      "note": "资格计划冻结(绑定校准产物 digest/pack/bundle/fit;prior=数据前运行计划 digest,两种计划不混)",
+      "evidence": "qprod_qualification_plan_ref.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "preflight-sealed",
+      "execution": "real",
+      "ok": true,
+      "note": "锁后绑定复核(真实)",
+      "evidence": "sealed_final_preflight.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "qualify",
+      "execution": "real",
+      "ok": true,
+      "note": "exposure 一次性窗口+公共判定核心实算(verdict=PASS)",
+      "evidence": "qprod_qualification_result.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "smoke",
+      "execution": "not_run",
+      "ok": true,
+      "note": "模拟边界/NOT_RUN:会更新模型的叶节点本轮不执行(新增 optimizer/BC/PPO 更新=0);不假写正式 PASS",
+      "evidence": null,
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "full-cold",
+      "execution": "real",
+      "ok": true,
+      "note": "本地 reader 真实复读+envelope 真装载(回归套件=工程排练差异)",
+      "evidence": "full_cold_reader_check.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "report-read",
+      "execution": "real",
+      "ok": true,
+      "note": "报告值从产物实算",
+      "evidence": "qprod_report_values.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    },
+    {
+      "step": "verify-formal-logs",
+      "execution": "real",
+      "ok": false,
+      "note": "17 步账本序列与权威步骤集核验(真实)",
+      "evidence": "formal_log_verification.json",
+      "utc": "2026-09-29T22:58:51+00:00"
+    }
+  ],
+  "verdict": "PASS"
+}

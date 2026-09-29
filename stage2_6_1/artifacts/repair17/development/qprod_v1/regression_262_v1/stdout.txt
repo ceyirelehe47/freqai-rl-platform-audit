@@ -1,0 +1,66 @@
+...........................F...F........................................ [ 30%]
+...................................................F.................... [ 60%]
+........................................................................ [ 90%]
+........................                                                 [100%]
+=================================== FAILURES ===================================
+___________________________ test_input_lock_all_pass ___________________________
+
+    def test_input_lock_all_pass():
+        art = run_input_lock()
+>       assert art["pass"] is True, art["problems"]
+E       AssertionError: ["2.6.1 源码漂移(未登记): ['curriculum261_api.py']"]
+E       assert False is True
+
+tests/route_c_stage2_6_2/test_ppo262_input_lock.py:40: AssertionError
+__________________ test_stage261_directory_unmodified_by_262 ___________________
+
+    def test_stage261_directory_unmodified_by_262():
+        """2.6.2 代码不写入 2.6.1 模块(源码哈希与 plan 一致即证据)。
+    
+        R3 迭代登记例外:curriculum261_api.py 的 R3 变更(R3 namespace
+        白名单 + qualification_r3 完整守卫 + 重复派生函数合并)显式登记
+        于 R3_REGISTERED_CODE_CHANGES;登记文件的漂移必须精确等于登记
+        哈希(二次漂移仍 fail);其余全部文件仍须与 R2 plan 逐文件一致。
+        """
+        art = run_input_lock()
+        ident = art["curriculum_source_identity"]
+        reg = ident["registered_r3_iteration_changes"]
+        assert ident["recomputed_minus_registered_r3"] == {
+            k: v for k, v in ident["r2_code_identity"].items()
+            if k not in reg}
+        for fname in reg:
+>           assert ident["recomputed"][fname] == reg[fname]
+E           AssertionError: assert '6b5a3cdddd0e...1559ab034fba4' == 'ec0203371284...197b52fd539aa'
+E             
+E             - ec0203371284943055481ad4758cafd48f13a478ca0d63deec3197b52fd539aa
+E             + 6b5a3cdddd0eeff59eeb5a28bb98563769b0154739c8f1505671559ab034fba4
+
+tests/route_c_stage2_6_2/test_ppo262_input_lock.py:97: AssertionError
+__________________ test_stage261_route_c_readonly_input_lock ___________________
+
+    def test_stage261_route_c_readonly_input_lock():
+        from rl_curriculum.ppo262_input_lock import run_input_lock
+        art = run_input_lock()
+>       assert art["pass"], art.get("problems", [])[:5]
+E       AssertionError: ["2.6.1 源码漂移(未登记): ['curriculum261_api.py']"]
+E       assert False
+
+tests/route_c_stage2_6_2/test_ppo262_r2_preservation.py:73: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_2/test_ppo262_repair1_diagnostics.py::TestUpdateMetricBinding::test_diagnosed_ppo_same_seed_same_init_as_ppo
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/stable_baselines3/ppo/ppo.py:155: UserWarning: You have specified a mini-batch size of 64, but because the `RolloutBuffer` is of size `n_steps * n_envs = 574`, after every 8 untruncated mini-batches, there will be a truncated mini-batch of size 62
+  We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.
+  Info: (n_steps=574 and n_envs=1)
+    warnings.warn(
+
+tests/route_c_stage2_6_2/test_ppo262_repair1_diagnostics.py::TestBCWarmStart::test_actor_bc_updates_actor_not_critic
+  /home/cryptorl/projects/crypto_rl/src/rl_curriculum/ppo262_diag_train.py:749: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:822.)
+    history.append({"epoch": epoch + 1, "loss": float(loss),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_2/test_ppo262_input_lock.py::test_input_lock_all_pass
+FAILED tests/route_c_stage2_6_2/test_ppo262_input_lock.py::test_stage261_directory_unmodified_by_262
+FAILED tests/route_c_stage2_6_2/test_ppo262_r2_preservation.py::test_stage261_route_c_readonly_input_lock
+3 failed, 237 passed, 2 warnings in 135.32s (0:02:15)

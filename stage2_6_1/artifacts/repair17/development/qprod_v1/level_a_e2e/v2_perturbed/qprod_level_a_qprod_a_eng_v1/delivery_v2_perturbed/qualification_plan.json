@@ -1,0 +1,101 @@
+{
+  "code_identity": {
+    "cq_ct_semantics": "Cq(本计划记录)与 Ct(消费现场)允许不同 commit;以下共同执行语义字段必须逐字一致",
+    "expected_vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+    "family_versions": {
+      "c1_opportunity": "cur261-c1-v5",
+      "c2_context": "cur261-c2-v9",
+      "c3_cost": "cur261-c3-v4"
+    },
+    "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+    "producer": {
+      "companions": {
+        "curriculum261_qprod_context.py": "63f3c33eeb6fed1c9451681623abb4538608555ef77015561e47386fc12fdb8f",
+        "curriculum261_qprod_levela.py": "4c200bb0dc8b378c3d53f4f3ef348eeeacf0667d8e92f7f6e9bacc7d3b15e8d9",
+        "curriculum261_qprod_plan.py": "c3a2d8f54c0373dc43fd73fc2397fa387d5eda603d6d9d8434a56e716119af14"
+      },
+      "family": "qprod_level_a_chain",
+      "module": "curriculum261_qprod_levela.py",
+      "module_sha256": "4c200bb0dc8b378c3d53f4f3ef348eeeacf0667d8e92f7f6e9bacc7d3b15e8d9"
+    },
+    "production_observation_identity": {
+      "env_core_version": "RouteCEnvCore-v1.0.0",
+      "feature_columns": [
+        "%-ret-1",
+        "%-ret-4",
+        "%-vol-24",
+        "%-price-ma-ratio",
+        "%-raw_open",
+        "%-raw_high",
+        "%-raw_low",
+        "%-raw_close"
+      ],
+      "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+      "observation_dim": 9,
+      "observation_spec_version": "ObservationSpec-v1",
+      "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+      "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+      "window_size": 1
+    },
+    "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5"
+  },
+  "created_utc": "2026-09-29T22:58:53+00:00",
+  "engineering_only": true,
+  "families": {
+    "c1_opportunity": {
+      "family_version": "cur261-c1-v5",
+      "rung_params_source": "parameter_pack"
+    },
+    "c2_context": {
+      "family_version": "cur261-c2-v9",
+      "rung_params_source": "parameter_pack"
+    },
+    "c3_cost": {
+      "family_version": "cur261-c3-v4",
+      "rung_params_source": "parameter_pack"
+    }
+  },
+  "format": "ppo262e-qualification-plan-v1",
+  "iteration": "qprod_a_eng_v1",
+  "notes": "QProd 导出适配器产出:原件经公共判定核心复算验证;ENGINEERING_ONLY,不构成正式资格",
+  "parameter_pack": {
+    "digest": "e262pk-5138373977cc1c28fac0b579f686bcfc89135713ebf9c25229ae8ec6e16efffb",
+    "format": "ppo262e-parameter-pack-v1",
+    "source": "qprod producer parameter_pack.json(逐字节复制)"
+  },
+  "preprocessing": {
+    "consumer_refit_forbidden": true,
+    "contract_version": "RouteCFeaturePreprocessing-v2",
+    "fit_namespace": "ppo_eng_fit_262e",
+    "fit_records": [
+      {
+        "episode_hash": "e262fx-7d5d7b8de6e99171094e3cb80809baf78d3e9afb855bd284a94ad2099f7e4442",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 0
+      },
+      {
+        "episode_hash": "e262fx-10c75a7ade5241895eeb334f6f84a954e87a982d0a7562e9f708fb1af1ba10a4",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 1
+      },
+      {
+        "episode_hash": "e262fx-c66b577e8a4995558abbf07f3569e900499b61da2e5d0a0f8c348b0f94aba8d5",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 2
+      }
+    ],
+    "fit_sources": "qprod producer V2 bundle fit manifest(工程排练;原件夹具输入,来源逐项保留)",
+    "source_kind": "qualification_chain",
+    "version": 2
+  },
+  "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+  "producer_chain": "qprod_level_a(engineering rehearsal)",
+  "producer_qualification_plan_digest": "qapl-144bee7a8d7b71b207c9edd026cc6a904affed137f7a9731366fa38a5cd9e9b0",
+  "producer_run_plan_digest": "qbpl-c2fbc2c017dbfb9bc5fcd64b646dc3d7b11e66b77a5cae758c1ae94c733bff99",
+  "robustness_gate": {
+    "note": "自 producer raw 证据逐字段适配(判定核心复算一致)",
+    "pass": true
+  },
+  "scope": "engineering",
+  "source_iteration": "qprod_a_eng_v1@producer"
+}
