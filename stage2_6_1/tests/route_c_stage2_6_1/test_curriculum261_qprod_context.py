@@ -26,13 +26,27 @@ def test_harden_root_rejects_relative_and_dotdot(tmp_path):
         harden_root(str(tmp_path / "a" / ".." / "b"), label="t")
 
 
-def test_harden_root_rejects_protected_old_roots():
-    for prot in protected_old_roots():
+def test_harden_root_rejects_protected_old_roots(tmp_path, monkeypatch):
+    """保护集非空(F4 修复:按规范名保护,不依赖目录已存在),
+    且冻结根内路径(存在与否)一律拒绝;env 注入的部署 state root
+    同样受保护。"""
+    roots = protected_old_roots()
+    assert roots, "保护集不得为空(旧实现部署树解析为空的空转缺陷)"
+    assert any(p.name == "route_c_stage2_6_1_repair17" for p in roots)
+    for prot in roots:
         with pytest.raises(QProdContextError, match="受保护历史根"):
             harden_root(prot / "new_subdir", label="t", create=False)
-        # 别名:symlink 指向保护根同样拒绝(realpath 归一)
-        with pytest.raises((QProdContextError, OSError)):
-            harden_root(prot, label="t", create=False)
+    # 不存在的冻结根路径同样拒绝(冒建冻结正式根)
+    deploy_base = tmp_path / "deploy"
+    ghost = deploy_base / "artifacts" / "route_c_stage2_6_1_repair17"
+    monkeypatch.setenv("CURRICULUM261_R17_DEPLOYED_STATE_ROOT",
+                       str(ghost / "state"))
+    assert protected_old_roots()
+    with pytest.raises(QProdContextError, match="受保护历史根"):
+        harden_root(ghost / "state" / "something", label="t",
+                    create=False)
+        harden_root(ghost / "something", label="t", create=False)
+    monkeypatch.delenv("CURRICULUM261_R17_DEPLOYED_STATE_ROOT")
 
 
 def test_harden_root_symlink_escape(tmp_path):

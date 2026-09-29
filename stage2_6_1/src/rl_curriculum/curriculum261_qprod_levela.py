@@ -661,17 +661,36 @@ def run_level_a_rehearsal(
                evidence=QPROD_LEVELA_REPORT_NAME)
 
         # ---- 17. verify-formal-logs(真实:步账本序列核验) ----
+        # 核验含本步(recorded + 本步名)再比较(F2 修复:自比时本步
+        # 尚未记账导致恒 False 的死门);seq_ok=False 走失败封口,
+        # 不得封 PASS。
         recorded = [e["step"] for e in ledger]
-        seq_ok = recorded == [
+        seq_ok = recorded + ["verify-formal-logs"] == [
             s for s in steps
             if s not in ("fail-closure-rehearsal",)]
         _write_json(art / "formal_log_verification.json", {
             "format": "cur261-qprod-log-verification-v1",
             "sequence_ok": seq_ok,
-            "expected": list(steps), "recorded": recorded})
+            "expected": list(steps),
+            "recorded_including_this_step":
+                recorded + ["verify-formal-logs"]})
         record("verify-formal-logs", mode=STEP_REAL, ok=seq_ok,
-               note="17 步账本序列与权威步骤集核验(真实)",
+               note="17 步账本序列(含本步)与权威步骤集核验(真实;"
+                    "失败即封口 FAIL)",
                evidence="formal_log_verification.json")
+        if not seq_ok:
+            _write_json(art / QPROD_LEVELA_LEDGER_NAME, {
+                "format": "cur261-qprod-levela-step-ledger-v1",
+                "steps": ledger, "verdict": "FAIL",
+                "failed_at": "verify-formal-logs",
+                "reason": "step ledger sequence mismatch"})
+            session.record_terminal(
+                status="failed", verdict="FAIL", plan_digest=qp_digest,
+                detail={"failed_step": "verify-formal-logs",
+                        "reason": "step ledger sequence mismatch"})
+            return {"ledger": ledger, "result": result,
+                    "qualification_plan_digest": qp_digest,
+                    "verdict": "FAIL"}
 
         _write_json(art / QPROD_LEVELA_LEDGER_NAME, {
             "format": "cur261-qprod-levela-step-ledger-v1",

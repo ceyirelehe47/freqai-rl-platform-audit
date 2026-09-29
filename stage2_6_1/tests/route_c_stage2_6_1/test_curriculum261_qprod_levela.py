@@ -100,6 +100,14 @@ def test_rehearsal_happy_path_with_honest_ledger(tmp_path):
                  "preflight-sealed", "report-read", "verify-formal-logs"):
         assert by_step[step]["execution"] == "real", step
     assert set(level_a_step_execution_plan()) == set(by_step)
+    # F2(reviewer)修复钉:序列核验门必须真实通过(旧实现恒 False
+    # 的死门下 PASS 与 sequence_ok=false 并存自相矛盾)
+    verification = json.loads(
+        (ctx.artifact_root / "formal_log_verification.json").read_text(
+            encoding="utf-8"))
+    assert verification["sequence_ok"] is True
+    assert by_step["verify-formal-logs"]["ok"] is True
+    assert ledger["verdict"] == "PASS"
 
 
 def test_result_binds_plan_and_engineering_markers(tmp_path):

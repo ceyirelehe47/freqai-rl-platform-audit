@@ -114,21 +114,24 @@ def _is_within(child: Path, parent: Path) -> bool:
 def protected_old_roots() -> tuple[Path, ...]:
     """历史冻结正式产物面(qprod 写入必须零落在其内)。
 
-    覆盖:部署树/仓库树下 artifacts/route_c_stage2_6_1_repair{17,18,19}
-    的全部内容(state root 及产物),外加已发布交付包目录 packs/。
-    以包定位推导两份树的根,不硬编码盘符。
+    覆盖(按规范名保护,**无论目标当前是否存在**——不存在时写入
+    该路径同样是在冒建冻结正式根,必须拒绝;F4 修复:旧实现仅在
+    目录已存在时保护,部署树解析为空导致守卫空转):
+    - 各候选基(包祖先 0..4,覆盖仓库树 stage2_6_1 与部署树两层
+      布局)下 artifacts/route_c_stage2_6_1_repair{17,18,19};
+    - 已发布交付包目录 <base>/trading/packs(存在时);
+    - 环境声明的 R17 部署 state root(CURRICULUM261_R17_DEPLOYED_
+      STATE_ROOT,存在与否都保护——它是正式绑定声明)。
     """
     pkg_dir = Path(__file__).resolve().parent
     roots: list[Path] = []
-    for base in (pkg_dir.parents[2], pkg_dir.parents[3]):
+    bases = list(pkg_dir.parents[:5])
+    for base in bases:
         art = base / "artifacts"
-        if art.is_dir():
-            for name in ("route_c_stage2_6_1_repair17",
-                         "route_c_stage2_6_1_repair18",
-                         "route_c_stage2_6_1_repair19"):
-                cand = art / name
-                if cand.is_dir():
-                    roots.append(_realpath(cand))
+        for name in ("route_c_stage2_6_1_repair17",
+                     "route_c_stage2_6_1_repair18",
+                     "route_c_stage2_6_1_repair19"):
+            roots.append(_realpath(art / name))
         packs = base / "trading" / "packs"
         if packs.is_dir():
             roots.append(_realpath(packs))

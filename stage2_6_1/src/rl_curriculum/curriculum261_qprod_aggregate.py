@@ -76,6 +76,7 @@ def _load_v4_module():
 
 
 def _load_events(coord_dir: Path) -> list[dict[str, Any]]:
+    """读事件表;损坏(非 JSON)由调用方分类为 technically_corrupt。"""
     events: list[dict[str, Any]] = []
     path = coord_dir / "cue_event_trace.jsonl"
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -142,9 +143,14 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
         return {"state": COORDINATE_STATE_INVALID,
                 "problems": problems + [
                     "block seed 日志缺失(seed/namespace 归属不可核)"]}
-    seed_log = [json.loads(ln) for ln in
-                seed_log_path.read_text(encoding="utf-8").splitlines()
-                if ln.strip()]
+    try:
+        seed_log = [json.loads(ln) for ln in
+                    seed_log_path.read_text(encoding="utf-8").splitlines()
+                    if ln.strip()]
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return {"state": COORDINATE_STATE_CORRUPT,
+                "problems": [f"block seed 日志解析失败(technically "
+                             f"corrupt): {exc}"]}
     expected_once_seeds = {
         derive261_block_seed(coordinate["model_namespace"], i, 0)
         for i in range(int(seal["summary"].get("blocks_per_corpus", 2))
@@ -184,7 +190,15 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
                 "problems": problems + [
                     "事件原件缺失(聚合必须读实际事件,汇总 JSON "
                     "不构成有效坐标)"]}
-    events = _load_events(coord_dir)
+    try:
+        events = _load_events(coord_dir)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        # 技术损坏:封存成员存在但不可解析(可信性不再成立)——
+        # 分类 corrupt 并触发 corrupt_stop 停止语义,不冒称无效
+        # 结构也不继续不安全执行(F3 修复)
+        return {"state": COORDINATE_STATE_CORRUPT,
+                "problems": [f"事件表解析失败(technically corrupt): "
+                             f"{exc}"]}
     validation_events = [e for e in events
                          if e.get("corpus") == "validation"]
     per_block = _per_block_event_counts(validation_events)
@@ -278,7 +292,12 @@ def aggregate_research(artifact_root: Path | str, *,
         if verdict["state"] == COORDINATE_STATE_CORRUPT:
             corrupt_stop = True
         coordinates.append(entry)
-        # 早停模式:首个有效统计负结果即停(后续坐标不再要求生产)
+        # 早停模式:首个有效统计负结果即停(后续坐标不再要求生产)。
+        # 统计负结果 = beyond_positive_margin(delta=P0-recall>margin,
+        # 即实测 recall 显著偏低/解析预测高估;v4 ACTION_MAPPING 的
+        # 转校准路线方向)。beyond_negative_margin 是有利方向(recall
+        # 偏高),不构成负结果、不早停、不标 statistical_negative
+        # (F1 修复:reviewer 探针证实旧逻辑把有利跨界误判)。
         if (stop_mode == "early_stop_on_first_negative"
                 and entry["state"] == COORDINATE_STATE_VALID
                 and early_stopped_at is None):
@@ -290,8 +309,9 @@ def aggregate_research(artifact_root: Path | str, *,
                     margin=float(rules["margin"]),
                     r_analysis=float(rules["r_analysis"]),
                     alpha=float(rules["alpha"]), planned_k=None)
-                negative = single["magnitude"] in (
-                    "beyond_positive_margin", "beyond_negative_margin")
+                negative = single["magnitude"] == "beyond_positive_margin"
+                if single["magnitude"] == "beyond_negative_margin":
+                    entry["favorable_beyond_margin"] = True
             else:
                 # SE 退化(如极小样本全中):v4 适用条件(s_k>0)
                 # 不满足——不发明替代数学,不据此判统计负结果

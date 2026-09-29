@@ -352,6 +352,49 @@ def test_degenerate_zero_se_coordinate_kept_but_primary_not_resolved(
     assert report["primary"]["descriptive_only"] is True
 
 
+def test_favorable_beyond_margin_does_not_early_stop(tmp_path):
+    """F1(reviewer):早停只针对统计负结果(beyond_positive_margin=
+    recall 显著偏低);有利方向 beyond_negative_margin(recall 偏高)
+    不早停、不标 statistical_negative。"""
+    art, state, digest = _setup_plan(
+        tmp_path, stop_mode="early_stop_on_first_negative")
+    # 高 recall(0.98636)⇒ delta=-0.0359 < -margin ⇒ 有利跨界
+    _build_coordinate(art, "c01", seed_tag=0, hits_per_block=54,
+                      n_events=55, plan_digest=digest)
+    r = aggregate_research(art, state_root=state)
+    assert r["early_stopped_at"] is None, "有利跨界不得早停"
+    assert not r["coordinates"][0].get("statistical_negative")
+    assert r["coordinates"][0].get("favorable_beyond_margin") is True
+    assert r["valid_coordinate_count"] == 1
+    # 负结果方向(beyond_positive_margin)仍正常早停(合同行为保留)
+    art2, state2, digest2 = _setup_plan(
+        tmp_path / "neg", stop_mode="early_stop_on_first_negative")
+    _build_coordinate(art2, "c01", seed_tag=0, hits_per_block=10,
+                      n_events=55, plan_digest=digest2)
+    r2 = aggregate_research(art2, state_root=state2)
+    assert r2["early_stopped_at"] == "c01"
+    assert r2["coordinates"][0].get("statistical_negative") is True
+
+
+def test_corrupted_events_table_halts_as_technically_corrupt(tmp_path):
+    """F3(reviewer):封存成员存在但不可解析 ⇒ 坐标分类
+    technically_corrupt 且触发停止语义(不冒称无效结构、不崩溃)。"""
+    art, state, digest = _setup_plan(tmp_path)
+    _build_coordinate(art, "c01", plan_digest=digest)
+    trace = art / "c01" / "cue_event_trace.jsonl"
+    trace.write_text("{not-json", encoding="utf-8")
+    # seal 成员摘要同步刷新(隔离"解析损坏"这一单独维度)
+    seal_path = art / "c01" / "qprod_coordinate_seal.json"
+    seal = json.loads(seal_path.read_text(encoding="utf-8"))
+    seal["members_sha256"]["cue_event_trace.jsonl"] = hashlib.sha256(
+        trace.read_bytes()).hexdigest()
+    seal_path.write_text(json.dumps(seal), encoding="utf-8")
+    r = aggregate_research(art, state_root=state)
+    assert r["coordinates"][0]["state"] == "technically_corrupt"
+    assert r["primary"]["magnitude"] == "halted_technically_corrupt"
+    assert r["valid_coordinate_count"] == 0
+
+
 def test_level_b_aggregation_does_not_touch_level_a(tmp_path):
     art, state, digest = _setup_plan(tmp_path)
     a_state = tmp_path / "level_a_state"
