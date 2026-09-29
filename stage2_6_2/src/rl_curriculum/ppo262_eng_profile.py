@@ -468,6 +468,45 @@ def _repo_root() -> "Path | None":
     return next((r for r in cands if (r / ".git").exists()), None)
 
 
+def _required_consumer_modules(repo: "Path",
+                               candidate_commit: str) -> "tuple[str, ...] | None":
+    """从候选 commit 归档的 eng_profile 源码解析其必需模块合同。
+
+    可信来源 = git 归档对象本身(不是待验 manifest 自列的键);解析
+    失败返回 None(调用方按拒绝处理,fail-closed)。
+    """
+    import ast
+    import subprocess
+    for rel in ("stage2_6_2/src/rl_curriculum/ppo262_eng_profile.py",
+                "stage2_6_1/src/rl_curriculum/ppo262_eng_profile.py",
+                "src/rl_curriculum/ppo262_eng_profile.py"):
+        try:
+            blob = subprocess.run(
+                ["git", "-C", str(repo), "show",
+                 f"{candidate_commit}:{rel}"],
+                capture_output=True, check=True).stdout
+        except subprocess.CalledProcessError:
+            continue
+        try:
+            tree = ast.parse(blob.decode("utf-8", "replace"))
+        except SyntaxError:
+            return None
+        for node in tree.body:
+            if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)
+                    and node.targets[0].id == "_CONSUMER_CODE_MODULES"
+                    and isinstance(node.value, ast.Tuple)):
+                names = []
+                for elt in node.value.elts:
+                    if not isinstance(elt, ast.Constant) \
+                            or not isinstance(elt.value, str):
+                        return None
+                    names.append(elt.value)
+                return tuple(names)
+        return None
+    return None
+
+
 def _verify_identity_at_commit(recorded: dict[str, str],
                                candidate_commit: str) -> bool:
     """记录的模块哈希逐一对该候选 commit 的 git blob 复算(CR 规范化)。
@@ -475,10 +514,31 @@ def _verify_identity_at_commit(recorded: dict[str, str],
     迁移路径语义:checkpoint 由候选 X 的执行面产出;当前树已前进时,
     只要记录哈希与 X 的归档 blob 一致,绑定仍有效(执行面 = 已归档
     候选),不要求等于当前树、也不把旧 manifest 重签成新运行。
+
+    R1:空记录/缺必需模块/任意子集不能自证完整——必需集合由候选
+    commit 归档源码里的 _CONSUMER_CODE_MODULES 合同确定(可信 git
+    对象,非待验 manifest 自列);commit 必须是仓库中真实存在的
+    commit 对象。
     """
     import subprocess
     repo = _repo_root()
     if repo is None:
+        return False
+    # 1. commit 必须真实存在(对象类型 commit)
+    try:
+        subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet",
+             f"{candidate_commit}^{{commit}}"],
+            capture_output=True, check=True)
+    except subprocess.CalledProcessError:
+        return False
+    # 2. 必需模块集合(候选合同),待验记录必须是它的超集
+    required = _required_consumer_modules(repo, candidate_commit)
+    if not required:
+        return False
+    keys = set(recorded or {})
+    missing = [n for n in required if n not in keys]
+    if missing:
         return False
     for name, expected in (recorded or {}).items():
         # 记录键决定候选树根:262 消费模块/261 共享模块/相对路径 env core
@@ -490,10 +550,13 @@ def _verify_identity_at_commit(recorded: dict[str, str],
         rels = [f"{r}/{name}" for r in roots]
         if name.startswith("../"):
             base = name[3:]
-            fam = subprocess.run(
-                ["git", "-C", str(repo), "ls-tree", "--name-only",
-                 candidate_commit],
-                capture_output=True, check=True).stdout.decode().split()
+            try:
+                fam = subprocess.run(
+                    ["git", "-C", str(repo), "ls-tree", "--name-only",
+                     candidate_commit],
+                    capture_output=True, check=True).stdout.decode().split()
+            except subprocess.CalledProcessError:
+                return False
             rels = [f"{d}/src/{base}" for d in fam
                     if d.startswith("stage2_6_0")] + [
                 "stage2_6_2/src/" + base,

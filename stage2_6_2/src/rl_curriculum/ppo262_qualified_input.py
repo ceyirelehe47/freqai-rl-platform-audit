@@ -560,6 +560,45 @@ def load_qualified_input(
             f"namespace 重合(fit 来源面与训练/评估派生面必须隔离;"
             f"同源串用拒绝)")
 
+    # 6c. R2(fit 来源声明逐项关联):plan 声明的 fit_namespace 与
+    # fit_fixture_records 必须与 envelope 内实际 fit manifest 逐项
+    # 对上——两份独立文件之间的一致性不由各自校验或外层摘要自洽
+    # 代替;实际来源不一致(改名/换条目/缺失/替换)必须在任何生成、
+    # 训练或更新前拒绝。命名空间不重合不等于来源正确;正确来源的
+    # 同字节重排合法(多重集比较)。
+    from collections import Counter
+
+    actual_ns = preproc.namespace
+    checks["fit_namespace_matches_envelope"] = (
+        bool(fit_ns) and fit_ns == actual_ns)
+    if not checks["fit_namespace_matches_envelope"]:
+        problems.append(
+            f"声明的 fit namespace {fit_ns!r} != envelope 实际 fit "
+            f"namespace {actual_ns!r}(fit 来源声明与 bundle 实际来源"
+            f"必须逐项一致)")
+
+    def _fit_src_key(rec: dict) -> tuple:
+        return (rec.get("pair_index"), rec.get("episode_hash"),
+                rec.get("generator_identity"))
+
+    declared_records = list(
+        (plan.get("preprocessing") or {}).get(
+            "fit_fixture_records") or [])
+    declared_ms = Counter(_fit_src_key(r) for r in declared_records)
+    actual_ms = Counter(
+        (e.pair_index, e.episode_hash, e.generator_identity)
+        for e in preproc.entries)
+    checks["fit_fixture_records_match_envelope"] = (
+        declared_ms == actual_ms)
+    if not checks["fit_fixture_records_match_envelope"]:
+        missing = actual_ms - declared_ms
+        extra = declared_ms - actual_ms
+        problems.append(
+            f"plan fit_fixture_records 与 envelope fit manifest 不一致"
+            f"(缺失 {sorted(map(repr, missing))[:3]} / 多出 "
+            f"{sorted(map(repr, extra))[:3]};声明面必须与 bundle 实际"
+            f"来源一一对应,不允许互相矛盾的来源声明)")
+
     # 7. Cq/Ct 共同执行语义
     contract_now = _check_code_compatibility(plan, checks, problems)
 
