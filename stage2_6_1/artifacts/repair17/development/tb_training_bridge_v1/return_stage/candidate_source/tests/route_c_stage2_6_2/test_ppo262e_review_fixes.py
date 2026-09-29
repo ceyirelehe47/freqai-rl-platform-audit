@@ -542,6 +542,172 @@ def test_p2_consumer_identity_covers_generator_and_env_modules():
                  "../rl_platform/env.py"):
         assert name in _CONSUMER_CODE_MODULES
         assert len(ids.get(name, "")) == 64
+    # G2 未篡改对照:构造 C4 时刻的 18 键身份(活树身份中把 C6 相对
+    # C4 改过的模块逐个替换为 dec94b85 blob 哈希),对产出候选 C4
+    # 的迁移验证必须通过;env 键经 stage2_6_0* 家族根解析
+    import hashlib as _hl
+    import subprocess as _sp
+    recorded = dict(ids)
+    from rl_curriculum.ppo262_eng_profile import _repo_root
+    for mod in ("ppo262_eng_profile.py", "ppo262_qualified_input.py"):
+        blob = _sp.run(
+            ["git", "-C", str(_repo_root()), "show",
+             "dec94b8593fcd3233dea1958db0da2b1692165a2:"
+             f"stage2_6_2/src/rl_curriculum/{mod}"],
+            capture_output=True, check=True).stdout
+        recorded[mod] = _hl.sha256(
+            blob.replace(b"\r\n", b"\n")).hexdigest()
+    assert _verify_identity_at_commit(
+        recorded, "dec94b8593fcd3233dea1958db0da2b1692165a2") is True
     forged = {"ppo262_env.py": "0" * 64}
     assert _verify_identity_at_commit(
         forged, "e565298dad8063df70775dfdd47e3bf682f29926") is False
+
+
+def _c2_recorded_identity():
+    """C2 时刻 10 模块身份(全部取自 e565298d 归档 blob)。"""
+    import hashlib as _hl
+    import subprocess as _sp
+    from rl_curriculum.ppo262_eng_profile import (
+        _repo_root, _required_consumer_modules)
+    repo = _repo_root()
+    commit = "e565298dad8063df70775dfdd47e3bf682f29926"
+    required = _required_consumer_modules(repo, commit)
+    assert required and len(required) == 10
+    out = {}
+    for name in required:
+        blob = _sp.run(
+            ["git", "-C", str(repo), "show",
+             f"{commit}:stage2_6_2/src/rl_curriculum/{name}"],
+            capture_output=True, check=True).stdout
+        out[name] = _hl.sha256(blob.replace(b"\r\n", b"\n")).hexdigest()
+    return out
+
+
+def test_r1_migration_contract_rejects_empty_subset_invalid_commit():
+    """R1:空记录/任意子集/非法 commit 不能自证完整;必需集合由
+    候选归档源码合同确定;合法 C2 完整迁移仍通过。"""
+    from rl_curriculum.ppo262_eng_profile import _verify_identity_at_commit
+    c2 = _c2_recorded_identity()
+    # 正例:完整 C2 身份对 e565298d 通过
+    assert _verify_identity_at_commit(
+        c2, "e565298dad8063df70775dfdd47e3bf682f29926") is True
+    # 空记录 + 有效 commit => 拒
+    assert _verify_identity_at_commit(
+        {}, "e565298dad8063df70775dfdd47e3bf682f29926") is False
+    # 空记录 + 非法 commit => 拒(commit 真实性独立于记录校验)
+    assert _verify_identity_at_commit({}, "not-a-commit") is False
+    # 非空记录 + 非法 commit => 拒
+    assert _verify_identity_at_commit(c2, "not-a-commit") is False
+    # 任意子集(缺任一必需键) => 拒
+    for drop in ("ppo262_qualified_input.py", "ppo262_train.py"):
+        subset = {k: v for k, v in c2.items() if k != drop}
+        assert _verify_identity_at_commit(
+            subset, "e565298dad8063df70775dfdd47e3bf682f29926") is False
+    # 错模块字节(合法键集合,伪造哈希) => 拒
+    forged = dict(c2)
+    forged["ppo262_env.py"] = "0" * 64
+    assert _verify_identity_at_commit(
+        forged, "e565298dad8063df70775dfdd47e3bf682f29926") is False
+
+
+def test_r1_cold_read_rejects_empty_code_identity_before_load(tmp_path,
+                                                              monkeypatch):
+    """R1 冷读层:清空 code_identity_consumer 的迁移 manifest 必须在
+    PPO.load 边界之前被拒绝(sentinel 证明未到达模型反序列化)。"""
+    import json
+    import shutil
+    from rl_curriculum import ppo262_eng_profile as prof
+    from rl_curriculum.ppo262_qualified_input import QualifiedInputError
+    from rl_curriculum.ppo262_eng_profile import _repo_root
+    eng = (_repo_root()
+           / "stage2_6_2/artifacts/eng_training_bridge_v1")
+    qd = tmp_path / "qualified"
+    shutil.copytree(eng / "qualified_input_v1_r2_reference", qd)
+    auth = tmp_path / "auth.json"
+    shutil.copy2(eng / "eng_authorization_v1_r2_reference.json", auth)
+    modeldir = tmp_path / "model"
+    modeldir.mkdir()
+    for f in ("eng_ppo_smoke_256.zip", "eng_ppo_smoke_256.manifest.json",
+              "eng_ppo_smoke_256.manifest.v2.json",
+              "eng_frozen_probe.json", "eng_bank_smoke.json",
+              "eng_ppo_smoke.json"):
+        if (eng / f).is_file():
+            shutil.copy2(eng / f, modeldir / f)
+    mp = modeldir / "eng_ppo_smoke_256.manifest.v2.json"
+    if not mp.exists():
+        mp = modeldir / "eng_ppo_smoke_256.manifest.json"
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["code_identity_consumer"] = {}
+    m["candidate_commit"] = "e565298dad8063df70775dfdd47e3bf682f29926"
+    mp.write_text(json.dumps(m, indent=2), encoding="utf-8")
+
+    class _StopBeforeLoad(Exception):
+        pass
+
+    def _sentinel(*a, **k):
+        raise _StopBeforeLoad("PPO.load reached")
+
+    import stable_baselines3 as _sb3
+    monkeypatch.setattr(_sb3.PPO, "load", staticmethod(_sentinel))
+    with pytest.raises(QualifiedInputError):
+        prof.cold_read_checkpoint(
+            qd, auth, modeldir, tmp_path / "out",
+            expected_profile="ppo262_engineering_v1")
+
+
+def test_r2_fit_source_declaration_must_match_envelope(tmp_path):
+    """R2:plan 声明的 fit namespace/fixture records 与 envelope 实际
+    fit manifest 逐项关联;改名/换 episode_hash 且外层摘要自洽仍拒;
+    未改声明的正例继续装载。零生成零 fit。"""
+    import json
+    from rl_curriculum.ppo262_eng_fixture import build_eng_fixture
+    from rl_curriculum.ppo262_qualified_input import (
+        QualifiedInputError, authorization_binding_digest,
+        load_qualified_input, qualification_plan_digest)
+
+    out = build_eng_fixture(str(tmp_path), variant="v1_r2_reference",
+                            verbose=False)
+    qd = Path(out["qualification_dir"])
+    auth_p = Path(out["authorization_path"])
+
+    def _rebind_and_load(mut):
+        plan = json.loads((qd / "qualification_plan.json").read_text(
+            encoding="utf-8"))
+        mut(plan)
+        (qd / "qualification_plan.json").write_text(
+            json.dumps(plan, indent=2), encoding="utf-8")
+        pd = qualification_plan_digest(plan)
+        (qd / "qualification_plan_digest.txt").write_text(
+            pd, encoding="utf-8")
+        for f in ("qualification_result.json",
+                  "qualification_exposure.json"):
+            x = json.loads((qd / f).read_text(encoding="utf-8"))
+            x["plan_digest"] = pd
+            (qd / f).write_text(
+                json.dumps(x, indent=2), encoding="utf-8")
+        a = json.loads(auth_p.read_text(encoding="utf-8"))
+        a["bindings"]["qualification_plan_digest"] = pd
+        a["binding_digest"] = authorization_binding_digest(
+            {**a["bindings"], "profile": a["profile"],
+             "scope": a["scope"]})
+        auth_p.write_text(json.dumps(a, indent=2), encoding="utf-8")
+        load_qualified_input(qd, authorization_path=auth_p,
+                             expected_scope="engineering")
+
+    # 反例 1:fit_namespace 改为另一个不在禁止集合中的名字
+    with pytest.raises(QualifiedInputError):
+        _rebind_and_load(lambda p: p["preprocessing"].update(
+            fit_namespace="invented_not_actual_fit"))
+    # 反例 2:fit_fixture_records episode_hash 虚构
+    with pytest.raises(QualifiedInputError):
+        _rebind_and_load(lambda p: p["preprocessing"]
+                         ["fit_fixture_records"][0].update(
+                             episode_hash="e262fx-INVENTED"))
+    # 正例:重新构建未改声明的夹具,装载通过
+    out2 = build_eng_fixture(str(tmp_path / "pos"),
+                             variant="v1_r2_reference", verbose=False)
+    load_qualified_input(
+        out2["qualification_dir"],
+        authorization_path=out2["authorization_path"],
+        expected_scope="engineering")
