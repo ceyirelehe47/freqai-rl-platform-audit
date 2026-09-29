@@ -283,13 +283,21 @@ def aggregate_research(artifact_root: Path | str, *,
                 and entry["state"] == COORDINATE_STATE_VALID
                 and early_stopped_at is None):
             delta_k = p0 - float(entry["recall_validation"])
-            single = v4.classify_primary(
-                delta_k, [float(entry["se_validation"])],
-                margin=float(rules["margin"]),
-                r_analysis=float(rules["r_analysis"]),
-                alpha=float(rules["alpha"]), planned_k=None)
-            if single["magnitude"] in ("beyond_positive_margin",
-                                       "beyond_negative_margin"):
+            se_k = float(entry["se_validation"])
+            if se_k > 0.0:
+                single = v4.classify_primary(
+                    delta_k, [se_k],
+                    margin=float(rules["margin"]),
+                    r_analysis=float(rules["r_analysis"]),
+                    alpha=float(rules["alpha"]), planned_k=None)
+                negative = single["magnitude"] in (
+                    "beyond_positive_margin", "beyond_negative_margin")
+            else:
+                # SE 退化(如极小样本全中):v4 适用条件(s_k>0)
+                # 不满足——不发明替代数学,不据此判统计负结果
+                negative = False
+                entry["degenerate_se"] = True
+            if negative:
                 early_stopped_at = coord["coordinate_id"]
                 entry["statistical_negative"] = True
 
@@ -306,13 +314,13 @@ def aggregate_research(artifact_root: Path | str, *,
             "note": "技术损坏且可信性不再成立:即使收齐模式也停止"
                     "不安全执行并保留边界",
         }
-    elif deltas and enough:
+    elif deltas and enough and all(s > 0.0 for s in ses):
         delta_bar = sum(deltas) / len(deltas)
         primary = v4.classify_primary(
             delta_bar, ses, margin=float(rules["margin"]),
             r_analysis=float(rules["r_analysis"]),
             alpha=float(rules["alpha"]), planned_k=planned_k)
-    elif deltas:
+    elif deltas and all(s > 0.0 for s in ses):
         # 少于 K:主分类不决(不能按实际较少 K 缩小门槛);仅描述性
         delta_bar = sum(deltas) / len(deltas)
         descriptive = v4.classify_primary(
@@ -320,15 +328,31 @@ def aggregate_research(artifact_root: Path | str, *,
             r_analysis=float(rules["r_analysis"]),
             alpha=float(rules["alpha"]), planned_k=planned_k)
         primary = {
-            "magnitude": descriptive["magnitude"],
-            "not_resolved_reason": "insufficient_coordinates"
-            if descriptive.get("not_resolved_reason") ==
-            "insufficient_coordinates" else "insufficient_coordinates",
+            "magnitude": "inconclusive",
+            "not_resolved_reason": "insufficient_coordinates",
             "descriptive_only": True,
             "delta_bar_descriptive": descriptive["delta_bar"],
             "s_raw_descriptive": descriptive["s_raw"],
             "note": "有效坐标数 < planned_k:主分类不决,描述性统计"
                     "仅供参考,不冒用完整 K 推断",
+        }
+    elif deltas:
+        # 存在 SE<=0 的退化坐标(极小工程样本 validation 全中/recall
+        # 饱和):已接受 v4 数学的适用条件(每个 s_k>0)不满足——
+        # 不删除坐标、不改 v4、不发明替代公式;主分类如实不决。
+        primary = {
+            "magnitude": "inconclusive",
+            "not_resolved_reason": (
+                "degenerate_se_prevents_v4_application"),
+            "descriptive_only": True,
+            "delta_bar_descriptive": sum(deltas) / len(deltas),
+            "degenerate_se_coordinates": [
+                c["coordinate_id"] for c in valid
+                if float(c["se_validation"]) <= 0.0],
+            "note": "退化 SE(=0)坐标在场:v4 classify_primary 要求"
+                    "每个 s_k>0;坐标保留为有效数据,主分类不决,"
+                    "不借此删样或另立公式(小样本统计不决是预期"
+                    "工程结果,不调 seed/阈值救援)",
         }
     else:
         primary = {

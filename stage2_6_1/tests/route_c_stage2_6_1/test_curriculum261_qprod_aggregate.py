@@ -333,6 +333,25 @@ def test_stop_modes_early_stop_vs_collect_all(tmp_path):
         "insufficient_coordinates")
 
 
+def test_degenerate_zero_se_coordinate_kept_but_primary_not_resolved(
+        tmp_path):
+    """SE=0(validation 全中,极小样本)坐标保留;v4 适用条件不满足
+    ⇒ 主分类如实不决,不删坐标、不另立公式(E01 run2 c02 实况)。"""
+    art, state, digest = _setup_plan(tmp_path)
+    # c01 正常;c02 全中事件(hit=n)⇒ bootstrap SE=0
+    _build_coordinate(art, "c01", plan_digest=digest, seed_tag=1)
+    _build_coordinate(art, "c02", plan_digest=digest, seed_tag=2,
+                      hits_per_block=55, n_events=55)
+    report = aggregate_research(art, state_root=state)
+    assert report["valid_coordinate_count"] == 2, (
+        "退化 SE 坐标不得被删除")
+    assert report["primary"]["magnitude"] == "inconclusive"
+    assert report["primary"]["not_resolved_reason"] == (
+        "degenerate_se_prevents_v4_application")
+    assert report["primary"]["degenerate_se_coordinates"] == ["c02"]
+    assert report["primary"]["descriptive_only"] is True
+
+
 def test_level_b_aggregation_does_not_touch_level_a(tmp_path):
     art, state, digest = _setup_plan(tmp_path)
     a_state = tmp_path / "level_a_state"
