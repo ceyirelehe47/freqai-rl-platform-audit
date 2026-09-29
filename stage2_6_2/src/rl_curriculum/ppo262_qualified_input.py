@@ -581,9 +581,38 @@ def load_qualified_input(
         return (rec.get("pair_index"), rec.get("episode_hash"),
                 rec.get("generator_identity"))
 
-    declared_records = list(
-        (plan.get("preprocessing") or {}).get(
-            "fit_fixture_records") or [])
+    preprocessing = plan.get("preprocessing") or {}
+    prep_version = preprocessing.get("version", 1)
+    checks["preprocessing_version_recognized"] = prep_version in (1, 2)
+    if prep_version == 1:
+        # v1(历史工程合同,语义不变):fit_fixture_records 表示工程
+        # 夹具来源;旧工程输入逐字节兼容,校验不放宽。
+        declared_records = list(
+            preprocessing.get("fit_fixture_records") or [])
+        records_field = "fit_fixture_records"
+    elif prep_version == 2:
+        # v2(通用来源表示,QProd 生产侧适配):fit_records + 显式
+        # source_kind;真实资格来源不再为迎合 v1 字段名改称手工
+        # 夹具。校验同严:multiset 相等 + namespace 一致;未知
+        # source_kind/缺 records/混用 v1 字段均拒绝。
+        source_kind = preprocessing.get("source_kind")
+        if source_kind not in ("engineering_fixture",
+                               "qualification_chain"):
+            problems.append(
+                f"preprocessing v2 source_kind {source_kind!r} 非法"
+                f"(须 engineering_fixture|qualification_chain)")
+        declared_records = list(preprocessing.get("fit_records") or [])
+        records_field = "fit_records"
+        if "fit_fixture_records" in preprocessing:
+            problems.append(
+                "preprocessing v2 不得混用 v1 字段 fit_fixture_records"
+                "(版本表示必须显式唯一)")
+    else:
+        problems.append(
+            f"preprocessing version {prep_version!r} 不识别"
+            f"(仅 v1/v2;fail closed)")
+        declared_records = []
+        records_field = "fit_records"
     declared_ms = Counter(_fit_src_key(r) for r in declared_records)
     actual_ms = Counter(
         (e.pair_index, e.episode_hash, e.generator_identity)
@@ -594,7 +623,7 @@ def load_qualified_input(
         missing = actual_ms - declared_ms
         extra = declared_ms - actual_ms
         problems.append(
-            f"plan fit_fixture_records 与 envelope fit manifest 不一致"
+            f"plan {records_field} 与 envelope fit manifest 不一致"
             f"(缺失 {sorted(map(repr, missing))[:3]} / 多出 "
             f"{sorted(map(repr, extra))[:3]};声明面必须与 bundle 实际"
             f"来源一一对应,不允许互相矛盾的来源声明)")

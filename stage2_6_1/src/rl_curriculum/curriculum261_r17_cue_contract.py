@@ -483,7 +483,8 @@ def load_locked_cue_audit_plan_r17(out_dir: Path) -> dict[str, Any]:
 
 def _once_vs_attempts_bitwise_check_r17(
         blocks: list[Any], ladder: dict[str, dict[str, Any]],
-        namespace: str, max_blocks: int = 50) -> dict[str, Any]:
+        namespace: str, max_blocks: int = 50,
+        generate_once_fn=None) -> dict[str, Any]:
     """§R17-11:attempts-mode 选中 attempt==0 的 block 与 once-mode 同
     seed 重放的 episodes 逐位一致(结构性重试不改变生成路径)。"""
     from rl_curriculum.curriculum261_api import CURRICULUM261_RUNGS
@@ -495,7 +496,8 @@ def _once_vs_attempts_bitwise_check_r17(
         if int(getattr(log, "selected_attempt", 0) or 0) != 0:
             continue
         seed = matched_block_seed_of(b)
-        once_eps = generate_matched_block_once(ladder, seed, namespace)
+        once_eps = (generate_once_fn or generate_matched_block_once)(
+            ladder, seed, namespace)
         for rung in CURRICULUM261_RUNGS:
             for side in ("A", "B"):
                 if not b.episodes[rung][side].df.equals(
@@ -533,6 +535,12 @@ def run_cue_contract_audit(
     A(analytic)的 ŵ 取 model corpus 的正 cue 位置直方图;p_contract
     为冻结合同数。B(MC)验证解析积分。C(direct generator)以两个
     500-block corpus 给出经验分布;audit PASS 判据见模块 docstring。
+
+    兼容性合同(QProd 坐标级生产):本 wrapper 的报告字段在工程模式
+    (显式参数)下沿用历史行为——写 AUDIT_* 常量(黄金向量冻结面);
+    需要"报告记录实际 namespace/MC/block 预算"的坐标级执行必须走
+    _run_cue_contract_audit_core(report_actual_values=True),由锁定
+    坐标上下文的 wrapper(curriculum261_qprod_coordinate)调用。
     """
     out_dir = Path(out_dir) if out_dir is not None else None
     formal = (blocks_per_corpus is None and mc_events is None
@@ -552,6 +560,53 @@ def run_cue_contract_audit(
         audit_plan = load_locked_cue_audit_plan_r17(out_dir)
         audit_plan_digest_value = str(
             audit_plan["cue_audit_plan_digest"])
+    return _run_cue_contract_audit_core(
+        out_dir,
+        n_blocks_per_corpus=n_blocks_per_corpus,
+        n_mc_events=n_mc_events,
+        model_ns=model_ns,
+        validation_ns=validation_ns,
+        formal=formal,
+        audit_plan_digest_value=audit_plan_digest_value,
+    )
+
+
+def _run_cue_contract_audit_core(
+        out_dir: Path | None,
+        *,
+        n_blocks_per_corpus: int,
+        n_mc_events: int,
+        model_ns: str,
+        validation_ns: str,
+        formal: bool,
+        audit_plan_digest_value: str = "",
+        report_actual_values: bool = False,
+        coordinate_context: dict[str, Any] | None = None,
+        generation_hooks: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """三路闭合审计的共同执行核心(QProd 坐标级生产抽取)。
+
+    参数语义与 run_cue_contract_audit 主体一致;差异:
+    - report_actual_values=True 时报告记录实际 namespace/MC/block
+      预算(不允许"计算用新 namespace、报告写旧常量",不允许把
+      实际 4096 次 MC 写成 1e6);
+    - coordinate_context 附加坐标执行身份(manifest/plan digest/
+      profile/工程标记),仅 report_actual_values 模式接受;
+    - generation_hooks 允许调用方注入计数/哨兵转发器(缺省=真实
+      生成叶函数;计数转发器只统计不改变生成路径)。
+    旧 wrapper 以 report_actual_values=False 调用 ⇒ 报告逐字节
+    保持历史行为(黄金向量不变;formal 模式下实际值==常量)。
+    """
+    if coordinate_context is not None and not report_actual_values:
+        raise RuntimeError(
+            "coordinate_context 仅在 report_actual_values 模式合法")
+    hooks = dict(generation_hooks or {})
+    _gen_once = hooks.get("generate_once") or generate_matched_block_once
+    _gen_attempts = (hooks.get("generate_attempts")
+                     or generate_matched_block_with_attempts)
+    _block_seed = hooks.get("block_seed") or derive261_block_seed
+    _bitwise_once = (hooks.get("generate_bitwise_once")
+                     or hooks.get("generate_once"))
     n = int(CURRICULUM261_EPISODE_BARS)
     thr = dict(C2_REFERENCE_DEFAULTS)
     cue_thr = float(thr["cue_thr"])
@@ -579,9 +634,9 @@ def run_cue_contract_audit(
         traces: list[dict[str, Any]]
         if mode == "once":
             for block_index in range(n_blocks_per_corpus):
-                block_seed = derive261_block_seed(
+                block_seed = _block_seed(
                     ns, block_index, AUDIT_ATTEMPT)
-                episodes = generate_matched_block_once(
+                episodes = _gen_once(
                     ladder, block_seed, ns)
                 ref_cue = episodes["D0"]["A"].hidden[
                     "cue_dir"].to_numpy()
@@ -599,12 +654,12 @@ def run_cue_contract_audit(
             # §R17-10/§R17-11:validation 语料用正式 attempts-mode
             # (block 级结构重试);正式验证 structural retries 是否
             # 条件化 cue recall。
-            blocks_v = [generate_matched_block_with_attempts(
+            blocks_v = [_gen_attempts(
                 ladder, namespace=ns, block_index=i)
                 for i in range(n_blocks_per_corpus)]
             attempt_hist_validation = block_attempt_statistics(blocks_v)
             once_bitwise = _once_vs_attempts_bitwise_check_r17(
-                blocks_v, ladder, ns)
+                blocks_v, ladder, ns, generate_once_fn=_bitwise_once)
             corpus_tr = trace_matched_blocks(blocks_v, ladder)
             traces = list(corpus_tr["block_traces"])
             items = [(int(b.block_index), matched_block_seed_of(b),
@@ -805,9 +860,11 @@ def run_cue_contract_audit(
         "contract_version": C2_CUE_SEMANTIC_CONTRACT_VERSION,
         "audit_utc": datetime.now(timezone.utc).isoformat(
             timespec="seconds"),
-        "audit_namespaces": {
-            "model": AUDIT_MODEL_NAMESPACE,
-            "validation": AUDIT_VALIDATION_NAMESPACE},
+        "audit_namespaces": (
+            {"model": model_ns, "validation": validation_ns}
+            if report_actual_values else {
+                "model": AUDIT_MODEL_NAMESPACE,
+                "validation": AUDIT_VALIDATION_NAMESPACE}),
         "audit_blocks_per_corpus": n_blocks_per_corpus,
         "audit_attempt": AUDIT_ATTEMPT,
         "generation_mode": {"model": "once",
@@ -815,7 +872,8 @@ def run_cue_contract_audit(
         "formal_audit": bool(formal),
         "cue_audit_plan_digest": audit_plan_digest_value,
         "audit_rng_seed": AUDIT_RNG_SEED,
-        "audit_n_events_mc": AUDIT_N_EVENTS,
+        "audit_n_events_mc": (n_mc_events if report_actual_values
+                              else AUDIT_N_EVENTS),
         "sentinel_ladder": {
             rung: {k: params[k] for k in ("alpha_bps", "wick_kappa")}
             for rung, params in ladder.items()},
@@ -849,7 +907,8 @@ def run_cue_contract_audit(
              "primary": primary_source_present(int(t), n)}
             for t in sorted(w)],
         "monte_carlo": {
-            "n_events": AUDIT_N_EVENTS,
+            "n_events": (n_mc_events if report_actual_values
+                         else AUDIT_N_EVENTS),
             "p_hat": mc_p,
             "se": mc_se,
             "abs_diff_vs_analytic": mc_abs_diff,
@@ -906,7 +965,11 @@ def run_cue_contract_audit(
             global_k.get("verdict") != "INDETERMINATE"),
     }
     report["pass"] = bool(all(report["checks"].values()))
+    if report_actual_values:
+        report["report_mode"] = "actual_values"
+        report["coordinate_execution"] = dict(coordinate_context or {})
     report["audit_digest"] = cue_contract_audit_digest(report)
+
 
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -988,12 +1051,16 @@ def run_cue_contract_audit(
                 "max_replay_abs_error":
                     corpora["model"]["max_replay_abs_error"],
                 "replay_ok": corpora["model"]["replay_ok"],
-                "n_blocks": AUDIT_BLOCKS_PER_CORPUS},
+                "n_blocks": (n_blocks_per_corpus
+                             if report_actual_values
+                             else AUDIT_BLOCKS_PER_CORPUS)},
             "validation": {
                 "max_replay_abs_error":
                     corpora["validation"]["max_replay_abs_error"],
                 "replay_ok": corpora["validation"]["replay_ok"],
-                "n_blocks": AUDIT_BLOCKS_PER_CORPUS},
+                "n_blocks": (n_blocks_per_corpus
+                             if report_actual_values
+                             else AUDIT_BLOCKS_PER_CORPUS)},
             "rng_call_order": "standard_normal -> random(sign) -> "
                               "integers(8,17) 逐 source bar;尾部 "
                               "t+16>=n 整体 break",
@@ -1009,7 +1076,6 @@ def cue_contract_audit_digest(report: dict[str, Any]) -> str:
         "audit_namespaces": report["audit_namespaces"],
         "audit_blocks_per_corpus": report["audit_blocks_per_corpus"],
         "audit_rng_seed": report["audit_rng_seed"],
-        "audit_n_events_mc": report["audit_n_events_mc"],
         "frozen_detector": report["frozen_detector"],
         "mirror_bound_v2": report["mirror_bound_v2"],
         "margin_log": report["margin_log"],
@@ -1032,6 +1098,8 @@ def cue_contract_audit_digest(report: dict[str, Any]) -> str:
                 "max_replay_abs_error": c["max_replay_abs_error"],
             } for name, c in report["direct_generator"].items()},
     }
+    if "coordinate_execution" in report:
+        core["coordinate_execution"] = report["coordinate_execution"]
     blob = json.dumps(core, sort_keys=True, ensure_ascii=False,
                       default=float)
     return "r15ca-" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
