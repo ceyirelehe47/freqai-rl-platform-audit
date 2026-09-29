@@ -29,6 +29,14 @@
 | A01 | PASS | 独立 reviewer(task agent=reviewer,配置 zhipu-coding-plan/glm-5.3-flash;运行时后端模型元数据未提供,如实记录)全矩阵核验+43 项独立断言+8 类反例;消耗 replay 2/2、smoke 2/8 复验;唯一 P3(rcs 漏记 formal rc)已按报告层修正(eng_run_rcs_note.md + runner 修正提交) | return_stage/REVIEWER_CONTENT_REPORT.md(包内) |
 | A02 | 见 REVIEWER_FINAL_RECEIPT | 最终 ZIP 冷读+内部清单+模型重载证据+git 回执对拍 | 包外 REVIEWER_FINAL_RECEIPT.md |
 
+返修轮(ChatGPT 终审 NOT_CLOSED → B1-B4 → C4 `dec94b85`):
+
+| ID | 结论 | 检查方法 | 直接原件 |
+|---|---|---|---|
+| B1-B4/§6 | PASS | 独立 reviewer(glm-5.3-flash)复验:16 反例 9 翻正/7 控制保持;八类最低反例全过;零配额;§6 原件 44 文件逐字节一致;C4 P2 闭合(generator/env 行为级身份入消费哈希面) | REVIEWER_CONTENT_REPORT_V2.md;B_FIXES.md |
+| A01(返修) | PASS | 同上 V2 复验(替代上轮 V1 结论) | REVIEWER_CONTENT_REPORT_V2.md(包内) |
+| A02(返修) | 见 REVIEWER_FINAL_RECEIPT | 最终 ZIP 冷读重签(绑定返修轮包字节) | 包外 REVIEWER_FINAL_RECEIPT.md |
+
 reviewer 最低独立反例集落点:1=>G01(formal 注册表+scope);
 2=>K01(边界+产物对拍);3=>V01(fit manifest => bundle);4=>V02
 (SB3 实见空间+不 clip);5=>I03(替换/缓存);6=>M01(错绑冷读拒);

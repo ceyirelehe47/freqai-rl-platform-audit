@@ -1,0 +1,374 @@
+{
+  "mode": "controlled external-dependency replay; unchanged candidate modules",
+  "source_sha256": {
+    "ppo262_input_lock.py": "6281f8fefc08da23861732fc4dc5363dc4930263aa8effa301843243ab27a89c",
+    "ppo262_banks.py": "60f419a89bf7e3c8c79954ff3822b9ecc3c04674bc936101be5cc3c3ae1c404a",
+    "ppo262_eng_profile.py": "6a6fa8a55ed0e45f0a8c67b44e8a597c55a4edba053e8275c547dad1de847c06",
+    "ppo262_qualified_input.py": "d0c9b614be5fa4efb179a05dca1574e9a5c6a061faf34167eb0f51da7c12e7f4",
+    "ppo262_eng_fixture.py": "61eb27e2bfd551b8cf873faf8516cd88d5c72afa9262765df0710d6dbf68c98c",
+    "ppo262_env.py": "d2b1bb3dee0f5582f4455120985011c8db8aeb6572e1a4de3b89cc4acb6f0ff9",
+    "ppo262_cli.py": "b74c07c30e375934ba278ac42fbb3025a689da3556c40dfa3f8615c70a775641",
+    "ppo262_namespaces.py": "08a3ac86a7e4e79524b3ddba4915cda0385903de4933afada81264910f62d23d"
+  },
+  "cases": [
+    {
+      "name": "positive_control",
+      "expected_reject": false,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": false,
+      "all_checks": true,
+      "problems": [],
+      "ids": {
+        "iteration": "s262e_r1",
+        "qualification_plan_digest": "qp262e-a26d93519a83be44135899497cd2bd05cc43274641455a0a32df3a1a71df53ff",
+        "qualification_source_iteration": "s262e_fixture_v1",
+        "qualification_scope": "engineering",
+        "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+        "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "profile": "ppo262_engineering_v1",
+        "authorization_binding_digest": "e262az-e56b36f819876426b15768de7d3de318a851a9bcb875a572b9cd8f6202e3072f",
+        "consumer_common_contract": {
+          "production_observation_identity": {
+            "env_core_version": "RouteCEnvCore-v1.0.0",
+            "feature_columns": [
+              "%-ret-1",
+              "%-ret-4",
+              "%-vol-24",
+              "%-price-ma-ratio",
+              "%-raw_open",
+              "%-raw_high",
+              "%-raw_low",
+              "%-raw_close"
+            ],
+            "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+            "observation_dim": 9,
+            "observation_spec_version": "ObservationSpec-v1",
+            "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+            "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+            "window_size": 1
+          },
+          "family_versions": {
+            "c1_opportunity": "cur261-c1-v5",
+            "c2_context": "cur261-c2-v9",
+            "c3_cost": "cur261-c3-v4"
+          },
+          "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+        }
+      },
+      "expectation_met": true
+    },
+    {
+      "name": "wrong_plan_digest_control",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": true,
+      "problems": [
+        "result 未绑定 plan digest"
+      ],
+      "expectation_met": true
+    },
+    {
+      "name": "source_iteration_mismatch",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": false,
+      "all_checks": true,
+      "problems": [],
+      "ids": {
+        "iteration": "s262e_r1",
+        "qualification_plan_digest": "qp262e-a26d93519a83be44135899497cd2bd05cc43274641455a0a32df3a1a71df53ff",
+        "qualification_source_iteration": "s262e_fixture_v1",
+        "qualification_scope": "engineering",
+        "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+        "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "profile": "ppo262_engineering_v1",
+        "authorization_binding_digest": "e262az-e56b36f819876426b15768de7d3de318a851a9bcb875a572b9cd8f6202e3072f",
+        "consumer_common_contract": {
+          "production_observation_identity": {
+            "env_core_version": "RouteCEnvCore-v1.0.0",
+            "feature_columns": [
+              "%-ret-1",
+              "%-ret-4",
+              "%-vol-24",
+              "%-price-ma-ratio",
+              "%-raw_open",
+              "%-raw_high",
+              "%-raw_low",
+              "%-raw_close"
+            ],
+            "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+            "observation_dim": 9,
+            "observation_spec_version": "ObservationSpec-v1",
+            "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+            "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+            "window_size": 1
+          },
+          "family_versions": {
+            "c1_opportunity": "cur261-c1-v5",
+            "c2_context": "cur261-c2-v9",
+            "c3_cost": "cur261-c3-v4"
+          },
+          "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+        }
+      },
+      "expectation_met": false
+    },
+    {
+      "name": "exposure_iteration_mismatch",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": false,
+      "all_checks": true,
+      "problems": [],
+      "ids": {
+        "iteration": "s262e_r1",
+        "qualification_plan_digest": "qp262e-a26d93519a83be44135899497cd2bd05cc43274641455a0a32df3a1a71df53ff",
+        "qualification_source_iteration": "s262e_fixture_v1",
+        "qualification_scope": "engineering",
+        "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+        "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "profile": "ppo262_engineering_v1",
+        "authorization_binding_digest": "e262az-e56b36f819876426b15768de7d3de318a851a9bcb875a572b9cd8f6202e3072f",
+        "consumer_common_contract": {
+          "production_observation_identity": {
+            "env_core_version": "RouteCEnvCore-v1.0.0",
+            "feature_columns": [
+              "%-ret-1",
+              "%-ret-4",
+              "%-vol-24",
+              "%-price-ma-ratio",
+              "%-raw_open",
+              "%-raw_high",
+              "%-raw_low",
+              "%-raw_close"
+            ],
+            "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+            "observation_dim": 9,
+            "observation_spec_version": "ObservationSpec-v1",
+            "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+            "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+            "window_size": 1
+          },
+          "family_versions": {
+            "c1_opportunity": "cur261-c1-v5",
+            "c2_context": "cur261-c2-v9",
+            "c3_cost": "cur261-c3-v4"
+          },
+          "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+        }
+      },
+      "expectation_met": false
+    },
+    {
+      "name": "missing_producer_identity",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": false,
+      "all_checks": true,
+      "problems": [],
+      "ids": {
+        "iteration": "s262e_r1",
+        "qualification_plan_digest": "qp262e-ff9881d85e78e4f4dd61659ea8e6a694d92cb72e971e90fb7aac46c7413cbb0a",
+        "qualification_source_iteration": "s262e_fixture_v1",
+        "qualification_scope": "engineering",
+        "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+        "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "profile": "ppo262_engineering_v1",
+        "authorization_binding_digest": "e262az-c8a4fff091a26d20fd31d25305adffa1d6d681d279645c10cae3f1a09aacb831",
+        "consumer_common_contract": {
+          "production_observation_identity": {
+            "env_core_version": "RouteCEnvCore-v1.0.0",
+            "feature_columns": [
+              "%-ret-1",
+              "%-ret-4",
+              "%-vol-24",
+              "%-price-ma-ratio",
+              "%-raw_open",
+              "%-raw_high",
+              "%-raw_low",
+              "%-raw_close"
+            ],
+            "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+            "observation_dim": 9,
+            "observation_spec_version": "ObservationSpec-v1",
+            "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+            "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+            "window_size": 1
+          },
+          "family_versions": {
+            "c1_opportunity": "cur261-c1-v5",
+            "c2_context": "cur261-c2-v9",
+            "c3_cost": "cur261-c3-v4"
+          },
+          "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+        }
+      },
+      "expectation_met": false
+    },
+    {
+      "name": "declared_fit_training_namespace_overlap",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": false,
+      "all_checks": true,
+      "problems": [],
+      "ids": {
+        "iteration": "s262e_r1",
+        "qualification_plan_digest": "qp262e-6347ac95b4daad67ebc552a5be19e9c9dd93ff49006aa65e93676b5dbdf89f88",
+        "qualification_source_iteration": "s262e_fixture_v1",
+        "qualification_scope": "engineering",
+        "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+        "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "profile": "ppo262_engineering_v1",
+        "authorization_binding_digest": "e262az-87930c3c5ce11c515485ce3363e8be12c0a495676bc4f78b95d9d7505ccaf95e",
+        "consumer_common_contract": {
+          "production_observation_identity": {
+            "env_core_version": "RouteCEnvCore-v1.0.0",
+            "feature_columns": [
+              "%-ret-1",
+              "%-ret-4",
+              "%-vol-24",
+              "%-price-ma-ratio",
+              "%-raw_open",
+              "%-raw_high",
+              "%-raw_low",
+              "%-raw_close"
+            ],
+            "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+            "observation_dim": 9,
+            "observation_spec_version": "ObservationSpec-v1",
+            "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+            "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+            "window_size": 1
+          },
+          "family_versions": {
+            "c1_opportunity": "cur261-c1-v5",
+            "c2_context": "cur261-c2-v9",
+            "c3_cost": "cur261-c3-v4"
+          },
+          "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+        }
+      },
+      "expectation_met": false
+    },
+    {
+      "name": "changed_envelope_control",
+      "expected_reject": true,
+      "method": "controlled external-dependency replay; unchanged candidate modules",
+      "rejected": true,
+      "problems": [
+        "V2 preprocessing envelope 拒绝: dependency capsule rejects any changed envelope; numerical V2 not tested here"
+      ],
+      "expectation_met": true
+    },
+    {
+      "name": "bank_good",
+      "method": "controlled external-dependency replay; unchanged candidate modules; original generate_eng_bank->generate262_bank->generate262_pair, sentinel at param_recorder",
+      "old_value": 45.0,
+      "new_value_at_boundary": 45.0,
+      "declared_pack_digest_unchanged": true,
+      "actual_pack_digest_matches": true,
+      "rejected": false,
+      "boundary_reached": true,
+      "expected_reject": false,
+      "expectation_met": true
+    },
+    {
+      "name": "bank_returned_copy_mutation",
+      "method": "controlled external-dependency replay; unchanged candidate modules; original generate_eng_bank->generate262_bank->generate262_pair, sentinel at param_recorder",
+      "old_value": 45.0,
+      "new_value_at_boundary": 45.0,
+      "declared_pack_digest_unchanged": true,
+      "actual_pack_digest_matches": true,
+      "rejected": false,
+      "boundary_reached": true,
+      "expected_reject": false,
+      "expectation_met": true
+    },
+    {
+      "name": "bank_cached_pack_mutation",
+      "method": "controlled external-dependency replay; unchanged candidate modules; original generate_eng_bank->generate262_bank->generate262_pair, sentinel at param_recorder",
+      "old_value": 45.0,
+      "new_value_at_boundary": 999.0,
+      "declared_pack_digest_unchanged": true,
+      "actual_pack_digest_matches": false,
+      "rejected": false,
+      "boundary_reached": true,
+      "expected_reject": true,
+      "expectation_met": false
+    },
+    {
+      "name": "route_report_no_consumers",
+      "method": "controlled external-dependency replay; unchanged candidate modules; full CLI eng-route-check with all advertised consumer commands instrumented",
+      "rc": 0,
+      "consumer_calls": [],
+      "declared_entry_classes": [
+        "smoke",
+        "config_dev",
+        "probe",
+        "core",
+        "dev_eval",
+        "final"
+      ],
+      "pack_differs_from_r2": true,
+      "finding": "report success does not execute or verify advertised consumer paths",
+      "expectation_met": false
+    },
+    {
+      "name": "cold_good",
+      "method": "controlled external-dependency replay; unchanged candidate modules; actual cold_read_checkpoint with current-consumer identity held to recorded-valid value; sentinel at PPO.load",
+      "expected_reject": false,
+      "rejected": false,
+      "model_load_reached": true,
+      "problems": [],
+      "expectation_met": true
+    },
+    {
+      "name": "cold_wrong_pack_control",
+      "method": "controlled external-dependency replay; unchanged candidate modules; actual cold_read_checkpoint with current-consumer identity held to recorded-valid value; sentinel at PPO.load",
+      "expected_reject": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "problems": [
+        "manifest parameter_pack_digest = 'WRONG' != 冷读输入 'e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d'"
+      ],
+      "expectation_met": true
+    },
+    {
+      "name": "cold_wrong_source_iteration",
+      "method": "controlled external-dependency replay; unchanged candidate modules; actual cold_read_checkpoint with current-consumer identity held to recorded-valid value; sentinel at PPO.load",
+      "expected_reject": true,
+      "rejected": false,
+      "model_load_reached": true,
+      "problems": [],
+      "expectation_met": false
+    },
+    {
+      "name": "cold_wrong_bank_and_seed",
+      "method": "controlled external-dependency replay; unchanged candidate modules; actual cold_read_checkpoint with current-consumer identity held to recorded-valid value; sentinel at PPO.load",
+      "expected_reject": true,
+      "rejected": false,
+      "model_load_reached": true,
+      "problems": [],
+      "expectation_met": false
+    },
+    {
+      "name": "cold_missing_authorization_binding",
+      "method": "controlled external-dependency replay; unchanged candidate modules; actual cold_read_checkpoint with current-consumer identity held to recorded-valid value; sentinel at PPO.load",
+      "expected_reject": true,
+      "rejected": false,
+      "model_load_reached": true,
+      "problems": [],
+      "expectation_met": false
+    }
+  ],
+  "limits": {
+    "native_episodes_generated": 0,
+    "optimizer_updates": 0,
+    "fit_calls": 0,
+    "sb3_load_calls_executed": 0,
+    "WSL_access": false
+  },
+  "passed_expected": 7,
+  "total": 16
+}

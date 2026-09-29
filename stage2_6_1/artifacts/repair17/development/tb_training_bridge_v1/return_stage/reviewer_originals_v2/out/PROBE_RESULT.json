@@ -1,0 +1,362 @@
+{
+  "probe": "reviewer_c3_independent_v1",
+  "candidate": "611966b28bc0d2baeff396e8f42e91ddb1729e4e",
+  "deploy_tree": "/home/cryptorl/projects/crypto_rl",
+  "cases": [
+    {
+      "name": "A0_positive_control_loads",
+      "expectation_met": true,
+      "detail": {
+        "note": "v1 fixture loads (positive control)"
+      }
+    },
+    {
+      "name": "A1_B21_source_iteration_mismatch_rejected",
+      "expectation_met": true,
+      "detail": "result source_iteration 与 plan source_iteration 不一致(来源/终态关联未核验)"
+    },
+    {
+      "name": "A2_B21_exposure_iteration_mismatch_rejected",
+      "expectation_met": true,
+      "detail": "exposure iteration 与 plan iteration 不一致(终态与源迭代未关联)"
+    },
+    {
+      "name": "A3_B21_missing_producer_identity_rejected",
+      "expectation_met": true,
+      "detail": "plan.code_identity 缺 producer 身份(生产者模块+哈希;来源证据不完整)"
+    },
+    {
+      "name": "A4_N01_declared_fit_ns_overlap_train_rejected",
+      "expectation_met": true,
+      "detail": "声明的 fit namespace 'ppo_eng_bank_262e' 为空或与 seed 派生 namespace 重合(fit 来源面与训练/评估派生面必须隔离;同源串用拒绝)"
+    },
+    {
+      "name": "A5_N01_declared_fit_ns_261_collision_rejected",
+      "expectation_met": true,
+      "detail": {
+        "victim": "c2_independent_calibration_r10",
+        "info": "声明的 fit namespace 'c2_independent_calibration_r10' 为空或与 seed 派生 namespace 重合(fit 来源面与训练/评估派生面必须隔离;同源串用拒绝)"
+      }
+    },
+    {
+      "name": "A6_envelope_tamper_control_rejected",
+      "expectation_met": true,
+      "detail": "V2 preprocessing envelope 拒绝: preprocessor bundle hash 复算不一致(fail closed)"
+    },
+    {
+      "name": "A7_wrong_plan_digest_control_rejected",
+      "expectation_met": true,
+      "detail": "result 未绑定 plan digest"
+    },
+    {
+      "name": "A8_legal_Cq_commit_difference_still_loads",
+      "expectation_met": true,
+      "detail": "NOT rejected"
+    },
+    {
+      "name": "B0_bank_boundary_real_pack_v2",
+      "expectation_met": true,
+      "detail": {
+        "captured_opp_drift_bps": 45.0,
+        "sums": {
+          "bank_replays": 1,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 6,
+          "bank_pair_attempts": 0,
+          "ppo_smoke_runs": 0,
+          "ppo_smoke_steps": 0
+        },
+        "note": "R2 value would be 42.0"
+      }
+    },
+    {
+      "name": "B1_returned_copy_mutation_harmless",
+      "expectation_met": true,
+      "detail": {
+        "captured": 45.0,
+        "note": "copy mutation did not reach cache; integrity intact"
+      }
+    },
+    {
+      "name": "B2_B22_cached_pack_mutation_rejected_pre_generation",
+      "expectation_met": true,
+      "detail": {
+        "recorder_calls": 0,
+        "ledger_events": 0,
+        "info": "pack 缓存完整性重验失败: 重算 e262pk-dada65b79e7f5d1a7b9422d78633c366374a8b7249e0d32e952122706ffba876 != 已验证 e262pk-f77d77468915370800bebcc402d353fbcef7a4025317e1db314bc0162df53292(缓存被污染;消费拒绝"
+      }
+    },
+    {
+      "name": "C0_route_check_real_consumers_v2",
+      "expectation_met": true,
+      "detail": {
+        "rc": 0,
+        "entries": [
+          "smoke",
+          "config_dev",
+          "probe",
+          "core",
+          "dev_eval",
+          "final"
+        ],
+        "pack_differs_from_r2": true
+      }
+    },
+    {
+      "name": "C0_route_check_real_consumers_v1",
+      "expectation_met": true,
+      "detail": {
+        "rc": 0,
+        "entries": [
+          "smoke",
+          "config_dev",
+          "probe",
+          "core",
+          "dev_eval",
+          "final"
+        ],
+        "pack_differs_from_r2": false
+      }
+    },
+    {
+      "name": "C1_cmd_config_dev_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C2_run_ppo262_smoke_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C3_cmd_probe_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C4_cmd_core_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C5_cmd_dev_eval_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C6_cmd_final_run_uses_shared_prepare",
+      "expectation_met": true,
+      "detail": {}
+    },
+    {
+      "name": "C7_default_context_official_R2_byte_identical",
+      "expectation_met": true,
+      "detail": {
+        "r2_c1_D1_opp_drift_bps": 42.0
+      }
+    },
+    {
+      "name": "D0_cold_read_positive_control",
+      "expectation_met": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "n_checks": 19
+      }
+    },
+    {
+      "name": "D1_B3_cold_wrong_source_iteration_rejected_pre_load",
+      "expectation_met": true,
+      "detail": "manifest qualification_source_iteration = 'forged_source' != 冷读输入 's262e_fixture_v1'"
+    },
+    {
+      "name": "D2_B3_cold_missing_authorization_binding_rejected",
+      "expectation_met": true,
+      "detail": "manifest 缺失或错配 authorization_binding_digest(授权绑定未经冷读核验)"
+    },
+    {
+      "name": "D3_B3_cold_wrong_bank_and_seed_rejected",
+      "expectation_met": true,
+      "detail": "manifest bank 绑定与运行原件不一致(namespace/keys/数量/manifest hash) | manifest 训练绑定与运行原件/事前固定 profile 预算不一致(steps 必须 = 256,seed 必须 = 262501)"
+    },
+    {
+      "name": "D4_cold_wrong_pack_control_rejected",
+      "expectation_met": true,
+      "detail": "manifest parameter_pack_digest = 'WRONG' != 冷读输入 'e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d'"
+    },
+    {
+      "name": "D5_B3_probe_binding_digest_tamper_rejected",
+      "expectation_met": true,
+      "detail": "冻结观察 binding_digest 复算不一致"
+    },
+    {
+      "name": "D6_M01_cold_read_wrong_input_binding_rejected",
+      "expectation_met": true,
+      "detail": "manifest qualification_plan_digest = 'qp262e-a26d93519a83be44135899497cd2bd05cc43274641455a0a32df3a1a71df53ff' != 冷读输入 'qp262e-c7e99e9dab11aa216ec9ea427e91e1721b348795d3aeb77edb0daa9185a6acd3' | manif"
+    },
+    {
+      "name": "D7_E03_committed_original_cold_read_migration",
+      "expectation_met": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "via_candidate": true
+      }
+    },
+    {
+      "name": "E0_unfinalized_reservation_counted_conservatively",
+      "expectation_met": true,
+      "detail": {
+        "after_reserve": {
+          "bank_replays": 0,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 0,
+          "bank_pair_attempts": 0,
+          "ppo_smoke_runs": 1,
+          "ppo_smoke_steps": 256
+        },
+        "after_confirm": {
+          "bank_replays": 0,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 0,
+          "bank_pair_attempts": 0,
+          "ppo_smoke_runs": 1,
+          "ppo_smoke_steps": 256
+        }
+      }
+    },
+    {
+      "name": "E1_P01_failed_smoke_counts_and_ninth_rejected",
+      "expectation_met": true,
+      "detail": {
+        "failures_recorded": 8,
+        "sums": {
+          "bank_replays": 0,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 0,
+          "bank_pair_attempts": 0,
+          "ppo_smoke_runs": 8,
+          "ppo_smoke_steps": 2048
+        }
+      }
+    },
+    {
+      "name": "E2_B4_bank_attempt_actual_counting",
+      "expectation_met": true,
+      "detail": {
+        "pair_attempts": 5,
+        "sums": {
+          "bank_replays": 1,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 10,
+          "bank_pair_attempts": 5,
+          "ppo_smoke_runs": 0,
+          "ppo_smoke_steps": 0
+        }
+      }
+    },
+    {
+      "name": "E3_charged_control_blocks_ninth",
+      "expectation_met": true,
+      "detail": {
+        "sums": {
+          "bank_replays": 0,
+          "bank_episode_success": 0,
+          "bank_episode_candidate": 0,
+          "bank_pair_attempts": 0,
+          "ppo_smoke_runs": 8,
+          "ppo_smoke_steps": 2048
+        }
+      }
+    },
+    {
+      "name": "E4_n_steps_guard_no_reservation_leak",
+      "expectation_met": true,
+      "detail": {
+        "ledger_events": 0
+      }
+    },
+    {
+      "name": "F1_min8_formal_dir_plant_without_authorization_rejected",
+      "expectation_met": true,
+      "detail": {
+        "formal": "授权 scope = 'engineering' != 要求 'formal'(工程许可不能解锁正式入口;正式资格未成立) | formal 装载要求已注册的正式 admission 锚(注册表当前为空:正式资格/正式 admission 链未实现;工程件或手工伪造的 formal 授权不能解锁正式训练)",
+        "engineering_positive": true
+      }
+    },
+    {
+      "name": "F2_min8_bank_steal_r2_detected_at_boundary",
+      "expectation_met": true,
+      "detail": {
+        "evidence": [
+          "B0 captured 45.0 at real generator boundary (R2=42.0)",
+          "C0 route sentinels assert boundary params == pack",
+          "C7 default context byte-identical R2 (42.0)"
+        ]
+      }
+    },
+    {
+      "name": "F3_min8_same_scaler_diff_fit_manifest_differs_and_rejected",
+      "expectation_met": true,
+      "detail": {
+        "control_hash_stable": true,
+        "alt_differs": true,
+        "swap_rejected": "bundle hash r4pb-f08961107798a07062a2ed5aeee44672b4a60e3b0dd6dd49fa72b151fea294d1 != plan 绑定 'r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55' | 授权锚校验失败: auth"
+      }
+    },
+    {
+      "name": "F4_min8_v2_space_real_and_no_clip",
+      "expectation_met": true,
+      "detail": {
+        "space_9d_unbounded_pos_01": "True",
+        "sb3_sees_v2": true,
+        "extreme_forward_finite": true,
+        "legacy_default_bounded": true
+      }
+    },
+    {
+      "name": "F5_min8_replace_after_validation_rejected_snapshot_unaffected",
+      "expectation_met": true,
+      "detail": {
+        "swap": "pack digest 与 plan 绑定不一致 | 授权锚校验失败: authorization_binds_inputs",
+        "snapshot_intact": true
+      }
+    },
+    {
+      "name": "F6_min8_checkpoint_other_input_rejected",
+      "expectation_met": true,
+      "detail": {
+        "evidence": "D6 cross-input cold read rejected pre-load"
+      }
+    },
+    {
+      "name": "F7_min8_planted_seed_collision_surface_disjoint",
+      "expectation_met": true,
+      "detail": {
+        "eng_face": 3600,
+        "other_face": 2746800,
+        "n_seed_namespaces": 806,
+        "n_262_namespaces": 12,
+        "locked_261_skipped": 53,
+        "locked_262_skipped": 1
+      }
+    },
+    {
+      "name": "F8_min8_reported_256_but_no_update_cannot_pass",
+      "expectation_met": true,
+      "detail": {
+        "evidence": [
+          "E4: n_steps!=256 ValueError before reservation",
+          "engineering_ppo_run checks: env_steps_exactly_256 + optimizer_updates_at_least_1 + losses_finite + params_changed; pass=all(checks)",
+          "E1: failure/absence path terminates reservation conservatively"
+        ]
+      }
+    }
+  ],
+  "passed": 42,
+  "total": 42,
+  "limits": {
+    "native_episodes_generated": 0,
+    "optimizer_updates": 0,
+    "fit_calls": 0,
+    "shared_ledger_touched": false
+  }
+}

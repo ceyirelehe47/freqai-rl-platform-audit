@@ -29,6 +29,31 @@
   315 成员对拍后重跑 full_regression_v2);证据 HEAD:见 git_receipts。
 - **时间限制**:按补充指令取消 8h 上限;本轮实际耗时与配额消耗见 §5。
 
+## 1a. 返修轮(ChatGPT 终审 NOT_CLOSED → B1-B4 修复 → C4)
+
+- **终审输入**:`RouteC_TrainingBridge_Review_c85eee4e_Evidence.zip`
+  (REVIEW.md:阻塞 B1 路由/B2 来源与缓存/B3 冷读绑定/B4 配额异常计数
+  + §6 reviewer 原件补件;16 受控反例)。逐项对账见 `B_FIXES.md`。
+- **修复候选 C3** `611966b2`:B1 六入口共享 prepare 管线
+  (`ppo262_entry_specs.py`,官方 cmd 实调点+哨兵消费边界);B2.1 装载
+  交叉核验(source_iteration/exposure/producer)+N01 fit namespace
+  隔离;B2.2 `verify_integrity` 消费边界重验;B3 冷读全绑定(五字段+
+  授权重算+共同语义现场重算+bank/训练预算跨文件+冻结观察 binding_
+  digest;v1 归档件走显式已核验迁移 sidecar);B4 配额预约+失败保守
+  计数+中断不释放+attempt 实计;§6 `reviewer_originals/`(上轮原件
+  原样复制,44 文件逐字节一致)。
+- **复验**:`REVIEWER_CONTENT_REPORT_V2.md`(独立 glm-5.3-flash
+  reviewer,零配额):B1-B4 全部 PASS,16 反例 9 翻正/7 控制保持,八类
+  最低反例全过,矩阵 22 项复核通过。
+- **C4** `dec94b85`(P2 闭合):generator/env 行为级身份进
+  `_CONSUMER_CODE_MODULES`(pairs/c1/c2/c3/production_obs/../rl_platform/
+  env.py,18 模块);迁移验证多根解析,v1 归档件不受影响;262 套件
+  225 passed;`c4_verification/` 零配额四连(lock rc0/route rc0/
+  formal-reject rc2/cold-read rc0)。绑定 C4 的 261 全收集见
+  `full_regression_v4`。
+- 返修全程零原生生成、零 fit、零新增 smoke(账本 replay 2/2、成功
+  12/12、smoke 2/8、512/2048 步不变)。
+
 ## 2. 变更面(候选 C)
 
 新增:`ppo262_qualified_input.py`(统一输入锁/授权锚/formal 注册表
