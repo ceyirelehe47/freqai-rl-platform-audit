@@ -1,0 +1,110 @@
+{
+  "format": "ppo262e-route-profile-inputs-v2",
+  "iteration": "s262e_r1",
+  "qualified_input": {
+    "iteration": "s262e_r1",
+    "qualification_plan_digest": "qp262e-c7e99e9dab11aa216ec9ea427e91e1721b348795d3aeb77edb0daa9185a6acd3",
+    "qualification_source_iteration": "s262e_fixture_v1",
+    "qualification_scope": "engineering",
+    "parameter_pack_digest": "e262pk-f77d77468915370800bebcc402d353fbcef7a4025317e1db314bc0162df53292",
+    "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+    "profile": "ppo262_engineering_v1",
+    "authorization_binding_digest": "e262az-fefdd436fa9a4cc3dcc967e4ac150437dbf740dfbc7fef02fabfd0d6f77834d5",
+    "consumer_common_contract": {
+      "production_observation_identity": {
+        "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+        "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+        "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+        "feature_columns": [
+          "%-ret-1",
+          "%-ret-4",
+          "%-vol-24",
+          "%-price-ma-ratio",
+          "%-raw_open",
+          "%-raw_high",
+          "%-raw_low",
+          "%-raw_close"
+        ],
+        "observation_dim": 9,
+        "env_core_version": "RouteCEnvCore-v1.0.0",
+        "observation_spec_version": "ObservationSpec-v1",
+        "window_size": 1
+      },
+      "family_versions": {
+        "c1_opportunity": "cur261-c1-v5",
+        "c2_context": "cur261-c2-v9",
+        "c3_cost": "cur261-c3-v4"
+      },
+      "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+    }
+  },
+  "entry_classes": [
+    "smoke",
+    "config_dev",
+    "probe",
+    "core",
+    "dev_eval",
+    "final"
+  ],
+  "routes": {
+    "smoke": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 6,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    },
+    "config_dev": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 24,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    },
+    "probe": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 160,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    },
+    "core": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 24,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    },
+    "dev_eval": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 96,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    },
+    "final": {
+      "rung_params_source": "qualified_input.pack(共享 prepare 管线实测)",
+      "namespace": "ppo_eng_bank_262e",
+      "n_bank_keys": 240,
+      "consumer_boundary_hits": {
+        "generate262_bank": 1,
+        "build_261_policy_set": 1
+      }
+    }
+  },
+  "consumer_sentinels": "真实 prepare 管线 + generate262_bank/build_261_policy_set 边界哨兵(零生成零训练)",
+  "default_context_official_r2": true,
+  "cached_pack_tamper_rejected": true,
+  "pack_differs_from_r2": true,
+  "pass": true
+}
