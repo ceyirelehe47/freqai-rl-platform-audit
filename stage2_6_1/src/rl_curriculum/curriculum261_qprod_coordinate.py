@@ -229,14 +229,34 @@ def load_coordinate_audit_plan(coord_dir: Path | str) -> dict[str, Any]:
 
 
 class _GenerationLedger:
-    """叶调用计数钩子(once/attempts/逐位重放;逐调用记账+块归属)。"""
+    """叶调用计数钩子(once/attempts/逐位重放;逐调用记账+块归属)。
 
-    def __init__(self) -> None:
+    raw_dir 给定时,每个成功正文 block 的原始 df/hidden 逐 rung/side
+    落盘(E01:原始 OHLCV/hidden/trace 归档,供 reader 与 reviewer
+    只读复算);完整性重放的输入即已归档正文,不重复落盘。
+    """
+
+    def __init__(self, raw_dir: Path | None = None) -> None:
         self.leaf_calls = {"once": 0, "attempts": 0,
                            "bitwise_replay": 0}
         self.block_log: list[dict[str, Any]] = []
         self._once_impl = None
         self._attempts_impl = None
+        self._once_seq: dict[str, int] = {}
+        self.raw_dir = Path(raw_dir) if raw_dir is not None else None
+
+    def _archive_episodes(self, tag: str,
+                          episodes: dict[str, Any]) -> None:
+        if self.raw_dir is None:
+            return
+        self.raw_dir.mkdir(parents=True, exist_ok=True)
+        for rung, sides in episodes.items():
+            for side, ep in sides.items():
+                stem = f"{tag}_{rung}_{side}"
+                ep.df.to_csv(self.raw_dir / f"{stem}.df.csv",
+                             index=False)
+                ep.hidden.to_csv(self.raw_dir / f"{stem}.hidden.csv",
+                                 index=False)
 
     def bind(self) -> dict[str, Any]:
         from rl_curriculum.curriculum261_r6_tape import (
@@ -252,13 +272,20 @@ class _GenerationLedger:
 
         def counting_once(ladder, seed, ns):
             ledger.leaf_calls["once"] += 1
+            seq = ledger._once_seq.get(ns, 0)
+            ledger._once_seq[ns] = seq + 1
             ledger.block_log.append({
                 "kind": "once", "namespace": ns,
+                "sequence": seq,
                 "block_seed": int(seed),
                 "derivation": "derive261_block_seed(ns, block_index,"
-                              " attempt=0)(core 内部派生)",
+                              " attempt=0)(core 内部派生;"
+                              f"sequence={seq})",
             })
-            return ledger._once_impl(ladder, seed, ns)
+            episodes = ledger._once_impl(ladder, seed, ns)
+            ledger._archive_episodes(
+                f"once_{ns}_s{seq}_seed{int(seed)}", episodes)
+            return episodes
 
         def counting_attempts(ladder, *, namespace, block_index):
             ledger.leaf_calls["attempts"] += 1
@@ -274,10 +301,15 @@ class _GenerationLedger:
                     else int(log.selected_attempt)),
                 "attempts_made": len(log.attempts),
             })
+            ledger._archive_episodes(
+                f"attempts_{namespace}_b{int(block.block_index)}"
+                f"_a{int(log.selected_attempt or 0)}",
+                block.episodes)
             return block
 
         def counting_bitwise_replay(ladder, seed, ns):
-            # 完整性检查中的生成重放计入叶调用配额(单独归类)
+            # 完整性检查中的生成重放计入叶调用配额(单独归类;
+            # 输入=已归档正文,不重复落盘)
             ledger.leaf_calls["bitwise_replay"] += 1
             return ledger._once_impl(ladder, seed, ns)
 
@@ -413,7 +445,7 @@ def run_coordinate_audit_locked(
 
     profile = str(cap["profile"])
     formal = profile == "formal"
-    ledger = _GenerationLedger()
+    ledger = _GenerationLedger(raw_dir=coord_dir / "raw_episodes")
     hooks = ledger.bind()
     _ledger_append(Path(ledger_path), {
         "action": "start", "coordinate_id": coordinate_id,
