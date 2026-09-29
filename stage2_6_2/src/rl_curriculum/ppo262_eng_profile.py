@@ -431,6 +431,12 @@ _CONSUMER_CODE_MODULES = (
     "ppo262_banks.py", "ppo262_train.py", "ppo262_config.py",
     "ppo262_cli.py", "ppo262_smoke.py",
     "ppo262_namespaces.py", "ppo262_diag_train.py",
+    # P2 闭合(REVIEWER_CONTENT_REPORT_V2):generator/env 行为级身份进
+    # 消费代码哈希面——共同语义版本标签不再单独承担行为漂移检测
+    "curriculum261_pairs.py",
+    "curriculum261_c1.py", "curriculum261_c2.py", "curriculum261_c3.py",
+    "curriculum261_production_obs.py",
+    "../rl_platform/env.py",
 )
 
 
@@ -467,13 +473,26 @@ def _verify_identity_at_commit(recorded: dict[str, str],
     if repo is None:
         return False
     for name, expected in (recorded or {}).items():
-        rel = f"stage2_6_2/src/rl_curriculum/{name}"
-        try:
-            blob = subprocess.run(
-                ["git", "-C", str(repo), "show",
-                 f"{candidate_commit}:{rel}"],
-                capture_output=True, check=True).stdout
-        except subprocess.CalledProcessError:
+        # 记录键决定候选树根:262 消费模块/261 共享模块/相对路径 env core
+        roots = ["stage2_6_2/src/rl_curriculum",
+                 "stage2_6_1/src/rl_curriculum", "src/rl_curriculum"]
+        rels = [f"{r}/{name}" for r in roots]
+        if name.startswith("../"):
+            rels = ["stage2_6_2/src/rl_platform/env.py",
+                    "stage2_6_1/src/rl_platform/env.py",
+                    "src/rl_platform/env.py",
+                    "stage2_5_2/src/rl_platform/env.py"]
+        blob = None
+        for rel in rels:
+            try:
+                blob = subprocess.run(
+                    ["git", "-C", str(repo), "show",
+                     f"{candidate_commit}:{rel}"],
+                    capture_output=True, check=True).stdout
+                break
+            except subprocess.CalledProcessError:
+                continue
+        if blob is None:
             return False
         got = hashlib.sha256(blob.replace(b"\r\n", b"\n")).hexdigest()
         if got != expected:

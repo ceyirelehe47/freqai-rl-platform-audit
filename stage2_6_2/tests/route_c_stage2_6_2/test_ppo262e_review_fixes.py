@@ -526,3 +526,22 @@ def test_b4_bank_attempt_actual_counting(tmp_path, monkeypatch):
         assert fail and fail[0]["pair_attempts"] == 5
         assert ledger.sums()["bank_episode_candidate"] == 10
         assert ledger.sums()["bank_episode_success"] == 0
+
+
+def test_p2_consumer_identity_covers_generator_and_env_modules():
+    """P2 闭合:family generator 与 env core 模块进消费代码哈希面;
+    记录哈希被改 => 迁移路径拒绝(行为级漂移可检测)。"""
+    from rl_curriculum.ppo262_eng_profile import (
+        _CONSUMER_CODE_MODULES, _consumer_code_identity,
+        _verify_identity_at_commit,
+    )
+    ids = _consumer_code_identity()
+    for name in ("curriculum261_pairs.py", "curriculum261_c1.py",
+                 "curriculum261_c2.py", "curriculum261_c3.py",
+                 "curriculum261_production_obs.py",
+                 "../rl_platform/env.py"):
+        assert name in _CONSUMER_CODE_MODULES
+        assert len(ids.get(name, "")) == 64
+    forged = {"ppo262_env.py": "0" * 64}
+    assert _verify_identity_at_commit(
+        forged, "e565298dad8063df70775dfdd47e3bf682f29926") is False

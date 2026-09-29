@@ -34,7 +34,6 @@
   真实生成前拒绝,recorder 零调用、账本零事件;副本修改保持无害。
 
 ## B3 冷读绑定(修复)
-
 `cold_read_checkpoint` 在 PPO.load 前核验:plan/pack/bundle/profile/
 **source_iteration** 五字段 + **authorization_binding_digest 重算** +
 共同语义**现场重算** + **bank 绑定跨文件**(namespace/keys/数量/manifest
@@ -47,6 +46,16 @@ iteration/cold_missing_authorization_binding/cold_wrong_bank_and_seed
 sidecar(逐字段保留 v1 + candidate_commit=e565298d;迁移时逐模块对
 git blob 复算通过后写入;冷读重新复算;v1 原件零改写)。
 
+
+## 复验发现的非阻塞项处置(C4)
+
+- **P2(Cq/Ct 契约面未覆盖 generator/env 行为级身份)**:`_CONSUMER_CODE_MODULES` 扩展加入
+  `curriculum261_pairs.py`、`curriculum261_c1/c2/c3.py`、
+  `curriculum261_production_obs.py`、`../rl_platform/env.py`(相对路径)。新
+  生成的 manifest/冷读/verify_integrity 均重算完整 18 模块哈希;v1 归档件走
+  recorded-keys-only 迁移路径不受影响(blob 对拍仍绑 e565298d)。行为级篡改
+  由 `test_p2_consumer_identity_covers_generator_and_env_modules` 固定。
+- **P3(部署树测试文件 CRLF)**:同步脚本统一 `sed -i 's/\r$//'` 归一化。
 ## B4 配额(修复)
 
 - `reserve_smoke` 于 learn 前预约(run_id);异常路径 `fail_smoke`
