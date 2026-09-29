@@ -542,6 +542,23 @@ def test_p2_consumer_identity_covers_generator_and_env_modules():
                  "../rl_platform/env.py"):
         assert name in _CONSUMER_CODE_MODULES
         assert len(ids.get(name, "")) == 64
+    # G2 未篡改对照:构造 C4 时刻的 18 键身份(活树身份中仅
+    # ppo262_eng_profile.py 替换为其 C4 blob 哈希——C5 只改了该文件),
+    # 对产出候选 C4 的迁移验证必须通过;env 键经 stage2_6_0* 家族根
+    # 解析(若兜底命中 stage2_5_2 旧版则此处为 False)
+    import hashlib as _hl
+    import subprocess as _sp
+    recorded = dict(ids)
+    from rl_curriculum.ppo262_eng_profile import _repo_root
+    blob = _sp.run(
+        ["git", "-C", str(_repo_root()), "show",
+         "dec94b8593fcd3233dea1958db0da2b1692165a2:"
+         "stage2_6_2/src/rl_curriculum/ppo262_eng_profile.py"],
+        capture_output=True, check=True).stdout
+    recorded["ppo262_eng_profile.py"] = _hl.sha256(
+        blob.replace(b"\r\n", b"\n")).hexdigest()
+    assert _verify_identity_at_commit(
+        recorded, "dec94b8593fcd3233dea1958db0da2b1692165a2") is True
     forged = {"ppo262_env.py": "0" * 64}
     assert _verify_identity_at_commit(
         forged, "e565298dad8063df70775dfdd47e3bf682f29926") is False

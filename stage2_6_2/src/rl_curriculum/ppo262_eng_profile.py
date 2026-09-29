@@ -451,6 +451,23 @@ def _consumer_code_identity() -> dict[str, str]:
     return out
 
 
+def _repo_root() -> "Path | None":
+    """候选仓库根:env 覆盖优先,其次包位置推导,最后已知挂载点。
+
+    部署树无 .git(包 parents[2] 指向 crypto_rl),测试/迁移验证经
+    PPO262E_REPO_ROOT 显式指定仓库;仓库内运行时 parents[2] 即根。
+    """
+    import os
+    import rl_curriculum
+    cands = []
+    env_repo = os.environ.get("PPO262E_REPO_ROOT")
+    if env_repo:
+        cands.append(Path(env_repo))
+    cands.append(Path(rl_curriculum.__file__).resolve().parents[2])
+    cands.append(Path("/mnt/f/trading/freqai-rl-audit"))
+    return next((r for r in cands if (r / ".git").exists()), None)
+
+
 def _verify_identity_at_commit(recorded: dict[str, str],
                                candidate_commit: str) -> bool:
     """记录的模块哈希逐一对该候选 commit 的 git blob 复算(CR 规范化)。
@@ -459,29 +476,30 @@ def _verify_identity_at_commit(recorded: dict[str, str],
     只要记录哈希与 X 的归档 blob 一致,绑定仍有效(执行面 = 已归档
     候选),不要求等于当前树、也不把旧 manifest 重签成新运行。
     """
-    import os
     import subprocess
-    import rl_curriculum
-    repo_candidates = []
-    env_repo = os.environ.get("PPO262E_REPO_ROOT")
-    if env_repo:
-        repo_candidates.append(Path(env_repo))
-    repo_candidates.append(
-        Path(rl_curriculum.__file__).resolve().parents[2])
-    repo_candidates.append(Path("/mnt/f/trading/freqai-rl-audit"))
-    repo = next((r for r in repo_candidates if (r / ".git").exists()), None)
+    repo = _repo_root()
     if repo is None:
         return False
     for name, expected in (recorded or {}).items():
         # 记录键决定候选树根:262 消费模块/261 共享模块/相对路径 env core
+        # (env core 部署字节的归档根 = stage2_6_0* 家族,reviewer delta
+        # 实测 f03e354f 与 stage2_6_0g blob 逐字节一致;stage2_5_2 是
+        # 2.5.2a 旧演进版,仅作最后兜底,排在家族之后)
         roots = ["stage2_6_2/src/rl_curriculum",
                  "stage2_6_1/src/rl_curriculum", "src/rl_curriculum"]
         rels = [f"{r}/{name}" for r in roots]
         if name.startswith("../"):
-            rels = ["stage2_6_2/src/rl_platform/env.py",
-                    "stage2_6_1/src/rl_platform/env.py",
-                    "src/rl_platform/env.py",
-                    "stage2_5_2/src/rl_platform/env.py"]
+            base = name[3:]
+            fam = subprocess.run(
+                ["git", "-C", str(repo), "ls-tree", "--name-only",
+                 candidate_commit],
+                capture_output=True, check=True).stdout.decode().split()
+            rels = [f"{d}/src/{base}" for d in fam
+                    if d.startswith("stage2_6_0")] + [
+                "stage2_6_2/src/" + base,
+                "stage2_6_1/src/" + base,
+                "src/" + base,
+                "stage2_5_2/src/" + base]
         blob = None
         for rel in rels:
             try:
