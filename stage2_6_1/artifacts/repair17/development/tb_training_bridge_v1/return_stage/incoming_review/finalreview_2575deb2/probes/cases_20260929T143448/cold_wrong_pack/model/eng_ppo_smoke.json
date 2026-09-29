@@ -1,0 +1,88 @@
+{
+  "format": "ppo262e-ppo-smoke-v1",
+  "iteration": "s262e_r1",
+  "engineering_only": true,
+  "qualified_input": {
+    "iteration": "s262e_r1",
+    "qualification_plan_digest": "qp262e-a26d93519a83be44135899497cd2bd05cc43274641455a0a32df3a1a71df53ff",
+    "qualification_source_iteration": "s262e_fixture_v1",
+    "qualification_scope": "engineering",
+    "parameter_pack_digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+    "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+    "profile": "ppo262_engineering_v1",
+    "authorization_binding_digest": "e262az-e56b36f819876426b15768de7d3de318a851a9bcb875a572b9cd8f6202e3072f",
+    "consumer_common_contract": {
+      "production_observation_identity": {
+        "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+        "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+        "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+        "feature_columns": [
+          "%-ret-1",
+          "%-ret-4",
+          "%-vol-24",
+          "%-price-ma-ratio",
+          "%-raw_open",
+          "%-raw_high",
+          "%-raw_low",
+          "%-raw_close"
+        ],
+        "observation_dim": 9,
+        "env_core_version": "RouteCEnvCore-v1.0.0",
+        "observation_spec_version": "ObservationSpec-v1",
+        "window_size": 1
+      },
+      "family_versions": {
+        "c1_opportunity": "cur261-c1-v5",
+        "c2_context": "cur261-c2-v9",
+        "c3_cost": "cur261-c3-v4"
+      },
+      "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe"
+    }
+  },
+  "bank_manifest_sha256": "1c60269e0f98c0289a6319db0081408ad66091321db516cdbbac3f6b23b72ad5",
+  "steps": 256,
+  "env_audit": {
+    "episodes_consumed": 0,
+    "steps_taken": 256,
+    "exhausted_cycles": 0,
+    "unique_episodes_started": 0,
+    "first_pass_order_ok": true,
+    "duplicate_episode_completions": 0,
+    "exposure_counts": {}
+  },
+  "optimizer_update_records": [
+    {
+      "update_index": 1,
+      "rollout_index": 1,
+      "env_step": 256,
+      "entropy_loss": -0.6923239678144455,
+      "approx_kl": 0.0020988737232983112,
+      "clip_fraction": 0.0,
+      "value_loss": 0.004408450366463512,
+      "policy_loss": -0.0018722260720096529,
+      "explained_variance": -2.6026337146759033,
+      "loss": -0.019723795354366302,
+      "grad_norm": 0.400371353328228,
+      "grad_norm_max": 0.626286506652832,
+      "missing_metrics": []
+    }
+  ],
+  "params_sha256_before": "e262pp-81be0a939011a13b17acc93f21c044a851908515acf79c450343819d4c1b3d28",
+  "params_sha256_after": "e262pp-db2cfb5beba4aa96e0fffefc21f2c05c00224ccfe6e45fefbd50df28d9ca11f5",
+  "model_file": "eng_ppo_smoke_256.zip",
+  "model_sha256": "11bc9a9991bc197bd6570607f8efb184436d2e05da4d21a1f0a39a0f382fbe57",
+  "elapsed_seconds": 0.4,
+  "checks": {
+    "obs_space_9d": true,
+    "obs_space_features_unbounded": true,
+    "obs_space_position_0_1": true,
+    "sb3_obs_space_is_v2": true,
+    "env_steps_exactly_256": true,
+    "optimizer_updates_at_least_one": true,
+    "update_bound_to_256_steps": true,
+    "losses_finite": true,
+    "params_changed": true,
+    "no_bank_overrun": true
+  },
+  "pass": true
+}

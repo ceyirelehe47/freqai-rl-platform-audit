@@ -55,6 +55,11 @@
   改 stage2_6_0* 家族展开(真归档根)+`_repo_root()` 公共解析;G2 未篡改
   对照入测试;262 套件 225 passed;绑定 C5 的 261 全收集见
   `full_regression_v5`;reviewer C5 delta PASS(6/6,零配额)。
+- **C6** `529bb03c`(ChatGPT 终审 2575deb2 R1/R2/R3):迁移必需集合
+  由候选归档源码合同确定(空/子集/非法 commit 拒,C2 正例保持);
+  fit 来源声明与 envelope 逐项多重集关联(矛盾来源装载即拒);
+  v5/v6 回归原件按原字节入包;原生 before/after 4 缺口→6/6
+  (零生成零 fit);262 套件 228 passed。
 - 返修全程零原生生成、零 fit、零新增 smoke(账本 replay 2/2、成功
   12/12、smoke 2/8、512/2048 步不变)。
 

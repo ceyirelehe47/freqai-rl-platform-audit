@@ -1,0 +1,99 @@
+{
+  "code_identity": {
+    "cq_ct_semantics": "Cq(本计划记录)与 Ct(消费现场)允许不同 commit;以下共同执行语义字段必须逐字一致",
+    "expected_vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+    "family_versions": {
+      "c1_opportunity": "cur261-c1-v5",
+      "c2_context": "cur261-c2-v9",
+      "c3_cost": "cur261-c3-v4"
+    },
+    "preprocessing_v2_contract_digest": "r4pc-a6c59ef5c9ffafcd541dec4e72a6ebf7877705f4f0681443fdf939aaaa752bfe",
+    "producer": {
+      "fixture_id": "ppo262e-synthetic-fit-fixture-v1",
+      "module": "ppo262_eng_fixture.py",
+      "module_sha256": "61eb27e2bfd551b8cf873faf8516cd88d5c72afa9262765df0710d6dbf68c98c"
+    },
+    "production_observation_identity": {
+      "env_core_version": "RouteCEnvCore-v1.0.0",
+      "feature_columns": [
+        "%-ret-1",
+        "%-ret-4",
+        "%-vol-24",
+        "%-price-ma-ratio",
+        "%-raw_open",
+        "%-raw_high",
+        "%-raw_low",
+        "%-raw_close"
+      ],
+      "feature_engineering_standard_sha256": "0284968fdb0cd342a622aaff5bb0c176181a399ad17968b2e44708f54fa46756",
+      "observation_dim": 9,
+      "observation_spec_version": "ObservationSpec-v1",
+      "schema_hash": "o-10fd690c61b7d9e87cf7e41e1678ce5d2147ba4b56612df532b1b5014765340e",
+      "strategy_file_sha256": "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+      "window_size": 1
+    },
+    "vendor_sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5"
+  },
+  "created_utc": "2026-09-29T00:00:00Z",
+  "engineering_only": true,
+  "families": {
+    "c1_opportunity": {
+      "family_version": "cur261-c1-v5",
+      "rung_params_source": "parameter_pack"
+    },
+    "c2_context": {
+      "family_version": "cur261-c2-v9",
+      "rung_params_source": "parameter_pack"
+    },
+    "c3_cost": {
+      "family_version": "cur261-c3-v4",
+      "rung_params_source": "parameter_pack"
+    }
+  },
+  "format": "ppo262e-qualification-plan-v1",
+  "iteration": "s262e_r1",
+  "notes": "工程沙箱输入:证明消费侧桥接(bank/env/训练/冷读)可用同一公共验证逻辑接通;真实正式资格仍需未来正式资格链签发",
+  "parameter_pack": {
+    "digest": "e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d",
+    "format": "ppo262e-parameter-pack-v1",
+    "variant": "v1_r2_reference"
+  },
+  "preprocessing": {
+    "consumer_refit_forbidden": true,
+    "contract_version": "RouteCFeaturePreprocessing-v2",
+    "fit_fixture_records": [
+      {
+        "bars": 288,
+        "episode_hash": "e262fx-INVENTED",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 0,
+        "synthetic": true
+      },
+      {
+        "bars": 288,
+        "episode_hash": "e262fx-10c75a7ade5241895eeb334f6f84a954e87a982d0a7562e9f708fb1af1ba10a4",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 1,
+        "synthetic": true
+      },
+      {
+        "bars": 288,
+        "episode_hash": "e262fx-c66b577e8a4995558abbf07f3569e900499b61da2e5d0a0f8c348b0f94aba8d5",
+        "generator_identity": "ppo262e-synthetic-fit-fixture-v1",
+        "pair_index": 2,
+        "synthetic": true
+      }
+    ],
+    "fit_namespace": "ppo_eng_fit_262e",
+    "fit_sources": "synthetic engineering fixtures(SYNTHETIC_ONLY)"
+  },
+  "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+  "robustness_gate": {
+    "note": "ENGINEERING_ONLY fixture: 结构完整的新版资格输入工程样例,不是真实资格运行;不构成任何正式资格",
+    "pass": true
+  },
+  "scope": "engineering",
+  "source_iteration": "s262e_fixture_v1",
+  "stage": "stage2_6_2",
+  "synthetic_fixture": true
+}

@@ -1,0 +1,58 @@
+{
+  "source_sha256": {
+    "rl_curriculum.ppo262_qualified_input": "9ed4ef3dd6ce1adc346ce3c7b0ce9fa3bdf155beb9994e611b88a0ceb53d5266",
+    "rl_curriculum.ppo262_eng_profile": "f4eea0cef59114123949a1114dcef8c145e6078cbbb069595e9111a45f9e9169"
+  },
+  "cases": [
+    {
+      "name": "fit_positive",
+      "expected_reject": false,
+      "rejected": false,
+      "expectation_met": true,
+      "error": ""
+    },
+    {
+      "name": "fit_namespace_mismatch",
+      "expected_reject": true,
+      "rejected": true,
+      "expectation_met": true,
+      "error": "qualified input 拒绝: 声明的 fit namespace 'invented_not_actual_fit' != envelope 实际 fit namespace 'ppo_eng_fit_262e'(fit 来源声明与 bundle 实际来源必须逐项一致)"
+    },
+    {
+      "name": "fit_episode_mismatch",
+      "expected_reject": true,
+      "rejected": true,
+      "expectation_met": true,
+      "error": "qualified input 拒绝: plan fit_fixture_records 与 envelope fit manifest 不一致(缺失 [\"(0, 'e262fx-7d5d7b8de6e99171094e3cb80809baf78d3e9afb855bd284a94ad2099f7e4442', 'ppo262e-synthetic-fit-fixture-v1')\"] / 多出 [\"(0, 'e262fx-INVENTED', 'ppo262e-synthetic-fit-fixture-v1')\"];声明面必须与 bundle 实际来源一一对应,不允许互相矛盾的来源声明)"
+    },
+    {
+      "name": "cold_positive",
+      "expected_reject": false,
+      "rejected": false,
+      "model_load_reached": true,
+      "expectation_met": true,
+      "error": ""
+    },
+    {
+      "name": "cold_empty_identity",
+      "expected_reject": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expectation_met": true,
+      "error": "qualified input 拒绝: 消费代码身份 Ct 漂移(checkpoint 绑定的执行面与当前树/已归档候选均不一致)"
+    },
+    {
+      "name": "cold_empty_identity_invalid_commit",
+      "expected_reject": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expectation_met": true,
+      "error": "qualified input 拒绝: 消费代码身份 Ct 漂移(checkpoint 绑定的执行面与当前树/已归档候选均不一致)"
+    }
+  ],
+  "native_generation": 0,
+  "fit": 0,
+  "optimizer_updates": 0,
+  "models_deserialized": 0,
+  "pass": true
+}

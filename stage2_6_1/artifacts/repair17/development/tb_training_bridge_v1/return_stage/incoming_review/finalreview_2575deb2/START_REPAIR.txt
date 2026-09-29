@@ -1,0 +1,16 @@
+继续 RouteC_QualifiedInput_TrainingBridge_v1 的当前返修，不新开研究，不重置任何累计配额，不恢复默认8小时总时限。
+
+读取同包 REVIEW.md 与 probes/RESULT.json。审查对象：C5=7c5fcc4f，证据HEAD=2575deb2，上传包SHA=0e82e8ad…0794。最终包CRC/505条SHA精确覆盖通过，旧B1-B4若干具体修复已获支持，不推倒重做。
+
+本次仍未通过，限定处理：
+R1：历史迁移 _verify_identity_at_commit 对空代码身份直接True，连非法commit也不验证；完整冷读可越过到PPO.load。校验可信版本规定的必需模块集合与真实commit；拒空/缺键/任意子集，保持合法C2迁移正例，不通过禁用迁移修复。
+R2：plan的fit_namespace/fit_fixture_records与实际V2 envelope fit来源没有逐项关联；外层摘要一致仍可承载互相矛盾的来源。沿既有V2实现补齐关联与隔离，先零生成零fit验证。
+R3：最终RETURN实际仅含v1-v4，漏C5的full_regression_v5/regression_262_v5原件；GitHub@2575deb2已有记录，按原字节补入，不为补件重跑。后续新候选需它自己适用的回归，不能改签旧记录。
+
+本地独立测试是未改目标模块+受控外部依赖胶囊的组件检查，不是你的WSL原生复验。probes/reproduce_remaining_native.py可在已部署真实依赖下复现新缺口（PPO.load前哨兵，零模型反序列化/训练）。保存真实命令、环境、失败与修复后输出；不得把validator改成恒真。
+
+完成实现与基础自测后，必须真实调用配置好的reviewer，预期模型zhipu-coding-plan/glm-5.3-flash，独立上下文。交原任务、原矩阵、本报告、实际候选与原件。reviewer必须检查两项关联漏检及其正例，并对最终全矩阵对账；不只检查主Agent增加的测试。FAIL由你在当前授权内自行修复，再独立复验。
+
+内容PASS后封RETURN；reviewer从新目录冷读最终字节、完整源码/回归原件、模型绑定与Git回执，签包外REVIEWER_FINAL_RECEIPT。审查产物原样入包；不得主Agent代签。指定reviewer或工具不可用如实BLOCKED。
+
+配额仍为：原生重放2/2、成功episode12/12；optimizer2/8、512/2048步。先只读复用真实原件，任何新原生配额须申请；R25/G5c/旧11坐标不重开。无正式研究、资格消费或教学实验授权。全部必需项与最终交付核验通过才能报告完成，否则明确未完成。

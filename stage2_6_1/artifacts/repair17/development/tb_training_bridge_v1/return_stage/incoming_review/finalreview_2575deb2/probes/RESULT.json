@@ -1,0 +1,277 @@
+{
+  "method": "Unchanged C5 modules; external recorded-valid capsules; sentinels before generation/optimizer/PPO.load. Synthetic Git only. NOT live WSL/V2/SB3 rerun.",
+  "cases": [
+    {
+      "name": "input_good",
+      "expectation_met": true,
+      "rejected": false,
+      "expected_reject": false,
+      "problems": []
+    },
+    {
+      "name": "wrong_plan_digest",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "result 未绑定 plan digest"
+      ]
+    },
+    {
+      "name": "source_iteration_mismatch",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "result source_iteration 与 plan source_iteration 不一致(来源/终态关联未核验)"
+      ]
+    },
+    {
+      "name": "exposure_iteration_mismatch",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "exposure iteration 与 plan iteration 不一致(终态与源迭代未关联)"
+      ]
+    },
+    {
+      "name": "missing_producer",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "plan.code_identity 缺 producer 身份(生产者模块+哈希;来源证据不完整)"
+      ]
+    },
+    {
+      "name": "fit_training_namespace_overlap",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "声明的 fit namespace 'ppo_eng_bank_262e' 为空或与 seed 派生 namespace 重合(fit 来源面与训练/评估派生面必须隔离;同源串用拒绝)"
+      ]
+    },
+    {
+      "name": "formal_reject",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "授权 scope = 'engineering' != 要求 'formal'(工程许可不能解锁正式入口;正式资格未成立)",
+        "formal 装载要求已注册的正式 admission 锚(注册表当前为空:正式资格/正式 admission 链未实现;工程件或手工伪造的 formal 授权不能解锁正式训练)"
+      ]
+    },
+    {
+      "name": "changed_envelope",
+      "expectation_met": true,
+      "rejected": true,
+      "expected_reject": true,
+      "problems": [
+        "V2 preprocessing envelope 拒绝: Capsule rejects changed envelope; not a V2 numerical rerun"
+      ]
+    },
+    {
+      "name": "fit_source_namespace_mismatch",
+      "expectation_met": false,
+      "rejected": false,
+      "expected_reject": true,
+      "problems": []
+    },
+    {
+      "name": "fit_source_episode_mismatch",
+      "expectation_met": false,
+      "rejected": false,
+      "expected_reject": true,
+      "problems": []
+    },
+    {
+      "name": "bank_good",
+      "expectation_met": true,
+      "rejected": false,
+      "param_at_boundary": 45.0,
+      "ledger_events": 2,
+      "native_generated": 0
+    },
+    {
+      "name": "bank_copy_mutation",
+      "expectation_met": true,
+      "rejected": false,
+      "param_at_boundary": 45.0,
+      "ledger_events": 2,
+      "native_generated": 0
+    },
+    {
+      "name": "bank_cache_mutation",
+      "expectation_met": true,
+      "rejected": true,
+      "param_at_boundary": null,
+      "ledger_events": 0,
+      "native_generated": 0
+    },
+    {
+      "name": "six_shared_consumer_boundaries",
+      "expectation_met": true,
+      "entry_classes": [
+        "smoke",
+        "config_dev",
+        "probe",
+        "core",
+        "dev_eval",
+        "final"
+      ],
+      "boundary_hits": {
+        "smoke": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        },
+        "config_dev": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        },
+        "probe": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        },
+        "core": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        },
+        "dev_eval": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        },
+        "final": {
+          "generate262_bank": 1,
+          "build_261_policy_set": 1
+        }
+      }
+    },
+    {
+      "name": "archive_helper_good",
+      "expectation_met": true
+    },
+    {
+      "name": "archive_helper_wrong_sha",
+      "expectation_met": true
+    },
+    {
+      "name": "archive_helper_empty_map_rejected",
+      "expectation_met": false,
+      "actual": true
+    },
+    {
+      "name": "archive_helper_empty_and_invalid_commit_rejected",
+      "expectation_met": false,
+      "actual": true
+    },
+    {
+      "name": "cold_good",
+      "expectation_met": true,
+      "rejected": false,
+      "model_load_reached": true,
+      "expected_reject": false,
+      "problems": []
+    },
+    {
+      "name": "cold_wrong_pack",
+      "expectation_met": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expected_reject": true,
+      "problems": [
+        "manifest parameter_pack_digest = 'WRONG' != 冷读输入 'e262pk-98b1b5ef9856cd7da5df2fdf9e07d15876e4cd49478d50aadebf9b90b8d29f1d'"
+      ]
+    },
+    {
+      "name": "cold_wrong_source",
+      "expectation_met": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expected_reject": true,
+      "problems": [
+        "manifest qualification_source_iteration = 'WRONG' != 冷读输入 's262e_fixture_v1'"
+      ]
+    },
+    {
+      "name": "cold_wrong_bank_seed",
+      "expectation_met": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expected_reject": true,
+      "problems": [
+        "manifest bank 绑定与运行原件不一致(namespace/keys/数量/manifest hash)",
+        "manifest 训练绑定与运行原件/事前固定 profile 预算不一致(steps 必须 = 256,seed 必须 = 262501)"
+      ]
+    },
+    {
+      "name": "cold_missing_auth",
+      "expectation_met": true,
+      "rejected": true,
+      "model_load_reached": false,
+      "expected_reject": true,
+      "problems": [
+        "manifest 缺失或错配 authorization_binding_digest(授权绑定未经冷读核验)"
+      ]
+    },
+    {
+      "name": "cold_empty_code_identity",
+      "expectation_met": false,
+      "rejected": false,
+      "model_load_reached": true,
+      "expected_reject": true,
+      "problems": []
+    },
+    {
+      "name": "cold_empty_code_identity_invalid_commit",
+      "expectation_met": false,
+      "rejected": false,
+      "model_load_reached": true,
+      "expected_reject": true,
+      "problems": []
+    },
+    {
+      "name": "quota_failures_counted",
+      "expectation_met": true,
+      "states": [
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "synthetic_interruption",
+        "quota_rejected"
+      ],
+      "sums": {
+        "bank_replays": 0,
+        "bank_episode_success": 0,
+        "bank_episode_candidate": 0,
+        "bank_pair_attempts": 0,
+        "ppo_smoke_runs": 8,
+        "ppo_smoke_steps": 2048
+      },
+      "actual_optimizer_updates": 0
+    }
+  ],
+  "source_hashes": {
+    "ppo262_namespaces.py": "08a3ac86a7e4e79524b3ddba4915cda0385903de4933afada81264910f62d23d",
+    "ppo262_cli.py": "01212d72ce93a799672f4c80bdfcac6b73d2ec4fb16fbb4ddcfee8c5c6e8a975",
+    "ppo262_eng_fixture.py": "61eb27e2bfd551b8cf873faf8516cd88d5c72afa9262765df0710d6dbf68c98c",
+    "ppo262_env.py": "d2b1bb3dee0f5582f4455120985011c8db8aeb6572e1a4de3b89cc4acb6f0ff9",
+    "ppo262_smoke.py": "22f21ed7f63a8d07242091192a31a55139b52f1601c928e6818b12a63951ab66",
+    "ppo262_input_lock.py": "6281f8fefc08da23861732fc4dc5363dc4930263aa8effa301843243ab27a89c",
+    "ppo262_qualified_input.py": "9a95f8ee0d123e01ed226c7bffba9348f803e82ab4b991d3754fa3028a905441",
+    "ppo262_banks.py": "60f419a89bf7e3c8c79954ff3822b9ecc3c04674bc936101be5cc3c3ae1c404a",
+    "ppo262_entry_specs.py": "f835f9ff81f6e64dad3efa3ff45bcb6062ddddf073d704d097c200612674d66f",
+    "ppo262_eng_profile.py": "0016eb8db3a6bb109ef2166f5b9ecf035b4658238eaf9de815c2ef918b0d27b3"
+  },
+  "native_episodes_generated": 0,
+  "fit_calls": 0,
+  "optimizer_updates": 0,
+  "test_work": "/mnt/data/RouteC_TrainingBridge_FinalReview_2575deb2/probes/cases_20260929T143448",
+  "passed_expectations": 20,
+  "total": 26
+}

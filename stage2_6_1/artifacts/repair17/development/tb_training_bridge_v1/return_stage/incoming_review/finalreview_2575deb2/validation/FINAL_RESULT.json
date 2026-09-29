@@ -1,0 +1,52 @@
+{
+  "verdict": "NOT_CLOSED_ENGINEERING",
+  "candidate": "7c5fcc4f2bcb19b6c659e3f88b43ecffe371f7e5",
+  "evidence_head": "2575deb2595fd366e6830774214706ea743d1493",
+  "return_sha256": "0e82e8add2916b9b43dbac6271c9295f6e8bf83a71ae6822e88df9df80705794",
+  "archive_integrity": "PASS",
+  "blockers": [
+    {
+      "id": "R1",
+      "kind": "consumer code identity migration",
+      "issue": "empty module map and invalid commit accepted; PPO.load boundary reached",
+      "matrix": [
+        "M01",
+        "E03",
+        "I02"
+      ]
+    },
+    {
+      "id": "R2",
+      "kind": "fit source cross-file identity",
+      "issue": "plan namespace or episode hash inconsistent with unchanged envelope accepted",
+      "matrix": [
+        "I01",
+        "I02",
+        "V01"
+      ]
+    },
+    {
+      "id": "R3",
+      "kind": "delivery completeness",
+      "issue": "C5 full_regression_v5 and regression_262_v5 missing from RETURN; immutable Git records available",
+      "matrix": [
+        "R01",
+        "A02"
+      ]
+    }
+  ],
+  "component_tests": {
+    "total": 26,
+    "expectations_met": 20,
+    "remaining_counterexample_cases": 6,
+    "distinct_content_issues": 2,
+    "limitations": "Recorded-valid external dependency capsules; full target functions unchanged; not a live WSL run"
+  },
+  "native_reproduction_script": "probes/reproduce_remaining_native.py (prepared and syntax checked; not executed in WSL)",
+  "new_native_generation": 0,
+  "new_fit": 0,
+  "new_optimizer_updates": 0,
+  "new_model_deserialization": 0,
+  "reviewer_required": "reviewer / zhipu-coding-plan/glm-5.3-flash; no runtime-metadata fabrication",
+  "default_round_time_limit": null
+}

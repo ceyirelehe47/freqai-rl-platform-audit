@@ -78,6 +78,31 @@ git blob 复算通过后写入;冷读重新复算;v1 原件零改写)。
   篡改仍拒、v1 归档冷读复跑通过;新 P3(非法 commit + env 键时
   ls-tree 异常路径为崩溃栈而非干净拒绝,fail-closed 无绕过)记录为
   下轮顺手项,本轮不阻塞。
+
+## R1/R2/R3 返修(ChatGPT 终审 2575deb2 → C6 `529bb03c`)
+
+- **R1(迁移空身份自动通过)**:`_verify_identity_at_commit` 现在
+  (1) `git rev-parse --verify <commit>^{commit}` 先验 commit 真实存在;
+  (2) 必需模块集合从**候选 commit 归档源码**的
+  `_CONSUMER_CODE_MODULES`(ast 解析,可信 git 对象,非待验 manifest
+  自列)取得;(3) 空记录/缺任一必需键/任意子集一律拒绝。合法 C2
+  完整迁移正例保持通过(`test_r1_migration_contract_rejects_empty_
+  subset_invalid_commit`)。未禁用迁移。
+- **R2(fit 来源声明未逐项关联)**:装载器新增 6c 检查——plan 声明
+  `fit_namespace` 必须等于 envelope 实际 fit namespace;
+  `fit_fixture_records` 必须与 envelope `fit_manifest.entries` 在
+  (pair_index, episode_hash, generator_identity) 上多重集相等
+  (同字节重排合法,缺/换/多即拒)。外层摘要自洽的矛盾来源声明在
+  装载即拒(`test_r2_fit_source_declaration_must_match_envelope`,
+  零生成零 fit)。
+- **R3(包缺 v5 原件)**:成员清单显式重写(根因=上轮对清单文件的
+  静默 replace 未命中),`full_regression_v5`/`regression_262_v5`
+  与 v1-v4、新增 v6 一并按仓库原字节入包。
+- **原生 before/after**:`return_stage/native_probe_r1r2/`——
+  ChatGPT `reproduce_remaining_native.py` 在 WSL 真实依赖下,before
+  (C5 blob) 4 缺口复现 rc=1 / after(C6) 6/6 rc=0;全程零生成/
+  零 fit/零 optimizer/零反序列化(命令与环境见同目录 README)。
+- 262 套件 228 passed(225+3 新测试)。
 ## §6 补件:reviewer 原始脚本与输出
 
 `return_stage/reviewer_originals/`(= 主 Agent 工作区 `tmp_reviewer_tb_v1`
