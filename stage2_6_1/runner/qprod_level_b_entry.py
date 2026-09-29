@@ -35,7 +35,8 @@ from rl_curriculum.curriculum261_qprod_context import (  # noqa: E402
     QProdContextError, QProdRunSession, build_engineering_context,
 )
 from rl_curriculum.curriculum261_qprod_permit import (  # noqa: E402
-    acquire_live_permit,
+    LivePermitToken, consume_permit, load_permit,
+    permit_already_consumed, validate_permit,
 )
 from rl_curriculum.curriculum261_qprod_coordinate import (  # noqa: E402
     QPROD_ENG_BLOCKS_PER_CORPUS, QPROD_ENG_MC_EVENTS,
@@ -155,6 +156,34 @@ def cmd_lock_coordinates(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_consume_permit(args: argparse.Namespace) -> int:
+    """一次性消费本执行集的许可(整批坐标共用一次消费;
+    先于任何坐标生成;E01 缺陷修复:逐坐标重复消费会把第二批
+    坐标错拒为重放)。"""
+    ctx = _context(args)
+    try:
+        rec = consume_permit(ctx.permit_path, context=ctx)
+    except QProdContextError as exc:
+        already = permit_already_consumed(
+            ctx, _permit_id_of(ctx))
+        if already:
+            print(json.dumps({
+                "permit": "already-consumed(本执行集已消费;"
+                          "run-coordinate 直接验证)",
+                "permit_id": _permit_id_of(ctx)}, ensure_ascii=False))
+            return 0
+        print(f"[consume-permit] 拒绝: {exc}")
+        return 96
+    print(json.dumps({"consumed_permit_id": rec["permit_id"]},
+                     ensure_ascii=False))
+    return 0
+
+
+def _permit_id_of(ctx) -> str:
+    permit = load_permit(ctx.permit_path)
+    return str(permit["permit_id"])
+
+
 def cmd_run_coordinate(args: argparse.Namespace) -> int:
     ctx = _context(args)
     plan = load_research_plan(ctx.state_root)
@@ -164,11 +193,18 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
         print(f"[run-coordinate] 坐标不在计划清单: {args.coordinate_id}")
         return 2
     coord_dir = ctx.artifact_root / coord["artifact_subdir"]
+    # 许可已在 consume-permit(执行集开始)一次性消费;这里只验证
+    # (字段/digest/scope)+要求本执行集消费记录在场,不再重复消费。
     try:
-        live = acquire_live_permit(ctx.permit_path, context=ctx)
+        permit = validate_permit(ctx.permit_path, context=ctx)
     except QProdContextError as exc:
         print(f"[run-coordinate] 许可拒绝(零叶调用): {exc}")
         return 96
+    if not permit_already_consumed(ctx, str(permit["permit_id"])):
+        print("[run-coordinate] 许可未消费(先 consume-permit;"
+              "零叶调用)")
+        return 96
+    live = LivePermitToken(permit, {"consumed_via": "consume-permit"})
     out = run_coordinate_audit_locked(
         ctx, live, args.coordinate_id, coord_dir=coord_dir,
         ledger_path=_ledger_path(ctx))
@@ -234,8 +270,8 @@ def cmd_cold_read(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("plan-freeze", "lock-coordinates", "run-coordinate",
-                 "aggregate", "cold-read"):
+    for name in ("plan-freeze", "lock-coordinates", "consume-permit",
+                 "run-coordinate", "aggregate", "cold-read"):
         p = sub.add_parser(name)
         p.add_argument("--base-dir", required=True)
         p.add_argument("--authority-dir", required=True)
