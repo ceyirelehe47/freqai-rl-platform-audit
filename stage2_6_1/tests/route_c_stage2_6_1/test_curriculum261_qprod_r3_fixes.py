@@ -74,8 +74,9 @@ def test_r3q1_mc_numbers_fail_but_checks_true_rejected(tmp_path):
     g = raw["gates"]["cue_audit_pass"]
     assert raw["verdict"] == "FAIL"
     assert g["pass"] is False
-    assert g["observed"]["mc_close_recomputed"] is False
-    assert g["observed"]["numbers_consistent_with_checks"] is False
+    assert g["observed"]["frozen_semantics_recomputed"][
+        "mc_close_to_analytic"] is False
+    assert g["observed"]["semantics_consistent"] is False
 
 
 def test_r3q1_corpus_numbers_fail_but_checks_true_rejected(tmp_path):
@@ -95,7 +96,7 @@ def test_r3q1_corpus_numbers_fail_but_checks_true_rejected(tmp_path):
     raw = judge_qualification_gates(ctx.artifact_root, plan)
     assert raw["verdict"] == "FAIL"
     assert raw["gates"]["cue_audit_pass"]["observed"][
-        "numbers_consistent_with_checks"] is False
+        "semantics_consistent"] is False
 
 
 def test_r3q1_required_check_removed_rejected(tmp_path):

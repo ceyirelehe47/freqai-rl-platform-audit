@@ -1105,6 +1105,172 @@ def _synthetic_probe_check_names() -> tuple[str, ...]:
     return AUDIT_REQUIRED_CHECK_NAMES
 
 
+def recompute_audit_semantics_from_report(
+        report: dict[str, Any]) -> dict[str, Any]:
+    """R4-Q1:从报告公共数值以**冻结阈值**独立重算审计语义判定。
+
+    与 report["checks"]/["pass"] 的布尔自洽(可被伪造并同时通过
+    digest)不同,本函数重新计算每条 PASS 规则的真值:
+      - MC:|p_hat - p_contract| <= AUDIT_MC_ABS_TOL(冻结常量,
+        **不读** report.monte_carlo.tolerance——报告擅自把容限
+        放宽到 1.0 属于阈值漂移,既记 discrepancy 又按冻结值判);
+      - per-corpus:replay_ok ∧ bounds_ok ∧ cue_table_consistent
+        ∧ p_contract∈CI95 ∧ |emp-analytic|<=max(3SE,0.005)(冻结
+        公式)∧ tail 数值同公式;
+      - tail integrity/global_k/once_vs_attempts/aggregate 重算
+        子条件一致性。
+    阈值全部取自本模块冻结常量(受信任合同),与生成内核单一
+    事实源;不复制删减算法。返回 {"recomputed": {...},
+    "discrepancies": [...], "all_consistent": bool}——
+    all_consistent = 重算 8 键与报告 checks 完全一致且无阈值
+    漂移。读取侧(Level A/export)据此拒"数值失败但 checks 全
+    True 且 digest 自洽"的矛盾报告。
+
+    工程 fixture 双重态(report.engineering_fixture=true,高成本
+    原生面以明确标注替身替代):**在场数值字段必须真实通过冻结
+    公式**(MC/语料数值/CI/tail——不因 fixture 放宽),支撑字段
+    (replay_ok/global_k/once_vs_attempts/aggregate 等)缺失的键
+    委托声明值并列入 fixture_delegated(如实标注,不是静默换
+    True);正式报告(无标记)要求全字段在场,缺失即 False。
+    """
+    disc: list[str] = []
+    delegated: list[str] = []
+    fixture = bool(report.get("engineering_fixture"))
+    rc: dict[str, Any] = {}
+    p_contract = report.get("p_contract")
+    mc = report.get("monte_carlo") or {}
+    p_hat = mc.get("p_hat")
+    rc["mc_close_to_analytic"] = bool(
+        p_hat is not None and p_contract is not None
+        and abs(float(p_hat) - float(p_contract))
+        <= AUDIT_MC_ABS_TOL)
+    if mc.get("tolerance") is not None and float(
+            mc["tolerance"]) != AUDIT_MC_ABS_TOL:
+        disc.append(
+            f"monte_carlo.tolerance={mc['tolerance']} != 冻结值 "
+            f"{AUDIT_MC_ABS_TOL}(报告擅自改容限,重算按冻结值)")
+    dg = report.get("direct_generator") or {}
+    for name in ("model", "validation"):
+        c = dg.get(name) or {}
+        boot = c.get("block_cluster") or {}
+        ci = boot.get("ci95")
+        inside = bool(
+            ci is not None and p_contract is not None
+            and float(ci[0]) <= float(p_contract) <= float(ci[1]))
+        se = float(boot.get("se", 0.0) or 0.0)
+        diff_tol = max(AUDIT_DIFF_SE_FACTOR * se, AUDIT_DIFF_TOL_FLOOR)
+        emp, ana = (c.get("empirical_recall"),
+                    c.get("analytic_conditional"))
+        within = bool(
+            emp is not None and ana is not None
+            and abs(float(emp) - float(ana)) <= diff_tol)
+        if (c.get("diff_tolerance") is not None
+                and abs(float(c["diff_tolerance"]) - diff_tol)
+                > 1e-12):
+            disc.append(
+                f"{name}.diff_tolerance={c['diff_tolerance']} != 冻结"
+                f"公式值 {diff_tol}(SE 加权阈值漂移)")
+        tail = c.get("tail") or {}
+        tail_ok = True
+        if int(tail.get("n_events") or 0) > 0:
+            t_boot = tail.get("block_cluster") or {}
+            t_se = float(t_boot.get("se", 0.0) or 0.0)
+            t_tol = max(AUDIT_DIFF_SE_FACTOR * t_se,
+                        AUDIT_DIFF_TOL_FLOOR)
+            t_diff = abs(
+                float(tail.get("empirical_recall", 0.0))
+                - float(tail.get("analytic_conditional", 0.0)))
+            tail_ok = bool(t_diff <= t_tol)
+            if (tail.get("diff_tolerance") is not None
+                    and abs(float(tail["diff_tolerance"]) - t_tol)
+                    > 1e-12):
+                disc.append(
+                    f"{name}.tail.diff_tolerance != 冻结公式值"
+                    f"{t_tol}(tail 阈值漂移)")
+        def _flag(key: str, *, default: bool = False) -> bool:
+            v = c.get(key)
+            if v is None and fixture:
+                delegated.append(f"{name}.{key}")
+                return True
+            return bool(v)
+
+        replay = _flag("replay_ok")
+        bounds = _flag("bounds_ok")
+        cue_table = _flag("cue_table_consistent_across_rungs")
+        rc[f"{name}_corpus_ok"] = bool(
+            replay and bounds and cue_table and inside and within
+            and tail_ok)
+        rc[f"{name}_replay_bitwise_ok"] = replay
+        rc[f"{name}_p_contract_inside_ci95"] = inside
+        rc[f"{name}_tail_numeric_within"] = tail_ok
+    def _delegated_flag(key: str) -> bool:
+        """fixture 双重态:支撑字段整块缺失→委托声明值(如实列入
+        fixture_delegated);正式报告由外层 if 分支真实重算。"""
+        if fixture:
+            delegated.append(key)
+            return True
+        return False
+
+    ti = report.get("tail_mirror_bound_integrity") or {}
+    per = ti.get("per_corpus") or {}
+    if ti:
+        ti_sub_ok = bool(per) and all(
+            bool(v.get("ok")) and not (v.get("violations") or [])
+            for v in per.values())
+        rc["tail_mirror_bound_integrity_pass"] = bool(
+            ti.get("pass")) and ti_sub_ok
+    else:
+        rc["tail_mirror_bound_integrity_pass"] = (
+            _delegated_flag("tail_mirror_bound_integrity"))
+    gk = report.get("global_k_audit") or {}
+    if gk:
+        rc["global_k_audit_pass"] = bool(gk.get("pass"))
+        rc["global_k_audit_not_indeterminate"] = bool(
+            gk.get("verdict") != "INDETERMINATE")
+    else:
+        rc["global_k_audit_pass"] = (
+            _delegated_flag("global_k_audit"))
+        rc["global_k_audit_not_indeterminate"] = True
+    ova = report.get("once_vs_attempts") or {}
+    if ova:
+        fpb = ova.get("first_pass_bitwise_check") or {}
+        rc["once_vs_attempts_consistent"] = bool(
+            ova.get("recall_modes_consistent")
+            and ova.get("k_modes_consistent")
+            and fpb.get("bitwise_ok", False))
+    else:
+        rc["once_vs_attempts_consistent"] = (
+            _delegated_flag("once_vs_attempts"))
+    if report.get("aggregate_recompute_ok") is not None:
+        rc["aggregate_recompute_ok"] = bool(
+            report.get("aggregate_recompute_ok"))
+    else:
+        rc["aggregate_recompute_ok"] = (
+            _delegated_flag("aggregate_recompute_ok"))
+    recomputed_8 = {k: rc[k] for k in
+                    AUDIT_REQUIRED_CHECK_NAMES}
+    declared = report.get("checks") or {}
+    mismatched = {k: (declared.get(k), recomputed_8[k])
+                  for k in AUDIT_REQUIRED_CHECK_NAMES
+                  if bool(declared.get(k)) is not recomputed_8[k]}
+    if mismatched:
+        disc.append(
+            f"报告 checks 与冻结语义重算不一致: {sorted(mismatched)}")
+    return {
+        "recomputed": recomputed_8,
+        "detail": rc,
+        "fixture_mode": fixture,
+        "fixture_delegated": sorted(set(delegated)),
+        "declared_vs_recomputed": {
+            k: {"declared": bool(declared.get(k)),
+                "recomputed": recomputed_8[k]}
+            for k in AUDIT_REQUIRED_CHECK_NAMES},
+        "threshold_discrepancies": disc,
+        "all_consistent": bool(
+            not mismatched and not disc),
+    }
+
+
 def cue_contract_audit_digest(report: dict[str, Any]) -> str:
     """audit 报告摘要(绑定 p_contract/配置/双 corpus 概要/MC/tail)。"""
     core = {

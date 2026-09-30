@@ -220,6 +220,60 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
         problems.append(
             f"qcap mc_events={cap_mc} != 报告 MC n_events "
             f"{rep_mc}(冻结预算与执行不一致)")
+    # R4-Q3(防脱钩):传入 coordinate 必须逐字段等于冻结计划
+    # manifest 中同 coordinate_id 的条目(调用方不得传构造条目
+    # 绕过清单审计;名字相同内容不同=脱钩,拒)。
+    _manifest_entry = next(
+        (c for c in research_plan.get("coordinate_manifest") or []
+         if c.get("coordinate_id") == coordinate.get("coordinate_id")),
+        None)
+    if _manifest_entry is None:
+        problems.append(
+            f"coordinate {coordinate.get('coordinate_id')!r} 不在冻结"
+            f"研究计划 manifest 内(传入条目与计划脱钩)")
+    elif _manifest_entry != coordinate:
+        diff_keys = sorted(
+            {k for k in set(_manifest_entry) | set(coordinate)
+             if _manifest_entry.get(k) != coordinate.get(k)})
+        problems.append(
+            f"传入 coordinate 与计划 manifest 条目不一致(脱钩;"
+            f"differing keys={diff_keys})")
+    # R4-Q3:研究计划**具体 coordinate 条目**向下贯通——传给
+    # _verify_coordinate 的 coordinate 不能与计划条目脱钩:条目级
+    # blocks_per_corpus/mc_events(若条目声明)必须与 global
+    # audit_budgets、qcap budgets、报告实际全部一致。条目=500 而
+    # global/qcap/report/实际=2 的计划:装载/aggregate 路径拒绝
+    # (invalid;不是只对 global 做一次检查就算"条目已覆盖")。
+    coord_blocks = coordinate.get("blocks_per_corpus")
+    coord_mc = coordinate.get("mc_events")
+    global_ab = ((research_plan.get("rules") or {})
+                 .get("audit_budgets")) or {}
+    g_blocks = int(global_ab.get("blocks_per_corpus", -1))
+    g_mc = int(global_ab.get("mc_events", -1))
+    # legacy 计划(audit_budgets 整块缺失):global 侧无对账基准,
+    # 条目级对账退到 qcap/report/实际三方(范围矛盾检查不受影响;
+    # legacy 身份本身由计划 digest 白名单控制,不因此豁免范围)
+    has_global_budgets = bool(global_ab)
+    if coord_blocks is not None:
+        cb = int(coord_blocks)
+        if has_global_budgets and cb != g_blocks:
+            problems.append(
+                f"清单条目 {coordinate.get('coordinate_id')!r} "
+                f"blocks_per_corpus={cb} != global audit_budgets "
+                f"{g_blocks}(条目级与全局计划脱节)")
+        qcap_b = int(((qcap or {}).get("budgets") or {}).get(
+            "blocks_per_corpus", -1)) if qcap_path.is_file() else -1
+        if qcap_b != -1 and cb != qcap_b:
+            problems.append(
+                f"清单条目 blocks={cb} != qcap budgets {qcap_b}"
+                f"(条目-qcap 脱节)")
+    if coord_mc is not None and has_global_budgets:
+        cm = int(coord_mc)
+        if cm != g_mc:
+            problems.append(
+                f"清单条目 {coordinate.get('coordinate_id')!r} "
+                f"mc_events={cm} != global audit_budgets {g_mc}"
+                f"(条目级 MC 与全局计划脱节)")
     # R3-Q3:清单条目↔qcap↔报告↔两语料事件**范围**贯通——
     # qcap.block_range 必须与报告 blocks 及双语料事件 block 集合
     # 一致(范围矛盾不再只看预算数字;E01 合法兼容基于计划 digest

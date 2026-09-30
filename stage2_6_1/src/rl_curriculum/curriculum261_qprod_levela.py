@@ -312,41 +312,30 @@ def judge_qualification_gates(art_dir: Path,
     checks_set_ok = bool(
         isinstance(cue_checks, dict)
         and set(cue_checks) == set(required_names))
-    # ---- 数值重算(报告公共数值;判据=pass_rule 权威语义) ----
-    mc = (ev["parsed"].get("monte_carlo") or {}) if ev["present"] else {}
-    dg = ((ev["parsed"].get("direct_generator") or {})
-          if ev["present"] else {})
-    mc_close_recomputed = None
-    if ev["present"] and mc.get("p_hat") is not None \
-            and ev["parsed"].get("p_contract") is not None:
-        mc_close_recomputed = bool(
-            abs(float(mc["p_hat"])
-                - float(ev["parsed"]["p_contract"]))
-            <= float(mc.get("tolerance", 0.001)))
-        mc_close_consistent = bool(
-            cue_checks is not None
-            and mc_close_recomputed
-            == bool(cue_checks.get("mc_close_to_analytic")))
+    # ---- R4-Q1:冻结语义重算(core 单一事实源,替换 R3 手搓) ----
+    # 与 core 生成内核共享同一批冻结常量与 PASS 规则公式:
+    # MC 容限(冻结,不读报告自带 tolerance)、per-corpus replay/
+    # bounds/cue_table/CI95 含解析值/整体与 tail 数值(SE 加权
+    # 冻结公式)、tail integrity/global_k/once_vs_attempts 一致。
+    # 报告 checks 全 True 且 digest 自洽但数值违反冻结语义 → 拒。
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        recompute_audit_semantics_from_report,
+    )
+    sem_detail: dict[str, Any] = {}
+    if ev["present"]:
+        sem = recompute_audit_semantics_from_report(ev["parsed"])
+        semantics_consistent = bool(sem["all_consistent"])
+        threshold_drift = list(sem["threshold_discrepancies"])
+        recomputed = dict(sem["recomputed"])
+        sem_detail = {
+            "detail": sem["detail"],
+            "fixture_mode": sem["fixture_mode"],
+            "fixture_delegated": sem["fixture_delegated"],
+        }
     else:
-        mc_close_consistent = False
-    corpus_consistent = True
-    for corpus in ("model", "validation"):
-        c = dg.get(corpus) or {}
-        emp, ana = c.get("empirical_recall"), \
-            c.get("analytic_conditional")
-        se = float((c.get("block_cluster") or {}).get("se", 0.0))
-        key = f"{corpus}_corpus_ok"
-        if emp is None or ana is None:
-            corpus_consistent = False
-            continue
-        closeness = bool(
-            abs(float(emp) - float(ana))
-            <= max(3.0 * se, 0.005))
-        if cue_checks is not None and closeness != bool(
-                cue_checks.get(key)):
-            corpus_consistent = False
-    numbers_consistent = bool(
-        mc_close_consistent and corpus_consistent)
+        semantics_consistent = False
+        threshold_drift = []
+        recomputed = {}
     cue_ok = bool(ev["present"]
                   and ev["parsed"].get("pass") is True
                   and ev["parsed"].get("audit_digest")
@@ -354,7 +343,7 @@ def judge_qualification_gates(art_dir: Path,
                   and checks_all_true
                   and pass_recomputed
                   and checks_set_ok
-                  and numbers_consistent)
+                  and semantics_consistent)
     failed_checks = ([k for k, v in (cue_checks or {}).items()
                       if v is not True])
     gates["cue_audit_pass"] = {
@@ -367,9 +356,10 @@ def judge_qualification_gates(art_dir: Path,
                      "pass_equals_all_checks": pass_recomputed,
                      "checks_set_matches_authority": checks_set_ok,
                      "required_check_names": required_names,
-                     "mc_close_recomputed": mc_close_recomputed,
-                     "numbers_consistent_with_checks":
-                         numbers_consistent,
+                     "frozen_semantics_recomputed": recomputed,
+                     "frozen_semantics_detail": sem_detail,
+                     "semantics_consistent": semantics_consistent,
+                     "threshold_drift": threshold_drift,
                      "audit_digest": (
                          ev["parsed"].get("audit_digest")
                          if ev["present"] else None),
