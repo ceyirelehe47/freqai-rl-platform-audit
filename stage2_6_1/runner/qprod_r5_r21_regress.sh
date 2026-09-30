@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QProd R4 R01: 对最终新候选(C15=1139887e+)用**既有** r21_full_collection_regression
+# QProd R5 R01: 对最终新候选(C15=1139887e+)用**既有** r21_full_collection_regression
 # 流程采集 261 完整回归证据(collect-only+auditor/lifecycle+分片执行+junit+record+
 # 自验)。零新增原生/fit/optimizer。
 set -uo pipefail
@@ -7,7 +7,7 @@ export PYTHONDONTWRITEBYTECODE=1
 DEPLOY=/home/cryptorl/projects/crypto_rl
 PY=/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python
 REPO=/mnt/f/trading/freqai-rl-audit
-EVD=$REPO/stage2_6_1/artifacts/repair17/development/qprod_v1/repair_round4_notclosed/evidence/regress_v6
+EVD=$REPO/stage2_6_1/artifacts/repair17/development/qprod_v1/repair_round5_notclosed/evidence/regress_v6
 mkdir -p "$EVD"
 cd "$DEPLOY"
 CAND=$(git -C "$REPO" rev-parse HEAD)
