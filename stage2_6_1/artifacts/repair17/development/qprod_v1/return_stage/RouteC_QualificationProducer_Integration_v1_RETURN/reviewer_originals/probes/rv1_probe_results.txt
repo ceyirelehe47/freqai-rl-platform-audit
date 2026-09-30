@@ -1,0 +1,30 @@
+PASS P1a.favorable-coordinate-is-valid :: state=valid recall=0.9863636363636363
+PASS P1b.single-magnitude-is-beyond-negative :: magnitude=beyond_negative_margin delta=-0.03593
+FAIL P1c.earlystop-should-not-trigger-on-favorable :: early_stopped_at=c01 statistical_negative=True
+FAIL P2.corrupt-trace-classified-gracefully :: unhandled JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+PASS P2b.corrupt-state-constant-defined :: constant exists
+PASS P3a.permit-replay-rejected :: 许可 'rv1p-level_b-rv1b' 已消费(重放拒绝;不得重抽已消费运行)
+PASS P3b.cross-level-permit-rejected :: 许可 task_level 'level_a' != 上下文层 'level_b'(错层拒绝:A/B 许可不可串用)
+PASS P3c.wrong-freeze-sha-rejected :: 许可绑定代码冻结 'freezeWRONG' != 上下文 'freezeA'(错 SHA 拒绝)
+PASS P3d.ns-outside-context-scope-rejected :: 许可 scope 含上下文未声明 namespace: ['cue_qprod_v1_c99_model']
+PASS P3e.permit-outside-authority-rejected :: 许可文件不在声明的 authority 目录 /tmp/rv1_probes/p3_permit/authority 内(自授权/外部伪造拒绝:签发发生在被验包写边界之外)
+FAIL P4a.protected-frozen-root-visible :: []
+PASS P4c.formal-env-redirection-rejected :: 正式入口拒绝环境重定向(['CURRICULUM261_QPROD_STATE_ROOT'];canonical 根只来自受信任部署配置)
+PASS P4d.formal-without-deploy-config-rejected :: 受信任部署配置缺失: /tmp/nonexistent_deploy/qprod_deploy_config.json(正式根不可从环境/参数取得;fail closed)
+PASS P4e.terminal-no-reentry :: 本上下文已记录终态:终态不可重入(不得删除锁/换根/换坐标救活已消费运行)
+PASS P4f.dead-owner-no-takeover :: 已有被接受的运行(owner=393@1790724047);owner 崩溃也不可接管重跑(中断收尾走 interruption_recorded + 新隔离目录)
+PASS P4g.engineering-entry-under-formal-ready-rejected :: 部署配置 mode=formal_ready:工程/test root 注入入口在正式部署拒绝执行(测试入口不得放行)
+PASS P5a.duplicate-ns-across-coords-flagged :: ['namespace 跨坐标重复(同一 trace 换文件名充 K 份拒绝)']
+PASS P5b.model-eq-validation-ns-flagged :: ["坐标 'c01' model/validation namespace 相同(相同抽样空间冒充不同坐标拒绝)", 'namespace 跨坐标重复(同一 trace 换文件名充 K 份拒绝)']
+FAIL P6a.out-of-manifest-coordinate-refused :: leaf={'once': 0, 'attempts': 0, 'bitwise_replay': 0, 'leaf_calls_total': 0} refused_row=True
+PASS P6b.unregistered-namespace-lock-rejected :: 坐标 namespace 'rogue_unregistered_ns' 未注册(QProd 工程名单;守卫不接受任意字符串)
+PASS P6c.budget-downgrade-at-lock-rejected :: 坐标预算 {'blocks_per_corpus': 2, 'mc_events': 1000000, 'max_attempts': 5} 与 profile='engineering' 的合同预算 ({'blocks
+FAIL P6d.sealed-coordinate-reentry-refused :: 研究计划层/迭代与上下文不一致(A/B 隔离)
+
+==== SUMMARY ====
+total=22 pass=17 fail=5
+FAILED: P1c.earlystop-should-not-trigger-on-favorable :: early_stopped_at=c01 statistical_negative=True
+FAILED: P2.corrupt-trace-classified-gracefully :: unhandled JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+FAILED: P4a.protected-frozen-root-visible :: []
+FAILED: P6a.out-of-manifest-coordinate-refused :: leaf={'once': 0, 'attempts': 0, 'bitwise_replay': 0, 'leaf_calls_total': 0} refused_row=True
+FAILED: P6d.sealed-coordinate-reentry-refused :: 研究计划层/迭代与上下文不一致(A/B 隔离)

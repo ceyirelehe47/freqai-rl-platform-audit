@@ -1,0 +1,154 @@
+===== A. SYNC repo-worktree(C7) vs deploy tree =====
+OK  src/rl_curriculum/curriculum261_qprod_context.py
+OK  src/rl_curriculum/curriculum261_qprod_permit.py
+OK  src/rl_curriculum/curriculum261_qprod_plan.py
+OK  src/rl_curriculum/curriculum261_qprod_coordinate.py
+OK  src/rl_curriculum/curriculum261_qprod_aggregate.py
+OK  src/rl_curriculum/curriculum261_qprod_levela.py
+OK  src/rl_curriculum/curriculum261_api.py
+OK  src/rl_curriculum/curriculum261_r17_workflow.py
+OK  src/rl_curriculum/curriculum261_r17_cue_contract.py
+OK  src/rl_curriculum/ppo262_input_lock.py
+OK  src/rl_curriculum/ppo262_qprod_export.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_aggregate.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_context.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_coordinate.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_permit.py
+OK  tests/route_c_stage2_6_1/test_curriculum261_qprod_plan.py
+OK  tests/route_c_stage2_6_2/test_ppo262_qprod_export.py
+
+===== B. regression v6 import_surface vs deploy =====
+members: 321 hash-ok: 321 hash-mismatch: 0 missing: 0
+member-hit: curriculum261_qprod_aggregate.py ['stage2_6_1/src/rl_curriculum/curriculum261_qprod_aggregate.py']
+member-hit: curriculum261_qprod_context.py ['stage2_6_1/src/rl_curriculum/curriculum261_qprod_context.py']
+member-hit: curriculum261_qprod_levela.py ['stage2_6_1/src/rl_curriculum/curriculum261_qprod_levela.py']
+member-hit: test_curriculum261_qprod_aggregate.py []
+member-hit: test_curriculum261_qprod_context.py []
+member-hit: test_curriculum261_qprod_levela.py []
+historical_skip_ids: ['tests.route_c_stage2_6_1.test_curriculum261_r12_governance_r12.TestHistoricalEvidenceBinding::test_ancestry_semantics_pass', 'tests.route_c_stage2_6_1.test_curriculum261_r13_governance.TestHistoricalEvidenceBindingR13::test_ancestry_and_r12_clean_chain', 'tests.route_c_stage2_6_1.test_curriculum261_r14_governance.TestHistoricalEvidenceBindingR14::test_ancestry_and_r13_clean_chain', 'tests.route_c_stage2_6_1.test_curriculum261_r15_governance.TestHistoricalEvidenceBindingR15::test_ancestry_and_r13_clean_chain', 'tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_r16_formal_wrapper_selfcheck_present', 'tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestExecutionSurfaceBytes::test_runner_shell_scripts_lf', 'tests.route_c_stage2_6_1.test_curriculum261_r16_governance.TestHistoricalEvidenceBindingR16::test_ancestry_and_r15_clean_chain']
+v5 skip ids equal v6: True
+
+===== C. probes re-run under C7 =====
+----- rv1_probe.py -----
+PASS P1a.favorable-coordinate-is-valid :: state=valid recall=0.9863636363636363
+PASS P1b.single-magnitude-is-beyond-negative :: magnitude=beyond_negative_margin delta=-0.03593
+PASS P1c.earlystop-should-not-trigger-on-favorable :: early_stopped_at=None statistical_negative=None
+FAIL P2.corrupt-trace-classified-gracefully :: no crash but state=technically_corrupt (corrupt halt unreachable)
+PASS P2b.corrupt-state-constant-defined :: constant exists
+PASS P3a.permit-replay-rejected :: 许可 'rv1p-level_b-rv1b' 已消费(重放拒绝;不得重抽已消费运行)
+PASS P3b.cross-level-permit-rejected :: 许可 task_level 'level_a' != 上下文层 'level_b'(错层拒绝:A/B 许可不可串用)
+PASS P3c.wrong-freeze-sha-rejected :: 许可绑定代码冻结 'freezeWRONG' != 上下文 'freezeA'(错 SHA 拒绝)
+PASS P3d.ns-outside-context-scope-rejected :: 许可 scope 含上下文未声明 namespace: ['cue_qprod_v1_c99_model']
+PASS P3e.permit-outside-authority-rejected :: 许可文件不在声明的 authority 目录 /tmp/rv1_probes/p3_permit/authority 内(自授权/外部伪造拒绝:签发发生在被验包写边界之外)
+PASS P4a.protected-frozen-root-visible :: [PosixPath('/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair17')]
+PASS P4b.base-inside-frozen-root-rejected :: probe /home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair17/qprod_probe_x(真实路径 /home/cry
+PASS P4c.formal-env-redirection-rejected :: 正式入口拒绝环境重定向(['CURRICULUM261_QPROD_STATE_ROOT'];canonical 根只来自受信任部署配置)
+PASS P4d.formal-without-deploy-config-rejected :: 受信任部署配置缺失: /tmp/nonexistent_deploy/qprod_deploy_config.json(正式根不可从环境/参数取得;fail closed)
+PASS P4e.terminal-no-reentry :: 本上下文已记录终态:终态不可重入(不得删除锁/换根/换坐标救活已消费运行)
+PASS P4f.dead-owner-no-takeover :: 已有被接受的运行(owner=576@1790728733);owner 崩溃也不可接管重跑(中断收尾走 interruption_recorded + 新隔离目录)
+PASS P4g.engineering-entry-under-formal-ready-rejected :: 部署配置 mode=formal_ready:工程/test root 注入入口在正式部署拒绝执行(测试入口不得放行)
+PASS P5a.duplicate-ns-across-coords-flagged :: ['namespace 跨坐标重复(同一 trace 换文件名充 K 份拒绝)']
+PASS P5b.model-eq-validation-ns-flagged :: ["坐标 'c01' model/validation namespace 相同(相同抽样空间冒充不同坐标拒绝)", 'namespace 跨坐标重复(同一 trace 换文件名充 K 份拒绝)']
+FAIL P6a.out-of-manifest-coordinate-refused :: leaf={'once': 0, 'attempts': 0, 'bitwise_replay': 0, 'leaf_calls_total': 0} refused_row=True
+PASS P6b.unregistered-namespace-lock-rejected :: 坐标 namespace 'rogue_unregistered_ns' 未注册(QProd 工程名单;守卫不接受任意字符串)
+PASS P6c.budget-downgrade-at-lock-rejected :: 坐标预算 {'blocks_per_corpus': 2, 'mc_events': 1000000, 'max_attempts': 5} 与 profile='engineering' 的合同预算 ({'blocks
+FAIL P6d.sealed-coordinate-reentry-refused :: 研究计划层/迭代与上下文不一致(A/B 隔离)
+
+==== SUMMARY ====
+total=23 pass=20 fail=3
+FAILED: P2.corrupt-trace-classified-gracefully :: no crash but state=technically_corrupt (corrupt halt unreachable)
+FAILED: P6a.out-of-manifest-coordinate-refused :: leaf={'once': 0, 'attempts': 0, 'bitwise_replay': 0, 'leaf_calls_total': 0} refused_row=True
+FAILED: P6d.sealed-coordinate-reentry-refused :: 研究计划层/迭代与上下文不一致(A/B 隔离)
+rc=0
+----- rv1_probe2.py -----
+pkg_dir: /home/cryptorl/projects/crypto_rl/src/rl_curriculum
+parents[1]: /home/cryptorl/projects/crypto_rl
+parents[2]: /home/cryptorl/projects
+parents[3]: /home/cryptorl
+protected_old_roots(): ['/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair17', '/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair18', '/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair19', '/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair17', '/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair18', '/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair19', '/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair17', '/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair18', '/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair19', '/home/cryptorl/artifacts/route_c_stage2_6_1_repair17', '/home/cryptorl/artifacts/route_c_stage2_6_1_repair18', '/home/cryptorl/artifacts/route_c_stage2_6_1_repair19', '/home/artifacts/route_c_stage2_6_1_repair17', '/home/artifacts/route_c_stage2_6_1_repair18', '/home/artifacts/route_c_stage2_6_1_repair19']
+actual deploy frozen root exists: True /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair17
+harden_root rejected (protection effective): probe /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair17/qprod_probe_child(真实路径 /home/cryptorl/proj
+repo-derivation candidate: /mnt/f/trading/freqai-rl-audit/artifacts is_dir= True
+repo-derivation candidate: /mnt/f/trading/artifacts is_dir= False
+repo actual artifacts dir: True /mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts
+rc=0
+----- rv1_probe3.py -----
+PASS P6a.out-of-manifest-refused reason=坐标 'cXX' 不在冻结研究计划清单内(清单外输出不得进入主聚合)
+FAIL P6d.sealed-reentry-refused reason=研究计划代码身份漂移: ['curriculum261_api.py', 'curriculum261_c2.py', 'curriculu
+FAIL P6e.interrupted-reentry-refused reason=研究计划代码身份漂移: ['curriculum261_api.py', 'curriculum261_c2.py', 'curriculu
+rc=0
+----- rv1_probe4.py -----
+PASS EN1.formal-scope :: qprod export rejected: 导出 scope 'formal' 拒绝:本轮无真实正式资格链(formal 输入仍受真实资格与独立训练授权控制;工程件改名不能取得正式权限) :: zero_bundle=True
+PASS EN2.tampered-pack :: qprod export rejected: 公共判定核心实算 verdict 'FAIL' != producer result 'PASS'(只写 PASS 字符串/改写结论拒绝); 公共判定核心实算 gates 与 result 不一 :: zero_bundle=True
+PASS EN3.missing-raw-evidence :: qprod export rejected: producer 原件缺失: ['raw'](部分输出不产可用成功包) :: zero_bundle=True
+PASS EN4.pass-string-vs-failing-evidence :: qprod export rejected: 公共判定核心实算 verdict 'FAIL' != producer result 'PASS'(只写 PASS 字符串/改写结论拒绝); 公共判定核心实算 gates 与 result 不一 :: zero_bundle=True
+rc=0
+----- rv2_probe_f4.py -----
+PASS F4a.roots-nonempty-in-deploy :: n=15
+INFO roots:
+    /home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair17
+    /home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair18
+    /home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair19
+    /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair17
+    /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair18
+    /home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair19
+    /home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair17
+    /home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair18
+    /home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair19
+    /home/cryptorl/artifacts/route_c_stage2_6_1_repair17
+    /home/cryptorl/artifacts/route_c_stage2_6_1_repair18
+    /home/cryptorl/artifacts/route_c_stage2_6_1_repair19
+    /home/artifacts/route_c_stage2_6_1_repair17
+    /home/artifacts/route_c_stage2_6_1_repair18
+    /home/artifacts/route_c_stage2_6_1_repair19
+PASS F4b.canonical-names-present :: ['route_c_stage2_6_1_repair17', 'route_c_stage2_6_1_repair18', 'route_c_stage2_6_1_repair19']
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair17
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair18
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/src/artifacts/route_c_stage2_6_1_repair19
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair17
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair18
+PASS F4c.reject:/home/cryptorl/projects/crypto_rl/artifacts/route_c_stage2_6_1_repair19
+PASS F4c.reject:/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair17
+PASS F4c.reject:/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair18
+PASS F4c.reject:/home/cryptorl/projects/artifacts/route_c_stage2_6_1_repair19
+PASS F4c.reject:/home/cryptorl/artifacts/route_c_stage2_6_1_repair17
+PASS F4c.reject:/home/cryptorl/artifacts/route_c_stage2_6_1_repair18
+PASS F4c.reject:/home/cryptorl/artifacts/route_c_stage2_6_1_repair19
+PASS F4c.reject:/home/artifacts/route_c_stage2_6_1_repair17
+PASS F4c.reject:/home/artifacts/route_c_stage2_6_1_repair18
+PASS F4c.reject:/home/artifacts/route_c_stage2_6_1_repair19
+PASS F4d.env-root-in-protected
+PASS F4e.env-root-child-rejected
+PASS F4f.positive-control-accepted :: /tmp/rv2_f4_ok/dir
+INFO deploy frozen root exists: True (existence irrelevant; protection is name-based)
+
+==== SUMMARY ==== total=20 pass=20 fail=0
+rc=0
+----- rv2_probe_e01e02.py -----
+===== E02 originals (C7 re-run; repo qprod_v1/level_a_e2e) =====
+Traceback (most recent call last):
+  File "/mnt/f/trading/reviewer_qprod_v1/probes/rv2_probe_e01e02.py", line 29, in <module>
+    rcpt = json.loads((art / "qprod_export_receipt.json").read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/qprod_v1/level_a_e2e/v1_r2_reference/qprod_level_a_qprod_a_eng_v1/artifacts/qprod_export_receipt.json'
+rc=1
+
+===== D. qprod tests in deploy tree =====
+........................................................................ [ 98%]
+.                                                                        [100%]
+73 passed in 4.00s
+
+===== G. native raw counts + TB ledger =====
+run1 csv: 64
+run2 csv: 128
+TB ledger lines: 6
+TB ledger last-ts:
+2026-09-28T23:40:48Z None
+2026-09-28T23:40:55Z None

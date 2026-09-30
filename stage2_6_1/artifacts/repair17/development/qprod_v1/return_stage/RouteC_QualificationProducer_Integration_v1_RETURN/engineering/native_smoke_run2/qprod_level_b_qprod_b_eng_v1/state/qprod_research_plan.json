@@ -1,0 +1,61 @@
+{
+  "format": "cur261-qprod-research-plan-v1",
+  "level": "level_b",
+  "iteration_id": "qprod_b_eng_v1",
+  "profile": "engineering",
+  "code_freeze_sha": "qprod-eng-418fb5a446dd86fc",
+  "coordinate_manifest": [
+    {
+      "coordinate_id": "c01",
+      "model_namespace": "cue_qprod_v1_c01_model",
+      "validation_namespace": "cue_qprod_v1_c01_validation",
+      "blocks_per_corpus": 2,
+      "mc_events": 4096,
+      "max_attempts": 5,
+      "artifact_subdir": "coord_c01"
+    },
+    {
+      "coordinate_id": "c02",
+      "model_namespace": "cue_qprod_v1_c02_model",
+      "validation_namespace": "cue_qprod_v1_c02_validation",
+      "blocks_per_corpus": 2,
+      "mc_events": 4096,
+      "max_attempts": 5,
+      "artifact_subdir": "coord_c02"
+    }
+  ],
+  "rules": {
+    "p0_fixed_reference": 0.950431552876822,
+    "p0_source_label": "R25 dev_plan.json study.p0_fixed_reference(历史开发研究参照,工程复用;非本轮新估计,非正式采纳锚)",
+    "delta_definition": "P0 - recall(validation)",
+    "margin": 0.003,
+    "alpha": 0.05,
+    "r_analysis": 1.5,
+    "planned_k": 11,
+    "anchor_policy": "固定共同 P0(外部计划显式给定);局部 p_contract 照真实算法计算,不因数值不等删坐标"
+  },
+  "quota": {
+    "max_leaf_calls_total": 640,
+    "max_leaf_calls_per_execution": 320,
+    "max_successful_episodes_total": 128,
+    "mc_events_per_coordinate": 4096,
+    "max_native_executions": 2
+  },
+  "code_identity": {
+    "curriculum261_api.py": "6b5a3cdddd0eeff59eeb5a28bb98563769b0154739c8f1505671559ab034fba4",
+    "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+    "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+    "curriculum261_r17_noise_replay.py": "5b55c04608a14e3c1087909c2e56623b90766da7d389739955070135adfa7e8a",
+    "curriculum261_r17_cue_contract.py": "0cb84159a38b075b4f27f5135dbc873159f4feb5f33576e7e864b3e20e8f2bc7",
+    "curriculum261_r17_global_k.py": "b911f44bff8600b9530cae560976b17b1fa282df799bbbb37c8c763ef02bfdc5",
+    "curriculum261_qprod_context.py": "63f3c33eeb6fed1c9451681623abb4538608555ef77015561e47386fc12fdb8f",
+    "curriculum261_qprod_permit.py": "e06827f163f3cad4d975931148c1872bdb6678369c36df4ab3800b3cf1a52fcc",
+    "curriculum261_qprod_plan.py": "c3a2d8f54c0373dc43fd73fc2397fa387d5eda603d6d9d8434a56e716119af14",
+    "curriculum261_qprod_coordinate.py": "cb26e944d14c2be126bd6e456625fe242584f1f3043d5ba19ab97dc5d150b60b",
+    "curriculum261_qprod_aggregate.py": "c0171808696d4c4edc1c4a3aa393364eb74bebb9628a46a39d0007180c5fdac3"
+  },
+  "stop_mode": "collect_all_k",
+  "engineering_note": "2 工程坐标烟测(< planned_k=11 ⇒ 聚合主分类预期不决,不足 K 不缩小门槛)",
+  "research_plan_digest": "qbpl-6cf9c2008209f7ff28aaab1295f6d29f90d1a8bcf6f10cb6fa1215cb8b770b04",
+  "locked_utc": "2026-09-29T21:28:16+00:00"
+}

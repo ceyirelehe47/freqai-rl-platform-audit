@@ -1,0 +1,53 @@
+{
+  "format": "cur261-qprod-aggregate-v1",
+  "aggregated_utc": "2026-09-29T23:36:57+00:00",
+  "research_plan_digest": "qbpl-6cf9c2008209f7ff28aaab1295f6d29f90d1a8bcf6f10cb6fa1215cb8b770b04",
+  "stop_mode": "collect_all_k",
+  "early_stopped_at": null,
+  "anchor": {
+    "p0_fixed_reference": 0.950431552876822,
+    "p0_source_label": "R25 dev_plan.json study.p0_fixed_reference(历史开发研究参照,工程复用;非本轮新估计,非正式采纳锚)",
+    "delta_definition": "P0 - recall(validation)",
+    "note": "主分析锚 = 外部计划显式给定的共同固定 P0;局部 p_contract 照真实算法计算,用于其原有局部审计,不要求等于 P0,不因不等删坐标"
+  },
+  "coordinates": [
+    {
+      "coordinate_id": "c01",
+      "state": "valid",
+      "problems": [],
+      "recall_validation": 0.9607843137254902,
+      "se_validation": 0.028292718593392892,
+      "p_contract_local": 0.9503774480932101,
+      "audit_pass": false,
+      "audit_digest": "r15ca-ec6669814426c9f4e102e823cf121c3903322180002ffed4e68374a970a999fb",
+      "engineering_only": true
+    },
+    {
+      "coordinate_id": "c02",
+      "state": "valid",
+      "problems": [],
+      "recall_validation": 1.0,
+      "se_validation": 0.0,
+      "p_contract_local": 0.9503774480932101,
+      "audit_pass": false,
+      "audit_digest": "r15ca-d9e144697d4ab09fa376606a62afcb51c051fdfcba834b92ff72770898f25722",
+      "engineering_only": true
+    }
+  ],
+  "valid_coordinate_count": 2,
+  "planned_k": 11,
+  "level_a_terminal": {
+    "read_only_reference": true
+  },
+  "primary": {
+    "magnitude": "inconclusive",
+    "not_resolved_reason": "degenerate_se_prevents_v4_application",
+    "descriptive_only": true,
+    "delta_bar_descriptive": -0.029960603985923095,
+    "degenerate_se_coordinates": [
+      "c02"
+    ],
+    "note": "退化 SE(=0)坐标在场:v4 classify_primary 要求每个 s_k>0;坐标保留为有效数据,主分类不决,不借此删样或另立公式(小样本统计不决是预期工程结果,不调 seed/阈值救援)"
+  },
+  "ab_separation_note": "Level B 聚合只作附加确认结论;不读取修改 Level A 终态;A 的 FAIL 不因 B 聚合救绿(A 终态仅只读引用)"
+}

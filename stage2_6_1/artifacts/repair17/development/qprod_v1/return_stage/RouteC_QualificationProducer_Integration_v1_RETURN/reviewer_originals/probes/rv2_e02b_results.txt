@@ -1,0 +1,12 @@
+===== code_identity binding vs repo C7 worktree =====
+v1_r2_reference code_identity_all_match_C7_repo: True engineering_only: True
+v2_perturbed code_identity_all_match_C7_repo: True engineering_only: True
+
+===== independent consumption cold read (read-only; C7 code) =====
+v1_r2_reference formal-reject: PASS :: qualified input 拒绝: 授权 scope = 'engineering' != 要求 'formal'(工程许可不能解锁正式入口;正式资格未成立
+v1_r2_reference engineering-load: OK; receipt_checks_all_true: True | receipt==qi.bindings: None
+   rung probe: {"c1_opportunity": {"D0": {"distractor_rate": 0.0, "neg_drift_bps": 46.0, "opp_drift_bps": 60.0, "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36], "vol_bps": 26.0}, "D3": {"distractor_rate": 0.0, "neg_drift
+v2_perturbed formal-reject: PASS :: qualified input 拒绝: 授权 scope = 'engineering' != 要求 'formal'(工程许可不能解锁正式入口;正式资格未成立
+v2_perturbed engineering-load: OK; receipt_checks_all_true: True | receipt==qi.bindings: None
+   rung probe: {"c1_opportunity": {"D0": {"distractor_rate": 0.0, "neg_drift_bps": 46.0, "opp_drift_bps": 60.0, "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36], "vol_bps": 26.0}, "D3": {"distractor_rate": 0.0, "neg_drift
+rc=0

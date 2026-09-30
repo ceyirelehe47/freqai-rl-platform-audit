@@ -1,0 +1,44 @@
+===== F3 halt semantics (direct; corrupt must stop even with K met) =====
+states: ['valid', 'technically_corrupt']
+primary.magnitude: halted_technically_corrupt
+valid_coordinate_count: 1 planned_k: 1 (K met yet halt required)
+F3-halt: PASS
+seed-log-corrupt state: technically_corrupt primary: halted_technically_corrupt
+F3-seedlog: PASS
+
+===== E01 read-only recompute under C7 =====
+-- native_smoke_run2 : rc_agg=0
+   stop_mode: collect_all_k  early_stopped_at: None
+   primary: inconclusive | reason: degenerate_se_prevents_v4_application
+   valid: 2 / 11  states: ['valid', 'valid']  favorable: [None, None]
+   cold_read_reproduces: True  deep_equal_modulo_utc: True
+-- native_smoke_run1 : rc_agg=0
+   stop_mode: collect_all_k  early_stopped_at: None
+   primary: inconclusive | reason: insufficient_coordinates
+   valid: 1 / 11  states: ['valid', 'missing']  favorable: [None, None]
+   cold_read_reproduces: True  deep_equal_modulo_utc: True
+
+===== E02 originals (C7 re-run) =====
+-- v1_r2_reference markers=5/8
+    1.ledger_PASS_17_all_ok = True
+    2.sequence_ok_true = True
+    3.expected_eq_recorded = True
+    4.code_freeze_is_C7 = False
+    5.export_receipt_keys = ['bindings', 'checks', 'engineering_only', 'exported_utc', 'format', 'note', 'producer_art_dir', 'producer_bindings', 'producer_state_root', 'qualification_dir']
+    6.delivery_files = ['SYNTHETIC_ONLY.md', 'parameter_pack.json', 'preprocessor_envelope.json', 'qprod_export_receipt.json', 'qualification_exposure.json', 'qualification_plan.json', 'qualification_plan_digest.txt', 'qualification_result.json']
+    7.cold_envelope_ok = True
+    8.permit_consumed_once = True
+    ledger execution modes: {'real': 11, 'fixture_double': 5, 'not_run': 1}
+    formal-reject evidence: []
+-- v2_perturbed markers=5/8
+    1.ledger_PASS_17_all_ok = True
+    2.sequence_ok_true = True
+    3.expected_eq_recorded = True
+    4.code_freeze_is_C7 = False
+    5.export_receipt_keys = ['bindings', 'checks', 'engineering_only', 'exported_utc', 'format', 'note', 'producer_art_dir', 'producer_bindings', 'producer_state_root', 'qualification_dir']
+    6.delivery_files = ['SYNTHETIC_ONLY.md', 'parameter_pack.json', 'preprocessor_envelope.json', 'qprod_export_receipt.json', 'qualification_exposure.json', 'qualification_plan.json', 'qualification_plan_digest.txt', 'qualification_result.json']
+    7.cold_envelope_ok = True
+    8.permit_consumed_once = True
+    ledger execution modes: {'real': 11, 'fixture_double': 5, 'not_run': 1}
+    formal-reject evidence: []
+rc=0
