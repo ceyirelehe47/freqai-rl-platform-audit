@@ -65,3 +65,11 @@
   中断目录重入拒绝)。q123 钉测试 21/21。
 - F2(P2):复现原件按候选拆分保存(见上),候选标签参数化,
   失实索引已更正。
+
+## C9(最终候选 a834cbc5)适用全量回归(V3 前置)
+- 261 v8(C9 字节):`2628 passed, 7 skipped in 2714.88s`,RC=0;
+  junit=`evidence/qprod_regress261_v8_junit.xml`(相对 v7 +1 =
+  F1 非配额失败记账钉测试)。
+- 262 v5(C9 字节):`240 passed in 136.72s`,RC=0;
+  junit=`evidence/qprod_regress262_v5_junit.xml`。
+- v7/v4 junit 绑定 C8 字节,已被本节取代(reviewer 封包前置提醒)。
