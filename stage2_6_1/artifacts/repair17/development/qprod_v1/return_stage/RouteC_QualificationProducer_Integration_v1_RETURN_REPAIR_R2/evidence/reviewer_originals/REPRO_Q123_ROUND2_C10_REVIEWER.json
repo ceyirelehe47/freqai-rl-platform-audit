@@ -1,0 +1,92 @@
+{
+  "format": "cur261-qprod-repro-round2-v1",
+  "candidate_under_test": "C10=a2d546f3 (reviewer independent run, deploy sha256-verified)",
+  "zero_native": true,
+  "synthetic_only": true,
+  "results": [
+    {
+      "id": "Q1",
+      "case": "cue-checks-fail-top-pass",
+      "reproduced": false,
+      "detail": "checks mismatch but gate1=False verdict=FAIL"
+    },
+    {
+      "id": "Q1",
+      "case": "topology-empty-producers",
+      "reproduced": false,
+      "detail": "已拒绝: QProdContextError"
+    },
+    {
+      "id": "Q1",
+      "case": "raw-tamper-with-sha-update",
+      "reproduced": false,
+      "detail": "已拒绝"
+    },
+    {
+      "id": "Q1",
+      "case": "result-iteration-mismatch",
+      "reproduced": false,
+      "detail": "已拒绝"
+    },
+    {
+      "id": "Q1",
+      "case": "ledger-fail-exports",
+      "reproduced": false,
+      "detail": "已拒绝"
+    },
+    {
+      "id": "Q1",
+      "case": "research-plan-missing-exports",
+      "reproduced": false,
+      "detail": "已拒绝"
+    },
+    {
+      "id": "Q2",
+      "case": "attempts-nested-undercount",
+      "reproduced": false,
+      "detail": "计数=40(wrapper×8);真实动作=40"
+    },
+    {
+      "id": "Q2",
+      "case": "plan-missing-audit-budgets",
+      "reproduced": true,
+      "detail": "无audit_budgets声明结构问题=无"
+    },
+    {
+      "id": "Q2",
+      "case": "native-budget-hard-gate",
+      "reproduced": false,
+      "detail": "e01脚本预算硬门存在=True"
+    },
+    {
+      "id": "Q3",
+      "case": "model-events-deleted",
+      "reproduced": false,
+      "detail": "删model事件后state=invalid_structure_identity,problems前3=['seal 成员摘要不符 cue_event_trace.jsonl', 'model 语料事件为空(双语料对账失败)', '报告 model recall 0.9454545454545454 != 事件复算 0.0(model 语料与报告矛盾)']"
+    },
+    {
+      "id": "Q3",
+      "case": "duplicate-model-seed",
+      "reproduced": false,
+      "detail": "重复seed后state=invalid_structure_identity,problems前3=['once(model)seed 多重集与派生序列不一致(重复/缺失/替代某块:sorted seeds 对拍失败)']"
+    },
+    {
+      "id": "Q3",
+      "case": "qcap-budget-report-mismatch",
+      "reproduced": false,
+      "detail": "qcap500/报告2后state=invalid_structure_identity"
+    },
+    {
+      "id": "Q3",
+      "case": "legacy-unbounded",
+      "reproduced": false,
+      "detail": "非E01身份缺绑定state=invalid_structure_identity,legacy=None"
+    },
+    {
+      "id": "Q3",
+      "case": "audit-fail-consumed",
+      "reproduced": false,
+      "detail": "audit_pass=False坐标state=valid,进入主分析=False"
+    }
+  ]
+}
