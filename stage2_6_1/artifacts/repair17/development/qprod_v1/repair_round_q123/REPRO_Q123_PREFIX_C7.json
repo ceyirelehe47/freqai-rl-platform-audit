@@ -1,0 +1,172 @@
+{
+  "format": "cur261-qprod-repro-q123-v1",
+  "candidate_under_test": "C7 tree=691bd73a (git archive mirror; pre-fix)",
+  "results": [
+    {
+      "id": "Q1",
+      "case": "preplan-FAIL-still-17step-PASS",
+      "construct": "rehearse with preplan_smoke.pass=False",
+      "expected_after_fix": "preplan FAIL -> plan-roundtrip 前置失败 -> 链 FAIL(<17 步)",
+      "observed_now": {
+        "raised": null,
+        "ledger_steps": 17,
+        "ledger_verdict": "PASS"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q1",
+      "case": "missing-topology-still-PASS",
+      "construct": "rehearse without gate_topology input",
+      "expected_after_fix": "provenance-verify FAIL(缺链外拓扑) -> 链 FAIL",
+      "observed_now": {
+        "raised": null,
+        "prov_steps": 1,
+        "ledger_verdict": "PASS"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q1",
+      "case": "export-without-real-terminal",
+      "construct": "producer journal deleted; export attempted",
+      "expected_after_fix": "导出拒绝(真实终态不可核)",
+      "observed_now": {
+        "export_succeeded": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q1",
+      "case": "export-calibration-prereq-tampered",
+      "construct": "holdout calibration artifact bytes swapped after plan lock",
+      "expected_after_fix": "导出拒绝(校准前置 digest 不符)",
+      "observed_now": {
+        "export_succeeded": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q1",
+      "case": "export-raw-observations-tampered",
+      "construct": "raw gate observed.audit_digest replaced by fake; verdicts kept",
+      "expected_after_fix": "导出拒绝(raw 与其证据复算不一致)",
+      "observed_now": {
+        "export_succeeded": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q2",
+      "case": "zero-quota-permit-accepted",
+      "construct": "permit quota all zeros",
+      "expected_after_fix": "验证拒绝(0 额度禁止进入审计)",
+      "observed_now": {
+        "validate_accepted": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q2",
+      "case": "unsupported-max-attempts-locks",
+      "construct": "manifest max_attempts=3 (core only supports structural 5)",
+      "expected_after_fix": "锁定拒绝(不支持值显式拒绝,不静默忽略)",
+      "observed_now": {
+        "locked": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q2",
+      "case": "nonzero-block-start-locks",
+      "construct": "manifest block_start_index=100 (core always starts at 0)",
+      "expected_after_fix": "锁定拒绝(预注册范围与真实生成不一致)",
+      "observed_now": {
+        "locked": true
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q2",
+      "case": "episode-unit-missing",
+      "construct": "ledger totals keys after 3 block-level calls",
+      "expected_after_fix": "账本以 episode 叶调用为单位记录并在叶边界执行配额",
+      "observed_now": {
+        "totals": {
+          "leaf_calls_total": 3,
+          "leaf_calls_by_kind": {
+            "once": 1,
+            "attempts": 1,
+            "bitwise_replay": 1
+          },
+          "episode_calls_estimate": 24,
+          "n_blocks_generated": 2
+        }
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "empty-seal-member-set-accepted",
+      "construct": "seal.members_sha256 emptied; all files still present",
+      "expected_after_fix": "拒(必需成员集合精确覆盖)",
+      "observed_now": {
+        "state": "valid"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "fake-audit-digest-accepted",
+      "construct": "seal.audit_digest replaced; report unchanged",
+      "expected_after_fix": "拒(audit digest 与报告公共函数复算不符)",
+      "observed_now": {
+        "state": "valid"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "block-index-swap-accepted",
+      "construct": "validation event block indices swapped 0<->1 (multiset same)",
+      "expected_after_fix": "拒(事件 block 归属与 seed 日志/计划 block 范围不符)",
+      "observed_now": {
+        "state": "valid",
+        "recall": 0.9454545454545454
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "missing-validation-seeds-accepted",
+      "construct": "attempts (validation) seed log entries removed",
+      "expected_after_fix": "拒(validation seeds 缺失)",
+      "observed_now": {
+        "state": "valid"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "missing-frozen-coordinate-plan-accepted",
+      "construct": "qprod_coordinate_audit_plan.json removed from coord dir",
+      "expected_after_fix": "拒(冻结坐标计划缺失/不绑定)",
+      "observed_now": {
+        "state": "valid"
+      },
+      "reproduced": true
+    },
+    {
+      "id": "Q3",
+      "case": "early-stop-does-not-constrain-consumption",
+      "construct": "c01 statistical negative; c02 produced afterwards",
+      "expected_after_fix": "c02 不进入主分析(停后不消费/标注违规),启动亦被拒",
+      "observed_now": {
+        "early_stopped_at": "c01",
+        "valid_coordinates_consumed": 2,
+        "delta_bar_uses_all": true
+      },
+      "reproduced": true
+    }
+  ]
+}

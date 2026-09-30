@@ -395,3 +395,78 @@ def test_q3_early_stop_launch_guard_blocks_post_stop_coordinate(
     assert refusal
     ref = json.loads(refusal[0].read_text())
     assert ref["leaf_calls_snapshot"]["leaf_calls_total"] == 0
+
+
+def test_f1_nonquota_failure_writes_interrupted_marker_and_ledger(
+        tmp_path):
+    """F1(reviewer):非配额失败(生成器 RuntimeError)必须写中断标记
+    +账本 interrupted 行——不得只让配额分支记账(曾为死代码回归)。"""
+    import shutil
+
+    import test_curriculum261_qprod_coordinate as tc
+    import rl_curriculum.curriculum261_qprod_coordinate as cmod
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        run_coordinate_audit_locked,
+    )
+    from rl_curriculum.curriculum261_qprod_plan import (
+        freeze_research_plan, load_research_plan,
+    )
+
+    (tmp_path / "coord").mkdir(parents=True, exist_ok=True)
+    adir = tmp_path / "coord" / "authority"
+    adir.mkdir(exist_ok=True)
+    adir.joinpath("authority_identity.json").write_text(json.dumps(
+        {"authority_id": tc.AUTHORITY_ID}), encoding="utf-8")
+    ctx = tc.build_engineering_context(
+        level="level_b", iteration_id="i1",
+        base_dir=tmp_path / "coord" / "base", code_freeze_sha="sha-x",
+        authority_dir=adir,
+        namespaces_scope=CURRICULUM261_QPROD_ENGINEERING_NAMESPACES)
+    payload = {
+        "format": "cur261-qprod-research-plan-v1",
+        "level": "level_b", "iteration_id": "i1",
+        "profile": "engineering", "code_freeze_sha": "sha-x",
+        "coordinate_manifest": [dict(tc.C01)],
+        "rules": {
+            "p0_fixed_reference": 0.9504, "p0_source_label": "eng",
+            "delta_definition": "P0 - recall(validation)",
+            "margin": 0.003, "alpha": 0.05, "r_analysis": 1.5,
+            "planned_k": 11},
+        "quota": {"max_leaf_calls_total": 640},
+        "code_identity": cmod.qprod_coordinate_code_identity(),
+        "stop_mode": "collect_all_k",
+    }
+    freeze_research_plan(ctx.state_root, payload)
+    plan = load_research_plan(ctx.state_root)
+    cd = ctx.artifact_root / "coord_c01"
+    cmod.lock_coordinate_audit_plan(
+        cd, coordinate=dict(tc.C01), research_plan=plan)
+    ledger_path = tmp_path / "l.jsonl"
+    live = tc._FakePermit()
+    live.quota = {"max_leaf_calls_per_coordinate": 320}
+
+    def boom(*a, **k):
+        raise RuntimeError("simulated generator failure")
+
+    import rl_curriculum.curriculum261_r17_cue_contract as cue_mod
+    orig = cue_mod._run_cue_contract_audit_core
+    cue_mod._run_cue_contract_audit_core = boom
+    try:
+        with pytest.raises(RuntimeError, match="simulated generator"):
+            run_coordinate_audit_locked(ctx, live, "c01",
+                                        coord_dir=cd,
+                                        ledger_path=ledger_path)
+    finally:
+        cue_mod._run_cue_contract_audit_core = orig
+    assert (cd / cmod.QPROD_COORDINATE_INTERRUPTED_NAME).is_file(), (
+        "非配额失败必须写中断标记")
+    rows = [json.loads(x) for x in
+            ledger_path.read_text().splitlines() if x]
+    actions = [r["action"] for r in rows]
+    assert actions == ["start", "interrupted"], actions
+    assert rows[-1]["error"].startswith("RuntimeError")
+    # 中断目录重入拒绝(不冒充新鲜)
+    with pytest.raises(QProdContextError, match="中断"):
+        run_coordinate_audit_locked(ctx, tc._FakePermit(), "c01",
+                                    coord_dir=cd,
+                                    ledger_path=ledger_path)

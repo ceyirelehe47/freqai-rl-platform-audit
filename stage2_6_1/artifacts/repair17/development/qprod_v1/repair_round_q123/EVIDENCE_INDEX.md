@@ -1,9 +1,15 @@
 # QProd 返修轮(Q1/Q2/Q3)证据索引 — C8=bd6ed858
 
-## 复现(C7 候选,全部 15/15 复现)
-- `repro_q123.py`:零原生复现探针(Q1×5/Q2×4/Q3×6)。
-- `REPRO_Q123.json`:复现结果(修复前:reproduced=true ×15)。
-  同脚本在 C8 复跑:`REPRODUCED 0/15`(全部拒绝/失败路径生效)。
+## 复现(先复现后修复;两份原件分开保存)
+- `repro_q123.py`:零原生复现探针(Q1×5/Q2×4/Q3×6);候选标签经
+  REPRO_CANDIDATE/REPRO_OUT 环境变量注入(不再硬编码)。
+- `REPRO_Q123_PREFIX_C7.json`:**修复前**原件,C7 树=691bd73a
+  (git archive 镜像+deploy 支持面,261/262 均回退 C7 原字节),
+  `reproduced=true ×15`。
+- `REPRO_Q123_C9.json`:**修复后**复跑,F1 修复候选(C9),
+  `reproduced=false ×15`(全部拒绝/失败路径生效)。
+- 勘误:本轮早先提交的 REPRO_Q123.json 是 C8 复跑结果却带 C7
+  硬编码标签,已被上述两份取代并删除(reviewer F2)。
 
 ## 修复(代码,全部零原生验证)
 - Q1:`curriculum261_qprod_levela.py`(provenance-verify 用公共权威
@@ -48,3 +54,14 @@
   /home/cryptorl/qprod_regress262_v4_junit.xml)。与 C7 轮一致,无回归。
 - 新增模型更新(原生 episode 生成/optimizer/BC/PPO):0。
   原生执行次数:维持 2/2 已耗尽,本轮零追加。
+
+
+## 返修轮 reviewer FAIL→修复(V1)
+- F1(P1):`except BaseException` 通用失败/中断记账处理器被配额
+  分支顶掉成死代码——已恢复(配额分支后独立通用处理器;非配额
+  失败写中断标记+账本 interrupted 行再 raise),并新增钉测试
+  `test_f1_nonquota_failure_writes_interrupted_marker_and_ledger`
+  (RuntimeError 注入:marker=true、账本 [start, interrupted]、
+  中断目录重入拒绝)。q123 钉测试 21/21。
+- F2(P2):复现原件按候选拆分保存(见上),候选标签参数化,
+  失实索引已更正。

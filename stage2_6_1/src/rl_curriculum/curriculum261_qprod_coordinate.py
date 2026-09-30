@@ -634,6 +634,11 @@ def run_coordinate_audit_locked(
             "utc": datetime.now(timezone.utc).isoformat(
                 timespec="seconds")})
         raise
+    except BaseException as exc:  # 中断/失败:可归属记录,不自动重抽
+        # F1 修复(reviewer):通用失败/中断记账处理器曾被配额分支
+        # 顶掉成死代码——非配额失败(生成器异常/KeyboardInterrupt)
+        # 必须同样写中断标记+账本 interrupted 行再 raise,否则中断
+        # 目录可无痕重入重抽(Q2『失败/重试/中断不能漏账』)。
         _write_interrupted(coord_dir, f"{type(exc).__name__}: {exc}",
                            ledger)
         (coord_dir / QPROD_BLOCK_SEED_LOG_NAME).write_text(
