@@ -29,7 +29,9 @@ CANDIDATE=$(git -C /mnt/f/trading/freqai-rl-audit rev-parse HEAD 2>/dev/null || 
     stage2_6_1/src/rl_curriculum/curriculum261_r17_cue_contract.py \
     stage2_6_2/src/rl_curriculum/ppo262_qprod_export.py \
     stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py \
-    stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py; do
+    stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py \
+    stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py \
+    stage2_6_1/tests/route_c_stage2_6_1/test_curriculum261_qprod_coordinate.py; do
     blob=$(git -C /mnt/f/trading/freqai-rl-audit show "$CANDIDATE:$f" 2>/dev/null | sha256sum | cut -d' ' -f1)
     dep=$(sha256sum "$DEPLOY/src/rl_curriculum/$(basename "$f")" 2>/dev/null | cut -d' ' -f1)
     [ -z "$dep" ] && dep=$(sha256sum "$DEPLOY/tests/route_c_stage2_6_1/$(basename "$f")" 2>/dev/null | cut -d' ' -f1)

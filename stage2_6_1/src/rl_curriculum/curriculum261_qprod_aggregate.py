@@ -438,10 +438,11 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
     if problems:
         return {"state": COORDINATE_STATE_INVALID,
                 "problems": problems}
-    # R2-Q3:audit FAIL 与 v4 偏差类别区分——结构核验通过但坐标
-    # 审计合同失败(audit_pass=False)的坐标标记 audit_fail,
-    # 聚合消费侧据此排除(不得静默当作正常坐标进入主分析/早停,
-    # 也不得因 recall 方向"有利"忽略审计失败)。
+    # R3-Q3:audit FAIL 与 v4 偏差类别区分——结构核验通过但坐标
+    # 审计合同统计 gate 失败(audit_pass=False)标记 audit_fail;
+    # 聚合消费侧将其作为**有效统计负结果保留**进主分析/参与
+    # 事前定义的统计判据(数值如实,不删样凑绿,不因方向"有利"
+    # 忽略;技术无效另走 invalid/interrupted 类别)。
     audit_pass = bool(summary.get("audit_pass"))
     return {
         "state": COORDINATE_STATE_VALID,
