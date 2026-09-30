@@ -247,19 +247,34 @@ def q2_quota() -> None:
 
 
 def q2_plan_budget() -> None:
-    import test_curriculum261_qprod_coordinate as tc
+    # F2 修复(reviewer V1):探针自带无 audit_budgets 声明的载荷,
+    # 不依赖测试 fixture(tc._setup 已在同候选中加入声明——依赖它
+    # 会使探针前提随 fixture 漂移,归档件不可复现)。
     from rl_curriculum.curriculum261_qprod_plan import (
-        freeze_research_plan, research_plan_structure_problems,
+        research_plan_structure_problems,
     )
 
-    # (8) 研究计划无 audit_budgets 声明仍可冻结(lock 无计划级对账)
-    with tempfile.TemporaryDirectory() as tds:
-        tmp = Path(tds)
-        ctx, payload = tc._setup(tmp, plan_freeze=False)
-        problems = research_plan_structure_problems(payload)
-        record("Q2", "plan-missing-audit-budgets",
-               not problems,
-               f"无audit_budgets声明结构问题={problems or '无'}")
+    payload = {
+        "format": "cur261-qprod-research-plan-v1",
+        "level": "level_b", "iteration_id": "i1",
+        "profile": "engineering", "code_freeze_sha": "sha-x",
+        "coordinate_manifest": [
+            {"coordinate_id": "c01",
+             "model_namespace": "cue_qprod_v1_c01_model",
+             "validation_namespace": "cue_qprod_v1_c01_validation",
+             "artifact_subdir": "coord_c01"}],
+        "rules": {
+            "p0_fixed_reference": 0.9504, "p0_source_label": "eng",
+            "delta_definition": "P0 - recall(validation)",
+            "margin": 0.003, "alpha": 0.05, "r_analysis": 1.5,
+            "planned_k": 11},
+        "quota": {"max_leaf_calls_total": 640},
+        "code_identity": {}, "stop_mode": "collect_all_k",
+    }
+    problems = research_plan_structure_problems(payload)
+    record("Q2", "plan-missing-audit-budgets",
+           not problems,
+           f"无audit_budgets声明结构问题={problems or '无'}")
 
 
 def q2_native_budget() -> None:

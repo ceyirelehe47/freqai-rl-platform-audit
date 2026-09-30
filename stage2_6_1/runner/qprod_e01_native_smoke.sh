@@ -29,6 +29,11 @@ except QProdContextError as exc:
     print(f"[native-budget] REFUSED: {exc}")
     raise SystemExit(97)
 PYGATE
+GATE_RC=$?
+if [ "$GATE_RC" -ne 0 ]; then
+  echo "[native-budget] gate rc=$GATE_RC — fail closed, abort before any native generation" >&2
+  exit "$GATE_RC"
+fi
 RUNNER=$DEPLOY/stage2_6_1_runner
 ART=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/qprod_v1/native_smoke_run2
 BASE=$ART

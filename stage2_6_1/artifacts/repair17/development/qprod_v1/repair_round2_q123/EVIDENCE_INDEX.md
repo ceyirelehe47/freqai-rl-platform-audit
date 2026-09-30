@@ -38,3 +38,19 @@
 - `F:/trading/tmp_reviewer_q123/`(20 件:探针/输出/junit/coldread)。
 - 前轮包:仓库 `.../qprod_v1/return_stage/RouteC_QualificationProducer_
   Integration_v1_RETURN_REPAIR_Q123.zip`(SHA `972d0c0f…`,基包)。
+
+## R2 reviewer V1 FAIL→修复(F1/F2)
+- F1(P1):e01 runner 预算 gate heredoc 后未检查退出码(fail-open)——
+  已修:GATE_RC 捕获+非零即 exit(fail closed)。实测三场景:
+  预算文件缺失 rc=97、2/2 耗尽 rc=97(默认路径真实文件)、
+  gate python 崩溃同样 fail closed。reviewer 指出"run2 目录存在"
+  只是偶然守卫,现已不依赖。
+- F2(P2):复现探针 case8 曾依赖 tc._setup(同候选 fixture 已加
+  audit_budgets,前提漂移;旧 C10 复现件 0/14 中 case8 来自混合
+  部署态,不可复现)——已修:case8 自带无声明载荷(不依赖 fixture);
+  重出 `REPRO_Q123_ROUND2_C11.json`(真实 C10+ 字节 0/14)。
+  勘误:REPRO_Q123_ROUND2_C10.json 的 case8 结果(reproduced=false
+  且 problems 非空)来自部分同步部署态,已被 C11 件取代;其余 13
+  项不受影响。
+- qprod 面(含 R2 钉):122 passed/1 skipped(部署树 E01 白名单
+  用例 skip 属预期)。
