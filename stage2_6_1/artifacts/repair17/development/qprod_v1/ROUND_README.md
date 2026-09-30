@@ -42,3 +42,15 @@ reset/step。bank=标注夹具替身,零新增原生生成/零 fit/零 optimizer
 真实正式资格/研究/K=11 正式抽样/训练/新增 optimizer/BC/PPO 更新
 =NOT_RUN(0 次)。TrainingBridge 旧账未动。部署正式许可/状态/更新
 计数=0。
+
+## 返修轮(C7=cda4e975,reviewer F1-F4 修复后)
+- full_regression_v6(**C7 PASS 2614/0/0/7,ok=true**);
+  regression_262_v3(**C7 240 passed rc=0**)。
+- E02/E03 在 C7 复跑:8/8 成功标记;formal_log_verification
+  sequence_ok=true(F2 修复前原件为 false 与 PASS 并存——旧原件已被
+  C7 复跑替换,reviewer 首轮报告 F2 记录了旧原件矛盾)。
+- E01 原生原件(run1/run2,C4 产生)不受 F1-F4 影响;F1/F3 修复后
+  在 C7 对 run2 只读复算:rc_agg=0,冷读复现 true,主分类仍为
+  degenerate_se_prevents_v4_application(collect_all_k 模式无早停;
+  退化 SE 分支语义未变)。
+- 旧失败原件保留:full_regression_v2/v4、regression_262_v1。
