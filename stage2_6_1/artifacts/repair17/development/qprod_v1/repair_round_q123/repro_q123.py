@@ -16,7 +16,13 @@ sys.path.insert(0, "/home/cryptorl/projects/crypto_rl/tests"
 sys.path.insert(0, "/home/cryptorl/projects/crypto_rl/tests"
                  "/route_c_stage2_6_2")
 
-OUT = Path("/mnt/f/trading/tmp_qprod2/REPRO_Q123.json")
+import os
+
+OUT = Path(os.environ.get(
+    "REPRO_OUT", "/mnt/f/trading/tmp_qprod2/REPRO_Q123.json"))
+CANDIDATE_LABEL = os.environ.get(
+    "REPRO_CANDIDATE",
+    "unlabeled(candidate injected via REPRO_CANDIDATE env)")
 results = []
 
 
@@ -355,7 +361,7 @@ with tempfile.TemporaryDirectory() as td:
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(json.dumps(
     {"format": "cur261-qprod-repro-q123-v1",
-     "candidate_under_test": "C7=cda4e975 (deploy tree synced)",
+     "candidate_under_test": CANDIDATE_LABEL,
      "results": results}, indent=2, ensure_ascii=False))
 n = sum(1 for r in results if r["reproduced"])
 print(f"\nREPRODUCED {n}/{len(results)}")
