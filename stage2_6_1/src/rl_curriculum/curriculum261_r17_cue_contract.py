@@ -113,6 +113,10 @@ AUDIT_K_MIN_EVENTS_PER_POSITION = 30
 AUDIT_K_Z_THRESHOLD = 4.0
 #: audit bootstrap(与 r17_cue_eval 同规格;本模块自含双侧 CI 实现)。
 AUDIT_BOOTSTRAP_RESAMPLES = 20000
+#: R5-Q1:replay 数值影子判据引用(exact noise replay 冻结容限;
+#: 与生成内核 curriculum261_r17_noise_replay.REPLAY_TOL 同值,
+#: 交叉断言见测试)。
+_REPLAY_TOL_REF = 1e-12
 AUDIT_BOOTSTRAP_SEED = 20270102
 
 #: TailMirrorBoundIntegrity-v2(§12-A):确定性 tail 边界 hard gate 的
@@ -1190,6 +1194,20 @@ def recompute_audit_semantics_from_report(
         def _flag(key: str, *, default: bool = False) -> bool:
             v = c.get(key)
             if v is None and fixture:
+                # R5-Q1: 委托不可掩盖**在场坏数值**——支撑字段缺失
+                # 走委托前,必须先核该块在场的数值影子。replay 的影子
+                # = max_replay_abs_error(生成内核 replay_ok 的输入);
+                # 在场且违反冻结 REPLAY_TOL ⇒ 委托被否决(删除
+                # replay_ok 字段不能把坏数值洗成 PASS)。
+                mre = c.get("max_replay_abs_error")
+                if key == "replay_ok" and mre is not None \
+                        and float(mre) > _REPLAY_TOL_REF:
+                    disc.append(
+                        f"{name}.replay_ok 缺失但在场数值影子 "
+                        f"max_replay_abs_error={mre} > 冻结容限 "
+                        f"{_REPLAY_TOL_REF}(fixture 委托被否决;"
+                        f"删除支撑字段不能掩盖坏数值)")
+                    return False
                 delegated.append(f"{name}.{key}")
                 return True
             return bool(v)
@@ -1197,6 +1215,15 @@ def recompute_audit_semantics_from_report(
         replay = _flag("replay_ok")
         bounds = _flag("bounds_ok")
         cue_table = _flag("cue_table_consistent_across_rungs")
+        # 在场 replay 数值影子独立于 replay_ok 布尔/replay 委托:
+        # 坏数值无论字段在否都拒(生成内核 REPLAY_TOL 冻结语义)。
+        mre_val = c.get("max_replay_abs_error")
+        if mre_val is not None and float(mre_val) > _REPLAY_TOL_REF:
+            disc.append(
+                name + ".max_replay_abs_error=" + str(mre_val)
+                + " > 冻结容限 " + str(_REPLAY_TOL_REF)
+                + "(exact noise replay 数值失败)")
+            replay = False
         rc[f"{name}_corpus_ok"] = bool(
             replay and bounds and cue_table and inside and within
             and tail_ok)
@@ -1214,9 +1241,35 @@ def recompute_audit_semantics_from_report(
     ti = report.get("tail_mirror_bound_integrity") or {}
     per = ti.get("per_corpus") or {}
     if ti:
-        ti_sub_ok = bool(per) and all(
-            bool(v.get("ok")) and not (v.get("violations") or [])
-            for v in per.values())
+        # R5-Q1: 上层 ok/pass 布尔必须与**在场子输入**一致——
+        # exact_noise_replay_ok/bounds_ok_all_positions 任一 False、
+        # 或 violations/n_violations 非空 ⇒ 拒,不能只看 ok。
+        ti_sub_ok = bool(per)
+        for cname, sub in per.items():
+            sub_bad = (
+                sub.get("exact_noise_replay_ok") is False
+                or sub.get("bounds_ok_all_positions") is False
+                or bool(sub.get("violations"))
+                or int(sub.get("n_violations") or 0) > 0)
+            sub_declared = bool(sub.get("ok"))
+            if sub_bad:
+                ti_sub_ok = False
+                if sub_declared:
+                    sub_rep = ("exact_noise_replay_ok="
+                               + str(sub.get(
+                                   "exact_noise_replay_ok"))
+                               + ", bounds="
+                               + str(sub.get(
+                                   "bounds_ok_all_positions"))
+                               + ", violations="
+                               + repr(sub.get("violations")
+                                      or []))
+                    disc.append(
+                        "tail_mirror_bound_integrity."
+                        "per_corpus[" + cname + "].ok=True 与"
+                        " 在场子输入矛盾(" + sub_rep + ")")
+            elif not sub_declared:
+                ti_sub_ok = False
         rc["tail_mirror_bound_integrity_pass"] = bool(
             ti.get("pass")) and ti_sub_ok
     else:
@@ -1234,10 +1287,70 @@ def recompute_audit_semantics_from_report(
     ova = report.get("once_vs_attempts") or {}
     if ova:
         fpb = ova.get("first_pass_bitwise_check") or {}
+        # R5-Q1: consistent 布尔不可只按声明采信——从 direct_
+        # generator 在场数值重算:
+        #   (a)源一致:ova recall 字段(在场)必须等于对应语料
+        #      empirical_recall;
+        #   (b)数值判据:|rec_m-rec_v| <= max(3*sqrt(se_m^2+
+        #      se_v^2), 0.005)(once_vs_attempts 冻结容差规则,
+        #      plan payload 固定);
+        #   (c)声明一致:recall_modes_consistent 与重算矛盾即拒。
+        rec_m = dg.get("model", {}).get("empirical_recall")
+        rec_v = dg.get("validation", {}).get("empirical_recall")
+        se_m = float((dg.get("model", {}).get("block_cluster")
+                      or {}).get("se", 0.0) or 0.0)
+        se_v = float((dg.get("validation", {}).get("block_cluster")
+                      or {}).get("se", 0.0) or 0.0)
+        recall_ok = True
+        if rec_m is not None and rec_v is not None:
+            for fld, src_val, corpus in (
+                    ("recall_model", rec_m, "model"),
+                    ("recall_validation", rec_v, "validation")):
+                if ova.get(fld) is not None and abs(
+                        float(ova[fld]) - float(src_val)) > 1e-9:
+                    recall_ok = False
+                    disc.append(
+                        f"once_vs_attempts.{fld}={ova[fld]} 与 "
+                        f"direct_generator.{corpus}.empirical_"
+                        f"recall={src_val} 矛盾(来源不一致)")
+            recall_tol = max(
+                3.0 * math.sqrt(se_m * se_m + se_v * se_v),
+                AUDIT_DIFF_TOL_FLOOR)
+            diff = abs(float(rec_m) - float(rec_v))
+            if diff > recall_tol:
+                recall_ok = False
+                disc.append(
+                    f"once_vs_attempts recall 数值差 |{rec_m}-"
+                    f"{rec_v}|={diff} > 冻结容差 {recall_tol}"
+                    f"(max(3*sqrt(se_m^2+se_v^2),0.005))")
+            if ova.get("tolerance") is not None and abs(
+                    float(ova["tolerance"]) - recall_tol) > 1e-12:
+                ova_tol = ova.get("tolerance")
+                if ova_tol is not None and abs(
+                        float(ova_tol) - recall_tol) > 1e-12:
+                    disc.append(
+                        "once_vs_attempts.tolerance=" + str(ova_tol)
+                        + " != 冻结公式值 " + str(recall_tol)
+                        + "(ova 阈值漂移)")
+            if ova.get("recall_modes_consistent") is True \
+                    and not recall_ok:
+                disc.append(
+                    "once_vs_attempts.recall_modes_consistent="
+                    "True 与冻结数值重算矛盾")
+        k_ok = True
+        if ova.get("k_abs_diff") is not None \
+                and ova.get("k_tolerance") is not None:
+            k_ok = bool(float(ova["k_abs_diff"])
+                        <= float(ova["k_tolerance"]))
+            if ova.get("k_modes_consistent") is True and not k_ok:
+                disc.append(
+                    "once_vs_attempts.k_modes_consistent=True 与"
+                    " 在场 k_abs_diff/k_tolerance 数值矛盾")
         rc["once_vs_attempts_consistent"] = bool(
-            ova.get("recall_modes_consistent")
-            and ova.get("k_modes_consistent")
-            and fpb.get("bitwise_ok", False))
+            recall_ok and k_ok
+            and ova.get("recall_modes_consistent") is not False
+            and ova.get("k_modes_consistent") is not False
+            and fpb.get("bitwise_ok") is not False)
     else:
         rc["once_vs_attempts_consistent"] = (
             _delegated_flag("once_vs_attempts"))
