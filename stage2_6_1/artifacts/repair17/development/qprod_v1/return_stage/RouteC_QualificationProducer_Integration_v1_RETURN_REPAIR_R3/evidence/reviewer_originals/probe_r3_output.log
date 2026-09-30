@@ -1,0 +1,19 @@
+PASS P1 genuine rehearsal verdict PASS :: PASS
+PASS P1b cue gate pass + numbers/set consistent :: True
+PASS P2 foreign substitute check rejected
+PASS P3 extra check key rejected
+PASS P3b checks-False-vs-fine-numbers inconsistent rejected
+PASS P4 reservation retained(40) and blocks next block(80>60)
+PASS P5a boundary triggers on low recall (audit_fail included) :: c01
+PASS P5b degenerate SE does not trigger stop
+PASS P5c collect-all never stops at boundary
+PASS P6 qcap start_index!=0 rejected :: ['qcap block_range.start_index=1 != 0(生成内核固定从 0 起;范围矛盾)']
+PASS P7 native_smoke_run1 zero mutation
+PASS P7 native_smoke_run1 valid/primary/failed match C12 file :: valid=1 primary=inconclusive failed=['c01']
+PASS P7 native_smoke_run1/c01 retained recall/se/nrv :: recall=0.9607843137254902 se=0.028292718593392892
+PASS P7 native_smoke_run2 zero mutation
+PASS P7 native_smoke_run2 valid/primary/failed match C12 file :: valid=2 primary=inconclusive failed=['c01', 'c02']
+PASS P7 native_smoke_run2/c01 retained recall/se/nrv :: recall=0.9607843137254902 se=0.028292718593392892
+PASS P7 native_smoke_run2/c02 retained recall/se/nrv :: recall=1.0 se=0.0
+PROBE-SUMMARY 17/17
+PROBE-FAILURES none
