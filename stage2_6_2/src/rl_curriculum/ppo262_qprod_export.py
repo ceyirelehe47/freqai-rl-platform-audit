@@ -245,6 +245,60 @@ def export_qualification_delivery(
     if not checks["exposure_iteration_consistent"]:
         problems.append("exposure 与计划迭代不一致")
 
+    # ---- Q1 修复:真实终态(journal)/raw 字节绑定/校准前置 ----
+    # (1) producer 会话 journal 必须恰有一条绑定本计划的
+    #     run_terminal_recorded,status=completed 且 verdict 与
+    #     result 一致——真实终态不可伪造为"只改 result"。
+    journal_path = state_root / "qprod_run_journal.jsonl"
+    terminal_events = []
+    if journal_path.is_file():
+        for line in journal_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                problems.append("producer journal 存在不可解析行"
+                                "(fail closed)")
+                continue
+            if rec.get("event") == "run_terminal_recorded":
+                terminal_events.append(rec)
+    checks["producer_terminal_recorded"] = bool(
+        len(terminal_events) == 1
+        and terminal_events[0].get("plan_digest") == digest
+        and terminal_events[0].get("status") == "completed"
+        and terminal_events[0].get("verdict")
+        == result.get("verdict"))
+    if not checks["producer_terminal_recorded"]:
+        problems.append(
+            f"producer 真实终态不可核(journal terminal 事件数="
+            f"{len(terminal_events)};须恰 1 条且绑定本计划/"
+            "completed/verdict 一致)")
+    # (2) result 绑定 raw 证据字节摘要:raw 数据改坏而外层自洽
+    #     仍拒。
+    raw_sha = _sha(originals["raw"])
+    checks["result_binds_raw_bytes"] = (
+        result.get("raw_evidence_sha256") == raw_sha)
+    if not checks["result_binds_raw_bytes"]:
+        problems.append(
+            f"result.raw_evidence_sha256 "
+            f"{result.get('raw_evidence_sha256')!r} != raw 文件实测 "
+            f"{raw_sha}(raw 证据与 result 声明不一致,改坏即拒)")
+    # (3) 校准前置:资格计划绑定的 calibration_artifacts digest 与
+    #     盘上校准原件逐项一致——校准前置缺失/漂移不得导出。
+    cal_map = plan.get("calibration_artifacts") or {}
+    cal_problems = []
+    for name, want in cal_map.items():
+        f = art / name
+        if not f.is_file():
+            cal_problems.append(f"校准前置缺失 {name}")
+            continue
+        if _sha(f) != want:
+            cal_problems.append(f"校准前置 digest 不符 {name}")
+    checks["calibration_prerequisites_intact"] = not cal_problems
+    if cal_problems:
+        problems.append(f"校准前置核验失败: {cal_problems}")
+
     # ---- pack 完整性与绑定 ----
     fams = pack.get("families") or {}
     checks["pack_families_complete"] = (

@@ -16,9 +16,11 @@ from rl_curriculum.curriculum261_qprod_context import (
     QProdContextError, QProdRunSession, build_engineering_context,
 )
 from rl_curriculum.curriculum261_qprod_levela import (
-    QPROD_LEVELA_GATES, commit_exposure_terminal, open_exposure,
-    judge_qualification_gates, level_a_step_execution_plan,
-    run_level_a_rehearsal,
+    QPROD_LEVELA_GATES, build_engineering_cue_report_fixture,
+    build_engineering_topology_fixture, commit_exposure_terminal,
+    open_exposure, judge_qualification_gates,
+    level_a_step_execution_plan, run_level_a_rehearsal,
+
 )
 from rl_curriculum.curriculum261_qprod_plan import load_qualification_plan
 
@@ -52,10 +54,8 @@ def _fixture_inputs(tmp_path: Path, *, pack_pass_families=True,
     if bundle_hash_override is not None:
         bundle_hash = bundle_hash_override
     return {
-        "gate_topology": {"engineering_fixture": True},
-        "cue_audit_report": {
-            "format": "cur261-r17-cue-contract-audit-v1",
-            "pass": True, "audit_digest": "r15ca-" + "0" * 64},
+        "gate_topology": build_engineering_topology_fixture(),
+        "cue_audit_report": build_engineering_cue_report_fixture(),
         "preplan_smoke": {"pass": True},
         "design_plan": {"grid": "fixture"},
         "parameter_pack": pack,

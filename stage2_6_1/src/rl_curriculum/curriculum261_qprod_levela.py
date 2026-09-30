@@ -94,6 +94,79 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                                default=float), encoding="utf-8")
 
 
+def build_engineering_topology_fixture() -> dict[str, Any]:
+    """链外拓扑工程夹具:直接由公共权威函数生成(17 步名+产物
+    producer 映射),保证 provenance-verify 的公共对拍可过——
+    拓扑不再是自由形状 fixture。"""
+    from rl_curriculum.curriculum261_r17_workflow import (
+        r17_producer_of_artifact, r17_workflow_step_names,
+    )
+
+    producers = r17_producer_of_artifact()
+    return {
+        "format": "cur261-qprod-fixture-gate-topology-v1",
+        "engineering_fixture": True,
+        "workflow_steps": list(r17_workflow_step_names()),
+        "artifact_producers": dict(sorted(producers.items())),
+        "source": "r17_workflow.r17_workflow_step_names()+"
+                  "r17_producer_of_artifact()(公共权威;非自由形状)",
+    }
+
+
+def build_engineering_cue_report_fixture() -> dict[str, Any]:
+    """cue 审计报告工程夹具:完整 digest 核心形状 + 公共
+    cue_contract_audit_digest 实算摘要——判定核心用同一公共函数
+    复算对拍,fixture 不可自由伪造摘要。"""
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        ABSOLUTE_MINIMUM_RECALL, AUDIT_RNG_SEED,
+        C2_CUE_SEMANTIC_CONTRACT_VERSION, NONINFERIORITY_DELTA,
+        cue_contract_audit_digest,
+    )
+
+    report = {
+        "format": "cur261-r17-cue-contract-audit-v1",
+        "contract_version": C2_CUE_SEMANTIC_CONTRACT_VERSION,
+        "audit_namespaces": {"model": "qprod_eng_fixture_model",
+                             "validation": "qprod_eng_fixture_validation"},
+        "audit_blocks_per_corpus": 2,
+        "audit_rng_seed": AUDIT_RNG_SEED,
+        "audit_n_events_mc": 4096,
+        "frozen_detector": {
+            "cue_thr": 0.0105, "wick_dir_thr": 0.0,
+            "wick_width_thr": 0.0, "feature": "%-ret-1",
+            "vol_bps": 26.0, "pulse_bps": 30.0, "episode_bars": 288},
+        "mirror_bound_v2": {
+            "formula": "lo = max(1, t-16); hi = min(t-8, n-17)",
+            "r7_bug": "n/a(fixture)", "authority": "fixture"},
+        "margin_log": 0.5,
+        "p_contract": 0.9504,
+        "analytic_weights_source": "fixture(model corpus 直方图替身)",
+        "analytic_terms": [],
+        "monte_carlo": {"n_events": 4096, "p_hat": 0.9505, "se": 0.0034,
+                        "abs_diff_vs_analytic": 0.0001,
+                        "tolerance": 0.001, "pass": True},
+        "noninferiority": {
+            "delta": NONINFERIORITY_DELTA,
+            "absolute_minimum_recall": ABSOLUTE_MINIMUM_RECALL,
+            "recall_floor": max(ABSOLUTE_MINIMUM_RECALL,
+                                0.9504 - NONINFERIORITY_DELTA)},
+        "direct_generator": {
+            name: {"n_unique_positive_cues": 110,
+                   "empirical_recall": 0.9509,
+                   "block_cluster": {"point": 0.9509, "se": 0.0199,
+                                     "lcb95": 0.918, "ci95": [0.912, 0.99]},
+                   "analytic_conditional": 0.9504,
+                   "tail": {"n_events": 8, "empirical_recall": 0.95,
+                            "analytic_conditional": 0.949},
+                   "max_replay_abs_error": 0.0}
+            for name in ("model", "validation")},
+        "engineering_fixture": True,
+        "pass": True,
+    }
+    report["audit_digest"] = cue_contract_audit_digest(report)
+    return report
+
+
 def level_a_step_execution_plan() -> dict[str, dict[str, str]]:
     """17 步的工程排练执行分类(事前声明;账本照此记录)。
 
@@ -186,11 +259,27 @@ def judge_qualification_gates(art_dir: Path,
         return {"present": True, "sha256": _sha(p),
                 "parsed": json.loads(p.read_text(encoding="utf-8"))}
 
-    # gate 1:cue 审计合同 pass(读报告 checks/pass 实值+记录摘要)
+    # gate 1:cue 审计合同 pass(公共函数复算 digest + checks/pass 实值)
+    # Q1 修复:判定不能只看 pass 字符串——报告完整性用 r17 公共
+    # cue_contract_audit_digest 复算对拍,防"改数值不改 digest"。
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        cue_contract_audit_digest as _cue_digest,
+    )
+
     ev = evidence("cue_contract_audit.json")
+    digest_recomputed = None
+    digest_ok = None
+    if ev["present"]:
+        try:
+            digest_recomputed = _cue_digest(ev["parsed"])
+            digest_ok = (ev["parsed"].get("audit_digest")
+                         == digest_recomputed)
+        except (KeyError, TypeError, ValueError):
+            digest_ok = False
     cue_ok = bool(ev["present"]
                   and ev["parsed"].get("pass") is True
-                  and ev["parsed"].get("audit_digest"))
+                  and ev["parsed"].get("audit_digest")
+                  and digest_ok is True)
     gates["cue_audit_pass"] = {
         "pass": cue_ok, "evidence": "cue_contract_audit.json",
         "sha256": ev["sha256"],
@@ -198,7 +287,9 @@ def judge_qualification_gates(art_dir: Path,
                               if ev["present"] else None),
                      "audit_digest": (
                          ev["parsed"].get("audit_digest")
-                         if ev["present"] else None)}}
+                         if ev["present"] else None),
+                     "audit_digest_recomputed": digest_recomputed,
+                     "audit_digest_consistent": digest_ok}}
 
     # gate 2:稳健性 gate
     ev = evidence("robustness_gate.json")
@@ -225,13 +316,14 @@ def judge_qualification_gates(art_dir: Path,
                      "plan_bound_hash": plan_hash}}
 
     # gate 4:参数 pack digest 与资格计划绑定一致
+    # Q1 修复:复用 262 公共 parameter_pack_digest(消费合同同一
+    # 实现),不再本地重写一份 digest 算法。
     ev = evidence("parameter_pack.json")
     pack = ev["parsed"] if ev["present"] else {}
-    pack_body = {k: v for k, v in pack.items()
-                 if k not in ("digest", "created_utc")}
-    pack_d = ("e262pk-" + hashlib.sha256(
-        _canonical_json(pack_body).encode("utf-8")).hexdigest()
-        if ev["present"] else None)
+    from rl_curriculum.ppo262_qualified_input import (
+        parameter_pack_digest as _pack_digest,
+    )
+    pack_d = _pack_digest(pack) if ev["present"] else None
     plan_pack_d = ((qualification_plan.get("parameter_pack") or {})
                    .get("digest"))
     gates["parameter_pack_digest_match"] = {
@@ -351,15 +443,43 @@ def run_level_a_rehearsal(
         ctx.state_root, run_plan_payload)
 
     try:
-        # ---- 1. provenance-verify(真实:链外拓扑文件核验) ----
-        topo = fixture_inputs.get("gate_topology") or {}
-        _write_json(art / "gate_topology_reconciliation.json", topo)
-        ok = (art / "gate_topology_reconciliation.json").is_file()
+        # ---- 1. provenance-verify(真实:链外拓扑与公共权威对拍) ----
+        # Q1 修复:复用真实公共业务定义(r17 权威 17 步名与产物
+        # producer 映射)核验拓扑,不做"文件存在即通过"的简化。
+        # 缺失/结构不符 → 本步 FAIL → 链 FAIL(不允许仍 17 步 PASS)。
+        from rl_curriculum.curriculum261_r17_workflow import (
+            r17_producer_of_artifact, r17_workflow_step_names,
+        )
+
+        topo = fixture_inputs.get("gate_topology")
+        topo_problems: list[str] = []
+        if not isinstance(topo, dict) or not topo:
+            topo_problems.append("gate_topology 缺失(链外拓扑不可核)")
+        else:
+            declared_steps = topo.get("workflow_steps")
+            if declared_steps != list(r17_workflow_step_names()):
+                topo_problems.append(
+                    "workflow_steps 与权威 R17_WORKFLOW_STEPS 不一致")
+            declared_producers = topo.get("artifact_producers") or {}
+            canonical = r17_producer_of_artifact()
+            for art_name, producer in declared_producers.items():
+                if canonical.get(art_name) != producer:
+                    topo_problems.append(
+                        f"artifact {art_name!r} 声明 producer {producer!r}"
+                        f" != 权威 {canonical.get(art_name)!r}")
+        if isinstance(topo, dict):
+            _write_json(art / "gate_topology_reconciliation.json", topo)
+        else:
+            (art / "gate_topology_reconciliation.json").write_text(
+                json.dumps({}), encoding="utf-8")
+        ok = not topo_problems
         record("provenance-verify", mode=STEP_REAL, ok=ok,
-               note="链外 gate topology 夹具输入存在性核验(真实检查)",
+               note="链外拓扑与公共权威 17 步/producer 映射对拍"
+                    f"(问题: {topo_problems[:3] or '无'})",
                evidence="gate_topology_reconciliation.json")
         if not ok:
-            raise QProdContextError("provenance 输入缺失")
+            raise QProdContextError(
+                f"provenance-verify 失败: {topo_problems}")
 
         # ---- 2. determinism-matrix(替身) ----
         det = dict(fixture_inputs.get("determinism_contract") or {
@@ -408,22 +528,53 @@ def run_level_a_rehearsal(
                note="preplan 原生 smoke 替身",
                evidence="preplan_engineering_smoke.json")
 
-        # ---- 6. plan-roundtrip(真实:前置产物解析核验) ----
-        rt_ok = all(
-            (art / n).is_file() and json.loads(
-                (art / n).read_text(encoding="utf-8"))
-            for n in ("cue_contract_audit.json",
-                      "preplan_engineering_smoke.json"))
+        # ---- 6. plan-roundtrip(真实:前置产物解析+业务依赖核验) ----
+        # Q1 修复:preplan-smoke 是 plan-roundtrip 的真实前置——
+        # preplan FAIL ⇒ 本步 FAIL ⇒ 链 FAIL(不允许仍 17 步 PASS)。
+        rt_problems: list[str] = []
+        preplan = None
+        cue_report = None
+        for n in ("cue_contract_audit.json",
+                  "preplan_engineering_smoke.json"):
+            if not (art / n).is_file():
+                rt_problems.append(f"前置产物缺失 {n}")
+                continue
+            try:
+                doc = json.loads((art / n).read_text(encoding="utf-8"))
+            except json.JSONDecodeError as exc:
+                rt_problems.append(f"{n} 不可解析: {exc}")
+                continue
+            if n == "preplan_engineering_smoke.json":
+                preplan = doc
+            else:
+                cue_report = doc
+        if preplan is not None and preplan.get("pass") is not True:
+            rt_problems.append(
+                f"preplan-smoke pass={preplan.get('pass')!r} != True"
+                f"(前置业务失败,plan-roundtrip 不得通过)")
+        if cue_report is not None:
+            from rl_curriculum.curriculum261_r17_cue_contract import (
+                cue_contract_audit_digest,
+            )
+            want = cue_contract_audit_digest(cue_report)
+            if cue_report.get("audit_digest") != want:
+                rt_problems.append(
+                    "cue_contract_audit.json audit_digest 公共函数"
+                    "复算不一致")
+        rt_ok = not rt_problems
         _write_json(art / "plan_roundtrip_validation.json", {
             "format": "cur261-qprod-plan-roundtrip-v1",
-            "inputs_parse_ok": rt_ok, "checked": [
-                "cue_contract_audit.json",
-                "preplan_engineering_smoke.json"]})
+            "inputs_parse_ok": rt_ok,
+            "problems": rt_problems,
+            "checked": ["cue_contract_audit.json",
+                        "preplan_engineering_smoke.json"]})
         record("plan-roundtrip", mode=STEP_REAL, ok=rt_ok,
-               note="前置产物真实解析核验(替身输入,真实校验)",
+               note="前置产物解析+preplan pass 依赖+cue digest 公共"
+                    f"复算(问题: {rt_problems[:3] or '无'})",
                evidence="plan_roundtrip_validation.json")
         if not rt_ok:
-            raise QProdContextError("plan-roundtrip 前置产物不可解析")
+            raise QProdContextError(
+                f"plan-roundtrip 失败: {rt_problems}")
 
         # ---- 7. design-plan-lock(真实:create-only 锁定) ----
         dp = dict(fixture_inputs.get("design_plan") or {})
@@ -572,6 +723,9 @@ def run_level_a_rehearsal(
                                  status="completed")
         raw = judge_qualification_gates(art, qp)
         _write_json(art / QPROD_LEVELA_RAW_NAME, raw)
+        # Q1 修复:result 绑定 raw 证据字节摘要与校准前置 digest
+        # 映射——导出器据此拒绝"raw 数据改坏但外层自洽"与
+        # "校准前置缺失/漂移"的成功消费包。
         result = {
             "format": QPROD_LEVELA_RESULT_FORMAT,
             "qualification_plan_digest": qp_digest,
@@ -583,6 +737,8 @@ def run_level_a_rehearsal(
             "formal_pass": False,
             "gates": {k: v["pass"] for k, v in raw["gates"].items()},
             "raw_evidence": QPROD_LEVELA_RAW_NAME,
+            "raw_evidence_sha256": _sha(art / QPROD_LEVELA_RAW_NAME),
+            "calibration_artifacts_digests": dict(cal_dig),
             "parameter_pack_digest": pack["digest"],
             "preprocessor_bundle_hash": bundle_hash,
             "completed_utc": _now(),

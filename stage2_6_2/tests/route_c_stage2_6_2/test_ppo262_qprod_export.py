@@ -17,7 +17,10 @@ import pytest
 from rl_curriculum.curriculum261_qprod_context import (
     QProdContextError, QProdRunSession, build_engineering_context,
 )
-from rl_curriculum.curriculum261_qprod_levela import run_level_a_rehearsal
+from rl_curriculum.curriculum261_qprod_levela import (
+    build_engineering_cue_report_fixture,
+    build_engineering_topology_fixture, run_level_a_rehearsal,
+)
 from rl_curriculum.ppo262_qualified_input import (
     QualifiedInputError, authorization_binding_digest,
     load_qualified_input, qualification_plan_digest,
@@ -53,9 +56,8 @@ def _producer(tmp_path: Path, *, variant="v1_r2_reference",
     preproc.serialize_envelope(envelope_path)
     envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
     out = run_level_a_rehearsal(ctx, session, {
-        "gate_topology": {"fixture": True},
-        "cue_audit_report": {"pass": True,
-                             "audit_digest": "r15ca-" + "0" * 64},
+        "gate_topology": build_engineering_topology_fixture(),
+        "cue_audit_report": build_engineering_cue_report_fixture(),
         "preplan_smoke": {"pass": True},
         "design_plan": {"grid": "f"},
         "parameter_pack": pack,

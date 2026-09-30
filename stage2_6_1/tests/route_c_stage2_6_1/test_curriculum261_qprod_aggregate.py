@@ -34,7 +34,7 @@ def _events_for(blocks: int, *, hits_per_block: int, n_events: int,
             detected = 1 if j < hits_per_block else 0
             events.append({
                 "corpus": "validation", "block_index": b,
-                "cue_bar": 20 + ((j * 7 + seed_tag) % 200),
+                "cue_bar": 20 + ((j * 7 + seed_tag + b * 3) % 200),
                 "primary_present": 1, "k_actual": (j + seed_tag) % 5,
                 "mirror_positions": [1, 2], "mirror_candidates": 2,
                 "effective_sigma_bps": 26.0,
@@ -67,18 +67,53 @@ def _build_coordinate(art_dir: Path, subdir: str, *, blocks=4,
         return coord_dir
     model_ns = NS_MODEL[subdir]
     validation_ns = NS_VALIDATION[subdir]
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        ABSOLUTE_MINIMUM_RECALL, AUDIT_RNG_SEED,
+        C2_CUE_SEMANTIC_CONTRACT_VERSION, NONINFERIORITY_DELTA,
+        cue_contract_audit_digest,
+    )
+
     report = {
         "format": "cur261-r17-cue-contract-audit-v1",
+        "contract_version": C2_CUE_SEMANTIC_CONTRACT_VERSION,
         "audit_namespaces": {"model": model_ns,
                              "validation": validation_ns},
         "audit_blocks_per_corpus": blocks,
+        "audit_rng_seed": AUDIT_RNG_SEED,
+        "audit_n_events_mc": 4096,
+        "frozen_detector": {
+            "cue_thr": 0.0105, "wick_dir_thr": 0.0,
+            "wick_width_thr": 0.0, "feature": "%-ret-1",
+            "vol_bps": 26.0, "pulse_bps": 30.0, "episode_bars": 288},
+        "mirror_bound_v2": {"formula": "fixture",
+                            "r7_bug": "fixture",
+                            "authority": "fixture"},
+        "margin_log": 0.5,
         "p_contract": 0.94 + 0.001 * seed_tag,
+        "analytic_weights_source": "synthetic fixture",
+        "analytic_terms": [],
+        "monte_carlo": {"n_events": 4096, "p_hat": 0.9405, "se": 0.0036,
+                        "abs_diff_vs_analytic": 0.0001,
+                        "tolerance": 0.001, "pass": True},
+        "noninferiority": {
+            "delta": NONINFERIORITY_DELTA,
+            "absolute_minimum_recall": ABSOLUTE_MINIMUM_RECALL,
+            "recall_floor": max(ABSOLUTE_MINIMUM_RECALL,
+                                (0.94 + 0.001 * seed_tag)
+                                - NONINFERIORITY_DELTA)},
         "direct_generator": {
             "validation": {
+                "n_unique_positive_cues": 220,
                 "empirical_recall": boot["point"],
                 "block_cluster": {"point": boot["point"],
-                                  "se": boot["se"]}}},
+                                  "se": boot["se"], "lcb95": 0.91,
+                                  "ci95": [0.9, 0.99]},
+                "analytic_conditional": 0.94 + 0.001 * seed_tag,
+                "tail": {"n_events": 8, "empirical_recall": 0.94,
+                         "analytic_conditional": 0.939},
+                "max_replay_abs_error": 0.0}},
     }
+    report["audit_digest"] = cue_contract_audit_digest(report)
     (coord_dir / "cue_contract_audit.json").write_text(
         json.dumps(report), encoding="utf-8")
     # block seed 日志(model once + validation attempts;seed 与派生
@@ -99,6 +134,32 @@ def _build_coordinate(art_dir: Path, subdir: str, *, blocks=4,
     (coord_dir / "qprod_block_seed_log.jsonl").write_text(
         "\n".join(json.dumps(e, sort_keys=True) for e in log) + "\n",
         encoding="utf-8")
+    # Q3 新式合成坐标:冻结坐标审计计划(qcap)+ digest 文件 +
+    # per-block 事件摘要绑定(与生产侧同构;seal 绑定真实复算值)。
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        _per_block_event_digests, coordinate_audit_plan_digest,
+    )
+
+    qcap_payload = {
+        "format": "cur261-qprod-coordinate-audit-plan-v1",
+        "coordinate_id": subdir,
+        "research_plan_digest": plan_digest,
+        "profile": "engineering",
+        "budgets": {"blocks_per_corpus": blocks, "mc_events": 4096,
+                    "engineering_only": True},
+        "namespaces": {"model": model_ns,
+                       "validation": validation_ns},
+        "block_range": {"start_index": 0, "count": blocks},
+        "generation_mode": {"model": "once",
+                            "validation": "attempts"},
+        "code_identity": {},
+    }
+    qcap_digest = coordinate_audit_plan_digest(qcap_payload)
+    qcap_payload["coordinate_audit_plan_digest"] = qcap_digest
+    (coord_dir / "qprod_coordinate_audit_plan.json").write_text(
+        json.dumps(qcap_payload), encoding="utf-8")
+    (coord_dir / "qprod_coordinate_audit_plan_digest.txt").write_text(
+        qcap_digest + "\n", encoding="utf-8")
     members = {}
     for name in ("cue_contract_audit.json", "cue_event_trace.jsonl",
                  "qprod_block_seed_log.jsonl"):
@@ -108,8 +169,10 @@ def _build_coordinate(art_dir: Path, subdir: str, *, blocks=4,
         "format": "cur261-qprod-coordinate-seal-v1",
         "coordinate_id": subdir,
         "research_plan_digest": plan_digest,
-        "audit_digest": "r15ca-synth",
+        "coordinate_audit_plan_digest": qcap_digest,
+        "audit_digest": report["audit_digest"],
         "members_sha256": members,
+        "per_block_event_digests": _per_block_event_digests(trace),
         "summary": {
             "recall_validation": boot["point"],
             "se_validation": boot["se"],

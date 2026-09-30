@@ -67,6 +67,10 @@ def _build_fixture_inputs(args: argparse.Namespace,
     V2 工程 producer fit 使用固定手工 fit 样例并保留来源(消费侧
     fit 调用为 0);raw 业务输入为夹具,判定/锁定/导出逻辑真实。
     """
+    from rl_curriculum.curriculum261_qprod_levela import (
+        build_engineering_cue_report_fixture,
+        build_engineering_topology_fixture,
+    )
     from rl_curriculum.ppo262_eng_fixture import (
         _engineering_pack, build_frozen_v2_preprocessor,
     )
@@ -75,24 +79,13 @@ def _build_fixture_inputs(args: argparse.Namespace,
     envelope_path = workdir / "fixture_v2_envelope.json"
     preproc.serialize_envelope(envelope_path)
     return {
-        "gate_topology": {
-            "format": "cur261-qprod-fixture-gate-topology-v1",
-            "engineering_fixture": True,
-            "nodes": ["determinism", "audit", "cue-audit", "design",
-                      "calibrate", "lock-plan", "qualify"],
-        },
+        "gate_topology": build_engineering_topology_fixture(),
         "determinism_contract": {
             "format": "cur261-qprod-fixture-determinism-v1",
             "engineering_fixture": True,
             "note": "原生确定性由 Level B 坐标原生面覆盖",
         },
-        "cue_audit_report": {
-            "format": "cur261-r17-cue-contract-audit-v1",
-            "pass": True,
-            "audit_digest": "r15ca-" + "0" * 64,
-            "p_contract": 0.9504,
-            "engineering_fixture": True,
-        },
+        "cue_audit_report": build_engineering_cue_report_fixture(),
         "preplan_smoke": {
             "format": "cur261-qprod-fixture-preplan-v1",
             "pass": True, "engineering_fixture": True,

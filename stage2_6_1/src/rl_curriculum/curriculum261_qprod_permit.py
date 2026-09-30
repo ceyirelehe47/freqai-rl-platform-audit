@@ -149,6 +149,14 @@ def validate_permit(permit_path: Path | str, *,
     if not isinstance(quota, dict) or any(
             k not in quota for k in QPROD_QUOTA_REQUIRED_KEYS):
         raise QProdContextError(f"许可配额结构非法: {quota!r}")
+    # Q2 修复:配额值必须是正整数(bool 不是 int);0 额度许可禁止
+    # 进入审计——配额是叶边界执行前置,不是事后统计字段。
+    for k in QPROD_QUOTA_REQUIRED_KEYS:
+        v = quota[k]
+        if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+            raise QProdContextError(
+                f"许可配额 {k}={v!r} 非法(须正整数;0 额度禁止进入"
+                f"审计,不允许以 0 配额许可起跑后靠事后计数补救)")
     if context.namespaces_scope:
         declared = set(scope.get("namespaces") or [])
         unknown = declared - set(context.namespaces_scope)

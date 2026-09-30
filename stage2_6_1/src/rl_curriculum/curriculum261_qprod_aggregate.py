@@ -114,6 +114,54 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             "research_plan_digest"):
         problems.append("seal 未绑定当前冻结研究计划 digest")
 
+    # ---- Q3 修复:必需成员集合精确覆盖(空集/子集/多余成员均拒) ----
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        QPROD_COORDINATE_AUDIT_PLAN_NAME, coordinate_audit_plan_digest,
+    )
+
+    required_members = {"cue_contract_audit.json",
+                        "cue_event_trace.jsonl",
+                        QPROD_BLOCK_SEED_LOG_NAME}
+    declared_members = set((seal.get("members_sha256") or {}).keys())
+    if declared_members != required_members:
+        problems.append(
+            f"seal 成员集合 {sorted(declared_members)} != 必需集合 "
+            f"{sorted(required_members)}(空集/子集/多余成员均不构成"
+            f"有效坐标)")
+
+    # ---- Q3 修复:冻结坐标审计计划(qcap)存在/自洽/绑定 ----
+    qcap_path = coord_dir / QPROD_COORDINATE_AUDIT_PLAN_NAME
+    if not qcap_path.is_file():
+        problems.append("冻结坐标审计计划缺失(qcap;未锁定的坐标"
+                        "产物不构成有效坐标)")
+    else:
+        qcap = None
+        try:
+            qcap = json.loads(qcap_path.read_text(encoding="utf-8"))
+            qcap_d = coordinate_audit_plan_digest(qcap)
+        except (json.JSONDecodeError, KeyError, TypeError,
+                ValueError) as exc:
+            problems.append(f"冻结坐标审计计划不可解析: {exc}")
+        else:
+            qcap_digest_file = coord_dir / (
+                "qprod_coordinate_audit_plan_digest.txt")
+            stored_d = (qcap_digest_file.read_text(
+                encoding="utf-8").strip()
+                if qcap_digest_file.is_file() else "")
+            if stored_d != qcap_d:
+                problems.append("冻结坐标审计计划 digest 复算不一致")
+            if qcap.get("research_plan_digest") != research_plan.get(
+                    "research_plan_digest"):
+                problems.append("冻结坐标审计计划未绑定当前研究计划")
+            if (qcap.get("namespaces", {}).get("model")
+                    != coordinate["model_namespace"]
+                    or qcap.get("namespaces", {}).get("validation")
+                    != coordinate["validation_namespace"]):
+                problems.append("冻结坐标审计计划 namespace 与清单"
+                                "不一致")
+            if seal.get("coordinate_audit_plan_digest") != qcap_d:
+                problems.append("seal 未绑定冻结坐标审计计划 digest")
+
     # 成员摘要核对(从冻结 seal 找原件并核对摘要/来源)
     for name, want in (seal.get("members_sha256") or {}).items():
         p = coord_dir / name
@@ -137,6 +185,22 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             or report.get("audit_namespaces", {}).get("validation")
             != coordinate["validation_namespace"]):
         problems.append("报告实际 namespace 与清单不一致")
+    # Q3 修复:audit digest 公共函数复算(报告自洽 + seal 绑定)
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        cue_contract_audit_digest,
+    )
+
+    audit_digest_ok = None
+    try:
+        audit_digest_ok = (report.get("audit_digest")
+                           == cue_contract_audit_digest(report))
+    except (KeyError, TypeError, ValueError):
+        audit_digest_ok = False
+    if audit_digest_ok is not True:
+        problems.append("报告 audit_digest 公共函数复算不一致"
+                        "(伪 audit 摘要拒)")
+    if seal.get("audit_digest") != report.get("audit_digest"):
+        problems.append("seal audit_digest 与报告 audit_digest 不一致")
 
     seed_log_path = coord_dir / QPROD_BLOCK_SEED_LOG_NAME
     if not seed_log_path.is_file():
@@ -182,6 +246,22 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
                     f"公式不一致(block {e.get('block_index')})")
     if len(once_entries) != report["audit_blocks_per_corpus"]:
         problems.append("once 块数与报告 blocks_per_corpus 不一致")
+    # Q3 修复:validation seeds 覆盖——attempts 条目数与 block 范围
+    # 精确一致(缺 validation seeds 拒)
+    attempts_entries = [e for e in seed_log
+                        if e.get("kind") == "attempts"]
+    blocks_declared = int(report["audit_blocks_per_corpus"])
+    if len(attempts_entries) != blocks_declared:
+        problems.append(
+            f"attempts(validation seeds)条目数 {len(attempts_entries)}"
+            f" != blocks_per_corpus {blocks_declared}(validation "
+            f"seeds 缺失)")
+    attempts_blocks = sorted({int(e["block_index"])
+                              for e in attempts_entries})
+    if attempts_blocks != list(range(blocks_declared)):
+        problems.append(
+            f"attempts block 索引集合 {attempts_blocks} != 声明范围 "
+            f"[0,{blocks_declared})")
 
     # 事件复算(共享可靠 reader 函数;拒绝只信汇总 JSON)
     events_path = coord_dir / "cue_event_trace.jsonl"
@@ -220,6 +300,35 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
     report_se = report["direct_generator"]["validation"]["block_cluster"]
     if abs(float(report_se["point"]) - recall_recomputed) > 1e-12:
         problems.append("报告 validation recall 与事件复算不一致")
+    # Q3 修复:事件 block 归属——validation 事件 block 集合必须与
+    # attempts seeds 的 block 集合精确一致(换位/漂移拒)
+    validation_blocks = sorted({int(e["block_index"])
+                                for e in validation_events})
+    if validation_blocks != attempts_blocks:
+        problems.append(
+            f"validation 事件 block 集合 {validation_blocks} != "
+            f"attempts seeds block 集合 {attempts_blocks}"
+            f"(事件 block 归属不一致)")
+    # Q3 修复:逐 (corpus, block) 事件摘要复算——事件与 block 的
+    # 精确绑定;任何换位/改动改变所属 block 摘要即拒。缺失该字段
+    # 的 legacy seal 只标记不强制重生成(REVIEWER_ADDENDUM #5)。
+    legacy_binding = False
+    sealed_pbd = seal.get("per_block_event_digests")
+    if not sealed_pbd:
+        legacy_binding = True
+    else:
+        from rl_curriculum.curriculum261_qprod_coordinate import (
+            _per_block_event_digests,
+        )
+        recomputed_pbd = _per_block_event_digests(
+            coord_dir / "cue_event_trace.jsonl")
+        if recomputed_pbd != sealed_pbd:
+            diff = {k: (sealed_pbd.get(k), recomputed_pbd.get(k))
+                    for k in set(sealed_pbd) | set(recomputed_pbd)
+                    if sealed_pbd.get(k) != recomputed_pbd.get(k)}
+            problems.append(
+                f"per-block 事件摘要复算不一致(换位/改动): "
+                f"{dict(list(diff.items())[:3])}")
 
     if problems:
         return {"state": COORDINATE_STATE_INVALID,
@@ -227,6 +336,7 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
     return {
         "state": COORDINATE_STATE_VALID,
         "problems": [],
+        "legacy_seal_without_event_binding": legacy_binding,
         "recall_validation": recall_recomputed,
         "se_validation": se_recomputed,
         "p_contract_local": float(summary.get("p_contract_local", 0.0)),
@@ -292,6 +402,19 @@ def aggregate_research(artifact_root: Path | str, *,
         if verdict["state"] == COORDINATE_STATE_CORRUPT:
             corrupt_stop = True
         coordinates.append(entry)
+        # Q3 修复:早停约束**聚合消费**——早停已触发后,其后坐标
+        # 即使违规生产了 seal 也不进入主分析(标记
+        # post_stop_not_consumed/protocol_violation,排除出有效集);
+        # 启动侧约束见 coordinate._early_stop_boundary(拒启动)。
+        if (stop_mode == "early_stop_on_first_negative"
+                and early_stopped_at is not None
+                and entry["state"] == COORDINATE_STATE_VALID
+                and coord["coordinate_id"] != early_stopped_at):
+            entry["state"] = "post_stop_not_consumed"
+            entry["protocol_violation"] = (
+                f"early_stop 已在 {early_stopped_at!r} 触发;本坐标"
+                f" 不应被生产/不进入主分析(启动侧应被拒;此处"
+                f"聚合侧排除并留痕)")
         # 早停模式:首个有效统计负结果即停(后续坐标不再要求生产)。
         # 统计负结果 = beyond_positive_margin(delta=P0-recall>margin,
         # 即实测 recall 显著偏低/解析预测高估;v4 ACTION_MAPPING 的

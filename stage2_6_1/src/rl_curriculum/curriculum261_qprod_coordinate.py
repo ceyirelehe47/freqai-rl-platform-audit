@@ -151,6 +151,27 @@ def lock_coordinate_audit_plan(
             f"({{'blocks_per_corpus': budgets['blocks_per_corpus'], "
             f"'mc_events': budgets['mc_events']}}) 不一致"
             f"(工程须显式缩减标注;正式不得降级)")
+    # Q2 修复:预注册生成设置必须与真实生成内核一致,不支持值显式
+    # 拒绝,不得静默记录后被内核忽略——
+    # - max_attempts:核心 generate_matched_block_with_attempts 使用
+    #   冻结 C2_BLOCK_MAX_ATTEMPTS(=5),不接受调用方覆盖;
+    # - block_start_index:核心 block 派生固定从 0 起
+    #   (derive261_block_seed(ns, i, attempt),i∈[0,blocks)),不支持
+    #   非零起点;预注册范围与真实生成不一致即拒绝。
+    from rl_curriculum.curriculum261_r6_tape import C2_BLOCK_MAX_ATTEMPTS
+
+    if settings["max_attempts"] != C2_BLOCK_MAX_ATTEMPTS:
+        raise QProdContextError(
+            f"坐标 max_attempts={settings['max_attempts']!r} 与生成"
+            f"内核冻结 C2_BLOCK_MAX_ATTEMPTS={C2_BLOCK_MAX_ATTEMPTS}"
+            f" 不一致(不支持值显式拒绝;内核不接受覆盖,不得静默"
+            f"记录后忽略)")
+    block_start = int(coordinate.get("block_start_index", 0))
+    if block_start != 0:
+        raise QProdContextError(
+            f"坐标 block_start_index={block_start!r} 不受支持(核心"
+            f" block 派生固定从 index 0 起;预注册范围与真实生成"
+            f"不一致即拒绝)")
     for key in ("model_namespace", "validation_namespace"):
         ns = coordinate.get(key)
         if ns not in CURRICULUM261_QPROD_ENGINEERING_NAMESPACES:
@@ -228,15 +249,30 @@ def load_coordinate_audit_plan(coord_dir: Path | str) -> dict[str, Any]:
     return payload
 
 
+class QProdQuotaExceeded(RuntimeError):
+    """叶边界配额耗尽(episode 单位;在任何生成调用前抛出)。"""
+
+
 class _GenerationLedger:
     """叶调用计数钩子(once/attempts/逐位重放;逐调用记账+块归属)。
+
+    Q2 修复:配额在**真实叶边界**以 episode 为单位执行——每次
+    block 级调用(once/attempts/bitwise replay)= 8 个 episode 叶
+    调用;每次调用前预.reserve(超过 per-coordinate 上限即在生成
+    之前抛 QProdQuotaExceeded,不进入该次生成)。账本同时记录
+    block 级调用数(legacy 字段)与 episode 叶调用数(配额单位),
+    单位在 unit_note 中显式声明。
 
     raw_dir 给定时,每个成功正文 block 的原始 df/hidden 逐 rung/side
     落盘(E01:原始 OHLCV/hidden/trace 归档,供 reader 与 reviewer
     只读复算);完整性重放的输入即已归档正文,不重复落盘。
     """
 
-    def __init__(self, raw_dir: Path | None = None) -> None:
+    EPISODES_PER_BLOCK = 8
+
+    def __init__(self, raw_dir: Path | None = None, *,
+                 quota_max_episode_leaf_calls: int | None = None,
+                 coordinate_id: str = "") -> None:
         self.leaf_calls = {"once": 0, "attempts": 0,
                            "bitwise_replay": 0}
         self.block_log: list[dict[str, Any]] = []
@@ -244,6 +280,30 @@ class _GenerationLedger:
         self._attempts_impl = None
         self._once_seq: dict[str, int] = {}
         self.raw_dir = Path(raw_dir) if raw_dir is not None else None
+        self.quota_max_episode_leaf_calls = (
+            int(quota_max_episode_leaf_calls)
+            if quota_max_episode_leaf_calls is not None else None)
+        self.coordinate_id = coordinate_id
+
+    # ------------------------------------------------ 叶边界配额
+    @property
+    def episode_leaf_calls(self) -> int:
+        calls = (self.leaf_calls["once"] + self.leaf_calls["attempts"]
+                 + self.leaf_calls["bitwise_replay"])
+        return calls * self.EPISODES_PER_BLOCK
+
+    def _reserve(self, kind: str) -> None:
+        """生成调用前的配额预占(episode 单位;先于任何生成)。"""
+        if self.quota_max_episode_leaf_calls is None:
+            return
+        projected = self.episode_leaf_calls + self.EPISODES_PER_BLOCK
+        if projected > self.quota_max_episode_leaf_calls:
+            raise QProdQuotaExceeded(
+                f"坐标 {self.coordinate_id!r} {kind} 叶边界配额耗尽:"
+                f"projected episode 叶调用 {projected} > 上限 "
+                f"{self.quota_max_episode_leaf_calls}(已发生 "
+                f"{self.episode_leaf_calls};拒绝在生成前抛出,"
+                f"不透支)")
 
     def _archive_episodes(self, tag: str,
                           episodes: dict[str, Any]) -> None:
@@ -271,6 +331,7 @@ class _GenerationLedger:
         ledger = self
 
         def counting_once(ladder, seed, ns):
+            ledger._reserve("once")
             ledger.leaf_calls["once"] += 1
             seq = ledger._once_seq.get(ns, 0)
             ledger._once_seq[ns] = seq + 1
@@ -288,6 +349,7 @@ class _GenerationLedger:
             return episodes
 
         def counting_attempts(ladder, *, namespace, block_index):
+            ledger._reserve("attempts")
             ledger.leaf_calls["attempts"] += 1
             block = ledger._attempts_impl(
                 ladder, namespace=namespace, block_index=block_index)
@@ -309,7 +371,8 @@ class _GenerationLedger:
 
         def counting_bitwise_replay(ladder, seed, ns):
             # 完整性检查中的生成重放计入叶调用配额(单独归类;
-            # 输入=已归档正文,不重复落盘)
+            # 输入=已归档正文,不重复落盘);同样先预占后生成
+            ledger._reserve("bitwise_replay")
             ledger.leaf_calls["bitwise_replay"] += 1
             return ledger._once_impl(ladder, seed, ns)
 
@@ -324,8 +387,14 @@ class _GenerationLedger:
             "leaf_calls_total": calls,
             "leaf_calls_by_kind": dict(self.leaf_calls),
             "episode_calls_estimate": calls * 8,
+            "episode_leaf_calls": calls * self.EPISODES_PER_BLOCK,
+            "episode_leaf_calls_quota": self.quota_max_episode_leaf_calls,
             "n_blocks_generated": (
                 self.leaf_calls["once"] + self.leaf_calls["attempts"]),
+            "unit_note": "leaf_calls_total=外层 block 调用;"
+                         "episode_leaf_calls=episode 叶调用"
+                         "(SCOPE_AND_BUDGET §3 配额单位;"
+                         "1 block 调用=8 episode)",
         }
 
 
@@ -354,6 +423,60 @@ def _write_interrupted(coord_dir: Path, reason: str,
         json.dumps(payload, indent=2, ensure_ascii=False),
         encoding="utf-8")
 
+
+def _per_block_event_digests(trace_path: Path) -> dict[str, str]:
+    """逐 (corpus, block_index) 事件列表摘要(规范 JSON;Q3 绑定)。"""
+    by_block: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    for line in Path(trace_path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        e = json.loads(line)
+        key = (str(e.get("corpus")), int(e.get("block_index")))
+        by_block.setdefault(key, []).append(e)
+    out: dict[str, str] = {}
+    for (corpus, block), events in sorted(by_block.items()):
+        blob = json.dumps(events, sort_keys=True, ensure_ascii=False,
+                          default=float)
+        out[f"{corpus}:{block}"] = hashlib.sha256(
+            blob.encode("utf-8")).hexdigest()
+    return out
+
+
+def _early_stop_boundary(research_plan: dict[str, Any],
+                         artifact_root: Path) -> str | None:
+    """early_stop 模式下已触发的早停坐标(只读扫描已封存 seal;
+    与聚合 reader 同一判定方向:beyond_positive_margin 且 SE>0)。
+    collect_all_k 模式恒 None。零生成。"""
+    if research_plan.get("stop_mode") != "early_stop_on_first_negative":
+        return None
+    rules = research_plan.get("rules") or {}
+    p0 = float(rules.get("p0_fixed_reference", 0.0))
+    for coord in research_plan.get("coordinate_manifest") or []:
+        seal_path = (Path(artifact_root) / str(
+            coord.get("artifact_subdir")) / QPROD_COORDINATE_SEAL_NAME)
+        if not seal_path.is_file():
+            continue
+        try:
+            seal = json.loads(seal_path.read_text(encoding="utf-8"))
+            summary = seal.get("summary") or {}
+            recall = float(summary.get("recall_validation", 0.0))
+            se = float(summary.get("se_validation", 0.0))
+        except (json.JSONDecodeError, ValueError, TypeError):
+            continue
+        if se <= 0.0:
+            continue
+        from rl_curriculum.curriculum261_qprod_aggregate import (
+            _load_v4_module,
+        )
+        v4 = _load_v4_module()
+        single = v4.classify_primary(
+            p0 - recall, [se],
+            margin=float(rules.get("margin", 0.003)),
+            r_analysis=float(rules.get("r_analysis", 1.5)),
+            alpha=float(rules.get("alpha", 0.05)), planned_k=None)
+        if single["magnitude"] == "beyond_positive_margin":
+            return str(coord.get("coordinate_id"))
+    return None
 
 def run_coordinate_audit_locked(
         ctx: QProdContext, live_permit: LivePermitToken,
@@ -445,14 +568,34 @@ def run_coordinate_audit_locked(
 
     profile = str(cap["profile"])
     formal = profile == "formal"
-    ledger = _GenerationLedger(raw_dir=coord_dir / "raw_episodes")
+    # Q3 修复:early_stop 模式下,若更早坐标已触发统计负结果早停,
+    # 本坐标启动被拒(零叶调用)——早停约束实际启动,不只是标记。
+    boundary = _early_stop_boundary(research_plan, ctx.artifact_root)
+    if boundary is not None and boundary != coordinate_id:
+        manifest_order = [c.get("coordinate_id") for c in
+                          research_plan["coordinate_manifest"]]
+        if manifest_order.index(coordinate_id) > manifest_order.index(
+                boundary):
+            raise _refuse(
+                f"early_stop 已在坐标 {boundary!r} 触发;其后坐标 "
+                f"{coordinate_id!r} 启动被拒(零叶调用;早停约束"
+                f"实际启动与聚合消费,不是只写标记)")
+    # Q2 修复:许可配额(episode 单位)进入叶边界账本 enforce
+    ledger = _GenerationLedger(
+        raw_dir=coord_dir / "raw_episodes",
+        quota_max_episode_leaf_calls=int(
+            live_permit.quota["max_leaf_calls_per_coordinate"]),
+        coordinate_id=coordinate_id)
     hooks = ledger.bind()
     _ledger_append(Path(ledger_path), {
         "action": "start", "coordinate_id": coordinate_id,
         "profile": profile,
         "namespaces": [coordinate["model_namespace"],
                        coordinate["validation_namespace"]],
-        "budgets": cap["budgets"], "utc": now})
+        "budgets": cap["budgets"],
+        "quota_episode_leaf_calls": int(
+            live_permit.quota["max_leaf_calls_per_coordinate"]),
+        "utc": now})
     try:
         report = _run_cue_contract_audit_core(
             coord_dir,
@@ -476,7 +619,21 @@ def run_coordinate_audit_locked(
             },
             generation_hooks=hooks,
         )
-    except BaseException as exc:  # 中断/失败:可归属记录,不自动重抽
+    except QProdQuotaExceeded as exc:
+        # Q2 修复:配额耗尽是显式失败出口(不透支、不静默截短);
+        # 中断标记+账本 quota_exceeded 行,已发生调用全额入账。
+        _write_interrupted(coord_dir, f"{type(exc).__name__}: {exc}",
+                           ledger)
+        (coord_dir / QPROD_BLOCK_SEED_LOG_NAME).write_text(
+            "\n".join(json.dumps(e, ensure_ascii=False, sort_keys=True)
+                      for e in ledger.block_log) + "\n", encoding="utf-8")
+        _ledger_append(Path(ledger_path), {
+            "action": "quota_exceeded", "coordinate_id": coordinate_id,
+            "error": f"{type(exc).__name__}: {exc}",
+            **ledger.totals(),
+            "utc": datetime.now(timezone.utc).isoformat(
+                timespec="seconds")})
+        raise
         _write_interrupted(coord_dir, f"{type(exc).__name__}: {exc}",
                            ledger)
         (coord_dir / QPROD_BLOCK_SEED_LOG_NAME).write_text(
@@ -513,6 +670,12 @@ def run_coordinate_audit_locked(
                  QPROD_BLOCK_SEED_LOG_NAME):
         p = coord_dir / name
         members[name] = hashlib.sha256(p.read_bytes()).hexdigest()
+    # Q3 修复:逐 (corpus, block) 事件摘要进 seal——事件与 block 的
+    # 精确绑定(任何事件换位/改动都会改变所属 block 的摘要,
+    # reader 复算对拍);reader 对缺失该字段的 legacy seal 只标记
+    # 不强制重生成(REVIEWER_ADDENDUM #5)。
+    per_block_event_digests = _per_block_event_digests(
+        coord_dir / "cue_event_trace.jsonl")
     seal = {
         "format": "cur261-qprod-coordinate-seal-v1",
         "coordinate_id": coordinate_id,
@@ -521,6 +684,7 @@ def run_coordinate_audit_locked(
             "coordinate_audit_plan_digest"],
         "audit_digest": report["audit_digest"],
         "members_sha256": members,
+        "per_block_event_digests": per_block_event_digests,
         "summary": {
             "recall_validation": report["direct_generator"][
                 "validation"]["empirical_recall"],
