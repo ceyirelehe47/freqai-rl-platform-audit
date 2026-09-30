@@ -45,7 +45,6 @@ def test_harden_root_rejects_protected_old_roots(tmp_path, monkeypatch):
     with pytest.raises(QProdContextError, match="受保护历史根"):
         harden_root(ghost / "state" / "something", label="t",
                     create=False)
-        harden_root(ghost / "something", label="t", create=False)
     monkeypatch.delenv("CURRICULUM261_R17_DEPLOYED_STATE_ROOT")
 
 

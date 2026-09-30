@@ -54,3 +54,10 @@ reset/step。bank=标注夹具替身,零新增原生生成/零 fit/零 optimizer
   degenerate_se_prevents_v4_application(collect_all_k 模式无早停;
   退化 SE 分支语义未变)。
 - 旧失败原件保留:full_regression_v2/v4、regression_262_v1。
+
+## 披露(reviewer V2 P3-1)
+E3 对 native_smoke_run2 的 qprod_aggregate_report.json 原地重算刷新
+(C7 只读复算):唯一变化为 aggregated_utc(22:59:00Z→23:36:57Z),
+其余字段与 C4 原件语义逐项相等(reviewer deep-equal modulo utc =
+true);run1/run2 其余原生原件逐字节未变。本次披露补记于返修轮
+说明之后(此前"E01 原生原件不变"的表述未含此单行重写,特此澄清)。
