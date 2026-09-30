@@ -164,6 +164,16 @@ QPROD_RESEARCH_PLAN_REQUIRED_KEYS = (
 )
 
 
+#: E01 两次原生 run 的冻结研究计划 digest——历史原件身份白名单。
+#: 仅此身份的计划/seal 缺新增字段(R2 轮 audit_budgets、
+#: per_block_event_digests)按历史原件容忍;任意新对象缺字段一律拒
+#: (历史兼容不是缺字段的免检开关)。
+QPROD_E01_LEGACY_PLAN_DIGESTS = (
+    "qbpl-6cf9c2008209f7ff28aaab1295f6d29f90d1a8bcf6f10cb6fa1215"
+    "cb8b770b04",
+)
+
+
 def research_plan_structure_problems(
         payload: dict[str, Any]) -> list[str]:
     """研究/运行计划结构校验(按层分支;结构问题清单外不得进主聚合)。"""
@@ -239,11 +249,40 @@ def _structure_problems_level_b(
         problems.append(
             f"delta_definition {rules.get('delta_definition')!r} 非法"
             f"(主 delta = 固定共同锚 − validation recall)")
+    # R2-Q2 修复:研究计划必须事前声明逐坐标审计预算(blocks/MC/
+    # 每 block episode 数)——锁定/执行侧据此做动作前对账,
+    # "MC=1 与计划 4096/正文总量 1 与规划不符"在动作前拒绝,
+    # 不只是字段类型检查。
+    ab = rules.get("audit_budgets")
+    if payload.get("research_plan_digest") in (
+            QPROD_E01_LEGACY_PLAN_DIGESTS) and ab is None:
+        # E01 历史原件身份:计划冻结早于 audit_budgets 字段引入,
+        # 按历史原件容忍(执行侧预算仍由 qcap/报告三方对账约束)。
+        return problems
+    if not isinstance(ab, dict):
+        problems.append("rules.audit_budgets 缺(逐坐标审计预算必须"
+                        "事前声明:blocks_per_corpus/mc_events/"
+                        "episodes_per_block)")
+    else:
+        if ab.get("blocks_per_corpus") != 2:
+            problems.append(
+                f"audit_budgets.blocks_per_corpus "
+                f"{ab.get('blocks_per_corpus')!r} != 工程面 2")
+        if ab.get("mc_events") != 4096:
+            problems.append(
+                f"audit_budgets.mc_events {ab.get('mc_events')!r} "
+                f"!= 工程面 4096")
+        if ab.get("episodes_per_block") != 8:
+            problems.append(
+                f"audit_budgets.episodes_per_block "
+                f"{ab.get('episodes_per_block')!r} != 8"
+                f"(4 rung x A/B)")
     return problems
 
 
 __all__ = [
     "QPROD_RESEARCH_PLAN_FORMAT", "QPROD_RESEARCH_PLAN_NAME",
+    "QPROD_E01_LEGACY_PLAN_DIGESTS",
     "QPROD_QUALIFICATION_PLAN_FORMAT", "QPROD_QUALIFICATION_PLAN_NAME",
     "QPROD_STOP_MODES", "research_plan_digest",
     "qualification_plan_digest", "freeze_research_plan",

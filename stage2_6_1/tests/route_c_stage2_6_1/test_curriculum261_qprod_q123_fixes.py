@@ -178,12 +178,13 @@ def test_q2_ledger_episode_quota_pre_reserve_blocks_generation():
 
     ledger = _GenerationLedger(
         quota_max_episode_leaf_calls=8, coordinate_id="cx")
-    ledger._once_impl = fake_once
+    import rl_curriculum.curriculum261_r6_tape as r6
 
-    def guarded(ladder, seed, ns):
-        ledger._reserve("once")
-        ledger.leaf_calls["once"] += 1
-        return fake_once(ladder, seed, ns)
+    orig_once = r6.generate_matched_block_once
+    r6.generate_matched_block_once = fake_once
+    hooks = ledger.bind()
+    r6.generate_matched_block_once = orig_once
+    guarded = hooks["generate_once"]
 
     guarded(None, 1, "ns")
     with pytest.raises(QProdQuotaExceeded):
@@ -199,12 +200,66 @@ def test_q2_ledger_records_episode_unit_totals():
         _GenerationLedger,
     )
 
+    # R2-Q2:episode 计数=真实动作累计(once 2x8=16;attempts 2 次
+    # block 调用、每次 attempts_made=2 → 2x2x8=32 中的 32;
+    # replay 2x8=16),wrapper 计数只作 legacy 口径保留。
+    class _FakeEp2:
+        def __init__(self):
+            import pandas as pd
+
+            self.df = pd.DataFrame({"x": [1.0]})
+            self.hidden = pd.DataFrame({"y": [1.0]})
+
+    def fake_once2(ladder, seed, ns):
+        return {"D0": {"A": _FakeEp2(), "B": _FakeEp2()},
+                "D1": {"A": _FakeEp2(), "B": _FakeEp2()},
+                "D2": {"A": _FakeEp2(), "B": _FakeEp2()},
+                "D3": {"A": _FakeEp2(), "B": _FakeEp2()}}
+
+    class _FakeBlock2:
+        block_index = 0
+
+        class _Log2:
+            selected_attempt = 1
+            attempts = [0, 1]
+            seed_namespace = "qualification_r2"
+            block_index = 0
+
+        attempt_log = _Log2()
+        episodes = {}
+
+    def fake_attempts2(ladder, *, namespace, block_index):
+        return _FakeBlock2()
+
     ledger = _GenerationLedger(quota_max_episode_leaf_calls=320,
                                coordinate_id="cx")
-    ledger.leaf_calls = {"once": 2, "attempts": 2, "bitwise_replay": 2}
+    import rl_curriculum.curriculum261_r6_tape as r6
+
+    # patch 必须在 bind() 之前:bind() 的 from-import 绑定当前
+    # 模块属性(_once_impl/_attempts_impl 都来自这里)。
+    orig_att = r6.generate_matched_block_with_attempts
+    orig_once = r6.generate_matched_block_once
+    r6.generate_matched_block_with_attempts = fake_attempts2
+    r6.generate_matched_block_once = fake_once2
+    try:
+        h = ledger.bind()
+        h["generate_once"](None, 1, "ns")
+        h["generate_once"](None, 2, "ns")
+        h["generate_attempts"]({}, namespace="qualification_r2",
+                               block_index=0)
+        h["generate_attempts"]({}, namespace="qualification_r2",
+                               block_index=1)
+        h["generate_bitwise_once"](None, 3, "ns")
+        h["generate_bitwise_once"](None, 4, "ns")
+    finally:
+        r6.generate_matched_block_with_attempts = orig_att
+        r6.generate_matched_block_once = orig_once
     t = ledger.totals()
     assert t["leaf_calls_total"] == 6, "外层 block 调用保留原口径"
-    assert t["episode_leaf_calls"] == 48, "1 block=8 episode 叶调用"
+    # once 16 + attempts(2 block x attempts_made=2 x 8)=32 + replay 16
+    assert t["episode_leaf_calls"] == 64, (
+        "episode 叶调用=真实动作逐动作累计(once/replay 每动作 8;"
+        "attempts 按嵌套 attempts_made 精确累计)")
     assert "unit_note" in t
 
 
@@ -369,7 +424,10 @@ def test_q3_early_stop_launch_guard_blocks_post_stop_coordinate(
             "p0_fixed_reference": 0.9504, "p0_source_label": "eng",
             "delta_definition": "P0 - recall(validation)",
             "margin": 0.003, "alpha": 0.05, "r_analysis": 1.5,
-            "planned_k": 11},
+            "planned_k": 11,
+            "audit_budgets": {"blocks_per_corpus": 2,
+                              "mc_events": 4096,
+                              "episodes_per_block": 8}},
         "quota": {"max_leaf_calls_total": 640},
         "code_identity": tc.coord_mod.qprod_coordinate_code_identity(),
         "stop_mode": "early_stop_on_first_negative",
@@ -431,7 +489,10 @@ def test_f1_nonquota_failure_writes_interrupted_marker_and_ledger(
             "p0_fixed_reference": 0.9504, "p0_source_label": "eng",
             "delta_definition": "P0 - recall(validation)",
             "margin": 0.003, "alpha": 0.05, "r_analysis": 1.5,
-            "planned_k": 11},
+            "planned_k": 11,
+            "audit_budgets": {"blocks_per_corpus": 2,
+                              "mc_events": 4096,
+                              "episodes_per_block": 8}},
         "quota": {"max_leaf_calls_total": 640},
         "code_identity": cmod.qprod_coordinate_code_identity(),
         "stop_mode": "collect_all_k",

@@ -151,6 +151,25 @@ def lock_coordinate_audit_plan(
             f"({{'blocks_per_corpus': budgets['blocks_per_corpus'], "
             f"'mc_events': budgets['mc_events']}}) 不一致"
             f"(工程须显式缩减标注;正式不得降级)")
+    # R2-Q2 修复:研究计划声明(rules.audit_budgets)与坐标条目/
+    # profile 合同预算三方动作前对账——计划声明 MC=4096 而条目/执行
+    # 请求为 1(或正文总量与规划不符)在锁定时即拒绝,不是运行后
+    # 才发现。计划无声明会被研究计划结构校验拒绝(见 plan 模块)。
+    declared_ab = ((research_plan.get("rules") or {})
+                   .get("audit_budgets")) or {}
+    for key in ("blocks_per_corpus", "mc_events"):
+        want = declared_ab.get(key)
+        if want is not None and int(want) != int(settings[key]):
+            raise QProdContextError(
+                f"坐标预算 {key}={settings[key]} 与研究计划声明 "
+                f"audit_budgets.{key}={want} 不一致"
+                f"(动作前对账:MC/正文预算不符不得进入生成)")
+    declared_epb = declared_ab.get("episodes_per_block")
+    if declared_epb is not None and int(declared_epb) != 8:
+        raise QProdContextError(
+            f"研究计划声明 episodes_per_block={declared_epb} != "
+            f"真实生成内核每 block 8 episode(4 rung x A/B;"
+            f"动作前对账拒绝)")
     # Q2 修复:预注册生成设置必须与真实生成内核一致,不支持值显式
     # 拒绝,不得静默记录后被内核忽略——
     # - max_attempts:核心 generate_matched_block_with_attempts 使用
@@ -254,14 +273,15 @@ class QProdQuotaExceeded(RuntimeError):
 
 
 class _GenerationLedger:
-    """叶调用计数钩子(once/attempts/逐位重放;逐调用记账+块归属)。
+    """叶调用计数钩子(once/attempts/逐位重放;逐动作记账+块归属)。
 
-    Q2 修复:配额在**真实叶边界**以 episode 为单位执行——每次
-    block 级调用(once/attempts/bitwise replay)= 8 个 episode 叶
-    调用;每次调用前预.reserve(超过 per-coordinate 上限即在生成
-    之前抛 QProdQuotaExceeded,不进入该次生成)。账本同时记录
-    block 级调用数(legacy 字段)与 episode 叶调用数(配额单位),
-    单位在 unit_note 中显式声明。
+    Q2/R2-Q2 修复:配额在**真实叶动作边界**以 episode 为单位执行
+    ——once/ bitwise replay 每动作 8 episode;attempts block 的
+    每次 attempt 都是真实生成动作(≤C2_BLOCK_MAX_ATTEMPTS 次 x
+    8)。账本按真实发生动作累计(attempts 侧事后按 attempts_made
+    精确回填),配额预占用嵌套最坏情况上界(额度不足时该 block
+    不启动,后续叶动作不发生)。block 级 wrapper 调用数仅作
+    legacy 参考,不再 x8 充当 episode 计数。
 
     raw_dir 给定时,每个成功正文 block 的原始 df/hidden 逐 rung/side
     落盘(E01:原始 OHLCV/hidden/trace 归档,供 reader 与 reviewer
@@ -276,6 +296,8 @@ class _GenerationLedger:
         self.leaf_calls = {"once": 0, "attempts": 0,
                            "bitwise_replay": 0}
         self.block_log: list[dict[str, Any]] = []
+        self._episode_actions = 0      # 真实发生的 episode 叶动作
+        self._inflight_upper = 0       # 进行中 block 的最坏上界
         self._once_impl = None
         self._attempts_impl = None
         self._once_seq: dict[str, int] = {}
@@ -286,24 +308,34 @@ class _GenerationLedger:
         self.coordinate_id = coordinate_id
 
     # ------------------------------------------------ 叶边界配额
+    # R2-Q2 修复:episode 叶调用按**真实嵌套动作**逐动作计数——
+    # once/bitwise replay 每动作恰 8 episode(4 rung x A/B);
+    # attempts block 的每次 attempt 都是真实生成动作(最多
+    # C2_BLOCK_MAX_ATTEMPTS 次,每次 8 episode)。计数不再是
+    # "外层 wrapper 调用数 x 8":
+    # - 已发生动作记 self._episode_actions(事后按 attempts_made
+    #   精确累计);
+    # - 配额执行用最坏情况上界预占(额度不足时**后续叶动作不
+    #   发生**:attempts block 启动前预占 max_attempts x 8,
+    #   任何嵌套尝试都不透支)。
     @property
     def episode_leaf_calls(self) -> int:
-        calls = (self.leaf_calls["once"] + self.leaf_calls["attempts"]
-                 + self.leaf_calls["bitwise_replay"])
-        return calls * self.EPISODES_PER_BLOCK
+        return self._episode_actions
 
-    def _reserve(self, kind: str) -> None:
-        """生成调用前的配额预占(episode 单位;先于任何生成)。"""
+    def _reserve(self, kind: str, actions: int = 8) -> None:
+        """生成动作前的配额预占(episode 单位;最坏情况上界)。"""
         if self.quota_max_episode_leaf_calls is None:
             return
-        projected = self.episode_leaf_calls + self.EPISODES_PER_BLOCK
-        if projected > self.quota_max_episode_leaf_calls:
+        worst = (self._episode_actions + self._inflight_upper
+                 + actions)
+        if worst > self.quota_max_episode_leaf_calls:
             raise QProdQuotaExceeded(
-                f"坐标 {self.coordinate_id!r} {kind} 叶边界配额耗尽:"
-                f"projected episode 叶调用 {projected} > 上限 "
-                f"{self.quota_max_episode_leaf_calls}(已发生 "
-                f"{self.episode_leaf_calls};拒绝在生成前抛出,"
-                f"不透支)")
+                f"坐标 {self.coordinate_id!r} {kind} 叶边界配额"
+                f"不足以覆盖嵌套最坏情况:最坏 projected episode "
+                f"叶动作 {worst} > 上限 "
+                f"{self.quota_max_episode_leaf_calls}"
+                f"(已发生 {self._episode_actions};在生成前抛出,"
+                f"后续叶动作不发生,不透支)")
 
     def _archive_episodes(self, tag: str,
                           episodes: dict[str, Any]) -> None:
@@ -333,6 +365,7 @@ class _GenerationLedger:
         def counting_once(ladder, seed, ns):
             ledger._reserve("once")
             ledger.leaf_calls["once"] += 1
+            ledger._episode_actions += ledger.EPISODES_PER_BLOCK
             seq = ledger._once_seq.get(ns, 0)
             ledger._once_seq[ns] = seq + 1
             ledger.block_log.append({
@@ -349,11 +382,23 @@ class _GenerationLedger:
             return episodes
 
         def counting_attempts(ladder, *, namespace, block_index):
-            ledger._reserve("attempts")
-            ledger.leaf_calls["attempts"] += 1
-            block = ledger._attempts_impl(
-                ladder, namespace=namespace, block_index=block_index)
+            from rl_curriculum.curriculum261_r6_tape import (
+                C2_BLOCK_MAX_ATTEMPTS,
+            )
+            upper = C2_BLOCK_MAX_ATTEMPTS * ledger.EPISODES_PER_BLOCK
+            ledger._reserve("attempts", actions=upper)
+            ledger._inflight_upper += upper
+            try:
+                block = ledger._attempts_impl(
+                    ladder, namespace=namespace, block_index=block_index)
+            finally:
+                ledger._inflight_upper -= upper
             log = block.attempt_log
+            # 真实发生动作 = 本次 attempts_made x 8(每次 attempt
+            # 都是完整 8-episode 生成;部分失败/重试逐动作入账)
+            made = max(int(len(log.attempts)), 1)
+            ledger._episode_actions += made * ledger.EPISODES_PER_BLOCK
+            ledger.leaf_calls["attempts"] += 1
             ledger.block_log.append({
                 "kind": "attempts", "namespace": namespace,
                 "block_index": int(block.block_index),
@@ -362,6 +407,8 @@ class _GenerationLedger:
                     None if log.selected_attempt is None
                     else int(log.selected_attempt)),
                 "attempts_made": len(log.attempts),
+                "episode_leaf_actions": made
+                * ledger.EPISODES_PER_BLOCK,
             })
             ledger._archive_episodes(
                 f"attempts_{namespace}_b{int(block.block_index)}"
@@ -374,6 +421,7 @@ class _GenerationLedger:
             # 输入=已归档正文,不重复落盘);同样先预占后生成
             ledger._reserve("bitwise_replay")
             ledger.leaf_calls["bitwise_replay"] += 1
+            ledger._episode_actions += ledger.EPISODES_PER_BLOCK
             return ledger._once_impl(ladder, seed, ns)
 
         return {"generate_once": counting_once,
@@ -387,15 +435,54 @@ class _GenerationLedger:
             "leaf_calls_total": calls,
             "leaf_calls_by_kind": dict(self.leaf_calls),
             "episode_calls_estimate": calls * 8,
-            "episode_leaf_calls": calls * self.EPISODES_PER_BLOCK,
+            # R2-Q2:episode 叶调用=真实发生动作逐动作累计
+            # (once/replay 每动作 8;attempts 按 attempts_made x 8),
+            # 不再是 wrapper 调用数 x 8。
+            "episode_leaf_calls": self._episode_actions,
             "episode_leaf_calls_quota": self.quota_max_episode_leaf_calls,
             "n_blocks_generated": (
                 self.leaf_calls["once"] + self.leaf_calls["attempts"]),
             "unit_note": "leaf_calls_total=外层 block 调用;"
-                         "episode_leaf_calls=episode 叶调用"
+                         "episode_leaf_calls=真实 episode 叶动作"
                          "(SCOPE_AND_BUDGET §3 配额单位;"
-                         "1 block 调用=8 episode)",
+                         "once/replay 每动作 8;attempts 每嵌套"
+                         " attempt 8,按 attempts_made 精确累计)",
         }
+
+
+QPROD_NATIVE_BUDGET_NAME = "qprod_native_budget.json"
+
+
+def check_native_budget(budget_path: Path | str, *, needed: int = 1
+                        ) -> dict[str, int]:
+    """原生执行次数预算硬门(R2-Q2)。
+
+    budget 文件 {max_runs, consumed_runs}:consumed + needed > max
+    即拒绝(fail closed)——2/2 已耗尽时第三次原生运行在启动前被
+    拒,MC/episode 余额不是新原生运行授权。文件缺失按未初始化
+    拒绝(不默认放行)。
+    """
+    bp = Path(budget_path)
+    if not bp.is_file():
+        raise QProdContextError(
+            f"原生预算文件缺失 {bp}(不默认放行;须先初始化 "
+            f"{QPROD_NATIVE_BUDGET_NAME}: max_runs/consumed_runs)")
+    try:
+        doc = json.loads(bp.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise QProdContextError(f"原生预算文件不可解析: {exc}") \
+            from exc
+    mx, consumed = int(doc.get("max_runs", -1)), int(
+        doc.get("consumed_runs", -1))
+    if mx < 0 or consumed < 0:
+        raise QProdContextError(
+            f"原生预算字段非法 max_runs={mx} consumed_runs={consumed}")
+    if consumed + needed > mx:
+        raise QProdContextError(
+            f"原生执行预算耗尽:consumed={consumed}/max={mx},"
+            f"本次需 {needed}(MC/episode 余额不是新原生运行授权;"
+            f"追加须先获用户批准)")
+    return {"max_runs": mx, "consumed_runs": consumed, "needed": needed}
 
 
 def _ledger_append(ledger_path: Path, record: dict[str, Any]) -> None:
@@ -711,6 +798,7 @@ def run_coordinate_audit_locked(
 
 __all__ = [
     "QPROD_ENG_BLOCKS_PER_CORPUS", "QPROD_ENG_MC_EVENTS",
+    "QPROD_NATIVE_BUDGET_NAME", "check_native_budget",
     "QPROD_ENG_GLOBAL_K_TIER1", "QPROD_COORDINATE_SEAL_NAME",
     "QPROD_QUOTA_LEDGER_NAME", "lock_coordinate_audit_plan",
     "load_coordinate_audit_plan", "run_coordinate_audit_locked",

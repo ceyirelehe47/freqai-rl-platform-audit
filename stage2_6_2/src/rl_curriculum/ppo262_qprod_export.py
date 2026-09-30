@@ -269,6 +269,27 @@ def export_qualification_delivery(
         and terminal_events[0].get("status") == "completed"
         and terminal_events[0].get("verdict")
         == result.get("verdict"))
+    # R2-Q1:许可/会话消费来源——journal 必须恰有一条
+    # session_acquired 事件且绑定本迭代(无许可来源不导出)。
+    acquire_events = []
+    if journal_path.is_file():
+        for line in journal_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if rec.get("event") == "session_acquired":
+                acquire_events.append(rec)
+    checks["producer_session_acquired_once"] = bool(
+        len(acquire_events) == 1
+        and acquire_events[0].get("iteration_id")
+        == plan.get("iteration_id"))
+    if not checks["producer_session_acquired_once"]:
+        problems.append(
+            f"producer 许可/会话消费来源不可核(session_acquired 事件"
+            f"数={len(acquire_events)};须恰 1 条且绑定本迭代)")
     if not checks["producer_terminal_recorded"]:
         problems.append(
             f"producer 真实终态不可核(journal terminal 事件数="
@@ -284,6 +305,94 @@ def export_qualification_delivery(
             f"result.raw_evidence_sha256 "
             f"{result.get('raw_evidence_sha256')!r} != raw 文件实测 "
             f"{raw_sha}(raw 证据与 result 声明不一致,改坏即拒)")
+    # R2-Q1:raw **内容级**对账——篡改 raw 内容并同步更新 result 的
+    # SHA 声明(自洽伪造)仍拒:raw.verdict 必须与 result.verdict
+    # 一致,raw.gates 与 result.gates 逐 gate 一致,raw 的计划
+    # 绑定与冻结计划一致(SHA 自洽不替代内容矛盾检查)。
+    checks["raw_verdict_matches_result"] = bool(
+        raw.get("verdict") == result.get("verdict"))
+    raw_gates = {k: bool(v.get("pass"))
+                 for k, v in (raw.get("gates") or {}).items()
+                 if isinstance(v, dict)}
+    checks["raw_gates_match_result"] = bool(
+        raw_gates and raw_gates == (result.get("gates") or {}))
+    checks["raw_binds_producer_plan"] = bool(
+        raw.get("qualification_plan_digest") == digest)
+    checks["raw_iteration_consistent"] = bool(
+        raw.get("iteration_id") == plan.get("iteration_id"))
+    if not checks["raw_iteration_consistent"]:
+        problems.append(
+            f"raw.iteration_id {raw.get('iteration_id')!r} != 计划 "
+            f"{plan.get('iteration_id')!r}")
+    if not checks["raw_verdict_matches_result"]:
+        problems.append(
+            f"raw.verdict {raw.get('verdict')!r} != result.verdict "
+            f"{result.get('verdict')!r}(raw 实际内容与 result 矛盾;"
+            f"更新 SHA 声明不能使矛盾导出)")
+    if not checks["raw_gates_match_result"]:
+        problems.append("raw.gates 与 result.gates 逐 gate 不一致"
+                        "(raw 判定明细被改写)")
+    if not checks["raw_binds_producer_plan"]:
+        problems.append("raw 未绑定 producer 资格计划 digest")
+    # R2-Q1:result 来源身份——iteration/source_iteration 与冻结
+    # 计划一致(错来源不导出成功消费包)。
+    checks["result_iteration_consistent"] = bool(
+        result.get("iteration_id") == plan.get("iteration_id"))
+    checks["result_source_iteration_consistent"] = bool(
+        isinstance(result.get("source_iteration"), str)
+        and result["source_iteration"].split("@", 1)[0]
+        == plan.get("iteration_id"))
+    if not checks["result_iteration_consistent"]:
+        problems.append(
+            f"result.iteration_id {result.get('iteration_id')!r} != "
+            f"计划 {plan.get('iteration_id')!r}(来源身份错)")
+    if not checks["result_source_iteration_consistent"]:
+        problems.append(
+            f"result.source_iteration "
+            f"{result.get('source_iteration')!r} 不指向计划迭代 "
+            f"{plan.get('iteration_id')!r}")
+    # R2-Q1:链步账本——producer 17 步账本必须存在且 verdict=PASS
+    # 且全部步骤 ok(链失败不得导出成功消费包)。
+    ledger_path_p = art / "level_a_step_ledger.json"
+    ledger_ok = False
+    if ledger_path_p.is_file():
+        try:
+            led = json.loads(
+                ledger_path_p.read_text(encoding="utf-8"))
+            steps = led.get("steps") or []
+            ledger_ok = bool(
+                led.get("verdict") == "PASS"
+                and len(steps) == 17
+                and all(st.get("ok") is True for st in steps))
+        except json.JSONDecodeError:
+            ledger_ok = False
+    checks["producer_step_ledger_pass"] = ledger_ok
+    if not ledger_ok:
+        problems.append(
+            "producer 链步账本缺失/FAIL/步骤不全(必要链记录缺失"
+            "或链失败不得导出成功包)")
+    # R2-Q1:数据前研究计划来源——state_root 必须有冻结研究计划
+    # 且 digest 等于资格计划绑定的 prior_plan_digest。
+    rp_path = state_root / "qprod_research_plan.json"
+    rpd_path = state_root / "qprod_research_plan_digest.txt"
+    rp_ok = False
+    if rp_path.is_file() and rpd_path.is_file():
+        try:
+            from rl_curriculum.curriculum261_qprod_plan import (
+                research_plan_digest,
+            )
+            rp = json.loads(rp_path.read_text(encoding="utf-8"))
+            rp_ok = bool(
+                research_plan_digest(rp)
+                == rpd_path.read_text(encoding="utf-8").strip()
+                == plan.get("prior_plan_digest"))
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            rp_ok = False
+    checks["research_plan_prerequisite_present"] = rp_ok
+    if not rp_ok:
+        problems.append(
+            "数据前研究计划缺失/digest 不符(必要计划来源缺失;"
+            "prior_plan_digest 绑定断裂)")
     # (3) 校准前置:资格计划绑定的 calibration_artifacts digest 与
     #     盘上校准原件逐项一致——校准前置缺失/漂移不得导出。
     cal_map = plan.get("calibration_artifacts") or {}

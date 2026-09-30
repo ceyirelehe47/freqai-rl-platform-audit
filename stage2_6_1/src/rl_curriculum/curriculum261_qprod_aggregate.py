@@ -36,9 +36,10 @@ from pathlib import Path
 from typing import Any
 
 from rl_curriculum.curriculum261_qprod_context import QProdContextError
+
 from rl_curriculum.curriculum261_qprod_plan import (
-    QPROD_STOP_MODES, load_research_plan,
-    research_plan_structure_problems,
+    QPROD_E01_LEGACY_PLAN_DIGESTS, QPROD_STOP_MODES,
+    load_research_plan, research_plan_structure_problems,
 )
 from rl_curriculum.curriculum261_qprod_coordinate import (
     QPROD_BLOCK_SEED_LOG_NAME, QPROD_COORDINATE_INTERRUPTED_NAME,
@@ -130,6 +131,7 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             f"有效坐标)")
 
     # ---- Q3 修复:冻结坐标审计计划(qcap)存在/自洽/绑定 ----
+    _qcap_budgets: dict[str, Any] = {}
     qcap_path = coord_dir / QPROD_COORDINATE_AUDIT_PLAN_NAME
     if not qcap_path.is_file():
         problems.append("冻结坐标审计计划缺失(qcap;未锁定的坐标"
@@ -161,6 +163,8 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
                                 "不一致")
             if seal.get("coordinate_audit_plan_digest") != qcap_d:
                 problems.append("seal 未绑定冻结坐标审计计划 digest")
+            _qcap_budgets = dict(qcap.get("budgets") or {})
+
 
     # 成员摘要核对(从冻结 seal 找原件并核对摘要/来源)
     for name, want in (seal.get("members_sha256") or {}).items():
@@ -201,6 +205,35 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
                         "(伪 audit 摘要拒)")
     if seal.get("audit_digest") != report.get("audit_digest"):
         problems.append("seal audit_digest 与报告 audit_digest 不一致")
+    # R2-Q3:qcap 预算与报告实际值对账——qcap/清单声明 500 而报告
+    # 实际 2 块(或 MC 声明与执行不符)不再有效;报告必须记录并
+    # 真实使用锁定预算。
+    cap_blocks = int(_qcap_budgets.get("blocks_per_corpus", -1))
+    cap_mc = int(_qcap_budgets.get("mc_events", -1))
+    rep_blocks = int(report.get("audit_blocks_per_corpus", -1))
+    rep_mc = int((report.get("monte_carlo") or {}).get("n_events", -1))
+    if cap_blocks != rep_blocks:
+        problems.append(
+            f"qcap blocks_per_corpus={cap_blocks} != 报告实际 "
+            f"{rep_blocks}(冻结预算与执行不一致)")
+    if cap_mc != rep_mc:
+        problems.append(
+            f"qcap mc_events={cap_mc} != 报告 MC n_events "
+            f"{rep_mc}(冻结预算与执行不一致)")
+    # R2-Q3:三方对账——冻结研究计划声明的 audit_budgets 与 qcap/
+    # 报告一致(清单声明与执行脱节不再有效)。
+    plan_ab = ((research_plan.get("rules") or {})
+               .get("audit_budgets")) or {}
+    plan_blocks = int(plan_ab.get("blocks_per_corpus", -1))
+    plan_mc = int(plan_ab.get("mc_events", -1))
+    if plan_blocks != -1 and plan_blocks != rep_blocks:
+        problems.append(
+            f"研究计划 audit_budgets.blocks_per_corpus={plan_blocks} "
+            f"!= 报告实际 {rep_blocks}(计划声明与执行不一致)")
+    if plan_mc != -1 and plan_mc != rep_mc:
+        problems.append(
+            f"研究计划 audit_budgets.mc_events={plan_mc} != 报告 "
+            f"MC n_events {rep_mc}(计划声明与执行不一致)")
 
     seed_log_path = coord_dir / QPROD_BLOCK_SEED_LOG_NAME
     if not seed_log_path.is_file():
@@ -215,11 +248,10 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
         return {"state": COORDINATE_STATE_CORRUPT,
                 "problems": [f"block seed 日志解析失败(technically "
                              f"corrupt): {exc}"]}
-    expected_once_seeds = {
+    n_declared_blocks = int(report["audit_blocks_per_corpus"])
+    expected_once_seeds = [
         derive261_block_seed(coordinate["model_namespace"], i, 0)
-        for i in range(int(seal["summary"].get("blocks_per_corpus", 2))
-                       if "blocks_per_corpus" in seal.get("summary", {})
-                       else report["audit_blocks_per_corpus"])}
+        for i in range(n_declared_blocks)]
     once_entries = [e for e in seed_log if e.get("kind") == "once"]
     for e in once_entries:
         if e["namespace"] != coordinate["model_namespace"]:
@@ -228,6 +260,13 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             problems.append(
                 f"once 块 seed {e['block_seed']} 不在 "
                 f"derive261_block_seed(model_ns, i, 0) 派生集合内")
+    # R2-Q3:once(model)seeds 多重集精确对账——重复同一 seed 替代
+    # 另一块(条目数相同)不再被集合包含检查放过。
+    if sorted(int(e["block_seed"]) for e in once_entries) != sorted(
+            int(x) for x in expected_once_seeds):
+        problems.append(
+            "once(model)seed 多重集与派生序列不一致(重复/缺失/"
+            "替代某块:sorted seeds 对拍失败)")
     for e in seed_log:
         if e.get("kind") == "attempts":
             if e["namespace"] != coordinate["validation_namespace"]:
@@ -309,13 +348,53 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             f"validation 事件 block 集合 {validation_blocks} != "
             f"attempts seeds block 集合 {attempts_blocks}"
             f"(事件 block 归属不一致)")
+    # R2-Q3:model 语料事件结构核验——删 model 事件后即使攻击者
+    # 同步重算 seal 摘要使其自洽也不再生效:model 语料必须有与
+    # validation 相同 block 范围的非空事件(双语料范围+计数对账)。
+    model_events = [e for e in events
+                    if e.get("corpus") == "model"]
+    model_blocks = sorted({int(e["block_index"])
+                           for e in model_events})
+    if not model_events:
+        problems.append("model 语料事件为空(双语料对账失败)")
+    elif model_blocks != attempts_blocks:
+        problems.append(
+            f"model 事件 block 集合 {model_blocks} != attempts "
+            f"seeds block 集合 {attempts_blocks}"
+            f"(model 语料缺失/漂移;双语料对账失败)")
+    # R2-Q3:model 统计与报告对账——从 model 事件原件复算 recall,
+    # 与报告 direct_generator.model 声明一致(删/改 model 事件即使
+    # 重算 seal 摘要自洽,报告统计与事件复算矛盾即拒)。
+    model_boot = _cluster_bootstrap(_per_block_event_counts(
+        model_events))
+    model_reported = ((report.get("direct_generator") or {})
+                      .get("model") or {})
+    model_recall_reported = model_reported.get("empirical_recall")
+    if model_recall_reported is None:
+        problems.append("报告缺 direct_generator.model.empirical_"
+                        "recall(model 语料统计来源缺失)")
+    elif abs(float(model_recall_reported)
+             - float(model_boot["point"])) > 1e-12:
+        problems.append(
+            f"报告 model recall {model_recall_reported} != 事件"
+            f"复算 {model_boot['point']}(model 语料与报告矛盾)")
     # Q3 修复:逐 (corpus, block) 事件摘要复算——事件与 block 的
     # 精确绑定;任何换位/改动改变所属 block 摘要即拒。缺失该字段
     # 的 legacy seal 只标记不强制重生成(REVIEWER_ADDENDUM #5)。
     legacy_binding = False
     sealed_pbd = seal.get("per_block_event_digests")
     if not sealed_pbd:
-        legacy_binding = True
+        # R2-Q3:legacy 容忍限定为有身份的 E01 历史原件——研究计划
+        # digest 属于已知 E01 原生 run;任意新对象缺字段一律拒
+        # (历史兼容不是缺字段的免检开关)。
+        if seal.get("research_plan_digest") in (
+                QPROD_E01_LEGACY_PLAN_DIGESTS):
+            legacy_binding = True
+        else:
+            problems.append(
+                "seal 缺 per_block_event_digests 且不属于已知 E01 "
+                "历史原件身份(legacy 容忍仅限有据可核的 E01 计划 "
+                "digest;新对象缺事件绑定一律无效)")
     else:
         from rl_curriculum.curriculum261_qprod_coordinate import (
             _per_block_event_digests,
@@ -333,9 +412,15 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
     if problems:
         return {"state": COORDINATE_STATE_INVALID,
                 "problems": problems}
+    # R2-Q3:audit FAIL 与 v4 偏差类别区分——结构核验通过但坐标
+    # 审计合同失败(audit_pass=False)的坐标标记 audit_fail,
+    # 聚合消费侧据此排除(不得静默当作正常坐标进入主分析/早停,
+    # 也不得因 recall 方向"有利"忽略审计失败)。
+    audit_pass = bool(summary.get("audit_pass"))
     return {
         "state": COORDINATE_STATE_VALID,
         "problems": [],
+        "audit_fail": not audit_pass,
         "legacy_seal_without_event_binding": legacy_binding,
         "recall_validation": recall_recomputed,
         "se_validation": se_recomputed,
@@ -406,6 +491,14 @@ def aggregate_research(artifact_root: Path | str, *,
         # 即使违规生产了 seal 也不进入主分析(标记
         # post_stop_not_consumed/protocol_violation,排除出有效集);
         # 启动侧约束见 coordinate._early_stop_boundary(拒启动)。
+        # R2-Q3:audit FAIL 坐标不进入早停触发/有利标记/主分析
+        # (统计类别与审计技术失败分开;不因方向"有利"忽略)。
+        if (entry["state"] == COORDINATE_STATE_VALID
+                and entry.get("audit_fail")):
+            entry["audit_fail_excluded"] = (
+                "坐标审计合同失败(audit_pass=False):排除出主分析"
+                "与早停触发;与 v4 统计偏差是不同类别,不得互相"
+                "冒充或抵消")
         if (stop_mode == "early_stop_on_first_negative"
                 and early_stopped_at is not None
                 and entry["state"] == COORDINATE_STATE_VALID
@@ -423,6 +516,7 @@ def aggregate_research(artifact_root: Path | str, *,
         # (F1 修复:reviewer 探针证实旧逻辑把有利跨界误判)。
         if (stop_mode == "early_stop_on_first_negative"
                 and entry["state"] == COORDINATE_STATE_VALID
+                and not entry.get("audit_fail")
                 and early_stopped_at is None):
             delta_k = p0 - float(entry["recall_validation"])
             se_k = float(entry["se_validation"])
@@ -444,7 +538,10 @@ def aggregate_research(artifact_root: Path | str, *,
                 early_stopped_at = coord["coordinate_id"]
                 entry["statistical_negative"] = True
 
-    valid = [c for c in coordinates if c["state"] == "valid"]
+    valid = [c for c in coordinates
+             if c["state"] == "valid" and not c.get("audit_fail")]
+    audit_failed = [c["coordinate_id"] for c in coordinates
+                    if c["state"] == "valid" and c.get("audit_fail")]
     deltas = [p0 - float(c["recall_validation"]) for c in valid]
     ses = [float(c["se_validation"]) for c in valid]
     planned_k = int(rules["planned_k"])

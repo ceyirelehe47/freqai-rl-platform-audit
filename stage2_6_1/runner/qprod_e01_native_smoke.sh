@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # QProd E01:小规模原生坐标烟测(SCOPE_AND_BUDGET §3 配额内原生执行)。
+# R2-Q2:原生执行次数硬门——启动前检查 qprod_native_budget.json,
+# consumed>=max(如 2/2 已耗尽)即拒绝启动第三次原生运行。
 # run1 = native_smoke_run1(c01 成功;c02 因 runner 逐坐标重复消费
 # 一次性许可的缺陷被拒——零叶调用,原件保留;缺陷已修复:许可消费
 # 移至执行集开始一次)。本脚本 = run2:同固定输入集完整双坐标执行,
@@ -9,9 +11,24 @@
 # qprod_quota_ledger.jsonl;原始 OHLCV/hidden/trace 归档于各坐标
 # raw_episodes/(零生成只读复算)。固定输入集,不换坐标/参数择优。
 set -uo pipefail
+
 export PYTHONDONTWRITEBYTECODE=1
 DEPLOY=$HOME/projects/crypto_rl
 PY=/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python
+# ---- 原生预算硬门(启动前;fail closed) ----
+BUDGET_FILE="${QPROD_NATIVE_BUDGET:-/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/qprod_v1/qprod_native_budget.json}"
+"$PY" - "$BUDGET_FILE" <<'PYGATE'
+import sys
+sys.path.insert(0, "src")
+from rl_curriculum.curriculum261_qprod_coordinate import (
+    check_native_budget, QProdContextError)
+try:
+    st = check_native_budget(sys.argv[1])
+    print("[native-budget] OK", st)
+except QProdContextError as exc:
+    print(f"[native-budget] REFUSED: {exc}")
+    raise SystemExit(97)
+PYGATE
 RUNNER=$DEPLOY/stage2_6_1_runner
 ART=/mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/qprod_v1/native_smoke_run2
 BASE=$ART

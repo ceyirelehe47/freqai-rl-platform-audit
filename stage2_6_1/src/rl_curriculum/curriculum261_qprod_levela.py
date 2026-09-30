@@ -161,6 +161,19 @@ def build_engineering_cue_report_fixture() -> dict[str, Any]:
                    "max_replay_abs_error": 0.0}
             for name in ("model", "validation")},
         "engineering_fixture": True,
+        # R2-Q1:内部 checks 明细(与真实 core 报告同构)——顶层
+        # pass 必须等于 all(checks);gate1 据此拒"checks 失败但
+        # 顶层 PASS"的矛盾报告。
+        "checks": {
+            "mc_close_to_analytic": True,
+            "model_corpus_ok": True,
+            "validation_corpus_ok": True,
+            "once_vs_attempts_consistent": True,
+            "aggregate_recompute_ok": True,
+            "tail_mirror_bound_integrity_pass": True,
+            "global_k_audit_pass": True,
+            "global_k_audit_not_indeterminate": True,
+        },
         "pass": True,
     }
     report["audit_digest"] = cue_contract_audit_digest(report)
@@ -276,15 +289,33 @@ def judge_qualification_gates(art_dir: Path,
                          == digest_recomputed)
         except (KeyError, TypeError, ValueError):
             digest_ok = False
+    # R2-Q1:内部 checks 明细与顶层 pass 的一致性——cue 内部检查/
+    # MC 数值已失败而顶层 PASS(即使 digest 公共函数重算自洽)
+    # 不得通过;pass 必须等于 all(checks),且 checks 须全 True。
+    cue_checks = (ev["parsed"].get("checks")
+                  if ev["present"] else None)
+    checks_all_true = bool(
+        isinstance(cue_checks, dict) and cue_checks
+        and all(v is True for v in cue_checks.values()))
+    pass_recomputed = bool(
+        isinstance(cue_checks, dict) and cue_checks
+        and ev["parsed"].get("pass") == all(cue_checks.values()))
     cue_ok = bool(ev["present"]
                   and ev["parsed"].get("pass") is True
                   and ev["parsed"].get("audit_digest")
-                  and digest_ok is True)
+                  and digest_ok is True
+                  and checks_all_true
+                  and pass_recomputed)
+    failed_checks = ([k for k, v in (cue_checks or {}).items()
+                      if v is not True])
     gates["cue_audit_pass"] = {
         "pass": cue_ok, "evidence": "cue_contract_audit.json",
         "sha256": ev["sha256"],
         "observed": {"pass": (ev["parsed"].get("pass")
                               if ev["present"] else None),
+                     "checks_all_true": checks_all_true,
+                     "failed_checks": failed_checks,
+                     "pass_equals_all_checks": pass_recomputed,
                      "audit_digest": (
                          ev["parsed"].get("audit_digest")
                          if ev["present"] else None),
@@ -364,6 +395,9 @@ def judge_qualification_gates(art_dir: Path,
     return {
         "format": QPROD_LEVELA_RAW_FORMAT,
         "judged_utc": _now(),
+        "qualification_plan_digest": qualification_plan.get(
+            "qualification_plan_digest"),
+        "iteration_id": qualification_plan.get("iteration_id"),
         "gates": gates,
         "verdict": "PASS" if verdict else "FAIL",
         "scope": "engineering",
@@ -462,6 +496,18 @@ def run_level_a_rehearsal(
                     "workflow_steps 与权威 R17_WORKFLOW_STEPS 不一致")
             declared_producers = topo.get("artifact_producers") or {}
             canonical = r17_producer_of_artifact()
+            # R2-Q1:producer 集合缺失/为空而步骤名齐全不再通过——
+            # 声明集合必须非空且与权威 artifact 全集精确一致。
+            if not declared_producers:
+                topo_problems.append(
+                    "artifact_producers 为空/缺失(只有步骤名不构成"
+                    "拓扑;producer 映射必须非空)")
+            elif set(declared_producers) != set(canonical):
+                missing = sorted(set(canonical) - set(declared_producers))
+                extra = sorted(set(declared_producers) - set(canonical))
+                topo_problems.append(
+                    f"artifact_producers 键集 != 权威全集(缺 "
+                    f"{missing[:4]} 多 {extra[:4]})")
             for art_name, producer in declared_producers.items():
                 if canonical.get(art_name) != producer:
                     topo_problems.append(

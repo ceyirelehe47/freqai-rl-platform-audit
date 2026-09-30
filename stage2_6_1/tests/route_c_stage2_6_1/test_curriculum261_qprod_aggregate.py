@@ -30,21 +30,23 @@ def _events_for(blocks: int, *, hits_per_block: int, n_events: int,
     """确定性合成事件表(手工可复算;事件结构=core 落盘 schema)。"""
     events = []
     for b in range(blocks):
-        for j in range(n_events):
-            detected = 1 if j < hits_per_block else 0
-            events.append({
-                "corpus": "validation", "block_index": b,
-                "cue_bar": 20 + ((j * 7 + seed_tag + b * 3) % 200),
-                "primary_present": 1, "k_actual": (j + seed_tag) % 5,
-                "mirror_positions": [1, 2], "mirror_candidates": 2,
-                "effective_sigma_bps": 26.0,
-                "actual_noise": 0.001, "cue_read": 0.0106,
-                "detected": bool(detected),
-            })
+        for corpus in ("model", "validation"):
+            for j in range(n_events):
+                detected = 1 if j < hits_per_block else 0
+                events.append({
+                    "corpus": corpus, "block_index": b,
+                    "cue_bar": 20 + ((j * 7 + seed_tag + b * 3) % 200),
+                    "primary_present": 1,
+                    "k_actual": (j + seed_tag) % 5,
+                    "mirror_positions": [1, 2], "mirror_candidates": 2,
+                    "effective_sigma_bps": 26.0,
+                    "actual_noise": 0.001, "cue_read": 0.0106,
+                    "detected": bool(detected),
+                })
     return events
 
 
-def _build_coordinate(art_dir: Path, subdir: str, *, blocks=4,
+def _build_coordinate(art_dir: Path, subdir: str, *, blocks=2,
                       hits_per_block=52, n_events=55, seed_tag=0,
                       state="valid", plan_digest="qbpl-x",
                       events_override=None):
@@ -102,6 +104,19 @@ def _build_coordinate(art_dir: Path, subdir: str, *, blocks=4,
                                 (0.94 + 0.001 * seed_tag)
                                 - NONINFERIORITY_DELTA)},
         "direct_generator": {
+            "model": {
+                "n_unique_positive_cues": 2 * 55,
+                "empirical_recall": _cluster_bootstrap(
+                    _per_block_event_counts(
+                        [e for e in events
+                         if e["corpus"] == "model"]))["point"],
+                "block_cluster": {"point": boot["point"],
+                                  "se": boot["se"], "lcb95": 0.91,
+                                  "ci95": [0.9, 0.99]},
+                "analytic_conditional": 0.94 + 0.001 * seed_tag,
+                "tail": {"n_events": 8, "empirical_recall": 0.94,
+                         "analytic_conditional": 0.939},
+                "max_replay_abs_error": 0.0},
             "validation": {
                 "n_unique_positive_cues": 220,
                 "empirical_recall": boot["point"],
@@ -214,7 +229,10 @@ def _setup_plan(tmp_path: Path, *, coords=None, stop_mode="collect_all_k",
             "p0_source_label": "synthetic test",
             "delta_definition": "P0 - recall(validation)",
             "margin": 0.003, "alpha": 0.05, "r_analysis": 1.5,
-            "planned_k": planned_k},
+            "planned_k": planned_k,
+            "audit_budgets": {"blocks_per_corpus": 2,
+                              "mc_events": 4096,
+                              "episodes_per_block": 8}},
         "quota": {}, "code_identity": {}, "stop_mode": stop_mode,
     }
     _, digest = freeze_research_plan(state, payload)
