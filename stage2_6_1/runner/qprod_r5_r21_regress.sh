@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QProd R4 R01: 对最终新候选(C15=3d2193e2+)用**既有** r21_full_collection_regression
+# QProd R4 R01: 对最终新候选(C15=1139887e+)用**既有** r21_full_collection_regression
 # 流程采集 261 完整回归证据(collect-only+auditor/lifecycle+分片执行+junit+record+
 # 自验)。零新增原生/fit/optimizer。
 set -uo pipefail
@@ -17,7 +17,7 @@ echo "candidate=$CAND" | tee "$EVD/CANDIDATE.txt"
   --repo "$REPO" --commit-a "$CAND" --deploy-root "$DEPLOY" \
   --out-dir "$EVD/full_regression_v6_c15" \
   --target tests/route_c_stage2_6_1 \
-  --label r21_full_collection_regression_qprod_r5_c14 \
+  --label r21_full_collection_regression_qprod_r5_c15 \
   > "$EVD/r21_run.stdout.txt" 2> "$EVD/r21_run.stderr.txt"
 rc=$?
 echo "rc=$rc" | tee -a "$EVD/CANDIDATE.txt"
