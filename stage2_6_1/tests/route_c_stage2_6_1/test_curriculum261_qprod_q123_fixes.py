@@ -504,7 +504,10 @@ def test_f1_nonquota_failure_writes_interrupted_marker_and_ledger(
         cd, coordinate=dict(tc.C01), research_plan=plan)
     ledger_path = tmp_path / "l.jsonl"
     live = tc._FakePermit()
-    live.quota = {"max_leaf_calls_per_coordinate": 320}
+    live.quota = {"max_leaf_calls_per_coordinate": 320,
+                  "max_successful_episodes_total": 128,
+                  "mc_events_per_coordinate": 4096,
+                  "max_native_executions": 2}
 
     def boom(*a, **k):
         raise RuntimeError("simulated generator failure")

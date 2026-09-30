@@ -289,9 +289,14 @@ def judge_qualification_gates(art_dir: Path,
                          == digest_recomputed)
         except (KeyError, TypeError, ValueError):
             digest_ok = False
-    # R2-Q1:内部 checks 明细与顶层 pass 的一致性——cue 内部检查/
-    # MC 数值已失败而顶层 PASS(即使 digest 公共函数重算自洽)
-    # 不得通过;pass 必须等于 all(checks),且 checks 须全 True。
+    # R3-Q1:公共业务数值与必需检查集合双重判定——不能只信
+    # all(checks) 布尔与 SHA:
+    # (1) checks 键集合必须与权威 8 项必需检查精确一致(删减/
+    #     替换/加键=绕过必需检查,拒);
+    # (2) 用报告内公共数值独立重算可重算判据(MC-解析 closeness、
+    #     双语料 emp-analytic closeness),重算值必须与 checks 布尔
+    #     一致——"MC 数据失败但顶层 PASS 且 checks/SHA 自洽"的
+    #     矛盾报告拒(成功夹具不等于数值合法;数值判据是权威)。
     cue_checks = (ev["parsed"].get("checks")
                   if ev["present"] else None)
     checks_all_true = bool(
@@ -300,12 +305,56 @@ def judge_qualification_gates(art_dir: Path,
     pass_recomputed = bool(
         isinstance(cue_checks, dict) and cue_checks
         and ev["parsed"].get("pass") == all(cue_checks.values()))
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        qprod_required_cue_check_names,
+    )
+    required_names = qprod_required_cue_check_names()
+    checks_set_ok = bool(
+        isinstance(cue_checks, dict)
+        and set(cue_checks) == set(required_names))
+    # ---- 数值重算(报告公共数值;判据=pass_rule 权威语义) ----
+    mc = (ev["parsed"].get("monte_carlo") or {}) if ev["present"] else {}
+    dg = ((ev["parsed"].get("direct_generator") or {})
+          if ev["present"] else {})
+    mc_close_recomputed = None
+    if ev["present"] and mc.get("p_hat") is not None \
+            and ev["parsed"].get("p_contract") is not None:
+        mc_close_recomputed = bool(
+            abs(float(mc["p_hat"])
+                - float(ev["parsed"]["p_contract"]))
+            <= float(mc.get("tolerance", 0.001)))
+        mc_close_consistent = bool(
+            cue_checks is not None
+            and mc_close_recomputed
+            == bool(cue_checks.get("mc_close_to_analytic")))
+    else:
+        mc_close_consistent = False
+    corpus_consistent = True
+    for corpus in ("model", "validation"):
+        c = dg.get(corpus) or {}
+        emp, ana = c.get("empirical_recall"), \
+            c.get("analytic_conditional")
+        se = float((c.get("block_cluster") or {}).get("se", 0.0))
+        key = f"{corpus}_corpus_ok"
+        if emp is None or ana is None:
+            corpus_consistent = False
+            continue
+        closeness = bool(
+            abs(float(emp) - float(ana))
+            <= max(3.0 * se, 0.005))
+        if cue_checks is not None and closeness != bool(
+                cue_checks.get(key)):
+            corpus_consistent = False
+    numbers_consistent = bool(
+        mc_close_consistent and corpus_consistent)
     cue_ok = bool(ev["present"]
                   and ev["parsed"].get("pass") is True
                   and ev["parsed"].get("audit_digest")
                   and digest_ok is True
                   and checks_all_true
-                  and pass_recomputed)
+                  and pass_recomputed
+                  and checks_set_ok
+                  and numbers_consistent)
     failed_checks = ([k for k, v in (cue_checks or {}).items()
                       if v is not True])
     gates["cue_audit_pass"] = {
@@ -316,6 +365,11 @@ def judge_qualification_gates(art_dir: Path,
                      "checks_all_true": checks_all_true,
                      "failed_checks": failed_checks,
                      "pass_equals_all_checks": pass_recomputed,
+                     "checks_set_matches_authority": checks_set_ok,
+                     "required_check_names": required_names,
+                     "mc_close_recomputed": mc_close_recomputed,
+                     "numbers_consistent_with_checks":
+                         numbers_consistent,
                      "audit_digest": (
                          ev["parsed"].get("audit_digest")
                          if ev["present"] else None),

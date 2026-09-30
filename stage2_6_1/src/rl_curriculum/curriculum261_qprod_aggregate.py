@@ -220,6 +220,22 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
         problems.append(
             f"qcap mc_events={cap_mc} != 报告 MC n_events "
             f"{rep_mc}(冻结预算与执行不一致)")
+    # R3-Q3:清单条目↔qcap↔报告↔两语料事件**范围**贯通——
+    # qcap.block_range 必须与报告 blocks 及双语料事件 block 集合
+    # 一致(范围矛盾不再只看预算数字;E01 合法兼容基于计划 digest
+    # 白名单身份,不构成范围矛盾豁免)。
+    cap_range = ((qcap or {}).get("block_range") or {} \
+                 if qcap_path.is_file() else {})
+    cap_start = int(cap_range.get("start_index", -1))
+    cap_count = int(cap_range.get("count", -1))
+    if cap_start != 0:
+        problems.append(
+            f"qcap block_range.start_index={cap_start} != 0"
+            f"(生成内核固定从 0 起;范围矛盾)")
+    if cap_count != rep_blocks:
+        problems.append(
+            f"qcap block_range.count={cap_count} != 报告实际 "
+            f"{rep_blocks}(清单-计划-执行范围不一致)")
     # R2-Q3:三方对账——冻结研究计划声明的 audit_budgets 与 qcap/
     # 报告一致(清单声明与执行脱节不再有效)。
     plan_ab = ((research_plan.get("rules") or {})
@@ -362,6 +378,16 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
             f"model 事件 block 集合 {model_blocks} != attempts "
             f"seeds block 集合 {attempts_blocks}"
             f"(model 语料缺失/漂移;双语料对账失败)")
+    # R3-Q3:两语料事件范围与 qcap/report 范围贯通(事件侧证据
+    # 必须落在声明的 block 范围内;范围外事件/缺块均拒)。
+    declared_count = int(((research_plan.get("rules") or {})
+                          .get("audit_budgets") or {})
+                         .get("blocks_per_corpus", -1))
+    if declared_count != -1 and attempts_blocks != list(
+            range(declared_count)):
+        problems.append(
+            f"事件 block 集合 {attempts_blocks} != 计划声明范围 "
+            f"[0,{declared_count})(双语料范围与清单声明不一致)")
     # R2-Q3:model 统计与报告对账——从 model 事件原件复算 recall,
     # 与报告 direct_generator.model 声明一致(删/改 model 事件即使
     # 重算 seal 摘要自洽,报告统计与事件复算矛盾即拒)。
@@ -491,14 +517,19 @@ def aggregate_research(artifact_root: Path | str, *,
         # 即使违规生产了 seal 也不进入主分析(标记
         # post_stop_not_consumed/protocol_violation,排除出有效集);
         # 启动侧约束见 coordinate._early_stop_boundary(拒启动)。
-        # R2-Q3:audit FAIL 坐标不进入早停触发/有利标记/主分析
-        # (统计类别与审计技术失败分开;不因方向"有利"忽略)。
+        # R3-Q3(撤回 R2 规则):audit_pass=False 不再一律从主分析
+        # 剔除——结构/来源合法的坐标即使 cue 合同统计 gate FAIL
+        # 也是**有效统计负结果**,collect-all 保留进主分析并如实
+        # 标注;技术无效(结构/完整性损坏、中断)由各自真实类别
+        # 拒绝或停止,不冒充统计负结果。原"audit_fail_excluded"
+        # 规则及相应测试撤回(历史兼容:仅识别该旧标记并忽略)。
         if (entry["state"] == COORDINATE_STATE_VALID
                 and entry.get("audit_fail")):
-            entry["audit_fail_excluded"] = (
-                "坐标审计合同失败(audit_pass=False):排除出主分析"
-                "与早停触发;与 v4 统计偏差是不同类别,不得互相"
-                "冒充或抵消")
+            entry["stats_gate"] = "cue_contract_fail"
+            entry["negative_result_valid"] = True
+            entry["note"] = (
+                "cue 合同审计 gate FAIL:有效统计负结果,保留数值"
+                "进主分析(不删样凑绿;K/SE 状况由主分析如实报告)")
         if (stop_mode == "early_stop_on_first_negative"
                 and early_stopped_at is not None
                 and entry["state"] == COORDINATE_STATE_VALID
@@ -514,9 +545,11 @@ def aggregate_research(artifact_root: Path | str, *,
         # 转校准路线方向)。beyond_negative_margin 是有利方向(recall
         # 偏高),不构成负结果、不早停、不标 statistical_negative
         # (F1 修复:reviewer 探针证实旧逻辑把有利跨界误判)。
+        # R3-Q3:早停触发用事前定义的统计判据(delta>margin);
+        # 结构合法的有效负结果(含统计 gate FAIL)照常参与——
+        # 不能因"有利"方向忽略,也不能把技术失败冒充统计触发。
         if (stop_mode == "early_stop_on_first_negative"
                 and entry["state"] == COORDINATE_STATE_VALID
-                and not entry.get("audit_fail")
                 and early_stopped_at is None):
             delta_k = p0 - float(entry["recall_validation"])
             se_k = float(entry["se_validation"])
@@ -538,10 +571,10 @@ def aggregate_research(artifact_root: Path | str, *,
                 early_stopped_at = coord["coordinate_id"]
                 entry["statistical_negative"] = True
 
-    valid = [c for c in coordinates
-             if c["state"] == "valid" and not c.get("audit_fail")]
-    audit_failed = [c["coordinate_id"] for c in coordinates
-                    if c["state"] == "valid" and c.get("audit_fail")]
+    valid = [c for c in coordinates if c["state"] == "valid"]
+    stats_gate_failed = [c["coordinate_id"] for c in coordinates
+                         if c["state"] == "valid"
+                         and c.get("audit_fail")]
     deltas = [p0 - float(c["recall_validation"]) for c in valid]
     ses = [float(c["se_validation"]) for c in valid]
     planned_k = int(rules["planned_k"])
@@ -555,6 +588,8 @@ def aggregate_research(artifact_root: Path | str, *,
                     "不安全执行并保留边界",
         }
     elif deltas and enough and all(s > 0.0 for s in ses):
+        # R3-Q3:有效统计负结果(含 stats gate FAIL)已在 valid 集;
+        # K 不足/SE 退化走 inconclusive 分支如实不决(不删样凑绿)。
         delta_bar = sum(deltas) / len(deltas)
         primary = v4.classify_primary(
             delta_bar, ses, margin=float(rules["margin"]),
@@ -633,6 +668,7 @@ def aggregate_research(artifact_root: Path | str, *,
         },
         "coordinates": coordinates,
         "valid_coordinate_count": len(valid),
+        "stats_gate_failed_coordinate_ids": stats_gate_failed,
         "planned_k": planned_k,
         "level_a_terminal": level_a_terminal,
         "primary": primary,

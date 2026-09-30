@@ -405,9 +405,11 @@ def test_r2q3_legacy_tolerance_bounded_to_e01_identity(tmp_path):
 
 
 def test_r2q3_audit_fail_coordinate_excluded_from_primary(tmp_path):
-    """audit FAIL 坐标与 v4 偏差类别区分:不进主分析/早停触发。"""
+    """R3-Q3(撤回 R2 规则):audit_pass=False 不再一律剔除——
+    结构合法的统计 gate FAIL=有效统计负结果,保留进主分析并如实
+    标注;K 不足/SE 退化如实 inconclusive,不删样凑绿。"""
     art, state, digest = ta._setup_plan(
-        tmp_path, stop_mode="early_stop_on_first_negative")
+        tmp_path, stop_mode="collect_all_k")
     plan = load_research_plan(state)
     for i, coord in enumerate(plan["coordinate_manifest"]):
         ta._build_coordinate(art, coord["artifact_subdir"],
@@ -422,28 +424,41 @@ def test_r2q3_audit_fail_coordinate_excluded_from_primary(tmp_path):
     c0 = agg["coordinates"][0]
     assert c0["state"] == "valid"
     assert c0.get("audit_fail") is True
-    assert "audit_fail_excluded" in c0
-    # audit FAIL 坐标不触发早停(即使其 recall 方向"有利/不利")
-    assert agg["early_stopped_at"] != c0["coordinate_id"]
-    # 主分析不消费 audit FAIL 坐标
-    ids = [c["coordinate_id"] for c in agg["coordinates"]]
-    assert c0["coordinate_id"] in ids
+    # 保留:不再有 audit_fail_excluded;是有效负结果标注
+    assert "audit_fail_excluded" not in c0
+    assert c0.get("negative_result_valid") is True
+    assert c0.get("stats_gate") == "cue_contract_fail"
+    # 主分析纳入统计 gate FAIL 坐标(valid 计数含它,如实标注)
+    assert agg["valid_coordinate_count"] == len(
+        plan["coordinate_manifest"])
+    assert c0["coordinate_id"] in agg.get(
+        "stats_gate_failed_coordinate_ids", [])
 
 
 def test_r2q3_valid_e01_legacy_identity_still_readable():
-    """E01 历史原件(白名单身份)在新 reader 下按 legacy 容忍可读
-    (audit_pass=False 如实标记,不再静默进主分析)。"""
-    root = (Path(__file__).resolve().parents[2]
-            / "artifacts" / "repair17" / "development" / "qprod_v1")
-    run = root / "native_smoke_run1"
-    if not run.is_dir():  # 部署树无原件时跳过(仓库树必在)
-        pytest.skip("E01 originals not present in this tree")
-    base = run / "qprod_level_b_qprod_b_eng_v1"
+    """E01 历史原件(白名单身份)在 reader 下实际执行读取——
+    R3-R01:不再接受"原件不存在"skip;优先部署树可见的仓库归档
+    真实路径(F:/ 仓库在 WSL=/mnt/f/trading/freqai-rl-audit),
+    两处归档路径均缺失才视为环境真缺件(如实 FAIL,不静默跳过)。
+    audit_pass=False=有效统计负结果:valid+如实标注,保留数值。"""
+    candidates = [
+        Path(__file__).resolve().parents[2]
+        / "artifacts" / "repair17" / "development" / "qprod_v1",
+        Path("/mnt/f/trading/freqai-rl-audit/stage2_6_1"
+             "/artifacts/repair17/development/qprod_v1"),
+    ]
+    roots = [r for r in candidates if (r / "native_smoke_run1").is_dir()]
+    assert roots, (
+        f"E01 归档原件两处候选路径均缺失 {candidates}"
+        f"(R3-R01:不得默认 skip;归档真实路径必须可读)")
+    root = roots[0]
+    base = root / "native_smoke_run1" / "qprod_level_b_qprod_b_eng_v1"
     plan = load_research_plan(base / "state")
     coord = plan["coordinate_manifest"][0]
     v = _verify_coordinate(base / "artifacts"
                            / coord["artifact_subdir"], coord, plan)
-    assert v["state"] in ("valid", "interrupted", "missing")
-    if v["state"] == "valid":
-        assert v["legacy_seal_without_event_binding"] is True
-        assert v.get("audit_fail") is True  # 真实 report.pass=False
+    assert v["state"] == "valid", v["problems"]
+    assert v["legacy_seal_without_event_binding"] is True
+    # R3-Q3:真实 report.pass=False → 有效统计负结果(verify 层
+    # 如实标 audit_fail;保留进主分析由 aggregate 层用例验证)
+    assert v.get("audit_fail") is True

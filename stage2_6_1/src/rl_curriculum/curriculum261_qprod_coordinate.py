@@ -297,7 +297,8 @@ class _GenerationLedger:
                            "bitwise_replay": 0}
         self.block_log: list[dict[str, Any]] = []
         self._episode_actions = 0      # 真实发生的 episode 叶动作
-        self._inflight_upper = 0       # 进行中 block 的最坏上界
+        self._inflight_upper = 0       # 进行中/未结算 block 最坏上界
+        self.uncertain_blocks = 0      # 异常/中断后未结算 block 数
         self._once_impl = None
         self._attempts_impl = None
         self._once_seq: dict[str, int] = {}
@@ -320,7 +321,11 @@ class _GenerationLedger:
     #   任何嵌套尝试都不透支)。
     @property
     def episode_leaf_calls(self) -> int:
-        return self._episode_actions
+        # R3-Q2:已发生动作 + 未结算的进行中/异常预占——异常或
+        # 中断后无法确定 impl 内已发生多少嵌套 attempt,最坏上界
+        # **不退为 0**(保守计数,后续累计不逃账;正常完成时按
+        # attempts_made 精确回填并释放上界)。
+        return self._episode_actions + self._inflight_upper
 
     def _reserve(self, kind: str, actions: int = 8) -> None:
         """生成动作前的配额预占(episode 单位;最坏情况上界)。"""
@@ -391,8 +396,16 @@ class _GenerationLedger:
             try:
                 block = ledger._attempts_impl(
                     ladder, namespace=namespace, block_index=block_index)
-            finally:
-                ledger._inflight_upper -= upper
+            except BaseException:
+                # R3-Q2:一般异常/中断(KILL/SystemExit 走 finally
+                # 以外路径同样适用)——impl 已部分执行时无法确定
+                # 已发生嵌套 attempt 数:最坏上界保留为**未结算
+                # 预占**(不退 0,不丢账),配额与累计继续按保守
+                # 上界生效;异常向上传播(失败按真实类别记账)。
+                ledger.uncertain_blocks += 1
+                raise
+            # 正常完成:释放上界,按 attempts_made 精确回填
+            ledger._inflight_upper -= upper
             log = block.attempt_log
             # 真实发生动作 = 本次 attempts_made x 8(每次 attempt
             # 都是完整 8-episode 生成;部分失败/重试逐动作入账)
@@ -438,7 +451,12 @@ class _GenerationLedger:
             # R2-Q2:episode 叶调用=真实发生动作逐动作累计
             # (once/replay 每动作 8;attempts 按 attempts_made x 8),
             # 不再是 wrapper 调用数 x 8。
-            "episode_leaf_calls": self._episode_actions,
+            "episode_leaf_calls": (
+                self._episode_actions + self._inflight_upper),
+            "episode_leaf_actions_settled": self._episode_actions,
+            "episode_leaf_actions_uncertain_upper":
+                self._inflight_upper,
+            "uncertain_blocks": self.uncertain_blocks,
             "episode_leaf_calls_quota": self.quota_max_episode_leaf_calls,
             "n_blocks_generated": (
                 self.leaf_calls["once"] + self.leaf_calls["attempts"]),
@@ -448,6 +466,41 @@ class _GenerationLedger:
                          "once/replay 每动作 8;attempts 每嵌套"
                          " attempt 8,按 attempts_made 精确累计)",
         }
+
+
+#: cue 合同审计权威必需检查集合(与 r17 core report["checks"]
+#: 8 项精确一致;读取侧据此拒删减/替换/加键——成功夹具的 checks
+#: 键集合不等于权威集合=绕过必需检查)。
+QPROD_REQUIRED_CUE_CHECK_NAMES = (
+    "mc_close_to_analytic",
+    "model_corpus_ok",
+    "validation_corpus_ok",
+    "once_vs_attempts_consistent",
+    "aggregate_recompute_ok",
+    "tail_mirror_bound_integrity_pass",
+    "global_k_audit_pass",
+    "global_k_audit_not_indeterminate",
+)
+
+
+def qprod_required_cue_check_names() -> tuple[str, ...]:
+    """权威必需检查名(与 r17 core 实际生成键集合对拍校验)。"""
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        ABSOLUTE_MINIMUM_RECALL, AUDIT_RNG_SEED,
+        C2_CUE_SEMANTIC_CONTRACT_VERSION, NONINFERIORITY_DELTA,
+    )
+    # 构造最小 core 报告读取其 checks 键(单一事实源,不双写):
+    # 直接对拍常量元组与 core 生成器输出键集。
+    from rl_curriculum.curriculum261_r17_cue_contract import (
+        _synthetic_probe_check_names,
+    )
+    names = _synthetic_probe_check_names()
+    if tuple(sorted(names)) != tuple(sorted(
+            QPROD_REQUIRED_CUE_CHECK_NAMES)):
+        raise QProdContextError(
+            f"权威检查集合漂移: core={sorted(names)} != "
+            f"常量={sorted(QPROD_REQUIRED_CUE_CHECK_NAMES)}")
+    return QPROD_REQUIRED_CUE_CHECK_NAMES
 
 
 QPROD_NATIVE_BUDGET_NAME = "qprod_native_budget.json"
@@ -645,6 +698,32 @@ def run_coordinate_audit_locked(
                coordinate["validation_namespace"]):
         if ns not in declared_ns:
             raise _refuse(f"namespace {ns!r} 不在许可预注册 scope 内")
+    # R3-Q2:许可额度 vs 需求 动作前对账——许可为正但不足以
+    # 覆盖坐标真实需求时,在**任何生成动作之前**拒绝(不是
+    # 起跑后透支失败):mc_events_per_coordinate < qcap.mc_events、
+    # max_successful_episodes_total < 本坐标成功正文需求
+    # (blocks x episodes_per_block x 双语料语料份额按 qcap 口径),
+    # 均拒。研究计划记录的预算声明不代替许可上限(两者都须
+    # 覆盖需求;取更严者执行)。
+    pq = live_permit.quota
+    need_mc = int(cap["budgets"]["mc_events"])
+    need_eps = int(cap["budgets"]["blocks_per_corpus"]) * 8 * 2
+    if int(pq["mc_events_per_coordinate"]) < need_mc:
+        raise _refuse(
+            f"许可 mc_events_per_coordinate="
+            f"{pq['mc_events_per_coordinate']} < 坐标需求 {need_mc}"
+            f"(许可为正但不足以覆盖需求;动作前拒绝,研究计划"
+            f"预算声明不代替许可上限)")
+    if int(pq["max_successful_episodes_total"]) < need_eps:
+        raise _refuse(
+            f"许可 max_successful_episodes_total="
+            f"{pq['max_successful_episodes_total']} < 本坐标成功"
+            f"正文需求 {need_eps}(blocks x 8 x 2 语料;动作前"
+            f"拒绝,不允许起跑后靠部分生成凑数)")
+    if int(pq["max_native_executions"]) < 1:
+        raise _refuse(
+            "许可 max_native_executions<1(本坐标运行为原生执行"
+            "需求;动作前拒绝)")
     # 5. 坐标目录新鲜(重复/终态/中断重入拒绝)
     if (coord_dir / QPROD_COORDINATE_SEAL_NAME).is_file():
         raise _refuse("坐标目录已封存(sealed);终态重入拒绝")
@@ -798,6 +877,7 @@ def run_coordinate_audit_locked(
 
 __all__ = [
     "QPROD_ENG_BLOCKS_PER_CORPUS", "QPROD_ENG_MC_EVENTS",
+    "QPROD_REQUIRED_CUE_CHECK_NAMES", "qprod_required_cue_check_names",
     "QPROD_NATIVE_BUDGET_NAME", "check_native_budget",
     "QPROD_ENG_GLOBAL_K_TIER1", "QPROD_COORDINATE_SEAL_NAME",
     "QPROD_QUOTA_LEDGER_NAME", "lock_coordinate_audit_plan",

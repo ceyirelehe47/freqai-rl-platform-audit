@@ -73,14 +73,28 @@ def _setup(tmp_path: Path, *, plan_freeze=True):
 
 
 class _FakePermit:
-    def __init__(self, level="level_b", namespaces=None):
+    def __init__(self, level="level_b", namespaces=None, quota=None):
         self.permit = {
             "task_level": level,
             "preregistered_input_scope": {
                 "namespaces": namespaces if namespaces is not None else [
                     "cue_qprod_v1_c01_model",
                     "cue_qprod_v1_c01_validation"]},
+            # R3-Q2:quota 默认充分;测试可注入不足额度验证动作前拦截
+            "quota": quota if quota is not None else {
+                "max_leaf_calls_per_coordinate": 640,
+                "max_successful_episodes_total": 128,
+                "mc_events_per_coordinate": 4096,
+                "max_native_executions": 2},
         }
+
+    @property
+    def quota(self):
+        return dict(self.permit["quota"])
+
+    @quota.setter
+    def quota(self, value):
+        self.permit["quota"] = dict(value)
 
 
 def _refusal_of(tmp_path, coord_id):

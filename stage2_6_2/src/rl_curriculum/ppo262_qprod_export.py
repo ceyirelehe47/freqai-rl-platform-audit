@@ -355,22 +355,44 @@ def export_qualification_delivery(
     # 且全部步骤 ok(链失败不得导出成功消费包)。
     ledger_path_p = art / "level_a_step_ledger.json"
     ledger_ok = False
+    ledger_step_problem = None
     if ledger_path_p.is_file():
         try:
             led = json.loads(
                 ledger_path_p.read_text(encoding="utf-8"))
             steps = led.get("steps") or []
+            # R3-Q1:17 步来源按权威步骤/依赖核验——步骤名**序列**
+            # 必须与权威 r17_workflow_step_names() 精确一致(顺序=
+            # 依赖顺序;重复同一步 17 次/缺步/换序/加步均拒,
+            # 即使全部 ok=True)。
+            from rl_curriculum.curriculum261_r17_workflow import (
+                r17_workflow_step_names,
+            )
+            authority_seq = list(r17_workflow_step_names())
+            actual_seq = [st.get("step") for st in steps]
+            if actual_seq != authority_seq:
+                dup = len(set(actual_seq)) != len(actual_seq)
+                ledger_step_problem = (
+                    f"步骤序列与权威 17 步不一致(duplicate={dup};"
+                    f"actual前4={actual_seq[:4]};"
+                    f"authority前4={authority_seq[:4]})")
+            elif led.get("failed_at") is not None:
+                ledger_step_problem = (
+                    f"账本记录 failed_at={led.get('failed_at')!r}")
             ledger_ok = bool(
                 led.get("verdict") == "PASS"
+                and ledger_step_problem is None
                 and len(steps) == 17
                 and all(st.get("ok") is True for st in steps))
         except json.JSONDecodeError:
             ledger_ok = False
     checks["producer_step_ledger_pass"] = ledger_ok
     if not ledger_ok:
+        detail = f";{ledger_step_problem}" if ledger_step_problem else ""
         problems.append(
-            "producer 链步账本缺失/FAIL/步骤不全(必要链记录缺失"
-            "或链失败不得导出成功包)")
+            "producer 链步账本缺失/FAIL/步骤不全/步骤序列与权威"
+            "17步不一致(复制同一步充数即使全 ok 也拒;必要链记录"
+            f"缺失或链失败不得导出成功包){detail}")
     # R2-Q1:数据前研究计划来源——state_root 必须有冻结研究计划
     # 且 digest 等于资格计划绑定的 prior_plan_digest。
     rp_path = state_root / "qprod_research_plan.json"

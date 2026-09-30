@@ -953,17 +953,17 @@ def _run_cue_contract_audit_core(
                                    "不进判据)",
         },
     }
-    report["checks"] = {
-        "mc_close_to_analytic": report["monte_carlo"]["pass"],
-        "model_corpus_ok": per_corpus_ok["model"],
-        "validation_corpus_ok": per_corpus_ok["validation"],
-        "once_vs_attempts_consistent": once_vs_attempts_ok,
-        "aggregate_recompute_ok": bool(recompute_ok),
-        "tail_mirror_bound_integrity_pass": bool(tail_integrity["pass"]),
-        "global_k_audit_pass": bool(global_k.get("pass")),
-        "global_k_audit_not_indeterminate": bool(
+    report["checks"] = dict(_synthetic_probe_check_names_and_values(
+        mc_pass=report["monte_carlo"]["pass"],
+        model_ok=per_corpus_ok["model"],
+        validation_ok=per_corpus_ok["validation"],
+        once_attempts=once_vs_attempts_ok,
+        recompute_ok=bool(recompute_ok),
+        tail_ok=bool(tail_integrity["pass"]),
+        global_k_pass=bool(global_k.get("pass")),
+        global_k_not_indet=bool(
             global_k.get("verdict") != "INDETERMINATE"),
-    }
+    ))
     report["pass"] = bool(all(report["checks"].values()))
     if report_actual_values:
         report["report_mode"] = "actual_values"
@@ -1066,6 +1066,43 @@ def _run_cue_contract_audit_core(
                               "t+16>=n 整体 break",
         }, indent=2, ensure_ascii=False, default=float), encoding="utf-8")
     return report
+
+
+#: 权威必需检查键集合(core 生成 report["checks"] 的单一事实源;
+#: 读取侧 qprod_required_cue_check_names() 对拍此集合)。
+AUDIT_REQUIRED_CHECK_NAMES: tuple[str, ...] = (
+    "mc_close_to_analytic",
+    "model_corpus_ok",
+    "validation_corpus_ok",
+    "once_vs_attempts_consistent",
+    "aggregate_recompute_ok",
+    "tail_mirror_bound_integrity_pass",
+    "global_k_audit_pass",
+    "global_k_audit_not_indeterminate",
+)
+
+
+def _synthetic_probe_check_names_and_values(
+        *, mc_pass: bool, model_ok: bool, validation_ok: bool,
+        once_attempts: bool, recompute_ok: bool, tail_ok: bool,
+        global_k_pass: bool, global_k_not_indet: bool,
+) -> dict[str, bool]:
+    """按权威键集合组装 checks(键序=元组序;零生成纯结构)。"""
+    return {
+        "mc_close_to_analytic": mc_pass,
+        "model_corpus_ok": model_ok,
+        "validation_corpus_ok": validation_ok,
+        "once_vs_attempts_consistent": once_attempts,
+        "aggregate_recompute_ok": recompute_ok,
+        "tail_mirror_bound_integrity_pass": tail_ok,
+        "global_k_audit_pass": global_k_pass,
+        "global_k_audit_not_indeterminate": global_k_not_indet,
+    }
+
+
+def _synthetic_probe_check_names() -> tuple[str, ...]:
+    """探针:权威检查键集合(供读取侧对拍;零生成)。"""
+    return AUDIT_REQUIRED_CHECK_NAMES
 
 
 def cue_contract_audit_digest(report: dict[str, Any]) -> str:
