@@ -32,3 +32,17 @@
 - E01: E01_RECOMPUTE_C21.json 沿用原件数值(零原生改动)
 - C20 及更早记录零改写;原生 2/2 耗尽维持;零新增原生/MC 研究/fit/
   optimizer/模型加载
+
+## R10b P3 处理层(reviewer V1 三项 P3;C22=1361b4bb)
+- P3-1 已修: 无 ova+fixture 拒绝路径的委托账目解耦(先记
+  fixture_delegated 再合成判定,k_ok=False 拒绝路径同样留证迹;
+  判定语义不变);钉 +1(R10 钉共 7);qprod 面 191/191
+- P3-2 已修: runner label r9b_c20→r10_c22
+- P3-3 记录: run_id 分钟戳早于 junit 推断结束约 1.5 分钟
+  (reviewer 已核所有实体锚自洽,无验收影响,不改)
+- r21 v6 C22: run 20261002_074445 rc=0, 2732/0F/7skip, record
+  3c1820bd, verify 2732/2246/163(label r10_c22)
+- 262 v17 C22: 240 RC=0(meta 绑定 1361b4bb;初次 sed 误截 EVD
+  落 qprod_v1/regress262,已迁移至本目录,junit 补齐)
+- E02 r10b 七步 rc=0 — evidence/e02_r10b/
+- C21 记录(record b3fc0fa2)保持原样不改写
