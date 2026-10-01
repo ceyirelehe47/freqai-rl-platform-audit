@@ -1,0 +1,166 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 10%]
+........................................................................ [ 13%]
+........................................................................ [ 16%]
+.................................s...................................... [ 18%]
+..........s............................................................. [ 21%]
+................................s....................................... [ 24%]
+........................................................................ [ 26%]
+........................................................................ [ 29%]
+.........s.............................................................. [ 32%]
+........................................................................ [ 34%]
+..................................................................s.s.s. [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........R17ALERT {"event":"t06","n":1,"utc":"2026-10-01T12:39:28Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-1/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-01T12:39:28Z","run_id":"run"}
+.................................................F.............. [ 58%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 69%]
+........R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-1/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-01T12:49:56Z","run_id":"run"}
+................................................................ [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 77%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+................................                                         [100%]
+=================================== FAILURES ===================================
+________ TestExecutorIdentity.test_t09_owner_death_rejects_new_requests ________
+
+self = <test_curriculum261_r17_execgov.TestExecutorIdentity object at 0x7d13a4bfef10>
+isolated_root = PosixPath('/tmp/r17_execgov_test_ufij_gni')
+
+    def test_t09_owner_death_rejects_new_requests(self,
+                                                  isolated_root):
+        """owner 真实退出后:身份完全合法的被委派 worker 的新
+        受保护请求被拒(owner 存活性独立判定;锁 fd 继承不算
+        owner 存活);且被接受运行不允许接管重跑(T16 面)。"""
+        coord = isolated_root / "coord"
+        coord.mkdir()
+        worker_script = coord / "worker.py"
+        worker_script.write_text(
+            "import json, sys, time\n"
+            "sys.path.insert(0, " + repr(str(PROJ_SRC)) + ")\n"
+            "from rl_curriculum.curriculum261_r17_execgov import (\n"
+            "    executor_identity, verify_executor_token,\n"
+            "    R17AuthorizationError)\n"
+            "open(" + repr(str(coord / "identity.json")) +
+            ", \"w\").write(json.dumps(executor_identity()))\n"
+            "from pathlib import Path\n"
+            "token_file = Path(" +
+            repr(str(coord / "token.json")) + ")\n"
+            "for _ in range(600):\n"
+            "    if token_file.is_file():\n"
+            "        break\n"
+            "    time.sleep(0.05)\n"
+            "token_doc = json.loads(token_file.read_text())\n"
+            "token = token_doc[\"token\"]\n"
+            "owner_pid = token_doc[\"owner_pid\"]\n"
+            "# 等 owner 进程真实消失(/proc/<pid> 不再存在)\n"
+            "for _ in range(600):\n"
+            "    if not Path(f\"/proc/{owner_pid}\").exists():\n"
+            "        break\n"
+            "    time.sleep(0.05)\n"
+            "try:\n"
+            "    verify_executor_token(token, " +
+            repr(PROBE_NS) + ")\n"
+            "    result = \"PASSED(bug)\"\n"
+            "except R17AuthorizationError as e:\n"
+            "    result = \"rejected:\" + str(e)[:80]\n"
+            "except BaseException as e:\n"
+            "    result = (\"worker-error:\" + type(e).__name__ + "
+            "\":\" + str(e)[:120])\n"
+            "open(" + repr(str(coord / "worker_result.txt")) +
+            ", \"w\").write(result)\n", encoding="utf-8")
+        worker = subprocess.Popen(
+            [sys.executable, "-u", str(worker_script)])
+        identity_path = coord / "identity.json"
+        for _ in range(600):
+            if identity_path.is_file():
+                break
+            time.sleep(0.05)
+>       worker_ident = json.loads(
+            identity_path.read_text(encoding="utf-8"))
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_execgov.py:339: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x7d13b3aaa990>, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/json/decoder.py:355: JSONDecodeError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_execgov.py::TestExecutorIdentity::test_t09_owner_death_rejects_new_requests
+1 failed, 2688 passed, 7 skipped, 10 warnings in 2413.96s (0:40:13)
