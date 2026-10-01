@@ -40,11 +40,12 @@ def _legal_report() -> dict:
                 "empirical_recall": 0.5,
                 "analytic_conditional": 0.5,
                 "diff_tolerance": 0.03,
+                "aggregate": {"k_mean": 1.0, "n_detected": 1,
+                              "n_events": 2,
+                              "k_histogram": {"1": 2}},
                 "replay_ok": True, "bounds_ok": True,
                 "cue_table_consistent_across_rungs": True,
                 "max_replay_abs_error": 0.0,
-                "aggregate": {"k_mean": 1.0, "n_detected": 1,
-                              "n_events": 2},
                 "tail": {"n_events": 0},
             } for n in ("model", "validation")},
         "tail_mirror_bound_integrity": {
@@ -211,3 +212,72 @@ def test_r6_fixture_cannot_mask_inreport_k_contradiction():
     out = rec(r)
     assert out["recomputed"][
         "once_vs_attempts_consistent"] is False
+
+
+# ---------------------------------------------------------------- R7
+def test_r7_k_source_deleted_forged_rejected():
+    """R7(review F1):k_mean 声明在场而 dg.aggregate.k_mean 缺件
+    → 无 fixture 拒(不静默跳过来源对账);伪造 K 声明不得 PASS。"""
+    def m(r):
+        for n in ("model", "validation"):
+            del r["direct_generator"][n]["aggregate"]["k_mean"]
+        ova = r["once_vs_attempts"]
+        ova["k_mean_model"] = 0.0
+        ova["k_mean_validation"] = 0.0
+        ova["k_abs_diff"] = 0.0
+    out = _run(m)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("K 来源缺失" in d or "缺件" in d
+               for d in out["threshold_discrepancies"])
+
+
+def test_r7_k_tolerance_pinned_to_frozen_formula():
+    """R7(review F2):k_tolerance 必须等于冻结公式 max(3*pooled_se,
+    0.05)(pooled se 由 k_histogram 重算,ddof=1 与生产同式);膨胀
+    容差漂移拒,重算差值以冻结值为界。"""
+    def m(r):
+        for n, km, hist in (("model", 3.0, {"3": 2}),
+                            ("validation", 2.5, {"2": 1, "3": 1})):
+            agg = r["direct_generator"][n]["aggregate"]
+            agg["k_mean"] = km
+            agg["k_histogram"] = hist
+        ova = r["once_vs_attempts"]
+        ova["k_mean_model"] = 3.0
+        ova["k_mean_validation"] = 2.5
+        ova["k_abs_diff"] = 0.5  # 派生自洽
+        ova["k_tolerance"] = 1.0  # 膨胀(冻结公式值小得多)
+    out = _run(m)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("K 容差漂移" in d
+               for d in out["threshold_discrepancies"])
+
+
+def test_r7_k_histogram_missing_rejected_no_fixture():
+    """R7:k_histogram 缺件 → 冻结公式无法重算,无 fixture 拒。"""
+    def m(r):
+        for n in ("model", "validation"):
+            del r["direct_generator"][n]["aggregate"][
+                "k_histogram"]
+    out = _run(m)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("k_histogram" in d
+               for d in out["threshold_discrepancies"])
+
+
+def test_r7_fixture_k_source_missing_delegated():
+    """fixture 双重态:K 来源/histogram 缺件如实委托,不静默拒。"""
+    r = _legal_report()
+    r["engineering_fixture"] = True
+    for n in ("model", "validation"):
+        del r["direct_generator"][n]["aggregate"]["k_mean"]
+        del r["direct_generator"][n]["aggregate"]["k_histogram"]
+    out = rec(r)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is True
+    assert any("source_missing" in k
+               for k in out["fixture_delegated"])
+    assert any(k.endswith("k_tolerance_frozen")
+               for k in out["fixture_delegated"])

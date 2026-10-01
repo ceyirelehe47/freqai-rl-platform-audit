@@ -18,7 +18,8 @@ def base_report():
                 "cue_table_consistent_across_rungs": True,
                 "max_replay_abs_error": 0.0,
                 "aggregate": {"k_mean": 1.0, "n_detected": 1,
-                              "n_events": 2},
+                              "n_events": 2,
+                              "k_histogram": {"1": 2}},
                 "tail": {"n_events": 0},
             } for n in ("model", "validation")},
         "tail_mirror_bound_integrity": {

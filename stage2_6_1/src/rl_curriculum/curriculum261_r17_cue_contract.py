@@ -1415,19 +1415,102 @@ def recompute_audit_semantics_from_report(
                 and ova.get("k_mean_validation") is not None:
             km = float(ova["k_mean_model"])
             kv = float(ova["k_mean_validation"])
+            k_tol_frozen = None
             for fld, val, corpus in (
                     ("k_mean_model", km, "model"),
                     ("k_mean_validation", kv, "validation")):
-                src_k = (dg.get(corpus, {}).get("aggregate")
-                         or {}).get("k_mean")
-                if src_k is not None and abs(
-                        val - float(src_k)) > 1e-9:
+                agg_c = dg.get(corpus, {}).get("aggregate") or {}
+                src_k = agg_c.get("k_mean")
+                if src_k is None:
+                    # R7(review F1): k_mean 声明在场而来源缺件——
+                    # 无 fixture 拒(必要依据缺失→拒绝,不静默跳过
+                    # 来源对账);fixture 如实委托并跳过该语料对账。
+                    if fixture:
+                        delegated.append(
+                            "once_vs_attempts." + fld
+                            + ".source_missing")
+                        continue
+                    k_ok = False
+                    disc.append(
+                        "once_vs_attempts." + fld + " 在场但 "
+                        "direct_generator." + corpus
+                        + ".aggregate.k_mean 缺件(K 来源缺失,"
+                        "不得静默跳过来源对账)")
+                    continue
+                if abs(val - float(src_k)) > 1e-9:
                     k_ok = False
                     disc.append(
                         "once_vs_attempts." + fld + "=" + str(val)
                         + " 与 direct_generator." + corpus
                         + ".aggregate.k_mean=" + str(src_k)
                         + " 矛盾(K 来源不一致)")
+            # R7(review F2): k_tolerance 冻结公式锚定——生产规则
+            # max(3*pooled_se,0.05)(plan payload 冻结),pooled se 由
+            # dg.<corpus>.aggregate.k_histogram 重算(与生产端
+            # ddof=1 同式);声明容差与冻结公式漂移即拒,重算差值
+            # 以冻结值为界(不只比较报告自带容差);k_histogram
+            # 缺件无 fixture 拒,fixture 如实委托。
+            hists = []
+            hist_missing = False
+            for corpus in ("model", "validation"):
+                h = (dg.get(corpus, {}).get("aggregate")
+                     or {}).get("k_histogram")
+                if not h:
+                    hist_missing = True
+                hists.append(h or {})
+            if hist_missing:
+                if fixture:
+                    delegated.append(
+                        "once_vs_attempts.k_tolerance_frozen")
+                else:
+                    k_ok = False
+                    disc.append(
+                        "direct_generator.aggregate.k_histogram "
+                        "缺件:k_tolerance 冻结公式(max(3*pooled_se,"
+                        "0.05))无法重算(必要依据缺失→拒绝)")
+            else:
+                ks = []
+                _bad_hist = False
+                for h in hists:
+                    vals: list[float] = []
+                    try:
+                        for kk, c in h.items():
+                            vals.extend(
+                                [float(kk)] * int(c))
+                    except (TypeError, ValueError):
+                        _bad_hist = True
+                        break
+                    ks.append(vals)
+                if _bad_hist:
+                    if not fixture:
+                        k_ok = False
+                        disc.append(
+                            "k_histogram 结构非法,k_tolerance "
+                            "冻结公式无法重算")
+                elif all(len(x) > 1 for x in ks):
+                    pooled = math.sqrt(
+                        float(np.var(
+                            np.array(ks[0]), ddof=1)) / len(ks[0])
+                        + float(np.var(
+                            np.array(ks[1]), ddof=1)) / len(ks[1]))
+                    k_tol_frozen = max(3.0 * pooled, 0.05)
+                if ova.get("k_tolerance") is not None:
+                    if k_tol_frozen is None:
+                        if not fixture:
+                            k_ok = False
+                            disc.append(
+                                "k_histogram 样本不足(每语料>1),"
+                                "k_tolerance 冻结公式无法重算")
+                    elif abs(float(ova["k_tolerance"])
+                             - k_tol_frozen) > 1e-9:
+                        k_ok = False
+                        disc.append(
+                            "once_vs_attempts.k_tolerance="
+                            + str(ova["k_tolerance"])
+                            + " != 冻结公式值 max(3*pooled_se,0.05)"
+                            + "=" + str(k_tol_frozen)
+                            + "(K 容差漂移;pooled_se 由 "
+                            "k_histogram 重算)")
             k_derived = abs(km - kv)
             if ova.get("k_abs_diff") is not None and abs(
                     float(ova["k_abs_diff"]) - k_derived) > 1e-9:
@@ -1437,14 +1520,17 @@ def recompute_audit_semantics_from_report(
                     + str(ova["k_abs_diff"])
                     + " != |k_mean_model-k_mean_validation|="
                     + str(k_derived) + "(K 派生差值矛盾)")
-            if ova.get("k_tolerance") is not None \
-                    and k_derived > float(ova["k_tolerance"]):
+            _k_bound = (k_tol_frozen if k_tol_frozen is not None
+                        else (float(ova["k_tolerance"])
+                              if ova.get("k_tolerance") is not None
+                              else None))
+            if _k_bound is not None and k_derived > _k_bound:
                 k_ok = False
                 disc.append(
                     "once_vs_attempts K 重算差值 |"
                     + str(km) + "-" + str(kv) + "|="
-                    + str(k_derived) + " > k_tolerance="
-                    + str(ova["k_tolerance"]))
+                    + str(k_derived) + " > k_tolerance 界 "
+                    + str(_k_bound) + "(冻结值优先,声明值兜底)")
             if ova.get("k_modes_consistent") is True and not k_ok:
                 disc.append(
                     "once_vs_attempts.k_modes_consistent=True 与"
