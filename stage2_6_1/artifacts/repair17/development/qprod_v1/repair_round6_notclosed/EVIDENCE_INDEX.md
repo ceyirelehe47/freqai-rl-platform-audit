@@ -52,3 +52,13 @@ tail 布尔子依据缺失拒; gk 分层一致(pass==(verdict=="PASS")/final 层
   E02 R7 七步 rc=0(evidence/e02_r7/)
 - r4/r6 夹具升级注记: 补 dg.aggregate(k_mean+k_histogram)与支撑布尔——
   R7 语义下缺件即拒,夹具随语义升级为生产端真实形态(变体断言不变)
+
+## R7b(P3 处理, C17b=079713cd)证据
+- 变更仅一行: fixture 分支 k_histogram 结构非法时补 delegated 标注
+  (once_vs_attempts.k_tolerance_frozen_malformed), 无 fixture 拒不变;
+  qprod 面 171/171
+- r21 v6 C17b: run 20261001_235807 **rc=0, 2700/0F/7skip, record 26958bf7,
+  verify 2700/2214/160**(一次通过)— evidence/regress_v6/full_regression_v6_c17b/
+- 262 v12 C17b: 240 RC=0 — evidence/regress262/regress262_v12_c17b
+- digest 绑定 aggregate 缺口(reviewer P3-1)登记为未来轮事项(golden vector
+  语义面, 超本轮授权)
