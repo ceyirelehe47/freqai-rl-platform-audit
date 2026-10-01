@@ -1241,14 +1241,17 @@ def recompute_audit_semantics_from_report(
     ti = report.get("tail_mirror_bound_integrity") or {}
     per = ti.get("per_corpus") or {}
     if ti:
-        # R5-Q1: 上层 ok/pass 布尔必须与**在场子输入**一致——
-        # exact_noise_replay_ok/bounds_ok_all_positions 任一 False、
-        # 或 violations/n_violations 非空 ⇒ 拒,不能只看 ok。
+        # R5-Q1/R6-Q1: 上层 ok/pass 布尔必须与**在场子输入**一致
+        # ——exact_noise_replay_ok/bounds_ok_all_positions 任一
+        # False、violations/n_violations 非空 ⇒ 拒;必要子依据
+        # (两布尔键)缺失亦不得只靠 ok=True 通过(缺失≠True)。
+        # fixture 委托仅适用于 ti 整块缺失(R5 双重态)。
         ti_sub_ok = bool(per)
         for cname, sub in per.items():
+            enr = sub.get("exact_noise_replay_ok")
+            bnd = sub.get("bounds_ok_all_positions")
             sub_bad = (
-                sub.get("exact_noise_replay_ok") is False
-                or sub.get("bounds_ok_all_positions") is False
+                enr is not True or bnd is not True
                 or bool(sub.get("violations"))
                 or int(sub.get("n_violations") or 0) > 0)
             sub_declared = bool(sub.get("ok"))
@@ -1277,24 +1280,80 @@ def recompute_audit_semantics_from_report(
             _delegated_flag("tail_mirror_bound_integrity"))
     gk = report.get("global_k_audit") or {}
     if gk:
-        rc["global_k_audit_pass"] = bool(gk.get("pass"))
+        # R6-Q1: 各层判定不可矛盾——生产规则 pass == (verdict ==
+        # "PASS")(r17_global_k base["pass"]);final.verdict(在场)
+        # 必须与顶层 verdict 一致;明确 FAIL/INDETERMINATE 而
+        # pass=True 属分层矛盾,按原生产规则拒;"不是不决"不等于
+        # "已经 PASS"。无 fixture 缺 verdict/pass 亦缺件拒。
+        gk_verdict = gk.get("verdict")
+        gk_pass = gk.get("pass")
+        gk_consistent = True
+        if gk_verdict is None or gk_pass is None:
+            if fixture:
+                delegated.append("global_k_audit.verdict_pass")
+                if gk_pass is None and gk_verdict is not None:
+                    gk_pass = (gk_verdict == "PASS")
+            else:
+                gk_consistent = False
+                disc.append(
+                    "global_k_audit 缺 verdict/pass 必需依据"
+                    "(verdict=" + str(gk_verdict) + ", pass="
+                    + str(gk_pass) + ");缺件不得视为 True")
+        else:
+            if bool(gk_pass) != (gk_verdict == "PASS"):
+                gk_consistent = False
+                disc.append(
+                    "global_k_audit.pass=" + str(gk_pass)
+                    + " 与生产规则 pass==(verdict=='PASS') 矛盾"
+                    + "(verdict=" + str(gk_verdict) + ")")
+            fin = gk.get("final")
+            fin_v = (fin.get("verdict")
+                     if isinstance(fin, dict) else None)
+            if fin_v is not None and fin_v != gk_verdict:
+                gk_consistent = False
+                disc.append(
+                    "global_k_audit.final.verdict=" + str(fin_v)
+                    + " != 顶层 verdict=" + str(gk_verdict)
+                    + "(分层矛盾)")
+        rc["global_k_audit_pass"] = bool(
+            gk_pass) and gk_consistent
         rc["global_k_audit_not_indeterminate"] = bool(
-            gk.get("verdict") != "INDETERMINATE")
+            gk_verdict != "INDETERMINATE")
     else:
         rc["global_k_audit_pass"] = (
             _delegated_flag("global_k_audit"))
         rc["global_k_audit_not_indeterminate"] = True
     ova = report.get("once_vs_attempts") or {}
     if ova:
+        # R5-Q1/R6-Q1: consistent 布尔不可只按声明采信,从
+        # direct_generator 在场数值重算 recall 差值(冻结公式);
+        # R6 补: K 均值/来源/派生差值须一致(k_mean_* 对 dg.
+        # aggregate.k_mean 来源、k_abs_diff 对 |k_m-k_v| 派生、
+        # 重算差值对 k_tolerance);无 fixture 纯判定路径缺必需
+        # 子键(recall/K/fpb.bitwise_ok)不得视为 True(C14 语义
+        # 回归——缺失≠True);fixture 双重态下缺失键如实列入
+        # fixture_delegated 并按声明值采信,但在场键仍对账
+        # (委托不可掩盖在场矛盾数值)。
         fpb = ova.get("first_pass_bitwise_check") or {}
-        # R5-Q1: consistent 布尔不可只按声明采信——从 direct_
-        # generator 在场数值重算:
-        #   (a)源一致:ova recall 字段(在场)必须等于对应语料
-        #      empirical_recall;
-        #   (b)数值判据:|rec_m-rec_v| <= max(3*sqrt(se_m^2+
-        #      se_v^2), 0.005)(once_vs_attempts 冻结容差规则,
-        #      plan payload 固定);
-        #   (c)声明一致:recall_modes_consistent 与重算矛盾即拒。
+        _OVA_REQ = (
+            "recall_model", "recall_validation", "abs_diff",
+            "tolerance", "recall_modes_consistent",
+            "k_mean_model", "k_mean_validation", "k_abs_diff",
+            "k_tolerance", "k_modes_consistent")
+        _missing = [k for k in _OVA_REQ if ova.get(k) is None]
+        _fpb_present = fpb.get("bitwise_ok") is not None
+        if _missing or not _fpb_present:
+            _miss_all = list(_missing) + (
+                [] if _fpb_present
+                else ["first_pass_bitwise_check.bitwise_ok"])
+            if fixture:
+                delegated.extend(
+                    ["once_vs_attempts." + k for k in _miss_all])
+            else:
+                disc.append(
+                    "once_vs_attempts 缺必需子依据("
+                    + ",".join(_miss_all)
+                    + ");正式报告缺件不得视为 True")
         rec_m = dg.get("model", {}).get("empirical_recall")
         rec_v = dg.get("validation", {}).get("empirical_recall")
         se_m = float((dg.get("model", {}).get("block_cluster")
@@ -1325,13 +1384,23 @@ def recompute_audit_semantics_from_report(
                     f"(max(3*sqrt(se_m^2+se_v^2),0.005))")
             if ova.get("tolerance") is not None and abs(
                     float(ova["tolerance"]) - recall_tol) > 1e-12:
-                ova_tol = ova.get("tolerance")
-                if ova_tol is not None and abs(
-                        float(ova_tol) - recall_tol) > 1e-12:
+                disc.append(
+                    "once_vs_attempts.tolerance="
+                    + str(ova.get("tolerance"))
+                    + " != 冻结公式值 " + str(recall_tol)
+                    + "(ova 阈值漂移)")
+            if ova.get("abs_diff") is not None and ova.get(
+                    "recall_model") is not None and ova.get(
+                    "recall_validation") is not None:
+                derived = abs(float(ova["recall_model"])
+                              - float(ova["recall_validation"]))
+                if abs(float(ova["abs_diff"]) - derived) > 1e-9:
+                    recall_ok = False
                     disc.append(
-                        "once_vs_attempts.tolerance=" + str(ova_tol)
-                        + " != 冻结公式值 " + str(recall_tol)
-                        + "(ova 阈值漂移)")
+                        "once_vs_attempts.abs_diff="
+                        + str(ova["abs_diff"])
+                        + " != |recall_model-recall_validation|="
+                        + str(derived) + "(派生差值矛盾)")
             if ova.get("recall_modes_consistent") is True \
                     and not recall_ok:
                 disc.append(
@@ -1342,15 +1411,55 @@ def recompute_audit_semantics_from_report(
                 and ova.get("k_tolerance") is not None:
             k_ok = bool(float(ova["k_abs_diff"])
                         <= float(ova["k_tolerance"]))
+        if ova.get("k_mean_model") is not None \
+                and ova.get("k_mean_validation") is not None:
+            km = float(ova["k_mean_model"])
+            kv = float(ova["k_mean_validation"])
+            for fld, val, corpus in (
+                    ("k_mean_model", km, "model"),
+                    ("k_mean_validation", kv, "validation")):
+                src_k = (dg.get(corpus, {}).get("aggregate")
+                         or {}).get("k_mean")
+                if src_k is not None and abs(
+                        val - float(src_k)) > 1e-9:
+                    k_ok = False
+                    disc.append(
+                        "once_vs_attempts." + fld + "=" + str(val)
+                        + " 与 direct_generator." + corpus
+                        + ".aggregate.k_mean=" + str(src_k)
+                        + " 矛盾(K 来源不一致)")
+            k_derived = abs(km - kv)
+            if ova.get("k_abs_diff") is not None and abs(
+                    float(ova["k_abs_diff"]) - k_derived) > 1e-9:
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts.k_abs_diff="
+                    + str(ova["k_abs_diff"])
+                    + " != |k_mean_model-k_mean_validation|="
+                    + str(k_derived) + "(K 派生差值矛盾)")
+            if ova.get("k_tolerance") is not None \
+                    and k_derived > float(ova["k_tolerance"]):
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts K 重算差值 |"
+                    + str(km) + "-" + str(kv) + "|="
+                    + str(k_derived) + " > k_tolerance="
+                    + str(ova["k_tolerance"]))
             if ova.get("k_modes_consistent") is True and not k_ok:
                 disc.append(
                     "once_vs_attempts.k_modes_consistent=True 与"
-                    " 在场 k_abs_diff/k_tolerance 数值矛盾")
-        rc["once_vs_attempts_consistent"] = bool(
+                    " 来源/派生差值重算矛盾")
+        _bitwise = fpb.get("bitwise_ok")
+        if _bitwise is None and fixture:
+            _bitwise = True
+        ova_pass = bool(
             recall_ok and k_ok
             and ova.get("recall_modes_consistent") is not False
             and ova.get("k_modes_consistent") is not False
-            and fpb.get("bitwise_ok") is not False)
+            and _bitwise is True)
+        if not fixture and (_missing or not _fpb_present):
+            ova_pass = False
+        rc["once_vs_attempts_consistent"] = ova_pass
     else:
         rc["once_vs_attempts_consistent"] = (
             _delegated_flag("once_vs_attempts"))

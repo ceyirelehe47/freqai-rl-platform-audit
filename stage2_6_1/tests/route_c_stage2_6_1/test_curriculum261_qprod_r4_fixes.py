@@ -165,11 +165,20 @@ def test_r4q1_recompute_pure_structure_cases():
             } for n in ("model", "validation")},
         "tail_mirror_bound_integrity": {
             "pass": True,
-            "per_corpus": {n: {"ok": True, "violations": []}
+            "per_corpus": {n: {"ok": True, "violations": [],
+                               "n_violations": 0,
+                               "exact_noise_replay_ok": True,
+                               "bounds_ok_all_positions": True}
                            for n in ("model", "validation")}},
-        "global_k_audit": {"pass": True, "verdict": "CP"},
+        "global_k_audit": {"pass": True, "verdict": "PASS",
+                           "final": {"verdict": "PASS",
+                                     "indeterminate": False}},
         "once_vs_attempts": {
+            "recall_model": 0.5, "recall_validation": 0.5,
+            "abs_diff": 0.0, "tolerance": 0.042426406871192854,
             "recall_modes_consistent": True,
+            "k_mean_model": 1.0, "k_mean_validation": 1.0,
+            "k_abs_diff": 0.0, "k_tolerance": 0.05,
             "k_modes_consistent": True,
             "first_pass_bitwise_check": {"bitwise_ok": True}},
         "aggregate_recompute_ok": True,
