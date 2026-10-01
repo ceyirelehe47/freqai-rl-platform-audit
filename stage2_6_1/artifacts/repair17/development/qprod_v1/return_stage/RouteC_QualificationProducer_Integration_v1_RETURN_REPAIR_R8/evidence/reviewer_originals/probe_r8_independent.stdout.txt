@@ -1,0 +1,97 @@
+module: /home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cue_contract.py
+module-sha256: beb66481504784e094d35943b185c771831a211704b8b9156976a666d8ab770e
+required_checks: ['mc_close_to_analytic', 'model_corpus_ok', 'validation_corpus_ok', 'once_vs_attempts_consistent', 'aggregate_recompute_ok', 'tail_mirror_bound_integrity_pass', 'global_k_audit_pass', 'global_k_audit_not_indeterminate']
+--- P1 hist-mean-contradiction(val {5:120} vs declared mean 2.0) fixture=False all_consistent=False => OK
+    disc: direct_generator.validation.aggregate.k_histogram 重算均值 5.0 != k_mean=2.0(K 均值与直方图来源矛盾)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P2 hist-total-contradiction(model {2:119} vs n_events 120) fixture=False all_consistent=False => OK
+    disc: direct_generator.model.aggregate.k_histogram 频数总量 119 != n_events=120(生产端每 unique event 恰计一次)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P3 fractional-count(model {2:119.5}) fixture=False all_consistent=False => OK
+    disc: direct_generator.model.aggregate.k_histogram 结构/频数非法('2'=119.5;在场非法不得被 fixture 委托为 True)
+    disc: k_histogram 样本不足(每语料>1),k_tolerance 冻结公式无法重算
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P3b fractional-count UNDER fixture fixture=True all_consistent=False => OK
+    disc: direct_generator.model.aggregate.k_histogram 结构/频数非法('2'=119.5;在场非法不得被 fixture 委托为 True)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P3n negative-count(val {2:130,9:-10}) fixture=False all_consistent=False => OK
+    disc: direct_generator.validation.aggregate.k_histogram 结构/频数非法('9'=-10;在场非法不得被 fixture 委托为 True)
+    disc: k_histogram 样本不足(每语料>1),k_tolerance 冻结公式无法重算
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P4 gk-integrity-false-with-PASS fixture=False all_consistent=False => OK
+    disc: global_k_audit.graph_integrity_ok=False 与 verdict=PASS 并存(生产规则:完整性失败即 FAIL 早退,fail closed)
+    disc: 报告 checks 与冻结语义重算不一致: ['global_k_audit_pass']
+--- P4b control gk-FAIL-early-exit-no-final(declared consistent) fixture=False all_consistent=True => OK
+    P4b no gk-hierarchy disc confirmed
+--- P5 gk-PASS-missing-final no-fixture fixture=False all_consistent=False => OK
+    disc: global_k_audit.verdict=PASS 缺 final 必需依据(生产端 PASS 必经 tier1/tier2 终判;缺件不得视为 True)
+    disc: 报告 checks 与冻结语义重算不一致: ['global_k_audit_pass']
+--- P5b gk-PASS-missing-final fixture fixture=True all_consistent=True => OK
+    delegated: ['global_k_audit.final']
+    P5b delegated exactly [global_k_audit.final]
+--- P6 tail-missing-validation no-fixture fixture=False all_consistent=False => OK
+    disc: tail_mirror_bound_integrity.per_corpus 缺整份 validation 支撑(报告含该语料,预期集合由上下文决定,缺件不得视为 True)
+    disc: 报告 checks 与冻结语义重算不一致: ['tail_mirror_bound_integrity_pass']
+--- P6b tail-missing-validation fixture(delegated) fixture=True all_consistent=True => OK
+    delegated: ['tail_mirror_bound_integrity.per_corpus[validation]']
+--- P6c third-corpus-in-context tail-must-cover-holdout fixture=False all_consistent=False => OK
+    disc: tail_mirror_bound_integrity.per_corpus 缺整份 holdout 支撑(报告含该语料,预期集合由上下文决定,缺件不得视为 True)
+    disc: 报告 checks 与冻结语义重算不一致: ['tail_mirror_bound_integrity_pass']
+--- P7 illegal-hist no-fixture fixture=False all_consistent=False => OK
+    disc: direct_generator.validation.aggregate.k_histogram 结构/频数非法('garbage-key-9'=120;在场非法不得被 fixture 委托为 True)
+    disc: k_histogram 样本不足(每语料>1),k_tolerance 冻结公式无法重算
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P7b illegal-hist UNDER fixture(delegation revoked) fixture=True all_consistent=False => OK
+    disc: direct_generator.validation.aggregate.k_histogram 结构/频数非法('garbage-key-9'=120;在场非法不得被 fixture 委托为 True)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+    P7b fixture_mode=True, illegal NOT delegated, disc present
+--- P8 legal-manual-double-key fixture fixture=True all_consistent=True => OK
+    P8 passes with ZERO delegation (genuine pass)
+--- P8b legal-manual-double-key no-fixture fixture=False all_consistent=True => OK
+--- P9 permuted-key-order fixture fixture=True all_consistent=True => OK
+    P9 recomputed identical under permutation: True
+--- P10 missing-hist-block fixture(delegate) fixture=True all_consistent=True => OK
+    delegated: ['once_vs_attempts.k_tolerance_frozen']
+--- P10b missing-hist-block no-fixture(reject) fixture=False all_consistent=False => OK
+    disc: direct_generator.aggregate.k_histogram 缺件:k_tolerance 冻结公式(max(3*pooled_se,0.05))无法重算(必要依据缺失→拒绝)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+--- P11a observation string-count {'2':'120'} fixture=False all_consistent=True => OK
+--- P11b observation bool-count {2:True,3:119} fixture=False all_consistent=False => OK
+    disc: direct_generator.model.aggregate.k_histogram 重算均值 2.9916666666666667 != k_mean=2.0(K 均值与直方图来源矛盾)
+    disc: once_vs_attempts.k_modes_consistent=True 与 来源/派生差值重算矛盾
+    disc: 报告 checks 与冻结语义重算不一致: ['once_vs_attempts_consistent']
+P12 semantic-contract digest new=r15cue-cf62a57d688289f37bef5dd75ec988310b1ac38be67b93d1a9a21f45a0c4012c
+P12 semantic-contract digest old=r15cue-cf62a57d688289f37bef5dd75ec988310b1ac38be67b93d1a9a21f45a0c4012c
+P12 digest domain unchanged: True
+==== SUMMARY ====
+PASS P1 hist-mean-contradiction(val {5:120} vs declared mean 2.0) expect=reject actual=False
+PASS P2 hist-total-contradiction(model {2:119} vs n_events 120) expect=reject actual=False
+PASS P3 fractional-count(model {2:119.5}) expect=reject actual=False
+PASS P3b fractional-count UNDER fixture expect=reject actual=False
+PASS P3n negative-count(val {2:130,9:-10}) expect=reject actual=False
+PASS P4 gk-integrity-false-with-PASS expect=reject actual=False
+PASS P4b control gk-FAIL-early-exit-no-final(declared consistent) expect=pass actual=True
+PASS P5 gk-PASS-missing-final no-fixture expect=reject actual=False
+PASS P5b gk-PASS-missing-final fixture expect=pass actual=True
+PASS P6 tail-missing-validation no-fixture expect=reject actual=False
+PASS P6b tail-missing-validation fixture(delegated) expect=pass actual=True
+PASS P6c third-corpus-in-context tail-must-cover-holdout expect=reject actual=False
+PASS P7 illegal-hist no-fixture expect=reject actual=False
+PASS P7b illegal-hist UNDER fixture(delegation revoked) expect=reject actual=False
+PASS P8 legal-manual-double-key fixture expect=pass actual=True
+PASS P8b legal-manual-double-key no-fixture expect=pass actual=True
+PASS P9 permuted-key-order fixture expect=pass actual=True
+PASS P10 missing-hist-block fixture(delegate) expect=pass actual=True
+PASS P10b missing-hist-block no-fixture(reject) expect=reject actual=False
+PASS P11a observation string-count {'2':'120'} expect=None actual=True
+PASS P11b observation bool-count {2:True,3:119} expect=None actual=False
+PASS P12 digest-domain-unchanged expect=pass actual=True
+probe-verdict: ALL-OK
