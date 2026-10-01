@@ -28,7 +28,7 @@
   键序重排+冻结容差同步)全过
 
 ## 验证(C18 字节)
-- 钉 R8 12;qprod 面 182/182;r8/r9/r10/r17 cue-contract 29/29
+- 钉 R8 11(测试函数);qprod 面 182/182;r8/r9/r10/r17 cue-contract 29/29
 - r21 v6 C18: run 20261002_013343 rc=0, 2711/0F/7skip, record f9e44621,
   verify 2711/2225/161(一次通过)— evidence/regress_v6/full_regression_v6_c18/
 - 262 v13 C18: 240 RC=0 — evidence/regress262/regress262_v13_c18

@@ -7,7 +7,7 @@ export PYTHONDONTWRITEBYTECODE=1
 DEPLOY=/home/cryptorl/projects/crypto_rl
 PY=/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python
 REPO=/mnt/f/trading/freqai-rl-audit
-EVD=$REPO/stage2_6_1/artifacts/repair17/development/qprod_v1/repair_round6_notclosed/evidence/regress_v6
+EVD=$REPO/stage2_6_1/artifacts/repair17/development/qprod_v1/repair_round8_notclosed/evidence/regress_v6
 mkdir -p "$EVD"
 cd "$DEPLOY"
 CAND=$(git -C "$REPO" rev-parse HEAD)
