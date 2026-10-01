@@ -1,0 +1,59 @@
+A0 legal complete report (formal)            fix=False all=True  deg=0 disc=0 OK
+A0f legal complete report (fixture)          fix=True  all=True  deg=0 disc=0 OK
+A1 bad-val-hist mean4 (ova present)          fix=False all=False deg=0 disc=4 OK
+A2a no-ova + 'nan' key hist                  fix=False all=False deg=0 disc=2 OK
+A2b no-ova + mean4 hist                      fix=False all=False deg=0 disc=2 OK
+A2c no-ova + n_events=110.5                  fix=False all=False deg=0 disc=5 OK
+A1 bad-val-hist mean4 (ova present)          fix=True  all=False deg=0 disc=4 OK
+A2a no-ova + 'nan' key hist                  fix=True  all=False deg=0 disc=2 OK
+A2b no-ova + mean4 hist                      fix=True  all=False deg=0 disc=2 OK
+A2c no-ova + n_events=110.5                  fix=True  all=False deg=0 disc=5 OK
+A2d no-ova+mean4 [core invariant]            fix=False all=False deg=0 disc=2 OK
+A2d no-ova+mean4 [core invariant]            fix=True  all=False deg=0 disc=2 OK
+A2d fixture: rejected; ledger=[] (short-circuit: delegation never applied on rejected path)
+A2e no-ova + model-side mean4                fix=False all=False deg=0 disc=2 OK
+A2e no-ova + model-side mean4                fix=True  all=False deg=0 disc=2 OK
+B1 ova.k_mean_model=NaN (other present)      fix=False all=False deg=0 disc=3 OK
+B2 km-model NaN + other side deleted         fix=False all=False deg=0 disc=3 OK
+B3 kv='nan' str + model side deleted         fix=False all=False deg=0 disc=3 OK
+B4 km-model=Inf (other present)              fix=False all=False deg=0 disc=5 OK
+B1 ova.k_mean_model=NaN (other present)      fix=True  all=False deg=0 disc=3 OK
+B2 km-model NaN + other side deleted         fix=True  all=False deg=1 disc=2 OK
+B3 kv='nan' str + model side deleted         fix=True  all=False deg=1 disc=2 OK
+B4 km-model=Inf (other present)              fix=True  all=False deg=0 disc=5 OK
+B2f km-NaN other-del [fixture delegation]    fix=True  all=False deg=1 disc=2 OK
+B2f: delegation listed AND rejected (delegation != cleansing)
+B5 legal single-side deletion (fixture)      fix=True  all=True  deg=1 disc=0 OK
+B5f legal single-side deletion (formal)      fix=False all=False deg=0 disc=2 OK
+C1 n_events=-1 (hist present, ova present)   fix=False all=False deg=0 disc=4 OK
+C2 n_events=-1 + same-side hist deleted      fix=False all=False deg=0 disc=5 OK
+C3 n_events=-1 + ova deleted                 fix=False all=False deg=0 disc=3 OK
+C1 n_events=-1 (hist present, ova present)   fix=True  all=False deg=0 disc=4 OK
+C2 n_events=-1 + same-side hist deleted      fix=True  all=False deg=1 disc=3 OK
+C3 n_events=-1 + ova deleted                 fix=True  all=False deg=0 disc=3 OK
+C2f n_events=-1 hist-del [fixture delegation] fix=True  all=False deg=1 disc=3 OK
+C2f: hist delegated AND negative count rejected (OK)
+D1 legal no-ova (fixture)                    fix=True  all=True  deg=1 disc=0 OK
+D2 legal no-ova (formal)                     fix=False all=False deg=0 disc=1 OK
+D4 legal val-hist missing (fixture)          fix=True  all=True  deg=1 disc=0 OK
+D5 legal val-hist missing (formal)           fix=False all=False deg=0 disc=4 OK
+D6 legal k_mean source missing (fixture)     fix=True  all=True  deg=1 disc=0 OK
+D7 legal k_mean source missing (formal)      fix=False all=False deg=0 disc=3 OK
+E1 legal rearranged histogram keys           fix=False all=True  deg=0 disc=0 OK
+E2 multi-key bad mean, no-ova                fix=False all=False deg=0 disc=3 OK
+E2 multi-key bad mean, no-ova                fix=True  all=False deg=0 disc=3 OK
+E3 NaN-float-literal histogram key, no-ova   fix=False all=False deg=0 disc=2 OK
+E4 negative histogram count (ova present)    fix=False all=False deg=0 disc=4 OK
+E5 n_events='abc' non-numeric                fix=False all=False deg=0 disc=4 OK
+E6 k_tolerance drift vs frozen formula       fix=False all=False deg=0 disc=3 OK
+E8 dg k_mean=Inf (model)                     fix=False all=False deg=0 disc=5 OK
+E10 bad hist + k_modes_consistent=True lie   fix=False all=False deg=0 disc=4 OK
+E4 negative histogram count (ova present)    fix=True  all=False deg=0 disc=3 OK
+E5 n_events='abc' non-numeric                fix=True  all=False deg=0 disc=4 OK
+E6 k_tolerance drift vs frozen formula       fix=True  all=False deg=0 disc=3 OK
+E8 dg k_mean=Inf (model)                     fix=True  all=False deg=0 disc=5 OK
+E10 bad hist + k_modes_consistent=True lie   fix=True  all=False deg=0 disc=4 OK
+persistence: same dict object toggles fixture_mode False->True->False OK
+K_TOL frozen formula value: 0.20234428643024915
+SUMMARY cases=53 failures=0 ALL OK
+PROBE_RC=0
