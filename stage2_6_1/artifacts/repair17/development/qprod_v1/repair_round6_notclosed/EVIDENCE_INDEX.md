@@ -36,3 +36,19 @@ tail 布尔子依据缺失拒; gk 分层一致(pass==(verdict=="PASS")/final 层
 - E01 只读复算: E01_RECOMPUTE_C16.json(coords 与 R5 逐值 identical=True)
 - E02 R6 七步 rc=0(evidence/e02/; 标注非 261 回归)
 - 原生 2/2 耗尽维持; 零新增原生/MC 研究/fit/optimizer/模型加载
+
+## R7 复验轮证据(reviewer R6-V1 FAIL 两项 K 链绕过 → 修复 C17=0663be91)
+- 修复: F1 K 来源缺件拒(无 fixture)/fixture 如实委托(.source_missing);
+  F2 k_tolerance 冻结公式锚定 max(3*pooled_se,0.05)(pooled se 由 dg.aggregate.
+  k_histogram 重算 ddof=1 同生产式)+重算差值以冻结值为界;k_histogram 缺件/
+  非法=缺件拒(无 fixture)/委托(fixture)
+- 修前复现(REPRO_R7_HOLES_PRE_FIX.py, C16 字节): F1/F2 均放行;修后全拒+ctl 保持
+- 钉 R7 4(并 r6 文件);qprod 面 171/171;r8/r9/r10/r17 面 29/29;R6 五反例保持拒
+- r21 v6 C17: run r21_20261001_230626 **rc=0, 2700 tests/0F/7skip, record
+  ae607c94, verify 2700/2214/160**(一次通过)— evidence/regress_v6/
+  full_regression_v6_c17/;C16/C15/C14 记录均不改签
+- 262 v11 C17: 240 RC=0 — evidence/regress262/regress262_v11_c17
+- E01 复算: E01_RECOMPUTE_C17.json(coords 与 R6/R5 identical=True);
+  E02 R7 七步 rc=0(evidence/e02_r7/)
+- r4/r6 夹具升级注记: 补 dg.aggregate(k_mean+k_histogram)与支撑布尔——
+  R7 语义下缺件即拒,夹具随语义升级为生产端真实形态(变体断言不变)
