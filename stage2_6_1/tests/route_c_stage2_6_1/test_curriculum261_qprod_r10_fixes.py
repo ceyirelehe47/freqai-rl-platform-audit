@@ -220,3 +220,23 @@ def test_r10e_prior_rounds_hold():
                 "n_events"] = 110.5
     assert _run(m_frac)["recomputed"][
         "once_vs_attempts_consistent"] is False
+
+
+def test_r10p3_rejected_no_ova_path_keeps_delegation_ledger():
+    """R10-P3: 无 ova+fixture+在场坏 K(拒绝路径)也必须留
+    fixture_delegated 账目——委托证迹不被 and 短路吞掉;
+    判定仍为 False(委托不清除在场坏输入)。"""
+    def m(r):
+        del r["once_vs_attempts"]
+        r["direct_generator"]["validation"]["aggregate"][
+            "k_histogram"] = {"4": 110}
+    out = _run(m, fixture=True)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert "once_vs_attempts" in out["fixture_delegated"]
+    # 合法无 ova: 账目+通过保持
+    def m2(r):
+        del r["once_vs_attempts"]
+    out2 = _run(m2, fixture=True)
+    assert out2["all_consistent"] is True
+    assert "once_vs_attempts" in out2["fixture_delegated"]

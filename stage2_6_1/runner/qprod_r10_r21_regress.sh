@@ -17,7 +17,7 @@ echo "candidate=$CAND" | tee "$EVD/CANDIDATE.txt"
   --repo "$REPO" --commit-a "$CAND" --deploy-root "$DEPLOY" \
   --out-dir "$EVD/full_regression_v6_c21" \
   --target tests/route_c_stage2_6_1 \
-  --label r21_full_collection_regression_qprod_r9b_c20 \
+  --label r21_full_collection_regression_qprod_r10_c22 \
   > "$EVD/r21_run.stdout.txt" 2> "$EVD/r21_run.stderr.txt"
 rc=$?
 echo "rc=$rc" | tee -a "$EVD/CANDIDATE.txt"

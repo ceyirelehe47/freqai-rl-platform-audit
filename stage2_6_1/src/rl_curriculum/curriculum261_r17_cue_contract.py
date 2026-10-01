@@ -1740,8 +1740,12 @@ def recompute_audit_semantics_from_report(
     else:
         # R10-Q1: 无 ova 时委托仅覆盖未提供的 ova 段;在场 K
         # 支撑坏数据(k_ok=False)仍拒绝,不得以委托清除。
+        # P3: 先记委托账目再合成判定——k_ok=False 的拒绝
+        # 路径同样留 fixture_delegated 证迹(ledger 不被
+        # and 短路吞掉)。
+        _ova_delegated = _delegated_flag("once_vs_attempts")
         rc["once_vs_attempts_consistent"] = bool(
-            k_ok and _delegated_flag("once_vs_attempts"))
+            k_ok and _ova_delegated)
     if report.get("aggregate_recompute_ok") is not None:
         rc["aggregate_recompute_ok"] = bool(
             report.get("aggregate_recompute_ok"))
