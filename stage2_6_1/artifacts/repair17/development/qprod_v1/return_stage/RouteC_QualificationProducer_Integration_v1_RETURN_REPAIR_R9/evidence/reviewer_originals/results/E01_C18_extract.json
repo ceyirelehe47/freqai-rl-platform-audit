@@ -1,0 +1,59 @@
+{
+  "format": "cur261-qprod-e01-recompute-c18-v1",
+  "zero_native": true,
+  "read_only": true,
+  "runs": {
+    "native_smoke_run1": {
+      "valid": 1,
+      "primary": "inconclusive",
+      "coords": [
+        {
+          "id": "c01",
+          "state": "valid",
+          "audit_fail": true,
+          "nrv": true,
+          "recall": 0.9607843137254902,
+          "se": 0.028292718593392892
+        },
+        {
+          "id": "c02",
+          "state": "missing",
+          "audit_fail": null,
+          "nrv": null,
+          "recall": null,
+          "se": null
+        }
+      ],
+      "stats_gate_failed": [
+        "c01"
+      ]
+    },
+    "native_smoke_run2": {
+      "valid": 2,
+      "primary": "inconclusive",
+      "coords": [
+        {
+          "id": "c01",
+          "state": "valid",
+          "audit_fail": true,
+          "nrv": true,
+          "recall": 0.9607843137254902,
+          "se": 0.028292718593392892
+        },
+        {
+          "id": "c02",
+          "state": "valid",
+          "audit_fail": true,
+          "nrv": true,
+          "recall": 1.0,
+          "se": 0.0
+        }
+      ],
+      "stats_gate_failed": [
+        "c01",
+        "c02"
+      ]
+    }
+  },
+  "notes": "R8 复算含 stats_gate_failed;coords 与 R5-R7 逐值一致(identical=True), 零原生零改动"
+}

@@ -1,0 +1,38 @@
+case                                           expect fx=mode  all   ok   delegated
+P1 legal nofixture                             PASS   fx=False True  OK   [-] -
+P2 legal fixture                               PASS   fx=True  True  OK   [-] -
+P3 multik legal                                PASS   fx=False True  OK   [-] -
+P4 multik reorder                              PASS   fx=False True  OK   [-] -
+P5 single-key floor 0.05                       PASS   fx=False True  OK   [-] -
+P6 ova-derived-del legal fixture               PASS   fx=True  True  OK   [once_vs_attempts.k_mean_model] -
+P6b ova-derived-del nofixture                  REJECT fx=False False OK   [-] once_vs_attempts 缺必需子依据(k_mean_model);正式报告缺件不得视为 True
+P7 both-hists-del double-delegate fixture      PASS   fx=True  True  OK   [once_vs_attempts.k_tolerance_frozen] -
+P7b both-hists-del nofixture                   REJECT fx=False False OK   [-] direct_generator.model.aggregate.k_histogram 缺件:k_tolerance 冻结公式(max(3*p
+P8 src-missing delegate fixture                PASS   fx=True  True  OK   [once_vs_attempts.k_mean_model.source_missing] -
+B1 badhist nofixture                           REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_histogram 重算均值 9.0 != k_mean=2.0
+B1f badhist fixture                            REJECT fx=True  False OK   [-] direct_generator.validation.aggregate.k_histogram 重算均值 9.0 != k_mean=2.0
+B2 badhist+other-missing nofixture             REJECT fx=False False OK   [-] direct_generator.model.aggregate.k_histogram 缺件:k_tolerance 冻结公式(max(3*p
+B2f badhist+other-missing fixture              REJECT fx=True  False OK   [once_vs_attempts.k_tolerance_frozen] direct_generator.validation.aggregate.k_histogram 重算均值 9.0 != k_mean=2.0
+B3 badhist+ova-del nofixture                   REJECT fx=False False OK   [-] once_vs_attempts 缺必需子依据(k_mean_model);正式报告缺件不得视为 True
+B3f badhist+ova-del fixture                    REJECT fx=True  False OK   [once_vs_attempts.k_mean_model] direct_generator.validation.aggregate.k_histogram 重算均值 9.0 != k_mean=2.0
+B4 nan-str-key nofixture                       REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_histogram 结构/频数非法('nan'=110;非有限数
+B4f nan-str-key fixture                        REJECT fx=True  False OK   [-] direct_generator.validation.aggregate.k_histogram 结构/频数非法('nan'=110;非有限数
+B5 nan-float-key                               REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_histogram 结构/频数非法(nan=110;非有限数(N
+B6 n_events=110.5                              REJECT fx=False False OK   [-] direct_generator.model.aggregate.n_events 非数值/非有限/非整数(110.5;在场非法与直方图缺件无关
+B7 n_events='110'                              REJECT fx=False False OK   [-] direct_generator.model.aggregate.k_histogram 频数总量 110 != n_events=110(精确
+B8 kmean-src 'nan'                             REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_mean 非数值/非有限('nan';在场非法与直方图缺件无关,
+B9 ova-km NaN+absdiff NaN                      REJECT fx=False False OK   [-] once_vs_attempts.k_abs_diff 非数值/非有限(nan;NaN 使比较式 静默 False,不得绕过)
+B10 ova-ktol NaN                               REJECT fx=False False OK   [-] once_vs_attempts.k_tolerance 非数值/非有限(nan)
+B11 n_events=111 != 110                        REJECT fx=False False OK   [-] direct_generator.model.aggregate.k_histogram 频数总量 110 != n_events=111(精确
+B12 fractional count                           REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_histogram 结构/频数非法('2'=109.5;非有限数
+B13 'inf' key                                  REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_histogram 结构/频数非法('inf'=110;非有限数
+B14 kmean-src +inf                             REJECT fx=False False OK   [-] direct_generator.validation.aggregate.k_mean 非数值/非有限(inf;在场非法与直方图缺件无关,Na
+H1 nan-src masked by missing-hist FIXTURE      REJECT fx=True  False OK   [once_vs_attempts.k_tolerance_frozen] direct_generator.model.aggregate.k_mean 非数值/非有限('nan';在场非法与直方图缺件无关,NaN 使
+H1b same nofixture                             REJECT fx=False False OK   [-] direct_generator.model.aggregate.k_mean 非数值/非有限('nan';在场非法与直方图缺件无关,NaN 使
+H2 nan-src masked (validation) FIXTURE         REJECT fx=True  False OK   [once_vs_attempts.k_tolerance_frozen] direct_generator.validation.aggregate.k_mean 非数值/非有限('nan';在场非法与直方图缺件无关,
+H3 both-src nan masked FIXTURE                 REJECT fx=True  False OK   [once_vs_attempts.k_tolerance_frozen] direct_generator.model.aggregate.k_mean 非数值/非有限('nan';在场非法与直方图缺件无关,NaN 使
+H4 ova-absdiff-NaN ktol-missing FIXTURE        REJECT fx=True  False OK   [once_vs_attempts.k_tolerance] once_vs_attempts.k_abs_diff 非数值/非有限(nan;NaN 使比较式 静默 False,不得绕过)
+H4b same nofixture                             REJECT fx=False False OK   [-] once_vs_attempts 缺必需子依据(k_tolerance);正式报告缺件不得视为 True
+H5 frac-n_events masked by missing-hist FIXTURE REJECT fx=True  False OK   [once_vs_attempts.k_tolerance_frozen] direct_generator.model.aggregate.n_events 非数值/非有限/非整数(110.5;在场非法与直方图缺件无关
+H7 absdiff-NaN ktol-present                    REJECT fx=False False OK   [-] once_vs_attempts.k_abs_diff 非数值/非有限(nan;NaN 使比较式 静默 False,不得绕过)
+TOTAL=36 FAILS=0
