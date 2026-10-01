@@ -1446,15 +1446,178 @@ def recompute_audit_semantics_from_report(
                     "once_vs_attempts.recall_modes_consistent="
                     "True 与冻结数值重算矛盾")
         k_ok = True
+        # R9-Q1: 每份在场 K 支撑先独立验证(基础合法性/内部
+        # 关系),再处理缺件/跨语料完整性——另一语料 histogram
+        # 缺件或 ova 派生均值缺失不得屏蔽在场坏支撑;委托只
+        # 覆盖明确缺失的高成本输入,不传染到在场坏输入。
+        # R9-Q2: 非有限数(NaN/Inf,含 JSON 字符串 "nan"/NaN
+        # 字面量)与 n_events 小数/非数值不得在计算/转换中被
+        # 吞掉——比较式对 NaN 静默 False 即绕过,int() 截断吞
+        # 小数,均显式拒。
+        hists_present: dict[str, dict] = {}
+        for corpus in ("model", "validation"):
+            _h = (dg.get(corpus, {}).get("aggregate")
+                  or {}).get("k_histogram")
+            if _h:
+                hists_present[corpus] = _h
+        ks: list[list[float]] = []
+        hist_bad = False
+        for corpus in ("model", "validation"):
+            _h = hists_present.get(corpus)
+            if not _h:
+                if fixture:
+                    delegated.append(
+                        "once_vs_attempts.k_tolerance_frozen")
+                else:
+                    k_ok = False
+                    disc.append(
+                        "direct_generator." + corpus
+                        + ".aggregate.k_histogram 缺件:"
+                        "k_tolerance 冻结公式(max(3*pooled_se,"
+                        "0.05))无法重算(必要依据缺失→拒绝)")
+                continue
+            vals: list[float] = []
+            total = 0
+            wsum = 0.0
+            kk = c = None
+            try:
+                for kk, c in _h.items():
+                    kfv = float(kk)
+                    cf = float(c)
+                    ci = int(c)
+                    if (not math.isfinite(kfv)
+                            or not math.isfinite(cf)
+                            or cf != ci or ci < 0):
+                        raise ValueError(kk)
+                    vals.extend([kfv] * ci)
+                    total += ci
+                    wsum += kfv * ci
+            except (TypeError, ValueError):
+                hist_bad = True
+                k_ok = False
+                disc.append(
+                    "direct_generator." + corpus
+                    + ".aggregate.k_histogram 结构/频数非法("
+                    + repr(kk) + "=" + repr(c)
+                    + ";非有限数(NaN/Inf)或非非负整数频数,"
+                    "在场非法不得被 fixture 委托为 True)")
+                continue
+            agg_c = (dg.get(corpus, {})
+                     .get("aggregate") or {})
+            n_ev = agg_c.get("n_events")
+            if n_ev is not None:
+                try:
+                    _nev = float(n_ev)
+                    if (not math.isfinite(_nev)
+                            or _nev != int(_nev)
+                            or total != n_ev):
+                        raise ValueError(n_ev)
+                except (TypeError, ValueError, OverflowError):
+                    k_ok = False
+                    disc.append(
+                        "direct_generator." + corpus
+                        + ".aggregate.k_histogram 频数总量 "
+                        + str(total) + " != n_events="
+                        + str(n_ev) + "(精确比较:小数/非数值"
+                        "总量或计数不符,生产端每 unique event "
+                        "恰计一次;int() 截断不得吞小数)")
+            src_k = agg_c.get("k_mean")
+            if total > 0 and src_k is not None:
+                try:
+                    sk = float(src_k)
+                    if not math.isfinite(sk):
+                        raise ValueError(src_k)
+                except (TypeError, ValueError, OverflowError):
+                    k_ok = False
+                    disc.append(
+                        "direct_generator." + corpus
+                        + ".aggregate.k_mean 非数值/非有限("
+                        + repr(src_k) + ";NaN 使比较式静默"
+                        " False 绕过,不得当合法来源)")
+                else:
+                    h_mean = wsum / total
+                    if abs(h_mean - sk) > 1e-9:
+                        k_ok = False
+                        disc.append(
+                            "direct_generator." + corpus
+                            + ".aggregate.k_histogram 重算"
+                            "均值 " + str(h_mean)
+                            + " != k_mean=" + str(src_k)
+                            + "(K 均值与直方图来源矛盾)")
+            ks.append(vals)
+        k_tol_frozen = None
+        if (not hist_bad and len(hists_present) == 2
+                and all(len(x) > 1 for x in ks)):
+            pooled = math.sqrt(
+                float(np.var(
+                    np.array(ks[0]), ddof=1)) / len(ks[0])
+                + float(np.var(
+                    np.array(ks[1]), ddof=1)) / len(ks[1]))
+            k_tol_frozen = max(3.0 * pooled, 0.05)
+        if ova.get("k_tolerance") is not None:
+            try:
+                _ktf = float(ova["k_tolerance"])
+                if not math.isfinite(_ktf):
+                    raise ValueError(_ktf)
+            except (TypeError, ValueError, OverflowError):
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts.k_tolerance 非数值/"
+                    "非有限(" + repr(ova["k_tolerance"]) + ")")
+            else:
+                if k_tol_frozen is None:
+                    if not fixture:
+                        k_ok = False
+                        disc.append(
+                            "k_histogram 缺件或样本不足"
+                            "(每语料>1),k_tolerance 冻结公式"
+                            "无法重算")
+                elif abs(_ktf - k_tol_frozen) > 1e-9:
+                    k_ok = False
+                    disc.append(
+                        "once_vs_attempts.k_tolerance="
+                        + str(ova["k_tolerance"])
+                        + " != 冻结公式值 max(3*pooled_se,0.05)"
+                        + "=" + str(k_tol_frozen)
+                        + "(K 容差漂移;pooled_se 由 "
+                        "k_histogram 重算)")
+        # R9: 声明门先验非有限数——NaN/Inf 使 <= 比较静默
+        # False 即绕过。
         if ova.get("k_abs_diff") is not None \
                 and ova.get("k_tolerance") is not None:
-            k_ok = bool(float(ova["k_abs_diff"])
-                        <= float(ova["k_tolerance"]))
+            try:
+                _kad = float(ova["k_abs_diff"])
+                _ktl = float(ova["k_tolerance"])
+                if not (math.isfinite(_kad)
+                        and math.isfinite(_ktl)):
+                    raise ValueError(ova["k_abs_diff"])
+                k_ok = k_ok and bool(_kad <= _ktl)
+            except (TypeError, ValueError, OverflowError):
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts.k_abs_diff/k_tolerance "
+                    "非数值/非有限(比较式对 NaN 静默 False,"
+                    "不得绕过)")
         if ova.get("k_mean_model") is not None \
                 and ova.get("k_mean_validation") is not None:
+            # R9: ova 派生均值非有限显式拒——NaN 使来源/派生
+            # 对账比较静默 False 绕过
+            _ova_k_nonfinite = []
+            for _f in ("k_mean_model", "k_mean_validation"):
+                try:
+                    if not math.isfinite(float(ova[_f])):
+                        _ova_k_nonfinite.append(_f)
+                except (TypeError, ValueError, OverflowError):
+                    _ova_k_nonfinite.append(_f)
+            for _f in _ova_k_nonfinite:
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts." + _f + "="
+                    + repr(ova[_f]) + " 非数值/非有限"
+                    "(NaN/Inf 使比较式静默为 False,"
+                    "不得当合法 K 支撑)")
             km = float(ova["k_mean_model"])
             kv = float(ova["k_mean_validation"])
-            k_tol_frozen = None
             for fld, val, corpus in (
                     ("k_mean_model", km, "model"),
                     ("k_mean_validation", kv, "validation")):
@@ -1483,112 +1646,6 @@ def recompute_audit_semantics_from_report(
                         + " 与 direct_generator." + corpus
                         + ".aggregate.k_mean=" + str(src_k)
                         + " 矛盾(K 来源不一致)")
-            # R7(review F2): k_tolerance 冻结公式锚定——生产规则
-            # max(3*pooled_se,0.05)(plan payload 冻结),pooled se 由
-            # dg.<corpus>.aggregate.k_histogram 重算(与生产端
-            # ddof=1 同式);声明容差与冻结公式漂移即拒,重算差值
-            # 以冻结值为界(不只比较报告自带容差);k_histogram
-            # 缺件无 fixture 拒,fixture 如实委托。
-            hists = []
-            hist_missing = False
-            for corpus in ("model", "validation"):
-                h = (dg.get(corpus, {}).get("aggregate")
-                     or {}).get("k_histogram")
-                if not h:
-                    hist_missing = True
-                hists.append(h or {})
-            if hist_missing:
-                if fixture:
-                    delegated.append(
-                        "once_vs_attempts.k_tolerance_frozen")
-                else:
-                    k_ok = False
-                    disc.append(
-                        "direct_generator.aggregate.k_histogram "
-                        "缺件:k_tolerance 冻结公式(max(3*pooled_se,"
-                        "0.05))无法重算(必要依据缺失→拒绝)")
-            else:
-                # R8-Q1: K 输入闭合——histogram 在场时结构/
-                # 频数/总量/均值必须与报告来源自洽(生产端
-                # k_counts 每 unique event 恰计一次:Σ频数==
-                # n_events;k_mean==Σ(k·c)/Σc;频数恒非负整
-                # 数)。在场非法数值不可被 fixture 委托为 True
-                # (缺高成本叶与坏支撑不是一件事);合法手工输
-                # 入仍可通过。dict 键序天然无关。
-                ks = []
-                _bad_hist = False
-                for corpus, h in zip(
-                        ("model", "validation"), hists):
-                    vals = []
-                    total = 0
-                    wsum = 0.0
-                    kk = c = None
-                    try:
-                        for kk, c in h.items():
-                            cf = float(c)
-                            ci = int(c)
-                            if cf != ci or ci < 0:
-                                raise ValueError(kk)
-                            vals.extend([float(kk)] * ci)
-                            total += ci
-                            wsum += float(kk) * ci
-                    except (TypeError, ValueError):
-                        _bad_hist = True
-                        k_ok = False
-                        disc.append(
-                            "direct_generator." + corpus
-                            + ".aggregate.k_histogram 结构/"
-                            + "频数非法(" + repr(kk) + "="
-                            + repr(c) + ";在场非法不得被 fixture"
-                            " 委托为 True)")
-                        break
-                    agg_c = (dg.get(corpus, {})
-                             .get("aggregate") or {})
-                    n_ev = agg_c.get("n_events")
-                    if n_ev is not None and total != int(n_ev):
-                        k_ok = False
-                        disc.append(
-                            "direct_generator." + corpus
-                            + ".aggregate.k_histogram 频数总量 "
-                            + str(total) + " != n_events="
-                            + str(n_ev) + "(生产端每 unique "
-                            "event 恰计一次)")
-                    src_k = agg_c.get("k_mean")
-                    if total > 0 and src_k is not None:
-                        h_mean = wsum / total
-                        if abs(h_mean - float(src_k)) > 1e-9:
-                            k_ok = False
-                            disc.append(
-                                "direct_generator." + corpus
-                                + ".aggregate.k_histogram 重算"
-                                "均值 " + str(h_mean)
-                                + " != k_mean=" + str(src_k)
-                                + "(K 均值与直方图来源矛盾)")
-                    ks.append(vals)
-                if not _bad_hist and all(len(x) > 1 for x in ks):
-                    pooled = math.sqrt(
-                        float(np.var(
-                            np.array(ks[0]), ddof=1)) / len(ks[0])
-                        + float(np.var(
-                            np.array(ks[1]), ddof=1)) / len(ks[1]))
-                    k_tol_frozen = max(3.0 * pooled, 0.05)
-                if ova.get("k_tolerance") is not None:
-                    if k_tol_frozen is None:
-                        if not fixture:
-                            k_ok = False
-                            disc.append(
-                                "k_histogram 样本不足(每语料>1),"
-                                "k_tolerance 冻结公式无法重算")
-                    elif abs(float(ova["k_tolerance"])
-                             - k_tol_frozen) > 1e-9:
-                        k_ok = False
-                        disc.append(
-                            "once_vs_attempts.k_tolerance="
-                            + str(ova["k_tolerance"])
-                            + " != 冻结公式值 max(3*pooled_se,0.05)"
-                            + "=" + str(k_tol_frozen)
-                            + "(K 容差漂移;pooled_se 由 "
-                            "k_histogram 重算)")
             k_derived = abs(km - kv)
             if ova.get("k_abs_diff") is not None and abs(
                     float(ova["k_abs_diff"]) - k_derived) > 1e-9:
