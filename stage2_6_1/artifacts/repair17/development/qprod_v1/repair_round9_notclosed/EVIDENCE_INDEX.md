@@ -35,3 +35,18 @@
 - E02 R9 七步 rc=0(evidence/e02/)
 - R8 及更早记录零改写;原生 2/2 耗尽维持;零新增原生/MC 研究/fit/optimizer/
   模型加载
+
+
+## R9b V1-FAIL 修复复验层(reviewer F1/F2/F3;C20=52e70a17)
+- 修复: 在场字段合法性先验提升独立层——k_mean/n_events 在场即查
+  isfinite/整数(与直方图存在性无关,缺件委托分支不再跳过);ova.
+  k_abs_diff 在场即 isfinite(与 k_tolerance 在场/委托无关)。合法缺件
+  委托(fixture)不误伤
+- reviewer 探针 H1/H1b/H2/H5/H4 修后全拒(C19 字节曾为 True);正控制保持
+- 钉 +2(R9 钉共 13);qprod 面 184/184;r8/r9/r10/r17 cue-contract 29/29
+- r21 v6 C20: run 20261002_051910 rc=0, 2725/0F/7skip, record 3aded159,
+  verify 2725/2239/162(一次通过)— evidence/regress_v6/full_regression_v6_c20/
+- 262 v15 C20: 240 RC=0 — evidence/regress262/regress262_v15_c20(meta 绑定
+  52e70a17;脚本文件方式,EVD 直落 R9)
+- E02 r9b 七步 rc=0 — evidence/e02_r9b/
+- C19 记录(2723/record 2d61d8f8)保持原样不改写
