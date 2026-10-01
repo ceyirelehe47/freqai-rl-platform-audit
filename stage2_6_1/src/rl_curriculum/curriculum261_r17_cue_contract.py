@@ -1487,6 +1487,10 @@ def recompute_audit_semantics_from_report(
                         disc.append(
                             "k_histogram 结构非法,k_tolerance "
                             "冻结公式无法重算")
+                    else:
+                        delegated.append(
+                            "once_vs_attempts."
+                            "k_tolerance_frozen_malformed")
                 elif all(len(x) > 1 for x in ks):
                     pooled = math.sqrt(
                         float(np.var(
