@@ -25,7 +25,7 @@
   (冻结容差 0.05 正确);两语料直方图都缺 fixture 双委托/无 fixture 拒
 
 ## 验证(C19 字节)
-- 钉 R9 11;qprod 面 182/182;r8/r9/r10/r17 cue-contract 29/29
+- 钉 R9 12(pytest 收集实证,reviewer P3 更正);qprod 面 182/182;r8/r9/r10/r17 cue-contract 29/29
 - r21 v6 C19: run 20261002_041458 rc=0, 2723/0F/7skip, record 2d61d8f8,
   verify 2723/2237/162(一次通过)— evidence/regress_v6/full_regression_v6_c19/
 - 262 v14 C19: 240 RC=0 — evidence/regress262/(OUTPUT_MOVE_NOTE: sed 未命中
@@ -43,7 +43,7 @@
   k_abs_diff 在场即 isfinite(与 k_tolerance 在场/委托无关)。合法缺件
   委托(fixture)不误伤
 - reviewer 探针 H1/H1b/H2/H5/H4 修后全拒(C19 字节曾为 True);正控制保持
-- 钉 +2(R9 钉共 13);qprod 面 184/184;r8/r9/r10/r17 cue-contract 29/29
+- 钉 +2(R9 钉共 14,pytest 收集实证,reviewer P3 更正);qprod 面 184/184;r8/r9/r10/r17 cue-contract 29/29
 - r21 v6 C20: run 20261002_051910 rc=0, 2725/0F/7skip, record 3aded159,
   verify 2725/2239/162(一次通过)— evidence/regress_v6/full_regression_v6_c20/
 - 262 v15 C20: 240 RC=0 — evidence/regress262/regress262_v15_c20(meta 绑定
