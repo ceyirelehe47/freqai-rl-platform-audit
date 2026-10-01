@@ -292,3 +292,59 @@ def test_r9e_r8_regressions_hold():
                 "k_histogram"] = {"1": 109}
     assert _run(m_tot)["recomputed"][
         "once_vs_attempts_consistent"] is False
+
+
+def test_r9v1_missing_piece_does_not_mask_bad_kmean_or_nevents():
+    """R9-V1(F1/F2): fixture+删除直方图(缺件委托)时,在场
+    k_mean="nan"/NaN 字面量与 n_events=110.5 仍必须拒——在场
+    字段合法性先验独立于直方图存在性,委托不传染。"""
+    def h1(r):
+        del (r["direct_generator"]["model"]["aggregate"]
+             ["k_histogram"])
+        r["direct_generator"]["model"]["aggregate"][
+            "k_mean"] = "nan"
+    out = _run(h1, fixture=True)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("k_mean" in d and ("非有限" in d or "非数值" in d)
+               for d in out["threshold_discrepancies"])
+
+    def h2(r):
+        del (r["direct_generator"]["validation"]["aggregate"]
+             ["k_histogram"])
+        r["direct_generator"]["validation"]["aggregate"][
+            "k_mean"] = float("nan")
+    out2 = _run(h2, fixture=True)
+    assert out2["recomputed"][
+        "once_vs_attempts_consistent"] is False
+
+    def h5(r):
+        del (r["direct_generator"]["model"]["aggregate"]
+             ["k_histogram"])
+        r["direct_generator"]["model"]["aggregate"][
+            "n_events"] = 110.5
+    out5 = _run(h5, fixture=True)
+    assert out5["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("n_events" in d and "110.5" in d
+               for d in out5["threshold_discrepancies"])
+
+    # 合法缺件(委托)不误伤
+    def legal_del(r):
+        del (r["direct_generator"]["model"]["aggregate"]
+             ["k_histogram"])
+    out_ok = _run(legal_del, fixture=True)
+    assert out_ok["all_consistent"] is True
+
+
+def test_r9v1_kad_nan_with_ktol_missing_rejected():
+    """R9-V1(F3): k_abs_diff=NaN 在 k_tolerance 缺失(fixture
+    委托)时仍拒——isfinite 先验与 k_tolerance 在场无关。"""
+    def h4(r):
+        r["once_vs_attempts"]["k_abs_diff"] = float("nan")
+        del r["once_vs_attempts"]["k_tolerance"]
+    out = _run(h4, fixture=True)
+    assert out["recomputed"][
+        "once_vs_attempts_consistent"] is False
+    assert any("k_abs_diff" in d and "非有限" in d
+               for d in out["threshold_discrepancies"])

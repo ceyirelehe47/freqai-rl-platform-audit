@@ -1463,6 +1463,40 @@ def recompute_audit_semantics_from_report(
         ks: list[list[float]] = []
         hist_bad = False
         for corpus in ("model", "validation"):
+            # R9-V1(F1/F2): 在场字段的合法性先验独立于直方图
+            # 存在性——缺件分支 continue 不得跳过在场 k_mean/
+            # n_events 的非有限/非整数检查(委托不传染到在场坏
+            # 输入;NaN 使 ova 对账比较静默 False 绕过)。
+            _agg0 = (dg.get(corpus, {})
+                     .get("aggregate") or {})
+            _n_ev0 = _agg0.get("n_events")
+            if _n_ev0 is not None:
+                try:
+                    _nef = float(_n_ev0)
+                    if not math.isfinite(_nef) \
+                            or _nef != int(_nef):
+                        raise ValueError(_n_ev0)
+                except (TypeError, ValueError, OverflowError):
+                    k_ok = False
+                    disc.append(
+                        "direct_generator." + corpus
+                        + ".aggregate.n_events 非数值/非有限"
+                        "/非整数(" + repr(_n_ev0) + ";在场非法"
+                        "与直方图缺件无关,int() 截断不得吞"
+                        "小数信息)")
+            _sk0 = _agg0.get("k_mean")
+            if _sk0 is not None:
+                try:
+                    if not math.isfinite(float(_sk0)):
+                        raise ValueError(_sk0)
+                except (TypeError, ValueError, OverflowError):
+                    k_ok = False
+                    disc.append(
+                        "direct_generator." + corpus
+                        + ".aggregate.k_mean 非数值/非有限("
+                        + repr(_sk0) + ";在场非法与直方图缺件"
+                        "无关,NaN 使比较式静默 False 不得当"
+                        "合法来源)")
             _h = hists_present.get(corpus)
             if not _h:
                 if fixture:
@@ -1581,8 +1615,20 @@ def recompute_audit_semantics_from_report(
                         + "=" + str(k_tol_frozen)
                         + "(K 容差漂移;pooled_se 由 "
                         "k_histogram 重算)")
-        # R9: 声明门先验非有限数——NaN/Inf 使 <= 比较静默
-        # False 即绕过。
+        # R9-V1(F3): k_abs_diff 在场即先验非有限——NaN 使 <=
+        # 与派生差值对账比较静默 False 绕过,与 k_tolerance 是否
+        # 在场/是否被委托缺件无关。
+        if ova.get("k_abs_diff") is not None:
+            try:
+                _kad = float(ova["k_abs_diff"])
+                if not math.isfinite(_kad):
+                    raise ValueError(ova["k_abs_diff"])
+            except (TypeError, ValueError, OverflowError):
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts.k_abs_diff 非数值/非有限("
+                    + repr(ova["k_abs_diff"]) + ";NaN 使比较式"
+                    " 静默 False,不得绕过)")
         if ova.get("k_abs_diff") is not None \
                 and ova.get("k_tolerance") is not None:
             try:
