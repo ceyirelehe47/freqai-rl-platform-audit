@@ -1273,6 +1273,23 @@ def recompute_audit_semantics_from_report(
                         " 在场子输入矛盾(" + sub_rep + ")")
             elif not sub_declared:
                 ti_sub_ok = False
+        # R8-Q1: 语料覆盖由有效上下文(direct_generator 的语料
+        # 集合)决定,不由 per_corpus 自身键集合自列——报告两语料
+        # 而 tail.per_corpus 缺整份语料支撑必须拒;fixture 双重态
+        # 下缺失语料如实委托(缺高成本叶≠坏支撑)。
+        expected_corpora = set(
+            dg.keys()) if isinstance(dg, dict) else set()
+        for cname in sorted(expected_corpora - set(per.keys())):
+            if fixture:
+                delegated.append(
+                    "tail_mirror_bound_integrity.per_corpus["
+                    + cname + "]")
+            else:
+                ti_sub_ok = False
+                disc.append(
+                    "tail_mirror_bound_integrity.per_corpus 缺"
+                    "整份 " + cname + " 支撑(报告含该语料,"
+                    "预期集合由上下文决定,缺件不得视为 True)")
         rc["tail_mirror_bound_integrity_pass"] = bool(
             ti.get("pass")) and ti_sub_ok
     else:
@@ -1306,6 +1323,16 @@ def recompute_audit_semantics_from_report(
                     "global_k_audit.pass=" + str(gk_pass)
                     + " 与生产规则 pass==(verdict=='PASS') 矛盾"
                     + "(verdict=" + str(gk_verdict) + ")")
+            # R8-Q1: 生产规则 graph_integrity_ok=False 即 FAIL
+            # 早退(r17_global_k fail closed),在场 False 与
+            # PASS 并存=分层矛盾拒;
+            if gk.get("graph_integrity_ok") is False \
+                    and gk_verdict == "PASS":
+                gk_consistent = False
+                disc.append(
+                    "global_k_audit.graph_integrity_ok=False 与"
+                    " verdict=PASS 并存(生产规则:完整性失败即"
+                    " FAIL 早退,fail closed)")
             fin = gk.get("final")
             fin_v = (fin.get("verdict")
                      if isinstance(fin, dict) else None)
@@ -1315,6 +1342,18 @@ def recompute_audit_semantics_from_report(
                     "global_k_audit.final.verdict=" + str(fin_v)
                     + " != 顶层 verdict=" + str(gk_verdict)
                     + "(分层矛盾)")
+            # R8-Q1: 无 fixture 的 PASS 缺 final 必需依据拒
+            # (生产端 PASS 必经 tier1/tier2,final 恒在场);
+            # FAIL 早退可无 final,不强求。fixture 缺失如实委托。
+            if gk_verdict == "PASS" and fin_v is None:
+                if fixture:
+                    delegated.append("global_k_audit.final")
+                else:
+                    gk_consistent = False
+                    disc.append(
+                        "global_k_audit.verdict=PASS 缺 final "
+                        "必需依据(生产端 PASS 必经 tier1/tier2"
+                        " 终判;缺件不得视为 True)")
         rc["global_k_audit_pass"] = bool(
             gk_pass) and gk_consistent
         rc["global_k_audit_not_indeterminate"] = bool(
@@ -1469,29 +1508,64 @@ def recompute_audit_semantics_from_report(
                         "缺件:k_tolerance 冻结公式(max(3*pooled_se,"
                         "0.05))无法重算(必要依据缺失→拒绝)")
             else:
+                # R8-Q1: K 输入闭合——histogram 在场时结构/
+                # 频数/总量/均值必须与报告来源自洽(生产端
+                # k_counts 每 unique event 恰计一次:Σ频数==
+                # n_events;k_mean==Σ(k·c)/Σc;频数恒非负整
+                # 数)。在场非法数值不可被 fixture 委托为 True
+                # (缺高成本叶与坏支撑不是一件事);合法手工输
+                # 入仍可通过。dict 键序天然无关。
                 ks = []
                 _bad_hist = False
-                for h in hists:
-                    vals: list[float] = []
+                for corpus, h in zip(
+                        ("model", "validation"), hists):
+                    vals = []
+                    total = 0
+                    wsum = 0.0
+                    kk = c = None
                     try:
                         for kk, c in h.items():
-                            vals.extend(
-                                [float(kk)] * int(c))
+                            cf = float(c)
+                            ci = int(c)
+                            if cf != ci or ci < 0:
+                                raise ValueError(kk)
+                            vals.extend([float(kk)] * ci)
+                            total += ci
+                            wsum += float(kk) * ci
                     except (TypeError, ValueError):
                         _bad_hist = True
-                        break
-                    ks.append(vals)
-                if _bad_hist:
-                    if not fixture:
                         k_ok = False
                         disc.append(
-                            "k_histogram 结构非法,k_tolerance "
-                            "冻结公式无法重算")
-                    else:
-                        delegated.append(
-                            "once_vs_attempts."
-                            "k_tolerance_frozen_malformed")
-                elif all(len(x) > 1 for x in ks):
+                            "direct_generator." + corpus
+                            + ".aggregate.k_histogram 结构/"
+                            + "频数非法(" + repr(kk) + "="
+                            + repr(c) + ";在场非法不得被 fixture"
+                            " 委托为 True)")
+                        break
+                    agg_c = (dg.get(corpus, {})
+                             .get("aggregate") or {})
+                    n_ev = agg_c.get("n_events")
+                    if n_ev is not None and total != int(n_ev):
+                        k_ok = False
+                        disc.append(
+                            "direct_generator." + corpus
+                            + ".aggregate.k_histogram 频数总量 "
+                            + str(total) + " != n_events="
+                            + str(n_ev) + "(生产端每 unique "
+                            "event 恰计一次)")
+                    src_k = agg_c.get("k_mean")
+                    if total > 0 and src_k is not None:
+                        h_mean = wsum / total
+                        if abs(h_mean - float(src_k)) > 1e-9:
+                            k_ok = False
+                            disc.append(
+                                "direct_generator." + corpus
+                                + ".aggregate.k_histogram 重算"
+                                "均值 " + str(h_mean)
+                                + " != k_mean=" + str(src_k)
+                                + "(K 均值与直方图来源矛盾)")
+                    ks.append(vals)
+                if not _bad_hist and all(len(x) > 1 for x in ks):
                     pooled = math.sqrt(
                         float(np.var(
                             np.array(ks[0]), ddof=1)) / len(ks[0])
