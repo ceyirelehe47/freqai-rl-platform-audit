@@ -22,7 +22,11 @@
   R10 六洞+控制不退化;无 fixture 缺必需字段仍拒
 
 ## 验证(C23 字节)
-- 钉 R11 7;qprod 面 198/198;r8/r9/r10/r17 cue-contract 29/29
+- 钉 R11 7;qprod 面 198/198;cue 套件实测 37/37(collect=37:
+  r9/r10_cue_contract+r9/r10_cue_eval+r17_design_cue_binding;
+  更正:此前沿袭"29/29"为陈旧窄集计数,reviewer V1 实测
+  37/37 全绿方向保守,证据 tmp_r11/reviewer/08_selections_
+  output.log;R8-R10 历史件保持原字节不回填)
 - r21 v6 C23: run 20261002_142616 rc=0, 2739/0F/7skip, record 9c14597a,
   verify 2739/2253/164 — evidence/regress_v6/full_regression_v6_c23/
   (首跑目录沿 r10 脚本旧 OUT 名 v6_c21,record/summary 内容为本次
