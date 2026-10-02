@@ -222,6 +222,13 @@ FLP_V1_R2_REGISTERED_CODE_CHANGES = {
         "23a2948b8daff30adb58b26c6871517f79371b4e179dd3960ad47efa7b084ca1",
 }
 
+#: gate1_r3 修复(7.1 迭代标识注册表派生)再次改动 api.py;登记
+#: 当前树实际 sha256(合并视图取最后一条;再漂移仍 fail)。
+FLP_V1_R3_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "f264a3d009ed8ea3d38d539f31c653f55421560d76623864ca9dbe3deed0cd31",
+}
+
 
 #: 全部迭代登记的合并视图(R6-R11 覆盖同名键;run_input_lock 的
 #: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
@@ -235,7 +242,8 @@ REGISTERED_261_CODE_CHANGES = {
     **R25_BASELINE_REGISTERED_CODE_CHANGES,
     **QPROD_V1_REGISTERED_CODE_CHANGES,
     **FLP_V1_REGISTERED_CODE_CHANGES,
-    **FLP_V1_R2_REGISTERED_CODE_CHANGES}
+    **FLP_V1_R2_REGISTERED_CODE_CHANGES,
+    **FLP_V1_R3_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)
