@@ -25,6 +25,9 @@
 - 钉 R11 7;qprod 面 198/198;r8/r9/r10/r17 cue-contract 29/29
 - r21 v6 C23: run 20261002_142616 rc=0, 2739/0F/7skip, record 9c14597a,
   verify 2739/2253/164 — evidence/regress_v6/full_regression_v6_c23/
+  (首跑目录沿 r10 脚本旧 OUT 名 v6_c21,record/summary 内容为本次
+  C23 run[commit_a_sha=9dcb5a54/run_id=20261002_142616],已规范重命名
+  v6_c23 并修 runner OUT 参数+部署同步;证据 HEAD=1ccd206b)
 - 262 v18 C23: 240 RC=0 junit 240/0(meta 绑定 9dcb5a54;
   首跑文件名沿旧标签 v16_c21,内容正确,已规范重命名 v18_c23+补 junit;
   一次性 sed 参数化脚本 regress262_r11.sh 已存 tmp_r11,不再手拼)
