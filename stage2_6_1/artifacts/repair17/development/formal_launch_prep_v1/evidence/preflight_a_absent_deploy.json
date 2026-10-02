@@ -7,7 +7,7 @@
   "admission_shape_ok": false,
   "admission_present": false,
   "admission_note": "provenance-lock→Commit A→部署同步→批准绑定/签发→执行:admission 原件在 launch 前由 r17_admission_issue 对最终 Commit A 签发;此处只报在场,不代签",
-  "plan_digest": "qbpl-b2907ab056f33581f4af4fc6c866598833e0ca385420e63b82403270cb367d28",
+  "plan_digest": "qbpl-4772067be1520f913e792df1416d91df75a6bfccafa1b8c63848858424fe7b7f",
   "plan_structure_problems": [],
   "chain_steps": [
     {
@@ -224,23 +224,292 @@
     "verify-formal-logs"
   ],
   "budget": {
-    "episodes_upper_bound": 16000,
-    "episodes_note": "determinism ~300 + audit 48 + cue-audit 8000(+重放<=400) + preplan 24 + design >=2560(候选级不确定) + calibrate ~4400 + qualify ~2300 + smoke 146;上界按各步冻结常量推导",
-    "v2_preprocessor_fits": 5,
-    "v2_fits_note": "determinism 1 + calibrate main/holdout 2 + qualify 1 + smoke 1(audit 不做 V2 fit)",
-    "supervised_mlp_fits_upper": 84,
-    "supervised_note": "calibrate ~54 + qualify ~27 + determinism 工程 3;控制组计法存在不确定,按上界记账",
+    "stop_after": "qualify",
+    "generation_episodes_typical": 28636,
+    "generation_episodes_worst_upper": 112804,
+    "authorization_cap_generation_episodes": 112804,
     "mc_events_total": 1000000,
-    "bootstrap_resamples_upper": 1160000,
-    "optimizer_updates": 1,
-    "optimizer_note": "仅第 14 步 smoke:model.learn(total_timesteps=256) 恰 256 环境交互步、1 次 optimizer 更新;资格 PASS 后才执行(postcondition final_verdict_pass)",
-    "subprocesses_upper": 35
+    "bootstrap_resamples_upper": 80000,
+    "v2_preprocessor_fits": 9,
+    "supervised_mlp_fits": 85,
+    "supervised_mlp_epochs_per_fit": 20,
+    "supervised_mlp_note": "calibrate 54+qualify 27+determinism 4(epochs=2);A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指监督拟合;按本面逐类批准",
+    "ppo_learn_calls": 0,
+    "ppo_rollout_env_steps": 0,
+    "ppo_optimizer_steps_upper": 0,
+    "ppo_validation_env_steps": 0,
+    "model_save_load_pairs": 0,
+    "subprocesses_upper": 19,
+    "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 40 为冻结配置推导上界(10 epochs×4 minibatch),非实测;A1 中该面恒 0 由有界排程保证(not_run_steps 含 smoke)"
   },
+  "budget_items": [
+    {
+      "step": "determinism-matrix",
+      "category": "generation_episodes",
+      "formula": "A4(3 pair+bank 12 pair+1 block+6 目标调用)+A5(16 探针目标+prelude ~74 pair+bank/fit/bundle 面);attempt 最坏 ×5",
+      "typical": 700,
+      "worst_upper": 2500,
+      "consumer": "curriculum261_r17_determinism.run_r17_determinism_matrix",
+      "metering": "生成 envelope ledger(逐 attempt envelope;工程诊断域)"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "v2_preprocessor_fits",
+      "formula": "A4 1+A5 prelude 4",
+      "typical": 5,
+      "worst_upper": 5,
+      "consumer": "fit_preprocessor_v2_from_bank_r17",
+      "metering": "fit manifest 逐次落盘"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "supervised_mlp_fits",
+      "formula": "A4 1+A5 s8 3(epochs=2;工程缩减,非默认 20)",
+      "typical": 4,
+      "worst_upper": 4,
+      "consumer": "train_supervised_mlp",
+      "metering": "envelope ledger;epochs 由调用参数显式=2"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "subprocesses",
+      "formula": "16 探针子进程",
+      "typical": 17,
+      "worst_upper": 17,
+      "consumer": "curriculum261_r17_determinism A5",
+      "metering": "子进程 argv/journal 记账"
+    },
+    {
+      "step": "audit",
+      "category": "generation_episodes",
+      "formula": "bank 3×4×2 pair(--fit-pairs 默认 2)=24 pair=48 eps",
+      "typical": 48,
+      "worst_upper": 48,
+      "consumer": "generate_fit_bank('preplan_smoke_r17', fit_pairs=2)",
+      "metering": "生成 envelope ledger"
+    },
+    {
+      "step": "cue-audit",
+      "category": "generation_episodes",
+      "formula": "model once 500×8 + validation attempts typ 500×8/worst 500×8×5 + once_vs_attempts 重放 ≤50×8",
+      "typical": 8400,
+      "worst_upper": 24400,
+      "consumer": "_run_cue_contract_audit_core(formal=True)",
+      "metering": "生成 envelope ledger(model=once/validation=attempts;"
+    },
+    {
+      "step": "cue-audit",
+      "category": "mc_events",
+      "formula": "AUDIT_N_EVENTS=1000000",
+      "typical": 1000000,
+      "worst_upper": 1000000,
+      "consumer": "MC 解析核对(冻结常量)",
+      "metering": "audit 报告冻结明细"
+    },
+    {
+      "step": "cue-audit",
+      "category": "bootstrap_resamples",
+      "formula": "20000×2 corpus×2 统计(block_cluster+tail)",
+      "typical": 80000,
+      "worst_upper": 80000,
+      "consumer": "bootstrap 复核",
+      "metering": "audit 报告冻结明细"
+    },
+    {
+      "step": "preplan-smoke",
+      "category": "generation_episodes",
+      "formula": "3 matched blocks×8",
+      "typical": 24,
+      "worst_upper": 24,
+      "consumer": "generate_matched_block_with_attempts(preplan_smoke_r17)",
+      "metering": "生成 envelope ledger"
+    },
+    {
+      "step": "plan-roundtrip",
+      "category": "subprocesses",
+      "formula": "1 独立 load 探针",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "cmd_plan_roundtrip",
+      "metering": "链 journal"
+    },
+    {
+      "step": "design",
+      "category": "generation_episodes",
+      "formula": "(shared 2×160+candidate 3×(2×40 matched+2×160 dedicated))×8+indep 80 pair×2;候选数=参数包冻结 grid=3",
+      "typical": 12320,
+      "worst_upper": 60960,
+      "consumer": "run_design_stage_r17",
+      "metering": "生成 envelope ledger(每 block/pair 调用)"
+    },
+    {
+      "step": "calibrate",
+      "category": "generation_episodes",
+      "formula": "fit bank 2×144+c13 4 调用 640+equiv 144+supervised 数据 480+matched 2×20×8(×5 worst)+semantic 2×160×8(×5 worst)+indep 320+cond 24+stress 48 pair",
+      "typical": 4872,
+      "worst_upper": 16776,
+      "consumer": "cmd_calibrate → orchestrate_calibration_stage_r17",
+      "metering": "生成 envelope ledger(逐 pair/block/attempt)"
+    },
+    {
+      "step": "calibrate",
+      "category": "v2_preprocessor_fits",
+      "formula": "main+holdout 各 1",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "fit_preprocessor_v2_from_bank_r17",
+      "metering": "fit manifest(分区各自落盘)"
+    },
+    {
+      "step": "calibrate",
+      "category": "supervised_mlp_fits",
+      "formula": "2 分区×(3 seeds×3 fam×3 controls)=54 次×epochs 20(默认)",
+      "typical": 54,
+      "worst_upper": 54,
+      "consumer": "train_supervised_mlp(namespace=…;keyword-only)",
+      "metering": "envelope ledger + supervised gate 记录"
+    },
+    {
+      "step": "preflight-static+lock-plan+preflight-sealed",
+      "category": "generation_episodes",
+      "formula": "纯治理/只读",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "-",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "qualify",
+      "category": "generation_episodes",
+      "formula": "bank 2×144+c13 320+matched 20×8(×5 worst)+semantic 160×8(×5 worst)+indep 160+causality/repro 额外(24 pair+2 blocks)",
+      "typical": 2272,
+      "worst_upper": 8096,
+      "consumer": "execute_final_core_r17(QAF 命名空间)",
+      "metering": "生成 envelope ledger(逐 pair/block/attempt)"
+    },
+    {
+      "step": "qualify",
+      "category": "v2_preprocessor_fits",
+      "formula": "final bank+conditioning bank 各 1",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "fit_preprocessor_v2_from_bank_r17(final fit state)",
+      "metering": "qualification_fit_manifest"
+    },
+    {
+      "step": "qualify",
+      "category": "supervised_mlp_fits",
+      "formula": "3 seeds×3 fam×3 controls=27 次×epochs 20",
+      "typical": 27,
+      "worst_upper": 27,
+      "consumer": "final supervised(经 final fit state)",
+      "metering": "envelope ledger"
+    },
+    {
+      "step": "qualify",
+      "category": "generation_episodes_fresh_holdout",
+      "formula": "_fresh_seed_validity 纯 seed 派生对拍,零生成",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "_fresh_seed_validity_r17",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "smoke",
+      "category": "generation_episodes",
+      "formula": "bank 6/rung=144 eps+1 pair=2 eps(cmd_smoke 不传 envelope)",
+      "typical": 146,
+      "worst_upper": 146,
+      "consumer": "fit_preprocessor_v2_from_bank_r17('ppo_smoke_r17')+generate_pair",
+      "metering": "生成 envelope ledger(ppo_smoke_r17 工程面)"
+    },
+    {
+      "step": "smoke",
+      "category": "v2_preprocessor_fits",
+      "formula": "smoke 内 1 次",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "fit_preprocessor_v2_from_bank_r17(ppo_smoke_r17)",
+      "metering": "smoke manifest preprocessor_bundle_hash 绑定"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_learn_calls",
+      "formula": "model.learn(256) 1 次",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "PPO.learn",
+      "metering": "smoke manifest(n_steps=256)"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_rollout_env_steps",
+      "formula": "n_steps=256(rollout buffer;1 env)",
+      "typical": 256,
+      "worst_upper": 256,
+      "consumer": "PPO rollout(learn 内)",
+      "metering": "smoke manifest"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_optimizer_steps_upper",
+      "formula": "SB3 默认 n_epochs=10×ceil(256/64)=4 minibatch=40 次 optimizer.step(上界推导;未运行不称实测)",
+      "typical": 40,
+      "worst_upper": 40,
+      "consumer": "PPO.train(learn 内)",
+      "metering": "推导自冻结配置(SB3 版本冻结);manifest 不含实际梯度步数——上界授权,非实测声明"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_validation_env_steps",
+      "formula": "验证循环 ≤50 env.step(term/trunc 提前停)",
+      "typical": 50,
+      "worst_upper": 50,
+      "consumer": "run_ppo_smoke_r17 验证循环",
+      "metering": "smoke 报告 reward 有限性"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_check_env_interactions_bound",
+      "formula": "SB3 check_env 内部 reset+少量 step(版本冻结行为;非本仓常量;≤10 记账上界)",
+      "typical": 10,
+      "worst_upper": 10,
+      "consumer": "stable_baselines3 check_env",
+      "metering": "SB3 版本冻结"
+    },
+    {
+      "step": "smoke",
+      "category": "model_save_load",
+      "formula": "save 1+load 1(TemporaryDirectory;验证确定性)",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "model.save/ PPO.load",
+      "metering": "smoke 报告确定性检查"
+    },
+    {
+      "step": "full-cold+report-read+verify-formal-logs",
+      "category": "generation_episodes",
+      "formula": "只读核验;0 生成/fit",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "read_full_cold_evidence 等",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "full-cold",
+      "category": "subprocesses",
+      "formula": "regression_runner 1 子进程",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "cmd_full_cold",
+      "metering": "链 journal"
+    }
+  ],
   "findings": [
     "deployment: 受信任部署配置缺失: /mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/formal_launch_prep_v1/not_a_deploy/qprod_deploy_config.json(正式根不可从环境/参数取得;fail closed)"
   ],
   "business_leaf_calls": 0,
   "status": "FINDINGS_PRESENT",
-  "generated_utc": "2026-10-02T13:31:21+00:00",
-  "content_identity": "qfpf-0032932043009537ea8f0371db4ed8dd629495b68cd5cb94526d9b3a992d4818"
+  "generated_utc": "2026-10-02T19:37:54+00:00",
+  "content_identity": "qfpf-58f9e282a48d2cddd4378fef4e94a31d2395ca87095ddea0eb2d5e037eaefddc"
 }

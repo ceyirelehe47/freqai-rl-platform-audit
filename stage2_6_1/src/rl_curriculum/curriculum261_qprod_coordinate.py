@@ -33,7 +33,7 @@ from rl_curriculum.curriculum261_api import (
     CURRICULUM261_QPROD_ENGINEERING_NAMESPACES,
 )
 from rl_curriculum.curriculum261_qprod_context import (
-    QProdContext, QProdContextError, _canonical_json,
+    QProdContext, QProdContextError, _canonical_json, _now_utc,
 )
 from rl_curriculum.curriculum261_qprod_permit import LivePermitToken
 from rl_curriculum.curriculum261_qprod_plan import (
@@ -70,6 +70,9 @@ QPROD_COORDINATE_CODE_MODULES = (
     "curriculum261_qprod_coordinate.py",
     "curriculum261_qprod_aggregate.py",
     "curriculum261_qprod_formal.py",
+    "curriculum261_qprod_formal_levela.py",
+    "curriculum261_qprod_formal_budget.py",
+    "curriculum261_qaf_attempt.py",
 )
 
 
@@ -553,6 +556,106 @@ def check_native_budget(budget_path: Path | str, *, needed: int = 1
     return {"max_runs": mx, "consumed_runs": consumed, "needed": needed}
 
 
+def reserve_native_execution(
+        budget_path: Path | str, *, coordinate_id: str) -> dict[str, Any]:
+    """原生执行**持久预占**(修复轮 R3/F08)。
+
+    语义:一次已开始的原生执行=一次消费,**进入受控动作前**原子
+    写入 started 记录(tmp+replace+fsync;跨进程持久)。剩余额度 =
+    max_runs − len(started);completed 为观测字段,额度判定只用
+    started——异常/KeyboardInterrupt/进程退出后已开始的执行不会
+    恢复为未消费;同坐标重复请求不双记(已 started 的坐标再次进入
+    由坐标终态/一次性许可拦截;此处再拒一次作为独立防线)。
+    """
+    import os as _os
+    import tempfile as _tempfile
+
+    bp = Path(budget_path)
+    if not bp.is_file():
+        raise QProdContextError(
+            f"原生预算文件缺失 {bp}(不默认放行;须先初始化 "
+            f"{QPROD_NATIVE_BUDGET_NAME}: max_runs/consumed_runs)")
+    doc = json.loads(bp.read_text(encoding="utf-8"))
+    mx = int(doc.get("max_runs", -1))
+    started = dict(doc.get("started") or {})
+    if mx < 0:
+        raise QProdContextError(f"原生预算字段非法 max_runs={mx}")
+    if coordinate_id in started:
+        raise QProdContextError(
+            f"坐标 {coordinate_id!r} 已有 started 预占记录"
+            f"(一次已开始的原生执行=一次消费;重复请求不双记、"
+            f"不恢复额度;重跑须新批准)")
+    if len(started) >= mx:
+        raise QProdContextError(
+            f"原生执行预算耗尽:started={len(started)}/max={mx}"
+            f"(进入前拒绝;MC/episode 余额不是新原生运行授权)")
+    started[coordinate_id] = {
+        "started_utc": _now_utc(),
+        "note": "受控动作前持久预占(异常/中断不回收)",
+    }
+    new_doc = dict(doc)
+    new_doc["started"] = started
+    bp.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = _tempfile.mkstemp(
+        dir=str(bp.parent), prefix=bp.name + ".tmp")
+    try:
+        with _os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(new_doc, fh, ensure_ascii=False, indent=2)
+            fh.flush()
+            _os.fsync(fh.fileno())
+        _os.replace(tmp, bp)
+        dir_fd = _os.open(str(bp.parent), _os.O_RDONLY)
+        try:
+            _os.fsync(dir_fd)
+        finally:
+            _os.close(dir_fd)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+    return {"max_runs": mx, "started": sorted(started),
+            "remaining_after": mx - len(started)}
+
+
+def mark_native_completed(
+        budget_path: Path | str, *, coordinate_id: str) -> None:
+    """坐标正常完成后的观测记账(completed 字段;额度判定不依赖)。"""
+    bp = Path(budget_path)
+    doc = json.loads(bp.read_text(encoding="utf-8"))
+    started = dict(doc.get("started") or {})
+    if coordinate_id not in started:
+        raise QProdContextError(
+            f"坐标 {coordinate_id!r} 无 started 记录(完成记账"
+            f"须先预占;数据不一致)")
+    completed = dict(doc.get("completed") or {})
+    completed[coordinate_id] = _now_utc()
+    doc["completed"] = completed
+    doc["consumed_runs"] = len(completed)
+    bp.write_text(json.dumps(doc, ensure_ascii=False, indent=2),
+                  encoding="utf-8")
+
+
+def assert_no_technical_interruption(artifact_root: Path | str,
+                                     coordinate_manifest: list) -> None:
+    """技术中断后继门(修复轮 R3/F08)。
+
+    任一坐标存在 qprod_coordinate_interrupted.json 且无 seal ⇒
+    后续任何坐标启动拒绝(技术无效/中断=停止不安全执行;与合法
+    统计负结果[seal 在场,audit_pass=false]分开——后者按
+    collect_all_k 继续收齐)。
+    """
+    root = Path(artifact_root)
+    for coord in coordinate_manifest or []:
+        d = root / str(coord.get("artifact_subdir") or "")
+        if (d / "qprod_coordinate_interrupted.json").is_file() \
+                and not (d / QPROD_COORDINATE_SEAL_NAME).is_file():
+            raise QProdContextError(
+                f"坐标 {coord.get('coordinate_id')!r} 处于技术中断"
+                f"态(有 interrupted 标记且无 seal):技术中断不是"
+                f"合法统计负结果,后续坐标启动拒绝(collect_all_k "
+                f"只保留 seal 在场的有效负结果;恢复须操作员处置"
+                f"并另行授权)")
+
+
 def _ledger_append(ledger_path: Path, record: dict[str, Any]) -> None:
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     with open(ledger_path, "a", encoding="utf-8") as fh:
@@ -894,6 +997,8 @@ __all__ = [
     "QPROD_ENG_BLOCKS_PER_CORPUS", "QPROD_ENG_MC_EVENTS",
     "QPROD_REQUIRED_CUE_CHECK_NAMES", "qprod_required_cue_check_names",
     "QPROD_NATIVE_BUDGET_NAME", "check_native_budget",
+    "reserve_native_execution", "mark_native_completed",
+    "assert_no_technical_interruption",
     "QPROD_ENG_GLOBAL_K_TIER1", "QPROD_COORDINATE_SEAL_NAME",
     "QPROD_QUOTA_LEDGER_NAME", "lock_coordinate_audit_plan",
     "load_coordinate_audit_plan", "run_coordinate_audit_locked",

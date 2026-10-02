@@ -61,9 +61,11 @@ class TestRegistryApi:
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
         # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
         # = 97;R18 尝试族增量 30 后 = 127(正式 8);R19 尝试族
-        # (R19 处方;开放门 4.1/4.2 闭合后)再增 30 = 157,正式 12。
+        # (R19 处方;开放门 4.1/4.2 闭合后)再增 30 = 157,正式 12;
+        # QAF 尝试族(RouteC_FormalLaunch_Preparation_v1 R1/F06)
+        # 增 16(校准族 12 含 stress+四件套 4)= 173,正式 16。
         # 集合精确性由增量检查承载,不是单纯改一个数字绕过集合核验。
-        assert doc["n_namespaces"] == 157 and doc["n_formal"] == 12
+        assert doc["n_namespaces"] == 173 and doc["n_formal"] == 16
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
               "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}
@@ -77,8 +79,10 @@ class TestRegistryApi:
         assert doc["unique"]
 
     def test_formal_four_namespaces_fresh(self):
-        # R18/R19 尝试四件套先后加入正式面(journal §11 处方与 R19
-        # 处方:R17 框架 + 全新 namespace);旧四件套保持注册未消费。
+        # R18/R19/QAF 尝试四件套先后加入正式面(journal §11 处方、
+        # R19 处方与 QAF 尝试——RouteC_FormalLaunch_Preparation_v1
+        # R1/F06:R17 框架 + 全新 namespace);旧四件套保持注册未消费。
+        from rl_curriculum.curriculum261_qaf_attempt import QAF_FORMAL_FOUR
         from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
         from rl_curriculum.curriculum261_r19_attempt import R19_FORMAL_FOUR
         assert set(CURRICULUM261_R17_FORMAL_NAMESPACES) == {
@@ -86,7 +90,7 @@ class TestRegistryApi:
             "preprocess_fit_qualification_r17",
             "c2_independent_qualification_r17",
             "cue_semantic_qualification_r17"} | set(R18_FORMAL_FOUR) \
-            | set(R19_FORMAL_FOUR)
+            | set(R19_FORMAL_FOUR) | set(QAF_FORMAL_FOUR)
         assert not (set(CURRICULUM261_R17_NAMESPACES)
                     & set() )
 

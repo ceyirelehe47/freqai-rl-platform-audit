@@ -132,6 +132,7 @@ def run_final_qualification_r17(out_dir: Path,
                                 = None,
                                 control_write_fd: int | None = None,
                                 control_read_fd: int | None = None,
+                                formal_attempt: str | None = None,
                                 ) -> dict[str, Any]:
     """执行一次性 R17 final qualification 的资格执行者侧(worker)。
 
@@ -155,7 +156,8 @@ def run_final_qualification_r17(out_dir: Path,
     """
     out_dir = Path(out_dir)
     rt = rehearsal_profile is not None
-    require_r17_iteration_active()
+    grant_four_source = "r18"
+    attempt = formal_attempt
     plan, digest = load_locked_plan_r17()
     if (plan.get("robustness_gate") or {}).get("pass") is not True:
         raise RuntimeError(
@@ -216,33 +218,28 @@ def run_final_qualification_r17(out_dir: Path,
             conditioning_fit_namespace=str(
                 rehearsal_profile["conditioning_fit_namespace"]))
     else:
-        # R18 尝试正式四件套(journal §11 处方:R17 框架 + 全新
-        # namespace;一次性消费语义不变)。
-        from rl_curriculum.curriculum261_r18_attempt import (
-            R18_C2_INDEPENDENT_QUALIFICATION, R18_FIT_QUALIFICATION,
-            R18_FRESH_HOLDOUT, R18_QUALIFICATION,
-            R18_SEMANTIC_QUALIFICATION,
-        )
-        core_kwargs = dict(
-            profile_name="formal_final_r18",
-            final_namespace=R18_QUALIFICATION,
-            fit_namespace=R18_FIT_QUALIFICATION,
-            c13_pairs_per_rung=10,
-            c2_blocks=int(plan["final_sample_counts"][
-                "c2_matched_blocks"]),
-            semantic_block_count=160,
-            independent_pairs_per_rung=20,
-            independent_namespace=R18_C2_INDEPENDENT_QUALIFICATION,
-            semantic_namespace_override=R18_SEMANTIC_QUALIFICATION,
-            fresh_seed_final_namespace=R18_QUALIFICATION,
-            fresh_seed_holdout_namespace=R18_FRESH_HOLDOUT)
+        # 正式资格四件套按 attempt 选择(纯函数 formal_attempt_core_
+        # kwargs;测试与执行同源)。缺省 None 保持既有 R18 行为
+        # 字节不变;qaf_v1(R1/F06)=QProd 正式 Level A 全新输入身份。
+        attempt = formal_attempt
+        core_kwargs, grant_four_source = formal_attempt_core_kwargs(
+            attempt, plan)
 
     # ---- 受控委派协议:注册身份 → 等待绑定本进程实例的 token ---------
-    from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
+    if grant_four_source == "qaf_v1":
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF_FORMAL_FOUR,
+        )
+        grant_four = QAF_FORMAL_FOUR
+    else:
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_FORMAL_FOUR,
+        )
+        grant_four = R18_FORMAL_FOUR
     grant_namespaces = (
         tuple(rehearsal_profile["grant_namespaces"])
         if rt and rehearsal_profile.get("grant_namespaces")
-        else R18_FORMAL_FOUR)
+        else grant_four)
     if control_write_fd is not None and control_read_fd is not None:
         _worker_delegate(control_write_fd, control_read_fd,
                          grant_namespaces)
@@ -256,6 +253,61 @@ def run_final_qualification_r17(out_dir: Path,
         out_dir, plan, pack, digest=digest, started=started,
         **core_kwargs)
     return result
+
+
+
+def formal_attempt_core_kwargs(
+        attempt: str | None, plan: dict[str, Any]) -> tuple[
+            dict[str, Any], str]:
+    """正式资格数据面选择(纯函数;R1/F06)。
+
+    None → 既有 R18 四件套(行为字节不变);'qaf_v1' → QAF 四件套
+    (QProd 正式 Level A 全新输入身份)。返回 (core_kwargs,
+    grant_four_source)。c2_blocks 取 plan final_sample_counts。
+    """
+    c2_blocks = int(plan["final_sample_counts"]["c2_matched_blocks"])
+    if attempt is None:
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_C2_INDEPENDENT_QUALIFICATION,
+            R18_FIT_QUALIFICATION, R18_FRESH_HOLDOUT,
+            R18_QUALIFICATION, R18_SEMANTIC_QUALIFICATION,
+        )
+        return dict(
+            profile_name="formal_final_r18",
+            final_namespace=R18_QUALIFICATION,
+            fit_namespace=R18_FIT_QUALIFICATION,
+            c13_pairs_per_rung=10,
+            c2_blocks=c2_blocks,
+            semantic_block_count=160,
+            independent_pairs_per_rung=20,
+            independent_namespace=(
+                R18_C2_INDEPENDENT_QUALIFICATION),
+            semantic_namespace_override=R18_SEMANTIC_QUALIFICATION,
+            fresh_seed_final_namespace=R18_QUALIFICATION,
+            fresh_seed_holdout_namespace=R18_FRESH_HOLDOUT), "r18"
+    if attempt == "qaf_v1":
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF_C2_INDEPENDENT_QUALIFICATION,
+            QAF_FIT_QUALIFICATION, QAF_FRESH_HOLDOUT,
+            QAF_QUALIFICATION, QAF_SEMANTIC_QUALIFICATION,
+        )
+        return dict(
+            profile_name="formal_final_qaf_v1",
+            final_namespace=QAF_QUALIFICATION,
+            fit_namespace=QAF_FIT_QUALIFICATION,
+            c13_pairs_per_rung=10,
+            c2_blocks=c2_blocks,
+            semantic_block_count=160,
+            independent_pairs_per_rung=20,
+            independent_namespace=(
+                QAF_C2_INDEPENDENT_QUALIFICATION),
+            semantic_namespace_override=(
+                QAF_SEMANTIC_QUALIFICATION),
+            fresh_seed_final_namespace=QAF_QUALIFICATION,
+            fresh_seed_holdout_namespace=QAF_FRESH_HOLDOUT), "qaf_v1"
+    raise RuntimeError(
+        f"未知 formal_attempt {attempt!r}(合法: None|'qaf_v1';"
+        f"namespace 四件套是安全面)")
 
 
 def _worker_delegate(write_fd: int, read_fd: int,

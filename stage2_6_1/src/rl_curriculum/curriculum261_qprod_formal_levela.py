@@ -39,8 +39,12 @@ from rl_curriculum.curriculum261_qprod_plan import (
     research_plan_digest, research_plan_structure_problems,
 )
 from rl_curriculum.curriculum261_qprod_permit import consume_permit
+from rl_curriculum.curriculum261_qprod_formal_budget import (
+    authorization_face as _budget_face,
+    build_budget_items as _budget_items,
+)
 from rl_curriculum.curriculum261_qprod_formal import (
-    QPROD_FORMAL_LEVEL_A_BUDGET, QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+    QPROD_FORMAL_LEVEL_A_ITERATION_ID,
     _read_formal_roots, _utc_now, build_formal_context,
     load_formal_approval, preflight_content_identity,
     validate_formal_approval, validate_formal_permit,
@@ -53,13 +57,15 @@ QPROD_FORMAL_STOP_CHOICES = ("qualify", "verify-formal-logs")
 
 _SHA40_RE = re.compile(r"^[0-9a-f]{40}$")
 
-#: 正式 Level A 输入范围(数据入口 = R17 正式资格面 namespace;
-#: 其余链内工程 namespace 属链自身冻结面,不属用户预注册范围)。
+#: 正式 Level A 输入范围 = QAF 尝试全新数据面命名空间族
+# (RouteC_FormalLaunch_Preparation_v1 修复轮 R1/F06:外层迭代目录
+# 不进入 seed 派生;沿用 R17/R18/R19 旧正式名会在新根下重复消费
+# 旧 seed 空间。QAF 族为唯一 A 数据面;链内机械面(determinism/
+# design/cue-audit/audit/smoke 工程命名空间)按 R18/R19 前例保持
+# 冻结工程身份,不属用户预注册数据范围)。
 def formal_level_a_input_scope() -> tuple[str, ...]:
-    from rl_curriculum.curriculum261_api import (
-        CURRICULUM261_R17_FORMAL_NAMESPACES,
-    )
-    return tuple(CURRICULUM261_R17_FORMAL_NAMESPACES)
+    from rl_curriculum.curriculum261_qaf_attempt import QAF_INPUT_SCOPE
+    return tuple(QAF_INPUT_SCOPE)
 
 
 def build_formal_level_a_plan(
@@ -69,11 +75,12 @@ def build_formal_level_a_plan(
         model_update_authorized: bool) -> dict[str, Any]:
     """正式 Level A 数据前 run-plan 载荷(冻结前可算 digest)。
 
-    预算表 QPROD_FORMAL_LEVEL_A_BUDGET 由链冻结常量推导(见
-    技术附录);smoke 256 步 optimizer 更新单列为条件许可——
+    预算面由 curriculum261_qprod_formal_budget 授权面给出
+    (R2 修复:逐类计量);smoke 的 PPO 计量单列为条件许可——
     authorized_stop_after=verify-formal-logs 才包含第 14 步,
     且必须 model_update_authorized=True;停在 qualify 时后续
-    步骤 NOT_RUN,不得宣称完整 17 步。
+    步骤 NOT_RUN,不得宣称完整 17 步(监督 MLP 拟合在 A1/A2
+    都发生,按预算面逐类批准,不以'无模型更新'含糊)。
     """
     if authorized_stop_after not in QPROD_FORMAL_STOP_CHOICES:
         raise QProdContextError(
@@ -88,6 +95,8 @@ def build_formal_level_a_plan(
         raise QProdContextError(
             "model_update_authorized=True 而停止边界=qualify:"
             "授权与停止边界不一致(批准口径必须二者一致)")
+    budget_face = _budget_face(stop_after=authorized_stop_after)
+    budget_items = _budget_items()
     payload = {
         "format": QPROD_RESEARCH_PLAN_FORMAT,
         "level": "level_a",
@@ -103,7 +112,8 @@ def build_formal_level_a_plan(
                 "r17 权威 17 步(prerequisites/postcondition 语义:"
                 "smoke 仅 qualify final PASS 后;full-cold 仅 smoke "
                 "PASS 后)+ qualification one_shot exposure"),
-            "budget": dict(QPROD_FORMAL_LEVEL_A_BUDGET),
+            "budget": budget_face,
+            "budget_items": budget_items,
             "exposure_policy": (
                 "one_shot_window(r17 execgov qualification 委派协议;"
                 "不可重开)"),
@@ -118,8 +128,12 @@ def build_formal_level_a_plan(
             "model_update_authorized": model_update_authorized,
             "smoke_policy": (
                 "第 14 步 smoke=资格 PASS 后链内验收的条件许可"
-                "(256 环境步/1 次 optimizer 更新),与正式教学分开;"
-                "未授权时链停在 qualify,15-17 步 NOT_RUN"),
+                "(1 次 learn 调用、rollout 256 环境步、optimizer."
+                "step 上界 40=SB3 默认 10 epochs×4 minibatch、验证"
+                "≤50 步、save 1+load 1;逐类计量与批准,不混写为"
+                "'一次更新'),与正式教学分开;未授权(A1)时链停在 "
+                "qualify,15-17 步 NOT_RUN(PPO 面恒 0 由有界排程"
+                "物理保证)"),
         },
         "quota": {
             # 通用许可配额 schema(4 键;validate_permit 强制正整数)。
@@ -127,17 +141,27 @@ def build_formal_level_a_plan(
             # 上界声明;逐类分账(fit/MC/optimizer/bootstrap)在
             # run_scope.budget,不与本 4 键混算。
             "max_leaf_calls_per_coordinate":
-                QPROD_FORMAL_LEVEL_A_BUDGET["episodes_upper_bound"],
+                budget_face["authorization_cap_generation_episodes"],
             "max_successful_episodes_total":
-                QPROD_FORMAL_LEVEL_A_BUDGET["episodes_upper_bound"],
+                budget_face["authorization_cap_generation_episodes"],
             "mc_events_per_coordinate":
-                QPROD_FORMAL_LEVEL_A_BUDGET["mc_events_total"],
+                budget_face["mc_events_total"],
             "max_native_executions": 1,
             "v2_preprocessor_fits":
-                QPROD_FORMAL_LEVEL_A_BUDGET["v2_preprocessor_fits"],
-            "optimizer_updates": (
-                1 if authorized_stop_after == "verify-formal-logs"
-                else 0),
+                budget_face["v2_preprocessor_fits"],
+            "supervised_mlp_fits":
+                budget_face["supervised_mlp_fits"],
+            "bootstrap_resamples_upper":
+                budget_face["bootstrap_resamples_upper"],
+            "ppo_learn_calls": budget_face["ppo_learn_calls"],
+            "ppo_rollout_env_steps":
+                budget_face["ppo_rollout_env_steps"],
+            "ppo_optimizer_steps_upper":
+                budget_face["ppo_optimizer_steps_upper"],
+            "ppo_validation_env_steps":
+                budget_face["ppo_validation_env_steps"],
+            "model_save_load_pairs":
+                budget_face["model_save_load_pairs"],
         },
         "code_identity": dict(code_identity),
         "stop_mode": "collect_all_k",
@@ -180,6 +204,8 @@ def preflight_formal_level_a(
         model_update_authorized=(
             authorized_stop_after == "verify-formal-logs"))
     digest = research_plan_digest(payload)
+    budget_face = _budget_face(stop_after=authorized_stop_after)
+    budget_items = _budget_items()
     problems = research_plan_structure_problems(payload)
     if problems:
         findings.append(f"plan_structure: {problems}")
@@ -266,7 +292,8 @@ def preflight_formal_level_a(
         "stale_state_findings": stale,
         "authorized_stop_after": authorized_stop_after,
         "steps_not_run_under_stop": not_run_after_stop,
-        "budget": dict(QPROD_FORMAL_LEVEL_A_BUDGET),
+        "budget": budget_face,
+        "budget_items": budget_items,
         "findings": findings,
         "business_leaf_calls": 0,
         "status": "PREPARED_PENDING_USER_APPROVAL" if (
@@ -306,13 +333,15 @@ def _child_argv_and_env(
     if authorized_stop_after == "verify-formal-logs":
         argv = [sys.executable, "-m",
                 "rl_curriculum.curriculum261_r17_cli", "chain-run",
-                "--out-dir", str(art), "--freeze-sha", freeze_sha]
+                "--out-dir", str(art), "--freeze-sha", freeze_sha,
+                "--formal-namespace-attempt", "qaf_v1"]
     else:
         argv = [sys.executable, "-m",
                 "rl_curriculum.curriculum261_qprod_formal_levela",
                 "_chain-bounded", "--out-dir", str(art),
                 "--freeze-sha", freeze_sha,
-                "--stop-after", authorized_stop_after]
+                "--stop-after", authorized_stop_after,
+                "--formal-namespace-attempt", "qaf_v1"]
     return argv, env
 
 
@@ -524,7 +553,8 @@ def launch_formal_level_a(
 
 # ------------------------------------------------ 有界链子进程 ----
 def run_bounded_formal_chain(
-        *, out_dir: Path, freeze_sha: str, stop_after: str) -> int:
+        *, out_dir: Path, freeze_sha: str, stop_after: str,
+        formal_attempt: str | None = None) -> int:
     """停止边界受限的权威链子进程入口(_chain-bounded)。
 
     与 cmd_chain_run 同一治理顺序:存储天花板 → formal admission
@@ -571,14 +601,16 @@ def run_bounded_formal_chain(
         "state_root": str(r17_state_root()),
         "out_dir": str(out_dir),
         "argv": ["qprod_formal_level_a_entry", "_chain-bounded",
-                 "--stop-after", stop_after],
+                 "--stop-after", stop_after,
+                 "--formal-namespace-attempt", str(formal_attempt)],
         "authorized_stop_after": stop_after,
     }
     session = R17ChainSession.acquire(binding)
     try:
         plan = build_workflow_plan_r17(
             profile="formal", out_dir=str(out_dir),
-            freeze_sha=freeze_sha)
+            freeze_sha=freeze_sha,
+            formal_attempt=formal_attempt)
         plan = bound_workflow_plan_r17(plan, stop_after)
         plan_path.write_text(json.dumps(
             plan, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -655,11 +687,15 @@ def main(argv: list[str] | None = None) -> int:
     bounded.add_argument("--out-dir", required=True)
     bounded.add_argument("--freeze-sha", required=True)
     bounded.add_argument("--stop-after", required=True)
+    bounded.add_argument("--formal-namespace-attempt", default=None,
+                         choices=("qaf_v1",))
     ns = ap.parse_args(argv)
     if ns.cmd == "_chain-bounded":
         return run_bounded_formal_chain(
             out_dir=Path(ns.out_dir), freeze_sha=ns.freeze_sha,
-            stop_after=ns.stop_after)
+            stop_after=ns.stop_after,
+            formal_attempt=getattr(
+                ns, "formal_namespace_attempt", None))
     return 2
 
 

@@ -1,79 +1,79 @@
-# DECISION_FOR_APPROVAL — RouteC 正式启动准备(待批,非批准)
+# DECISION_FOR_APPROVAL — RouteC_FormalLaunch_Preparation_v1(修复轮 R1/R2/R3 后)
 
-状态:**PREPARED_PENDING_USER_APPROVAL**。工程启动准备已实现并在
-隔离边界验证;真实 Level A 资格、Level B 研究、正式教学全部
-**NOT_RUN**。本文不是批准;批准必须按下文选项由用户明确签署,
-未选中的范围不授权。
+状态:PREPARED_PENDING_USER_APPROVAL(工程启动准备通过;真实
+Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
+授权。修复轮依据:ChatGPT 独立审查(REVIEW.md,0383d6cc)三阻断
+项 R1/R2/R3 已修复并经独立 reviewer 验收(见包内 reviewer/)。
 
-## 固定身份
+## 关键修订(相对上一版)
 
-- 基线:分支 `route-c-stage2-6-1-repair17` @ `73371e1e`
-  (QProd C25 已 CLOSED PASS 的封包 HEAD)。
-- 本轮准备代码:同分支上紧接基线的准备提交(src/runner/tests/
-  准备目录;代码身份摘要见 `drafts/qprod_formal_level_a_draft_
-  plan.json` 与 `..._level_b_...` 的 `payload.code_identity`)。
-- 正式运行绑定**最终 Commit A**(provenance-lock 后产生);草案
-  与批准/签发/launch 全部绑定该真实 SHA,不得用伪 SHA 或旧件。
+1. **A 输入身份(QAF)**:正式 Level A 不再以 R17/R18/R19 旧正式
+   namespace 为输入范围。新数据面 = QAF 族 16 名
+   (`*_qaf_v1`:校准族 12 + 资格四件套 4),经
+   `--formal-namespace-attempt qaf_v1` 接通真实消费者(calibrate
+   的 fit bank/C1C3/supervised/semantic/c2_independent/stress 与
+   qualify 的 final/fit/independent/semantic/fresh_holdout + grant
+   四件套)。seed 成对隔离经全网格验证;旧名混入批准/许可在
+   绑定与许可层双重拒绝。机械面(determinism/design/cue-audit/
+   audit/smoke 工程命名空间)按 R18/R19 前例保持冻结身份。
+2. **A 预算计量(R2)**:废弃旧 16,000 上界(与分项算术不符)。
+   权威分项见 `curriculum261_qprod_formal_budget`(常量运行时从
+   执行面导入;每项 formula/typical/worst_upper/消费点/记账)。
+   A1/A2 授权面逐类分开(见下),PPO 计量不再混写"一次更新"。
+3. **B 原生计账(R3)**:原生执行改为**进入受控动作前持久预占**
+   (原子写 started;异常/KeyboardInterrupt/进程退出不回收;同坐标
+   不双记;跨进程不可恢复)。技术中断(有 interrupted 标记且无
+   seal)阻塞后续坐标启动;合法统计负结果(seal 在场)按
+   collect_all_k 继续收齐。
 
 ## 选项 A:一次正式 Level A 资格链(迭代 qprod_a_formal_v1)
 
-权威 17 步链(provenance-verify→…→qualify→smoke→full-cold→
-report-read→verify-formal-logs),复用 r17 权威业务入口。
-**二选一停止边界(批准时必选)**:
+权威 17 步链 + QAF 数据面。**二选一停止边界(批准时必选)**:
 
-- **A1 停在 qualify**(不批准模型更新):链执行第 1–13 步后收口;
-  smoke/full-cold/report-read 标 NOT_RUN;资格判定结果可报告,
+- **A1 停在 qualify**(不批准 PPO/模型更新):链执行第 1–13 步后
+  收口;smoke/full-cold/report-read 标 NOT_RUN(有界排程物理不含
+  该步,PPO 面恒 0,不是"未批准但可达");资格判定结果可报告,
   但不得报告"完整 17 步链完成"。
-- **A2 完整链**(显式批准链内模型更新):含资格 PASS 后的
-  **256 步 PPO smoke(恰 256 环境交互步、1 次 optimizer 更新,
-  单列为链内验收条件许可,与正式教学完全分开)**;随后
-  full-cold 正式回归、report-read、verify-formal-logs。
+- **A2 完整链**(显式批准链内 smoke):含资格 PASS 后的第 14 步
+  smoke(**1 次 learn 调用、rollout 256 环境步、optimizer.step
+  上界 40=SB3 默认 10 epochs×4 minibatch、验证 ≤50 步、save 1+
+  load 1、生成 146 eps+1 次 V2 fit**;上界为冻结配置推导,非实
+  测),随后 full-cold 正式回归、report-read、verify-formal-logs。
 
-A 的全部拟议业务额度(上界;来源与推导见技术附录):预算表
-A1(停 qualify)仍列**整链**预算口径供对照(其中 optimizer
-更新=1 标注"仅第 14 步、资格 PASS 后才执行");A1 的**授权面**
-额度 optimizer 更新=0——选 A1 即不执行任何模型更新,15-17 步
-NOT_RUN。其余额度:生成 episode ≈15,000–16,000(design 候选级
-为最大不确定项)、V2 preprocessor fit 5 次、supervised MLP fit
-≤84 次、MC 事件 1,000,000、bootstrap 重采样 ≤1,160,000、
-子进程 ≈35。近期无全链实测,正式耗时**未知**(不引用历史开发
-≈50 分钟记录)。
+### A 授权面(逐类;typical / worst-upper 双口径见计划 budget_items)
+
+| 类别 | A1 | A2 |
+|---|---|---|
+| 生成 episodes(授权帽=worst-upper) | 28,636 典型 / 112,804 上界 | 28,782 / 112,950 |
+| MC 事件 | 1,000,000 | 1,000,000 |
+| bootstrap 重采样 | ≤80,000 | ≤80,000 |
+| V2 preprocessor fit | 9(determ 5+calib 2+qualify 2) | 10(+smoke 1) |
+| supervised MLP fit | 85(54+27+4;epochs 20/20/2) | 85 |
+| PPO learn / rollout / optimizer.step | **0**(不可达) | 1 / 256 / ≤40 |
+| PPO 验证交互 / save+load | 0 | ≤50 / 1+1 |
+| 子进程 | 19 | 19 |
+
+注:A1/A2 都发生监督 MLP 拟合——"不含模型更新"仅指 PPO/optimizer
+/save-load,不含监督拟合;两者按本表分别批准。生成上界含结构
+重试 ×5(C2_BLOCK_MAX_ATTEMPTS)与 design 固定 12,320 eps(候选
+数=参数包冻结 grid=3);典型值按 first_pass。正式耗时无实测(未知)。
 
 失败语义:任一 gate FAIL→终态 FAIL 封口,一次性 exposure 窗口
 不可重开,不重抽;**A 失败不启动 B,B 不能救回 A**。
 
 ## 选项 B:K=11 正式确认性研究(迭代 qprod_b_formal_v1,独立批准)
 
-- 11 个新坐标 c01..c11(namespace `cue_qprod_formal_v1_*`,
-  与全部工程/开发/历史空间不相交;seed 逐坐标派生已预检)。
-- 每坐标:model+validation 双语料各 500 blocks(8 episode/block,
-  结构重试上限 5/block);分析 MC 1e6;bootstrap 20000
-  (每坐标 ≤4 组);Global-K null tier1=50,000,仅 tier1
-  INDETERMINATE 时同流追加 tier2=200,000(前缀逐位一致,
-  不换 seed;仍跨 0.05 ⇒ INDETERMINATE 按 FAIL)。
-- 统计口径:固定共同锚 **P0=0.950431552876822**(R25 历史开发
-  参照,条件口径——非本轮估计,不声称真实总体锚已知)、
-  margin=0.003、alpha=0.05、r_analysis=1.5、planned_k=11;
-  局部 p_contract 按各坐标真实语料计算,与 P0 不等不删样。
-- 停止模式 **collect_all_k**:统计负结果保留并收齐 K;技术
-  无效/中断停止不安全后续,不补抽、不换 seed。
+- 11 坐标 c01..c11(namespace `cue_qprod_formal_v1_*`,与 QAF/A
+  历史/工程空间不相交;seed 逐坐标派生已预检)。
+- 每坐标 500+500 blocks、MC 1e6、episodes 8/block;原生执行预占
+  计账(见关键修订 3)。
+- P0=0.950431552876822(R25 dev_plan 历史开发参照;固定共同锚的
+  条件口径,非本轮新估计——正式采纳身份待批)。margin 0.003、
+  α0.05、r_analysis 1.5;停止模式拟议 collect_all_k(统计负结果
+  保留并收齐;技术无效/中断不补抽、不换 seed)。
 
-额度:成功正文上限 11×500×8×2=88,000 episode;每坐标 episode
-叶动作上界 28,000(once+attempts 最坏+完整性重放);原生执行
-11 次(每坐标一次,原生预算硬门动作前检查)。
+## 明确不执行(未批准即 NOT_RUN)
 
-## 批准文案模板(复制签署;未选选项保持不授权)
-
-- 批准 A□(A1 停 qualify / A2 完整链含 256 步 smoke):批准
-  迭代 `qprod_a_formal_v1` 按草案 `drafts/qprod_formal_level_a_
-  draft_plan.json`(digest `qbpl-…` 以预检输出为准)运行上述
-  范围与额度;[ ]是否批准链内模型更新(A2 必须勾选)。
-- 批准 B□:批准迭代 `qprod_b_formal_v1` 按草案 digest
-  `qbpl-…` 运行 11 坐标 × 上述预算;停止模式 collect_all_k。
-
-## 明确不执行事项
-
-正式教学(config-dev/probe/core/sealed final/C3 优化)、
-P0 之外的第二套统计框架、旧 11 坐标/E01/G5c 重放、任何未列
-出的追加生成/fit/MC。QProd 原生 2/2 与 TrainingBridge 旧账
-不重置、不借用。
+新 Level A/B 链、正式资格判定、K=11 抽样、正式教学/训练、任何
+optimizer/PPO 更新(除 A2 显式批准的链内 smoke)、冻结生产计划、
+正式数据暴露。QProd 原生 2/2 与 TrainingBridge 旧账不重置不借用。

@@ -111,33 +111,14 @@ def formal_level_b_quota() -> dict[str, int]:
 
 
 # ------------------------------------------------ 计划构建 ----------
-#: Level A 预算表(逐步骤真实消耗;来源行号见
-#: artifacts/repair17/development/formal_launch_prep_v1 技术附录;
-#: 不确定项如实标注,不虚构精度)。仅用于计划/预检/批准摘要;
-#: 执行侧预算由链自身冻结常量与许可配额强制。
-QPROD_FORMAL_LEVEL_A_BUDGET = {
-    "episodes_upper_bound": 16000,
-    "episodes_note": (
-        "determinism ~300 + audit 48 + cue-audit 8000(+重放<=400) + "
-        "preplan 24 + design >=2560(候选级不确定) + calibrate ~4400 + "
-        "qualify ~2300 + smoke 146;上界按各步冻结常量推导"),
-    "v2_preprocessor_fits": 5,
-    "v2_fits_note": (
-        "determinism 1 + calibrate main/holdout 2 + qualify 1 + "
-        "smoke 1(audit 不做 V2 fit)"),
-    "supervised_mlp_fits_upper": 84,
-    "supervised_note": (
-        "calibrate ~54 + qualify ~27 + determinism 工程 3;控制组"
-        "计法存在不确定,按上界记账"),
-    "mc_events_total": 1_000_000,
-    "bootstrap_resamples_upper": 1_160_000,
-    "optimizer_updates": 1,
-    "optimizer_note": (
-        "仅第 14 步 smoke:model.learn(total_timesteps=256) 恰 256 "
-        "环境交互步、1 次 optimizer 更新;资格 PASS 后才执行"
-        "(postcondition final_verdict_pass)"),
-    "subprocesses_upper": 35,
-}
+#: Level A 预算表(修复轮 R2:旧表 16000/5/1.16e6/1 次 optimizer
+#: 与分项算术和真实计量不符,已废弃)。权威分项预算与 A1/A2 授权
+#: 面见 curriculum261_qprod_formal_budget(常量运行时导入推导;
+#: learn/rollout/optimizer.step/验证步/save-load 逐类计量)。
+#: 保留本名为向后兼容的弃用指针;不得在新代码引用。
+QPROD_FORMAL_LEVEL_A_BUDGET_DEPRECATION = (
+    "R2 修复:见 curriculum261_qprod_formal_budget.authorization_face;"
+    "本常量已删除(其 16000 上界与分项不符、optimizer 计量混同)")
 
 
 def build_formal_level_b_plan(
@@ -437,6 +418,20 @@ def validate_formal_permit(permit_path: Path | str, *,
     if approval.get("approval_digest") != formal_approval_digest(
             approval):
         raise QProdContextError("批准原件 digest 失配(被改或伪造)")
+    # R1/F06 防纵深:许可消费边界再核 scope 与该层规范输入域一致
+    # (level_a=QAF 全集;旧正式/工程名混入或缺项在许可层即拒)。
+    if context.level == "level_a":
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF_INPUT_SCOPE,
+        )
+        scope_ns = sorted(
+            permit["preregistered_input_scope"].get("namespaces")
+            or [])
+        if scope_ns != sorted(QAF_INPUT_SCOPE):
+            raise QProdContextError(
+                f"level_a 许可输入范围与 QAF 规范域不一致(许可 "
+                f"{len(scope_ns)} 名 vs QAF {len(QAF_INPUT_SCOPE)} 名;"
+                f"旧正式/工程名混入或缺项均拒)")
     approved = approval.get("approved") or {}
     for key, want in (
             ("code_freeze_sha", permit["code_freeze_sha"]),
@@ -585,7 +580,7 @@ __all__ = [
     "QPROD_FORMAL_P0_REFERENCE", "QPROD_FORMAL_P0_SOURCE_LABEL",
     "QPROD_FORMAL_STOP_MODE", "QPROD_FORMAL_PLANNED_K",
     "QPROD_FORMAL_COORDINATE_IDS", "formal_coordinate_manifest",
-    "formal_level_b_quota", "QPROD_FORMAL_LEVEL_A_BUDGET",
+    "formal_level_b_quota", "QPROD_FORMAL_LEVEL_A_BUDGET_DEPRECATION",
     "build_formal_level_b_plan", "QPROD_FORMAL_APPROVAL_FORMAT",
     "QPROD_FORMAL_APPROVAL_PREFIX", "QPROD_FORMAL_AUTHORITY_KIND",
     "QPROD_FORMAL_APPROVAL_REQUIRED_KEYS",

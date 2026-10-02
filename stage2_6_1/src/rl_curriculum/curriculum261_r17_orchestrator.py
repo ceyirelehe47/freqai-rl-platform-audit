@@ -118,20 +118,48 @@ class R17ExecutionProfile:
         return f"{base}{self.artifact_suffix}"
 
 
-def formal_main_profile_r17(n_blocks: int) -> R17ExecutionProfile:
-    # R19 尝试命名空间族(R19 处方;R18 终态后;开放门 4.1/4.2 已闭)。
-    from rl_curriculum.curriculum261_r19_attempt import (
-        R19_C13_MAIN, R19_C2_INDEPENDENT_MAIN, R19_SEMANTIC_MAIN,
-        R19_SUPERVISED_MAIN,
-    )
+def formal_main_profile_r17(
+        n_blocks: int,
+        attempt: str | None = None) -> R17ExecutionProfile:
+    """正式 calibrate 执行 profile。
+
+    attempt=None 保持既有行为(R19 尝试命名空间族;缺省即历史
+    权威选择,字节不变)。attempt="qaf_v1"(RouteC_FormalLaunch_
+    Preparation_v1 R1/F06)切换到 QAF 全新数据面命名空间族——
+    新正式 Level A 不得在新根下重复消费 R17/R18/R19 旧 seed
+    空间;旧命名空间保持注册未消费。
+    """
+    if attempt is None:
+        # R19 尝试命名空间族(R19 处方;R18 终态后;开放门 4.1/4.2 已闭)。
+        from rl_curriculum.curriculum261_r19_attempt import (
+            R19_C13_MAIN, R19_C2_INDEPENDENT_MAIN, R19_SEMANTIC_MAIN,
+            R19_SUPERVISED_MAIN,
+        )
+        c13 = R19_C13_MAIN
+        supervised = R19_SUPERVISED_MAIN
+        semantic = R19_SEMANTIC_MAIN
+        c2_indep = R19_C2_INDEPENDENT_MAIN
+    elif attempt == "qaf_v1":
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF_C13_MAIN, QAF_C2_INDEPENDENT_MAIN, QAF_SEMANTIC_MAIN,
+            QAF_SUPERVISED_MAIN,
+        )
+        c13 = QAF_C13_MAIN
+        supervised = QAF_SUPERVISED_MAIN
+        semantic = QAF_SEMANTIC_MAIN
+        c2_indep = QAF_C2_INDEPENDENT_MAIN
+    else:
+        raise ValueError(
+            f"未知正式 calibrate attempt {attempt!r}(合法: None|"
+            f"'qaf_v1';namespace 族是安全面,不接受任意字符串)")
     return R17ExecutionProfile(
         name="formal_main", preplan=False,
-        c13_eval_namespace=R19_C13_MAIN,
-        equivalence_namespace=R19_C13_MAIN,
-        supervised_namespace=R19_SUPERVISED_MAIN,
-        semantic_namespace=R19_SEMANTIC_MAIN,
-        c2_matched_namespace=R19_C13_MAIN,
-        c2_independent_namespace=R19_C2_INDEPENDENT_MAIN,
+        c13_eval_namespace=c13,
+        equivalence_namespace=c13,
+        supervised_namespace=supervised,
+        semantic_namespace=semantic,
+        c2_matched_namespace=c13,
+        c2_independent_namespace=c2_indep,
         c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R17,
         c2_blocks=int(n_blocks),
         semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R17,
@@ -143,19 +171,40 @@ def formal_main_profile_r17(n_blocks: int) -> R17ExecutionProfile:
     )
 
 
-def formal_holdout_profile_r17(n_blocks: int) -> R17ExecutionProfile:
-    from rl_curriculum.curriculum261_r19_attempt import (
-        R19_C13_HOLDOUT, R19_C2_INDEPENDENT_HOLDOUT,
-        R19_SEMANTIC_HOLDOUT, R19_SUPERVISED_HOLDOUT,
-    )
+def formal_holdout_profile_r17(
+        n_blocks: int,
+        attempt: str | None = None) -> R17ExecutionProfile:
+    """正式 calibrate holdout 分区 profile(attempt 语义同 main)。"""
+    if attempt is None:
+        from rl_curriculum.curriculum261_r19_attempt import (
+            R19_C13_HOLDOUT, R19_C2_INDEPENDENT_HOLDOUT,
+            R19_SEMANTIC_HOLDOUT, R19_SUPERVISED_HOLDOUT,
+        )
+        c13 = R19_C13_HOLDOUT
+        supervised = R19_SUPERVISED_HOLDOUT
+        semantic = R19_SEMANTIC_HOLDOUT
+        c2_indep = R19_C2_INDEPENDENT_HOLDOUT
+    elif attempt == "qaf_v1":
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF_C13_HOLDOUT, QAF_C2_INDEPENDENT_HOLDOUT,
+            QAF_SEMANTIC_HOLDOUT, QAF_SUPERVISED_HOLDOUT,
+        )
+        c13 = QAF_C13_HOLDOUT
+        supervised = QAF_SUPERVISED_HOLDOUT
+        semantic = QAF_SEMANTIC_HOLDOUT
+        c2_indep = QAF_C2_INDEPENDENT_HOLDOUT
+    else:
+        raise ValueError(
+            f"未知正式 calibrate attempt {attempt!r}(合法: None|"
+            f"'qaf_v1')")
     return R17ExecutionProfile(
         name="formal_holdout", preplan=False,
-        c13_eval_namespace=R19_C13_HOLDOUT,
-        equivalence_namespace=R19_C13_HOLDOUT,
-        supervised_namespace=R19_SUPERVISED_HOLDOUT,
-        semantic_namespace=R19_SEMANTIC_HOLDOUT,
-        c2_matched_namespace=R19_C13_HOLDOUT,
-        c2_independent_namespace=R19_C2_INDEPENDENT_HOLDOUT,
+        c13_eval_namespace=c13,
+        equivalence_namespace=c13,
+        supervised_namespace=supervised,
+        semantic_namespace=semantic,
+        c2_matched_namespace=c13,
+        c2_independent_namespace=c2_indep,
         c13_pairs_per_rung=CALIBRATION_PAIRS_PER_RUNG_R17,
         c2_blocks=int(n_blocks),
         semantic_blocks=SEMANTIC_BLOCKS_PER_CORPUS_R17,

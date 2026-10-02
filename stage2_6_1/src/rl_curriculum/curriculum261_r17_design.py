@@ -205,6 +205,12 @@ SEMANTIC_STAGE_ARTIFACT_MAP_R17 = {
     "rt4_semantic_main_r19": "rt_semantic_main.json",
     "rt4_semantic_validation_r19": "rt_semantic_validation.json",
     "rt4_semantic_final_r19": "rt_semantic_final.json",
+    # QAF 尝试(RouteC_FormalLaunch_Preparation_v1 R1/F06;同一 writer
+    # 合同;数据面全新,机械面不变)
+    "cue_semantic_calibration_qaf_v1": "cue_semantic_calibration.json",
+    "cue_semantic_holdout_qaf_v1": "cue_semantic_holdout.json",
+    "cue_semantic_qualification_qaf_v1":
+        "qualification_cue_semantics.json",
 }
 
 SEMANTIC_CORPUS_ROLE_R17 = {
@@ -235,6 +241,9 @@ SEMANTIC_CORPUS_ROLE_R17 = {
     "rt4_semantic_main_r19": "rt_main",
     "rt4_semantic_validation_r19": "rt_validation",
     "rt4_semantic_final_r19": "rt_final",
+    "cue_semantic_calibration_qaf_v1": "calibration",
+    "cue_semantic_holdout_qaf_v1": "holdout",
+    "cue_semantic_qualification_qaf_v1": "qualification",
 }
 
 

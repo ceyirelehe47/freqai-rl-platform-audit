@@ -2107,15 +2107,40 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
         print("[calibrate][rehearsal] rt4_*_r19 namespace;预登记工程规模"
               "(rt 缩小模式=%s;链路验证非统计;§8.1)" % _rt_small)
     else:
-        from rl_curriculum.curriculum261_r19_attempt import (
-            R19_C13_MAIN, R19_FIT_HOLDOUT, R19_FIT_MAIN, R19_STRESS,
-        )
-        fit_ns_main = R19_FIT_MAIN
-        fit_ns_hold = R19_FIT_HOLDOUT
-        profile_main_obj = formal_main_profile_r17(n_blocks)
-        profile_holdout_obj = formal_holdout_profile_r17(n_blocks)
-        conditioning_eval_ns = R19_C13_MAIN
-        stress_ns = R19_STRESS
+        # RouteC_FormalLaunch_Preparation_v1 R1/F06:--formal-namespace-
+        # attempt=qaf_v1 时校准数据面整体切换到 QAF 全新命名空间族
+        # (fit bank/C1C3/supervised/semantic/c2_independent/stress);
+        # 缺省 None 保持既有 R19 行为(字节不变;历史尝试不重开)。
+        attempt = getattr(
+            args, "formal_namespace_attempt", None) or None
+        if attempt is None:
+            from rl_curriculum.curriculum261_r19_attempt import (
+                R19_C13_MAIN, R19_FIT_HOLDOUT, R19_FIT_MAIN,
+                R19_STRESS,
+            )
+            fit_ns_main = R19_FIT_MAIN
+            fit_ns_hold = R19_FIT_HOLDOUT
+            conditioning_eval_ns = R19_C13_MAIN
+            stress_ns = R19_STRESS
+        elif attempt == "qaf_v1":
+            from rl_curriculum.curriculum261_qaf_attempt import (
+                QAF_C13_MAIN, QAF_FIT_HOLDOUT, QAF_FIT_MAIN,
+                QAF_STRESS,
+            )
+            fit_ns_main = QAF_FIT_MAIN
+            fit_ns_hold = QAF_FIT_HOLDOUT
+            conditioning_eval_ns = QAF_C13_MAIN
+            # stress 属校准数据面(R18/R19 前例:每尝试各带
+            # stress_r18/r19);QAF 尝试带 QAF_STRESS。
+            stress_ns = QAF_STRESS
+        else:
+            raise SystemExit(
+                f"未知 --formal-namespace-attempt {attempt!r}"
+                f"(合法: qaf_v1;缺省=既有 R19 数据面)")
+        profile_main_obj = formal_main_profile_r17(
+            n_blocks, attempt=attempt)
+        profile_holdout_obj = formal_holdout_profile_r17(
+            n_blocks, attempt=attempt)
 
     print(f"[calibrate] fitting main preprocessor ({fit_ns_main})...")
     records_main = generate_fit_bank_r17(fit_ns_main, pack)
@@ -2470,7 +2495,10 @@ def cmd_qualify(args: argparse.Namespace) -> int:
         result = run_final_qualification_r17(
             out, rehearsal_profile=R17_RT_FINAL_PROFILE if rt_mode
             else None,
-            control_write_fd=w_fd, control_read_fd=r_fd)
+            control_write_fd=w_fd, control_read_fd=r_fd,
+            formal_attempt=(
+                None if rt_mode else getattr(
+                    args, "formal_namespace_attempt", None)))
     except Exception as exc:  # noqa: BLE001 —— worker 异常处置
         # dump failure evidence(逐 attempt envelopes);abort 经请求
         # 文件交协调者代写(worker 不是 journal writer;§WP1)
@@ -4198,7 +4226,10 @@ def cmd_chain_run(args: argparse.Namespace) -> int:
         # fail-closure/manifest/bootstrap 判定消费)
         plan = build_workflow_plan_r17(
             profile=profile, out_dir=str(out_dir),
-            freeze_sha=freeze_sha)
+            freeze_sha=freeze_sha,
+            formal_attempt=(
+                getattr(args, "formal_namespace_attempt", None)
+                or None))
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(_json.dumps(
             plan, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -4253,12 +4284,26 @@ def main(argv: list[str] | None = None) -> int:
                        help="R17RealArtifactCliRoundTrip-v1 rehearsal-"
                             "only 路径(rt_* namespace;正式执行禁止"
                             "携带本标志)")
+        if name == "calibrate":
+            p.add_argument(
+                "--formal-namespace-attempt", default=None,
+                choices=("qaf_v1",),
+                help="正式数据面命名空间尝试(缺省=既有 R19 族;"
+                     "qaf_v1=QProd 正式 Level A 全新输入身份,"
+                     "RouteC_FormalLaunch_Preparation_v1 R1/F06;"
+                     "rehearsal 路径忽略)")
     qp = _with_out(sub.add_parser("qualify"))
     qp.add_argument("--rehearsal", action="store_true")
     qp.add_argument("--await-delegation", nargs=2, metavar=("W_FD",
                        "R_FD"), default=None,
                     help="协调者受控委派 pipe fd(worker 注册身份/"
                          "接收绑定本实例的 token;正式必填)")
+    qp.add_argument(
+        "--formal-namespace-attempt", default=None,
+        choices=("qaf_v1",),
+        help="正式资格四件套尝试(缺省=既有 R18 四件套;"
+             "qaf_v1=QAF 四件套,RouteC_FormalLaunch_Preparation_v1"
+             " R1/F06)")
     shadow_run_parser = _with_out(sub.add_parser("shadow-run"))
     shadow_run_parser.add_argument("--run-tag", required=True)
     _with_out(sub.add_parser("shadow-compare"))
@@ -4274,6 +4319,12 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--out-dir", required=True)
     cr.add_argument("--freeze-sha", default="")
     cr.add_argument("--rehearsal", action="store_true")
+    cr.add_argument(
+        "--formal-namespace-attempt", default=None,
+        choices=("qaf_v1",),
+        help="传递给链内 calibrate/qualify 的正式数据面命名空间"
+             "尝试(缺省=既有 R18/R19 行为;qaf_v1=QProd 正式 "
+             "Level A 全新输入身份)")
     fc15 = sub.add_parser("full-cold")
     fc15.add_argument("--artifacts-dir", required=True)
     fc15.add_argument("--out-dir", default=None)

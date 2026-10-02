@@ -210,7 +210,16 @@ QPROD_V1_REGISTERED_CODE_CHANGES = {
 #: sha256;再漂移仍 fail(下一轮须显式再登记)。
 FLP_V1_REGISTERED_CODE_CHANGES = {
     "curriculum261_api.py":
-        "efb4ffff711cfec3e43f1e6e52231873528cdc1c14e3ca31b67b6dba82c35bc0",
+        "23a2948b8daff30adb58b26c6871517f79371b4e179dd3960ad47efa7b084ca1",
+}
+
+#: 同一轮修复(ChatGPT 审查 R1/F06)api.py 再次追加 QAF 尝试族
+#: (16 名:校准族 12+资格四件套;入 R17 全集/正式面/seed 名单;
+#: 黄金向量与 _derive261_seed_raw payload 不变,仅新 namespace
+#: 字符串)。登记值=当前树实际 sha256(覆盖上条;再漂移仍 fail)。
+FLP_V1_R2_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "23a2948b8daff30adb58b26c6871517f79371b4e179dd3960ad47efa7b084ca1",
 }
 
 
@@ -225,7 +234,8 @@ REGISTERED_261_CODE_CHANGES = {
     **R11_REGISTERED_CODE_CHANGES, **R17_FRAMEWORK_REGISTERED_CODE_CHANGES,
     **R25_BASELINE_REGISTERED_CODE_CHANGES,
     **QPROD_V1_REGISTERED_CODE_CHANGES,
-    **FLP_V1_REGISTERED_CODE_CHANGES}
+    **FLP_V1_REGISTERED_CODE_CHANGES,
+    **FLP_V1_R2_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)

@@ -589,6 +589,13 @@ from rl_curriculum.curriculum261_r19_attempt import (  # noqa: E402
     R19_ALL_NEW as _R19_ATTEMPT_NAMESPACES,
     R19_FORMAL_FOUR as _R19_ATTEMPT_FORMAL_FOUR,
 )
+# QAF formal attempt family (RouteC_FormalLaunch_Preparation_v1 R1/F06:
+# new formal Level A needs brand-new input identity; R18/R19 prescription
+# applied; single source in qaf_attempt; dormant until user approval).
+from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
+    QAF_ALL_NEW as _QAF_ATTEMPT_NAMESPACES,
+    QAF_FORMAL_FOUR as _QAF_ATTEMPT_FORMAL_FOUR,
+)
 
 CURRICULUM261_R17_NAMESPACES = (
     "cue_contract_model_r17", "cue_contract_validation_r17",
@@ -646,7 +653,8 @@ CURRICULUM261_R17_NAMESPACES = (
     "preplan_v2c13_v2_fit_validation_r17",
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
-) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES
+) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES + (
+    _QAF_ATTEMPT_NAMESPACES)
 
 #: R17 正式资格面(数据入口四件套;§6.5)。R18 尝试按其 journal §11
 #: 处方("R17 永久结束,下一轮必须 R17 + 全新 namespace")以全新
@@ -656,7 +664,8 @@ CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "preprocess_fit_qualification_r17",
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
-) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR
+) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR + (
+    _QAF_ATTEMPT_FORMAL_FOUR)
 
 #: R25 cue-bias 开发研究一次性 namespace(RouteC_CueBias_DevelopmentStudy_
 #: _v1;engineering-only 开发估计研究,不属正式资格面;11 对研究坐标

@@ -31,9 +31,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rl_curriculum.curriculum261_qprod_context import (  # noqa: E402
     QProdContextError, harden_root)
 from rl_curriculum.curriculum261_qprod_coordinate import (  # noqa: E402
-    QPROD_NATIVE_BUDGET_NAME, check_native_budget,
-    lock_coordinate_audit_plan, qprod_coordinate_code_identity,
-    run_coordinate_audit_locked)
+    QPROD_NATIVE_BUDGET_NAME, assert_no_technical_interruption,
+    check_native_budget, lock_coordinate_audit_plan,
+    mark_native_completed, qprod_coordinate_code_identity,
+    reserve_native_execution, run_coordinate_audit_locked)
 from rl_curriculum.curriculum261_qprod_formal import (  # noqa: E402
     QPROD_FORMAL_LEVEL_B_ITERATION_ID, _read_formal_roots,
     build_formal_context, build_formal_level_b_plan,
@@ -190,13 +191,6 @@ def _permit_id_of(ctx) -> str:
     return str(load_permit(ctx.permit_path)["permit_id"])
 
 
-def _consume_native_budget(budget_path: Path, needed: int) -> None:
-    doc = json.loads(budget_path.read_text(encoding="utf-8"))
-    doc["consumed_runs"] = int(doc.get("consumed_runs", 0)) + needed
-    budget_path.write_text(json.dumps(doc, ensure_ascii=False,
-                                      indent=2), encoding="utf-8")
-
-
 def cmd_run_coordinate(args: argparse.Namespace) -> int:
     try:
         ctx, _payload, _digest, permit = _gated_roots_and_permit(
@@ -214,12 +208,19 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
         print("[run-coordinate] 许可未消费(先 consume-permit;"
               "零叶调用)")
         return 96
-    # 原生执行预算硬门(动作前;文件缺失/耗尽均拒,不默认放行)。
+    # 原生执行预算:持久预占(修复轮 R3/F08)。剩余=max−len(started);
+    # 进入受控动作**前**原子落盘——异常/KeyboardInterrupt/进程退出
+    # 后已开始执行不回收额度;文件缺失拒绝;同坐标重复不双记。
     budget_path = ctx.state_root / QPROD_NATIVE_BUDGET_NAME
     try:
+        assert_no_technical_interruption(
+            ctx.artifact_root, plan["coordinate_manifest"])
         check_native_budget(budget_path, needed=1)
+        reserve_native_execution(
+            budget_path, coordinate_id=args.coordinate_id)
     except QProdContextError as exc:
-        print(f"[run-coordinate] 原生预算拒绝(零叶调用): {exc}")
+        print(f"[run-coordinate] 原生预算/后继门拒绝(零叶调用):"
+              f" {exc}")
         return 96
     live = LivePermitToken(permit, {"consumed_via": "consume-permit"})
     coord_dir = ctx.artifact_root / coord["artifact_subdir"]
@@ -227,9 +228,13 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
     out = run_coordinate_audit_locked(
         ctx, live, args.coordinate_id, coord_dir=coord_dir,
         ledger_path=ledger_path)
-    if int((out.get("generation") or {}).get(
-            "episode_leaf_calls", 0)) > 0:
-        _consume_native_budget(budget_path, 1)
+    # 正常返回后的观测记账(额度判定不依赖;中断路径由 started
+    # 预占 + interrupted 标记保守保留)。
+    try:
+        mark_native_completed(budget_path,
+                              coordinate_id=args.coordinate_id)
+    except QProdContextError:
+        pass
     seal = out["seal"]
     print(json.dumps({
         "coordinate_id": seal["coordinate_id"],

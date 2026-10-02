@@ -28,8 +28,11 @@ from rl_curriculum.curriculum261_qprod_coordinate import (  # noqa: E402
     qprod_coordinate_code_identity)
 from rl_curriculum.curriculum261_qprod_formal import (  # noqa: E402
     QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+from rl_curriculum.curriculum261_qprod_formal_budget import (  # noqa: E402
+    authorization_face as _budget_face,
+)
 from rl_curriculum.curriculum261_qprod_formal_levela import (  # noqa: E402
-    QPROD_FORMAL_LEVEL_A_BUDGET, QPROD_FORMAL_STOP_CHOICES,
+    QPROD_FORMAL_STOP_CHOICES,
     FormalLaunchRefused, build_formal_level_a_plan,
     launch_formal_level_a, preflight_formal_level_a)
 from rl_curriculum.curriculum261_qprod_plan import (  # noqa: E402
@@ -70,7 +73,7 @@ def cmd_draft_plan(args: argparse.Namespace) -> int:
         "code_freeze_sha": args.code_freeze_sha or "",
         "research_plan_digest": digest,
         "payload": payload,
-        "budget": dict(QPROD_FORMAL_LEVEL_A_BUDGET),
+        "budget": _budget_face(stop_after=args.stop_after),
         "commands": {
             "preflight": (
                 "python stage2_6_1/runner/qprod_formal_level_a_entry.py"

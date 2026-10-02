@@ -428,15 +428,25 @@ def expected_formal_log_prefix_r17(stopped_at: str) -> list[str]:
 def build_workflow_plan_r17(
         profile: str, *, out_dir: str, freeze_sha: str = "",
         manifest_path: str = "", report_out: str = "",
+        formal_attempt: str | None = None,
 ) -> dict[str, Any]:
     """按 profile 展开 argv(占位符替换 + rehearsal 差异注入)。
 
     rehearsal 允许的差异(继承 R15 §十一):--rehearsal 旗标、
     audit --fit-pairs 2、full-cold --skip-regression、report 输出
     文件名。步骤 name/order 与 formal 完全一致。
+
+    formal_attempt(RouteC_FormalLaunch_Preparation_v1 R1/F06):
+    formal profile 下给 calibrate/qualify 追加
+    --formal-namespace-attempt <id>——新正式尝试的全新数据面
+    命名空间经真实 CLI 消费者接通(不只改摘要/argv 展示;
+    步骤 name/order/postcondition 不变)。None=既有行为。
     """
     if profile not in ("formal", "rehearsal"):
         raise ValueError(f"未知 workflow profile: {profile!r}")
+    if formal_attempt is not None and formal_attempt != "qaf_v1":
+        raise ValueError(
+            f"未知 formal_attempt {formal_attempt!r}(合法: qaf_v1)")
     if not report_out:
         report_out = str(Path(out_dir) / (
             "r17_report_values.json" if profile == "formal"
@@ -453,6 +463,11 @@ def build_workflow_plan_r17(
                 argv = extra
             else:
                 argv = argv + extra
+        if (profile == "formal" and formal_attempt
+                and s["name"] in ("calibrate", "qualify")):
+            # R1/F06:新尝试数据面经真实 CLI 消费者接通
+            argv = argv + ["--formal-namespace-attempt",
+                           str(formal_attempt)]
         argv = [a.replace("{out_dir}", str(out_dir))
                 .replace("{freeze_sha}", str(freeze_sha))
                 .replace("{manifest}", str(manifest_path))
@@ -483,6 +498,9 @@ def build_workflow_plan_r17(
         "freeze_sha": str(freeze_sha),
         "manifest_path": str(manifest_path),
         "report_out": str(report_out),
+        "formal_namespace_attempt": (
+            str(formal_attempt) if (
+                profile == "formal" and formal_attempt) else None),
         "steps": steps_out,
     }
 

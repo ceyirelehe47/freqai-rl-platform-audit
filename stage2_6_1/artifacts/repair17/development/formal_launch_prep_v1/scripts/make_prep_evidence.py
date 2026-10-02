@@ -321,6 +321,39 @@ def main() -> int:
              "PATH": "/usr/bin:/bin"})
     write("evidence/sentinel_positive_pytest.txt",
           proc.stdout + proc.stderr)
+    # ---- 修复轮(R1/R2/R3)pytest 原件 + 预算面 + seed 对样 ------
+    proc = subprocess.run(
+        [pytest, "-m", "pytest",
+         "tests/route_c_stage2_6_1/test_curriculum261_qprod_"
+         "formal_repair.py",
+         "-q", "--no-header", "-p", "no:cacheprovider"],
+        cwd=str(DEPLOY_TREE), capture_output=True, text=True,
+        env={"PYTHONDONTWRITEBYTECODE": "1",
+             "PATH": "/usr/bin:/bin"})
+    write("evidence/repair_round_pytest.txt", proc.stdout + proc.stderr)
+    probe = subprocess.run(
+        [pytest, "-c", (
+            "import json;from rl_curriculum.curriculum261_api "
+            "import _derive261_seed_raw as d;from "
+            "rl_curriculum.curriculum261_qaf_attempt import "
+            "QAF_QUALIFICATION;print(json.dumps({"
+            "'qaf_vs_r17_same_params': d(QAF_QUALIFICATION,"
+            "'c2_context','D1',0,0)!=d('qualification_r17',"
+            "'c2_context','D1',0,0),"
+            "'qaf_seed': d(QAF_QUALIFICATION,'c2_context',"
+            "'D1',0,0)}))")],
+        cwd=str(DEPLOY_TREE), capture_output=True, text=True,
+        env={"PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": "src",
+             "PATH": "/usr/bin:/bin"})
+    write("evidence/repair_seed_probe.json",
+          probe.stdout.strip() or probe.stderr)
+    from rl_curriculum.curriculum261_qprod_formal_budget import (
+        authorization_face,
+    )
+    write("evidence/repair_budget_faces.json", json.dumps({
+        "A1": authorization_face(stop_after="qualify"),
+        "A2": authorization_face(stop_after="verify-formal-logs"),
+    }, ensure_ascii=False, indent=2, default=str))
     summary = {
         "prep_dir": str(PREP),
         "status": "EVIDENCE_GENERATED_TEST_DOMAIN",
