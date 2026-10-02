@@ -69,6 +69,7 @@ QPROD_COORDINATE_CODE_MODULES = (
     "curriculum261_qprod_plan.py",
     "curriculum261_qprod_coordinate.py",
     "curriculum261_qprod_aggregate.py",
+    "curriculum261_qprod_formal.py",
 )
 
 
@@ -191,12 +192,26 @@ def lock_coordinate_audit_plan(
             f"坐标 block_start_index={block_start!r} 不受支持(核心"
             f" block 派生固定从 index 0 起;预注册范围与真实生成"
             f"不一致即拒绝)")
+    # RouteC_FormalLaunch_Preparation_v1:namespace 白名单按 profile
+    # 分支——engineering 坐标只能用工程名单,formal 坐标只能用正式
+    # (休眠)名单;两侧互不可用,历史/开发空间不得冒充任一侧。
+    from rl_curriculum.curriculum261_api import (
+        CURRICULUM261_QPROD_FORMAL_NAMESPACES,
+    )
+    if profile == "engineering":
+        allowed_namespaces = CURRICULUM261_QPROD_ENGINEERING_NAMESPACES
+    elif profile == "formal":
+        allowed_namespaces = CURRICULUM261_QPROD_FORMAL_NAMESPACES
+    else:
+        raise QProdContextError(
+            f"研究计划 profile {profile!r} 未知(namespace 白名单"
+            f"按 engineering/formal 分支)")
     for key in ("model_namespace", "validation_namespace"):
         ns = coordinate.get(key)
-        if ns not in CURRICULUM261_QPROD_ENGINEERING_NAMESPACES:
+        if ns not in allowed_namespaces:
             raise QProdContextError(
-                f"坐标 namespace {ns!r} 未注册(QProd 工程名单;"
-                f"守卫不接受任意字符串)")
+                f"坐标 namespace {ns!r} 未注册(profile={profile!r} "
+                f"名单;守卫不接受任意字符串)")
     from rl_curriculum.curriculum261_r17_cue_contract import (
         C2_REFERENCE_DEFAULTS, cue_semantic_contract_digest,
     )

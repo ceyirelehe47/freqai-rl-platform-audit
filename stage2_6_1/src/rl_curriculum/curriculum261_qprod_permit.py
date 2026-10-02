@@ -38,8 +38,21 @@ QPROD_PERMIT_FORMAT = "cur261-qprod-permit-v1"
 QPROD_PERMIT_DIGEST_PREFIX = "qppm-"
 QPROD_PERMIT_CONSUMED_NAME = "qprod_permit_consumed.jsonl"
 
-#: 签发者种类(工程 test authority;正式 admission 属未来链)。
-QPROD_ISSUER_KINDS = ("engineering_test_authority",)
+#: 签发者种类(工程 test authority;正式 admission authority 属
+#: RouteC_FormalLaunch_Preparation_v1 加入的正式签发边界——正式
+#: 许可只能由 formal authority 对用户批准原件签发,工程 authority
+#: 不可签正式许可,反之亦然;消费侧按 context.profile 绑定种类)。
+QPROD_ISSUER_KINDS = (
+    "engineering_test_authority",
+    "formal_admission_authority",
+)
+
+#: profile → 唯一合法签发者种类(工程上下文不采正式签发来源,
+#: 正式上下文不采工程 test authority;双向隔离)。
+QPROD_PROFILE_ISSUER_KIND = {
+    "engineering": "engineering_test_authority",
+    "formal": "formal_admission_authority",
+}
 
 #: 许可必备字段(缺失即拒)。
 QPROD_PERMIT_REQUIRED_KEYS = (
@@ -140,6 +153,24 @@ def validate_permit(permit_path: Path | str, *,
         raise QProdContextError(
             f"许可签发者 authority_id {issuer['authority_id']!r} != "
             f"authority 身份 {ident.get('authority_id')!r}")
+    # RouteC_FormalLaunch_Preparation_v1:profile ↔ 签发者种类绑定
+    # (工程上下文不采正式签发来源;正式上下文不采工程 test
+    # authority——工程许可不可冒充正式授权,反向亦然)。
+    expected_kind = QPROD_PROFILE_ISSUER_KIND.get(context.profile)
+    if expected_kind is None:
+        raise QProdContextError(
+            f"许可消费上下文 profile {context.profile!r} 未知"
+            f"(须 engineering 或 formal)")
+    if issuer["kind"] != expected_kind:
+        raise QProdContextError(
+            f"许可签发者种类 {issuer['kind']!r} 与上下文 profile "
+            f"{context.profile!r} 不匹配(须 {expected_kind!r};"
+            f"工程/正式签发来源不可互用)")
+    ident_kind = ident.get("kind")
+    if ident_kind is not None and ident_kind != issuer["kind"]:
+        raise QProdContextError(
+            f"authority 身份种类 {ident_kind!r} != 许可签发者种类 "
+            f"{issuer['kind']!r}(签发源与 authority 身份不符)")
     scope = permit["preregistered_input_scope"]
     if not isinstance(scope, dict) or not (
             scope.get("namespaces") or scope.get("coordinate_ids")):
@@ -236,7 +267,8 @@ def acquire_live_permit(permit_path: Path | str, *,
 
 __all__ = [
     "QPROD_PERMIT_FORMAT", "QPROD_PERMIT_CONSUMED_NAME",
-    "QPROD_QUOTA_REQUIRED_KEYS", "permit_digest", "load_permit",
+    "QPROD_QUOTA_REQUIRED_KEYS", "QPROD_ISSUER_KINDS",
+    "QPROD_PROFILE_ISSUER_KIND", "permit_digest", "load_permit",
     "validate_permit", "consume_permit", "acquire_live_permit",
     "LivePermitToken", "permit_already_consumed",
 ]

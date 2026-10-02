@@ -1,7 +1,18 @@
 # Route C QProd v1:正式运行决定页(工程就绪 / 待采纳 / 未运行)
 
-状态:工程实现候选 C1(`e956c61a`)。本页是正式运行前的决定清单与
-就绪声明,不是执行授权。真实正式资格/研究/教学训练全部 NOT_RUN。
+> **修订(2026-10-02,RouteC_FormalLaunch_Preparation_v1)**:状态
+> 锚由早期 C1(`e956c61a`)推进到本轮正式启动准备(QProd 已在
+> C25=`a6bee42f` 独立终验 CLOSED PASS,工程范围;R25/
+> TrainingBridge 结项继续有效)。正式启动/许可适配(受信任部署
+> 配置 formal_ready、formal admission authority 批准-签发-许可
+> 链、A 权威 17 步调度、B 11 坐标正式清单、只读预检)已实现并
+> 隔离验证,见 `artifacts/repair17/development/formal_launch_prep_v1/`。
+> 真实正式资格/研究/教学仍 NOT_RUN;本页仍是决定清单,不是执行
+> 授权。旧版原件字节保存于本轮任务包 context
+> (PRIOR_READINESS_UNAPPROVED.md),历史表述不回写。
+
+状态:正式启动准备 PREPARED_PENDING_USER_APPROVAL(候选身份与
+批准选项见 formal_launch_prep_v1/DECISION_FOR_APPROVAL.md)。
 
 ## 1. 已实现且工程验证(实现就绪)
 
@@ -42,12 +53,16 @@ TrainingBridge 旧账保持:原生重放 2/2、成功正文 12/12、optimizer
 | K=11 聚合 | 11 坐标×上述;boot 20000 | 少 K→不决;技术损坏→停止不安全执行 |
 | 正式训练 | 另行授权(消费侧 formal 注册表仍空) | formal 装载恒拒直至正式 admission 建成 |
 
-## 5. 剩余待决项
+## 5. 剩余待决项(2026-10-02 修订后)
 
-1. 正式部署配置 `qprod_deploy_config.json` 的批准与写入(本轮未创建)。
-2. 正式许可链(admission 对 QProd 迭代的签发规则)未实现——本轮按
-   任务边界不填充部署正式注册表。
-3. P0 来源的正式采纳身份(历史开发参照 vs 新估计)与随机锚协方差
-   框架(若改无条件问题)均为统计待决,本轮未写第二套框架。
-4. Level A 正式链的 provenance-lock/Commit A 冻结时序在正式部署的
-   具体执行属正式运行步骤(工程面已按 declared-index 实现)。
+1. 正式部署配置 `qprod_deploy_config.json` 的批准与写入:仍由
+   用户批准后操作员执行(本轮实现读取/校验面,未创建实例)。
+2. ~~正式许可链未实现~~(已由 formal_launch_prep_v1 实现为
+   批准原件→formal authority 签发→正式许可→消费的休眠链;
+   签发能力只在 runner,未对任何真实迭代签发)。
+3. P0 来源的正式采纳身份(历史开发参照 vs 新估计)与随机锚
+   协方差框架(若改无条件问题)仍为统计待决;本轮只实现固定
+   参照口径,未写第二套框架。
+4. Level A 正式链的 provenance-lock→Commit A→admission→批准
+   绑定→launch 时序已可执行(隔离验证);真实执行属正式运行
+   步骤,待用户批准。

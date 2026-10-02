@@ -264,21 +264,36 @@ def _structure_problems_level_b(
                         "事前声明:blocks_per_corpus/mc_events/"
                         "episodes_per_block)")
     else:
-        if ab.get("blocks_per_corpus") != 2:
+        # RouteC_FormalLaunch_Preparation_v1:预算期望按 profile 分支
+        # ——engineering 锁工程缩减值,formal 锁正式常量
+        # (500 blocks/1e6 MC);未知 profile 拒绝,不允许用别的
+        # 数值面冒充任一侧。
+        profile = str(payload.get("profile") or "")
+        if profile == "engineering":
+            want_blocks, want_mc = 2, 4096
+        elif profile == "formal":
+            want_blocks, want_mc = 500, 1_000_000
+        else:
             problems.append(
-                f"audit_budgets.blocks_per_corpus "
-                f"{ab.get('blocks_per_corpus')!r} != 工程面 2")
-        if ab.get("mc_events") != 4096:
-            problems.append(
-                f"audit_budgets.mc_events {ab.get('mc_events')!r} "
-                f"!= 工程面 4096")
+                f"研究计划 profile {profile!r} 未知(audit_budgets "
+                f"期望值按 engineering/formal 分支)")
+            want_blocks = want_mc = None
+        if want_blocks is not None:
+            if ab.get("blocks_per_corpus") != want_blocks:
+                problems.append(
+                    f"audit_budgets.blocks_per_corpus "
+                    f"{ab.get('blocks_per_corpus')!r} != profile "
+                    f"{profile!r} 合同值 {want_blocks}")
+            if ab.get("mc_events") != want_mc:
+                problems.append(
+                    f"audit_budgets.mc_events {ab.get('mc_events')!r} "
+                    f"!= profile {profile!r} 合同值 {want_mc}")
         if ab.get("episodes_per_block") != 8:
             problems.append(
                 f"audit_budgets.episodes_per_block "
                 f"{ab.get('episodes_per_block')!r} != 8"
                 f"(4 rung x A/B)")
     return problems
-
 
 __all__ = [
     "QPROD_RESEARCH_PLAN_FORMAT", "QPROD_RESEARCH_PLAN_NAME",

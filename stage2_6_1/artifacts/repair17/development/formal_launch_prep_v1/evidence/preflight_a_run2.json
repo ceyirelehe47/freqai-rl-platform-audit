@@ -1,0 +1,247 @@
+{
+  "format": "cur261-qprod-formal-preflight-v1",
+  "level": "level_a",
+  "iteration_id": "qprod_a_formal_v1",
+  "deployment_ok": true,
+  "deployment_note": "受信任部署配置 formal_ready(测试域沙盒)",
+  "admission_shape_ok": true,
+  "admission_present": false,
+  "admission_note": "provenance-lock→Commit A→部署同步→批准绑定/签发→执行:admission 原件在 launch 前由 r17_admission_issue 对最终 Commit A 签发;此处只报在场,不代签",
+  "plan_digest": "qbpl-b2907ab056f33581f4af4fc6c866598833e0ca385420e63b82403270cb367d28",
+  "plan_structure_problems": [],
+  "chain_steps": [
+    {
+      "name": "provenance-verify",
+      "produces": [
+        "gate_topology_provenance_verify.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "determinism-matrix",
+      "produces": [
+        "determinism/generation_determinism_contract.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "audit",
+      "produces": [
+        "r17_code_freeze.json",
+        "baseline_ancestry.json",
+        "historical_evidence_binding.json",
+        "r12_abort_binding.json",
+        "r12_iteration_failure_binding.json",
+        "r14_failure_binding.json",
+        "r15_failure_binding.json",
+        "gate_topology_reconciliation_verify.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "cue-audit",
+      "produces": [
+        "cue_contract_audit.json",
+        "cue_event_trace.jsonl"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "preplan-smoke",
+      "produces": [
+        "preplan_engineering_smoke.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "plan-roundtrip",
+      "produces": [
+        "plan_roundtrip_validation.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "design-plan-lock",
+      "produces": [
+        "r17_design_plan.json",
+        "r17_design_plan_digest.txt"
+      ],
+      "data_class": "design",
+      "postcondition": null
+    },
+    {
+      "name": "design",
+      "produces": [
+        "r17_parameter_pack.json",
+        "r17_parameter_pack_digest.txt"
+      ],
+      "data_class": "design",
+      "postcondition": null
+    },
+    {
+      "name": "calibrate",
+      "produces": [
+        "preprocessor_bundle_calibration.json",
+        "preprocessor_bundle_holdout.json",
+        "robustness_gate.json",
+        "calibration_evidence.json",
+        "preprocessing_v2_requalification.json",
+        "supervised_learnability_main.json",
+        "supervised_learnability_holdout.json"
+      ],
+      "data_class": "calibration",
+      "postcondition": null
+    },
+    {
+      "name": "preflight-static",
+      "produces": [
+        "prelock_static_preflight_r17.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "lock-plan",
+      "produces": [
+        "qualification_plan_r17.json",
+        "qualification_plan_digest_r17.txt"
+      ],
+      "data_class": "calibration",
+      "postcondition": null
+    },
+    {
+      "name": "preflight-sealed",
+      "produces": [
+        "sealed_final_preflight_r17.json",
+        "sealed_final_preflight_r17_digest.txt"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "qualify",
+      "produces": [
+        "qualification_result.json",
+        "qualification_raw.json",
+        "qualification_preprocessor_bundle.json",
+        "qualification_fit_manifest.json",
+        "qualification_pair_evidence_table.json",
+        "qualification_c2_block_evidence_table.json",
+        "qualification_c2_independent_marginal.json"
+      ],
+      "data_class": "final",
+      "postcondition": null
+    },
+    {
+      "name": "smoke",
+      "produces": [
+        "ppo_256step_smoke.json"
+      ],
+      "data_class": "final",
+      "postcondition": "final_verdict_pass"
+    },
+    {
+      "name": "full-cold",
+      "produces": [
+        "full_cold_reader_check.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": "smoke_pass"
+    },
+    {
+      "name": "report-read",
+      "produces": [
+        "r17_report_values.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "verify-formal-logs",
+      "produces": [
+        "r17_formal_log_verification.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    }
+  ],
+  "artifact_producers": {
+    "baseline_ancestry.json": "audit",
+    "calibration_evidence.json": "calibrate",
+    "cue_contract_audit.json": "cue-audit",
+    "cue_event_trace.jsonl": "cue-audit",
+    "determinism/generation_determinism_contract.json": "determinism-matrix",
+    "full_cold_reader_check.json": "full-cold",
+    "gate_topology_provenance_verify.json": "provenance-verify",
+    "gate_topology_reconciliation_verify.json": "audit",
+    "historical_evidence_binding.json": "audit",
+    "plan_roundtrip_validation.json": "plan-roundtrip",
+    "ppo_256step_smoke.json": "smoke",
+    "prelock_static_preflight_r17.json": "preflight-static",
+    "preplan_engineering_smoke.json": "preplan-smoke",
+    "preprocessing_v2_requalification.json": "calibrate",
+    "preprocessor_bundle_calibration.json": "calibrate",
+    "preprocessor_bundle_holdout.json": "calibrate",
+    "qualification_c2_block_evidence_table.json": "qualify",
+    "qualification_c2_independent_marginal.json": "qualify",
+    "qualification_fit_manifest.json": "qualify",
+    "qualification_pair_evidence_table.json": "qualify",
+    "qualification_plan_digest_r17.txt": "lock-plan",
+    "qualification_plan_r17.json": "lock-plan",
+    "qualification_preprocessor_bundle.json": "qualify",
+    "qualification_raw.json": "qualify",
+    "qualification_result.json": "qualify",
+    "r12_abort_binding.json": "audit",
+    "r12_iteration_failure_binding.json": "audit",
+    "r14_failure_binding.json": "audit",
+    "r15_failure_binding.json": "audit",
+    "r17_code_freeze.json": "audit",
+    "r17_design_plan.json": "design-plan-lock",
+    "r17_design_plan_digest.txt": "design-plan-lock",
+    "r17_formal_log_verification.json": "verify-formal-logs",
+    "r17_parameter_pack.json": "design",
+    "r17_parameter_pack_digest.txt": "design",
+    "r17_report_values.json": "report-read",
+    "robustness_gate.json": "calibrate",
+    "sealed_final_preflight_r17.json": "preflight-sealed",
+    "sealed_final_preflight_r17_digest.txt": "preflight-sealed",
+    "supervised_learnability_holdout.json": "calibrate",
+    "supervised_learnability_main.json": "calibrate"
+  },
+  "calibration_dependents_produced_by": {
+    "qualification_plan_r17.json": "lock-plan(第 11 步,校准后 create-only 冻结)",
+    "qprod_research_plan.json": "launch 受控写阶段(create-only 冻结)"
+  },
+  "stale_state_findings": [],
+  "authorized_stop_after": "qualify",
+  "steps_not_run_under_stop": [
+    "smoke",
+    "full-cold",
+    "report-read",
+    "verify-formal-logs"
+  ],
+  "budget": {
+    "episodes_upper_bound": 16000,
+    "episodes_note": "determinism ~300 + audit 48 + cue-audit 8000(+重放<=400) + preplan 24 + design >=2560(候选级不确定) + calibrate ~4400 + qualify ~2300 + smoke 146;上界按各步冻结常量推导",
+    "v2_preprocessor_fits": 5,
+    "v2_fits_note": "determinism 1 + calibrate main/holdout 2 + qualify 1 + smoke 1(audit 不做 V2 fit)",
+    "supervised_mlp_fits_upper": 84,
+    "supervised_note": "calibrate ~54 + qualify ~27 + determinism 工程 3;控制组计法存在不确定,按上界记账",
+    "mc_events_total": 1000000,
+    "bootstrap_resamples_upper": 1160000,
+    "optimizer_updates": 1,
+    "optimizer_note": "仅第 14 步 smoke:model.learn(total_timesteps=256) 恰 256 环境交互步、1 次 optimizer 更新;资格 PASS 后才执行(postcondition final_verdict_pass)",
+    "subprocesses_upper": 35
+  },
+  "findings": [],
+  "business_leaf_calls": 0,
+  "status": "PREPARED_PENDING_USER_APPROVAL",
+  "generated_utc": "2026-10-02T13:31:20+00:00",
+  "content_identity": "qfpf-64ae8e9f64d2eaa85cd527821385cda0788cde73ce30ba3c027888c6e9895f5d"
+}

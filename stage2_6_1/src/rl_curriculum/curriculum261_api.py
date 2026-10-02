@@ -681,6 +681,18 @@ CURRICULUM261_QPROD_ENGINEERING_NAMESPACES = tuple(
     for idx in range(1, 3) for role in ("model", "validation")
 )
 
+#: QProd 正式 Level B 确认性研究 namespace(RouteC_FormalLaunch_
+#: Preparation_v1 加入的休眠定义;11 坐标 c01..c11 × model/validation,
+#: 与全部工程/开发/历史正式空间命名不相交)。加入 seed 名单使
+#: 正式坐标审计的 seed 派生可达;实际生成仍被 qprod 正式许可/
+#: 坐标锁/一次性消费链拦截——本定义不构成任何正式运行实例注册、
+#: 正式 exposure 消耗或 formal_ready 部署,正式运行保持 NOT_RUN
+#: 直至用户批准。
+CURRICULUM261_QPROD_FORMAL_NAMESPACES = tuple(
+    f"cue_qprod_formal_v1_c{idx:02d}_{role}"
+    for idx in range(1, 12) for role in ("model", "validation")
+)
+
 CURRICULUM261_R17_NAMESPACE_ROLES = {
     name: {"iteration": "r17", "class": "engineering"}
     for name in CURRICULUM261_R17_NAMESPACES
@@ -705,7 +717,8 @@ CURRICULUM261_SEED_NAMESPACES = (
     CURRICULUM261_R15_NAMESPACES) + (
     CURRICULUM261_R16_NAMESPACES) + (
     CURRICULUM261_R17_NAMESPACES) + (CURRICULUM261_R25_DEV_NAMESPACES) + (
-    CURRICULUM261_QPROD_ENGINEERING_NAMESPACES)
+    CURRICULUM261_QPROD_ENGINEERING_NAMESPACES) + (
+    CURRICULUM261_QPROD_FORMAL_NAMESPACES)
 
 #: qualification_r2 的 lock marker:plan 锁定文件存在才允许派生
 #: qualification_r2 seed(final qualification corpus 在 lock 前对

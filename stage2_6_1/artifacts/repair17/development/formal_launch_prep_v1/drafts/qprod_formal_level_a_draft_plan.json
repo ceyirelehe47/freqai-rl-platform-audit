@@ -1,0 +1,81 @@
+{
+  "format": "cur261-qprod-formal-draft-plan-v1",
+  "level": "level_a",
+  "iteration_id": "qprod_a_formal_v1",
+  "status": "DRAFT_PENDING_USER_APPROVAL",
+  "code_freeze_sha_binding": "草案绑定当前已验代码身份与冻结程序;最终 Commit A SHA 在 provenance-lock→Commit A 后产生,批准/签发/launch 全部绑定该真实 SHA(草案不得用伪 SHA 启动)",
+  "code_freeze_sha": "",
+  "research_plan_digest": "qbpl-b2907ab056f33581f4af4fc6c866598833e0ca385420e63b82403270cb367d28",
+  "payload": {
+    "format": "cur261-qprod-research-plan-v1",
+    "level": "level_a",
+    "iteration_id": "qprod_a_formal_v1",
+    "profile": "formal",
+    "code_freeze_sha": "",
+    "run_scope": {
+      "entry": "qprod_formal_level_a_entry launch → rl_curriculum.curriculum261_r17_cli chain-run(受信任部署;PYTHONPATH=部署 src)",
+      "gate_set": "r17 权威 17 步(prerequisites/postcondition 语义:smoke 仅 qualify final PASS 后;full-cold 仅 smoke PASS 后)+ qualification one_shot exposure",
+      "budget": {
+        "episodes_upper_bound": 16000,
+        "episodes_note": "determinism ~300 + audit 48 + cue-audit 8000(+重放<=400) + preplan 24 + design >=2560(候选级不确定) + calibrate ~4400 + qualify ~2300 + smoke 146;上界按各步冻结常量推导",
+        "v2_preprocessor_fits": 5,
+        "v2_fits_note": "determinism 1 + calibrate main/holdout 2 + qualify 1 + smoke 1(audit 不做 V2 fit)",
+        "supervised_mlp_fits_upper": 84,
+        "supervised_note": "calibrate ~54 + qualify ~27 + determinism 工程 3;控制组计法存在不确定,按上界记账",
+        "mc_events_total": 1000000,
+        "bootstrap_resamples_upper": 1160000,
+        "optimizer_updates": 1,
+        "optimizer_note": "仅第 14 步 smoke:model.learn(total_timesteps=256) 恰 256 环境交互步、1 次 optimizer 更新;资格 PASS 后才执行(postcondition final_verdict_pass)",
+        "subprocesses_upper": 35
+      },
+      "exposure_policy": "one_shot_window(r17 execgov qualification 委派协议;不可重开)",
+      "authorized_stop_after": "qualify"
+    },
+    "rules": {
+      "gate_semantics_ref": "curriculum261_r17_workflow.R17_WORKFLOW_STEPS + curriculum261_r17_final(资格判定);qualification_plan 由链第 11 步 lock-plan 在校准后 create-only 冻结,不得事前捏造",
+      "model_update_authorized": false,
+      "smoke_policy": "第 14 步 smoke=资格 PASS 后链内验收的条件许可(256 环境步/1 次 optimizer 更新),与正式教学分开;未授权时链停在 qualify,15-17 步 NOT_RUN"
+    },
+    "quota": {
+      "max_leaf_calls_per_coordinate": 16000,
+      "max_successful_episodes_total": 16000,
+      "mc_events_per_coordinate": 1000000,
+      "max_native_executions": 1,
+      "v2_preprocessor_fits": 5,
+      "optimizer_updates": 0
+    },
+    "code_identity": {
+      "curriculum261_api.py": "efb4ffff711cfec3e43f1e6e52231873528cdc1c14e3ca31b67b6dba82c35bc0",
+      "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+      "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+      "curriculum261_r17_noise_replay.py": "5b55c04608a14e3c1087909c2e56623b90766da7d389739955070135adfa7e8a",
+      "curriculum261_r17_cue_contract.py": "22ce6e33b0ba0cca7ded8755fa217d92965e75f36a5b3535378759d2f2fefd30",
+      "curriculum261_r17_global_k.py": "b911f44bff8600b9530cae560976b17b1fa282df799bbbb37c8c763ef02bfdc5",
+      "curriculum261_qprod_context.py": "0724929793932c6c204af2d9a90846f53d509e8b13c402b1c53d7db15377c3cf",
+      "curriculum261_qprod_permit.py": "ff0480f19dd7b99101ee814f9d92afa6c45d407cfcec2920eea3940e98b9faad",
+      "curriculum261_qprod_plan.py": "0bc3c502cb652598e08d949641539a564d5a8e208414586015a375d912ab9097",
+      "curriculum261_qprod_coordinate.py": "52e5ae0ae2e867aa4710897e8b4f62623cc52d5833eeb41c6e8162cb85c0e6a4",
+      "curriculum261_qprod_aggregate.py": "b21ce082e5432fdbc78d42debbf4f556b1913b6e51196cdc3ca0807ee5c646fc",
+      "curriculum261_qprod_formal.py": "beb9366128efb73ccfd48133c5d980cd503f481a737554c4d7ac812a461b0adc"
+    },
+    "stop_mode": "collect_all_k",
+    "engineering_only": false
+  },
+  "budget": {
+    "episodes_upper_bound": 16000,
+    "episodes_note": "determinism ~300 + audit 48 + cue-audit 8000(+重放<=400) + preplan 24 + design >=2560(候选级不确定) + calibrate ~4400 + qualify ~2300 + smoke 146;上界按各步冻结常量推导",
+    "v2_preprocessor_fits": 5,
+    "v2_fits_note": "determinism 1 + calibrate main/holdout 2 + qualify 1 + smoke 1(audit 不做 V2 fit)",
+    "supervised_mlp_fits_upper": 84,
+    "supervised_note": "calibrate ~54 + qualify ~27 + determinism 工程 3;控制组计法存在不确定,按上界记账",
+    "mc_events_total": 1000000,
+    "bootstrap_resamples_upper": 1160000,
+    "optimizer_updates": 1,
+    "optimizer_note": "仅第 14 步 smoke:model.learn(total_timesteps=256) 恰 256 环境交互步、1 次 optimizer 更新;资格 PASS 后才执行(postcondition final_verdict_pass)",
+    "subprocesses_upper": 35
+  },
+  "commands": {
+    "preflight": "python stage2_6_1/runner/qprod_formal_level_a_entry.py preflight --deploy-root <DEPLOY_ROOT> --stop-after qualify",
+    "launch": "python stage2_6_1/runner/qprod_formal_level_a_entry.py launch --deploy-root <DEPLOY_ROOT> --project-dir <TRUSTED_PROJECT> --code-freeze-sha <COMMIT_A> --stop-after qualify"
+  }
+}

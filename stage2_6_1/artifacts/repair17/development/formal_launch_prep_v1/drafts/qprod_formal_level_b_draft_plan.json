@@ -1,0 +1,155 @@
+{
+  "format": "cur261-qprod-formal-draft-plan-v1",
+  "level": "level_b",
+  "iteration_id": "qprod_b_formal_v1",
+  "status": "DRAFT_PENDING_USER_APPROVAL",
+  "code_freeze_sha_binding": "批准/签发/冻结绑定最终 Commit A 真实 SHA;空 SHA 草案仅用于准备审阅,不可进入批准/签发",
+  "code_freeze_sha": "",
+  "research_plan_digest": "qbpl-5f301fd89b42dfc8db81efe2ec4ac2cf36760787871296f79b8a2422b782de00",
+  "payload": {
+    "format": "cur261-qprod-research-plan-v1",
+    "level": "level_b",
+    "iteration_id": "qprod_b_formal_v1",
+    "profile": "formal",
+    "code_freeze_sha": "",
+    "coordinate_manifest": [
+      {
+        "coordinate_id": "c01",
+        "model_namespace": "cue_qprod_formal_v1_c01_model",
+        "validation_namespace": "cue_qprod_formal_v1_c01_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c01"
+      },
+      {
+        "coordinate_id": "c02",
+        "model_namespace": "cue_qprod_formal_v1_c02_model",
+        "validation_namespace": "cue_qprod_formal_v1_c02_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c02"
+      },
+      {
+        "coordinate_id": "c03",
+        "model_namespace": "cue_qprod_formal_v1_c03_model",
+        "validation_namespace": "cue_qprod_formal_v1_c03_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c03"
+      },
+      {
+        "coordinate_id": "c04",
+        "model_namespace": "cue_qprod_formal_v1_c04_model",
+        "validation_namespace": "cue_qprod_formal_v1_c04_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c04"
+      },
+      {
+        "coordinate_id": "c05",
+        "model_namespace": "cue_qprod_formal_v1_c05_model",
+        "validation_namespace": "cue_qprod_formal_v1_c05_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c05"
+      },
+      {
+        "coordinate_id": "c06",
+        "model_namespace": "cue_qprod_formal_v1_c06_model",
+        "validation_namespace": "cue_qprod_formal_v1_c06_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c06"
+      },
+      {
+        "coordinate_id": "c07",
+        "model_namespace": "cue_qprod_formal_v1_c07_model",
+        "validation_namespace": "cue_qprod_formal_v1_c07_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c07"
+      },
+      {
+        "coordinate_id": "c08",
+        "model_namespace": "cue_qprod_formal_v1_c08_model",
+        "validation_namespace": "cue_qprod_formal_v1_c08_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c08"
+      },
+      {
+        "coordinate_id": "c09",
+        "model_namespace": "cue_qprod_formal_v1_c09_model",
+        "validation_namespace": "cue_qprod_formal_v1_c09_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c09"
+      },
+      {
+        "coordinate_id": "c10",
+        "model_namespace": "cue_qprod_formal_v1_c10_model",
+        "validation_namespace": "cue_qprod_formal_v1_c10_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c10"
+      },
+      {
+        "coordinate_id": "c11",
+        "model_namespace": "cue_qprod_formal_v1_c11_model",
+        "validation_namespace": "cue_qprod_formal_v1_c11_validation",
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "max_attempts": 5,
+        "artifact_subdir": "coord_c11"
+      }
+    ],
+    "rules": {
+      "p0_fixed_reference": 0.950431552876822,
+      "p0_source_label": "R25 dev_plan.json study.p0_fixed_reference(历史开发研究参照;固定共同锚的条件口径,非本轮新估计;正式采纳待用户批准)",
+      "delta_definition": "P0 - recall(validation)",
+      "margin": 0.003,
+      "alpha": 0.05,
+      "r_analysis": 1.5,
+      "planned_k": 11,
+      "audit_budgets": {
+        "blocks_per_corpus": 500,
+        "mc_events": 1000000,
+        "episodes_per_block": 8
+      },
+      "anchor_policy": "固定共同 P0(外部计划显式给定);局部 p_contract 照真实算法计算,不因数值不等删坐标;固定参照的条件推断不改说成随机重估锚的无条件证明",
+      "stop_policy": "collect_all_k:统计负结果保留并收齐 K;技术无效/中断停止不安全后续,不补抽、不换 seed"
+    },
+    "quota": {
+      "max_leaf_calls_per_coordinate": 28000,
+      "max_successful_episodes_total": 88000,
+      "mc_events_per_coordinate": 1000000,
+      "max_native_executions": 11
+    },
+    "code_identity": {
+      "curriculum261_api.py": "efb4ffff711cfec3e43f1e6e52231873528cdc1c14e3ca31b67b6dba82c35bc0",
+      "curriculum261_c2.py": "196ac7b290c51d404405fa0baa87732445956866989f785821a4bead1d940fe1",
+      "curriculum261_r6_tape.py": "671aa96866d3be634df5c4e26d52eb5cf58ceb88a7aec37b9b9b9ad3f08ebd9c",
+      "curriculum261_r17_noise_replay.py": "5b55c04608a14e3c1087909c2e56623b90766da7d389739955070135adfa7e8a",
+      "curriculum261_r17_cue_contract.py": "22ce6e33b0ba0cca7ded8755fa217d92965e75f36a5b3535378759d2f2fefd30",
+      "curriculum261_r17_global_k.py": "b911f44bff8600b9530cae560976b17b1fa282df799bbbb37c8c763ef02bfdc5",
+      "curriculum261_qprod_context.py": "0724929793932c6c204af2d9a90846f53d509e8b13c402b1c53d7db15377c3cf",
+      "curriculum261_qprod_permit.py": "ff0480f19dd7b99101ee814f9d92afa6c45d407cfcec2920eea3940e98b9faad",
+      "curriculum261_qprod_plan.py": "0bc3c502cb652598e08d949641539a564d5a8e208414586015a375d912ab9097",
+      "curriculum261_qprod_coordinate.py": "52e5ae0ae2e867aa4710897e8b4f62623cc52d5833eeb41c6e8162cb85c0e6a4",
+      "curriculum261_qprod_aggregate.py": "b21ce082e5432fdbc78d42debbf4f556b1913b6e51196cdc3ca0807ee5c646fc",
+      "curriculum261_qprod_formal.py": "beb9366128efb73ccfd48133c5d980cd503f481a737554c4d7ac812a461b0adc"
+    },
+    "stop_mode": "collect_all_k",
+    "engineering_only": false
+  }
+}
