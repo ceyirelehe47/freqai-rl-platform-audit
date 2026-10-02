@@ -36,6 +36,20 @@
 首轮修复)→ 67af9219(reviewer gate1_r3 三项修复)→ 862712b5
 (R4 阻断:input-lock 重登记 f264a3d0…,两树同步)→ 21241443(docs+
 evidence)→ **4b50ebfa(修复轮最终候选;r21 全收集 2832/0F/0E/
+修复轮 R2(ChatGPT R1 复审 FAIL/NOT CLOSED 三阻断,原任务内):
+- A.1 状态根一致性(resolve_r17_state_root_for_chain;生产者=
+  消费者同一受信任根;错根/重定向拒);
+- A.2 QAF 生成/设计/smoke 族 10 名(注册 183/16 正式面不变;9 步
+  真实 CLI 消费者接线;input scope 26;determinism A5 prelude
+  stub-pack 工程验证面显式区分);
+- B 预算完整化(bootstrap 全量 1,180,000、Global-K 50k/200k
+  独立随机程序、check_env 入面)+ 动作前预算门
+  chain_budget_gate(后继不可达/重放/篡改放大拒;工程路径
+  不门控);
+- C 悬置 started 后继门(os._exit/封存前失败/执行中均阻塞后继;
+  同坐标不重开)+ 账本 flock 互斥(双请求单赢家,无 lost
+  update)。
+测试:repair3(10)+repair4(21)+既有件更新,FLP 面全绿。
 7skip record d27c578a… 与 262 全套 240 passed 绑此 SHA)**。
 
 ## 验收链

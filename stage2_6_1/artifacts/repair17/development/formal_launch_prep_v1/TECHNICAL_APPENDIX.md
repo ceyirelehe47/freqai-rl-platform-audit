@@ -13,8 +13,8 @@ optimizer 更新"计量已废弃(ChatGPT 审查 R2),本文为权威版。
 | 正式上下文/批准/许可/B 计划/B 预检 | `curriculum261_qprod_formal.py` | `_read_formal_roots`(零 mkdir;env 重定向拒)、`build_formal_context`、`formal_approval_digest`(qfap-)、`validate_formal_approval`(逐项绑定)、`validate_formal_permit`(计划/批准双绑定 + **level_a scope=QAF 全集防纵深核验**)、`build_formal_level_b_plan`、`preflight_formal_level_b` |
 | A 计划/预检/launch/有界链 | `curriculum261_qprod_formal_levela.py` | `build_formal_level_a_plan`(预算=授权面分项)、`preflight_formal_level_a`、`launch_formal_level_a`(门禁先于副作用;哨兵停于 `execute_workflow_chain_r17` 边界)、`bound_workflow_plan_r17`、`run_bounded_formal_chain`(**经 `--formal-namespace-attempt qaf_v1`**) |
 | 分项预算/计量 | `curriculum261_qprod_formal_budget.py`(新) | 常量运行时导入(bank ppr=6 源码模式断言/stress 12/MLP epochs 20/审计 500/1e6/20000);`build_budget_items`(每项 formula/typical/worst_upper/consumer/metering);`authorization_face`(A1/A2 逐类) |
-| QAF 尝试命名空间 | `curriculum261_qaf_attempt.py`(新) | 校准族 12 + 资格四件套(+stress/fresh_holdout);`QAF_INPUT_SCOPE`=16 名 |
-| attempt 接线 | `curriculum261_r17_cli.py`/`r17_workflow.py`/`r17_orchestrator.py`/`r17_final.py` | calibrate/qualify/chain-run `--formal-namespace-attempt {qaf_v1}`;`build_workflow_plan_r17(formal_attempt=…)` 注入步 argv+plan 头;`formal_main/holdout_profile_r17(attempt=…)`;`formal_attempt_core_kwargs`(纯函数,None=R18 旧行为字节不变) |
+| QAF 尝试命名空间 | `curriculum261_qaf_attempt.py`(新) | 校准族 12 + 资格四件套 + 生成/设计/smoke 族 10(R2 A.2:audit bank/preplan/cue 语料/design matched+semantic+independent/ppo smoke);`QAF_INPUT_SCOPE`=26 名 |
+| attempt 接线 | `curriculum261_r17_cli.py`/`r17_workflow.py`/`r17_orchestrator.py`/`r17_final.py`/`r17_cue_contract.py`/`r17_determinism.py`/`r17_smoke.py` | R2 A.2 全链 9 步(determinism/audit/cue-audit/preplan/design-plan-lock/design/calibrate/qualify/smoke)`--formal-namespace-attempt {qaf_v1}`;cue audit plan 锁定/运行 QAF 语料;design 计划锁 QAF 命名空间;determinism A4 目标面 stress_qaf_v1(A5 prelude 为 stub-pack 工程等价性验证面,身份不随尝试变化);`build_workflow_plan_r17(formal_attempt=…)` 注入步 argv+plan 头;`formal_main/holdout_profile_r17(attempt=…)`;`formal_attempt_core_kwargs`(纯函数,None=R18 旧行为字节不变) |
 | namespace 注册 | `curriculum261_api.py`+`curriculum261_r17_registry.py` | QAF 族入 R17 全集/正式四件套(对齐断言)+seed 名单;`r17_design` writer 表 3 个 QAF semantic 名 |
 | B 原生计账/后继门 | `curriculum261_qprod_coordinate.py` | `reserve_native_execution`(动作前原子预占 started;tmp+replace+fsync;同坐标不双记;跨进程持久)、`mark_native_completed`(观测)、`assert_no_technical_interruption`(interrupted 无 seal ⇒ 阻塞后续坐标) |
 | permit profile 绑定 | `curriculum261_qprod_permit.py` | issuer kinds;profile↔kind 双向;身份 kind 对拍 |
@@ -136,3 +136,97 @@ report-read]`)——PPO/optimizer/save-load/smoke 生成恒 0=不可达;
    null`(步骤/argv/顺序不变)——「缺省行为不变」指执行语义,非
    plan JSON 逐字节不变。
 3. qualify v2 fits=1 修正已同步本附录 §3.2 与 DECISION 表。
+
+## 8. 修复轮 R2(ChatGPT R1 复审三阻断后)
+
+对象:RETURN_REPAIR_R1(sha d4337119…057db)被 ChatGPT 判
+FAIL/NOT CLOSED 的三个工作面;原件在
+`reviewer/chatgpt_originals/`(含 R1 复审 Evidence)。
+
+### 8.1 A.1 状态根一致性
+
+- 根因:`execute_workflow_chain_r17` 的前置产物解析只认
+  `CURRICULUM261_R17_STATE_ROOT`(缺省回退 out_dir/state),而
+  registry/lock-plan 生产者先认 `CURRICULUM261_R17_DEPLOYED_
+  STATE_ROOT`——正式启动器只设 DEPLOYED 根并剥 STATE_ROOT,
+  生产者把 qualification plan 写进正式 state,消费者却在
+  out_dir/state 找,preflight-sealed 误报"缺少资格计划"
+  (rc=2)。该错位自 R12 起存在,非 R1 新引入。
+- 修复:新增 `resolve_r17_state_root_for_chain`(与 registry
+  同源同序:STATE_ROOT → DEPLOYED → legacy out_dir/state 兜底
+  [该形态下 registry 写入面拒绝,自然 fail closed]),链内
+  `_artifact_file`/in-out sha 全部走同一解析。**不在错误根复
+  制计划、不改预检为宽松模式。**
+- 验证(repair3):resolver 矩阵(含 registry import 期冻结常量
+  对拍);真实 `execute_workflow_chain_r17` 循环(子进程/会话显
+  式哨兵替代,前置解析为真实代码)+ 启动器实际环境 → 计划在
+  生产者根被消费、链通过 preflight-sealed;正确根无计划 →
+  rc=2 fail closed;STATE_ROOT 外部重定向 → 重定向根上找不到
+  计划 → 拒绝。
+
+### 8.2 A.2 输入身份覆盖实际生成/设计/smoke 消费者
+
+- 原 R1 交付只接了校准 12+资格 4;把 design/cue-audit/audit/
+  preplan/smoke 称"机械面"不构成原要求达标(复审 A.2)。
+- 修复:QAF 族新增 10 名(`preplan_audit_bank_qaf_v1`/
+  `preplan_smoke_qaf_v1`/`cue_contract_{model,validation}_qaf_v1`/
+  `design_qaf_{matched_main,matched_validation,independent_
+  marginal}`/`cue_semantic_design_{main,validation}_qaf_v1`/
+  `ppo_smoke_qaf_v1`);注册面 183/16 正式面不变;候选级
+  dedicated semantic 名由派生规则(base__cand)自动覆盖。
+- 接线:`--formal-namespace-attempt qaf_v1` 扩展注入 9 步
+  (determinism-matrix/audit/cue-audit/preplan-smoke/
+  design-plan-lock/design/calibrate/qualify/smoke)的真实 CLI
+  消费者:audit bank 命名空间、preplan blocks、cue-audit 锁定
+  plan 与运行语料(错计划拒绝)、design 计划锁命名空间
+  (payload 透传)、smoke namespace、determinism A4 目标面
+  stress_qaf_v1。**工程/可复用机制区分**:determinism A5
+  prelude 探针为 stub-pack 跨进程等价性验证面
+  (generate_fit_bank_r6('stress_r17', pack_stub…) 代码串),
+  不消费正式 pack/参数,身份不随尝试变化;plan-roundtrip/
+  provenance 等纯治理步无数据面。全链消费者清单见 §2 表与
+  `build_budget_items` 的 consumer 字段。
+- 验证(repair4):注册计数 183/16、26 名迭代标签全 qaf_v1、
+  生成族 seed 与旧名成对不相交+族内唯一、input scope 26=
+  许可 scope、plan argv 9 步带 flag 且缺省不带、cue plan
+  payload QAF 覆盖、design payload 透传、A4 目标面覆盖。
+
+### 8.3 B 预算完整化 + 动作前预算门
+
+- bootstrap 全量:cue-audit 4 + preplan 3(rate 1+gate 2)+
+  design 40(shared gate 2×2+candidate matched 3×2×2+
+  dedicated 3×2×4)+ calibrate 8(2 语料×4)+ qualify 4
+  = **59 调用×20,000=1,180,000**(旧值 80,000 只含 cue-audit)。
+- Global-K 独立随机程序入面:tier1 50,000;tier2 上界 200,000
+  (formal b=4×tier1;同 stream 前缀延续;与 MC 1e6 分开声明)。
+- check_env 交互(≤10)入 A2 面(A1 恒 0)。
+- **动作前预算门**(不只改表):`chain_budget_gate.json` 由链
+  启动器固化(stop_after+steps+每步各类别 worst_upper caps+
+  consumed);8 个被门控命令入口在任何业务叶之前执行
+  `assert_stage_budget_gate`:步骤不在计划(后继不可达,如 A1
+  的 smoke)/已 consumed(重试重放)/caps 之和超授权面(篡改
+  放大)→ 拒绝并 rc=2 零叶;通过则在首个业务叶前原子落盘
+  consumed(tmp+replace+fsync)。工程路径(无 gate 文件)不受
+  门控(既有测试/工程链行为不变)。
+- 验证(repair4):正例(刚好通过+consumed 落盘)、不足
+  (伪造放大拒)、耗尽(重放拒)、后继不可达(A1 gate 无
+  smoke→cmd 拒且零叶,monkeypatch 叶哨兵)、幂等重写/漂移拒、
+  工程路径 passthrough。
+
+### 8.4 C B 原生控制面的进程中断与并发边界
+
+- C.1 悬置 started 后继门 `assert_no_dangling_started`:started
+  无该坐标 seal ⇒ 技术未终态(覆盖 os._exit/被杀来不及写
+  interrupted、返回后封存前失败[completed 无 seal]、仍在执行),
+  后续坐标启动拒绝;清单外 started 同样拒;恢复须操作员处置
+  另行授权,不重置额度/不补抽。入口在
+  `assert_no_technical_interruption` 之后、reserve 临界区内
+  二次重验(并发后进者在最新账本上被拒)。
+- C.2 账本互斥:`_native_budget_lock`(<budget>.lock 排他
+  flock)包住 reserve 的读→校验→写与 mark_completed 写回;
+  原子写抽为 `_atomic_write_json`(tmp+replace+fsync 共用)。
+- 验证(repair3):os._exit(23) 子进程经真实 cmd_run_coordinate
+  到达业务边界后硬退出 → c02 入口 rc=96(零叶);completed 无
+  seal 阻塞;seal 在场(含统计负结果)collect_all_k 继续;
+  mp 双进程重叠预占(max_runs=1)恰好一个成功、最终账本单一
+  started(无 lost update)。

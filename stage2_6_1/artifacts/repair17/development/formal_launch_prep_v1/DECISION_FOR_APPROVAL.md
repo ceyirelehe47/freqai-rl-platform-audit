@@ -46,12 +46,20 @@ Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
 |---|---|---|
 | 生成 episodes(授权帽=worst-upper) | 28,636 典型 / 112,804 上界 | 28,782 / 112,950 |
 | MC 事件 | 1,000,000 | 1,000,000 |
-| bootstrap 重采样 | ≤80,000 | ≤80,000 |
+| bootstrap 重采样 | ≤1,180,000(R2 全量:cue 4+preplan 3+design 40+calibrate 8+qualify 4=59 调用×20,000) | ≤1,180,000 |
+| Global-K null 抽样(独立随机程序,与 MC 分开) | tier1 50,000;tier2 上界 200,000(条件升级,同 stream 前缀) | 同左 |
 | V2 preprocessor fit | 8(determ 5+calib 2+qualify 1) | 9(+smoke 1) |
 | supervised MLP fit | 85(54+27+4;epochs 20/20/2) | 85 |
 | PPO learn / rollout / optimizer.step | **0**(不可达) | 1 / 256 / ≤40 |
-| PPO 验证交互 / save+load | 0 | ≤50 / 1+1 |
+| PPO 验证交互 / check_env / save+load | 0 | ≤50 / ≤10 / 1+1 |
 | 子进程 | 19 | 19 |
+
+R2 追加:**动作前预算门**——链启动器把授权面固化为
+`chain_budget_gate.json`(每步各类别上界+consumed);被门控命令
+(determinism/audit/cue-audit/preplan/design/calibrate/qualify/
+smoke)入口在任何业务叶之前检查:步骤不在计划=后继不可达拒、
+已 consumed=重放拒、caps 之和超授权面=篡改放大拒;工程路径
+(无 gate 文件)不受影响。
 
 注:A1/A2 都发生监督 MLP 拟合——"不含模型更新"仅指 PPO/optimizer
 /save-load,不含监督拟合;两者按本表分别批准。生成上界含结构
