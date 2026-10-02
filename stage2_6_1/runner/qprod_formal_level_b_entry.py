@@ -31,7 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rl_curriculum.curriculum261_qprod_context import (  # noqa: E402
     QProdContextError, harden_root)
 from rl_curriculum.curriculum261_qprod_coordinate import (  # noqa: E402
-    QPROD_NATIVE_BUDGET_NAME, assert_no_technical_interruption,
+    QPROD_NATIVE_BUDGET_NAME, assert_no_dangling_started,
+    assert_no_technical_interruption,
     check_native_budget, lock_coordinate_audit_plan,
     mark_native_completed, qprod_coordinate_code_identity,
     reserve_native_execution, run_coordinate_audit_locked)
@@ -215,9 +216,14 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
     try:
         assert_no_technical_interruption(
             ctx.artifact_root, plan["coordinate_manifest"])
+        assert_no_dangling_started(
+            budget_path, ctx.artifact_root,
+            plan["coordinate_manifest"])
         check_native_budget(budget_path, needed=1)
         reserve_native_execution(
-            budget_path, coordinate_id=args.coordinate_id)
+            budget_path, coordinate_id=args.coordinate_id,
+            artifact_root=ctx.artifact_root,
+            coordinate_manifest=plan["coordinate_manifest"])
     except QProdContextError as exc:
         print(f"[run-coordinate] 原生预算/后继门拒绝(零叶调用):"
               f" {exc}")

@@ -244,6 +244,8 @@ SEMANTIC_CORPUS_ROLE_R17 = {
     "cue_semantic_calibration_qaf_v1": "calibration",
     "cue_semantic_holdout_qaf_v1": "holdout",
     "cue_semantic_qualification_qaf_v1": "qualification",
+    "cue_semantic_design_main_qaf_v1": "main",
+    "cue_semantic_design_validation_qaf_v1": "validation",
 }
 
 

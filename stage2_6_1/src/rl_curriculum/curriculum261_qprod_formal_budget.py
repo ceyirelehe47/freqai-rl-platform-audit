@@ -58,7 +58,10 @@ ChatGPT 独立审查(0383d6cc)R2 指出旧预算两处错误:
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Any
+
+from rl_curriculum.curriculum261_qprod_context import QProdContextError
 
 
 def _import_constants() -> dict[str, Any]:
@@ -188,8 +191,8 @@ def build_budget_items() -> list[dict[str, Any]]:
     # ---- audit ------------------------------------------------
     items.append([item(
         "audit", "generation_episodes",
-        f"bank 3×4×{K['bank_pairs_per_rung'] if False else 2} pair"
-        "(--fit-pairs 默认 2)=24 pair=48 eps",
+        "bank 3 fam×4 rung×2 pair(--fit-pairs 默认 2)"
+        "=24 pair=48 eps",
         48, 48,
         "generate_fit_bank('preplan_smoke_r17', fit_pairs=2)",
         "生成 envelope ledger")])
@@ -218,12 +221,31 @@ def build_budget_items() -> list[dict[str, Any]]:
              "+tail)",
              4 * K["audit_bootstrap"], 4 * K["audit_bootstrap"],
              "bootstrap 复核", "audit 报告冻结明细"),
+        item("cue-audit", "global_k_null_draws_tier1",
+             "NULL_B_TIER1=50000(全局 K null 分布 B=50000 次独立"
+             "随机程序抽样;与 MC 1e6 不同程序)",
+             50000, 50000,
+             "run_global_k_audit(b_tier1=formal 50000)",
+             "cue_global_k_null_summary.json(n_draws 落盘)"),
+        item("cue-audit", "global_k_null_draws_tier2_upper",
+             "tier2 延续同 stream 前缀至 B=4×tier1=200000"
+             "(条件升级;indeterminate=FAIL)",
+             200000, 200000,
+             "run_global_k_audit(b_tier2=formal 200000)",
+             "同上(chunk digest 逐位一致;上界含 tier1 已抽样)"),
     ])
     # ---- preplan-smoke ----------------------------------------
+    boot = K["audit_bootstrap"]  # =R17_CUE_BOOTSTRAP_RESAMPLES
     items.append([item(
         "preplan-smoke", "generation_episodes", "3 matched blocks×8",
         24, 24, "generate_matched_block_with_attempts(preplan_smoke_r17)",
-        "生成 envelope ledger")])
+        "生成 envelope ledger"),
+        item("preplan-smoke", "bootstrap_resamples",
+             f"cluster_bootstrap_rate 1 次+semantic_cue_gate 2 统计"
+             f"(recall+noncue)={3}*{boot}",
+             3 * boot, 3 * boot,
+             "cluster_bootstrap_rate+semantic_cue_gate(cli:1449)",
+             "preplan_engineering_smoke.json(rate.n_boot 落盘)")])
     items.append([item(
         "plan-roundtrip", "subprocesses", "1 独立 load 探针", 1, 1,
         "cmd_plan_roundtrip", "链 journal")])
@@ -243,7 +265,18 @@ def build_budget_items() -> list[dict[str, Any]]:
         _block_path_eps(design_blocks, worst=True)
         + _pair_path_eps(design_indep),
         "run_design_stage_r17",
-        "生成 envelope ledger(每 block/pair 调用)")])
+        "生成 envelope ledger(每 block/pair 调用)"),
+        item("design", "bootstrap_resamples",
+             f"shared gate 2 语料×2+candidate matched 评估 3×2×2"
+             f"+dedicated 语料 3×2×(gate 2+candidate 2)=40 调用"
+             f"×{boot}",
+             40 * boot, 40 * boot,
+             "semantic_cue_gate/candidate_cue_semantics"
+             "(design.py:993,1192;calibration.py:185,189)",
+             "design_plan/selection 视图各 gate 报告 n_boot 落盘"),
+        item("design", "global_k_null_draws_tier1",
+             "design 阶段不触发 global-K(仅 cue-audit)", 0, 0,
+             "-", "无")])
     # ---- calibrate(QAF 数据面) ---------------------------------
     fit_banks = 2 * _bank_eps()
     c13 = _c13_eps(calls=4)  # main/holdout × (eval+c13 corpus 双调用)
@@ -284,6 +317,12 @@ def build_budget_items() -> list[dict[str, Any]]:
              * K["supervised_controls"],
              "train_supervised_mlp(namespace=…;keyword-only)",
              "envelope ledger + supervised gate 记录"),
+        item("calibrate", "bootstrap_resamples",
+             f"semantic main+holdout 各 run_c2_semantic_corpus_r17"
+             f"(gate 2+candidate 2)=2×4 调用×{boot}",
+             8 * boot, 8 * boot,
+             "run_c2_semantic_corpus_r17(orchestrator:999)",
+             "semantic gate 报告 n_boot 落盘"),
     ])
     # ---- preflight-static/lock-plan/preflight-sealed: 0 ---------
     items.append([item(
@@ -327,6 +366,12 @@ def build_budget_items() -> list[dict[str, Any]]:
         item("qualify", "generation_episodes_fresh_holdout",
              "_fresh_seed_validity 纯 seed 派生对拍,零生成", 0, 0,
              "_fresh_seed_validity_r17", "无业务叶"),
+        item("qualify", "bootstrap_resamples",
+             f"cue_semantic_qualification 1×run_c2_semantic_corpus"
+             f"_r17(gate 2+candidate 2)=4 调用×{boot}",
+             4 * boot, 4 * boot,
+             "run_c2_semantic_corpus_r17(final_core:498)",
+             "final semantic gate 报告 n_boot 落盘"),
     ])
     # ---- smoke(A2 条件许可;资格 PASS 后) ---------------------
     smoke_eps = _bank_eps() + _pair_path_eps(1)
@@ -416,6 +461,9 @@ def authorization_face(*, stop_after: str) -> dict[str, Any]:
     mc = _sum(items, "mc_events")
     boot = _sum(items, "bootstrap_resamples")
     sub = _sum(items, "subprocesses")
+    gk1 = _sum(items, "global_k_null_draws_tier1")
+    gk2 = _sum(items, "global_k_null_draws_tier2_upper")
+    check_env = _sum(items, "ppo_check_env_interactions_bound")
     return {
         "stop_after": stop_after,
         "generation_episodes_typical": eps_typ,
@@ -440,6 +488,10 @@ def authorization_face(*, stop_after: str) -> dict[str, Any]:
         "ppo_validation_env_steps": (
             K["smoke_validation_steps_max"] if smoke_on else 0),
         "model_save_load_pairs": 1 if smoke_on else 0,
+        "ppo_check_env_interactions_bound": (
+            K["smoke_check_env_steps_bound"] if smoke_on else 0),
+        "global_k_null_draws_tier1": gk1,
+        "global_k_null_draws_tier2_upper": gk2,
         "subprocesses_upper": sub,
         "metering_note": (
             "learn 调用/rollout 步/optimizer.step/验证步/save-load"
@@ -449,4 +501,132 @@ def authorization_face(*, stop_after: str) -> dict[str, Any]:
     }
 
 
-__all__ = ["K", "build_budget_items", "authorization_face"]
+
+
+# ---- 动作前预算门(R2 修复 B;ChatGPT R1 复审阻断 B-3) ----------
+#
+# 机制(最小,不另造框架):A 链有界启动器在派发链前把授权面固化为
+# out_dir/chain_budget_gate.json(每步各类别 worst_upper 上限 +
+# consumed 步骤集合);被门控的 CLI 命令(design/calibrate/qualify/
+# smoke/audit/cue-audit/preplan-smoke/determinism-matrix)在入口
+# (任何业务叶之前)调 assert_stage_budget_gate:
+#   - gate 文件不存在 → 该目录非 A 正式链(工程/测试路径),不门控;
+#   - 步骤不在 gate(计划未含,如 A1 的 smoke)→ 拒绝(后继不可达);
+#   - 步骤已 consumed → 拒绝(重试/重放不恢复;一次已开始=一次消费);
+#   - gate 各类别上界之和超过授权面(篡改/放大)→ 拒绝。
+# consumed 标记在通过全部检查后、首个业务叶之前原子落盘
+# (tmp+replace+fsync;复用坐标账本同款语义)。
+GATE_FILENAME = "chain_budget_gate.json"
+
+GATED_STEPS = ("determinism-matrix", "audit", "cue-audit",
+               "preplan-smoke", "design", "calibrate", "qualify",
+               "smoke")
+
+
+def chain_budget_gate_caps(steps_in_plan) -> dict[str, Any]:
+    """按有界计划步骤集合推导 gate caps(全部类别 worst_upper)。"""
+    items = build_budget_items()
+    caps: dict[str, dict[str, int]] = {}
+    for it in items:
+        if it["step"] not in steps_in_plan:
+            continue
+        if it["typical"] == 0 and it["worst_upper"] == 0:
+            continue
+        caps.setdefault(it["step"], {})
+        caps[it["step"]][it["category"]] = (
+            caps[it["step"]].get(it["category"], 0)
+            + int(it["worst_upper"]))
+    return caps
+
+
+def write_chain_budget_gate(out_dir: Path | str, *,
+                            steps_in_plan,
+                            stop_after: str) -> Path:
+    """A 链启动侧:写 gate(幂等:内容一致即通过;不一致拒绝)。"""
+    import json as _json
+
+    out = Path(out_dir)
+    path = out / GATE_FILENAME
+    doc = {"format": "cur261-qprod-chain-budget-gate-v1",
+           "stop_after": stop_after,
+           "steps": sorted(steps_in_plan),
+           "caps": chain_budget_gate_caps(steps_in_plan),
+           "consumed": {}}
+    if path.is_file():
+        have = _json.loads(path.read_text(encoding="utf-8"))
+        if (have.get("steps") != doc["steps"]
+                or have.get("caps") != doc["caps"]):
+            raise QProdContextError(
+                f"预算门已存在且内容不一致 {path}(不得改写/放大;"
+                f"已有 gate={have.get('steps')} 新={doc['steps']})")
+        return path
+    out.mkdir(parents=True, exist_ok=True)
+    tmp = out / (GATE_FILENAME + ".tmp")
+    tmp.write_text(_json.dumps(doc, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    import os as _os
+
+    _os.replace(tmp, path)
+    return path
+
+
+def assert_stage_budget_gate(out_dir: Path | str, step: str) -> None:
+    """被门控命令入口的动作前预算检查(零业务叶前调用)。
+
+    gate 不存在(工程/测试路径)→ 不门控直接返回;存在 → 按
+    上文语义拒绝或原子标记 consumed。
+    """
+    import json as _json
+    import os as _os
+
+    if step not in GATED_STEPS:
+        raise QProdContextError(
+            f"步骤 {step!r} 不在门控清单 {GATED_STEPS}")
+    out = Path(out_dir)
+    # determinism 产物在 out_dir/determinism 子目录,gate 在 out_dir
+    gate_path = out / GATE_FILENAME
+    if not gate_path.is_file():
+        if (out / "determinism" / GATE_FILENAME).is_file():
+            gate_path = out / "determinism" / GATE_FILENAME
+        else:
+            return  # 非正式链目录:工程路径不门控
+    doc = _json.loads(gate_path.read_text(encoding="utf-8"))
+    consumed = dict(doc.get("consumed") or {})
+    if step in consumed:
+        raise QProdContextError(
+            f"预算门:步骤 {step!r} 已消费(consumed 于 "
+            f"{consumed[step]};重试/重放不恢复,一次已开始=一次"
+            f"消费;重跑须新批准)")
+    caps = doc.get("caps") or {}
+    if step not in doc.get("steps", ()) or step not in caps:
+        raise QProdContextError(
+            f"预算门:步骤 {step!r} 不在本链计划 {doc.get('steps')}"
+            f"(停止边界后的后继不可达;A1 物理不含 smoke 等)")
+    # gate 完整性:各步骤 caps 之和不得超过授权面(防篡改/放大)
+    face = authorization_face(stop_after=str(doc.get("stop_after",
+                                                     "qualify")))
+    eps = sum(c.get("generation_episodes", 0) for c in caps.values())
+    if eps > face["authorization_cap_generation_episodes"]:
+        raise QProdContextError(
+            f"预算门:gate episodes 上界 {eps} 超过授权面 "
+            f"{face['authorization_cap_generation_episodes']}"
+            f"(篡改/放大拒绝)")
+    # 通过 → 首个业务叶之前原子标记 consumed
+    consumed[step] = _utc_now_iso()
+    doc["consumed"] = consumed
+    tmp = gate_path.with_name(gate_path.name + ".tmp")
+    tmp.write_text(_json.dumps(doc, ensure_ascii=False, indent=1),
+                   encoding="utf-8")
+    _os.replace(tmp, gate_path)
+
+
+def _utc_now_iso() -> str:
+    import datetime as _dt
+
+    return _dt.datetime.now(
+        _dt.timezone.utc).isoformat(timespec="seconds")
+
+
+__all__ = ["K", "build_budget_items", "authorization_face",
+           "GATE_FILENAME", "GATED_STEPS", "chain_budget_gate_caps",
+           "write_chain_budget_gate", "assert_stage_budget_gate"]

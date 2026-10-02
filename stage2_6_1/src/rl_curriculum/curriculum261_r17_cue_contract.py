@@ -342,13 +342,21 @@ def cue_audit_code_identity_r17() -> dict[str, str]:
 
 
 def cue_audit_plan_payload_r17(
-        code_identity: dict[str, str] | None = None) -> dict[str, Any]:
-    """§R17-10:audit data 生成前锁定的 plan payload(全部预注册)。"""
+        code_identity: dict[str, str] | None = None,
+        model_namespace: str | None = None,
+        validation_namespace: str | None = None,
+) -> dict[str, Any]:
+    """§R17-10:audit data 生成前锁定的 plan payload(全部预注册)。
+
+    model/validation namespace 可覆盖(R2 修复 A.2:QAF 尝试锁定
+    cue_contract_*_qaf_v1 全新语料身份);缺省保持 R17 冻结名。
+    """
     return {
         "format": CUE_AUDIT_PLAN_FORMAT_R17,
         "audit_namespaces": {
-            "model": AUDIT_MODEL_NAMESPACE,
-            "validation": AUDIT_VALIDATION_NAMESPACE},
+            "model": model_namespace or AUDIT_MODEL_NAMESPACE,
+            "validation": (validation_namespace
+                           or AUDIT_VALIDATION_NAMESPACE)},
         "generation_mode": {"model": "once", "validation": "attempts"},
         "blocks_per_corpus": AUDIT_BLOCKS_PER_CORPUS,
         "max_attempts_per_block": 5,
@@ -441,10 +449,14 @@ def cue_audit_plan_digest_r17(payload: dict[str, Any]) -> str:
 def lock_cue_audit_plan_r17(
         out_dir: Path,
         code_identity: dict[str, str] | None = None,
+        model_namespace: str | None = None,
+        validation_namespace: str | None = None,
 ) -> tuple[Path, str]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    payload = cue_audit_plan_payload_r17(code_identity)
+    payload = cue_audit_plan_payload_r17(
+        code_identity, model_namespace=model_namespace,
+        validation_namespace=validation_namespace)
     digest = cue_audit_plan_digest_r17(payload)
     path = out_dir / CUE_AUDIT_PLAN_FILENAME
     dpath = out_dir / CUE_AUDIT_PLAN_DIGEST_FILENAME

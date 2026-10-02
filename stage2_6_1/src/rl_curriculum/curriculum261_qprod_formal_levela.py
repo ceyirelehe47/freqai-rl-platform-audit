@@ -612,6 +612,16 @@ def run_bounded_formal_chain(
             freeze_sha=freeze_sha,
             formal_attempt=formal_attempt)
         plan = bound_workflow_plan_r17(plan, stop_after)
+        # R2 修复 B:动作前预算门——链派发前固化授权面 caps;
+        # 被门控命令入口 assert_stage_budget_gate 消费(重放拒/
+        # 后继不可达拒/篡改放大拒;工程路径无 gate 不门控)。
+        from rl_curriculum.curriculum261_qprod_formal_budget import (
+            write_chain_budget_gate,
+        )
+        write_chain_budget_gate(
+            out_dir, stop_after=stop_after,
+            steps_in_plan=[
+                s["name"] for s in plan["steps"]])
         plan_path.write_text(json.dumps(
             plan, ensure_ascii=False, indent=1), encoding="utf-8")
         chain_result = execute_workflow_chain_r17(

@@ -61,11 +61,11 @@ class TestRegistryApi:
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
         # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
         # = 97;R18 尝试族增量 30 后 = 127(正式 8);R19 尝试族
-        # (R19 处方;开放门 4.1/4.2 闭合后)再增 30 = 157,正式 12;
+        # (R19 处方后 157;QAF 校准/资格 16[R1/F06]+生成/设计/smoke 10[R2/A.2] = 183,正式 16 不变;
         # QAF 尝试族(RouteC_FormalLaunch_Preparation_v1 R1/F06)
         # 增 16(校准族 12 含 stress+四件套 4)= 173,正式 16。
         # 集合精确性由增量检查承载,不是单纯改一个数字绕过集合核验。
-        assert doc["n_namespaces"] == 173 and doc["n_formal"] == 16
+        assert doc["n_namespaces"] == 183 and doc["n_formal"] == 16
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
               "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}

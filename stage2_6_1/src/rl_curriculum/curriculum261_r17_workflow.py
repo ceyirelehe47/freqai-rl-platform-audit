@@ -300,6 +300,27 @@ R17_STATE_ROOT_ARTIFACTS: dict[str, tuple[str, ...]] = {
                 "qualification_plan_digest_r17.txt"),
 }
 
+def resolve_r17_state_root_for_chain(out_dir: str | Path) -> Path:
+    """链侧状态根解析——与 registry.r17_state_root 同源同序。
+
+    顺序:工程隔离 CURRICULUM261_R17_STATE_ROOT → 正式部署
+    CURRICULUM261_R17_DEPLOYED_STATE_ROOT → legacy out_dir/state
+    兜底(该形态下 registry 写入面拒绝,计划无处生成,前置
+    检查自然 fail closed;仅为不破坏既有工程调用者保留)。
+    生产者(lock-plan 经 registry)与消费者(本函数)必须得到
+    同一根:R2 修复 A.1——此前本处只认 STATE_ROOT,正式启动器
+    只设 DEPLOYED 根并把计划写进正式 state,链前置检查却回退
+    out_dir/state,preflight-sealed 误报"缺少资格计划"。
+    """
+    env_eng = os.environ.get("CURRICULUM261_R17_STATE_ROOT")
+    if env_eng:
+        return Path(env_eng).resolve()
+    env_deployed = os.environ.get(
+        "CURRICULUM261_R17_DEPLOYED_STATE_ROOT")
+    if env_deployed:
+        return Path(env_deployed).resolve()
+    return Path(out_dir) / "state"
+
 #: 全部 failure phase(继承 R15 20 条超集语义)。
 R17_FAILURE_PHASES: tuple[str, ...] = (
     "bootstrap", "pre-provenance", "determinism", "audit", "cue-audit",
@@ -436,11 +457,14 @@ def build_workflow_plan_r17(
     audit --fit-pairs 2、full-cold --skip-regression、report 输出
     文件名。步骤 name/order 与 formal 完全一致。
 
-    formal_attempt(RouteC_FormalLaunch_Preparation_v1 R1/F06):
-    formal profile 下给 calibrate/qualify 追加
+    formal_attempt(RouteC_FormalLaunch_Preparation_v1 R1/F06;
+    R2 修复 A.2 扩展):formal profile 下给 calibrate/qualify 追加
     --formal-namespace-attempt <id>——新正式尝试的全新数据面
     命名空间经真实 CLI 消费者接通(不只改摘要/argv 展示;
     步骤 name/order/postcondition 不变)。None=既有行为。
+    R2:A.2 要求覆盖"实际生成、设计/校准、资格和允许的 smoke
+    消费者",同一 flag 追加注入 determinism-matrix / audit /
+    cue-audit / preplan-smoke / design-plan-lock / design / smoke。
     """
     if profile not in ("formal", "rehearsal"):
         raise ValueError(f"未知 workflow profile: {profile!r}")
@@ -464,8 +488,13 @@ def build_workflow_plan_r17(
             else:
                 argv = argv + extra
         if (profile == "formal" and formal_attempt
-                and s["name"] in ("calibrate", "qualify")):
-            # R1/F06:新尝试数据面经真实 CLI 消费者接通
+                and s["name"] in (
+                    "determinism-matrix", "audit", "cue-audit",
+                    "preplan-smoke", "design-plan-lock", "design",
+                    "calibrate", "qualify", "smoke")):
+            # R1/F06:新尝试数据面经真实 CLI 消费者接通;
+            # R2 修复 A.2:覆盖实际生成/设计/校准/资格/获准
+            # smoke 全部消费者(不止 calibrate/qualify)。
             argv = argv + ["--formal-namespace-attempt",
                            str(formal_attempt)]
         argv = [a.replace("{out_dir}", str(out_dir))
@@ -642,9 +671,7 @@ def execute_workflow_chain_r17(
             # root;接口错位修复,其余产物仍按 out_dir)。映射独立
             # 于步骤声明,graph digest 不受影响。
             _sra = set(R17_STATE_ROOT_ARTIFACTS.get(name, ()))
-            _state_root = Path(os.environ.get(
-                "CURRICULUM261_R17_STATE_ROOT",
-                str(Path(out_dir) / "state")))
+            _state_root = resolve_r17_state_root_for_chain(out_dir)
 
             def _artifact_file(artifact: str) -> Path:
                 return ((_state_root if artifact in _sra

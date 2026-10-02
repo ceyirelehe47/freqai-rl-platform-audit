@@ -36,8 +36,14 @@ from rl_curriculum.evaluator import select_features_strict
 def run_ppo_smoke_r17(
         envelope_path: Path | None = None,
         pack: dict[str, Any] | None = None,
+        namespace: str = "ppo_smoke_r17",
 ) -> dict[str, Any]:
-    """256-step PPO plumbing smoke(V2 outer 无界空间;非 final namespace)。"""
+    """256-step PPO plumbing smoke(V2 outer 无界空间;非 final namespace)。
+
+    namespace(R2 修复 A.2):QAF 尝试下由 cmd_smoke 传入
+    ppo_smoke_qaf_v1——获准 smoke 亦须以全新输入身份运行;缺省
+    保持 ppo_smoke_r17(旧名注册未消费、终态不变)。
+    """
     if envelope_path is not None and Path(envelope_path).is_file():
         from rl_curriculum.curriculum261_r4_preprocessing import (
             RouteCPreprocessorV2,
@@ -46,7 +52,7 @@ def run_ppo_smoke_r17(
         preproc = RouteCPreprocessorV2.load_envelope(Path(envelope_path))
     else:
         preproc, _ = fit_preprocessor_v2_from_bank_r17(
-            "ppo_smoke_r17", pack or {"digest": "ppo-smoke-no-pack"})
+            namespace, pack or {"digest": "ppo-smoke-no-pack"})
     from rl_platform.env import AlignedLongFlatEnv
 
     override = None
@@ -57,13 +63,13 @@ def run_ppo_smoke_r17(
 
         override = r17_override_for(FAMILY_C2, pack)
     rec = generate_pair(
-        FAMILY_C2, "D1", 0, namespace="ppo_smoke_r17",
+        FAMILY_C2, "D1", 0, namespace=namespace,
         rung_params_override=override)
     ep = rec.episodes["A"]
     scaled_ep = scaled_episode(ep, preproc.inner)
     schema = r4_observation_schema(preproc)
     features = select_features_strict(
-        scaled_ep.df, schema, context="ppo_smoke_r17")
+        scaled_ep.df, schema, context=namespace)
     inner_env = AlignedLongFlatEnv(
         features=features,
         prices=scaled_ep.df[list(("open", "high", "low", "close"))],
@@ -170,7 +176,7 @@ def run_ppo_smoke_r17(
     return {
         "format": "cur261-r17-ppo-256step-smoke-v1",
         "iteration": "r17",
-        "namespace": "ppo_smoke_r17",
+        "namespace": namespace,
         "n_steps": 256,
         "model_manifest": {
             "preprocessor_bundle_hash": preproc.bundle_hash,

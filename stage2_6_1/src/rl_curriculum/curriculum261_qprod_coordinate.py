@@ -524,6 +524,31 @@ def qprod_required_cue_check_names() -> tuple[str, ...]:
 QPROD_NATIVE_BUDGET_NAME = "qprod_native_budget.json"
 
 
+def _native_budget_lock(budget_path: Path):
+    """账本互斥锁(R2 修复 C.2)。
+
+    读→校验→预占/完成写回的整个临界区在 <budget>.lock 上持
+    排他 flock:两个重叠预占请求必须串行化,只有一个能成功,
+    另一个在重读后的最新账本上被拒(零业务进入);完成写回同
+    样持锁,避免 lost update。锁文件仅用于互斥,内容无语义。
+    """
+    import contextlib
+    import fcntl
+
+    lock_path = Path(str(budget_path) + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+
+    @contextlib.contextmanager
+    def _cm():
+        with open(lock_path, "a+", encoding="utf-8") as fh:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+    return _cm()
+
 def check_native_budget(budget_path: Path | str, *, needed: int = 1
                         ) -> dict[str, int]:
     """原生执行次数预算硬门(R2-Q2)。
@@ -557,7 +582,9 @@ def check_native_budget(budget_path: Path | str, *, needed: int = 1
 
 
 def reserve_native_execution(
-        budget_path: Path | str, *, coordinate_id: str) -> dict[str, Any]:
+        budget_path: Path | str, *, coordinate_id: str,
+        artifact_root: Path | str | None = None,
+        coordinate_manifest: list | None = None) -> dict[str, Any]:
     """原生执行**持久预占**(修复轮 R3/F08)。
 
     语义:一次已开始的原生执行=一次消费,**进入受控动作前**原子
@@ -567,56 +594,70 @@ def reserve_native_execution(
     恢复为未消费;同坐标重复请求不双记(已 started 的坐标再次进入
     由坐标终态/一次性许可拦截;此处再拒一次作为独立防线)。
     """
-    import os as _os
-    import tempfile as _tempfile
-
     bp = Path(budget_path)
     if not bp.is_file():
         raise QProdContextError(
             f"原生预算文件缺失 {bp}(不默认放行;须先初始化 "
             f"{QPROD_NATIVE_BUDGET_NAME}: max_runs/consumed_runs)")
-    doc = json.loads(bp.read_text(encoding="utf-8"))
-    mx = int(doc.get("max_runs", -1))
-    started = dict(doc.get("started") or {})
-    if mx < 0:
-        raise QProdContextError(f"原生预算字段非法 max_runs={mx}")
-    # 修复轮(审查 7.2):额度=base+started 加法账。首次预占遇到
-    # 迁移形态(无 started 键)时把既有 consumed_runs 冻结为
-    # consumed_runs_base(旧额度不清零、不可被新 started 穿越);
-    # 之后 consumed_runs 仅作观测镜像(base+len(completed))。
-    if "started" not in doc and "consumed_runs_base" not in doc:
-        # 迁移形态(legacy 账本,无 started 键):把既有 consumed_runs
-        # 冻结为 base。新格式(started 在场)下 consumed_runs 只是
-        # 观测镜像,不作 base(防双计)。
-        doc["consumed_runs_base"] = int(doc.get("consumed_runs", 0) or 0)
-    base = int(doc.get("consumed_runs_base", 0) or 0)
-    used = base + len(started)
-    if coordinate_id in started:
-        raise QProdContextError(
-            f"坐标 {coordinate_id!r} 已有 started 预占记录"
-            f"(一次已开始的原生执行=一次消费;重复请求不双记、"
-            f"不恢复额度;重跑须新批准)")
-    if used >= mx:
-        raise QProdContextError(
-            f"原生执行预算耗尽:used={used}(base={base}+started="
-            f"{len(started)})/max={mx}(进入前拒绝;MC/episode 余额"
-            f"不是新原生运行授权;旧额度不清零)")
-    started[coordinate_id] = {
-        "started_utc": _now_utc(),
-        "note": "受控动作前持久预占(异常/中断不回收)",
-    }
-    new_doc = dict(doc)
-    new_doc["started"] = started
-    bp.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = _tempfile.mkstemp(
-        dir=str(bp.parent), prefix=bp.name + ".tmp")
+    with _native_budget_lock(bp):
+        doc = json.loads(bp.read_text(encoding="utf-8"))
+        if artifact_root is not None and coordinate_manifest is not None:
+            # 临界区内重验悬置(R2 修复 C.1):并发双请求下,后进
+            # 锁的请求在最新账本上看到前一 started 未终态即拒。
+            assert_no_dangling_started(
+                bp, artifact_root, coordinate_manifest)
+        mx = int(doc.get("max_runs", -1))
+        started = dict(doc.get("started") or {})
+        if mx < 0:
+            raise QProdContextError(
+                f"原生预算字段非法 max_runs={mx}")
+        # 修复轮(审查 7.2):额度=base+started 加法账。首次预占
+        # 遇到迁移形态(无 started 键)时把既有 consumed_runs
+        # 冻结为 consumed_runs_base(旧额度不清零、不可被新
+        # started 穿越);之后 consumed_runs 仅作观测镜像。
+        if "started" not in doc and "consumed_runs_base" not in doc:
+            doc["consumed_runs_base"] = int(
+                doc.get("consumed_runs", 0) or 0)
+        base = int(doc.get("consumed_runs_base", 0) or 0)
+        used = base + len(started)
+        if coordinate_id in started:
+            raise QProdContextError(
+                f"坐标 {coordinate_id!r} 已有 started 预占记录"
+                f"(一次已开始的原生执行=一次消费;重复请求不双记、"
+                f"不恢复额度;重跑须新批准)")
+        if used >= mx:
+            raise QProdContextError(
+                f"原生执行预算耗尽:used={used}(base={base}+"
+                f"started={len(started)})/max={mx}(进入前拒绝;"
+                f"MC/episode 余额不是新原生运行授权;旧额度不清零)")
+        started[coordinate_id] = {
+            "started_utc": _now_utc(),
+            "note": "受控动作前持久预占(异常/中断不回收)",
+        }
+        new_doc = dict(doc)
+        new_doc["started"] = started
+        _atomic_write_json(bp, new_doc)
+        used_after = base + len(started)  # 含本次新增
+        return {"max_runs": mx, "started": sorted(started),
+                "used": used_after,
+                "remaining_after": mx - used_after}
+
+
+def _atomic_write_json(path: Path, doc: dict[str, Any]) -> None:
+    """tmp+replace+fsync 原子写(预占/完成写回共用;R2 C.2)。"""
+    import os as _os
+    import tempfile as _tempfile
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = _tempfile.mkstemp(dir=str(path.parent),
+                                prefix=path.name + ".tmp")
     try:
         with _os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(new_doc, fh, ensure_ascii=False, indent=2)
+            json.dump(doc, fh, ensure_ascii=False, indent=2)
             fh.flush()
             _os.fsync(fh.fileno())
-        _os.replace(tmp, bp)
-        dir_fd = _os.open(str(bp.parent), _os.O_RDONLY)
+        _os.replace(tmp, path)
+        dir_fd = _os.open(str(path.parent), _os.O_RDONLY)
         try:
             _os.fsync(dir_fd)
         finally:
@@ -624,33 +665,78 @@ def reserve_native_execution(
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
-    used_after = base + len(started)  # 含本次新增
-    return {"max_runs": mx, "started": sorted(started),
-            "used": used_after,
-            "remaining_after": mx - used_after}
 
 
 def mark_native_completed(
         budget_path: Path | str, *, coordinate_id: str) -> None:
-    """坐标正常完成后的观测记账(completed 字段;额度判定不依赖)。"""
+    """坐标正常完成后的观测记账(completed 字段;额度判定不依赖)。
+
+    写回在账本锁内完成(R2 修复 C.2:预占与完成写回同一临界区
+    家族,避免 lost update)。
+    """
     bp = Path(budget_path)
-    doc = json.loads(bp.read_text(encoding="utf-8"))
+    with _native_budget_lock(bp):
+        doc = json.loads(bp.read_text(encoding="utf-8"))
+        started = dict(doc.get("started") or {})
+        if coordinate_id not in started:
+            raise QProdContextError(
+                f"坐标 {coordinate_id!r} 无 started 记录(完成记账"
+                f"须先预占;数据不一致)")
+        completed = dict(doc.get("completed") or {})
+        completed[coordinate_id] = _now_utc()
+        doc["completed"] = completed
+        base = int(doc.get("consumed_runs_base",
+                           int(doc.get("consumed_runs", 0) or 0)))
+        doc["consumed_runs_base"] = base
+        # 单调不回退(旧额度不清零):只增不减
+        doc["consumed_runs"] = max(
+            int(doc.get("consumed_runs", 0) or 0),
+            base + len(completed))
+        _atomic_write_json(bp, doc)
+
+
+def assert_no_dangling_started(
+        budget_path: Path | str, artifact_root: Path | str,
+        coordinate_manifest: list) -> None:
+    """悬置 started 后继门(R2 修复 C.1)。
+
+    started 中的坐标必须已有终态证据:该坐标目录存在 seal(seal
+    即业务终态,无论 completed 镜像是否落盘)。凡 started 无
+    seal——包括进程 os._exit/被杀来不及写 interrupted、返回后
+    封存前崩溃(completed 在场但 seal 未写)、以及仍在执行中的
+    前序——后续任何坐标启动一律拒绝(fail closed);恢复须操作
+    员处置并另行授权,不得清空 started/重置额度/补抽。interrupted
+    标记由 assert_no_technical_interruption 单独拦截,语义不变。
+    清单外 started 条目(无对应坐标目录)同样按悬置拒绝。
+    """
+    bp = Path(budget_path)
+    if not bp.is_file():
+        return  # 缺文件由 check_native_budget/reserve 拒
+    try:
+        doc = json.loads(bp.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        raise QProdContextError(f"原生预算账本不可解析: {bp}")
     started = dict(doc.get("started") or {})
-    if coordinate_id not in started:
+    if not started:
+        return
+    root = Path(artifact_root)
+    subdir_of = {str(c.get("coordinate_id")): str(
+        c.get("artifact_subdir") or "") for c in
+        coordinate_manifest or []}
+    dangling = []
+    for cid in sorted(started):
+        subdir = subdir_of.get(cid)
+        if subdir is None:
+            dangling.append(f"{cid}(不在清单)")
+            continue
+        if not (root / subdir / QPROD_COORDINATE_SEAL_NAME).is_file():
+            dangling.append(cid)
+    if dangling:
         raise QProdContextError(
-            f"坐标 {coordinate_id!r} 无 started 记录(完成记账"
-            f"须先预占;数据不一致)")
-    completed = dict(doc.get("completed") or {})
-    completed[coordinate_id] = _now_utc()
-    doc["completed"] = completed
-    base = int(doc.get("consumed_runs_base",
-                       int(doc.get("consumed_runs", 0) or 0)))
-    doc["consumed_runs_base"] = base
-    # 单调不回退(旧额度不清零):只增不减
-    doc["consumed_runs"] = max(int(doc.get("consumed_runs", 0) or 0),
-                               base + len(completed))
-    bp.write_text(json.dumps(doc, ensure_ascii=False, indent=2),
-                  encoding="utf-8")
+            f"存在无终态证据的 started 预占: {dangling}(进程退出/"
+            f"封存前失败/仍在执行均属技术未终态;后续坐标启动拒绝,"
+            f"同坐标不得重开;恢复须操作员处置并另行授权,不重置"
+            f"额度、不补抽)")
 
 
 def assert_no_technical_interruption(artifact_root: Path | str,

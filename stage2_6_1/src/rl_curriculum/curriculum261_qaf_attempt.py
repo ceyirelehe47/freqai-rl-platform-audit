@@ -69,12 +69,41 @@ QAF_CALIBRATION_FAMILY = (
     QAF_STRESS, QAF_FRESH_HOLDOUT,
 )
 
+# ---- 生成/设计/获准 smoke 消费者族(R2 修复 A.2) ----
+# 原 R1/F06 要求"覆盖实际生成、设计/校准、资格和允许的 smoke
+# 消费者";R1 交付只接了校准+资格 16 名,把 design/cue-audit/
+# audit/preplan/smoke 改称"机械面"不构成原要求达标(ChatGPT R1
+# 复审 A.2)。本组把 A 链真实消费的新输入身份补齐;旧 R17 名
+# 保持注册未消费、终态不变。候选级 dedicated semantic 命名空间
+# 由 r17_design 派生规则(base + "__" + 预注册 candidate id)
+# 从 QAF_SEMANTIC_DESIGN_* 基名自动派生,无需单列。
+QAF_AUDIT_BANK = "preplan_audit_bank_qaf_v1"
+QAF_PREPLAN_SMOKE = "preplan_smoke_qaf_v1"
+QAF_CUE_CONTRACT_MODEL = "cue_contract_model_qaf_v1"
+QAF_CUE_CONTRACT_VALIDATION = "cue_contract_validation_qaf_v1"
+QAF_DESIGN_MATCHED_MAIN = "design_qaf_matched_main"
+QAF_DESIGN_MATCHED_VALIDATION = "design_qaf_matched_validation"
+QAF_DESIGN_INDEPENDENT = "design_qaf_independent_marginal"
+QAF_SEMANTIC_DESIGN_MAIN = "cue_semantic_design_main_qaf_v1"
+QAF_SEMANTIC_DESIGN_VALIDATION = \
+    "cue_semantic_design_validation_qaf_v1"
+QAF_PPO_SMOKE = "ppo_smoke_qaf_v1"
+
+QAF_GENERATION_FAMILY = (
+    QAF_AUDIT_BANK, QAF_PREPLAN_SMOKE,
+    QAF_CUE_CONTRACT_MODEL, QAF_CUE_CONTRACT_VALIDATION,
+    QAF_DESIGN_MATCHED_MAIN, QAF_DESIGN_MATCHED_VALIDATION,
+    QAF_DESIGN_INDEPENDENT, QAF_SEMANTIC_DESIGN_MAIN,
+    QAF_SEMANTIC_DESIGN_VALIDATION, QAF_PPO_SMOKE,
+)
+
 #: QAF 全部新命名空间(api/registry 白名单 + seed 派生注册面)。
-QAF_ALL_NEW = QAF_CALIBRATION_FAMILY + QAF_FORMAL_FOUR
+QAF_ALL_NEW = (QAF_CALIBRATION_FAMILY + QAF_FORMAL_FOUR
+               + QAF_GENERATION_FAMILY)
 
 #: QAF 尝试的用户预注册数据输入范围(批准/许可 scope 绑定面):
-#: 全部 16 个 QAF 数据面命名空间(旧 R17/R18/R19 正式名不属于
-#: 本范围;混入旧名=错范围拒绝)。
+#: 全部 26 个 QAF 数据/生成/设计/smoke 命名空间(旧 R17/R18/R19
+#: 正式名不属于本范围;混入旧名=错范围拒绝)。
 QAF_INPUT_SCOPE = QAF_ALL_NEW
 
 assert len(set(QAF_ALL_NEW)) == len(QAF_ALL_NEW), (

@@ -80,7 +80,9 @@ ROOT_CAUSE_STATEMENT = (
 #: R10 失败形态;pair 3 任意但固定)。
 R17_MATRIX_TARGET = {
     "iteration": "r17",
-    "namespace": "stress_r17",
+    "namespace": "stress_r17",  # R2 A.2:QAF 尝试在入口复制为
+    # stress_qaf_id(见 _qaf_target_override;determinism 自身仍为
+    # 工程验证面,A5 prelude 探针保持工程身份,见 TECHNICAL_APPENDIX)
     "family": "c3_cost",
     "rung": "D0",
     "pair_index": 3,
@@ -224,8 +226,16 @@ def _vars_safe(mod, k):
             repr(v).encode("utf-8")).hexdigest()}
 
 
-def audit_generator_mutable_state(out_dir: Path) -> dict[str, Any]:
+def audit_generator_mutable_state(
+        out_dir: Path,
+        stress_namespace: str | None = None,
+) -> dict[str, Any]:
     """A4:进程内生成序列对共享状态的影响审计。
+
+    stress_namespace(R2 修复 A.2):QAF 尝试传入 stress_qaf_v1——
+    A4 的目标/探针生成面使用全新输入身份;缺省保持 stress_r17。
+    A5 跨进程 prelude 探针为 stub-pack 工程等价性验证面,身份
+    不随尝试变化(TECHNICAL_APPENDIX 消费者清单中显式区分)。
 
     阶段序列(每阶段后检查):基线 -> c1 生成 -> c2 生成 -> c3 生成
     -> matched block(r6 tape)-> fit bank + V2 fit -> torch import +
@@ -248,7 +258,10 @@ def audit_generator_mutable_state(out_dir: Path) -> dict[str, Any]:
                    fromlist=["generator_state_digest"])
         .generator_state_digest(spec.generator), "g-")
         for f, spec in sorted(family_specs().items())}
-    target0 = run_target_call(dict(R17_MATRIX_TARGET))
+    _target = dict(R17_MATRIX_TARGET)
+    if stress_namespace is not None:
+        _target["namespace"] = stress_namespace
+    target0 = run_target_call(_target)
     findings: list[str] = []
     phase_reports: list[dict[str, Any]] = []
 
@@ -260,7 +273,7 @@ def audit_generator_mutable_state(out_dir: Path) -> dict[str, Any]:
                        fromlist=["generator_state_digest"])
             .generator_state_digest(spec.generator), "g-")
             for f, spec in sorted(family_specs().items())}
-        t1 = run_target_call(dict(R17_MATRIX_TARGET))
+        t1 = run_target_call(dict(_target))
         drift_const = {k for k in c1 if c1[k] != constants0[k]}
         drift_glob = {k for k in g1 if g1[k] != globals0[k]}
         drift_state = {f for f in s1 if s1[f] != states0[f]}

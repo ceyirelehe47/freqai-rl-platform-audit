@@ -72,7 +72,7 @@ class TestR1NewInputIdentity:
     def test_scope_is_qaf_only(self):
         scope = formal_level_a_input_scope()
         assert set(scope) == set(QAF_INPUT_SCOPE)
-        assert len(scope) == 16
+        assert len(scope) == 26
         # 不含任何旧正式/工程/B 名(ChatGPT 复现的 12 个旧名全拒)
         for old in ("qualification_r17", "qualification_r18",
                     "qualification_r19", "preprocess_fit_qualification"
@@ -186,14 +186,15 @@ class TestR1RealConsumerThreading:
             "formal", out_dir="/tmp/x", freeze_sha=FREEZE,
             formal_attempt="qaf_v1")
         assert plan["formal_namespace_attempt"] == "qaf_v1"
-        for name in ("calibrate", "qualify"):
+        # R2 修复 A.2:flag 覆盖实际生成/设计/校准/资格/获准
+        # smoke 全部消费者(R1 时仅 calibrate/qualify)
+        for name in ("determinism-matrix", "audit", "cue-audit",
+                     "preplan-smoke", "design-plan-lock", "design",
+                     "calibrate", "qualify", "smoke"):
             step = next(s for s in plan["steps"] if s["name"] == name)
             argv = step["argv"]
             i = argv.index("--formal-namespace-attempt")
-            assert argv[i + 1] == "qaf_v1"
-        for name in ("audit", "cue-audit", "design", "smoke"):
-            step = next(s for s in plan["steps"] if s["name"] == name)
-            assert "--formal-namespace-attempt" not in step["argv"]
+            assert argv[i + 1] == "qaf_v1", name
 
     def test_plan_builder_default_unchanged(self):
         plan = build_workflow_plan_r17(

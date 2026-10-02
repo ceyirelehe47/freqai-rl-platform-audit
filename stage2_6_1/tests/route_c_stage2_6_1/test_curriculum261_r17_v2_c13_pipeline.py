@@ -428,8 +428,8 @@ def test_v04_registry_exact_increment():
             R17_ALL_NAMESPACES, R17_FORMAL_QUALIFICATION_NAMESPACES)
     except ModuleNotFoundError:
         pytest.skip('rl_curriculum not importable in this layout')
-    # 精确 173/16(v2c13 世代 97/4 + R18 增量 30/4 + R19 尝试增量
-    # 30/4 + QAF 尝试族 16/4——FLP v1 修复轮 R1/F06);非重言式:
+    # 精确 183/16(v2c13 97/4 + R18 30/4 + R19 30/4 + QAF
+    # 校准/资格 16[R1/F06] + 生成/设计/smoke 10[R2/A.2]);非重言式:
     # 与显式基线集合 + v1 四名 + v2 四名 + R18/R19/QAF 尝试名的
     # 并集精确相等。
     from rl_curriculum.curriculum261_qaf_attempt import (
@@ -438,7 +438,7 @@ def test_v04_registry_exact_increment():
         R18_ALL_NEW, R18_FORMAL_FOUR)
     from rl_curriculum.curriculum261_r19_attempt import (
         R19_ALL_NEW, R19_FORMAL_FOUR)
-    assert len(ns) == 173 and len(formal) == 16
+    assert len(ns) == 183 and len(formal) == 16
     assert tuple(ns) == R17_ALL_NAMESPACES
     v1_names = (*prof.V1_FIT_NAMESPACES.values(),
                 *prof.V1_EVAL_NAMESPACES.values())
