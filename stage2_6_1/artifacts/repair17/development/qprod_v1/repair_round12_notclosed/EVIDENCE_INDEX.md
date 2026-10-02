@@ -33,3 +33,20 @@
 - C23 及更早记录零改写;零新增原生/MC 研究/fit/optimizer/模型加载;原生 2/2 耗尽维持
 - reviewer 模型: AGENTS.md 硬绑定已解除(用户 2026-10-02),按 task.agentModelOverrides
   当前解析执行
+
+## R12-P2(review V1 F1)修复与复验 — C25=a6bee42f
+- 发现: 门/声明解耦后 _k_bound 声明兜底路径在 k_abs_diff 缺失时可新达,
+  k_tolerance 非数值('abc')时 float() 无保护抛 ValueError——同输入 C23 优雅
+  拒/C24 崩(levela 判定点不捕获);reviewer V1 FAIL(P2)
+- 修复: _k_bound 声明兜底加 try(非数值→界按不可得;1518-1544 先验已标记
+  k_ok=False+disc,与同函数优雅拒绝约定一致)
+- 复验: H2 fixture→k_tolerance 非数值先验拒;H2 no-fixture→冻结公式缺件拒
+  (等价 C23);钉 r12h 补入;R10-R12 联 22;qprod 面 206/206;R11 探针 18 拒保持
+- r21 v7b C25: run 20261002_185059 rc=0, 2747/0F/7skip, record 2c346bd6,
+  verify 2747/2261/165 — evidence/regress_v6/full_regression_v7_c25/
+  (v7_c24 顶层共享文件 CANDIDATE/r21_run 被 C25 run 覆盖后已从 646ee27b
+  恢复归位 v7_c24/ 并为 v7_c25 复制当前值)
+- 262 v20 C25: 240 RC=0(meta 绑定 a6bee42f;文件名曾沿 v18_c23 旧标签
+  已规范重命名 v20_c25;参数化 runner tmp_r12/regress262_r12.sh TAG 参数)
+- V1 PASS 判据 1-7 于 C24 全符合(reviewer 实测);P2 为唯一 FAIL 项,修复
+  形成新候选 C25 交同一 reviewer 复验
