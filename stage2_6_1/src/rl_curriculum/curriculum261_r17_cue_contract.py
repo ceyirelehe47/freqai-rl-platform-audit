@@ -1642,20 +1642,14 @@ def recompute_audit_semantics_from_report(
             _k_side_missing.append(_fld)
         else:
             _k_sides[_fld] = _v
-    if ova.get("k_abs_diff") is not None and len(_k_sides) == 2:
+    if len(_k_sides) == 2:
+        # R12-Q1: 实际一致性门的重算与冗余差值声明(k_abs_diff)
+        # 的存在解耦——两侧来源与冻结界可得时即重算真实差值并
+        # 判门,可省声明键缺失不得把已知门失败改为 True;在场
+        # 声明另做对账(R11 来源回退语义保持)。
         km = _k_sides["k_mean_model"]
         kv = _k_sides["k_mean_validation"]
         k_derived = abs(km - kv)
-        if ova.get("k_abs_diff") is not None and abs(
-                float(ova["k_abs_diff"]) - k_derived) > 1e-9:
-            k_ok = False
-            disc.append(
-                "once_vs_attempts.k_abs_diff="
-                + str(ova["k_abs_diff"])
-                + " != |k_mean_model-k_mean_validation|="
-                + str(k_derived)
-                + "(K 派生差值矛盾;单侧派生均值缺件"
-                "回退 direct_generator 原始来源重算)")
         _k_bound = (k_tol_frozen if k_tol_frozen is not None
                     else (float(ova["k_tolerance"])
                           if ova.get("k_tolerance") is not None
@@ -1666,7 +1660,18 @@ def recompute_audit_semantics_from_report(
                 "once_vs_attempts K 重算差值 |"
                 + str(km) + "-" + str(kv) + "|="
                 + str(k_derived) + " > k_tolerance 界 "
-                + str(_k_bound) + "(冻结值优先,声明值兜底)")
+                + str(_k_bound) + "(冻结值优先,声明值兜底;"
+                "与差值声明副本是否提供无关)")
+        if ova.get("k_abs_diff") is not None and abs(
+                float(ova["k_abs_diff"]) - k_derived) > 1e-9:
+            k_ok = False
+            disc.append(
+                "once_vs_attempts.k_abs_diff="
+                + str(ova["k_abs_diff"])
+                + " != |k_mean_model-k_mean_validation|="
+                + str(k_derived)
+                + "(K 派生差值矛盾;单侧派生均值缺件"
+                "回退 direct_generator 原始来源重算)")
         if ova.get("k_modes_consistent") is True and not k_ok:
             disc.append(
                 "once_vs_attempts.k_modes_consistent=True 与"
@@ -1674,7 +1679,9 @@ def recompute_audit_semantics_from_report(
     elif ova.get("k_abs_diff") is not None and _k_side_missing:
         # 两侧均无法取值(ova 副本与 dg 原始来源都缺件):k_abs_diff
         # 声明值无从重算——fixture 如实委托;无 fixture 拒
-        # (必要重算依据缺失,缺失≠True)。
+        # (必要重算依据缺失,缺失≠True)。R12:此分支只覆盖
+        # "声明在场而双侧真缺";门重算不在其中(_k_sides 不齐时
+        # 门本无法算,按原工程/正式缺件边界处理,不推测未给数据)。
         if fixture:
             delegated.append(
                 "once_vs_attempts.k_abs_diff.derivation_missing("
