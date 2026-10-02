@@ -29,12 +29,15 @@ report-read→verify-formal-logs),复用 r17 权威业务入口。
   单列为链内验收条件许可,与正式教学完全分开)**;随后
   full-cold 正式回归、report-read、verify-formal-logs。
 
-A 的全部拟议业务额度(上界;来源与推导见技术附录):
-生成 episode ≈15,000–16,000(design 候选级为最大不确定项)、
-V2 preprocessor fit 5 次、supervised MLP fit ≤84 次、
-MC 事件 1,000,000、bootstrap 重采样 ≤1,160,000、
-optimizer 更新 1 次(仅 A2)、子进程 ≈35。近期无全链实测,
-正式耗时**未知**(不引用历史开发 ≈50 分钟记录)。
+A 的全部拟议业务额度(上界;来源与推导见技术附录):预算表
+A1(停 qualify)仍列**整链**预算口径供对照(其中 optimizer
+更新=1 标注"仅第 14 步、资格 PASS 后才执行");A1 的**授权面**
+额度 optimizer 更新=0——选 A1 即不执行任何模型更新,15-17 步
+NOT_RUN。其余额度:生成 episode ≈15,000–16,000(design 候选级
+为最大不确定项)、V2 preprocessor fit 5 次、supervised MLP fit
+≤84 次、MC 事件 1,000,000、bootstrap 重采样 ≤1,160,000、
+子进程 ≈35。近期无全链实测,正式耗时**未知**(不引用历史开发
+≈50 分钟记录)。
 
 失败语义:任一 gate FAIL→终态 FAIL 封口,一次性 exposure 窗口
 不可重开,不重抽;**A 失败不启动 B,B 不能救回 A**。

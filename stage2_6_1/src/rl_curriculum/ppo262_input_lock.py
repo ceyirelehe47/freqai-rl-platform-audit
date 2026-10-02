@@ -199,6 +199,20 @@ QPROD_V1_REGISTERED_CODE_CHANGES = {
         "6b5a3cdddd0eeff59eeb5a28bb98563769b0154739c8f1505671559ab034fba4",
 }
 
+#: RouteC_FormalLaunch_Preparation_v1 登记(2026-10-02,候选
+#: df6e7eab 后续修复提交;覆盖同名键):api.py 由本轮追加
+#: CURRICULUM261_QPROD_FORMAL_NAMESPACES(22 个休眠正式坐标
+#: namespace cue_qprod_formal_v1_c01..c11_{model,validation} 进
+#: seed 派生名单;正式运行实例/exposure 零注册,生成仍被许可/
+#: 坐标锁/一次性消费链拦截;_derive261_seed_raw payload 构造与
+#: 黄金向量不变,仅新增 namespace 字符串进哈希;generator/
+#: family/production obs 语义不变)。登记哈希 = 当前树实际
+#: sha256;再漂移仍 fail(下一轮须显式再登记)。
+FLP_V1_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "efb4ffff711cfec3e43f1e6e52231873528cdc1c14e3ca31b67b6dba82c35bc0",
+}
+
 
 #: 全部迭代登记的合并视图(R6-R11 覆盖同名键;run_input_lock 的
 #: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
@@ -210,7 +224,8 @@ REGISTERED_261_CODE_CHANGES = {
     **R9_REGISTERED_CODE_CHANGES, **R10_REGISTERED_CODE_CHANGES,
     **R11_REGISTERED_CODE_CHANGES, **R17_FRAMEWORK_REGISTERED_CODE_CHANGES,
     **R25_BASELINE_REGISTERED_CODE_CHANGES,
-    **QPROD_V1_REGISTERED_CODE_CHANGES}
+    **QPROD_V1_REGISTERED_CODE_CHANGES,
+    **FLP_V1_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)
