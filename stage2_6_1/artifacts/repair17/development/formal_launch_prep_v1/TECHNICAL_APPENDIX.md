@@ -66,7 +66,7 @@ bootstrap 20000×2×2、重放 ≤50 blocks;audit 48;preplan 24。
 | preplan-smoke | 24 | — |
 | design | 12,320 / 61,600(块路径 ×5;indep +160 不变) | 0 fit |
 | calibrate(QAF) | 4,872 / 18,056 | V2 2;MLP 54×20 |
-| qualify(QAF) | 2,288 / 8,752 | V2 2;MLP 27×20;fresh 纯派生 0 |
+| qualify(QAF) | 2,288 / 8,752 | V2 1(conditioning 复用 final_v2.inner,不二次 fit);MLP 27×20;fresh 纯派生 0 |
 | smoke(仅 A2) | 146(bank 144+pair 2;cmd_smoke 不传 envelope) | V2 1;PPO 见 3.3 |
 | 其余步 | 0 | full-cold 1 回归子进程 |
 
@@ -125,3 +125,14 @@ report-read]`)——PPO/optimizer/save-load/smoke 生成恒 0=不可达;
 - 本轮证据:`evidence/`(修复轮重生成:QAF 批准夹具、预检、
   哨兵、保护根快照、成对探针 pytest 原件)、`sandbox/`。
 - 回归:`evidence/regress261`(r21 全收集)、`regress262`。
+
+
+## 7. 修复轮 reviewer 非阻断观察(记录)
+
+1. 手工混合账本形态 {max_runs, consumed_runs>0, started:{}} 下
+   used 计数只看 started——工具自身从不写该形态(初始化文档化形态
+   会被冻结为 base);后续可按模糊态 fail closed。
+2. 无 attempt 的 workflow plan 顶层新增键 `formal_namespace_attempt:
+   null`(步骤/argv/顺序不变)——「缺省行为不变」指执行语义,非
+   plan JSON 逐字节不变。
+3. qualify v2 fits=1 修正已同步本附录 §3.2 与 DECISION 表。

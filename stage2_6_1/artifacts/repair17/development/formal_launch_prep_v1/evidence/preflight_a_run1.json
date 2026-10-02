@@ -7,7 +7,7 @@
   "admission_shape_ok": true,
   "admission_present": false,
   "admission_note": "provenance-lock→Commit A→部署同步→批准绑定/签发→执行:admission 原件在 launch 前由 r17_admission_issue 对最终 Commit A 签发;此处只报在场,不代签",
-  "plan_digest": "qbpl-4772067be1520f913e792df1416d91df75a6bfccafa1b8c63848858424fe7b7f",
+  "plan_digest": "qbpl-2c62ef99454ea13c89878408ad91d9c665d0d45e85eff2b431309ed7810c1eba",
   "plan_structure_problems": [],
   "chain_steps": [
     {
@@ -233,7 +233,7 @@
     "authorization_cap_generation_episodes": 112804,
     "mc_events_total": 1000000,
     "bootstrap_resamples_upper": 80000,
-    "v2_preprocessor_fits": 9,
+    "v2_preprocessor_fits": 8,
     "supervised_mlp_fits": 85,
     "supervised_mlp_epochs_per_fit": 20,
     "supervised_mlp_note": "calibrate 54+qualify 27+determinism 4(epochs=2);A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指监督拟合;按本面逐类批准",
@@ -393,9 +393,9 @@
     {
       "step": "qualify",
       "category": "v2_preprocessor_fits",
-      "formula": "final bank+conditioning bank 各 1",
-      "typical": 2,
-      "worst_upper": 2,
+      "formula": "final bank 1 次(conditioning 复用 final_v2.inner,不二次 fit;final_core:402-403,603-608)",
+      "typical": 1,
+      "worst_upper": 1,
       "consumer": "fit_preprocessor_v2_from_bank_r17(final fit state)",
       "metering": "qualification_fit_manifest"
     },
@@ -511,6 +511,6 @@
   "findings": [],
   "business_leaf_calls": 0,
   "status": "PREPARED_PENDING_USER_APPROVAL",
-  "generated_utc": "2026-10-02T19:37:53+00:00",
-  "content_identity": "qfpf-561c3b222df1c15627074815b2dae8ef376f11e6202559f4410e1193f6d5de51"
+  "generated_utc": "2026-10-02T20:26:44+00:00",
+  "content_identity": "qfpf-eca9a5e766f7068edda408890edc4b51676282604baef1ad96d7653ab51c8f6c"
 }

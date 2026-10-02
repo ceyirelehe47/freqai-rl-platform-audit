@@ -47,7 +47,7 @@ Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
 | 生成 episodes(授权帽=worst-upper) | 28,636 典型 / 112,804 上界 | 28,782 / 112,950 |
 | MC 事件 | 1,000,000 | 1,000,000 |
 | bootstrap 重采样 | ≤80,000 | ≤80,000 |
-| V2 preprocessor fit | 9(determ 5+calib 2+qualify 2) | 10(+smoke 1) |
+| V2 preprocessor fit | 8(determ 5+calib 2+qualify 1) | 9(+smoke 1) |
 | supervised MLP fit | 85(54+27+4;epochs 20/20/2) | 85 |
 | PPO learn / rollout / optimizer.step | **0**(不可达) | 1 / 256 / ≤40 |
 | PPO 验证交互 / save+load | 0 | ≤50 / 1+1 |
