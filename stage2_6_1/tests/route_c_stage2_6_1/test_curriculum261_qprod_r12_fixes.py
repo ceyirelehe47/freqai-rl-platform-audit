@@ -205,3 +205,29 @@ def test_r12g_independent_sources_sufficient_for_gate():
         "once_vs_attempts_consistent"] is False
     assert any("3.0 > k_tolerance 界" in d
                for d in out["threshold_discrepancies"])
+
+
+def test_r12h_p2_nonnumeric_tolerance_no_crash_on_new_path():
+    """R12-P2(review V1 F1): 门重算解耦后,k_abs_diff 缺失+
+    k_tolerance 非数值('abc')+冻结界不可得(validation 直方图
+    删)——判定函数不得抛未捕获异常,须优雅拒绝(先验非数值拒
+    /无 fixture 冻结公式缺件拒),与 C23 同输入行为等价。"""
+    def m(r):
+        ova = r["once_vs_attempts"]
+        ova.pop("k_abs_diff")
+        ova["k_tolerance"] = "abc"
+        del (r["direct_generator"]["validation"]["aggregate"]
+             ["k_histogram"])
+    out = _run(m)
+    assert out["all_consistent"] is False
+    assert any("k_tolerance 非数值" in d
+               for d in out["threshold_discrepancies"])
+    out2 = _run(m, fixture=False)
+    assert out2["all_consistent"] is False
+    # 数值容限+同缺件: 正常门/缺件语义不受本保护影响
+    def m2(r):
+        ova = r["once_vs_attempts"]
+        ova.pop("k_abs_diff")
+        del (r["direct_generator"]["validation"]["aggregate"]
+             ["k_histogram"])
+    assert _run(m2, kv_val=1.0)["all_consistent"] is True

@@ -1650,10 +1650,17 @@ def recompute_audit_semantics_from_report(
         km = _k_sides["k_mean_model"]
         kv = _k_sides["k_mean_validation"]
         k_derived = abs(km - kv)
-        _k_bound = (k_tol_frozen if k_tol_frozen is not None
-                    else (float(ova["k_tolerance"])
-                          if ova.get("k_tolerance") is not None
-                          else None))
+        _k_bound = k_tol_frozen
+        if _k_bound is None and ova.get("k_tolerance") is not None:
+            # R12-P2(F1): 门重算解耦后本路径在 k_abs_diff 缺失时
+            # 也可达,声明容限非数值类型(字符串/列表等)不得让
+            # 判定函数抛未捕获异常——1518-1544 先验已将非数值/
+            # 非有限 k_tolerance 标记 k_ok=False+disc,此处界按
+            # 不可得处理,与同函数既有优雅拒绝约定一致。
+            try:
+                _k_bound = float(ova["k_tolerance"])
+            except (TypeError, ValueError, OverflowError):
+                _k_bound = None
         if _k_bound is not None and k_derived > _k_bound:
             k_ok = False
             disc.append(
