@@ -1615,10 +1615,36 @@ def recompute_audit_semantics_from_report(
                 + " 与 direct_generator." + corpus
                 + ".aggregate.k_mean=" + str(src_k)
                 + " 矛盾(K 来源不一致)")
-    if ova.get("k_mean_model") is not None \
-            and ova.get("k_mean_validation") is not None:
-        km = float(ova["k_mean_model"])
-        kv = float(ova["k_mean_validation"])
+    # R11-Q1: k_abs_diff 一致性的重算来源按依赖回退取值——ova
+    # 派生均值(k_mean_*)只是冗余副本,单侧副本缺失回退同侧
+    # direct_generator.aggregate.k_mean 原始来源;两份来源在场
+    # 即可重算绝对差,缺一个冗余副本不得屏蔽在场矛盾差值
+    # (k_tolerance 界:冻结公式值优先,自报声明缺失不改变界)。
+    _k_sides: dict[str, float] = {}
+    _k_side_missing: list[str] = []
+    for _fld, _corpus in (("k_mean_model", "model"),
+                          ("k_mean_validation", "validation")):
+        _v = None
+        if ova.get(_fld) is not None:
+            try:
+                _v = float(ova[_fld])
+            except (TypeError, ValueError, OverflowError):
+                _v = None  # 非数值已由单键先验拒,此处不重复
+        if _v is None:
+            _src = ((dg.get(_corpus, {})
+                     .get("aggregate") or {}).get("k_mean"))
+            if _src is not None:
+                try:
+                    _v = float(_src)
+                except (TypeError, ValueError, OverflowError):
+                    _v = None  # 同上,先验已拒
+        if _v is None:
+            _k_side_missing.append(_fld)
+        else:
+            _k_sides[_fld] = _v
+    if ova.get("k_abs_diff") is not None and len(_k_sides) == 2:
+        km = _k_sides["k_mean_model"]
+        kv = _k_sides["k_mean_validation"]
         k_derived = abs(km - kv)
         if ova.get("k_abs_diff") is not None and abs(
                 float(ova["k_abs_diff"]) - k_derived) > 1e-9:
@@ -1627,7 +1653,9 @@ def recompute_audit_semantics_from_report(
                 "once_vs_attempts.k_abs_diff="
                 + str(ova["k_abs_diff"])
                 + " != |k_mean_model-k_mean_validation|="
-                + str(k_derived) + "(K 派生差值矛盾)")
+                + str(k_derived)
+                + "(K 派生差值矛盾;单侧派生均值缺件"
+                "回退 direct_generator 原始来源重算)")
         _k_bound = (k_tol_frozen if k_tol_frozen is not None
                     else (float(ova["k_tolerance"])
                           if ova.get("k_tolerance") is not None
@@ -1643,6 +1671,34 @@ def recompute_audit_semantics_from_report(
             disc.append(
                 "once_vs_attempts.k_modes_consistent=True 与"
                 " 来源/派生差值重算矛盾")
+    elif ova.get("k_abs_diff") is not None and _k_side_missing:
+        # 两侧均无法取值(ova 副本与 dg 原始来源都缺件):k_abs_diff
+        # 声明值无从重算——fixture 如实委托;无 fixture 拒
+        # (必要重算依据缺失,缺失≠True)。
+        if fixture:
+            delegated.append(
+                "once_vs_attempts.k_abs_diff.derivation_missing("
+                + ",".join(_k_side_missing) + ")")
+        else:
+            k_ok = False
+            disc.append(
+                "once_vs_attempts.k_abs_diff 在场但派生差值重算"
+                "依据缺件(" + ",".join(_k_side_missing)
+                + ";ova 副本与 direct_generator 原始来源均缺,"
+                "不得视为一致)")
+    if ova.get("k_abs_diff") is not None:
+        # R11-Q1: 负绝对差自身非法——|·| 恒非负,与重算来源是否
+        # 可得无关(在场单字段合法性不以其他字段提供为前提)。
+        try:
+            if float(ova["k_abs_diff"]) < 0:
+                k_ok = False
+                disc.append(
+                    "once_vs_attempts.k_abs_diff="
+                    + str(ova["k_abs_diff"])
+                    + " 为负(绝对差恒非负,与派生均值/容限"
+                    "是否提供无关)")
+        except (TypeError, ValueError, OverflowError):
+            pass  # 非数值已由 R9-V1(F3) 先验拒
 
     if ova:
         # R5-Q1/R6-Q1: consistent 布尔不可只按声明采信,从
