@@ -1,0 +1,130 @@
+{
+  "format": "cur261-qprod-levela-qualification-raw-v1",
+  "judged_utc": "2026-10-02T10:55:38+00:00",
+  "qualification_plan_digest": "qapl-8658e9026f82afe40800f87fd6cd7a655a34bae12d34c2b3c4f1e99aa11aa23a",
+  "iteration_id": "qprod_a_eng_v1",
+  "gates": {
+    "cue_audit_pass": {
+      "pass": true,
+      "evidence": "cue_contract_audit.json",
+      "sha256": "05b5a8c2105915519ef3b26635fb458c16e22986d4168d15bb507192782b5711",
+      "observed": {
+        "pass": true,
+        "checks_all_true": true,
+        "failed_checks": [],
+        "pass_equals_all_checks": true,
+        "checks_set_matches_authority": true,
+        "required_check_names": [
+          "mc_close_to_analytic",
+          "model_corpus_ok",
+          "validation_corpus_ok",
+          "once_vs_attempts_consistent",
+          "aggregate_recompute_ok",
+          "tail_mirror_bound_integrity_pass",
+          "global_k_audit_pass",
+          "global_k_audit_not_indeterminate"
+        ],
+        "frozen_semantics_recomputed": {
+          "mc_close_to_analytic": true,
+          "model_corpus_ok": true,
+          "validation_corpus_ok": true,
+          "once_vs_attempts_consistent": true,
+          "aggregate_recompute_ok": true,
+          "tail_mirror_bound_integrity_pass": true,
+          "global_k_audit_pass": true,
+          "global_k_audit_not_indeterminate": true
+        },
+        "frozen_semantics_detail": {
+          "detail": {
+            "mc_close_to_analytic": true,
+            "model_corpus_ok": true,
+            "model_replay_bitwise_ok": true,
+            "model_p_contract_inside_ci95": true,
+            "model_tail_numeric_within": true,
+            "validation_corpus_ok": true,
+            "validation_replay_bitwise_ok": true,
+            "validation_p_contract_inside_ci95": true,
+            "validation_tail_numeric_within": true,
+            "tail_mirror_bound_integrity_pass": true,
+            "global_k_audit_pass": true,
+            "global_k_audit_not_indeterminate": true,
+            "once_vs_attempts_consistent": true,
+            "aggregate_recompute_ok": true
+          },
+          "fixture_mode": true,
+          "fixture_delegated": [
+            "aggregate_recompute_ok",
+            "global_k_audit",
+            "model.bounds_ok",
+            "model.cue_table_consistent_across_rungs",
+            "model.replay_ok",
+            "once_vs_attempts",
+            "once_vs_attempts.k_tolerance_frozen",
+            "tail_mirror_bound_integrity",
+            "validation.bounds_ok",
+            "validation.cue_table_consistent_across_rungs",
+            "validation.replay_ok"
+          ]
+        },
+        "semantics_consistent": true,
+        "threshold_drift": [],
+        "audit_digest": "r15ca-a0491721fa8d202afd1cf0f5cc1e3cdfcd13ed1288f1a7f3b8e61451b2e7dd8e",
+        "audit_digest_recomputed": "r15ca-a0491721fa8d202afd1cf0f5cc1e3cdfcd13ed1288f1a7f3b8e61451b2e7dd8e",
+        "audit_digest_consistent": true
+      }
+    },
+    "robustness_gate_pass": {
+      "pass": true,
+      "evidence": "robustness_gate.json",
+      "sha256": "efb4480c6d089736bde962646a45beb3bd525f0109ac687082dd693fbe568112",
+      "observed": {
+        "pass": true
+      }
+    },
+    "calibration_bundle_hash_match": {
+      "pass": true,
+      "evidence": "preprocessor_bundle_calibration.json",
+      "sha256": "14dec44f46ae6328897e8793618d068dacbe904cabd5df5957dee05c8de14a93",
+      "observed": {
+        "calibration_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55",
+        "plan_bound_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55"
+      }
+    },
+    "parameter_pack_digest_match": {
+      "pass": true,
+      "evidence": "parameter_pack.json",
+      "sha256": "d671aa80f2ff5f7c8b47fac840707fd58406f4732c5d0988578b8ca32205a64e",
+      "observed": {
+        "recomputed_pack_digest": "e262pk-806f85c1573110dd9308b6f13a90f9c64d6e2c218e769394db903a607361cd9b",
+        "plan_bound_digest": "e262pk-806f85c1573110dd9308b6f13a90f9c64d6e2c218e769394db903a607361cd9b"
+      }
+    },
+    "c2_marginal_evidence_ok": {
+      "pass": true,
+      "evidence": "qualification_c2_independent_marginal.json",
+      "sha256": "66c128a1b774dea0f11a005af8ea5e7ee1ab75c293c5d5bdb52f4e37264f5181",
+      "observed": {
+        "metrics": {
+          "non_cue_false_positive_max": 0.001
+        },
+        "thresholds": {
+          "non_cue_false_positive_max": 0.01
+        }
+      }
+    },
+    "exposure_one_shot_completed": {
+      "pass": true,
+      "evidence": "qprod_qualification_exposure.json",
+      "sha256": "f869d709e0f6e7ddcff7d094356142e86bcbb92dc16af1665addbda3a3be2e4e",
+      "observed": {
+        "status": "completed",
+        "one_shot": true
+      }
+    }
+  },
+  "verdict": "PASS",
+  "scope": "engineering",
+  "engineering_only": true,
+  "formal_pass": false,
+  "note": "工程 scope 判定:真实 gate 计算/失败封口语义;绝不产生正式合格声明"
+}

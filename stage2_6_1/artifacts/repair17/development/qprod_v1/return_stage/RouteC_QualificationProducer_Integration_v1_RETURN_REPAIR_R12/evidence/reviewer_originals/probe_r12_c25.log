@@ -1,0 +1,52 @@
+candidate bytes:
+  c22 sha256=62413e1e84ddd8d3f010a076437dbd05e9b7be0d9ec20a7bfa310cae64a28131
+  c23 sha256=89b4c2422edef8fa3133fef1445a4cf463f4c4c0829dc3a1e3692b181188b563
+  c24 sha256=ea8700452b2467bcb814ccb73001f2484a48b51a476f214430ce12710e1698db
+  c25 sha256=22ce6e33b0ba0cca7ded8755fa217d92965e75f36a5b3535378759d2f2fefd30
+  c25 pyfile=/home/cryptorl/projects/crypto_rl/src/rl_curriculum/curriculum261_r17_cue_contract.py
+
+case                                                 c22      c23      c24      c25      expect
+A1 1/4 full kad=3                                    False    False    False    False    OK
+A2 1/4 del kad                                       False    True     False    False    OK
+A3 1/4 del kad+kt                                    False    True     False    False    OK
+A4 1/4 full nofixture                                False    False    False    False    OK
+A5 1/4 del kad nofixture                             False    False    False    False    OK
+A6 1/4 del kad+kt nofixture                          False    False    False    False    OK
+B1 4/1 full kad=3                                    False    False    False    False    OK
+B2 4/1 del kad                                       False    True     False    False    OK
+B3 4/1 del kad+kt                                    False    True     False    False    OK
+C1 1/1 full kad=0                                    True     True     True     True     OK
+C2 1/1 del kad                                       True     True     True     True     OK
+C3 1/1 del kad+kt                                    True     True     True     True     OK
+D1 both sides missing fixture                        True     True     True     True     OK
+D2 both sides missing nofixture                      False    False    False    False    OK
+E1 kad=-0.02                                         False    False    False    False    OK
+E2 kad=-0.02 del kv                                  True     False    False    False    OK
+E3 kad=0.02                                          False    False    False    False    OK
+E4 kad=0.02 del kv                                   True     False    False    False    OK
+E5 kad=0.5                                           False    False    False    False    OK
+E6 kad=0.5 del kv+kt                                 True     False    False    False    OK
+F1 kad=0 del kv                                      True     True     True     True     OK
+F2 kad=0 del kv+kt                                   True     True     True     True     OK
+G1 1/4 del kad                                       False    True     False    False    OK
+G2 1/4 del kad+kt                                    False    True     False    False    OK
+G3 4/1 del kad                                       False    True     False    False    OK
+G4 1/1 del kad                                       True     True     True     True     OK
+I1 1/4 del both ova k_mean (dg fallback)             False    False    False    False    OK
+H1 kad on kt='abc' vhist-del (pre-existing crash)    EXC(ValueError) EXC(ValueError) EXC(ValueError) False    
+H2 kad off kt='abc' vhist-del                        EXC(ValueError) False    EXC(ValueError) False    OK
+H3 kad on kt=[0.05] vhist-del                        EXC(TypeError) EXC(TypeError) EXC(TypeError) False    
+J2 kad off kt='abc' frozen avail                     False    False    False    False    OK
+J3 kad off kt='abc' frozen unavail                   EXC(ValueError) False    EXC(ValueError) False    OK
+J4 kad off kt=nan frozen unavail                     False    False    False    False    OK
+J5 kad off kt off frozen unavail                     True     True     True     True     OK
+J6 kad off kt='abc' frozen unavail nofixture         EXC(ValueError) False    EXC(ValueError) False    OK
+
+expectation mismatches: 0
+
+C23 vs C25 equivalence on H2/J3/J6 family:
+  H2 c23=False c25=False equivalent=True
+  J3 c23=False c25=False equivalent=True
+  J6 c23=False c25=False equivalent=True
+done
+rc=0

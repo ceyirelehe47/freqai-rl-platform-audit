@@ -1,0 +1,93 @@
+interpreter: 3.11.16 | packaged by conda-forge | (main, Aug 21 2026, 22:44:51) [GCC 14.4.0]
+PYTHONPATH=/home/cryptorl/projects/crypto_rl/src
+imports:
+  c24(deploy) sha256=ea8700452b2467bcb814ccb73001f2484a48b51a476f214430ce12710e1698db name=cue_c24_reviewer
+  c22(shadow) sha256=62413e1e84ddd8d3f010a076437dbd05e9b7be0d9ec20a7bfa310cae64a28131 name=cue_c22_reviewer
+  c23(shadow) sha256=89b4c2422edef8fa3133fef1445a4cf463f4c4c0829dc3a1e3692b181188b563 name=cue_c23_reviewer
+  AUDIT_MC_ABS_TOL=0.001 AUDIT_DIFF_TOL_FLOOR=0.005 AUDIT_DIFF_SE_FACTOR=3.0 _REPLAY_TOL_REF=1e-12
+
+=== A. 1/4 (model K=1 validation K=4 real diff 3 > 0.05) fixture -> all REJECT ===
+A1 full kad=3 kt=0.05                                c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+A2 del k_abs_diff                                    c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff']
+A3 del k_abs_diff + del k_tolerance                  c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff', 'once_vs_attempts.k_tolerance']
+=== A'. 1/4 non-fixture (formal) -> all REJECT ===
+A4 full kad=3 (no fixture)                           c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+A5 del k_abs_diff (no fixture)                       c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+A6 del kad+kt (no fixture)                           c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+
+=== B. 4/1 symmetric (model K=4 validation K=1) -> all REJECT ===
+B1 full kad=3                                        c24=False
+                                                       disc: once_vs_attempts K 重算差值 |4.0-1.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+B2 del k_abs_diff                                    c24=False
+                                                       disc: once_vs_attempts K 重算差值 |4.0-1.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff']
+B3 del k_abs_diff + del k_tolerance                  c24=False
+                                                       disc: once_vs_attempts K 重算差值 |4.0-1.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff', 'once_vs_attempts.k_tolerance']
+
+=== C. legal 1/1 (real diff 0) fixture -> same deletions PASS ===
+C1 full kad=0                                        c24=True
+C2 del k_abs_diff                                    c24=True
+C3 del k_abs_diff + del k_tolerance                  c24=True
+
+=== D. both sides truly missing (ova kv + dg kv deleted) kad=0 ===
+D1 fixture -> delegation boundary                    c24=True
+D2 no-fixture -> REJECT                              c24=False
+                                                       disc: once_vs_attempts.k_abs_diff 在场但派生差值重算依据缺件(k_mean_validation;ova 副本与 direct_generator 原始来源均缺,不得视为一致)
+
+=== E. R10 triple counterexamples must stay rejected (fixture) ===
+E1 kad=-0.02 complete                                c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=-0.02 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+E2 kad=-0.02 + del k_mean_validation                 c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=-0.02 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+                                                       deleg(ova): ['once_vs_attempts.k_mean_validation']
+E3 kad=0.02 complete                                 c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=0.02 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+E4 kad=0.02 + del k_mean_validation                  c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=0.02 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+                                                       deleg(ova): ['once_vs_attempts.k_mean_validation']
+E5 kad=0.5 complete                                  c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=0.5 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+E6 kad=0.5 + del kv + del k_tolerance                c24=False
+                                                       disc: once_vs_attempts.k_abs_diff=0.5 != |k_mean_model-k_mean_validation|=0.0(K 派生差值矛盾;单侧派生均值缺件回退 direct_generator 原始来源重算)
+                                                       deleg(ova): ['once_vs_attempts.k_mean_validation', 'once_vs_attempts.k_tolerance']
+
+=== F. R11 legal delegation (kad=0) must PASS (fixture) ===
+F1 kad=0 + del k_mean_validation                     c24=True
+F2 kad=0 + del kv + del k_tolerance                  c24=True
+
+=== G. paired pre/post: C22 vs C23 vs C24 ===
+G1 1/4 del k_abs_diff                                c22=False  c23=True  c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff']
+G2 1/4 del kad+kt                                    c22=False  c23=True  c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff', 'once_vs_attempts.k_tolerance']
+G3 4/1 del k_abs_diff                                c22=False  c23=True  c24=False
+                                                       disc: once_vs_attempts K 重算差值 |4.0-1.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_abs_diff']
+G4 legal 1/1 del k_abs_diff                          c22=True  c23=True  c24=True
+
+=== H. robustness: non-numeric k_tolerance + frozen bound unavailable (val histogram deleted) ===
+H1 kad present kt='abc' val-hist-del                 c22=EXC(ValueError)  c23=EXC(ValueError)  c24=EXC(ValueError)
+                                                       disc: EXC
+H2 kad deleted kt='abc' val-hist-del                 c22=EXC(ValueError)  c23=False  c24=EXC(ValueError)
+                                                       disc: EXC
+H3 kad present kt=[0.05] val-hist-del                c22=EXC(TypeError)  c23=EXC(TypeError)  c24=EXC(TypeError)
+                                                       disc: EXC
+
+=== I. ova derived means deleted (dg fallback provides both) ===
+I1 kad=3 del both ova k_mean (1/4 via dg)            c24=False
+                                                       disc: once_vs_attempts K 重算差值 |1.0-4.0|=3.0 > k_tolerance 界 0.05(冻结值优先,声明值兜底;与差值声明副本是否提供无关)
+                                                       deleg(ova): ['once_vs_attempts.k_mean_validation']
+
+done
+rc=0

@@ -1,0 +1,12 @@
+{"verdict": "PASS", "qualification_plan_digest": "qapl-80d159637f008d37ba00fe63a88252024644e3136e9557a882fbbae92a8d9715", "ledger_steps": 17, "artifact_root": "/mnt/f/trading/tmp_r12/reviewer/e02_run/v2_perturbed/qprod_level_a_qprod_a_eng_v1/artifacts", "state_root": "/mnt/f/trading/tmp_r12/reviewer/e02_run/v2_perturbed/qprod_level_a_qprod_a_eng_v1/state"}
+rc_rehearse=0
+=== [v2_perturbed] export (verify originals -> six-file bundle) ===
+{"qualification_dir": "/mnt/f/trading/tmp_r12/reviewer/e02_run/v2_perturbed/qprod_level_a_qprod_a_eng_v1/delivery_v2_perturbed", "bindings": {"qualification_plan_digest": "qp262e-2e29822404ae8c86dff10648f146819a244129563c568b856471f7053e04ffac", "parameter_pack_digest": "e262pk-5138373977cc1c28fac0b579f686bcfc89135713ebf9c25229ae8ec6e16efffb", "preprocessor_bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55"}, "receipt": "/mnt/f/trading/tmp_r12/reviewer/e02_run/v2_perturbed/qprod_level_a_qprod_a_eng_v1/delivery_v2_perturbed/qprod_export_receipt.json"}
+rc_export=0
+=== [v2_perturbed] authority consumption auth (isolated issuer) ===
+{"authorization_path": "/mnt/f/trading/tmp_r12/reviewer/e02_run/authority_v2_perturbed/qprod_consumption_auth_delivery_v2_perturbed.json", "binding_digest": "e262az-01b2554fa3335d846c7cf95c2107580bba5a8d0e87749482542443a6a1475e64"}
+=== [v2_perturbed] consumption cold read (new process; formal reject first) ===
+formal-scope rejection OK (engineering input cannot get formal permission)
+{"cold_read": "ok", "profile": "ppo262_qprod_engineering_v1", "scope": "engineering", "bundle_hash": "r4pb-26382fb105fcfcf958f333d044cddac97c14cd3c14a7c3c84a83b94cfd726d55", "namespace": "ppo_eng_bank_262e", "probe_params": {"c1_opportunity": {"D0": {"distractor_rate": 0.0, "neg_drift_bps": 46.0, "opp_drift_bps": 60.0, "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36], "vol_bps": 26.0}, "D3": {"distractor_rate": 0.0, "neg_drift_bps": 16.0, "opp_drift_bps": 21.0, "seg_len_range": [24, 24], "state_weights": [0.36, 0.28, 0.36], "vol_bps": 26.0}}, "c3_cost": {"D0": {"alpha_bps": 70.0, "cue_rate": 0.2, "distractor_rate": 0.015, "mixture": [0.6, 0.25, 0.15], "payoff_bars": 1, "vol_bps": 18.0}, "D3": {"alpha_bps": 46.0, "cue_rate": 0.23, "distractor_rate": 0.06, "mixture": [0.14, 0.36, 0.5], "payoff_bars": 1, "vol_bps": 18.0}}}, "reset_step": {"stepped": 4, "forward_ready": true}, "bank_double": "fixture(replace native generate262_bank;zero native generation this round)", "optimizer_updates": 0}
+rc_cold_read=0
+ALL E02/E03 PASS (two preset packs)
