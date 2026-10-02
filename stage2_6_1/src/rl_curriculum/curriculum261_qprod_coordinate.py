@@ -580,15 +580,27 @@ def reserve_native_execution(
     started = dict(doc.get("started") or {})
     if mx < 0:
         raise QProdContextError(f"原生预算字段非法 max_runs={mx}")
+    # 修复轮(审查 7.2):额度=base+started 加法账。首次预占遇到
+    # 迁移形态(无 started 键)时把既有 consumed_runs 冻结为
+    # consumed_runs_base(旧额度不清零、不可被新 started 穿越);
+    # 之后 consumed_runs 仅作观测镜像(base+len(completed))。
+    if "started" not in doc and "consumed_runs_base" not in doc:
+        # 迁移形态(legacy 账本,无 started 键):把既有 consumed_runs
+        # 冻结为 base。新格式(started 在场)下 consumed_runs 只是
+        # 观测镜像,不作 base(防双计)。
+        doc["consumed_runs_base"] = int(doc.get("consumed_runs", 0) or 0)
+    base = int(doc.get("consumed_runs_base", 0) or 0)
+    used = base + len(started)
     if coordinate_id in started:
         raise QProdContextError(
             f"坐标 {coordinate_id!r} 已有 started 预占记录"
             f"(一次已开始的原生执行=一次消费;重复请求不双记、"
             f"不恢复额度;重跑须新批准)")
-    if len(started) >= mx:
+    if used >= mx:
         raise QProdContextError(
-            f"原生执行预算耗尽:started={len(started)}/max={mx}"
-            f"(进入前拒绝;MC/episode 余额不是新原生运行授权)")
+            f"原生执行预算耗尽:used={used}(base={base}+started="
+            f"{len(started)})/max={mx}(进入前拒绝;MC/episode 余额"
+            f"不是新原生运行授权;旧额度不清零)")
     started[coordinate_id] = {
         "started_utc": _now_utc(),
         "note": "受控动作前持久预占(异常/中断不回收)",
@@ -612,8 +624,10 @@ def reserve_native_execution(
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+    used_after = base + len(started)  # 含本次新增
     return {"max_runs": mx, "started": sorted(started),
-            "remaining_after": mx - len(started)}
+            "used": used_after,
+            "remaining_after": mx - used_after}
 
 
 def mark_native_completed(
@@ -629,7 +643,12 @@ def mark_native_completed(
     completed = dict(doc.get("completed") or {})
     completed[coordinate_id] = _now_utc()
     doc["completed"] = completed
-    doc["consumed_runs"] = len(completed)
+    base = int(doc.get("consumed_runs_base",
+                       int(doc.get("consumed_runs", 0) or 0)))
+    doc["consumed_runs_base"] = base
+    # 单调不回退(旧额度不清零):只增不减
+    doc["consumed_runs"] = max(int(doc.get("consumed_runs", 0) or 0),
+                               base + len(completed))
     bp.write_text(json.dumps(doc, ensure_ascii=False, indent=2),
                   encoding="utf-8")
 

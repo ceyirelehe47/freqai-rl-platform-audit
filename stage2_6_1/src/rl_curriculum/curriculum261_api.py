@@ -1531,16 +1531,25 @@ def _default_recorder(namespace: str, family: str, rung: str,
         from rl_curriculum.curriculum261_generation_envelope import (
             active_recorder,
         )
-        # repair R12-R18:iteration 字段按 namespace 后缀派生——R0-R11
-        # namespace 行为与 R11 完全一致("r11");R12-R17 namespace 各含
-        iteration = ("r19" if "r19" in namespace
-                     else "r18" if "r18" in namespace
-                     else "r17" if "r17" in namespace
-                     else "r16" if "r16" in namespace
-                     else "r15" if "r15" in namespace
-                     else "r14" if "r14" in namespace
-                     else "r13" if "r13" in namespace
-                     else "r12" if "r12" in namespace else "r11")
+        # repair R12-R18:iteration 字段按 namespace 派生。显式尝试族
+        # 先按**注册表精确成员**匹配(QAF/R19/R18;FLP v1 修复轮:
+        # 子串三元式对新族漏配 → QAF 行被记 r11、§15 完备性门必败);
+        # 其余历史名保持子串序(R0-R11 与 R11 行为一致)。
+        iteration: str | None = None
+        for _names, _label in (
+                (_QAF_ATTEMPT_NAMESPACES, "qaf_v1"),
+                (_R19_ATTEMPT_NAMESPACES, "r19"),
+                (_R18_ATTEMPT_NAMESPACES, "r18")):
+            if namespace in _names:
+                iteration = _label
+                break
+        if iteration is None:
+            iteration = ("r17" if "r17" in namespace
+                         else "r16" if "r16" in namespace
+                         else "r15" if "r15" in namespace
+                         else "r14" if "r14" in namespace
+                         else "r13" if "r13" in namespace
+                         else "r12" if "r12" in namespace else "r11")
         return active_recorder(iteration, namespace, family, rung,
                                pair_index, rung_params)
     except Exception:  # noqa: BLE001 —— 证据路径 fail-open

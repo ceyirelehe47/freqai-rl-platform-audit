@@ -348,7 +348,7 @@ class TestR2BudgetMetering:
         assert face["model_save_load_pairs"] == 0
         # A1 仍含监督拟合(不以"无模型更新"含糊监督面)
         assert face["supervised_mlp_fits"] == 54 + 27 + 4
-        assert face["v2_preprocessor_fits"] == 5 + 2 + 2  # 无 smoke
+        assert face["v2_preprocessor_fits"] == 5 + 2 + 1  # 无 smoke
         # 物理保证:有界排程不含 smoke
         plan = build_workflow_plan_r17(
             "formal", out_dir="/tmp/x", freeze_sha=FREEZE,
@@ -371,7 +371,7 @@ class TestR2BudgetMetering:
                      and i["category"] == "generation_episodes"][0]
         bank = 3 * 4 * K["bank_pairs_per_rung"] * 2
         assert smoke_eps["typical"] == bank + 2 == 146
-        assert face["v2_preprocessor_fits"] == 5 + 2 + 2 + 1  # +smoke
+        assert face["v2_preprocessor_fits"] == 5 + 2 + 1 + 1  # +smoke
 
     def test_derived_from_live_constants(self):
         assert K["bank_pairs_per_rung"] == 6

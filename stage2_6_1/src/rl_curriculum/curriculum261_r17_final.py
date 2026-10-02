@@ -156,8 +156,11 @@ def run_final_qualification_r17(out_dir: Path,
     """
     out_dir = Path(out_dir)
     rt = rehearsal_profile is not None
+    # registry 合同:各阶段入口共用守卫——aborted 后拒绝一切继续
+    # 执行(design/calibration/final)。修复轮恢复该行(误删会被
+    # A 沙盒根直接绕过;与 attempt 选择无关)。
+    require_r17_iteration_active()
     grant_four_source = "r18"
-    attempt = formal_attempt
     plan, digest = load_locked_plan_r17()
     if (plan.get("robustness_gate") or {}).get("pass") is not True:
         raise RuntimeError(
@@ -221,9 +224,8 @@ def run_final_qualification_r17(out_dir: Path,
         # 正式资格四件套按 attempt 选择(纯函数 formal_attempt_core_
         # kwargs;测试与执行同源)。缺省 None 保持既有 R18 行为
         # 字节不变;qaf_v1(R1/F06)=QProd 正式 Level A 全新输入身份。
-        attempt = formal_attempt
         core_kwargs, grant_four_source = formal_attempt_core_kwargs(
-            attempt, plan)
+            formal_attempt, plan)
 
     # ---- 受控委派协议:注册身份 → 等待绑定本进程实例的 token ---------
     if grant_four_source == "qaf_v1":

@@ -38,7 +38,10 @@ R17_ITERATION = "r17"
 #: R18/R19 尝试族(R17 框架 + 全新 namespace;journal §11 处方与
 #: R19 处方)的信封迭代标识与 r17 同属本框架治理面,完备性对账
 #: 同等接受。
-R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19")
+# FLP v1 修复轮(R1/F06):QAF 尝试族同属 R17 框架迭代
+# (信封 iteration 标识由 api 注册表派生;不含 qaf_v1 会使
+# QAF 台账行被 §15 完备性门丢弃 → 校准阶段必败)。
+R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19", "qaf_v1")
 
 
 

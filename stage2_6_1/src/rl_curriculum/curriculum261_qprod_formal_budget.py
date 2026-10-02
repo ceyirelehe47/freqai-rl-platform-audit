@@ -313,7 +313,8 @@ def build_budget_items() -> list[dict[str, Any]]:
              "execute_final_core_r17(QAF 命名空间)",
              "生成 envelope ledger(逐 pair/block/attempt)"),
         item("qualify", "v2_preprocessor_fits",
-             "final bank+conditioning bank 各 1", 2, 2,
+             "final bank 1 次(conditioning 复用 final_v2.inner,不二"
+             "次 fit;final_core:402-403,603-608)", 1, 1,
              "fit_preprocessor_v2_from_bank_r17(final fit state)",
              "qualification_fit_manifest"),
         item("qualify", "supervised_mlp_fits",
