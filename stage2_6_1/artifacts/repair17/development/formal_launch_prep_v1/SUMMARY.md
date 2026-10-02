@@ -32,8 +32,11 @@
 ## 候选链
 
 73371e1e(基线)→ df6e7eab → e1f23d7e → efb7a7ef → 0383d6cc
-(上一交付)→ **本轮修复候选(见 git log;ChatGPT 审查 FAIL 后
-原任务内修复)**。
+(上一交付,ChatGPT 审查 FAIL/NOT CLOSED)→ d5d26d6b(R1/R2/R3
+首轮修复)→ 67af9219(reviewer gate1_r3 三项修复)→ 862712b5
+(R4 阻断:input-lock 重登记 f264a3d0…,两树同步)→ 21241443(docs+
+evidence)→ **4b50ebfa(修复轮最终候选;r21 全收集 2832/0F/0E/
+7skip record d27c578a… 与 262 全套 240 passed 绑此 SHA)**。
 
 ## 验收链
 
@@ -42,8 +45,11 @@
   (REVIEW.md/REPAIR_BRIEF.md/independent_component_probes.py)。
 - 本轮:探针改写为期望正确行为的测试 + 新增相邻对照 → 独立
   reviewer(既定 dsv4.1f 角色)快验三问题与相邻路由/权限/副作用
-  → FAIL 循环修复 → 固定新候选 → r21 全收集 + 262 → 全矩阵 +
-  最终 ZIP 冷读(见 RETURN_STAGE.md 与包外回执)。
+  → gate1_r3 FAIL(3 项)→ 修复 67af9219 → gate1_r4 FAIL(新阻断
+  input-lock)→ 修复 862712b5 → gate1_r5 **修复轮快验 PASS** →
+  固定候选 21241443 → r21 全收集 + 262 → 全矩阵 + 最终 ZIP 冷读
+  (见 RETURN_STAGE.md 与包外回执)。报告原件 r3/r4/r5:
+  local/reviewer_flp_v1_gate1_r{3,4,5}.md。
 
 ## 变更面(修复轮)
 
