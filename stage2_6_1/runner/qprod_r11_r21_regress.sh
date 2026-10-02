@@ -15,7 +15,7 @@ echo "candidate=$CAND" | tee "$EVD/CANDIDATE.txt"
 # repo runner → deploy runner 已由 r21_sync 同步;直接以部署面执行
 "$PY" stage2_6_1_runner/r21_full_collection_regression.py \
   --repo "$REPO" --commit-a "$CAND" --deploy-root "$DEPLOY" \
-  --out-dir "$EVD/full_regression_v6_c21" \
+  --out-dir "$EVD/full_regression_v6_c23" \
   --target tests/route_c_stage2_6_1 \
   --label r21_full_collection_regression_qprod_r11_c23 \
   > "$EVD/r21_run.stdout.txt" 2> "$EVD/r21_run.stderr.txt"
