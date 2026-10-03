@@ -1,0 +1,18 @@
+usage: qprod-formal-level-a [-h] {draft-plan,preflight,launch} ...
+
+QProd 正式 Level A 启动入口(RouteC_FormalLaunch_Preparation_v1)。 子命令: - draft-
+plan:把正式 run-plan 草案(含 digest、命令清单、预算表) 写入准备工作目录(不触正式根;草案身份即冻结身份——digest 排除
+locked_utc,冻结与草案逐字节同 digest); - preflight:只读预检(部署配置/根形态/admission 在场/链排程/
+校准后依赖产出映射;重复执行内容身份不变); - launch:门禁(批准原件+正式许可+admission+根新鲜+停止边界一致)
+全部通过后才产生受控副作用;--sentinel-before-chain 在权威链 执行器调用边界前记录真实解析产物并诚实中断(零步骤执行)。
+真实正式资格链仍 NOT_RUN:launch 需要 formal_ready 部署配置、 用户批准原件、正式许可与 r17
+admission,四者当前都不存在。
+
+positional arguments:
+  {draft-plan,preflight,launch}
+    draft-plan          写 run-plan 草案到准备工作目录
+    preflight           只读预检
+    launch              正式启动(门禁→受控写→链)
+
+options:
+  -h, --help            show this help message and exit

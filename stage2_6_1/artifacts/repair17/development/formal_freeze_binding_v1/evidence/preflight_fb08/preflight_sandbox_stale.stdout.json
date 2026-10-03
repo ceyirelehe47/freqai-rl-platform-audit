@@ -1,0 +1,668 @@
+{
+  "format": "cur261-qprod-formal-preflight-v1",
+  "level": "level_a",
+  "iteration_id": "qprod_a_formal_v1",
+  "deployment_ok": true,
+  "deployment_note": "受信任部署配置 formal_ready(测试域沙盒)",
+  "admission_shape_ok": true,
+  "admission_present": false,
+  "admission_note": "provenance-lock→Commit A→部署同步→批准绑定/签发→执行:admission 原件在 launch 前由 r17_admission_issue 对最终 Commit A 签发;此处只报在场,不代签",
+  "plan_digest": "qbpl-4426355c398b590302f0ff7efc67cfa8612a6b376446ad1bc41f676c23ba95fc",
+  "plan_structure_problems": [],
+  "chain_steps": [
+    {
+      "name": "provenance-verify",
+      "produces": [
+        "gate_topology_provenance_verify.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "determinism-matrix",
+      "produces": [
+        "determinism/generation_determinism_contract.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "audit",
+      "produces": [
+        "r17_code_freeze.json",
+        "baseline_ancestry.json",
+        "historical_evidence_binding.json",
+        "r12_abort_binding.json",
+        "r12_iteration_failure_binding.json",
+        "r14_failure_binding.json",
+        "r15_failure_binding.json",
+        "gate_topology_reconciliation_verify.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "cue-audit",
+      "produces": [
+        "cue_contract_audit.json",
+        "cue_event_trace.jsonl"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "preplan-smoke",
+      "produces": [
+        "preplan_engineering_smoke.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "plan-roundtrip",
+      "produces": [
+        "plan_roundtrip_validation.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "design-plan-lock",
+      "produces": [
+        "r17_design_plan.json",
+        "r17_design_plan_digest.txt"
+      ],
+      "data_class": "design",
+      "postcondition": null
+    },
+    {
+      "name": "design",
+      "produces": [
+        "r17_parameter_pack.json",
+        "r17_parameter_pack_digest.txt"
+      ],
+      "data_class": "design",
+      "postcondition": null
+    },
+    {
+      "name": "calibrate",
+      "produces": [
+        "preprocessor_bundle_calibration.json",
+        "preprocessor_bundle_holdout.json",
+        "robustness_gate.json",
+        "calibration_evidence.json",
+        "preprocessing_v2_requalification.json",
+        "supervised_learnability_main.json",
+        "supervised_learnability_holdout.json"
+      ],
+      "data_class": "calibration",
+      "postcondition": null
+    },
+    {
+      "name": "preflight-static",
+      "produces": [
+        "prelock_static_preflight_r17.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "lock-plan",
+      "produces": [
+        "qualification_plan_r17.json",
+        "qualification_plan_digest_r17.txt"
+      ],
+      "data_class": "calibration",
+      "postcondition": null
+    },
+    {
+      "name": "preflight-sealed",
+      "produces": [
+        "sealed_final_preflight_r17.json",
+        "sealed_final_preflight_r17_digest.txt"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "qualify",
+      "produces": [
+        "qualification_result.json",
+        "qualification_raw.json",
+        "qualification_preprocessor_bundle.json",
+        "qualification_fit_manifest.json",
+        "qualification_pair_evidence_table.json",
+        "qualification_c2_block_evidence_table.json",
+        "qualification_c2_independent_marginal.json"
+      ],
+      "data_class": "final",
+      "postcondition": null
+    },
+    {
+      "name": "smoke",
+      "produces": [
+        "ppo_256step_smoke.json"
+      ],
+      "data_class": "final",
+      "postcondition": "final_verdict_pass"
+    },
+    {
+      "name": "full-cold",
+      "produces": [
+        "full_cold_reader_check.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": "smoke_pass"
+    },
+    {
+      "name": "report-read",
+      "produces": [
+        "r17_report_values.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    },
+    {
+      "name": "verify-formal-logs",
+      "produces": [
+        "r17_formal_log_verification.json"
+      ],
+      "data_class": "engineering",
+      "postcondition": null
+    }
+  ],
+  "artifact_producers": {
+    "baseline_ancestry.json": "audit",
+    "calibration_evidence.json": "calibrate",
+    "cue_contract_audit.json": "cue-audit",
+    "cue_event_trace.jsonl": "cue-audit",
+    "determinism/generation_determinism_contract.json": "determinism-matrix",
+    "full_cold_reader_check.json": "full-cold",
+    "gate_topology_provenance_verify.json": "provenance-verify",
+    "gate_topology_reconciliation_verify.json": "audit",
+    "historical_evidence_binding.json": "audit",
+    "plan_roundtrip_validation.json": "plan-roundtrip",
+    "ppo_256step_smoke.json": "smoke",
+    "prelock_static_preflight_r17.json": "preflight-static",
+    "preplan_engineering_smoke.json": "preplan-smoke",
+    "preprocessing_v2_requalification.json": "calibrate",
+    "preprocessor_bundle_calibration.json": "calibrate",
+    "preprocessor_bundle_holdout.json": "calibrate",
+    "qualification_c2_block_evidence_table.json": "qualify",
+    "qualification_c2_independent_marginal.json": "qualify",
+    "qualification_fit_manifest.json": "qualify",
+    "qualification_pair_evidence_table.json": "qualify",
+    "qualification_plan_digest_r17.txt": "lock-plan",
+    "qualification_plan_r17.json": "lock-plan",
+    "qualification_preprocessor_bundle.json": "qualify",
+    "qualification_raw.json": "qualify",
+    "qualification_result.json": "qualify",
+    "r12_abort_binding.json": "audit",
+    "r12_iteration_failure_binding.json": "audit",
+    "r14_failure_binding.json": "audit",
+    "r15_failure_binding.json": "audit",
+    "r17_code_freeze.json": "audit",
+    "r17_design_plan.json": "design-plan-lock",
+    "r17_design_plan_digest.txt": "design-plan-lock",
+    "r17_formal_log_verification.json": "verify-formal-logs",
+    "r17_parameter_pack.json": "design",
+    "r17_parameter_pack_digest.txt": "design",
+    "r17_report_values.json": "report-read",
+    "robustness_gate.json": "calibrate",
+    "sealed_final_preflight_r17.json": "preflight-sealed",
+    "sealed_final_preflight_r17_digest.txt": "preflight-sealed",
+    "supervised_learnability_holdout.json": "calibrate",
+    "supervised_learnability_main.json": "calibrate"
+  },
+  "calibration_dependents_produced_by": {
+    "qualification_plan_r17.json": "lock-plan(第 11 步,校准后 create-only 冻结)",
+    "qprod_research_plan.json": "launch 受控写阶段(create-only 冻结)"
+  },
+  "stale_state_findings": [
+    "state_root 已存在 qprod_research_plan.json"
+  ],
+  "authorized_stop_after": "qualify",
+  "steps_not_run_under_stop": [
+    "smoke",
+    "full-cold",
+    "report-read",
+    "verify-formal-logs"
+  ],
+  "budget": {
+    "stop_after": "qualify",
+    "generation_episodes_typical": 28798,
+    "generation_episodes_worst_upper": 113030,
+    "authorization_cap_generation_episodes": 113030,
+    "mc_events_total": 1000000,
+    "bootstrap_resamples_upper": 7500000,
+    "v2_preprocessor_fits": 9,
+    "supervised_mlp_fits": 85,
+    "supervised_mlp_epochs_per_fit": 20,
+    "supervised_mlp_note": "calibrate 54+qualify 27+determinism 4(epochs=2);A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指监督拟合;按本面逐类批准",
+    "ppo_learn_calls": 1,
+    "ppo_rollout_env_steps": 256,
+    "ppo_optimizer_steps_upper": 40,
+    "ppo_validation_env_steps": 50,
+    "model_save_load_pairs": 1,
+    "ppo_check_env_interactions_bound": 10,
+    "ppo_note": "A1 不再声称 PPO 恒 0:preflight-static 内嵌 256 步 PPO plumbing smoke(R12 起冻结;V2 serialize/reload/outer-env 检查依赖;reviewer gate1_r6 B-2 如实入面)。A2 = 内嵌 + step-14 获准 smoke 共 2 次。",
+    "global_k_null_draws_tier1": 50000,
+    "global_k_null_draws_tier2_upper": 200000,
+    "subprocesses_upper": 19,
+    "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 上界为冻结配置推导(10 epochs×4 minibatch/次),非实测;A1 含 preflight-static 内嵌 smoke 1 次,A2 = 内嵌 + step-14 获准 smoke 共 2 次"
+  },
+  "budget_items": [
+    {
+      "step": "determinism-matrix",
+      "category": "generation_episodes",
+      "formula": "A4(3 pair+bank 12 pair+1 block+6 目标调用)+A5(16 探针目标+prelude ~74 pair+bank/fit/bundle 面);attempt 最坏 ×5",
+      "typical": 700,
+      "worst_upper": 2500,
+      "consumer": "curriculum261_r17_determinism.run_r17_determinism_matrix",
+      "metering": "生成 envelope ledger(逐 attempt envelope;工程诊断域)"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "v2_preprocessor_fits",
+      "formula": "A4 1+A5 prelude 4",
+      "typical": 5,
+      "worst_upper": 5,
+      "consumer": "fit_preprocessor_v2_from_bank_r17",
+      "metering": "fit manifest 逐次落盘"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "supervised_mlp_fits",
+      "formula": "A4 1+A5 s8 3(epochs=2;工程缩减,非默认 20)",
+      "typical": 4,
+      "worst_upper": 4,
+      "consumer": "train_supervised_mlp",
+      "metering": "envelope ledger;epochs 由调用参数显式=2"
+    },
+    {
+      "step": "determinism-matrix",
+      "category": "subprocesses",
+      "formula": "16 探针子进程",
+      "typical": 17,
+      "worst_upper": 17,
+      "consumer": "curriculum261_r17_determinism A5",
+      "metering": "子进程 argv/journal 记账"
+    },
+    {
+      "step": "audit",
+      "category": "generation_episodes",
+      "formula": "bank 3 fam×4 rung×2 pair(--fit-pairs 默认 2)=24 pair=48 eps",
+      "typical": 48,
+      "worst_upper": 48,
+      "consumer": "generate_fit_bank('preplan_smoke_r17', fit_pairs=2)",
+      "metering": "生成 envelope ledger"
+    },
+    {
+      "step": "cue-audit",
+      "category": "generation_episodes",
+      "formula": "model once 500×8 + validation attempts typ 500×8/worst 500×8×5 + once_vs_attempts 重放 ≤50×8",
+      "typical": 8400,
+      "worst_upper": 24400,
+      "consumer": "_run_cue_contract_audit_core(formal=True)",
+      "metering": "生成 envelope ledger(model=once/validation=attempts;"
+    },
+    {
+      "step": "cue-audit",
+      "category": "mc_events",
+      "formula": "AUDIT_N_EVENTS=1000000",
+      "typical": 1000000,
+      "worst_upper": 1000000,
+      "consumer": "MC 解析核对(冻结常量)",
+      "metering": "audit 报告冻结明细"
+    },
+    {
+      "step": "cue-audit",
+      "category": "bootstrap_resamples",
+      "formula": "20000×2 corpus×2 统计(block_cluster+tail)",
+      "typical": 80000,
+      "worst_upper": 80000,
+      "consumer": "bootstrap 复核",
+      "metering": "audit 报告冻结明细"
+    },
+    {
+      "step": "cue-audit",
+      "category": "global_k_null_draws_tier1",
+      "formula": "NULL_B_TIER1=50000(全局 K null 分布 B=50000 次独立随机程序抽样;与 MC 1e6 不同程序)",
+      "typical": 50000,
+      "worst_upper": 50000,
+      "consumer": "run_global_k_audit(b_tier1=formal 50000)",
+      "metering": "cue_global_k_null_summary.json(n_draws 落盘)"
+    },
+    {
+      "step": "cue-audit",
+      "category": "global_k_null_draws_tier2_upper",
+      "formula": "tier2 延续同 stream 前缀至 B=4×tier1=200000(条件升级;indeterminate=FAIL)",
+      "typical": 200000,
+      "worst_upper": 200000,
+      "consumer": "run_global_k_audit(b_tier2=formal 200000)",
+      "metering": "同上(chunk digest 逐位一致;上界含 tier1 已抽样)"
+    },
+    {
+      "step": "preplan-smoke",
+      "category": "generation_episodes",
+      "formula": "3 matched blocks×8",
+      "typical": 24,
+      "worst_upper": 24,
+      "consumer": "generate_matched_block_with_attempts(preplan_smoke_r17)",
+      "metering": "生成 envelope ledger"
+    },
+    {
+      "step": "preplan-smoke",
+      "category": "bootstrap_resamples",
+      "formula": "cluster_bootstrap_rate 1 次+semantic_cue_gate 2 统计(recall+noncue)=3*20000",
+      "typical": 60000,
+      "worst_upper": 60000,
+      "consumer": "cluster_bootstrap_rate+semantic_cue_gate(cli:1449)",
+      "metering": "preplan_engineering_smoke.json(rate.n_boot 落盘)"
+    },
+    {
+      "step": "plan-roundtrip",
+      "category": "subprocesses",
+      "formula": "1 独立 load 探针",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "cmd_plan_roundtrip",
+      "metering": "链 journal"
+    },
+    {
+      "step": "design",
+      "category": "generation_episodes",
+      "formula": "(shared 2×160+candidate 3×(2×40 matched+2×160 dedicated))×8+indep 80 pair×2;候选数=参数包冻结 grid=3",
+      "typical": 12320,
+      "worst_upper": 60960,
+      "consumer": "run_design_stage_r17",
+      "metering": "生成 envelope ledger(每 block/pair 调用)"
+    },
+    {
+      "step": "design",
+      "category": "bootstrap_resamples",
+      "formula": "shared gate 2×2 + candidate matched 3×2×16(candidate_cue_semantics 实测 16 次/调用:rung 4×side 2×payoff/precision 2)+dedicated 3×2×(2+16)+independent marginal 18 = 226 调用×20000",
+      "typical": 4520000,
+      "worst_upper": 4520000,
+      "consumer": "semantic_cue_gate(2)/candidate_cue_semantics(16)/independent_cue_semantics(18)(design.py:993,1192;calibration.py:185,189;cue_eval.py:317-347,460-483)",
+      "metering": "design_plan/selection 视图各报告 n_boot 落盘;counter 探针实测口径(reviewer gate1_r6 B-1)"
+    },
+    {
+      "step": "design",
+      "category": "global_k_null_draws_tier1",
+      "formula": "design 阶段不触发 global-K(仅 cue-audit)",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "-",
+      "metering": "无"
+    },
+    {
+      "step": "calibrate",
+      "category": "generation_episodes",
+      "formula": "fit bank 2×144+c13 4 调用 640+equiv 144+supervised 数据 480+matched 2×20×8(×5 worst)+semantic 2×160×8(×5 worst)+indep 320+cond 24+stress 48 pair",
+      "typical": 4872,
+      "worst_upper": 16776,
+      "consumer": "cmd_calibrate → orchestrate_calibration_stage_r17",
+      "metering": "生成 envelope ledger(逐 pair/block/attempt)"
+    },
+    {
+      "step": "calibrate",
+      "category": "v2_preprocessor_fits",
+      "formula": "main+holdout 各 1",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "fit_preprocessor_v2_from_bank_r17",
+      "metering": "fit manifest(分区各自落盘)"
+    },
+    {
+      "step": "calibrate",
+      "category": "supervised_mlp_fits",
+      "formula": "2 分区×(3 seeds×3 fam×3 controls)=54 次×epochs 20(默认)",
+      "typical": 54,
+      "worst_upper": 54,
+      "consumer": "train_supervised_mlp(namespace=…;keyword-only)",
+      "metering": "envelope ledger + supervised gate 记录"
+    },
+    {
+      "step": "calibrate",
+      "category": "bootstrap_resamples",
+      "formula": "semantic main+holdout 各(gate 2+candidate 16)+independent marginal guard 2×18=72 调用×20000",
+      "typical": 1440000,
+      "worst_upper": 1440000,
+      "consumer": "run_c2_semantic_corpus_r17(orchestrator:999)+c2_independent_marginal_guard_r17",
+      "metering": "semantic gate/marginal 报告 n_boot 落盘;counter 探针实测口径"
+    },
+    {
+      "step": "preflight-static",
+      "category": "generation_episodes",
+      "formula": "内嵌 smoke bank 144+pair 2+matched probe 2 block×8(×5 worst)=162",
+      "typical": 162,
+      "worst_upper": 226,
+      "consumer": "run_prelock_static_preflight_r17 → run_ppo_smoke_r17+_matched_generator_probe_r17(preflight 内嵌)",
+      "metering": "smoke 报告+生成 envelope ledger"
+    },
+    {
+      "step": "preflight-static",
+      "category": "v2_preprocessor_fits",
+      "formula": "内嵌 smoke 1 次(无 envelope 时从 bank fit)",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "fit_preprocessor_v2_from_bank_r17(smoke 内)",
+      "metering": "smoke manifest preprocessor_bundle_hash"
+    },
+    {
+      "step": "preflight-static",
+      "category": "ppo_learn_calls",
+      "formula": "内嵌 smoke model.learn(256) 1 次",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "PPO.learn(经 run_ppo_smoke_r17)",
+      "metering": "smoke manifest"
+    },
+    {
+      "step": "preflight-static",
+      "category": "ppo_rollout_env_steps",
+      "formula": "内嵌 smoke n_steps=256",
+      "typical": 256,
+      "worst_upper": 256,
+      "consumer": "PPO rollout(learn 内)",
+      "metering": "smoke manifest"
+    },
+    {
+      "step": "preflight-static",
+      "category": "ppo_optimizer_steps_upper",
+      "formula": "内嵌 smoke 10×ceil(256/64)=40 次 optimizer.step(推导上界)",
+      "typical": 40,
+      "worst_upper": 40,
+      "consumer": "PPO.train(learn 内)",
+      "metering": "冻结配置推导"
+    },
+    {
+      "step": "preflight-static",
+      "category": "ppo_validation_env_steps",
+      "formula": "内嵌 smoke 验证 ≤50",
+      "typical": 50,
+      "worst_upper": 50,
+      "consumer": "run_ppo_smoke_r17 验证循环",
+      "metering": "smoke 报告"
+    },
+    {
+      "step": "preflight-static",
+      "category": "ppo_check_env_interactions_bound",
+      "formula": "内嵌 smoke check_env ≤10",
+      "typical": 10,
+      "worst_upper": 10,
+      "consumer": "stable_baselines3 check_env",
+      "metering": "SB3 版本冻结"
+    },
+    {
+      "step": "preflight-static",
+      "category": "model_save_load",
+      "formula": "内嵌 smoke save 1+load 1",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "model.save/PPO.load",
+      "metering": "smoke 报告确定性检查"
+    },
+    {
+      "step": "preflight-static",
+      "category": "bootstrap_resamples",
+      "formula": "matched probe 合成统计 2+probe candidate 16+evaluator 内 candidate 16=34 调用×20000(reviewer r7 勘正:不含 independent_cue_semantics)",
+      "typical": 680000,
+      "worst_upper": 680000,
+      "consumer": "_matched_generator_probe_r17 → cluster_bootstrap_rate/candidate_cue_semantics",
+      "metering": "preflight 报告;counter 探针实测口径"
+    },
+    {
+      "step": "lock-plan+preflight-sealed",
+      "category": "generation_episodes",
+      "formula": "纯治理/只读",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "-",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "qualify",
+      "category": "generation_episodes",
+      "formula": "bank 2×144+c13 320+matched 20×8(×5 worst)+semantic 160×8(×5 worst)+indep 160+causality/repro 额外(24 pair+2 blocks)",
+      "typical": 2272,
+      "worst_upper": 8096,
+      "consumer": "execute_final_core_r17(QAF 命名空间)",
+      "metering": "生成 envelope ledger(逐 pair/block/attempt)"
+    },
+    {
+      "step": "qualify",
+      "category": "v2_preprocessor_fits",
+      "formula": "final bank 1 次(conditioning 复用 final_v2.inner,不二次 fit;final_core:402-403,603-608)",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "fit_preprocessor_v2_from_bank_r17(final fit state)",
+      "metering": "qualification_fit_manifest"
+    },
+    {
+      "step": "qualify",
+      "category": "supervised_mlp_fits",
+      "formula": "3 seeds×3 fam×3 controls=27 次×epochs 20",
+      "typical": 27,
+      "worst_upper": 27,
+      "consumer": "final supervised(经 final fit state)",
+      "metering": "envelope ledger"
+    },
+    {
+      "step": "qualify",
+      "category": "generation_episodes_fresh_holdout",
+      "formula": "_fresh_seed_validity 纯 seed 派生对拍,零生成",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "_fresh_seed_validity_r17",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "qualify",
+      "category": "bootstrap_resamples",
+      "formula": "semantic(gate 2+candidate 16)+independent 18=36 调用×20000",
+      "typical": 720000,
+      "worst_upper": 720000,
+      "consumer": "run_c2_semantic_corpus_r17(final_core:498)+independent_cue_semantics",
+      "metering": "final semantic/marginal 报告 n_boot 落盘;counter 探针实测口径"
+    },
+    {
+      "step": "smoke",
+      "category": "generation_episodes",
+      "formula": "bank 6/rung=144 eps+1 pair=2 eps(cmd_smoke 不传 envelope)",
+      "typical": 146,
+      "worst_upper": 146,
+      "consumer": "fit_preprocessor_v2_from_bank_r17('ppo_smoke_r17')+generate_pair",
+      "metering": "生成 envelope ledger(ppo_smoke_r17 工程面)"
+    },
+    {
+      "step": "smoke",
+      "category": "v2_preprocessor_fits",
+      "formula": "smoke 内 1 次",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "fit_preprocessor_v2_from_bank_r17(ppo_smoke_r17)",
+      "metering": "smoke manifest preprocessor_bundle_hash 绑定"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_learn_calls",
+      "formula": "model.learn(256) 1 次",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "PPO.learn",
+      "metering": "smoke manifest(n_steps=256)"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_rollout_env_steps",
+      "formula": "n_steps=256(rollout buffer;1 env)",
+      "typical": 256,
+      "worst_upper": 256,
+      "consumer": "PPO rollout(learn 内)",
+      "metering": "smoke manifest"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_optimizer_steps_upper",
+      "formula": "SB3 默认 n_epochs=10×ceil(256/64)=4 minibatch=40 次 optimizer.step(上界推导;未运行不称实测)",
+      "typical": 40,
+      "worst_upper": 40,
+      "consumer": "PPO.train(learn 内)",
+      "metering": "推导自冻结配置(SB3 版本冻结);manifest 不含实际梯度步数——上界授权,非实测声明"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_validation_env_steps",
+      "formula": "验证循环 ≤50 env.step(term/trunc 提前停)",
+      "typical": 50,
+      "worst_upper": 50,
+      "consumer": "run_ppo_smoke_r17 验证循环",
+      "metering": "smoke 报告 reward 有限性"
+    },
+    {
+      "step": "smoke",
+      "category": "ppo_check_env_interactions_bound",
+      "formula": "SB3 check_env 内部 reset+少量 step(版本冻结行为;非本仓常量;≤10 记账上界)",
+      "typical": 10,
+      "worst_upper": 10,
+      "consumer": "stable_baselines3 check_env",
+      "metering": "SB3 版本冻结"
+    },
+    {
+      "step": "smoke",
+      "category": "model_save_load",
+      "formula": "save 1+load 1(TemporaryDirectory;验证确定性)",
+      "typical": 2,
+      "worst_upper": 2,
+      "consumer": "model.save/ PPO.load",
+      "metering": "smoke 报告确定性检查"
+    },
+    {
+      "step": "full-cold+report-read+verify-formal-logs",
+      "category": "generation_episodes",
+      "formula": "只读核验;0 生成/fit",
+      "typical": 0,
+      "worst_upper": 0,
+      "consumer": "read_full_cold_evidence 等",
+      "metering": "无业务叶"
+    },
+    {
+      "step": "full-cold",
+      "category": "subprocesses",
+      "formula": "regression_runner 1 子进程",
+      "typical": 1,
+      "worst_upper": 1,
+      "consumer": "cmd_full_cold",
+      "metering": "链 journal"
+    }
+  ],
+  "findings": [
+    "正式根非新鲜(旧状态/伪 PASS 补位拒绝): ['state_root 已存在 qprod_research_plan.json']"
+  ],
+  "business_leaf_calls": 0,
+  "status": "FINDINGS_PRESENT",
+  "generated_utc": "2026-10-03T18:57:49+00:00",
+  "content_identity": "qfpf-d87ab572739556043014db5eea489a26216a016a41cba6099cdccc61c4110428"
+}
