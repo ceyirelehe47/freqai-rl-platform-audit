@@ -37,6 +37,7 @@ from typing import Any, Iterable
 from rl_curriculum.curriculum261_r17_registry import (
     CURRICULUM261_ITERATION_ID_R17,
     R17_FORMAL_QUALIFICATION_NAMESPACES,
+    R17_STATE_ROOT_ENV,
     R17_DEPLOYED_STATE_ROOT,
     r17_state_root,
 )
@@ -57,6 +58,61 @@ R17_SESSION_LOCK_NAME = "r17_chain_session.lock"
 R17_EXPOSURE_MARKER_NAME = "qualification_exposure_r17.json"
 #: 迭代失败 marker 投影。
 R17_ABORTED_MARKER_NAME = "r17_iteration_aborted.json"
+
+# ------------------------------------------------ 工程自检隔离域 ------
+# R3 修复 A-2:preflight-static 等内部工程自检需要真实 acquire/
+# journal/exposure 机制,但必须与正式会话正确隔离——旧实现只把
+# STATE_ROOT 指向临时目录,冻结的部署绑定仍是正式根,acquire 的
+# 「当前根 == 冻结部署绑定」守卫必然 mismatch(正式上下文下静态
+# 预检自检必然失败)。受控修复:显式工程自检域内**成对**换绑
+# (state root env 与部署绑定同时指向断言过 ≠ 正式根的临时根),
+# 域内 acquire 一致性守卫原样成立;离开域时恢复原绑定并断言。
+# 正式守卫本身零改动;域内只允许显式 probe 标记的 binding。
+_ENGINEERING_PROBE_DOMAIN: dict[str, str] | None = None
+
+
+class engineering_probe_scope:  # noqa: N801(上下文管理器风格)
+    """内部工程自检的受控隔离域(R3 修复 A-2)。
+
+    - 进入时断言 probe 根 ≠ 冻结部署绑定(正式根零接触);
+    - STATE_ROOT env 与 execgov 的部署绑定快照**成对**指向
+      probe 根(域内 acquire 的根一致性守卫原样通过);
+    - 域内 acquire 只接受带 "probe" 标记的 binding(防混用);
+    - 退出时恢复原 env/原绑定并断言恢复成立;异常不吞。
+    """
+
+    def __init__(self, state_root: Path | str) -> None:
+        self._root = Path(state_root).resolve()
+        self._backup_deployed: str | None = None
+        self._backup_env: str | None = None
+
+    def __enter__(self) -> "engineering_probe_scope":
+        global _ENGINEERING_PROBE_DOMAIN
+        if _ENGINEERING_PROBE_DOMAIN is not None:
+            raise R17OwnershipError(
+                "工程自检域不可嵌套(一次一个受控隔离窗口)")
+        if R17_DEPLOYED_STATE_ROOT is not None and str(
+                self._root) == str(Path(
+                    R17_DEPLOYED_STATE_ROOT).resolve()):
+            raise R17OwnershipError(
+                f"工程自检根 {self._root} 不得等于正式部署绑定 "
+                f"{R17_DEPLOYED_STATE_ROOT}(正式根零接触)")
+        self._backup_deployed = R17_DEPLOYED_STATE_ROOT
+        self._backup_env = os.environ.get(R17_STATE_ROOT_ENV)
+        os.environ[R17_STATE_ROOT_ENV] = str(self._root)
+        globals()["R17_DEPLOYED_STATE_ROOT"] = str(self._root)
+        _ENGINEERING_PROBE_DOMAIN = {"root": str(self._root)}
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        global _ENGINEERING_PROBE_DOMAIN
+        _ENGINEERING_PROBE_DOMAIN = None
+        globals()["R17_DEPLOYED_STATE_ROOT"] = self._backup_deployed
+        if self._backup_env is None:
+            os.environ.pop(R17_STATE_ROOT_ENV, None)
+        else:
+            os.environ[R17_STATE_ROOT_ENV] = self._backup_env
+        return False  # 不吞异常
 
 #: 资格终态集合。
 R17_EXPOSURE_TERMINAL_STATUSES = ("completed", "failed", "crashed")
@@ -523,6 +579,13 @@ class R17ChainSession:
         拒绝 = 独立 request 证据 + R17OwnershipError,零 journal
         副作用。
         """
+        if _ENGINEERING_PROBE_DOMAIN is not None \
+                and "probe" not in binding:
+            write_rejection_evidence(
+                "engineering_probe_domain_non_probe_binding", binding)
+            raise R17OwnershipError(
+                "工程自检隔离域内只接受显式 probe 标记的 binding"
+                "(正式会话不得在自检域内 acquire)")
         root = r17_state_root()
         if (R17_DEPLOYED_STATE_ROOT is not None
                 and str(root) != R17_DEPLOYED_STATE_ROOT):

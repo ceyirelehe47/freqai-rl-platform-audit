@@ -55,6 +55,49 @@ QPROD_COORDINATE_SEAL_NAME = "qprod_coordinate_seal.json"
 QPROD_COORDINATE_INTERRUPTED_NAME = "qprod_coordinate_interrupted.json"
 QPROD_BLOCK_SEED_LOG_NAME = "qprod_block_seed_log.jsonl"
 QPROD_QUOTA_LEDGER_NAME = "qprod_quota_ledger.jsonl"
+QPROD_COORDINATE_SEAL_FORMAT = "cur261-qprod-coordinate-seal-v1"
+
+def load_terminal_seal(coord_dir: Path | str, *,
+                       coordinate_id: str | None = None,
+                       research_plan_digest: str | None = None,
+                       ) -> dict | None:
+    """加载并验证坐标封存的**可信完整终态**证据(R3 修复 C)。
+
+    终态证据 = seal 文件存在**且**是完整合法 JSON**且**绑定匹配:
+    - format == QPROD_COORDINATE_SEAL_FORMAT;
+    - coordinate_id(提供时)与该坐标一致;
+    - research_plan_digest(提供时)与冻结研究计划一致;
+    - audit_digest 为非空字符串、members_sha256 为非空映射
+      (成员摘要完备;空/截断/半写文件在此全部失败)。
+
+    返回 seal dict;文件缺失/不可解析/绑定不符/字段不全一律
+    None——「文件恰好存在」不等于「可信完整封存」。
+    """
+    path = Path(coord_dir) / QPROD_COORDINATE_SEAL_NAME
+    if not path.is_file():
+        return None
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(doc, dict):
+        return None
+    if doc.get("format") != QPROD_COORDINATE_SEAL_FORMAT:
+        return None
+    if coordinate_id is not None \
+            and doc.get("coordinate_id") != coordinate_id:
+        return None
+    if research_plan_digest is not None \
+            and doc.get("research_plan_digest") != \
+            research_plan_digest:
+        return None
+    if not isinstance(doc.get("audit_digest"), str) \
+            or not doc["audit_digest"]:
+        return None
+    members = doc.get("members_sha256")
+    if not isinstance(members, dict) or not members:
+        return None
+    return doc
 
 #: 坐标审计计划代码身份模块(冻结合同 = cue 合同模块 + 本族模块)。
 QPROD_COORDINATE_CODE_MODULES = (
@@ -584,7 +627,8 @@ def check_native_budget(budget_path: Path | str, *, needed: int = 1
 def reserve_native_execution(
         budget_path: Path | str, *, coordinate_id: str,
         artifact_root: Path | str | None = None,
-        coordinate_manifest: list | None = None) -> dict[str, Any]:
+        coordinate_manifest: list | None = None,
+        research_plan_digest: str | None = None) -> dict[str, Any]:
     """原生执行**持久预占**(修复轮 R3/F08)。
 
     语义:一次已开始的原生执行=一次消费,**进入受控动作前**原子
@@ -605,7 +649,8 @@ def reserve_native_execution(
             # 临界区内重验悬置(R2 修复 C.1):并发双请求下,后进
             # 锁的请求在最新账本上看到前一 started 未终态即拒。
             assert_no_dangling_started(
-                bp, artifact_root, coordinate_manifest)
+                bp, artifact_root, coordinate_manifest,
+                research_plan_digest=research_plan_digest)
         mx = int(doc.get("max_runs", -1))
         started = dict(doc.get("started") or {})
         if mx < 0:
@@ -697,17 +742,20 @@ def mark_native_completed(
 
 def assert_no_dangling_started(
         budget_path: Path | str, artifact_root: Path | str,
-        coordinate_manifest: list) -> None:
-    """悬置 started 后继门(R2 修复 C.1)。
+        coordinate_manifest: list, *,
+        research_plan_digest: str | None = None) -> None:
+    """悬置 started 后继门(R2 修复 C.1;R3 修复 C 收紧完整性)。
 
-    started 中的坐标必须已有终态证据:该坐标目录存在 seal(seal
-    即业务终态,无论 completed 镜像是否落盘)。凡 started 无
-    seal——包括进程 os._exit/被杀来不及写 interrupted、返回后
-    封存前崩溃(completed 在场但 seal 未写)、以及仍在执行中的
-    前序——后续任何坐标启动一律拒绝(fail closed);恢复须操作
-    员处置并另行授权,不得清空 started/重置额度/补抽。interrupted
-    标记由 assert_no_technical_interruption 单独拦截,语义不变。
-    清单外 started 条目(无对应坐标目录)同样按悬置拒绝。
+    started 中的坐标必须已有**可信完整终态**证据:该坐标目录
+    存在 seal 且通过 load_terminal_seal 完整性/绑定验证(完整
+    JSON+format+coordinate_id+研究计划 digest+成员摘要完备)。
+    凡 started 无有效 seal——包括进程 os._exit/被杀来不及写
+    interrupted、seal 打开后截断/空文件/写一半崩溃(R3:可见
+    但不完整的发布不构成终态)、绑定不符、以及仍在执行中的
+    前序——后续任何坐标启动一律拒绝(fail closed);恢复须操
+    作员处置并另行授权,不得清空 started/重置额度/补抽。
+    interrupted 标记由 assert_no_technical_interruption 单独
+    拦截,语义不变。清单外 started 条目同样按悬置拒绝。
     """
     bp = Path(budget_path)
     if not bp.is_file():
@@ -729,36 +777,69 @@ def assert_no_dangling_started(
         if subdir is None:
             dangling.append(f"{cid}(不在清单)")
             continue
-        if not (root / subdir / QPROD_COORDINATE_SEAL_NAME).is_file():
-            dangling.append(cid)
+        seal = load_terminal_seal(
+            root / subdir, coordinate_id=cid,
+            research_plan_digest=research_plan_digest)
+        if seal is None:
+            dangling.append(f"{cid}(无有效 seal)")
     if dangling:
         raise QProdContextError(
-            f"存在无终态证据的 started 预占: {dangling}(进程退出/"
-            f"封存前失败/仍在执行均属技术未终态;后续坐标启动拒绝,"
-            f"同坐标不得重开;恢复须操作员处置并另行授权,不重置"
-            f"额度、不补抽)")
+            f"存在无可信完整终态证据的 started 预占: {dangling}"
+            f"(进程退出/seal 空或截断/绑定不符/仍在执行均属技术"
+            f"未终态;后续坐标启动拒绝,同坐标不得重开;恢复须操作"
+            f"员处置并另行授权,不重置额度、不补抽)")
 
+def publish_coordinate_seal(coord_dir: Path | str, seal: dict) -> Path:
+    """坐标封存的可见终态**原子发布**(R3 修复 C)。
 
-def assert_no_technical_interruption(artifact_root: Path | str,
-                                     coordinate_manifest: list) -> None:
-    """技术中断后继门(修复轮 R3/F08)。
+    临时文件+fsync+原子 replace+目录 fsync:打开/截断/写一半
+    崩溃只会留下 tmp 残件或旧状态,消费者永远看不到「存在但
+    不完整」的 seal(load_terminal_seal 对不完整发布按无终态
+    拒绝)。
+    """
+    import os as _os
 
-    任一坐标存在 qprod_coordinate_interrupted.json 且无 seal ⇒
-    后续任何坐标启动拒绝(技术无效/中断=停止不安全执行;与合法
-    统计负结果[seal 在场,audit_pass=false]分开——后者按
-    collect_all_k 继续收齐)。
+    d = Path(coord_dir)
+    seal_tmp = d / (QPROD_COORDINATE_SEAL_NAME + ".tmp")
+    with open(seal_tmp, "w", encoding="utf-8") as _fh:
+        _fh.write(json.dumps(seal, indent=2, ensure_ascii=False))
+        _fh.flush()
+        _os.fsync(_fh.fileno())
+    _os.replace(seal_tmp, d / QPROD_COORDINATE_SEAL_NAME)
+    _dir_fd = _os.open(d, _os.O_RDONLY)
+    try:
+        _os.fsync(_dir_fd)
+    finally:
+        _os.close(_dir_fd)
+    return d / QPROD_COORDINATE_SEAL_NAME
+
+def assert_no_technical_interruption(
+        artifact_root: Path | str, coordinate_manifest: list, *,
+        research_plan_digest: str | None = None) -> None:
+    """技术中断后继门(修复轮 R3/F08;R3 修复 C 收紧)。
+
+    任一坐标存在 qprod_coordinate_interrupted.json 且无**有效**
+    seal(load_terminal_seal 完整性/绑定验证;空/截断/错绑定的
+    seal 不构成终态)⇒ 后续任何坐标启动拒绝(技术无效/中断=
+    停止不安全执行;与合法统计负结果[有效 seal 在场,
+    audit_pass=false]分开——后者按 collect_all_k 继续收齐)。
     """
     root = Path(artifact_root)
     for coord in coordinate_manifest or []:
+        cid = str(coord.get("coordinate_id"))
         d = root / str(coord.get("artifact_subdir") or "")
-        if (d / "qprod_coordinate_interrupted.json").is_file() \
-                and not (d / QPROD_COORDINATE_SEAL_NAME).is_file():
+        if not (d / "qprod_coordinate_interrupted.json").is_file():
+            continue
+        seal = load_terminal_seal(
+            d, coordinate_id=cid,
+            research_plan_digest=research_plan_digest)
+        if seal is None:
             raise QProdContextError(
-                f"坐标 {coord.get('coordinate_id')!r} 处于技术中断"
-                f"态(有 interrupted 标记且无 seal):技术中断不是"
-                f"合法统计负结果,后续坐标启动拒绝(collect_all_k "
-                f"只保留 seal 在场的有效负结果;恢复须操作员处置"
-                f"并另行授权)")
+                f"坐标 {cid!r} 处于技术中断态(有 interrupted 标记"
+                f"且无有效 seal——空/截断/绑定不符的 seal 不构成"
+                f"终态):技术中断不是合法统计负结果,后续坐标启动"
+                f"拒绝(collect_all_k 只保留有效 seal 在场的负结果;"
+                f"恢复须操作员处置并另行授权)")
 
 
 def _ledger_append(ledger_path: Path, record: dict[str, Any]) -> None:
@@ -1093,17 +1174,18 @@ def run_coordinate_audit_locked(
         "sealed_utc": datetime.now(timezone.utc).isoformat(
             timespec="seconds"),
     }
-    (coord_dir / QPROD_COORDINATE_SEAL_NAME).write_text(
-        json.dumps(seal, indent=2, ensure_ascii=False), encoding="utf-8")
+    # R3 修复 C:可见终态原子发布(publish_coordinate_seal:
+    # tmp+fsync+replace+目录 fsync;不完整发布不构成终态)。
+    publish_coordinate_seal(coord_dir, seal)
     return {"report": report, "seal": seal, "generation": totals}
 
 
 __all__ = [
     "QPROD_ENG_BLOCKS_PER_CORPUS", "QPROD_ENG_MC_EVENTS",
-    "QPROD_REQUIRED_CUE_CHECK_NAMES", "qprod_required_cue_check_names",
+    "assert_no_technical_interruption", "load_terminal_seal",
+    "publish_coordinate_seal",
     "QPROD_NATIVE_BUDGET_NAME", "check_native_budget",
     "reserve_native_execution", "mark_native_completed",
-    "assert_no_technical_interruption",
     "QPROD_ENG_GLOBAL_K_TIER1", "QPROD_COORDINATE_SEAL_NAME",
     "QPROD_QUOTA_LEDGER_NAME", "lock_coordinate_audit_plan",
     "load_coordinate_audit_plan", "run_coordinate_audit_locked",

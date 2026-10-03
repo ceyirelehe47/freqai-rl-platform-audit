@@ -238,20 +238,23 @@ def run_prelock_static_preflight_r17(
     marker_ok = False
     lock_ok = False
     with tempfile.TemporaryDirectory() as td:
-        import os
+        # R3 修复 A-2:内部工程自检改走显式隔离域——旧实现只重定向
+        # STATE_ROOT,冻结部署绑定仍是正式根,acquire 的根一致性守卫
+        # 必然 mismatch(正式上下文下静态预检自检必然失败)。隔离域
+        # 内 state root 与部署绑定**成对**指向临时根(断言 ≠ 正式
+        # 根),真实 acquire/journal/exposure 机制原样运行,正式根
+        # 零接触;退出恢复原绑定。
+        from rl_curriculum.curriculum261_r17_execgov import (
+            R17ChainSession,
+            R17OwnershipError,
+            engineering_probe_scope,
+            exposure_state as _probe_exposure_state,
+        )
 
-        old = os.environ.get("CURRICULUM261_R17_STATE_ROOT")
-        os.environ["CURRICULUM261_R17_STATE_ROOT"] = td
-        try:
+        with engineering_probe_scope(td):
             # R17:exposure 状态机探针走执行治理内核(权威 journal;
             # 临时目录状态根,不触碰正式目录)。验证:exposure 一次性
             # (二次 record 拒绝)+ 会话互斥(并发 acquire 拒绝)。
-            from rl_curriculum.curriculum261_r17_execgov import (
-                R17ChainSession,
-                R17OwnershipError,
-                exposure_state as _probe_exposure_state,
-            )
-
             probe = R17ChainSession.acquire(
                 binding={"probe": "preflight-exposure-probe"})
             try:
@@ -284,11 +287,6 @@ def run_prelock_static_preflight_r17(
                         "completed", "r17dp-preflight-probe",
                         note="preflight-static probe teardown")
                 probe.release()
-        finally:
-            if old is None:
-                os.environ.pop("CURRICULUM261_R17_STATE_ROOT", None)
-            else:
-                os.environ["CURRICULUM261_R17_STATE_ROOT"] = old
     checks["marker_atomic_exclusive"] = marker_ok
     checks["concurrent_final_lock_rejected"] = lock_ok
 

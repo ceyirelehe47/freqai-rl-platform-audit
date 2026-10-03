@@ -4387,6 +4387,22 @@ def cmd_chain_run(args: argparse.Namespace) -> int:
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(_json.dumps(
             plan, ensure_ascii=False, indent=1), encoding="utf-8")
+        if profile == "formal":
+            # R3 修复 B-1:正式 chain-run 与 _chain-bounded 同一
+            # 预算门义务——计划落盘后、执行器派发前创建 gate
+            # (caps 由冻结预算项派生;被门控命令在业务叶前消费;
+            # 正式子进程缺门 fail closed)。rehearsal 工程链不门控。
+            from rl_curriculum.curriculum261_qprod_formal_budget \
+                import write_chain_budget_gate
+
+            _step_names = [s.get("name") for s in plan.get(
+                "steps", []) if s.get("name")]
+            _stop = ("verify-formal-logs"
+                     if "verify-formal-logs" in _step_names
+                     else "qualify")
+            write_chain_budget_gate(
+                out_dir, steps_in_plan=_step_names,
+                stop_after=_stop)
         chain_result = execute_workflow_chain_r17(
             plan, session=session, log_dir=log_dir)
         result_path = out_dir / "r17_chain_result.json"

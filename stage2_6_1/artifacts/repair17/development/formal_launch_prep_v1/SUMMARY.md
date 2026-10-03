@@ -100,3 +100,12 @@ tests:formal_repair.py(37,新)、r17_governance_unit(计数/集合
 - B run-coordinate 成功后 completed 观测记账(额度判定只看
   started,异常路径保守);
 - validate_formal_permit 的 quota/stop 对拍经计划 digest 间接绑定。
+
+R3 修复轮(ChatGPT R2 复审 7abe9262 FAIL:三工作面五阻断):
+A-1 授权语义统一(内嵌 preflight-static PPO 自检显式入 A1/A2
+授权面,机器可读 embedded_preflight_smoke;第 14 步资格后验收
+smoke 独立键;DECISION 全文一致);A-2 engineering_probe_scope
+(正式绑定下静态预检自检可用;正式守卫零改动);B-1 chain-run
+formal 门接线+缺门按上下文 fail closed;B-2 gate caps 逐项精确
+一致;C load_terminal_seal+原子发布+入口/锁内 digest 绑定。
+repair5 27 项+旧夹具升级;FLP 面 144 passed。

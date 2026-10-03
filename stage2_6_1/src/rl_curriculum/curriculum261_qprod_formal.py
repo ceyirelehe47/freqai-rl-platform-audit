@@ -293,8 +293,10 @@ def validate_formal_approval(
         raise QProdContextError(
             f"批准 model_update_authorized="
             f"{approved['model_update_authorized']!r} != 请求 "
-            f"{model_update_authorized!r}(链内 smoke/模型更新授权"
-            f"不含糊)")
+            f"{model_update_authorized!r}(第 14 步资格后验收 smoke "
+            f"授权不含糊;内嵌 preflight-static 自检 smoke 由选择 "
+            f"A1/A2 本身显式包含,见 run_scope.embedded_preflight_"
+            f"smoke)")
     src = approval["approval_source"]
     if not isinstance(src, dict) or src.get(
             "kind") != "user_direct_approval" or not src.get(

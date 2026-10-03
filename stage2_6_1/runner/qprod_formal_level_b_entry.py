@@ -215,15 +215,18 @@ def cmd_run_coordinate(args: argparse.Namespace) -> int:
     budget_path = ctx.state_root / QPROD_NATIVE_BUDGET_NAME
     try:
         assert_no_technical_interruption(
-            ctx.artifact_root, plan["coordinate_manifest"])
+            ctx.artifact_root, plan["coordinate_manifest"],
+            research_plan_digest=plan["research_plan_digest"])
         assert_no_dangling_started(
             budget_path, ctx.artifact_root,
-            plan["coordinate_manifest"])
+            plan["coordinate_manifest"],
+            research_plan_digest=plan["research_plan_digest"])
         check_native_budget(budget_path, needed=1)
         reserve_native_execution(
             budget_path, coordinate_id=args.coordinate_id,
             artifact_root=ctx.artifact_root,
-            coordinate_manifest=plan["coordinate_manifest"])
+            coordinate_manifest=plan["coordinate_manifest"],
+            research_plan_digest=plan["research_plan_digest"])
     except QProdContextError as exc:
         print(f"[run-coordinate] 原生预算/后继门拒绝(零叶调用):"
               f" {exc}")

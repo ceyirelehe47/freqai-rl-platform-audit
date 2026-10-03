@@ -641,8 +641,13 @@ def write_chain_budget_gate(out_dir: Path | str, *,
 def assert_stage_budget_gate(out_dir: Path | str, step: str) -> None:
     """被门控命令入口的动作前预算检查(零业务叶前调用)。
 
-    gate 不存在(工程/测试路径)→ 不门控直接返回;存在 → 按
-    上文语义拒绝或原子标记 consumed。
+    gate 不存在时按上下文区分(R3 修复 B-1):正式链上下文
+    (CURRICULUM261_R17_DEPLOYED_STATE_ROOT 在场=正式部署绑定
+    子进程)缺门 fail closed——不得以「文件不存在」推断工程
+    豁免;工程/测试路径(无部署绑定)不门控直接返回。
+    gate 在场 → 按 caps 与冻结授权派生值**逐项精确一致**校验
+    (R3 修复 B-2:正数不足/零值/放大/漂移全部拒绝,不只总额
+    上限)后按既有语义拒绝或原子标记 consumed。
     """
     import json as _json
     import os as _os
@@ -656,6 +661,12 @@ def assert_stage_budget_gate(out_dir: Path | str, step: str) -> None:
     if not gate_path.is_file():
         if (out / "determinism" / GATE_FILENAME).is_file():
             gate_path = out / "determinism" / GATE_FILENAME
+        elif _os.environ.get(
+                "CURRICULUM261_R17_DEPLOYED_STATE_ROOT"):
+            raise QProdContextError(
+                f"预算门缺失 {gate_path} 且当前为正式部署上下文"
+                f"(R17_DEPLOYED_STATE_ROOT 在场):正式链缺门"
+                f"fail closed,不得按工程路径放行")
         else:
             return  # 非正式链目录:工程路径不门控
     doc = _json.loads(gate_path.read_text(encoding="utf-8"))
@@ -670,6 +681,17 @@ def assert_stage_budget_gate(out_dir: Path | str, step: str) -> None:
         raise QProdContextError(
             f"预算门:步骤 {step!r} 不在本链计划 {doc.get('steps')}"
             f"(停止边界后的后继不可达;A1 物理不含 smoke 等)")
+    # R3 修复 B-2:分项数值与冻结授权派生值**逐项精确一致**——
+    # 每步每类别 cap 必须 == chain_budget_gate_caps(steps) 的
+    # 对应值(正数不足[如 generation_episodes=1/bootstrap=1/
+    # optimizer=0]、放大[bootstrap=10^12]、漂移均拒绝;仅靠
+    # 总额上限无法拦截单类错值)。
+    expected_caps = chain_budget_gate_caps(doc.get("steps", ()))
+    if caps != expected_caps:
+        raise QProdContextError(
+            f"预算门:gate caps 与冻结授权派生值不一致(逐项精确"
+            f"一致校验;正数不足/零值/放大/漂移拒绝) "
+            f"gate={caps} expected={expected_caps}")
     # gate 完整性:各步骤 caps 之和不得超过授权面(防篡改/放大)
     face = authorization_face(stop_after=str(doc.get("stop_after",
                                                      "qualify")))

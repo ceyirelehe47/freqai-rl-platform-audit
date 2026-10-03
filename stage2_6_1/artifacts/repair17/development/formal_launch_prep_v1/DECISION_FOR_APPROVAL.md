@@ -8,14 +8,13 @@ Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
 ## 关键修订(相对上一版)
 
 1. **A 输入身份(QAF)**:正式 Level A 不再以 R17/R18/R19 旧正式
-   namespace 为输入范围。新数据面 = QAF 族 16 名
+   namespace 为输入范围。新数据面 = QAF 族 26 名(纯 QAF 声明全量;16 名资格/校准族+生成/设计/smoke 族 10 名)
    (`*_qaf_v1`:校准族 12 + 资格四件套 4),经
    `--formal-namespace-attempt qaf_v1` 接通真实消费者(calibrate
    的 fit bank/C1C3/supervised/semantic/c2_independent/stress 与
    qualify 的 final/fit/independent/semantic/fresh_holdout + grant
    四件套)。seed 成对隔离经全网格验证;旧名混入批准/许可在
-   绑定与许可层双重拒绝。机械面(determinism/design/cue-audit/
-   audit/smoke 工程命名空间)按 R18/R19 前例保持冻结身份。
+   绑定与许可层双重拒绝。机械面中真实生成/设计/smoke 的输入身份已纳入 QAF(共 10 步 CLI 消费者经 --formal-namespace-attempt 接通);determinism 诊断/审计台账等纯机械记录面按 R18/R19 前例保持冻结身份。
 2. **A 预算计量(R2)**:废弃旧 16,000 上界(与分项算术不符)。
    权威分项见 `curriculum261_qprod_formal_budget`(常量运行时从
    执行面导入;每项 formula/typical/worst_upper/消费点/记账)。
@@ -30,10 +29,14 @@ Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
 
 权威 17 步链 + QAF 数据面。**二选一停止边界(批准时必选)**:
 
-- **A1 停在 qualify**(不批准 PPO/模型更新):链执行第 1–13 步后
-  收口;smoke/full-cold/report-read 标 NOT_RUN(有界排程物理不含
-  该步,PPO 面恒 0,不是"未批准但可达");资格判定结果可报告,
-  但不得报告"完整 17 步链完成"。
+- **A1 停在 qualify**(不授权第 14 步资格后验收 smoke):链执行
+  第 1–13 步后收口;smoke/full-cold/report-read 标 NOT_RUN(有界
+  排程物理不含该步,不是"未批准但可达");资格判定结果可报告,
+  但不得报告"完整 17 步链完成"。**A1 显式包含**链固有内嵌工程
+  自检 smoke(preflight-static 第 10 步,R12 冻结):1 次 learn、
+  rollout 256、optimizer.step ≤40、验证 ≤50、check_env ≤10、
+  save 1+load 1,输入身份 ppo_smoke_qaf_v1(机器可读字段
+  run_scope.embedded_preflight_smoke)。A1 不再宣称「PPO 面恒 0」。
 - **A2 完整链**(显式批准链内 smoke):含资格 PASS 后的第 14 步
   smoke(**1 次 learn 调用、rollout 256 环境步、optimizer.step
   上界 40=SB3 默认 10 epochs×4 minibatch、验证 ≤50 步、save 1+
@@ -82,6 +85,7 @@ smoke)入口在任何业务叶之前检查:步骤不在计划=后继不可达拒
 
 ## 明确不执行(未批准即 NOT_RUN)
 
-新 Level A/B 链、正式资格判定、K=11 抽样、正式教学/训练、任何
-optimizer/PPO 更新(除 A2 显式批准的链内 smoke)、冻结生产计划、
+新 Level A/B 链、正式资格判定、K=11 抽样、正式教学/训练、第 14 步
+资格后验收 smoke(仅 A2 显式批准;A1/A2 均显式包含 preflight-
+static 内嵌 256 步 PPO plumbing 自检 smoke,见选项 A)、冻结生产计划、
 正式数据暴露。QProd 原生 2/2 与 TrainingBridge 旧账不重置不借用。

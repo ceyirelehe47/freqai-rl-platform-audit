@@ -255,3 +255,44 @@ FAIL/NOT CLOSED 的三个工作面;原件在
   --formal-namespace-attempt(QAF 链内注入);内嵌 smoke+matched
   probe 使用 ppo_smoke_qaf_v1(缺省工程路径保持 ppo_smoke_r17)。
   消费者清单更新:QAF 链被门控面=10 步。
+
+
+## 9. 修复轮 R3(ChatGPT R2 复审 7abe9262 FAIL 三工作面后)
+
+- **A-1 授权语义统一**:两类 PPO 更新分开——①内嵌工程自检
+  smoke(preflight-static,R12 冻结)任何 A1/A2 批准显式包含,
+  机器可读字段 run_scope.embedded_preflight_smoke(1/256/≤40/
+  ≤50/≤10/1+1;输入身份 ppo_smoke_qaf_v1);②第 14 步资格后
+  验收 smoke 仅 A2(stop=verify-formal-logs 且
+  model_update_authorized=True)。rules.post_qualification_
+  smoke_authorized 独立成键;A1 不再宣称「PPO 面恒 0」;
+  DECISION 选项 A/范围说明/末尾豁免同步改写。
+- **A-2 静态预检自检根隔离**:execgov 新增 engineering_probe_
+  scope——进入断言 probe 根 ≠ 冻结部署绑定;域内 STATE_ROOT
+  env 与部署绑定**成对**指向 probe 根(acquire 根一致性守卫
+  原样通过);域内 acquire 只接受 probe 标记 binding;退出
+  恢复原绑定。preflight-static 探针改走该域(旧实现正式绑定
+  在场时 acquire 必 R17OwnershipError)。正式守卫零改动、
+  正式根零接触(测试断言 formal root 目录为空)。
+- **B-1 A2 入口预算门**:cmd_chain_run formal 分支在计划落盘
+  后、执行器派发前 write_chain_budget_gate(与 _chain-bounded
+  同一义务);assert_stage_budget_gate 缺门时按上下文区分——
+  CURRICULUM261_R17_DEPLOYED_STATE_ROOT 在场(正式子进程)
+  fail closed,无绑定(工程/测试)保持不门控。
+- **B-2 gate 逐项精确一致**:caps 必须与 chain_budget_gate_
+  caps(steps) 派生值**逐项相等**(单类正数不足/零值/放大/
+  漂移全拒;总额上限检查保留为第二道)。
+- **C seal 可信完整终态**:load_terminal_seal(完整 JSON+
+  format+coordinate_id+研究计划 digest+audit_digest/members
+  完备;空/截断/错绑定=None);assert_no_dangling_started/
+  assert_no_technical_interruption 升级为有效性判定并接
+  research_plan_digest(runner 入口与 reserve 锁内均传递);
+  producer 侧 publish_coordinate_seal(tmp+fsync+replace+目录
+  fsync 原子发布)。合法负结果(有效 seal,audit_pass=false)
+  仍按 collect_all_k 继续。
+- 测试:test_curriculum261_qprod_formal_repair5.py(27 项:
+  A-1 计划机器字段/A-2 隔离域四情形+preflight 真实自检/B-1
+  chain-run 门接线+缺门 fail closed/B-2 篡改矩阵/C 有效性
+  矩阵+发布故障注入);repair/repair3/repair4 旧夹具升级到
+  完整 seal/新消息口径(144 passed)。
+- input-lock:本轮未改 api.py(f264a3d0… 不变),无需重登记。

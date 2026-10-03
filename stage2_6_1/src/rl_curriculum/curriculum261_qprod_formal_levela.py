@@ -76,11 +76,23 @@ def build_formal_level_a_plan(
     """正式 Level A 数据前 run-plan 载荷(冻结前可算 digest)。
 
     预算面由 curriculum261_qprod_formal_budget 授权面给出
-    (R2 修复:逐类计量);smoke 的 PPO 计量单列为条件许可——
-    authorized_stop_after=verify-formal-logs 才包含第 14 步,
-    且必须 model_update_authorized=True;停在 qualify 时后续
-    步骤 NOT_RUN,不得宣称完整 17 步(监督 MLP 拟合在 A1/A2
-    都发生,按预算面逐类批准,不以'无模型更新'含糊)。
+    (R2 修复:逐类计量;R3 修复 A-1:授权语义统一)。
+
+    两类 PPO 更新明确分开(R3 修复 A-1,消除「A1 无模型更新
+    但链内嵌 PPO」的矛盾):
+    1. **内嵌工程自检 smoke**(preflight-static 第 10 步,链固
+       有,R12 冻结):任何 A1/A2 批准都**显式包含**该内嵌
+       PPO plumbing smoke(1 次 learn、rollout 256、optimizer.
+       step ≤40、验证 ≤50、check_env ≤10、save 1+load 1;
+       输入身份 ppo_smoke_qaf_v1)——机器可读字段
+       run_scope.embedded_preflight_smoke;
+    2. **资格后验收 smoke**(第 14 步,条件许可):仅
+       authorized_stop_after=verify-formal-logs(A2)且
+       model_update_authorized=True 时进入;A1 停在 qualify,
+       14-17 步 NOT_RUN(不再宣称「PPO 面恒 0」——内嵌自检
+       smoke 的 PPO 计量按第 1 类如实入面)。
+    正式教学与两者均分开,独立未授权。监督 MLP 拟合在 A1/A2
+    都发生,按预算面逐类批准。
     """
     if authorized_stop_after not in QPROD_FORMAL_STOP_CHOICES:
         raise QProdContextError(
@@ -89,12 +101,14 @@ def build_formal_level_a_plan(
     if authorized_stop_after == "verify-formal-logs" \
             and not model_update_authorized:
         raise QProdContextError(
-            "完整链含第 14 步 smoke(256 环境步、1 次 optimizer"
-            "更新):未批准模型更新不得请求完整链(停在 qualify)")
+            "完整链含第 14 步资格后验收 smoke(1 次 learn、256 "
+            "环境步、optimizer.step ≤40):未批准该步不得请求完整"
+            "链(停在 qualify)")
     if authorized_stop_after == "qualify" and model_update_authorized:
         raise QProdContextError(
-            "model_update_authorized=True 而停止边界=qualify:"
-            "授权与停止边界不一致(批准口径必须二者一致)")
+            "model_update_authorized=True(第 14 步资格后验收 "
+            "smoke 授权)而停止边界=qualify:授权与停止边界不一致"
+            "(批准口径必须二者一致;A1 停 qualify 即不授权第 14 步)")
     budget_face = _budget_face(stop_after=authorized_stop_after)
     budget_items = _budget_items()
     payload = {
@@ -118,6 +132,23 @@ def build_formal_level_a_plan(
                 "one_shot_window(r17 execgov qualification 委派协议;"
                 "不可重开)"),
             "authorized_stop_after": authorized_stop_after,
+            "embedded_preflight_smoke": {
+                "authorized": True,
+                "step": "preflight-static",
+                "description": (
+                    "链固有内嵌工程自检 smoke(R12 冻结):任何 "
+                    "A1/A2 批准显式包含该 PPO plumbing 自检;输入"
+                    "身份 ppo_smoke_qaf_v1(R3 修复 A-1:授权表示"
+                    "与真实可达更新路径一致)"),
+                "ppo": {
+                    "learn_calls": 1,
+                    "rollout_env_steps": 256,
+                    "optimizer_steps_upper": 40,
+                    "validation_env_steps_upper": 50,
+                    "check_env_interactions_upper": 10,
+                    "model_save_load_pairs": 1,
+                },
+            },
         },
         "rules": {
             "gate_semantics_ref": (
@@ -126,14 +157,20 @@ def build_formal_level_a_plan(
                 "plan 由链第 11 步 lock-plan 在校准后 create-only "
                 "冻结,不得事前捏造"),
             "model_update_authorized": model_update_authorized,
+            "post_qualification_smoke_authorized":
+                model_update_authorized,
             "smoke_policy": (
-                "第 14 步 smoke=资格 PASS 后链内验收的条件许可"
-                "(1 次 learn 调用、rollout 256 环境步、optimizer."
-                "step 上界 40=SB3 默认 10 epochs×4 minibatch、验证"
-                "≤50 步、save 1+load 1;逐类计量与批准,不混写为"
-                "'一次更新'),与正式教学分开;未授权(A1)时链停在 "
-                "qualify,15-17 步 NOT_RUN(PPO 面恒 0 由有界排程"
-                "物理保证)"),
+                "两类 PPO 更新分开(R3 修复 A-1):①内嵌工程自检"
+                " smoke=preflight-static 链固有部分,A1/A2 批准均"
+                "显式包含(1 次 learn、rollout 256、optimizer.step "
+                "上界 40、验证 ≤50、check_env ≤10、save 1+load 1;"
+                "输入身份 ppo_smoke_qaf_v1;机器可读字段 run_scope."
+                "embedded_preflight_smoke);②第 14 步资格后验收 "
+                "smoke=qualify final PASS 后链内验收的条件许可(同"
+                "样逐类计量;仅 A2[stop=verify-formal-logs 且 "
+                "model_update_authorized=True]授权),与正式教学分开;"
+                "A1 停在 qualify,14-17 步 NOT_RUN——A1 不再宣称"
+                "「PPO 面恒 0」,第 ① 类计量已如实入授权面"),
         },
         "quota": {
             # 通用许可配额 schema(4 键;validate_permit 强制正整数)。

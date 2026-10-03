@@ -254,7 +254,7 @@ class TestC1DanglingStartedGate:
             reserve_native_execution(
                 budget, coordinate_id="c02",
                 artifact_root=art, coordinate_manifest=man)
-        assert "无终态证据" in str(ei.value)
+        assert "无有效 seal" in str(ei.value)
         doc = json.loads(budget.read_text(encoding="utf-8"))
         assert set(doc["started"]) == {"c01"}  # 不清空/不补抽
 
@@ -272,7 +272,7 @@ class TestC1DanglingStartedGate:
                 budget, coordinate_id="c02",
                 artifact_root=tmp_path / "artifacts",
                 coordinate_manifest=_manifest())
-        assert "无终态证据" in str(ei.value)
+        assert "无有效 seal" in str(ei.value)
 
     def test_sealed_coordinate_allows_next_collect_all_k(self,
                                                           tmp_path):
@@ -289,7 +289,16 @@ class TestC1DanglingStartedGate:
         d = art / "coord_c01"
         d.mkdir(parents=True)
         (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-            json.dumps({"audit_pass": False}), encoding="utf-8")
+            json.dumps({
+                "format": "cur261-qprod-coordinate-seal-v1",
+                "coordinate_id": "c01",
+                "research_plan_digest": "qbpl-" + "0" * 64,
+                "coordinate_audit_plan_digest": "qcap-" + "b" * 64,
+                "audit_digest": "sha256-" + "c" * 64,
+                "members_sha256": {"cue_contract_audit.json":
+                                   "d" * 64},
+                "summary": {"audit_pass": False},
+            }), encoding="utf-8")
         out = reserve_native_execution(
             budget, coordinate_id="c02",
             artifact_root=art, coordinate_manifest=man)

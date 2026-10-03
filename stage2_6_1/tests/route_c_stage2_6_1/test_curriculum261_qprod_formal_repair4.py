@@ -331,11 +331,12 @@ class TestBBudgetGate:
         gate.write_text(json.dumps(doc), encoding="utf-8")
         with pytest.raises(QProdContextError) as ei:
             assert_stage_budget_gate(tmp_path, "design")
-        assert "超过授权面" in str(ei.value)
+        # R3 修复 B-2:逐类/单类篡改先被逐项精确一致校验拦截
+        assert "逐项精确" in str(ei.value)
 
     def test_gate_insufficient_positive_quota_refused(
             self, tmp_path):
-        """正数但不足:gate caps 之和超过授权面(伪造放大)拒。"""
+        """正数篡改(伪造放大):逐项精确一致校验拒(R3 收紧)。"""
         steps = self._steps()
         write_chain_budget_gate(
             tmp_path, steps_in_plan=steps, stop_after="qualify")
@@ -348,7 +349,8 @@ class TestBBudgetGate:
         gate.write_text(json.dumps(doc), encoding="utf-8")
         with pytest.raises(QProdContextError) as ei:
             assert_stage_budget_gate(tmp_path, "design")
-        assert "超过授权面" in str(ei.value)
+        # R3 修复 B-2:逐类/单类篡改先被逐项精确一致校验拦截
+        assert "逐项精确" in str(ei.value)
 
     def test_gate_exact_pass_marks_consumed_atomically(
             self, tmp_path):

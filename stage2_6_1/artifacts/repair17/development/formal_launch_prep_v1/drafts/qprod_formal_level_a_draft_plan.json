@@ -5,7 +5,7 @@
   "status": "DRAFT_PENDING_USER_APPROVAL",
   "code_freeze_sha_binding": "草案绑定当前已验代码身份与冻结程序;最终 Commit A SHA 在 provenance-lock→Commit A 后产生,批准/签发/launch 全部绑定该真实 SHA(草案不得用伪 SHA 启动)",
   "code_freeze_sha": "",
-  "research_plan_digest": "qbpl-c99c79fe77c0c11fdf15e364fae05f255fb2da9619eb83679b88692ce1a81e24",
+  "research_plan_digest": "qbpl-8b1a8a1190c368e1abd01d91d3958e6d26929f36b3c122889fcab9654abcca07",
   "payload": {
     "format": "cur261-qprod-research-plan-v1",
     "level": "level_a",
@@ -294,10 +294,10 @@
         {
           "step": "preflight-static",
           "category": "bootstrap_resamples",
-          "formula": "matched probe candidate 16+independent 18=34 调用×20000",
+          "formula": "matched probe 合成统计 2+probe candidate 16+evaluator 内 candidate 16=34 调用×20000(reviewer r7 勘正:不含 independent_cue_semantics)",
           "typical": 680000,
           "worst_upper": 680000,
-          "consumer": "_matched_generator_probe_r17 → candidate/independent_cue_semantics",
+          "consumer": "_matched_generator_probe_r17 → cluster_bootstrap_rate/candidate_cue_semantics",
           "metering": "preflight 报告;counter 探针实测口径"
         },
         {
@@ -446,12 +446,26 @@
         }
       ],
       "exposure_policy": "one_shot_window(r17 execgov qualification 委派协议;不可重开)",
-      "authorized_stop_after": "qualify"
+      "authorized_stop_after": "qualify",
+      "embedded_preflight_smoke": {
+        "authorized": true,
+        "step": "preflight-static",
+        "description": "链固有内嵌工程自检 smoke(R12 冻结):任何 A1/A2 批准显式包含该 PPO plumbing 自检;输入身份 ppo_smoke_qaf_v1(R3 修复 A-1:授权表示与真实可达更新路径一致)",
+        "ppo": {
+          "learn_calls": 1,
+          "rollout_env_steps": 256,
+          "optimizer_steps_upper": 40,
+          "validation_env_steps_upper": 50,
+          "check_env_interactions_upper": 10,
+          "model_save_load_pairs": 1
+        }
+      }
     },
     "rules": {
       "gate_semantics_ref": "curriculum261_r17_workflow.R17_WORKFLOW_STEPS + curriculum261_r17_final(资格判定);qualification_plan 由链第 11 步 lock-plan 在校准后 create-only 冻结,不得事前捏造",
       "model_update_authorized": false,
-      "smoke_policy": "第 14 步 smoke=资格 PASS 后链内验收的条件许可(1 次 learn 调用、rollout 256 环境步、optimizer.step 上界 40=SB3 默认 10 epochs×4 minibatch、验证≤50 步、save 1+load 1;逐类计量与批准,不混写为'一次更新'),与正式教学分开;未授权(A1)时链停在 qualify,15-17 步 NOT_RUN(PPO 面恒 0 由有界排程物理保证)"
+      "post_qualification_smoke_authorized": false,
+      "smoke_policy": "两类 PPO 更新分开(R3 修复 A-1):①内嵌工程自检 smoke=preflight-static 链固有部分,A1/A2 批准均显式包含(1 次 learn、rollout 256、optimizer.step 上界 40、验证 ≤50、check_env ≤10、save 1+load 1;输入身份 ppo_smoke_qaf_v1;机器可读字段 run_scope.embedded_preflight_smoke);②第 14 步资格后验收 smoke=qualify final PASS 后链内验收的条件许可(同样逐类计量;仅 A2[stop=verify-formal-logs 且 model_update_authorized=True]授权),与正式教学分开;A1 停在 qualify,14-17 步 NOT_RUN——A1 不再宣称「PPO 面恒 0」,第 ① 类计量已如实入授权面"
     },
     "quota": {
       "max_leaf_calls_per_coordinate": 113030,
@@ -477,11 +491,11 @@
       "curriculum261_qprod_context.py": "0724929793932c6c204af2d9a90846f53d509e8b13c402b1c53d7db15377c3cf",
       "curriculum261_qprod_permit.py": "ff0480f19dd7b99101ee814f9d92afa6c45d407cfcec2920eea3940e98b9faad",
       "curriculum261_qprod_plan.py": "0bc3c502cb652598e08d949641539a564d5a8e208414586015a375d912ab9097",
-      "curriculum261_qprod_coordinate.py": "878b0e4d85cf8c82a0e58f2a2ae83188a05168ee652d91d5e705f2b8f4c895c2",
+      "curriculum261_qprod_coordinate.py": "81fdede7e1fb51abbe21e5f1526d1c50ff8fa19ceee964031a16386ee0c04a06",
       "curriculum261_qprod_aggregate.py": "b21ce082e5432fdbc78d42debbf4f556b1913b6e51196cdc3ca0807ee5c646fc",
-      "curriculum261_qprod_formal.py": "92409b4d2729071f88e310e11ca8e62944c968a126bbda7bf1a850be4390dd1a",
-      "curriculum261_qprod_formal_levela.py": "3c320709f08517e57ffe823fb6aa9e95ef64581e093658a1d30ae45f6e81a102",
-      "curriculum261_qprod_formal_budget.py": "1f426efd4e2779a6b376d4af4cee8b753eb8aa884c80cde46b95865aab61d535",
+      "curriculum261_qprod_formal.py": "a817b62c13defc9f61c03041e5a7c6ab3e0517abf837eadec0f7581dc7b74a61",
+      "curriculum261_qprod_formal_levela.py": "f462f687f80b577c5cb68eb1bbf0d63e519591e9a4de32c06166635a4153b068",
+      "curriculum261_qprod_formal_budget.py": "0e2cc8107b4613065874caf59e0f5bb0b9609e576318b2f64678e0ea7fc89a4f",
       "curriculum261_qaf_attempt.py": "30a25c44c4185a366e3d84a5e8ae64d4342b6b569fa48e69e4e68713b98f9f71"
     },
     "stop_mode": "collect_all_k",

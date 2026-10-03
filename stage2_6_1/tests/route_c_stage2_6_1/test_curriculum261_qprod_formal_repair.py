@@ -665,13 +665,25 @@ class TestR3EntryPairProbes:
             self, tmp_path, monkeypatch):
         env = self._full_b_env(tmp_path, mx=2, monkeypatch=monkeypatch)
 
+        _digest = research_plan_digest(env["payload"])
+
         def core_ok(ctx, live, cid, coord_dir=None, ledger_path=None):
             d = Path(coord_dir)
             d.mkdir(parents=True, exist_ok=True)
             (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-                json.dumps({"coordinate_id": cid, "summary": {
-                    "audit_pass": False, "recall_validation": 0.5,
-                    "se_validation": 0.01, "p_contract_local": 0.5}}),
+                json.dumps({
+                    "format": "cur261-qprod-coordinate-seal-v1",
+                    "coordinate_id": cid,
+                    "research_plan_digest": _digest,
+                    "coordinate_audit_plan_digest":
+                        "qcap-" + "b" * 64,
+                    "audit_digest": "sha256-" + "c" * 64,
+                    "members_sha256": {"cue_contract_audit.json":
+                                       "d" * 64},
+                    "summary": {
+                        "audit_pass": False, "recall_validation": 0.5,
+                        "se_validation": 0.01,
+                        "p_contract_local": 0.5}}),
                 encoding="utf-8")
             return {"seal": {"coordinate_id": cid, "summary": {
                 "audit_pass": False, "recall_validation": 0.5,
@@ -695,13 +707,25 @@ class TestR3EntryPairProbes:
                                                 monkeypatch):
         env = self._full_b_env(tmp_path, mx=1, monkeypatch=monkeypatch)
 
+        _digest = research_plan_digest(env["payload"])
+
         def core_ok(ctx, live, cid, coord_dir=None, ledger_path=None):
             d = Path(coord_dir)
             d.mkdir(parents=True, exist_ok=True)
             (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-                json.dumps({"coordinate_id": cid, "summary": {
-                    "audit_pass": False, "recall_validation": 0.5,
-                    "se_validation": 0.01, "p_contract_local": 0.5}}),
+                json.dumps({
+                    "format": "cur261-qprod-coordinate-seal-v1",
+                    "coordinate_id": cid,
+                    "research_plan_digest": _digest,
+                    "coordinate_audit_plan_digest":
+                        "qcap-" + "b" * 64,
+                    "audit_digest": "sha256-" + "c" * 64,
+                    "members_sha256": {"cue_contract_audit.json":
+                                       "d" * 64},
+                    "summary": {
+                        "audit_pass": False, "recall_validation": 0.5,
+                        "se_validation": 0.01,
+                        "p_contract_local": 0.5}}),
                 encoding="utf-8")
             return {"seal": {"coordinate_id": cid, "summary": {
                 "audit_pass": False, "recall_validation": 0.5,
