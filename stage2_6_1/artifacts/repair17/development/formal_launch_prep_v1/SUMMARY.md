@@ -50,6 +50,21 @@ evidence)→ **4b50ebfa(修复轮最终候选;r21 全收集 2832/0F/0E/
   同坐标不重开)+ 账本 flock 互斥(双请求单赢家,无 lost
   update)。
 测试:repair3(10)+repair4(21)+既有件更新,FLP 面全绿。
+
+R2 复批(reviewer gate1_r6 FAIL B-1/B-2/A.2-1 → r7 PASS):
+- bootstrap 按调用点 counter 实测重推(candidate 16/independent 18
+  /preflight probe 34;design 226/calibrate 72/qualify 36)=
+  375×20,000=7,500,000;
+- preflight-static 内嵌 256 步 PPO plumbing smoke(R12 起冻结)
+  如实入面:A1 PPO 1/256/≤40/≤50/≤10/1+1、A2 ×2;v2 9/10;
+  episodes A1 28,798/113,030、A2 28,944/113,176;入 GATED_STEPS
+  (第 10 个被门控命令);
+- 内嵌 smoke 输入身份 ppo_smoke_qaf_v1(第 10 步注入);
+- determinism A4 测试子进程隔离(进程内 torch 线程池污染
+  supervisor 掩码面测试,r21 全收集曾 11F+4E;隔离后全绿)。
+最终候选链 …→ 7ca14bec → e5109a32 → 9189f069 → **03e414eb**
+  (r21 全收集 2864/0F/0E/7skip record d0bba0d5… + 262 v23
+  240 passed 绑定此 SHA;证据树=本包成员来源)。
 7skip record d27c578a… 与 262 全套 240 passed 绑此 SHA)**。
 
 ## 验收链
