@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="22" time="1.484" timestamp="2026-10-04T05:51:30.168802+08:00" hostname="Forst"><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_registration_counts" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_iteration_labels" time="0.004" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_seed_isolation_new_generation_names" time="0.048" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_input_scope_covers_generation_family" time="0.014" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_plan_argv_carries_attempt_all_faces" time="0.001" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_plan_without_attempt_unchanged" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_cue_audit_plan_lock_uses_qaf_namespaces" time="0.009" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_design_plan_lock_qaf_namespaces_visible" time="0.001"><failure message="RuntimeError: matched-ladder 核心模块与 R10 baseline 身份不一致(§7): {'pass': False, 'error': 'R10 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a/artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}">self = &lt;test_curriculum261_qprod_formal_repair4.TestA2ChainWiring object at 0x72741b53a590&gt;
+
+    def test_design_plan_lock_qaf_namespaces_visible(self):
+        """design_plan_payload_r17 接受 QAF design 命名空间(R2:
+        cmd_design_plan-lock 在 qaf_v1 下传入;此处验证 payload
+        结构对显式命名空间的透传)。"""
+        from rl_curriculum.curriculum261_r17_design import (
+            design_plan_payload_r17)
+&gt;       plan = design_plan_payload_r17(
+            baseline_commit="x", vendor_pin="v",
+            v2_contract_digest="d",
+            prior_r2_plan_digest="p",
+            prior_diag262r2_plan_digest="q",
+            cue_audit={"audit_digest": "a", "p_contract": 0.95},
+            preplan_smoke_identity={},
+            dependency_identity={"digest": "d", "n_declared": 0,
+                                 "pass": True,
+                                 "c2_density_summary_definition_module":
+                                 "m"},
+            artifact_writer_identity={},
+            preplan_rehearsal_digest="r",
+            r8_abort_evidence=None, r9_abort_evidence=None,
+            r10_abort_evidence=None, r11_abort_evidence=None,
+            r12_abort_evidence=None, r13_abort_evidence=None,
+            generation_determinism_binding={},
+            code_freeze_sha=FREEZE,
+            policy_visible_reference_contract_digest="c",
+            cue_audit_plan_digest="cad",
+            design_namespaces=("design_qaf_matched_main",
+                               "design_qaf_matched_validation"),
+            semantic_namespaces=("cue_semantic_design_main_qaf_v1",
+                                 "cue_semantic_design_validation_"
+                                 "qaf_v1"),
+            independent_namespace="design_qaf_independent_marginal")
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair4.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+baseline_commit = 'x', vendor_pin = 'v', v2_contract_digest = 'd'
+prior_r2_plan_digest = 'p', prior_diag262r2_plan_digest = 'q'
+cue_audit = {'audit_digest': 'a', 'p_contract': 0.95}
+preplan_smoke_identity = {}
+dependency_identity = {'digest': 'd', 'n_declared': 0, 'pass': True, 'c2_density_summary_definition_module': 'm'}
+artifact_writer_identity = {}, preplan_rehearsal_digest = 'r'
+r8_abort_evidence = None, r9_abort_evidence = None, r10_abort_evidence = None
+r11_abort_evidence = None, r12_abort_evidence = None, r13_abort_evidence = None
+generation_determinism_binding = {}
+code_freeze_sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+policy_visible_reference_contract_digest = 'c', cue_audit_plan_digest = 'cad'
+design_namespaces = ('design_qaf_matched_main', 'design_qaf_matched_validation')
+semantic_namespaces = ('cue_semantic_design_main_qaf_v1', 'cue_semantic_design_validation_qaf_v1')
+blocks_per_candidate_per_corpus = None, semantic_blocks = None
+independent_namespace = 'design_qaf_independent_marginal'
+independent_pairs_per_rung = None, rehearsal = False
+
+    def design_plan_payload_r17(*, baseline_commit: str, vendor_pin: str,
+                               v2_contract_digest: str,
+                               prior_r2_plan_digest: str,
+                               prior_diag262r2_plan_digest: str,
+                               cue_audit: dict[str, Any],
+                               preplan_smoke_identity: dict[str, Any],
+                               dependency_identity: dict[str, Any],
+                               artifact_writer_identity: dict[str, Any],
+                               preplan_rehearsal_digest: str,
+                               r8_abort_evidence: dict[str, Any],
+                               r9_abort_evidence: dict[str, Any] | None = None,
+                               r10_abort_evidence: dict[str, Any] | None = None,
+                               r11_abort_evidence: dict[str, Any] | None = None,
+                               r12_abort_evidence: dict[str, Any] | None = None,
+                               r13_abort_evidence: dict[str, Any] | None = None,
+                               generation_determinism_binding: dict[str, Any]
+                               | None = None,
+                               code_freeze_sha: str = "",
+                               policy_visible_reference_contract_digest: str = "",
+                               cue_audit_plan_digest: str = "",
+                               design_namespaces: tuple[str, ...]
+                               | list[str] | None = None,
+                               semantic_namespaces: tuple[str, ...]
+                               | list[str] | None = None,
+                               blocks_per_candidate_per_corpus: int | None = None,
+                               semantic_blocks: int | None = None,
+                               independent_namespace: str | None = None,
+                               independent_pairs_per_rung: int | None = None,
+                               rehearsal: bool = False,
+                               ) -&gt; dict[str, Any]:
+        """构建并返回 R17 design plan payload(锁定后不得修改任何字段)。
+    
+        §21 绑定清单全集:baseline/vendor/R4 pack/R5+R6+R7 historical
+        digests/V2 contract/matched contract(+R10 baseline 模块身份对拍)/
+        cue semantic contract v2/corrected p_contract/noninferiority
+        delta/recall floor/semantic block count 160/candidate grid(恰好
+        3)/formal block options/design block count 40/全部阈值/selection
+        rule/independent marginal guard(点护栏)/code identity/Route C
+        identity/preplan smoke identity/plan digest roundtrip 合同/R9+R10+
+        R11+R12 abort evidence/generation determinism contract(工作包 A6)。
+    
+        namespace/scale 覆盖参数默认为正式值;R17RealArtifactCliRoundTrip
+        -v1 的 --rehearsal 路径以 rt_* rehearsal-only namespace 与
+        rehearsal=True 标记调用(样本量与正式一致;只允许 rehearsal 改
+        namespace 与标记,§四-4)。rehearsal plan 不得用于正式阶段。
+        """
+        grid = r17_candidate_grid()
+        problems = validate_r17_grid_semantics()
+        if problems:
+            raise RuntimeError(f"R17 candidate grid 语义非法: {problems}")
+        matched_core = verify_matched_core_identity_r10()
+        if not matched_core["pass"]:
+&gt;           raise RuntimeError(
+                f"matched-ladder 核心模块与 R10 baseline 身份不一致(§7): "
+                f"{matched_core}")
+E           RuntimeError: matched-ladder 核心模块与 R10 baseline 身份不一致(§7): {'pass': False, 'error': 'R10 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a/artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+
+src/rl_curriculum/curriculum261_r17_design.py:528: RuntimeError</failure></testcase><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_determinism_a4_target_override" time="0.726"><failure message="AssertionError: ^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_api.py&quot;, line 1362, in _attach_features&#10;      return attach_production_features(df)&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_production_obs.py&quot;, line 160, in attach_production_features&#10;      cls = load_route_c_strategy_class()&#10;            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_production_obs.py&quot;, line 116, in load_route_c_strategy_class&#10;      raise FileNotFoundError(&#10;  FileNotFoundError: 生产 RouteCStrategy 不存在: /home/cryptorl/projects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python', '/tmp/pytest-of-cryptorl/pytest-7/tes...ects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)\n').returncode">self = &lt;test_curriculum261_qprod_formal_repair4.TestA2ChainWiring object at 0x72741b539fd0&gt;
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-7/test_determinism_a4_target_ove0')
+
+    def test_determinism_a4_target_override(self, tmp_path):
+        """子进程隔离:真实 audit_generator_mutable_state 的完整
+        A4 序列会加载 torch/MLP 并留驻线程池,污染同进程后续
+        supervisor 掩码面测试(r21 全收集实测 rc=7 干扰);本测试
+        在子进程内以真实函数+真实命名空间覆盖运行,父进程只断言
+        观测结果。"""
+        import subprocess
+        import sys as _sys
+    
+        child = tmp_path / "a4_probe.py"
+        out_dir = tmp_path / "a4out"
+        child.write_text(
+            "import json, sys\n"
+            "sys.path.insert(0, 'src')\n"
+            "import rl_curriculum.curriculum261_r17_determinism "
+            "as det\n"
+            "seen = []\n"
+            "orig = det.run_target_call\n"
+            "def fake(target):\n"
+            "    seen.append(dict(target))\n"
+            "    return {'attempt_digests': {}}\n"
+            "det.run_target_call = fake\n"
+            "det.audit_generator_mutable_state(\n"
+            "    sys.argv[1], stress_namespace=sys.argv[2] or None)\n"
+            "det.run_target_call = orig\n"
+            "print(json.dumps([t.get('namespace') for t in seen]))\n",
+            encoding="utf-8")
+        r = subprocess.run(
+            [_sys.executable, str(child), str(out_dir),
+             "stress_qaf_v1"],
+            capture_output=True, text=True, timeout=600, cwd=str(
+                Path(__file__).resolve().parents[2]))
+&gt;       assert r.returncode == 0, r.stderr[-800:]
+E       AssertionError: ^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_api.py", line 1362, in _attach_features
+E             return attach_production_features(df)
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_production_obs.py", line 160, in attach_production_features
+E             cls = load_route_c_strategy_class()
+E                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_production_obs.py", line 116, in load_route_c_strategy_class
+E             raise FileNotFoundError(
+E         FileNotFoundError: 生产 RouteCStrategy 不存在: /home/cryptorl/projects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python', '/tmp/pytest-of-cryptorl/pytest-7/tes...ects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)\n').returncode
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair4.py:205: AssertionError</failure></testcase><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_bootstrap_full_enumeration" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_global_k_program_in_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_check_env_in_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_preflight_static_honest_in_a1_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_write_and_passthrough" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_step_not_in_plan_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_replay_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_tampered_caps_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_insufficient_positive_quota_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_exact_pass_marks_consumed_atomically" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_cmd_preplan_refuses_after_consumption" time="0.023" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_idempotent_rewrite_rejected_on_drift" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gated_steps_cover_all_business_faces" time="0.000" /></testsuite></testsuites>

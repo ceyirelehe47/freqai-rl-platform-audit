@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="22" time="6.909" timestamp="2026-10-04T05:54:36.572189+08:00" hostname="Forst"><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_registration_counts" time="0.001" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_iteration_labels" time="0.004" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_seed_isolation_new_generation_names" time="0.051" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily" name="test_input_scope_covers_generation_family" time="0.015" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_plan_argv_carries_attempt_all_faces" time="0.001" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_plan_without_attempt_unchanged" time="0.001" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_cue_audit_plan_lock_uses_qaf_namespaces" time="0.011" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_design_plan_lock_qaf_namespaces_visible" time="0.004" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestA2ChainWiring" name="test_determinism_a4_target_override" time="6.162"><failure message="AssertionError: ryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py&quot;, line 280, in __init__&#10;      else build_vendor_feature_pipeline()&#10;           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py&quot;, line 126, in build_vendor_feature_pipeline&#10;      freqai_info = load_production_freqai_info()&#10;                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py&quot;, line 105, in load_production_freqai_info&#10;      raise RuntimeError(f&quot;正式 config 不存在: {cfg_path}&quot;)&#10;  RuntimeError: 正式 config 不存在: /home/cryptorl/projects/crypto_rl_formal_a/experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python', '/tmp/pytest-of-cryptorl/pytest-4/tes...jects/crypto_rl_formal_a/experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json\n').returncode">self = &lt;test_curriculum261_qprod_formal_repair4.TestA2ChainWiring object at 0x7dc469d39590&gt;
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-4/test_determinism_a4_target_ove0')
+
+    def test_determinism_a4_target_override(self, tmp_path):
+        """子进程隔离:真实 audit_generator_mutable_state 的完整
+        A4 序列会加载 torch/MLP 并留驻线程池,污染同进程后续
+        supervisor 掩码面测试(r21 全收集实测 rc=7 干扰);本测试
+        在子进程内以真实函数+真实命名空间覆盖运行,父进程只断言
+        观测结果。"""
+        import subprocess
+        import sys as _sys
+    
+        child = tmp_path / "a4_probe.py"
+        out_dir = tmp_path / "a4out"
+        child.write_text(
+            "import json, sys\n"
+            "sys.path.insert(0, 'src')\n"
+            "import rl_curriculum.curriculum261_r17_determinism "
+            "as det\n"
+            "seen = []\n"
+            "orig = det.run_target_call\n"
+            "def fake(target):\n"
+            "    seen.append(dict(target))\n"
+            "    return {'attempt_digests': {}}\n"
+            "det.run_target_call = fake\n"
+            "det.audit_generator_mutable_state(\n"
+            "    sys.argv[1], stress_namespace=sys.argv[2] or None)\n"
+            "det.run_target_call = orig\n"
+            "print(json.dumps([t.get('namespace') for t in seen]))\n",
+            encoding="utf-8")
+        r = subprocess.run(
+            [_sys.executable, str(child), str(out_dir),
+             "stress_qaf_v1"],
+            capture_output=True, text=True, timeout=600, cwd=str(
+                Path(__file__).resolve().parents[2]))
+&gt;       assert r.returncode == 0, r.stderr[-800:]
+E       AssertionError: ryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py", line 280, in __init__
+E             else build_vendor_feature_pipeline()
+E                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py", line 126, in build_vendor_feature_pipeline
+E             freqai_info = load_production_freqai_info()
+E                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a/src/rl_curriculum/curriculum261_r3_preprocessing.py", line 105, in load_production_freqai_info
+E             raise RuntimeError(f"正式 config 不存在: {cfg_path}")
+E         RuntimeError: 正式 config 不存在: /home/cryptorl/projects/crypto_rl_formal_a/experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python', '/tmp/pytest-of-cryptorl/pytest-4/tes...jects/crypto_rl_formal_a/experiments/freqai_rl_stage2_5_2a/runtime/config_stage252a-rc-e9b373b3c9_smoke-reload.json\n').returncode
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair4.py:205: AssertionError</failure></testcase><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_bootstrap_full_enumeration" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_global_k_program_in_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_check_env_in_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetCompleteness" name="test_preflight_static_honest_in_a1_face" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_write_and_passthrough" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_step_not_in_plan_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_replay_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_tampered_caps_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_insufficient_positive_quota_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_exact_pass_marks_consumed_atomically" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_cmd_preplan_refuses_after_consumption" time="0.025" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gate_idempotent_rewrite_rejected_on_drift" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair4.TestBBudgetGate" name="test_gated_steps_cover_all_business_faces" time="0.000" /></testsuite></testsuites>

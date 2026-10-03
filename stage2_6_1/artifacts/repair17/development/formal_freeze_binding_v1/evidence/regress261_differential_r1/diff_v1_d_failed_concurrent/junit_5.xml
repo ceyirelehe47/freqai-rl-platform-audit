@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="48" time="3.111" timestamp="2026-10-04T05:51:33.020562+08:00" hostname="Forst"><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA1AuthorizationSemantics" name="test_a1_embedded_smoke_declared_and_authorized" time="0.001" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA1AuthorizationSemantics" name="test_a2_post_qualification_smoke_authorized" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA1AuthorizationSemantics" name="test_inconsistent_flags_still_refused" time="0.000" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA2EngineeringProbeScope" name="test_scope_pairs_binding_and_restores" time="0.027" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA2EngineeringProbeScope" name="test_scope_rejects_formal_root_and_nesting" time="0.003" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA2EngineeringProbeScope" name="test_scope_non_probe_binding_refused" time="0.015" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestA2EngineeringProbeScope" name="test_preflight_static_selfcheck_passes_under_formal_binding" time="2.041"><failure message="FileNotFoundError: 生产 RouteCStrategy 不存在: /home/cryptorl/projects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)">self = &lt;test_curriculum261_qprod_formal_repair5.TestA2EngineeringProbeScope object at 0x7904c0194250&gt;
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-9/test_preflight_static_selfchec0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7904bbf3aad0&gt;
+
+    def test_preflight_static_selfcheck_passes_under_formal_binding(
+            self, tmp_path, monkeypatch):
+        """真实 run_prelock_static_preflight_r17(昂贵叶替身)在
+        正式部署绑定在场时自检可完成——旧实现此处必然
+        R17OwnershipError(A-2 反例),修复后隔离域内真实
+        acquire/journal/exposure 机制原样运行。"""
+        import rl_curriculum.curriculum261_r17_execgov as gov
+        import rl_curriculum.curriculum261_r17_preflight as pf
+    
+        formal_root = tmp_path / "formal_state"
+        formal_root.mkdir()
+        monkeypatch.setattr(gov, "R17_DEPLOYED_STATE_ROOT",
+                            str(formal_root))
+        monkeypatch.delenv("CURRICULUM261_R17_STATE_ROOT",
+                           raising=False)
+        import rl_curriculum.curriculum261_r17_smoke as smoke_mod
+        monkeypatch.setattr(
+            smoke_mod, "run_ppo_smoke_r17",
+            lambda **kw: {"pass": True, "checks": {
+                "observation_space_unbounded": True}})
+        monkeypatch.setattr(
+            pf, "_matched_generator_probe_r17",
+            lambda **kw: True)
+&gt;       out = pf.run_prelock_static_preflight_r17(
+            tmp_path / "pfout", vendor_pin="0" * 64,
+            smoke_namespace="ppo_smoke_qaf_v1")
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair5.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r17_preflight.py:209: in run_prelock_static_preflight_r17
+    checks["code_identity"] = _code_identity_digest_r17()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_preflight.py:90: in _code_identity_digest_r17
+    ident = _code_identity_r17()
+            ^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_plan.py:82: in _code_identity_r17
+    ident = route_c_strategy_identity()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_production_obs.py:141: in route_c_strategy_identity
+    cls = load_route_c_strategy_class()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_route_c_strategy_class() -&gt; type:
+        """加载真实 RouteCStrategy 类(惰性,模块级缓存)。
+    
+        feature_engineering_standard 不触碰实例状态,加载类即可调用
+        (无需实例化、无需 freqtrade runtime 配置)。
+        """
+        if "cls" in _STRATEGY_CLASS_CACHE:
+            return _STRATEGY_CLASS_CACHE["cls"]
+        path = route_c_strategy_path()
+        if not path.is_file():
+&gt;           raise FileNotFoundError(
+                f"生产 RouteCStrategy 不存在: {path}(production observation "
+                f"路径必须绑定真实生产代码,缺失即 fail closed)")
+E           FileNotFoundError: 生产 RouteCStrategy 不存在: /home/cryptorl/projects/crypto_rl_formal_a/user_data/strategies/RouteCStrategy.py(production observation 路径必须绑定真实生产代码,缺失即 fail closed)
+
+src/rl_curriculum/curriculum261_production_obs.py:116: FileNotFoundError</failure></testcase><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB1ChainRunGateWiring" name="test_missing_gate_formal_context_fail_closed" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB1ChainRunGateWiring" name="test_chain_run_formal_writes_gate_before_executor" time="0.028" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_correct_caps_pass" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_positive_but_insufficient_refused" time="0.003" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_bootstrap_positive_insufficient_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_zero_optimizer_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_bootstrap_amplified_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestB2ExactCapsControls" name="test_category_drift_refused" time="0.002" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_intact_negative_result_is_terminal" time="0.008" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_empty_truncated_invalid[]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_empty_truncated_invalid[{&quot;format&quot;:]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_empty_truncated_invalid[{}]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_empty_truncated_invalid[not json]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_wrong_binding_invalid" time="0.006" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_member_deleted_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_trace_bytes_corrupted_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_seal_qcap_digest_wrong_bound_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_seal_audit_digest_wrong_bound_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_member_set_subset_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_member_set_extra_invalid" time="0.008" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_member_value_not_digest_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_member_pointing_to_nonexistent_invalid" time="0.006" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_report_digest_recompute_mismatch_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_summary_missing_invalid" time="0.008" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_corrupted_member_plus_interrupted_invalid" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_partial_seal_refused[]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_partial_seal_refused[{&quot;format&quot;:]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[member_deleted]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[trace_corrupted]" time="0.006" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[seal_qcap_unbound]" time="0.008" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[seal_audit_unbound]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[member_subset]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_dangling_started_with_invalid_seal_refused[member_extra]" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_valid_seal_negative_result_continues" time="0.006" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_interrupted_with_empty_seal_refused" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_interrupted_with_corrupted_members_refused" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_interrupted_with_valid_seal_continues" time="0.007" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCSealTerminalEvidence" name="test_producer_publish_failure_leaves_no_visible_seal" time="0.011" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCWiringThroughRealRunner" name="test_member_deleted_blocks_next_at_core_boundary" time="0.102" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCWiringThroughRealRunner" name="test_trace_corrupted_blocks_next_at_core_boundary" time="0.037" /><testcase classname="tests.route_c_stage2_6_1.test_curriculum261_qprod_formal_repair5.TestCWiringThroughRealRunner" name="test_intact_allows_next_to_core_boundary" time="0.042" /></testsuite></testsuites>

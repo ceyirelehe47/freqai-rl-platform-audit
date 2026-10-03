@@ -114,3 +114,29 @@ PPO/模型加载;零 seed/坐标锁/预算账本/exposure。生产保护面前�
 2. B 是否单独纳入批准(现 B_NOT_APPROVED);
 3. 批准后的正式激活(生产配置/外部可信签发/一次性业务执行)由
    后续授权任务处理;本包不预授权该阶段。
+
+
+## 8. 修复轮 R1 增量(FiniteRepair_Brief;ChatGPT 终验 FAIL 后闭合)
+
+- 唯一主阻断闭合:实际部署/证据/签发路径映射落地。
+  D=`/home/cryptorl/projects/crypto_rl_formal_a`(非激活签发/部署根,
+  src/tests/runner mapped 325/172/124 零漂移 + 4 个包位置解析静态依赖
+  面,`evidence/deploy_root_D_sync.json`/`deploy_root_D_dep_faces.json`);
+  P=`/home/cryptorl/projects/crypto_rl`(入口/链代码树,历史保护面
+  原字节不动);artifact=`D/artifacts/formal_a_qaf_v1`,state=
+  `D/artifacts/route_c_stage2_6_1_repair17/state`(尾形,parent³==D),
+  authority=`D/authority`,admission 文件 `D/.r17_formal_admission.json`
+  (缺席,create-only)。
+- 入口位置约束(实测双向):从 P 入口解析 D 根 OK;从 D 自身代码
+  入口命中 protected_old_roots 自保拒绝 → 附录命令固定从 P 调用。
+- A2 命令修正与哨兵去歧义:附录 B 全文真实路径;A1=--stop-after
+  qualify,A2=--stop-after verify-formal-logs --model-update(两 flag
+  必须同给;组合矩阵实测 2/2/96/96)。
+- **D 同根差分回归**(cwd=D):run `r21_20261004_055726`,178/0F/0E/0skip,
+  record `baf441b43eefbde10eb6dfec50de50bc6f3337b39a40e58db92190fa4fa91851`,
+  父件=R4 `73e56d37…` 未改写;失败原件保留(并发竞态双跑+依赖面
+  补齐前 1F,FAILED_RUN_NOTE.md)。D 根只读 substance verify rc=0
+  (prereg VERIFY-ONLY);错根(P)rc=2 cwd_not_deploy_root。
+- reviewer R1 快验 FAIL→修复:F1=B2 前置安装路径改 A artifact 根
+  (out_dir 解析口径);F2=映射 §4 以实测回填。本轮零签发/零 launch/
+  零业务副作用;D 恒非激活。
