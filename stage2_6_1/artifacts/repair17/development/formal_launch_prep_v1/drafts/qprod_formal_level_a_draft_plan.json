@@ -5,7 +5,7 @@
   "status": "DRAFT_PENDING_USER_APPROVAL",
   "code_freeze_sha_binding": "草案绑定当前已验代码身份与冻结程序;最终 Commit A SHA 在 provenance-lock→Commit A 后产生,批准/签发/launch 全部绑定该真实 SHA(草案不得用伪 SHA 启动)",
   "code_freeze_sha": "",
-  "research_plan_digest": "qbpl-16b8061e163c4ca3281355f3f448607ef2da9862ded81b947e7a6330842034f2",
+  "research_plan_digest": "qbpl-c99c79fe77c0c11fdf15e364fae05f255fb2da9619eb83679b88692ce1a81e24",
   "payload": {
     "format": "cur261-qprod-research-plan-v1",
     "level": "level_a",
@@ -17,25 +17,26 @@
       "gate_set": "r17 权威 17 步(prerequisites/postcondition 语义:smoke 仅 qualify final PASS 后;full-cold 仅 smoke PASS 后)+ qualification one_shot exposure",
       "budget": {
         "stop_after": "qualify",
-        "generation_episodes_typical": 28636,
-        "generation_episodes_worst_upper": 112804,
-        "authorization_cap_generation_episodes": 112804,
+        "generation_episodes_typical": 28798,
+        "generation_episodes_worst_upper": 113030,
+        "authorization_cap_generation_episodes": 113030,
         "mc_events_total": 1000000,
-        "bootstrap_resamples_upper": 1180000,
-        "v2_preprocessor_fits": 8,
+        "bootstrap_resamples_upper": 7500000,
+        "v2_preprocessor_fits": 9,
         "supervised_mlp_fits": 85,
         "supervised_mlp_epochs_per_fit": 20,
         "supervised_mlp_note": "calibrate 54+qualify 27+determinism 4(epochs=2);A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指监督拟合;按本面逐类批准",
-        "ppo_learn_calls": 0,
-        "ppo_rollout_env_steps": 0,
-        "ppo_optimizer_steps_upper": 0,
-        "ppo_validation_env_steps": 0,
-        "model_save_load_pairs": 0,
-        "ppo_check_env_interactions_bound": 0,
+        "ppo_learn_calls": 1,
+        "ppo_rollout_env_steps": 256,
+        "ppo_optimizer_steps_upper": 40,
+        "ppo_validation_env_steps": 50,
+        "model_save_load_pairs": 1,
+        "ppo_check_env_interactions_bound": 10,
+        "ppo_note": "A1 不再声称 PPO 恒 0:preflight-static 内嵌 256 步 PPO plumbing smoke(R12 起冻结;V2 serialize/reload/outer-env 检查依赖;reviewer gate1_r6 B-2 如实入面)。A2 = 内嵌 + step-14 获准 smoke 共 2 次。",
         "global_k_null_draws_tier1": 50000,
         "global_k_null_draws_tier2_upper": 200000,
         "subprocesses_upper": 19,
-        "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 40 为冻结配置推导上界(10 epochs×4 minibatch),非实测;A1 中该面恒 0 由有界排程保证(not_run_steps 含 smoke)"
+        "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 上界为冻结配置推导(10 epochs×4 minibatch/次),非实测;A1 含 preflight-static 内嵌 smoke 1 次,A2 = 内嵌 + step-14 获准 smoke 共 2 次"
       },
       "budget_items": [
         {
@@ -167,11 +168,11 @@
         {
           "step": "design",
           "category": "bootstrap_resamples",
-          "formula": "shared gate 2 语料×2+candidate matched 评估 3×2×2+dedicated 语料 3×2×(gate 2+candidate 2)=40 调用×20000",
-          "typical": 800000,
-          "worst_upper": 800000,
-          "consumer": "semantic_cue_gate/candidate_cue_semantics(design.py:993,1192;calibration.py:185,189)",
-          "metering": "design_plan/selection 视图各 gate 报告 n_boot 落盘"
+          "formula": "shared gate 2×2 + candidate matched 3×2×16(candidate_cue_semantics 实测 16 次/调用:rung 4×side 2×payoff/precision 2)+dedicated 3×2×(2+16)+independent marginal 18 = 226 调用×20000",
+          "typical": 4520000,
+          "worst_upper": 4520000,
+          "consumer": "semantic_cue_gate(2)/candidate_cue_semantics(16)/independent_cue_semantics(18)(design.py:993,1192;calibration.py:185,189;cue_eval.py:317-347,460-483)",
+          "metering": "design_plan/selection 视图各报告 n_boot 落盘;counter 探针实测口径(reviewer gate1_r6 B-1)"
         },
         {
           "step": "design",
@@ -212,14 +213,95 @@
         {
           "step": "calibrate",
           "category": "bootstrap_resamples",
-          "formula": "semantic main+holdout 各 run_c2_semantic_corpus_r17(gate 2+candidate 2)=2×4 调用×20000",
-          "typical": 160000,
-          "worst_upper": 160000,
-          "consumer": "run_c2_semantic_corpus_r17(orchestrator:999)",
-          "metering": "semantic gate 报告 n_boot 落盘"
+          "formula": "semantic main+holdout 各(gate 2+candidate 16)+independent marginal guard 2×18=72 调用×20000",
+          "typical": 1440000,
+          "worst_upper": 1440000,
+          "consumer": "run_c2_semantic_corpus_r17(orchestrator:999)+c2_independent_marginal_guard_r17",
+          "metering": "semantic gate/marginal 报告 n_boot 落盘;counter 探针实测口径"
         },
         {
-          "step": "preflight-static+lock-plan+preflight-sealed",
+          "step": "preflight-static",
+          "category": "generation_episodes",
+          "formula": "内嵌 smoke bank 144+pair 2+matched probe 2 block×8(×5 worst)=162",
+          "typical": 162,
+          "worst_upper": 226,
+          "consumer": "run_prelock_static_preflight_r17 → run_ppo_smoke_r17+_matched_generator_probe_r17(preflight 内嵌)",
+          "metering": "smoke 报告+生成 envelope ledger"
+        },
+        {
+          "step": "preflight-static",
+          "category": "v2_preprocessor_fits",
+          "formula": "内嵌 smoke 1 次(无 envelope 时从 bank fit)",
+          "typical": 1,
+          "worst_upper": 1,
+          "consumer": "fit_preprocessor_v2_from_bank_r17(smoke 内)",
+          "metering": "smoke manifest preprocessor_bundle_hash"
+        },
+        {
+          "step": "preflight-static",
+          "category": "ppo_learn_calls",
+          "formula": "内嵌 smoke model.learn(256) 1 次",
+          "typical": 1,
+          "worst_upper": 1,
+          "consumer": "PPO.learn(经 run_ppo_smoke_r17)",
+          "metering": "smoke manifest"
+        },
+        {
+          "step": "preflight-static",
+          "category": "ppo_rollout_env_steps",
+          "formula": "内嵌 smoke n_steps=256",
+          "typical": 256,
+          "worst_upper": 256,
+          "consumer": "PPO rollout(learn 内)",
+          "metering": "smoke manifest"
+        },
+        {
+          "step": "preflight-static",
+          "category": "ppo_optimizer_steps_upper",
+          "formula": "内嵌 smoke 10×ceil(256/64)=40 次 optimizer.step(推导上界)",
+          "typical": 40,
+          "worst_upper": 40,
+          "consumer": "PPO.train(learn 内)",
+          "metering": "冻结配置推导"
+        },
+        {
+          "step": "preflight-static",
+          "category": "ppo_validation_env_steps",
+          "formula": "内嵌 smoke 验证 ≤50",
+          "typical": 50,
+          "worst_upper": 50,
+          "consumer": "run_ppo_smoke_r17 验证循环",
+          "metering": "smoke 报告"
+        },
+        {
+          "step": "preflight-static",
+          "category": "ppo_check_env_interactions_bound",
+          "formula": "内嵌 smoke check_env ≤10",
+          "typical": 10,
+          "worst_upper": 10,
+          "consumer": "stable_baselines3 check_env",
+          "metering": "SB3 版本冻结"
+        },
+        {
+          "step": "preflight-static",
+          "category": "model_save_load",
+          "formula": "内嵌 smoke save 1+load 1",
+          "typical": 2,
+          "worst_upper": 2,
+          "consumer": "model.save/PPO.load",
+          "metering": "smoke 报告确定性检查"
+        },
+        {
+          "step": "preflight-static",
+          "category": "bootstrap_resamples",
+          "formula": "matched probe candidate 16+independent 18=34 调用×20000",
+          "typical": 680000,
+          "worst_upper": 680000,
+          "consumer": "_matched_generator_probe_r17 → candidate/independent_cue_semantics",
+          "metering": "preflight 报告;counter 探针实测口径"
+        },
+        {
+          "step": "lock-plan+preflight-sealed",
           "category": "generation_episodes",
           "formula": "纯治理/只读",
           "typical": 0,
@@ -266,11 +348,11 @@
         {
           "step": "qualify",
           "category": "bootstrap_resamples",
-          "formula": "cue_semantic_qualification 1×run_c2_semantic_corpus_r17(gate 2+candidate 2)=4 调用×20000",
-          "typical": 80000,
-          "worst_upper": 80000,
-          "consumer": "run_c2_semantic_corpus_r17(final_core:498)",
-          "metering": "final semantic gate 报告 n_boot 落盘"
+          "formula": "semantic(gate 2+candidate 16)+independent 18=36 调用×20000",
+          "typical": 720000,
+          "worst_upper": 720000,
+          "consumer": "run_c2_semantic_corpus_r17(final_core:498)+independent_cue_semantics",
+          "metering": "final semantic/marginal 报告 n_boot 落盘;counter 探针实测口径"
         },
         {
           "step": "smoke",
@@ -372,18 +454,18 @@
       "smoke_policy": "第 14 步 smoke=资格 PASS 后链内验收的条件许可(1 次 learn 调用、rollout 256 环境步、optimizer.step 上界 40=SB3 默认 10 epochs×4 minibatch、验证≤50 步、save 1+load 1;逐类计量与批准,不混写为'一次更新'),与正式教学分开;未授权(A1)时链停在 qualify,15-17 步 NOT_RUN(PPO 面恒 0 由有界排程物理保证)"
     },
     "quota": {
-      "max_leaf_calls_per_coordinate": 112804,
-      "max_successful_episodes_total": 112804,
+      "max_leaf_calls_per_coordinate": 113030,
+      "max_successful_episodes_total": 113030,
       "mc_events_per_coordinate": 1000000,
       "max_native_executions": 1,
-      "v2_preprocessor_fits": 8,
+      "v2_preprocessor_fits": 9,
       "supervised_mlp_fits": 85,
-      "bootstrap_resamples_upper": 1180000,
-      "ppo_learn_calls": 0,
-      "ppo_rollout_env_steps": 0,
-      "ppo_optimizer_steps_upper": 0,
-      "ppo_validation_env_steps": 0,
-      "model_save_load_pairs": 0
+      "bootstrap_resamples_upper": 7500000,
+      "ppo_learn_calls": 1,
+      "ppo_rollout_env_steps": 256,
+      "ppo_optimizer_steps_upper": 40,
+      "ppo_validation_env_steps": 50,
+      "model_save_load_pairs": 1
     },
     "code_identity": {
       "curriculum261_api.py": "f264a3d009ed8ea3d38d539f31c653f55421560d76623864ca9dbe3deed0cd31",
@@ -399,7 +481,7 @@
       "curriculum261_qprod_aggregate.py": "b21ce082e5432fdbc78d42debbf4f556b1913b6e51196cdc3ca0807ee5c646fc",
       "curriculum261_qprod_formal.py": "92409b4d2729071f88e310e11ca8e62944c968a126bbda7bf1a850be4390dd1a",
       "curriculum261_qprod_formal_levela.py": "3c320709f08517e57ffe823fb6aa9e95ef64581e093658a1d30ae45f6e81a102",
-      "curriculum261_qprod_formal_budget.py": "6889174c5407df517da674c1fa42b25dad79b6ab87624bf443ccc53b6eedd9d8",
+      "curriculum261_qprod_formal_budget.py": "1f426efd4e2779a6b376d4af4cee8b753eb8aa884c80cde46b95865aab61d535",
       "curriculum261_qaf_attempt.py": "30a25c44c4185a366e3d84a5e8ae64d4342b6b569fa48e69e4e68713b98f9f71"
     },
     "stop_mode": "collect_all_k",
@@ -407,25 +489,26 @@
   },
   "budget": {
     "stop_after": "qualify",
-    "generation_episodes_typical": 28636,
-    "generation_episodes_worst_upper": 112804,
-    "authorization_cap_generation_episodes": 112804,
+    "generation_episodes_typical": 28798,
+    "generation_episodes_worst_upper": 113030,
+    "authorization_cap_generation_episodes": 113030,
     "mc_events_total": 1000000,
-    "bootstrap_resamples_upper": 1180000,
-    "v2_preprocessor_fits": 8,
+    "bootstrap_resamples_upper": 7500000,
+    "v2_preprocessor_fits": 9,
     "supervised_mlp_fits": 85,
     "supervised_mlp_epochs_per_fit": 20,
     "supervised_mlp_note": "calibrate 54+qualify 27+determinism 4(epochs=2);A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指监督拟合;按本面逐类批准",
-    "ppo_learn_calls": 0,
-    "ppo_rollout_env_steps": 0,
-    "ppo_optimizer_steps_upper": 0,
-    "ppo_validation_env_steps": 0,
-    "model_save_load_pairs": 0,
-    "ppo_check_env_interactions_bound": 0,
+    "ppo_learn_calls": 1,
+    "ppo_rollout_env_steps": 256,
+    "ppo_optimizer_steps_upper": 40,
+    "ppo_validation_env_steps": 50,
+    "model_save_load_pairs": 1,
+    "ppo_check_env_interactions_bound": 10,
+    "ppo_note": "A1 不再声称 PPO 恒 0:preflight-static 内嵌 256 步 PPO plumbing smoke(R12 起冻结;V2 serialize/reload/outer-env 检查依赖;reviewer gate1_r6 B-2 如实入面)。A2 = 内嵌 + step-14 获准 smoke 共 2 次。",
     "global_k_null_draws_tier1": 50000,
     "global_k_null_draws_tier2_upper": 200000,
     "subprocesses_upper": 19,
-    "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 40 为冻结配置推导上界(10 epochs×4 minibatch),非实测;A1 中该面恒 0 由有界排程保证(not_run_steps 含 smoke)"
+    "metering_note": "learn 调用/rollout 步/optimizer.step/验证步/save-load分别计量;optimizer 上界为冻结配置推导(10 epochs×4 minibatch/次),非实测;A1 含 preflight-static 内嵌 smoke 1 次,A2 = 内嵌 + step-14 获准 smoke 共 2 次"
   },
   "commands": {
     "preflight": "python stage2_6_1/runner/qprod_formal_level_a_entry.py preflight --deploy-root <DEPLOY_ROOT> --stop-after qualify",
