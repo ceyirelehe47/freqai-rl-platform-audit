@@ -170,26 +170,49 @@ class TestA2ChainWiring:
         assert list(dd["corpora"]) == ["design_qaf_matched_main",
                                        "design_qaf_matched_validation"]
 
-    def test_determinism_a4_target_override(self, tmp_path,
-                                             monkeypatch):
-        import rl_curriculum.curriculum261_r17_determinism as det
+    def test_determinism_a4_target_override(self, tmp_path):
+        """子进程隔离:真实 audit_generator_mutable_state 的完整
+        A4 序列会加载 torch/MLP 并留驻线程池,污染同进程后续
+        supervisor 掩码面测试(r21 全收集实测 rc=7 干扰);本测试
+        在子进程内以真实函数+真实命名空间覆盖运行,父进程只断言
+        观测结果。"""
+        import subprocess
+        import sys as _sys
 
-        seen = []
-
-        def fake_run_target_call(target):
-            seen.append(dict(target))
-            return {"attempt_digests": {}}
-
-        monkeypatch.setattr(det, "run_target_call",
-                            fake_run_target_call)
-        det.audit_generator_mutable_state(
-            tmp_path, stress_namespace="stress_qaf_v1")
-        assert seen and all(
-            t["namespace"] == "stress_qaf_v1" for t in seen)
-        seen.clear()
-        det.audit_generator_mutable_state(tmp_path)
-        assert seen and all(
-            t["namespace"] == "stress_r17" for t in seen)
+        child = tmp_path / "a4_probe.py"
+        out_dir = tmp_path / "a4out"
+        child.write_text(
+            "import json, sys\n"
+            "sys.path.insert(0, 'src')\n"
+            "import rl_curriculum.curriculum261_r17_determinism "
+            "as det\n"
+            "seen = []\n"
+            "orig = det.run_target_call\n"
+            "def fake(target):\n"
+            "    seen.append(dict(target))\n"
+            "    return {'attempt_digests': {}}\n"
+            "det.run_target_call = fake\n"
+            "det.audit_generator_mutable_state(\n"
+            "    sys.argv[1], stress_namespace=sys.argv[2] or None)\n"
+            "det.run_target_call = orig\n"
+            "print(json.dumps([t.get('namespace') for t in seen]))\n",
+            encoding="utf-8")
+        r = subprocess.run(
+            [_sys.executable, str(child), str(out_dir),
+             "stress_qaf_v1"],
+            capture_output=True, text=True, timeout=600, cwd=str(
+                Path(__file__).resolve().parents[2]))
+        assert r.returncode == 0, r.stderr[-800:]
+        ns_list = json.loads(r.stdout.strip().splitlines()[-1])
+        assert ns_list and all(n == "stress_qaf_v1" for n in ns_list)
+        out_dir2 = tmp_path / "a4out2"
+        r2 = subprocess.run(
+            [_sys.executable, str(child), str(out_dir2), ""],
+            capture_output=True, text=True, timeout=600, cwd=str(
+                Path(__file__).resolve().parents[2]))
+        assert r2.returncode == 0, r2.stderr[-800:]
+        ns_list2 = json.loads(r2.stdout.strip().splitlines()[-1])
+        assert ns_list2 and all(n == "stress_r17" for n in ns_list2)
 
 
 class TestBBudgetCompleteness:
