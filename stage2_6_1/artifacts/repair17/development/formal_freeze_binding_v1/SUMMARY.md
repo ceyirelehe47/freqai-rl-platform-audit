@@ -29,8 +29,9 @@
   vs Commit A:src 325 / tests 172 / runner 124 文件 CR 规范化
   sha256 逐成员相等,漂移 0,CRLF 成员 0;补齐缺失成员
   `regression_selection_rules.md`(自 Commit A blob,LF)。
-  部署侧 68 个 deploy-only src 模块(generator_api 等)与 R4
-  record deploy_extra_modules 面一致。报告:
+  部署侧 67 个 deploy-only src 模块文件(generator_api 等,+1 个
+  __pycache__ 目录项)与 R4 record deploy_extra_modules 面同集
+  (口径见 evidence/deploy_sync/COUNT_CLARIFICATION.md)。报告:
   `evidence/deploy_sync/report.json`。
 - 生产保护面前后快照逐字节稳定:
   `qprod_deploy_config.json` 缺席(未激活,fail closed);

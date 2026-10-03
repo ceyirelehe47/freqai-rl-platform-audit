@@ -1,0 +1,16 @@
+COMMANDS 字符串口径说明(reviewer gate1 P3-1 记录的文档层更正)
+============================================================
+
+三份计划快照 JSON 外层的 `commands` 字段是**展示串**,由既有
+构建器生成,不是逐字可执行命令清单;其中 A2 的
+`commands.preflight` 含 `--model-update`,而 preflight 子命令
+parser 实测只接受 `--deploy-root/--code-freeze-sha/--stop-after`
+(见 evidence/preflight_fb08/help_preflight.txt 与 summary.json
+的 parser 对拍;reviewer gate1 T7 亦独立实测 argparse rc=2
+"unrecognized arguments: --model-update")。
+
+- 可执行命令以 parser/--help 为准;权威组合见交付包
+  COMMANDS_APPENDIX.md §A/§B。
+- 该字符串不在 payload 内、不入 research_plan_digest;修正它
+  须改 runner 代码,属已冻结面,本轮不改(reviewer 同意非阻断)。
+- 任何照抄该串导致的 rc=2 是正确拒绝,不是缺陷。
