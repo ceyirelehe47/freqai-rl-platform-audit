@@ -230,3 +230,28 @@ FAIL/NOT CLOSED 的三个工作面;原件在
   seal 阻塞;seal 在场(含统计负结果)collect_all_k 继续;
   mp 双进程重叠预占(max_runs=1)恰好一个成功、最终账本单一
   started(无 lost update)。
+
+### 8.5 R2 复批修正(reviewer gate1_r6 FAIL B-1/B-2 + A.2-1)
+
+- **B-1 bootstrap 按调用点实测重推**:candidate_cue_semantics
+  实测 **16 次** bootstrap/调用(rung 4×side 2×payoff/precision
+  2;cue_eval.py:317-347)、independent_cue_semantics **18 次**
+  (含聚合 recall/noncue 2;:460-483)——原表把 candidate 记 2、
+  independent 漏账。新口径:design 226(shared 4+candidate
+  matched 96+dedicated 108+independent 18)、calibrate 72、
+  qualify 36、preflight-static 34、preplan 3、cue 4,合计
+  **375×20,000=7,500,000**;DECISION 表/face/gate caps 同步。
+- **B-2 preflight-static 如实入面**:run_prelock_static_preflight
+  内嵌 run_ppo_smoke_r17()=真实 256 步 PPO learn+check_env+
+  ≤50 验证+save/load+V2 fit(bank 146 eps)+_matched_generator
+  probe(16 eps+34 bootstrap;preflight.py)。R12 起冻结存在,
+  v2_serialize_reload_and_outer_env 检查依赖——A1 面不再声称
+  "PPO 恒 0/不可达":A1 PPO learn=1/rollout 256/optimizer ≤40/
+  验证 ≤50/check_env ≤10/save+load 1;A2=内嵌+step-14 获准
+  smoke 共 2 次;V2 fit 9/10;episodes +162 typ/+226 worst。
+  preflight-static 入 GATED_STEPS 与链注入(第 10 个被门控
+  命令),预算项步骤名与计划步骤一致(gate caps 不再为空)。
+- **A.2-1 内嵌 smoke 输入身份**:cmd_preflight_static 接受
+  --formal-namespace-attempt(QAF 链内注入);内嵌 smoke+matched
+  probe 使用 ppo_smoke_qaf_v1(缺省工程路径保持 ppo_smoke_r17)。
+  消费者清单更新:QAF 链被门控面=10 步。

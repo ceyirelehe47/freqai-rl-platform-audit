@@ -98,9 +98,10 @@ def _code_identity_digest_r17() -> dict[str, Any]:
     }
 
 
-def _matched_generator_probe_r17() -> dict[str, Any]:
+def _matched_generator_probe_r17(
+        namespace: str = "ppo_smoke_r17") -> dict[str, Any]:
     """matched generator + unique-event evaluator + cluster bootstrap
-    小规模验证(ppo_smoke_r17 下 2 个 block;不触碰 design/cal/final)。"""
+    小规模验证(2 个 block;不触碰 design/cal/final)。"""
     try:
         from rl_curriculum.curriculum261_c2 import C2_RUNG_PARAMS
         from rl_curriculum.curriculum261_pairs import family_specs
@@ -119,7 +120,7 @@ def _matched_generator_probe_r17() -> dict[str, Any]:
         blocks = []
         for idx in range(2):
             blocks.append(generate_matched_block_with_attempts(
-                dict(C2_RUNG_PARAMS), namespace="ppo_smoke_r17",
+                dict(C2_RUNG_PARAMS), namespace=namespace,
                 block_index=idx))
         logs_ok = all(not check_block_attempt_log(b.attempt_log)
                       for b in blocks)
@@ -185,8 +186,10 @@ def _matched_generator_probe_r17() -> dict[str, Any]:
         return {"pass": False, "error": str(exc)[:300]}
 
 
-def run_prelock_static_preflight_r17(out_dir: Path,
-                                    vendor_pin: str) -> dict[str, Any]:
+def run_prelock_static_preflight_r17(
+        out_dir: Path, vendor_pin: str,
+        smoke_namespace: str = "ppo_smoke_r17",
+) -> dict[str, Any]:
     """§25.1:plan lock 前静态 preflight(只用非 final namespace)。"""
     out_dir = Path(out_dir)
     checks: dict[str, Any] = {}
@@ -215,9 +218,11 @@ def run_prelock_static_preflight_r17(out_dir: Path,
         checks["output_write_permission"] = False
 
     try:
-        from rl_curriculum.curriculum261_r17_smoke import run_ppo_smoke_r17
+        from rl_curriculum.curriculum261_r17_smoke import (
+            run_ppo_smoke_r17,
+        )
 
-        smoke = run_ppo_smoke_r17()
+        smoke = run_ppo_smoke_r17(namespace=smoke_namespace)
         checks["ppo_smoke_static"] = smoke
         checks["v2_serialize_reload_and_outer_env"] = bool(
             smoke["pass"]
@@ -228,7 +233,7 @@ def run_prelock_static_preflight_r17(out_dir: Path,
         checks["v2_serialize_reload_and_outer_env"] = False
 
     checks["matched_generator_and_cue_evaluator"] = (
-        _matched_generator_probe_r17())
+        _matched_generator_probe_r17(namespace=smoke_namespace))
 
     marker_ok = False
     lock_ok = False

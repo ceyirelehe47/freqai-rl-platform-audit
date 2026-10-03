@@ -199,13 +199,17 @@ class TestBBudgetCompleteness:
                 if i["category"] == "bootstrap_resamples"]
         per = {i["step"]: i["worst_upper"] for i in boot}
         b = K["audit_bootstrap"]
+        # counter 探针实测口径(reviewer gate1_r6 B-1):
+        # candidate_cue_semantics=16 次/调用(rung4×side2×2 统计)、
+        # independent_cue_semantics=18、preflight matched probe=34
         assert per["cue-audit"] == 4 * b
         assert per["preplan-smoke"] == 3 * b
-        assert per["design"] == 40 * b
-        assert per["calibrate"] == 8 * b
-        assert per["qualify"] == 4 * b
+        assert per["design"] == 226 * b
+        assert per["calibrate"] == 72 * b
+        assert per["qualify"] == 36 * b
+        assert per["preflight-static"] == 34 * b
         face = authorization_face(stop_after="qualify")
-        assert face["bootstrap_resamples_upper"] == 59 * b
+        assert face["bootstrap_resamples_upper"] == 375 * b
 
     def test_global_k_program_in_face(self):
         face = authorization_face(stop_after="qualify")
@@ -217,8 +221,42 @@ class TestBBudgetCompleteness:
     def test_check_env_in_face(self):
         a1 = authorization_face(stop_after="qualify")
         a2 = authorization_face(stop_after="verify-formal-logs")
-        assert a1["ppo_check_env_interactions_bound"] == 0
-        assert a2["ppo_check_env_interactions_bound"] == 10
+        # A1 含 preflight-static 内嵌 smoke(×1);A2 = 内嵌+step-14
+        assert a1["ppo_check_env_interactions_bound"] == 10
+        assert a2["ppo_check_env_interactions_bound"] == 20
+
+    def test_preflight_static_honest_in_a1_face(self):
+        """B-2:preflight-static 内嵌 256 步 PPO plumbing smoke
+        如实入面(A1 不再声称 PPO 恒 0;R12 起冻结存在)。"""
+        a1 = authorization_face(stop_after="qualify")
+        a2 = authorization_face(stop_after="verify-formal-logs")
+        assert a1["ppo_learn_calls"] == 1
+        assert a1["ppo_rollout_env_steps"] == 256
+        assert a1["ppo_optimizer_steps_upper"] == 40
+        assert a1["ppo_validation_env_steps"] == 50
+        assert a1["model_save_load_pairs"] == 1
+        assert a2["ppo_learn_calls"] == 2
+        assert a2["ppo_rollout_env_steps"] == 512
+        assert a2["ppo_optimizer_steps_upper"] == 80
+        # A1/A2 面含 preflight-static episodes(+162 typ)
+        assert a1["generation_episodes_typical"] == 28636 + 162
+        assert a2["generation_episodes_typical"] == 28782 + 162
+        assert a1["authorization_cap_generation_episodes"] \
+            == 112804 + 226
+        assert a2["authorization_cap_generation_episodes"] \
+            == 112950 + 226
+        items = build_budget_items()
+        pf = [i for i in items if i["step"] == "preflight-static"]
+        assert {i["category"] for i in pf} >= {
+            "generation_episodes", "v2_preprocessor_fits",
+            "ppo_learn_calls", "ppo_rollout_env_steps",
+            "ppo_optimizer_steps_upper", "ppo_validation_env_steps",
+            "ppo_check_env_interactions_bound", "model_save_load",
+            "bootstrap_resamples"}
+        eps = next(i for i in pf if i["category"] ==
+                   "generation_episodes")
+        assert eps["typical"] == 146 + 16
+        assert eps["worst_upper"] == 146 + 80
 
 
 class TestBBudgetGate:
@@ -341,9 +379,8 @@ class TestBBudgetGate:
         nonzero = {i["step"] for i in items
                    if i["typical"] > 0 or i["worst_upper"] > 0}
         assert nonzero <= set(GATED_STEPS) | {
-            "plan-roundtrip", "preflight-static", "lock-plan",
-            "preflight-sealed", "full-cold", "report-read",
-            "verify-formal-logs",
-            "preflight-static+lock-plan+preflight-sealed",
+            "plan-roundtrip", "lock-plan", "preflight-sealed",
+            "full-cold", "report-read", "verify-formal-logs",
+            "lock-plan+preflight-sealed",
             "full-cold+report-read+verify-formal-logs",
             "determinism-matrix"}, nonzero - set(GATED_STEPS)

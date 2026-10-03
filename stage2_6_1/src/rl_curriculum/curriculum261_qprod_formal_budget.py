@@ -267,13 +267,17 @@ def build_budget_items() -> list[dict[str, Any]]:
         "run_design_stage_r17",
         "生成 envelope ledger(每 block/pair 调用)"),
         item("design", "bootstrap_resamples",
-             f"shared gate 2 语料×2+candidate matched 评估 3×2×2"
-             f"+dedicated 语料 3×2×(gate 2+candidate 2)=40 调用"
-             f"×{boot}",
-             40 * boot, 40 * boot,
-             "semantic_cue_gate/candidate_cue_semantics"
-             "(design.py:993,1192;calibration.py:185,189)",
-             "design_plan/selection 视图各 gate 报告 n_boot 落盘"),
+             f"shared gate 2×2 + candidate matched 3×2×16"
+             "(candidate_cue_semantics 实测 16 次/调用:rung 4×"
+             "side 2×payoff/precision 2)+dedicated 3×2×(2+16)"
+             f"+independent marginal 18 = 226 调用×{boot}",
+             226 * boot, 226 * boot,
+             "semantic_cue_gate(2)/candidate_cue_semantics(16)/"
+             "independent_cue_semantics(18)"
+             "(design.py:993,1192;calibration.py:185,189;"
+             "cue_eval.py:317-347,460-483)",
+             "design_plan/selection 视图各报告 n_boot 落盘;"
+             "counter 探针实测口径(reviewer gate1_r6 B-1)"),
         item("design", "global_k_null_draws_tier1",
              "design 阶段不触发 global-K(仅 cue-audit)", 0, 0,
              "-", "无")])
@@ -318,15 +322,69 @@ def build_budget_items() -> list[dict[str, Any]]:
              "train_supervised_mlp(namespace=…;keyword-only)",
              "envelope ledger + supervised gate 记录"),
         item("calibrate", "bootstrap_resamples",
-             f"semantic main+holdout 各 run_c2_semantic_corpus_r17"
-             f"(gate 2+candidate 2)=2×4 调用×{boot}",
-             8 * boot, 8 * boot,
-             "run_c2_semantic_corpus_r17(orchestrator:999)",
-             "semantic gate 报告 n_boot 落盘"),
+             f"semantic main+holdout 各(gate 2+candidate 16)"
+             f"+independent marginal guard 2×18=72 调用×{boot}",
+             72 * boot, 72 * boot,
+             "run_c2_semantic_corpus_r17(orchestrator:999)"
+             "+c2_independent_marginal_guard_r17",
+             "semantic gate/marginal 报告 n_boot 落盘;"
+             "counter 探针实测口径"),
     ])
-    # ---- preflight-static/lock-plan/preflight-sealed: 0 ---------
+    # ---- preflight-static(内嵌 256 步 PPO plumbing smoke;
+    # R12 起冻结存在,v2_serialize_reload_and_outer_env 检查依赖;
+    # R2 复批如实入面——A1 面不再声称 PPO 恒 0) -------------------
+    pf_eps_typ = _bank_eps() + _pair_path_eps(1) + _block_path_eps(
+        2, worst=False)
+    pf_eps_worst = _bank_eps() + _pair_path_eps(1) + _block_path_eps(
+        2, worst=True)
+    pf_opt = (K["ppo_n_epochs_sb3_default"] * math.ceil(
+        K["smoke_n_steps"] / K["smoke_batch"]))
+    items.append([
+        item("preflight-static", "generation_episodes",
+             f"内嵌 smoke bank {_bank_eps()}+pair 2+matched probe "
+             f"2 block×8(×5 worst)={pf_eps_typ}",
+             pf_eps_typ, pf_eps_worst,
+             "run_prelock_static_preflight_r17 → run_ppo_smoke_r17"
+             "+_matched_generator_probe_r17(preflight 内嵌)",
+             "smoke 报告+生成 envelope ledger"),
+        item("preflight-static", "v2_preprocessor_fits",
+             "内嵌 smoke 1 次(无 envelope 时从 bank fit)",
+             1, 1, "fit_preprocessor_v2_from_bank_r17(smoke 内)",
+             "smoke manifest preprocessor_bundle_hash"),
+        item("preflight-static", "ppo_learn_calls",
+             "内嵌 smoke model.learn(256) 1 次", 1, 1,
+             "PPO.learn(经 run_ppo_smoke_r17)", "smoke manifest"),
+        item("preflight-static", "ppo_rollout_env_steps",
+             f"内嵌 smoke n_steps={K['smoke_n_steps']}",
+             K["smoke_n_steps"], K["smoke_n_steps"],
+             "PPO rollout(learn 内)", "smoke manifest"),
+        item("preflight-static", "ppo_optimizer_steps_upper",
+             f"内嵌 smoke 10×ceil(256/64)={pf_opt} 次 "
+             "optimizer.step(推导上界)",
+             pf_opt, pf_opt, "PPO.train(learn 内)", "冻结配置推导"),
+        item("preflight-static", "ppo_validation_env_steps",
+             "内嵌 smoke 验证 ≤50", K["smoke_validation_steps_max"],
+             K["smoke_validation_steps_max"],
+             "run_ppo_smoke_r17 验证循环", "smoke 报告"),
+        item("preflight-static", "ppo_check_env_interactions_bound",
+             "内嵌 smoke check_env ≤10",
+             K["smoke_check_env_steps_bound"],
+             K["smoke_check_env_steps_bound"],
+             "stable_baselines3 check_env", "SB3 版本冻结"),
+        item("preflight-static", "model_save_load",
+             "内嵌 smoke save 1+load 1", 2, 2,
+             "model.save/PPO.load", "smoke 报告确定性检查"),
+        item("preflight-static", "bootstrap_resamples",
+             f"matched probe candidate 16+independent 18"
+             f"=34 调用×{boot}",
+             34 * boot, 34 * boot,
+             "_matched_generator_probe_r17 → "
+             "candidate/independent_cue_semantics",
+             "preflight 报告;counter 探针实测口径"),
+    ])
+    # ---- lock-plan/preflight-sealed: 0(纯治理) ------------------
     items.append([item(
-        "preflight-static+lock-plan+preflight-sealed",
+        "lock-plan+preflight-sealed",
         "generation_episodes", "纯治理/只读", 0, 0, "-",
         "无业务叶")])
     # ---- qualify(QAF 数据面) -----------------------------------
@@ -367,11 +425,13 @@ def build_budget_items() -> list[dict[str, Any]]:
              "_fresh_seed_validity 纯 seed 派生对拍,零生成", 0, 0,
              "_fresh_seed_validity_r17", "无业务叶"),
         item("qualify", "bootstrap_resamples",
-             f"cue_semantic_qualification 1×run_c2_semantic_corpus"
-             f"_r17(gate 2+candidate 2)=4 调用×{boot}",
-             4 * boot, 4 * boot,
-             "run_c2_semantic_corpus_r17(final_core:498)",
-             "final semantic gate 报告 n_boot 落盘"),
+             f"semantic(gate 2+candidate 16)+independent 18"
+             f"=36 调用×{boot}",
+             36 * boot, 36 * boot,
+             "run_c2_semantic_corpus_r17(final_core:498)"
+             "+independent_cue_semantics",
+             "final semantic/marginal 报告 n_boot 落盘;"
+             "counter 探针实测口径"),
     ])
     # ---- smoke(A2 条件许可;资格 PASS 后) ---------------------
     smoke_eps = _bank_eps() + _pair_path_eps(1)
@@ -478,26 +538,33 @@ def authorization_face(*, stop_after: str) -> dict[str, Any]:
             "calibrate 54+qualify 27+determinism 4(epochs=2);"
             "A1/A2 都发生——'不含模型更新'指 PPO/optimizer,不指"
             "监督拟合;按本面逐类批准"),
-        "ppo_learn_calls": 1 if smoke_on else 0,
+        "ppo_learn_calls": 2 if smoke_on else 1,
         "ppo_rollout_env_steps": (
-            K["smoke_n_steps"] if smoke_on else 0),
+            K["smoke_n_steps"] * (2 if smoke_on else 1)),
         "ppo_optimizer_steps_upper": (
             K["ppo_n_epochs_sb3_default"] * math.ceil(
                 K["smoke_n_steps"] / K["smoke_batch"])
-            if smoke_on else 0),
+            * (2 if smoke_on else 1)),
         "ppo_validation_env_steps": (
-            K["smoke_validation_steps_max"] if smoke_on else 0),
-        "model_save_load_pairs": 1 if smoke_on else 0,
+            K["smoke_validation_steps_max"]
+            * (2 if smoke_on else 1)),
+        "model_save_load_pairs": 2 if smoke_on else 1,
         "ppo_check_env_interactions_bound": (
-            K["smoke_check_env_steps_bound"] if smoke_on else 0),
+            K["smoke_check_env_steps_bound"]
+            * (2 if smoke_on else 1)),
+        "ppo_note": (
+            "A1 不再声称 PPO 恒 0:preflight-static 内嵌 256 步 "
+            "PPO plumbing smoke(R12 起冻结;V2 serialize/reload/"
+            "outer-env 检查依赖;reviewer gate1_r6 B-2 如实入面)。"
+            "A2 = 内嵌 + step-14 获准 smoke 共 2 次。"),
         "global_k_null_draws_tier1": gk1,
         "global_k_null_draws_tier2_upper": gk2,
         "subprocesses_upper": sub,
         "metering_note": (
             "learn 调用/rollout 步/optimizer.step/验证步/save-load"
-            "分别计量;optimizer 40 为冻结配置推导上界"
-            "(10 epochs×4 minibatch),非实测;A1 中该面恒 0 由有界"
-            "排程保证(not_run_steps 含 smoke)"),
+            "分别计量;optimizer 上界为冻结配置推导(10 epochs×4 "
+            "minibatch/次),非实测;A1 含 preflight-static 内嵌 "
+            "smoke 1 次,A2 = 内嵌 + step-14 获准 smoke 共 2 次"),
     }
 
 
@@ -520,7 +587,7 @@ GATE_FILENAME = "chain_budget_gate.json"
 
 GATED_STEPS = ("determinism-matrix", "audit", "cue-audit",
                "preplan-smoke", "design", "calibrate", "qualify",
-               "smoke")
+               "preflight-static", "smoke")
 
 
 def chain_budget_gate_caps(steps_in_plan) -> dict[str, Any]:

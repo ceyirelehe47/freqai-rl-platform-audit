@@ -340,17 +340,21 @@ class TestR2BudgetMetering:
             assert face["authorization_cap_generation_episodes"] >= \
                 face["generation_episodes_typical"]
 
-    def test_a1_face_zero_ppo_and_bounded_schedule(self):
+    def test_a1_face_embedded_ppo_and_bounded_schedule(self):
+        """R2 复批(B-2):preflight-static 内嵌 256 步 PPO plumbing
+        smoke(R12 起冻结)如实入面——A1 不再声称 PPO 恒 0;step-14
+        获准 smoke 仍仅 A2(有界排程 not_run_steps 含 smoke)。"""
         face = authorization_face(stop_after="qualify")
-        assert face["ppo_learn_calls"] == 0
-        assert face["ppo_optimizer_steps_upper"] == 0
-        assert face["ppo_rollout_env_steps"] == 0
-        assert face["ppo_validation_env_steps"] == 0
-        assert face["model_save_load_pairs"] == 0
+        assert face["ppo_learn_calls"] == 1      # 内嵌 plumbing smoke
+        assert face["ppo_optimizer_steps_upper"] == 40
+        assert face["ppo_rollout_env_steps"] == 256
+        assert face["ppo_validation_env_steps"] == 50
+        assert face["model_save_load_pairs"] == 1
         # A1 仍含监督拟合(不以"无模型更新"含糊监督面)
         assert face["supervised_mlp_fits"] == 54 + 27 + 4
-        assert face["v2_preprocessor_fits"] == 5 + 2 + 1  # 无 smoke
-        # 物理保证:有界排程不含 smoke
+        # v2: determ 5+calib 2+qualify 1+preflight-static 内嵌 1
+        assert face["v2_preprocessor_fits"] == 5 + 2 + 1 + 1
+        # 物理保证:有界排程不含 step-14 获准 smoke
         plan = build_workflow_plan_r17(
             "formal", out_dir="/tmp/x", freeze_sha=FREEZE,
             formal_attempt="qaf_v1")
@@ -358,21 +362,24 @@ class TestR2BudgetMetering:
         assert "smoke" in bounded["not_run_steps"]
 
     def test_a2_face_itemized_ppo_metering(self):
+        """R2 复批:A2 = preflight-static 内嵌 smoke + step-14 获准
+        smoke,共 2 次 learn/512 rollout/80 optimizer 上界。"""
         face = authorization_face(stop_after="verify-formal-logs")
-        assert face["ppo_learn_calls"] == 1
-        assert face["ppo_rollout_env_steps"] == 256
-        # SB3 默认 n_epochs=10 × ceil(256/64)=4 minibatch = 40
-        assert face["ppo_optimizer_steps_upper"] == 10 * (256 // 64)
-        assert face["ppo_optimizer_steps_upper"] == 40
-        assert face["ppo_validation_env_steps"] == 50
-        assert face["model_save_load_pairs"] == 1
+        assert face["ppo_learn_calls"] == 2
+        assert face["ppo_rollout_env_steps"] == 512
+        # SB3 默认 n_epochs=10 × ceil(256/64)=4 minibatch ×2 次
+        assert face["ppo_optimizer_steps_upper"] == 2 * 10 * (256 // 64)
+        assert face["ppo_optimizer_steps_upper"] == 80
+        assert face["ppo_validation_env_steps"] == 100
+        assert face["model_save_load_pairs"] == 2
         # smoke 生成 = bank 144 + pair 2(cmd_smoke 不传 envelope)
         smoke_eps = [i for i in build_budget_items()
                      if i["step"] == "smoke"
                      and i["category"] == "generation_episodes"][0]
         bank = 3 * 4 * K["bank_pairs_per_rung"] * 2
         assert smoke_eps["typical"] == bank + 2 == 146
-        assert face["v2_preprocessor_fits"] == 5 + 2 + 1 + 1  # +smoke
+        # v2: determ 5+calib 2+qualify 1+preflight-static 1+smoke 1
+        assert face["v2_preprocessor_fits"] == 5 + 2 + 1 + 1 + 1
 
     def test_derived_from_live_constants(self):
         assert K["bank_pairs_per_rung"] == 6

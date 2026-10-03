@@ -44,14 +44,14 @@ Level A/Level B/教学 NOT_RUN)。本文档是待批方案摘要,不是执行
 
 | 类别 | A1 | A2 |
 |---|---|---|
-| 生成 episodes(授权帽=worst-upper) | 28,636 典型 / 112,804 上界 | 28,782 / 112,950 |
+| 生成 episodes(授权帽=worst-upper) | 28,798 典型 / 113,030 上界(含 preflight-static 内嵌 smoke 146+matched probe 16) | 28,944 / 113,176 |
 | MC 事件 | 1,000,000 | 1,000,000 |
-| bootstrap 重采样 | ≤1,180,000(R2 全量:cue 4+preplan 3+design 40+calibrate 8+qualify 4=59 调用×20,000) | ≤1,180,000 |
+| bootstrap 重采样 | ≤7,500,000(R2 复批实测口径:cue 4+preplan 3+design 226+calibrate 72+qualify 36+preflight 34=375 调用×20,000;candidate_cue_semantics=16 次/调用、independent=18) | ≤7,500,000 |
 | Global-K null 抽样(独立随机程序,与 MC 分开) | tier1 50,000;tier2 上界 200,000(条件升级,同 stream 前缀) | 同左 |
-| V2 preprocessor fit | 8(determ 5+calib 2+qualify 1) | 9(+smoke 1) |
+| V2 preprocessor fit | 9(determ 5+calib 2+qualify 1+preflight-static 内嵌 1) | 10(+step-14 smoke 1) |
 | supervised MLP fit | 85(54+27+4;epochs 20/20/2) | 85 |
-| PPO learn / rollout / optimizer.step | **0**(不可达) | 1 / 256 / ≤40 |
-| PPO 验证交互 / check_env / save+load | 0 | ≤50 / ≤10 / 1+1 |
+| PPO learn / rollout / optimizer.step | **1 / 256 / ≤40**(preflight-static 内嵌 256 步 PPO plumbing smoke,R12 起冻结存在;不再声称恒 0) | 2 / 512 / ≤80(内嵌+step-14 获准 smoke) |
+| PPO 验证交互 / check_env / save+load | ≤50 / ≤10 / 1+1 | ≤100 / ≤20 / 2+2 |
 | 子进程 | 19 | 19 |
 
 R2 追加:**动作前预算门**——链启动器把授权面固化为

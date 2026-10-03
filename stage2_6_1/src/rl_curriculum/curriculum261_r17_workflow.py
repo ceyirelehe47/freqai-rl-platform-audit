@@ -491,7 +491,8 @@ def build_workflow_plan_r17(
                 and s["name"] in (
                     "determinism-matrix", "audit", "cue-audit",
                     "preplan-smoke", "design-plan-lock", "design",
-                    "calibrate", "qualify", "smoke")):
+                    "calibrate", "preflight-static", "qualify",
+                    "smoke")):
             # R1/F06:新尝试数据面经真实 CLI 消费者接通;
             # R2 修复 A.2:覆盖实际生成/设计/校准/资格/获准
             # smoke 全部消费者(不止 calibrate/qualify)。

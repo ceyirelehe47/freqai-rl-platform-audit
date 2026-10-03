@@ -2376,8 +2376,23 @@ def cmd_preflight_static(args: argparse.Namespace) -> int:
         run_prelock_static_preflight_r17,
     )
 
-    result = run_prelock_static_preflight_r17(Path(args.out_dir),
-                                             VENDOR_PIN)
+    out = Path(args.out_dir)
+    from rl_curriculum.curriculum261_qprod_formal_budget import (
+        assert_stage_budget_gate,
+    )
+    from rl_curriculum.curriculum261_qprod_context import (
+        QProdContextError,
+    )
+    try:
+        assert_stage_budget_gate(out, "preflight-static")
+    except QProdContextError as exc:
+        print(f"[preflight-static] 预算门拒绝(零叶调用): {exc}")
+        return 2
+    pf_ns = ("ppo_smoke_qaf_v1"
+             if getattr(args, "formal_namespace_attempt",
+                        None) == "qaf_v1" else "ppo_smoke_r17")
+    result = run_prelock_static_preflight_r17(
+        out, VENDOR_PIN, smoke_namespace=pf_ns)
     print(f"[preflight-static] pass={result['pass']}")
     return 0 if result["pass"] else 1
 
@@ -4417,7 +4432,7 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("preplan-smoke", "plan-roundtrip",
                  "release-rehearsal", "global-k-reanalysis",
                  "full-supervised-rehearsal",
-                 "design", "preflight-static", "lock-plan",
+                 "design", "lock-plan",
                  "preflight-sealed", "smoke", "namespace-integrity",
                  "artifact-interface-audit",
                  "real-artifact-rehearsal"):
@@ -4428,6 +4443,12 @@ def main(argv: list[str] | None = None) -> int:
                 choices=("qaf_v1",),
                 help="QAF 全新输入身份(R2 修复 A.2;缺省=既有 "
                      "R17 名)")
+    ps = _with_out(sub.add_parser("preflight-static"))
+    ps.add_argument(
+        "--formal-namespace-attempt", default=None,
+        choices=("qaf_v1",),
+        help="QAF 全新输入身份(R2 复批 A.2-1;内嵌 smoke+matched"
+             " probe 使用 ppo_smoke_qaf_v1;缺省=ppo_smoke_r17)")
     dm = _with_out(sub.add_parser("determinism-matrix"))
     dm.add_argument(
         "--formal-namespace-attempt", default=None,
