@@ -109,3 +109,11 @@ smoke 独立键;DECISION 全文一致);A-2 engineering_probe_scope
 formal 门接线+缺门按上下文 fail closed;B-2 gate caps 逐项精确
 一致;C load_terminal_seal+原子发布+入口/锁内 digest 绑定。
 repair5 27 项+旧夹具升级;FLP 面 144 passed。
+
+R3 重型回归:r21 全收集 **2891/0F/0E/7skip**(record sha256
+06f4056e…,run_id r21_20261003_172751,绑 476d2733;test_files
+170→171=+repair5;此前一次 rc=3 系部署树 r15_cli 被仓库工作树
+CRLF 批量拷贝污染,已按 git blob 规范化重同步 325 文件后复跑
+全绿,非代码问题)+ 262 v24 **240 passed**。最终候选链 …→
+03e414eb → 7abe9262 → **476d2733**(r21/262 绑定;reviewer
+gate1_r8 快验 PASS)。
