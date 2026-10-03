@@ -375,11 +375,12 @@ def build_budget_items() -> list[dict[str, Any]]:
              "内嵌 smoke save 1+load 1", 2, 2,
              "model.save/PPO.load", "smoke 报告确定性检查"),
         item("preflight-static", "bootstrap_resamples",
-             f"matched probe candidate 16+independent 18"
-             f"=34 调用×{boot}",
+             f"matched probe 合成统计 2+probe candidate 16"
+             f"+evaluator 内 candidate 16=34 调用×{boot}"
+             "(reviewer r7 勘正:不含 independent_cue_semantics)",
              34 * boot, 34 * boot,
              "_matched_generator_probe_r17 → "
-             "candidate/independent_cue_semantics",
+             "cluster_bootstrap_rate/candidate_cue_semantics",
              "preflight 报告;counter 探针实测口径"),
     ])
     # ---- lock-plan/preflight-sealed: 0(纯治理) ------------------
