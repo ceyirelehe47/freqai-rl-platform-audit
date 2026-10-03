@@ -668,26 +668,22 @@ class TestR3EntryPairProbes:
         _digest = research_plan_digest(env["payload"])
 
         def core_ok(ctx, live, cid, coord_dir=None, ledger_path=None):
-            d = Path(coord_dir)
-            d.mkdir(parents=True, exist_ok=True)
-            (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-                json.dumps({
-                    "format": "cur261-qprod-coordinate-seal-v1",
-                    "coordinate_id": cid,
-                    "research_plan_digest": _digest,
-                    "coordinate_audit_plan_digest":
-                        "qcap-" + "b" * 64,
-                    "audit_digest": "sha256-" + "c" * 64,
-                    "members_sha256": {"cue_contract_audit.json":
-                                       "d" * 64},
-                    "summary": {
-                        "audit_pass": False, "recall_validation": 0.5,
-                        "se_validation": 0.01,
-                        "p_contract_local": 0.5}}),
-                encoding="utf-8")
-            return {"seal": {"coordinate_id": cid, "summary": {
-                "audit_pass": False, "recall_validation": 0.5,
-                "se_validation": 0.01, "p_contract_local": 0.5}},
+            # R4 修复 C:后继门现在核成员/绑定——用真实构建/发布
+            # 路径生成完整负结果夹具(_flp_seal_fixture)。
+            from _flp_seal_fixture import build_valid_coordinate
+            from rl_curriculum.curriculum261_qprod_coordinate import (
+                QPROD_COORDINATE_SEAL_NAME as _SEAL,
+            )
+            coord = next(
+                c for c in env["payload"]["coordinate_manifest"]
+                if c["coordinate_id"] == cid)
+            d = build_valid_coordinate(
+                Path(coord_dir).parent, Path(coord_dir).name,
+                coordinate_id=cid, plan_digest=_digest,
+                model_ns=coord["model_namespace"],
+                validation_ns=coord["validation_namespace"])
+            return {"seal": json.loads(
+                (d / _SEAL).read_text(encoding="utf-8")),
                 "generation": {"episode_leaf_calls": 8000}}
 
         run1, cap1 = self._run_entry(
@@ -710,26 +706,22 @@ class TestR3EntryPairProbes:
         _digest = research_plan_digest(env["payload"])
 
         def core_ok(ctx, live, cid, coord_dir=None, ledger_path=None):
-            d = Path(coord_dir)
-            d.mkdir(parents=True, exist_ok=True)
-            (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-                json.dumps({
-                    "format": "cur261-qprod-coordinate-seal-v1",
-                    "coordinate_id": cid,
-                    "research_plan_digest": _digest,
-                    "coordinate_audit_plan_digest":
-                        "qcap-" + "b" * 64,
-                    "audit_digest": "sha256-" + "c" * 64,
-                    "members_sha256": {"cue_contract_audit.json":
-                                       "d" * 64},
-                    "summary": {
-                        "audit_pass": False, "recall_validation": 0.5,
-                        "se_validation": 0.01,
-                        "p_contract_local": 0.5}}),
-                encoding="utf-8")
-            return {"seal": {"coordinate_id": cid, "summary": {
-                "audit_pass": False, "recall_validation": 0.5,
-                "se_validation": 0.01, "p_contract_local": 0.5}},
+            # R4 修复 C:后继门现在核成员/绑定——用真实构建/发布
+            # 路径生成完整负结果夹具(_flp_seal_fixture)。
+            from _flp_seal_fixture import build_valid_coordinate
+            from rl_curriculum.curriculum261_qprod_coordinate import (
+                QPROD_COORDINATE_SEAL_NAME as _SEAL,
+            )
+            coord = next(
+                c for c in env["payload"]["coordinate_manifest"]
+                if c["coordinate_id"] == cid)
+            d = build_valid_coordinate(
+                Path(coord_dir).parent, Path(coord_dir).name,
+                coordinate_id=cid, plan_digest=_digest,
+                model_ns=coord["model_namespace"],
+                validation_ns=coord["validation_namespace"])
+            return {"seal": json.loads(
+                (d / _SEAL).read_text(encoding="utf-8")),
                 "generation": {"episode_leaf_calls": 8000}}
 
         run1, _ = self._run_entry(env, monkeypatch, "c01", core_ok)

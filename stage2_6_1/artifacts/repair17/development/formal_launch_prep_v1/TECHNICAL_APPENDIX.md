@@ -296,3 +296,33 @@ FAIL/NOT CLOSED 的三个工作面;原件在
   矩阵+发布故障注入);repair/repair3/repair4 旧夹具升级到
   完整 seal/新消息口径(144 passed)。
 - input-lock:本轮未改 api.py(f264a3d0… 不变),无需重登记。
+
+
+## 10. 修复轮 R4(ChatGPT R3 终验 945e24d6 FAIL 唯一剩余 C)
+
+- **C 深度完整性/绑定核验**:coordinate 模块新增
+  terminal_seal_integrity_problems(与 aggregate reader 同一
+  合同,消息文本一致):必需成员集合精确覆盖(空集/子集/多余
+  均拒)、每成员文件存在+逐字节 SHA-256==seal 声明、qcap
+  存在/可解析/digest 复算/绑定(digest 文件对拍+qcap↔研究
+  计划+qcap↔清单 namespace+seal↔qcap digest)、报告原件
+  存在/可解析、报告实际 namespace↔清单、report.audit_digest
+  公共函数复算一致、seal.audit_digest==report.audit_digest。
+  load_terminal_seal 接入(叠加 format/summary 结构检查),
+  任何 problem → None(空壳/缺件/坏摘要/错绑定=无终态);
+  悬置门/中断门/锁内复查同一语义(传 coordinate dict 做
+  namespace 级绑定)。
+- **aggregate reader 复用共享合同**:_verify_coordinate 的
+  重复段替换为 terminal_seal_integrity_problems 调用
+  (两个 reader 不再可能产生不同结论);重对账段(qcap
+  预算/范围三方贯通、bootstrap 统计)保留在聚合侧。
+- 测试:_flp_seal_fixture.build_valid_coordinate(真实
+  cue_contract_audit_digest/coordinate_audit_plan_digest/
+  derive261_block_seed/publish_coordinate_seal 构建完整负
+  结果夹具);repair5 矩阵=ChatGPT §4.3 十三状态对偶
+  (1 正例+4 已修对照+8 无效状态全拒)+ 接线反例(真实
+  cmd_run_coordinate→真实门→真实 wrapper→c02 审计核心
+  哨兵:member_deleted/trace_corrupted→rc=96 零核心调用
+  零新预占;intact→哨兵到达);repair/repair3 夹具升级到
+  真实构建器。FLP+aggregate 178 passed;相邻 qprod 面
+  73 passed。

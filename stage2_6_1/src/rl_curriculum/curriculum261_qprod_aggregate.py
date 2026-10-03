@@ -109,73 +109,19 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
         return {"state": COORDINATE_STATE_MISSING,
                 "problems": ["坐标目录无 seal(该坐标未生产)"]}
     seal = json.loads(seal_path.read_text(encoding="utf-8"))
-    if seal.get("coordinate_id") != coordinate["coordinate_id"]:
-        problems.append("seal coordinate_id 与清单不一致")
-    if seal.get("research_plan_digest") != research_plan.get(
-            "research_plan_digest"):
-        problems.append("seal 未绑定当前冻结研究计划 digest")
-
-    # ---- Q3 修复:必需成员集合精确覆盖(空集/子集/多余成员均拒) ----
+    # R4 修复 C:seal 深度完整性/绑定核验与启动后继门
+    # (load_terminal_seal/terminal_seal_integrity_problems)同一
+    # 合同——两个 reader 不再产生不同结论;消息文本一致。
     from rl_curriculum.curriculum261_qprod_coordinate import (
-        QPROD_COORDINATE_AUDIT_PLAN_NAME, coordinate_audit_plan_digest,
+        terminal_seal_integrity_problems,
     )
 
-    required_members = {"cue_contract_audit.json",
-                        "cue_event_trace.jsonl",
-                        QPROD_BLOCK_SEED_LOG_NAME}
-    declared_members = set((seal.get("members_sha256") or {}).keys())
-    if declared_members != required_members:
-        problems.append(
-            f"seal 成员集合 {sorted(declared_members)} != 必需集合 "
-            f"{sorted(required_members)}(空集/子集/多余成员均不构成"
-            f"有效坐标)")
-
-    # ---- Q3 修复:冻结坐标审计计划(qcap)存在/自洽/绑定 ----
-    _qcap_budgets: dict[str, Any] = {}
-    qcap_path = coord_dir / QPROD_COORDINATE_AUDIT_PLAN_NAME
-    if not qcap_path.is_file():
-        problems.append("冻结坐标审计计划缺失(qcap;未锁定的坐标"
-                        "产物不构成有效坐标)")
-    else:
-        qcap = None
-        try:
-            qcap = json.loads(qcap_path.read_text(encoding="utf-8"))
-            qcap_d = coordinate_audit_plan_digest(qcap)
-        except (json.JSONDecodeError, KeyError, TypeError,
-                ValueError) as exc:
-            problems.append(f"冻结坐标审计计划不可解析: {exc}")
-        else:
-            qcap_digest_file = coord_dir / (
-                "qprod_coordinate_audit_plan_digest.txt")
-            stored_d = (qcap_digest_file.read_text(
-                encoding="utf-8").strip()
-                if qcap_digest_file.is_file() else "")
-            if stored_d != qcap_d:
-                problems.append("冻结坐标审计计划 digest 复算不一致")
-            if qcap.get("research_plan_digest") != research_plan.get(
-                    "research_plan_digest"):
-                problems.append("冻结坐标审计计划未绑定当前研究计划")
-            if (qcap.get("namespaces", {}).get("model")
-                    != coordinate["model_namespace"]
-                    or qcap.get("namespaces", {}).get("validation")
-                    != coordinate["validation_namespace"]):
-                problems.append("冻结坐标审计计划 namespace 与清单"
-                                "不一致")
-            if seal.get("coordinate_audit_plan_digest") != qcap_d:
-                problems.append("seal 未绑定冻结坐标审计计划 digest")
-            _qcap_budgets = dict(qcap.get("budgets") or {})
-
-
-    # 成员摘要核对(从冻结 seal 找原件并核对摘要/来源)
-    for name, want in (seal.get("members_sha256") or {}).items():
-        p = coord_dir / name
-        if not p.is_file():
-            problems.append(f"seal 成员缺失 {name}")
-            continue
-        got = hashlib.sha256(p.read_bytes()).hexdigest()
-        if got != want:
-            problems.append(f"seal 成员摘要不符 {name}")
-
+    _light, _qcap_budgets = terminal_seal_integrity_problems(
+        coord_dir, seal,
+        research_plan_digest=research_plan.get("research_plan_digest"),
+        coordinate=coordinate,
+        coordinate_id=coordinate["coordinate_id"])
+    problems.extend(_light)
     report_path = coord_dir / "cue_contract_audit.json"
     if not report_path.is_file():
         return {"state": COORDINATE_STATE_INVALID,
@@ -183,28 +129,20 @@ def _verify_coordinate(coord_dir: Path, coordinate: dict[str, Any],
                     "坐标审计报告原件缺失(只有汇总/seal 不构成"
                     "有效坐标;聚合必须读实际事件)"]}
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    # namespace 归属:报告实际 namespace 必须与清单一致
-    if (report.get("audit_namespaces", {}).get("model")
-            != coordinate["model_namespace"]
-            or report.get("audit_namespaces", {}).get("validation")
-            != coordinate["validation_namespace"]):
-        problems.append("报告实际 namespace 与清单不一致")
-    # Q3 修复:audit digest 公共函数复算(报告自洽 + seal 绑定)
-    from rl_curriculum.curriculum261_r17_cue_contract import (
-        cue_contract_audit_digest,
+    # 后续重对账(R3-Q3 范围/预算三方贯通)仍需 qcap 原件:
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        QPROD_COORDINATE_AUDIT_PLAN_NAME,
     )
 
-    audit_digest_ok = None
-    try:
-        audit_digest_ok = (report.get("audit_digest")
-                           == cue_contract_audit_digest(report))
-    except (KeyError, TypeError, ValueError):
-        audit_digest_ok = False
-    if audit_digest_ok is not True:
-        problems.append("报告 audit_digest 公共函数复算不一致"
-                        "(伪 audit 摘要拒)")
-    if seal.get("audit_digest") != report.get("audit_digest"):
-        problems.append("seal audit_digest 与报告 audit_digest 不一致")
+    qcap_path = coord_dir / QPROD_COORDINATE_AUDIT_PLAN_NAME
+    qcap = None
+    if qcap_path.is_file():
+        try:
+            qcap = json.loads(qcap_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            qcap = None
+    # (namespace 归属 / audit digest 复算 / seal↔report 绑定已由
+    # terminal_seal_integrity_problems 统一核验,不重复计账。)
     # R2-Q3:qcap 预算与报告实际值对账——qcap/清单声明 500 而报告
     # 实际 2 块(或 MC 声明与执行不符)不再有效;报告必须记录并
     # 真实使用锁定预算。

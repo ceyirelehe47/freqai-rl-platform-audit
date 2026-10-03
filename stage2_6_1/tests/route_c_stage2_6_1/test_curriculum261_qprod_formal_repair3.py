@@ -228,8 +228,11 @@ class TestA1StateRootResolution:
 
 def _manifest(n=2):
     return [{"coordinate_id": f"c0{i}",
-             "artifact_subdir": f"coord_c0{i}"} for i in range(1,
-                                                               n + 1)]
+             "artifact_subdir": f"coord_c0{i}",
+             "model_namespace": f"cue_qprod_formal_v1_c{i:02d}_model",
+             "validation_namespace":
+                 f"cue_qprod_formal_v1_c{i:02d}_validation"}
+            for i in range(1, n + 1)]
 
 
 def _init_budget(path: Path, mx: int):
@@ -286,22 +289,19 @@ class TestC1DanglingStartedGate:
         man = _manifest()
         reserve_native_execution(budget, coordinate_id="c01")
         mark_native_completed(budget, coordinate_id="c01")
-        d = art / "coord_c01"
-        d.mkdir(parents=True)
-        (d / QPROD_COORDINATE_SEAL_NAME).write_text(
-            json.dumps({
-                "format": "cur261-qprod-coordinate-seal-v1",
-                "coordinate_id": "c01",
-                "research_plan_digest": "qbpl-" + "0" * 64,
-                "coordinate_audit_plan_digest": "qcap-" + "b" * 64,
-                "audit_digest": "sha256-" + "c" * 64,
-                "members_sha256": {"cue_contract_audit.json":
-                                   "d" * 64},
-                "summary": {"audit_pass": False},
-            }), encoding="utf-8")
+        # R4 修复 C:后继门核成员/绑定——真实构建/发布路径夹具
+        from _flp_seal_fixture import build_valid_coordinate
+        c01 = man[0]
+        build_valid_coordinate(
+            art, c01["artifact_subdir"],
+            coordinate_id=c01["coordinate_id"],
+            plan_digest="qbpl-" + "0" * 64,
+            model_ns=c01["model_namespace"],
+            validation_ns=c01["validation_namespace"])
         out = reserve_native_execution(
             budget, coordinate_id="c02",
-            artifact_root=art, coordinate_manifest=man)
+            artifact_root=art, coordinate_manifest=man,
+            research_plan_digest="qbpl-" + "0" * 64)
         assert out["started"] == ["c01", "c02"]
 
     def test_manifest_foreign_started_blocks(self, tmp_path):

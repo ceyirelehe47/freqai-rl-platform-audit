@@ -57,21 +57,144 @@ QPROD_BLOCK_SEED_LOG_NAME = "qprod_block_seed_log.jsonl"
 QPROD_QUOTA_LEDGER_NAME = "qprod_quota_ledger.jsonl"
 QPROD_COORDINATE_SEAL_FORMAT = "cur261-qprod-coordinate-seal-v1"
 
+def terminal_seal_integrity_problems(
+        coord_dir: Path | str, seal: dict, *,
+        research_plan_digest: str | None = None,
+        coordinate: dict | None = None,
+        coordinate_id: str | None = None,
+) -> tuple[list[str], dict[str, Any]]:
+    """seal 深度完整性/绑定核验(R4 修复 C;与 aggregate reader
+    同一合同——消息文本一致,避免两个 reader 产生不同结论)。
+
+    轻量部分(无统计复算/无 bootstrap):
+    - coordinate_id / 研究计划 digest 绑定;
+    - 必需成员集合精确覆盖(空集/子集/多余成员均拒);
+    - 冻结坐标审计计划(qcap)存在/可解析/digest 复算/绑定
+      (digest 文件对拍 + qcap↔研究计划 + qcap↔清单 namespace +
+      seal↔qcap digest);
+    - 每个成员文件存在且实际字节 SHA-256 == seal 声明值;
+    - 审计报告原件存在/可解析,报告实际 namespace 与清单一致;
+      report.audit_digest 公共函数复算一致;seal.audit_digest ==
+      report.audit_digest。
+
+    返回 (problems, qcap_budgets):problems 空 = 通过。
+    """
+    problems: list[str] = []
+    qcap_budgets: dict[str, Any] = {}
+    d = Path(coord_dir)
+    if coordinate_id is not None \
+            and seal.get("coordinate_id") != coordinate_id:
+        problems.append("seal coordinate_id 与清单不一致")
+    if research_plan_digest is not None \
+            and seal.get("research_plan_digest") != \
+            research_plan_digest:
+        problems.append("seal 未绑定当前冻结研究计划 digest")
+
+    required_members = {"cue_contract_audit.json",
+                        "cue_event_trace.jsonl",
+                        QPROD_BLOCK_SEED_LOG_NAME}
+    declared_members = set((seal.get("members_sha256") or {}).keys())
+    if declared_members != required_members:
+        problems.append(
+            f"seal 成员集合 {sorted(declared_members)} != 必需集合 "
+            f"{sorted(required_members)}(空集/子集/多余成员均不构成"
+            f"有效坐标)")
+
+    qcap_path = d / QPROD_COORDINATE_AUDIT_PLAN_NAME
+    if not qcap_path.is_file():
+        problems.append("冻结坐标审计计划缺失(qcap;未锁定的坐标"
+                        "产物不构成有效坐标)")
+    else:
+        qcap = None
+        try:
+            qcap = json.loads(qcap_path.read_text(encoding="utf-8"))
+            qcap_d = coordinate_audit_plan_digest(qcap)
+        except (OSError, json.JSONDecodeError, KeyError, TypeError,
+                ValueError) as exc:
+            problems.append(f"冻结坐标审计计划不可解析: {exc}")
+        else:
+            qcap_digest_file = d / (
+                "qprod_coordinate_audit_plan_digest.txt")
+            stored_d = (qcap_digest_file.read_text(
+                encoding="utf-8").strip()
+                if qcap_digest_file.is_file() else "")
+            if stored_d != qcap_d:
+                problems.append("冻结坐标审计计划 digest 复算不一致")
+            if research_plan_digest is not None \
+                    and qcap.get("research_plan_digest") != \
+                    research_plan_digest:
+                problems.append("冻结坐标审计计划未绑定当前研究计划")
+            if coordinate is not None and (
+                    qcap.get("namespaces", {}).get("model")
+                    != coordinate.get("model_namespace")
+                    or qcap.get("namespaces", {}).get("validation")
+                    != coordinate.get("validation_namespace")):
+                problems.append("冻结坐标审计计划 namespace 与清单"
+                                "不一致")
+            if seal.get("coordinate_audit_plan_digest") != qcap_d:
+                problems.append("seal 未绑定冻结坐标审计计划 digest")
+            qcap_budgets = dict(qcap.get("budgets") or {})
+
+    for name, want in (seal.get("members_sha256") or {}).items():
+        p = d / name
+        if not p.is_file():
+            problems.append(f"seal 成员缺失 {name}")
+            continue
+        got = hashlib.sha256(p.read_bytes()).hexdigest()
+        if got != want:
+            problems.append(f"seal 成员摘要不符 {name}")
+
+    report_path = d / "cue_contract_audit.json"
+    if not report_path.is_file():
+        problems.append("坐标审计报告原件缺失")
+    else:
+        try:
+            report = json.loads(
+                report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            problems.append(f"坐标审计报告不可解析: {exc}")
+        else:
+            if coordinate is not None and (
+                    report.get("audit_namespaces", {}).get("model")
+                    != coordinate.get("model_namespace")
+                    or report.get("audit_namespaces",
+                                  {}).get("validation")
+                    != coordinate.get("validation_namespace")):
+                problems.append("报告实际 namespace 与清单不一致")
+            from rl_curriculum.curriculum261_r17_cue_contract import (
+                cue_contract_audit_digest,
+            )
+
+            audit_digest_ok = None
+            try:
+                audit_digest_ok = (report.get("audit_digest")
+                                   == cue_contract_audit_digest(report))
+            except (KeyError, TypeError, ValueError):
+                audit_digest_ok = False
+            if audit_digest_ok is not True:
+                problems.append("报告 audit_digest 公共函数复算不一致"
+                                "(伪 audit 摘要拒)")
+            if seal.get("audit_digest") != report.get("audit_digest"):
+                problems.append("seal audit_digest 与报告 "
+                                "audit_digest 不一致")
+    return problems, qcap_budgets
+
+
 def load_terminal_seal(coord_dir: Path | str, *,
                        coordinate_id: str | None = None,
                        research_plan_digest: str | None = None,
+                       coordinate: dict | None = None,
                        ) -> dict | None:
-    """加载并验证坐标封存的**可信完整终态**证据(R3 修复 C)。
+    """加载并验证坐标封存的**可信完整终态**证据(R3 修复 C;
+    R4 修复 C 接入成员/绑定深度核验)。
 
-    终态证据 = seal 文件存在**且**是完整合法 JSON**且**绑定匹配:
-    - format == QPROD_COORDINATE_SEAL_FORMAT;
-    - coordinate_id(提供时)与该坐标一致;
-    - research_plan_digest(提供时)与冻结研究计划一致;
-    - audit_digest 为非空字符串、members_sha256 为非空映射
-      (成员摘要完备;空/截断/半写文件在此全部失败)。
-
-    返回 seal dict;文件缺失/不可解析/绑定不符/字段不全一律
-    None——「文件恰好存在」不等于「可信完整封存」。
+    终态证据 = seal 文件存在、完整合法 JSON、format 正确、
+    coordinate_id/研究计划 digest 绑定匹配、summary 结构完整
+    (audit_pass 布尔),**且**通过 terminal_seal_integrity_problems
+    深度核验(必需成员集合、成员原件存在与逐字节 SHA-256、
+    qcap 自洽与绑定、报告 audit digest 复算与绑定)。空/截断/
+    半写/缺成员/坏摘要/错绑定一律 None——「字段形态齐全的空壳
+    seal」不构成可信终态。不可读原件按无终态处理,不吞成完成。
     """
     path = Path(coord_dir) / QPROD_COORDINATE_SEAL_NAME
     if not path.is_file():
@@ -96,6 +219,16 @@ def load_terminal_seal(coord_dir: Path | str, *,
         return None
     members = doc.get("members_sha256")
     if not isinstance(members, dict) or not members:
+        return None
+    summary = doc.get("summary")
+    if not isinstance(summary, dict) \
+            or not isinstance(summary.get("audit_pass"), bool):
+        return None
+    problems, _ = terminal_seal_integrity_problems(
+        coord_dir, doc,
+        research_plan_digest=research_plan_digest,
+        coordinate=coordinate, coordinate_id=coordinate_id)
+    if problems:
         return None
     return doc
 
@@ -768,6 +901,8 @@ def assert_no_dangling_started(
     if not started:
         return
     root = Path(artifact_root)
+    coord_of = {str(c.get("coordinate_id")): c for c in
+                coordinate_manifest or []}
     subdir_of = {str(c.get("coordinate_id")): str(
         c.get("artifact_subdir") or "") for c in
         coordinate_manifest or []}
@@ -779,7 +914,8 @@ def assert_no_dangling_started(
             continue
         seal = load_terminal_seal(
             root / subdir, coordinate_id=cid,
-            research_plan_digest=research_plan_digest)
+            research_plan_digest=research_plan_digest,
+            coordinate=coord_of.get(cid))
         if seal is None:
             dangling.append(f"{cid}(无有效 seal)")
     if dangling:
@@ -832,7 +968,8 @@ def assert_no_technical_interruption(
             continue
         seal = load_terminal_seal(
             d, coordinate_id=cid,
-            research_plan_digest=research_plan_digest)
+            research_plan_digest=research_plan_digest,
+            coordinate=coord)
         if seal is None:
             raise QProdContextError(
                 f"坐标 {cid!r} 处于技术中断态(有 interrupted 标记"
