@@ -16,8 +16,9 @@
 - 冻结面: 相对 04d10208 仅 `stage2_6_1/artifacts/` 下 20 个文件
   (6 个本轮 Commit A 新增 + 14 个 R4 证据件);src/tests/runner
   diff = 0 文件。无自引用(Commit A 内容不含自身 SHA;SHA 提交后
-  读取)。链外 provenance-lock 先于 Commit A(02:45:05 锁定,
-  02:47:06 提交)。
+  读取)。链外 provenance-lock 文件 mtime(02:45:05 +0800)早于
+  Commit A author/commit date(2026-10-04T02:47:06+08:00);
+  本地时钟口径,文件内容不含时间戳字段。
 - provenance digest:
   `r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d`
   (隔离目录 provenance-verify 复算一致,rc=0)。
@@ -77,8 +78,10 @@
   == `851c883b…`,回归证据链(含父件递归)核验通过 rc=0,
   substance digest `r17sub-627b4b…`
   (`evidence/fb05_substance_verify/`)。
-- 身份分层:commit sha ≠ tree sha(=admission git_tree_digest,
-  定义即 Commit A 树对象)≠ 三个 qbpl 计划摘要,四类互不混用;
+- 身份分层:commit sha ≠ tree sha ≠ 三个 qbpl 计划摘要,互不混用;
+  admission `git_tree_digest` 的定义即 Commit A 的 git tree 对象
+  id(与 tree sha 相等是构造事实);admission 侧只接受该口径、
+  qbpl 校验只接受 qbpl 前缀摘要,两核验器口径互斥;
   `qualification_plan_r17.json` 在正式状态根内不存在(未来链内
   lock-plan 产物;_rt 工程彩排根历史件已分类记录,不作补位)。
 - 262:候选面 04d10208→de81aba2 零 diff;v25(240 passed,绑
