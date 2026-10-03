@@ -51,7 +51,7 @@
 
 - 全部三份 code_freeze_sha == de81aba2;code_identity 15/15 成员
   == Commit A blobs;digest 独立复算与公共函数复算均一致
-  (`evidence/plan_identity/report.json`,36 检查全 PASS)。
+  (`evidence/plan_identity/report.json`,37 检查全 PASS)。
 - A1/A2 预算面与 R4 已验值逐项相等(28,798/113,030 与
   28,944/113,176;V2 9/10;MLP 85;MC 1e6;bootstrap 7.5e6;
   Global-K 50k/200k;子进程 19)。互斥候选:同 A、digest/quota
