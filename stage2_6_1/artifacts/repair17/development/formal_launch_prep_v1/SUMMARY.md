@@ -117,3 +117,15 @@ CRLF 批量拷贝污染,已按 git blob 规范化重同步 325 文件后复跑
 全绿,非代码问题)+ 262 v24 **240 passed**。最终候选链 …→
 03e414eb → 7abe9262 → **476d2733**(r21/262 绑定;reviewer
 gate1_r8 快验 PASS)。
+
+R4 修复轮(ChatGPT R3 终验 b16864f3 FAIL 唯一剩余 C:封存内容
+无效仍可启动后继):terminal_seal_integrity_problems 共享合同
+(成员集合/逐字节 SHA-256/qcap 自洽四重绑定/报告 digest 复算
+绑定)接入 load_terminal_seal/两门/锁内;aggregate 复用同一
+合同;_flp_seal_fixture 真实构建器+repair5 十三状态矩阵+真实
+runner 接线反例;FLP+aggregate 178/相邻 73 passed;reviewer
+gate1_r9 PASS。回归:r21 全收集 **2912/0F/0E/7skip**(record
+73e56d37… 绑 04d10208;一次 1F=supervision c01 采样器
+teardown pid 竞态 flake,隔离复跑 61 passed 后重跑全绿,
+非 R4 改动面)+ 262 v25 **240 passed**。最终候选链 …→
+7abe9262 → 476d2733 → 945e24d6 → **04d10208**。
