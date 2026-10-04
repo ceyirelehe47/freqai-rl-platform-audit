@@ -1,0 +1,89 @@
+{
+ "format": "cur261-qprod-chain-budget-gate-v1",
+ "stop_after": "verify-formal-logs",
+ "steps": [
+  "audit",
+  "calibrate",
+  "cue-audit",
+  "design",
+  "design-plan-lock",
+  "determinism-matrix",
+  "full-cold",
+  "lock-plan",
+  "plan-roundtrip",
+  "preflight-sealed",
+  "preflight-static",
+  "preplan-smoke",
+  "provenance-verify",
+  "qualify",
+  "report-read",
+  "smoke",
+  "verify-formal-logs"
+ ],
+ "caps": {
+  "determinism-matrix": {
+   "generation_episodes": 2500,
+   "v2_preprocessor_fits": 5,
+   "supervised_mlp_fits": 4,
+   "subprocesses": 17
+  },
+  "audit": {
+   "generation_episodes": 48
+  },
+  "cue-audit": {
+   "generation_episodes": 24400,
+   "mc_events": 1000000,
+   "bootstrap_resamples": 80000,
+   "global_k_null_draws_tier1": 50000,
+   "global_k_null_draws_tier2_upper": 200000
+  },
+  "preplan-smoke": {
+   "generation_episodes": 24,
+   "bootstrap_resamples": 60000
+  },
+  "plan-roundtrip": {
+   "subprocesses": 1
+  },
+  "design": {
+   "generation_episodes": 60960,
+   "bootstrap_resamples": 4520000
+  },
+  "calibrate": {
+   "generation_episodes": 16776,
+   "v2_preprocessor_fits": 2,
+   "supervised_mlp_fits": 54,
+   "bootstrap_resamples": 1440000
+  },
+  "preflight-static": {
+   "generation_episodes": 226,
+   "v2_preprocessor_fits": 1,
+   "ppo_learn_calls": 1,
+   "ppo_rollout_env_steps": 256,
+   "ppo_optimizer_steps_upper": 40,
+   "ppo_validation_env_steps": 50,
+   "ppo_check_env_interactions_bound": 10,
+   "model_save_load": 2,
+   "bootstrap_resamples": 680000
+  },
+  "qualify": {
+   "generation_episodes": 8096,
+   "v2_preprocessor_fits": 1,
+   "supervised_mlp_fits": 27,
+   "bootstrap_resamples": 720000
+  },
+  "smoke": {
+   "generation_episodes": 146,
+   "v2_preprocessor_fits": 1,
+   "ppo_learn_calls": 1,
+   "ppo_rollout_env_steps": 256,
+   "ppo_optimizer_steps_upper": 40,
+   "ppo_validation_env_steps": 50,
+   "ppo_check_env_interactions_bound": 10,
+   "model_save_load": 2
+  },
+  "full-cold": {
+   "subprocesses": 1
+  }
+ },
+ "consumed": {}
+}
