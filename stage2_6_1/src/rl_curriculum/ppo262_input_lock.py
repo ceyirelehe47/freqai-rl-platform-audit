@@ -237,12 +237,12 @@ FLP_V1_R3_REGISTERED_CODE_CHANGES = {
 #: A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 新尝试族接线
 #: (qaf_attempt 注册表+api/registry/seed 名单+r17_cli 消费者+levela
 #: 计划/签发线程);登记当前树实际 sha256(覆盖同名旧值;再漂移
-#: 仍 fail)。
+#: 仍 fail)。登记键必须 ⊆ R2 plan code_identity 键集
+#: (262 test_stage261_directory_unmodified_by_262 合同;qaf_attempt.py
+#: 非 R2 基线成员,其变更由新 plan code_identity 承载,不入此表)。
 A2R2_V1_REGISTERED_CODE_CHANGES = {
     "curriculum261_api.py":
         "b8ecba7d1a90a5913691b123aa881350c30958141b700e01229b62171a508c8b",
-    "curriculum261_qaf_attempt.py":
-        "ce2ae936c75f1b79ca768d6f81d266fb103100ba5f96ab22968b663dc144c090",
     "curriculum261_qprod_formal.py":
         "ce7862884782932a7d47ec902cb042be4cf28d014959bc3cd95ff4af2539f765",
     "curriculum261_qprod_formal_levela.py":
