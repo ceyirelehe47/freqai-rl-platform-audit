@@ -1,0 +1,95 @@
+launch start utc=2026-10-04T01:12:55Z cwd=/home/cryptorl/projects/crypto_rl entry=P/stage2_6_1_runner/qprod_formal_level_a_entry.py (appendix B5 form, env self-installed)
+{
+  "ok": false,
+  "sentinel_stopped": false,
+  "handoff": {
+    "format": "cur261-qprod-formal-launch-handoff-v1",
+    "level": "level_a",
+    "iteration_id": "qprod_a_formal_v1",
+    "business_entry": [
+      "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+      "-m",
+      "rl_curriculum.curriculum261_r17_cli",
+      "chain-run"
+    ],
+    "argv": [
+      "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+      "-m",
+      "rl_curriculum.curriculum261_r17_cli",
+      "chain-run",
+      "--out-dir",
+      "/home/cryptorl/projects/crypto_rl_formal_a/artifacts/formal_a_qaf_v1",
+      "--freeze-sha",
+      "de81aba2b3cdcc2c0febe2b3c439027496ab9d05",
+      "--formal-namespace-attempt",
+      "qaf_v1"
+    ],
+    "cwd": "/home/cryptorl/projects/crypto_rl",
+    "env_identity": {
+      "PYTHONPATH": "/home/cryptorl/projects/crypto_rl/src",
+      "CURRICULUM261_R17_DEPLOYED_STATE_ROOT": "/home/cryptorl/projects/crypto_rl_formal_a/artifacts/route_c_stage2_6_1_repair17/state",
+      "stripped": [
+        "CURRICULUM261_R17_STATE_ROOT",
+        "CURRICULUM261_QPROD_ART_ROOT",
+        "CURRICULUM261_QPROD_STATE_ROOT"
+      ]
+    },
+    "research_plan_digest": "qbpl-dca8ee032cf7f806ab2001ea265ce02b1ec3a2c0c3e0e8c6bae8fbfe5c8e43ee",
+    "authorized_stop_after": "verify-formal-logs"
+  },
+  "chain_result": {
+    "ok": false,
+    "failed_step": "provenance-verify",
+    "failure_reason": "formal chain step provenance-verify rc=1(R17:停止后续正式计算;已冻结代码封口;不修代码继续)",
+    "profile": "formal",
+    "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+    "records": [
+      {
+        "step": "provenance-verify",
+        "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+        "profile": "formal",
+        "cli_command": "provenance-verify",
+        "argv": [
+          "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+          "-m",
+          "rl_curriculum.curriculum261_r17_cli",
+          "provenance-verify",
+          "--out-dir",
+          "/home/cryptorl/projects/crypto_rl_formal_a/artifacts/formal_a_qaf_v1"
+        ],
+        "cwd": "/home/cryptorl/projects/crypto_rl",
+        "env_identity": {
+          "python": "3.11.16",
+          "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "conda_default_env": "",
+          "pythonpath": "/home/cryptorl/projects/crypto_rl/src"
+        },
+        "start_utc": "2026-10-04T01:15:33.718255+00:00",
+        "end_utc": "2026-10-04T01:15:35.555491+00:00",
+        "duration_s": 1.947,
+        "rc": 1,
+        "signal": null,
+        "effective_result": "failed",
+        "effective_failure": null,
+        "stdout_path": "/home/cryptorl/projects/crypto_rl_formal_a/artifacts/formal_a_qaf_v1_chain_logs/provenance-verify.log",
+        "stderr_path": "/home/cryptorl/projects/crypto_rl_formal_a/artifacts/formal_a_qaf_v1_chain_logs/provenance-verify.err",
+        "stdout_sha256": "20dbf64258aef6e8a6cfcefbd59d6e00991d14b92ea8c01dbc8d832fe706b86d",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 101,
+        "stderr_bytes": 0,
+        "input_artifacts": {
+          "gate_topology_reconciliation.json": "4fbdfe49e194a0b0e26259c68708a47d7748c74c48ae0cf669e2e7564686a4c5"
+        },
+        "output_artifacts": {
+          "gate_topology_provenance_verify.json": "bb1af3f842228e3221ac417085ae1ab7b1d6ed15d3b6872fdcc58b76512e4d9f"
+        },
+        "delegation": null
+      }
+    ],
+    "qualification_terminal_status": null
+  },
+  "chain_rc": 1,
+  "stdout_tail": "",
+  "refusal": null
+}
+launch end utc=2026-10-04T01:15:36Z rc=1
