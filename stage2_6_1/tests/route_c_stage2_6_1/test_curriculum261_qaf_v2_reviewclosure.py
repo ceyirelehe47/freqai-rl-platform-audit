@@ -273,7 +273,7 @@ class TestConcurrentOneShot:
         assert adm.is_file(), "恰一份 admission 落盘"
         winners = [rc for rc in (rc1, rc2) if rc == 0]
         assert len(winners) == 1, (rc1, rc2, out1, out2, err1, err2)
-        log = d["state"] / "r17_admission_issuance.log.jsonl"
+        log = d["deploy"] / "r17_admission_issued.jsonl"
         if log.is_file():
             ids = [json.loads(line)["admission_id"]
                    for line in log.read_text(encoding="utf-8")
@@ -691,6 +691,58 @@ class TestRCF02StateMatrix:
         assert proc2.returncode == 4
         assert "admission 已签发" in proc2.stdout
         assert not list(adir.glob("qprod_permit_*"))
+
+    def test_real_issuance_log_refused_pre_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        # 真实签发日志在 deploy 根(准入文件不在场=中断/回执缺失
+        # 形态)→ 首个一次性写前拒绝,不重签准入
+        (d["deploy"] / "r17_admission_issued.jsonl").write_text(
+            json.dumps({"admission_id": "prior-test",
+                        "commit_a_sha": d["commit_a"]}) + "\n",
+            encoding="utf-8")
+        adir = d["authority"]
+        before = sorted(str(p.relative_to(adir))
+                        for p in adir.rglob("*") if p.is_file())
+        proc = self._execute(d, _approval_path(d), d["record"])
+        assert proc.returncode == 4, proc.stdout
+        assert "签发日志在场" in proc.stdout
+        after = sorted(str(p.relative_to(adir))
+                       for p in adir.rglob("*") if p.is_file())
+        assert after == before
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+
+    def test_leaf_sentinel_without_test_domain_zero_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        runner = _runner_dir()
+        proc = subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(_approval_path(d)),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rcf02-leafnodomain",
+             "--authorization", "test-harness",
+             "--plan-digest", d["tree"],
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", d["commit_a"],
+             "--stop-after", "verify-formal-logs",
+             "--model-update", "--attempt", "qaf_v2",
+             "--leaf-sentinel", "determinism-matrix"],
+            capture_output=True, text=True)
+        assert proc.returncode == 96, proc.stdout
+        assert "--leaf-sentinel 仅限 --test-domain" in proc.stdout
+        assert '"one_shot_writes": 0' in proc.stdout
+        adir = d["authority"]
+        assert not list(adir.glob("qprod_permit_*"))
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+        assert not (d["deploy"]
+                    / "r17_admission_issued.jsonl").exists()
 
     def test_post_permit_refusal_reports_one_shot_write(
             self, tmp_path_factory):

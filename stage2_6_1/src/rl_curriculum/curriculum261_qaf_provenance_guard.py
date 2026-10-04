@@ -399,6 +399,10 @@ def preissue_gate(
     → 新鲜度(一次性资源未耗)。任何一步失败=拒绝,零一次性写。
     """
     t0 = time.time()
+    # RCF-01(复验观察补面):诊断报告落点与安装/验证报告同受
+    # 路径约束——保护域/相对/别名路径拒绝,不在此写任何字节。
+    if report_out is not None:
+        harden_install_target(Path(report_out).parent)
     report: dict[str, Any] = {
         "format": GUARD_FORMAT,
         "phase": "preissue_gate",

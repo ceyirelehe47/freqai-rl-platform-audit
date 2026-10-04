@@ -175,15 +175,25 @@ def cmd_execute(args: argparse.Namespace) -> int:
     deploy_root = Path(args.deploy_root)
     project_dir = Path(args.project_dir)
     repo = Path(args.repo)
-    if args.sentinel_before_chain:
-        if not args.test_domain:
-            print(json.dumps({
-                "refused": "真实根禁止 --sentinel-before-chain"
-                           "(哨兵只存在于隔离测试域;须显式"
-                           "--test-domain)",
-                "one_shot_writes": 0,
-            }, ensure_ascii=False))
-            return 96
+    if args.sentinel_before_chain and not args.test_domain:
+        print(json.dumps({
+            "refused": "真实根禁止 --sentinel-before-chain"
+                       "(哨兵只存在于隔离测试域;须显式"
+                       "--test-domain)",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
+    # RCF 复验 P2#2:--leaf-sentinel 的测试域校验必须在任何
+    # 一次性写之前(与 --sentinel-before-chain 同一早期块);
+    # 晚于此点的无效调用会先消耗 permit/prereg/admission。
+    if args.leaf_sentinel and not args.test_domain:
+        print(json.dumps({
+            "refused": ("--leaf-sentinel 仅限 --test-domain"
+                        "(科学叶哨兵只在隔离测试域;首一次性"
+                        "写前拒绝)"),
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
         if _is_production_root(deploy_root):
             print(json.dumps({
                 "refused": f"部署根 {deploy_root} 属生产根清单,"
@@ -299,7 +309,10 @@ def cmd_execute(args: argparse.Namespace) -> int:
         return 4
     admission_file = deploy_root / ".r17_formal_admission.json"
     consumed_log = state_root / "r17_admission_consumed.jsonl"
-    issuance_log = state_root / "r17_admission_issuance.log.jsonl"
+    # 真实签发日志:r17_admission_issue.py ISSUANCE_LOG 落 deploy
+    # 根(准入文件同域);此前误指 state 根幽灵路径,漏检
+    # "已签发但准入文件不在场(中断/回执缺失)"状态。
+    issuance_log = deploy_root / "r17_admission_issued.jsonl"
     if admission_file.exists() or consumed_log.exists() \
             or issuance_log.exists():
         print(json.dumps({
@@ -478,6 +491,7 @@ def cmd_execute(args: argparse.Namespace) -> int:
         launch_argv += ["--child-timeout", str(args.child_timeout)]
     launch_env = dict(os.environ)
     if args.leaf_sentinel:
+        # 早期块已强制 --test-domain;此处防御性再核(零新写)
         if not args.test_domain:
             print(json.dumps({
                 "refused": ("--leaf-sentinel 仅限 --test-domain "
