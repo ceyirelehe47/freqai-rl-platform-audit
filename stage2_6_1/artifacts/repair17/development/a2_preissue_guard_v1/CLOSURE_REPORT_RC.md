@@ -14,7 +14,7 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 | RC05 | PG06/PG07/PG09 | **通过(新增连续前缀测试)** | 新测试:真实守卫安装→真实守卫签发链(init→record-approval→issue-permit→prereg→admission,隔离域)→admission 闸门→唯一链会话→真实 build_workflow_plan_r17+**生产冻结函数** bound_workflow_plan_r17(停止边界=provenance-verify,测试注入的唯一差异;生产允许边界=qualify/verify-formal-logs)→真实 execute_workflow_chain_r17:步 1 provenance-verify 子进程读安装目标(pass=true,stored==recomputed=r17gtrec-3112e5de…);**下一科学叶 determinism-matrix NOT_RUN**(不在排程/无产物/无 manifest 事件);verify-formal-logs 只读收口在排程。与既有 sentinel 测试(入口→签发→派发边界)拼成全链;v1/v2 职责/seed/两 smoke 分账不回归(既有 25+9 测试) |
 | RC06 | PG08/PG10 | **通过(新候选全量重证)** | 代码变更(runner)→不沿用旧 record:513e75e3 重新部署 P2/D2(三方对拍 625 全等+18 pyc 分类),D2 全收集新 record(见 §新证据);262 面零变化(api/输入锁/镜像未动)→ 240/240 复用适用(基线同码);清理面适用性:上轮 P0 清理(旧 R17 运行态)后 287 项+同源核验已证,本轮部署脚本内置排除,新域恒干净 |
 | RC07 | PG11 | **reviewer 闭环(进行至终审)** | 本轮先内部自测(新测试 6/6+受影响 73/73)→ 委 dsv4.1f 续验(快验→复验修复环→终审→冷读),见包外回执 |
-| RC08 | PG12 | **单一待批交接(见 PENDING_APPROVAL_SUMMARY 更新)** | 新身份全值见下;E1–E4 与实际代码核对:execute 自动完成 E2/环境/签发/launch;E1(配置激活)与 E3(批准原件构造,用户原文外部输入)为前置手动步;无未定义路径变量 |
+| RC08 | PG12 | **单一待批交接(见 PENDING_APPROVAL_SUMMARY 更新)** | 新身份全值见下;E1–E4 与实际代码核对:execute 自动完成环境白名单/门禁/签发/launch,**不自动执行 E2 安装**(要求已就绪,幂等可复核);E1(配置激活)/E2(prepare)/E3(批准原件构造,用户原文外部输入)为前置手动步;无未定义路径变量 |
 
 ## 新证据绑定(分支 B 后)
 
@@ -23,7 +23,7 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 - D2 新 record:`a102f967af986cb6cf921892faacaafd7aa7fb80c8355ef1d6b6a68809a0a4c2`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_054959,cwd=D2,commit 9d735c8c)+ 同根 substance verify rc=0(r17sub-9f074988b03a22487…,tree 6a81d73431a8…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
-## 源码快照(包内 source_snapshots/,候选 513e75e3 git blob 原字节)
+## 源码快照(包内 source_snapshots/,候选 9d735c8c git blob 原字节,10 文件含 curriculum261_r17_cli.py)
 
 qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha)
 

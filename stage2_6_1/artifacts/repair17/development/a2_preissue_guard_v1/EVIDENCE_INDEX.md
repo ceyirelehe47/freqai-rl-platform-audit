@@ -1,6 +1,6 @@
 # RC 轮证据索引(仓库不可变路径;归档不入包)
 
-最终候选 513e75e35f05ed18a5ebd9db76834de938e44113 | 证据 HEAD 见 DELIVERY_RECEIPT
+最终候选 9d735c8cb7863d44e1c6325761b828f03f100b8b | 证据 HEAD 见 DELIVERY_RECEIPT
 
 | 证据 | 仓库路径(stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/ 下) | 首次提交 |
 |---|---|---|
