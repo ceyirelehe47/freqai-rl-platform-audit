@@ -34,6 +34,8 @@ from rl_curriculum.curriculum261_qprod_formal import (  # noqa: E402
     QPROD_FORMAL_AUTHORITY_KIND, QPROD_FORMAL_LEVEL_A_ITERATION_ID,
     QPROD_FORMAL_LEVEL_B_ITERATION_ID, formal_approval_digest,
     formal_approval_name)
+from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
+    QAF_ATTEMPT_IDS, qaf_iteration_id_for_attempt)
 
 AUTHORITY_IDENTITY_FORMAT = "cur261-qprod-authority-identity-v1"
 FORMAL_LEVELS = ("level_a", "level_b")
@@ -85,10 +87,13 @@ def _validate_approval_internal(approval: dict) -> list[str]:
     if level not in FORMAL_LEVELS:
         problems.append(f"task_level {level!r} 非法")
         return problems
-    if approval.get("iteration_id") != ITERATIONS[level]:
+    _legal_iters = (
+        {qaf_iteration_id_for_attempt(a) for a in QAF_ATTEMPT_IDS}
+        if level == "level_a" else {ITERATIONS[level]})
+    if approval.get("iteration_id") not in _legal_iters:
         problems.append(
             f"iteration_id {approval.get('iteration_id')!r} != 正式"
-            f"迭代 {ITERATIONS[level]!r}")
+            f"迭代(合法: {sorted(_legal_iters)})")
     approved = approval.get("approved") or {}
     stop = approved.get("authorized_stop_after")
     model_update = bool(approved.get("model_update_authorized"))
@@ -159,7 +164,47 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
     if level not in FORMAL_LEVELS:
         print(f"[issue-permit] task-level 非法: {level}")
         return 2
-    iteration_id = ITERATIONS[level]
+    attempt = getattr(args, "attempt", None) or "qaf_v1"
+    if level == "level_a":
+        iteration_id = qaf_iteration_id_for_attempt(attempt)
+    else:
+        iteration_id = ITERATIONS[level]
+    # A2-R2 签发前硬门:新尝试(qaf_v2)的许可签发在第一次一次性写
+    # 之前必须通过 provenance 守卫(固定 Git 源/实际目标/同源
+    # verifier/新鲜度);绕过统一入口直接调用本命令同样过此门。
+    if level == "level_a" and attempt != "qaf_v1":
+        repo = getattr(args, "repo", None)
+        project_dir = getattr(args, "project_dir", None)
+        if not repo or not project_dir:
+            print(json.dumps({
+                "refused": (
+                    f"attempt={attempt} 签发必须提供 --repo 与 "
+                    f"--project-dir(签发前 provenance 守卫;不得以"
+                    f"缺参绕过前置检查)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+        from rl_curriculum.curriculum261_qaf_provenance_guard import (
+            ProvenanceGuardError, preissue_gate,
+        )
+        try:
+            gate = preissue_gate(
+                repo=Path(repo), deploy_root=Path(args.deploy_root),
+                project_dir=Path(project_dir), attempt=attempt)
+        except ProvenanceGuardError as exc:
+            print(json.dumps({"refused": f"签发前守卫拒绝: {exc}",
+                              "one_shot_writes": 0},
+                             ensure_ascii=False))
+            return 96
+        if not gate.get("ok"):
+            print(json.dumps({
+                "refused": (
+                    "签发前守卫拒绝(首一次性写前): "
+                    + str(gate.get("refusal"))),
+                "guard_report": gate.get("checks"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
     approval_path = adir / formal_approval_name(level, iteration_id)
     if not approval_path.is_file():
         print(f"[issue-permit] 用户批准原件缺失: {approval_path}"
@@ -263,6 +308,15 @@ def main(argv: list[str] | None = None) -> int:
     p_issue.add_argument("--task-level", required=True,
                          choices=FORMAL_LEVELS)
     p_issue.add_argument("--permit-id", default=None)
+    p_issue.add_argument("--attempt", default="qaf_v1",
+                         choices=QAF_ATTEMPT_IDS,
+                         help="level_a 尝试;qaf_v2 触发签发前"
+                              "provenance 守卫(强制)")
+    p_issue.add_argument("--repo", default=None,
+                         help="签发前守卫用 Git 仓库(qaf_v2 必填)")
+    p_issue.add_argument("--project-dir", default=None,
+                         help="签发前守卫同源验证用部署树"
+                              "(qaf_v2 必填)")
     p_issue.set_defaults(fn=cmd_issue_permit)
     args = parser.parse_args(argv)
     return args.fn(args)

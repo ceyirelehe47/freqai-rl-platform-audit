@@ -167,6 +167,14 @@ SEMANTIC_ARTIFACT_MAP_R17 = {
     "cue_semantic_design_main_r17": "semantic_design_main.json",
     "cue_semantic_design_validation_r17":
         "semantic_design_validation.json",
+    # QAF 尝试(R1/F06;同一 writer 合同;候选级派生经 base 解析)
+    "cue_semantic_design_main_qaf_v1": "semantic_design_main.json",
+    "cue_semantic_design_validation_qaf_v1":
+        "semantic_design_validation.json",
+    # QAF v2 尝试(A2-R2;同上)
+    "cue_semantic_design_main_qaf_v2": "semantic_design_main.json",
+    "cue_semantic_design_validation_qaf_v2":
+        "semantic_design_validation.json",
 }
 #: calibration/holdout/final 三阶段的 semantic artifact 显式映射。
 SEMANTIC_STAGE_ARTIFACT_MAP_R17 = {
@@ -211,6 +219,12 @@ SEMANTIC_STAGE_ARTIFACT_MAP_R17 = {
     "cue_semantic_holdout_qaf_v1": "cue_semantic_holdout.json",
     "cue_semantic_qualification_qaf_v1":
         "qualification_cue_semantics.json",
+    # QAF v2 尝试(RouteC_A2_PreIssueGuard_NewAttempt_v1;同一 writer
+    # 合同;数据面全新,机械面不变)
+    "cue_semantic_calibration_qaf_v2": "cue_semantic_calibration.json",
+    "cue_semantic_holdout_qaf_v2": "cue_semantic_holdout.json",
+    "cue_semantic_qualification_qaf_v2":
+        "qualification_cue_semantics.json",
 }
 
 SEMANTIC_CORPUS_ROLE_R17 = {
@@ -246,8 +260,13 @@ SEMANTIC_CORPUS_ROLE_R17 = {
     "cue_semantic_qualification_qaf_v1": "qualification",
     "cue_semantic_design_main_qaf_v1": "main",
     "cue_semantic_design_validation_qaf_v1": "validation",
+    # QAF v2 尝试(同角色合同)
+    "cue_semantic_calibration_qaf_v2": "calibration",
+    "cue_semantic_holdout_qaf_v2": "holdout",
+    "cue_semantic_qualification_qaf_v2": "qualification",
+    "cue_semantic_design_main_qaf_v2": "main",
+    "cue_semantic_design_validation_qaf_v2": "validation",
 }
-
 
 def candidate_semantic_namespace_r17(base_ns: str, cand_id: str) -> str:
     """§15b 候选级 dedicated semantic namespace(外部审查 4.1 统一)。

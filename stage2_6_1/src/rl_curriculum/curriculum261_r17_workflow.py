@@ -468,9 +468,11 @@ def build_workflow_plan_r17(
     """
     if profile not in ("formal", "rehearsal"):
         raise ValueError(f"未知 workflow profile: {profile!r}")
-    if formal_attempt is not None and formal_attempt != "qaf_v1":
+    from rl_curriculum.curriculum261_qaf_attempt import QAF_ATTEMPT_IDS
+    if formal_attempt is not None and formal_attempt not in QAF_ATTEMPT_IDS:
         raise ValueError(
-            f"未知 formal_attempt {formal_attempt!r}(合法: qaf_v1)")
+            f"未知 formal_attempt {formal_attempt!r}"
+            f"(合法: {QAF_ATTEMPT_IDS})")
     if not report_out:
         report_out = str(Path(out_dir) / (
             "r17_report_values.json" if profile == "formal"

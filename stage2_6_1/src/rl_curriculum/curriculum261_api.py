@@ -595,6 +595,8 @@ from rl_curriculum.curriculum261_r19_attempt import (  # noqa: E402
 from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
     QAF_ALL_NEW as _QAF_ATTEMPT_NAMESPACES,
     QAF_FORMAL_FOUR as _QAF_ATTEMPT_FORMAL_FOUR,
+    QAF2_ALL_NEW as _QAF_V2_ATTEMPT_NAMESPACES,
+    QAF2_FORMAL_FOUR as _QAF_V2_ATTEMPT_FORMAL_FOUR,
 )
 
 CURRICULUM261_R17_NAMESPACES = (
@@ -654,7 +656,7 @@ CURRICULUM261_R17_NAMESPACES = (
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
 ) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES + (
-    _QAF_ATTEMPT_NAMESPACES)
+    _QAF_ATTEMPT_NAMESPACES) + (_QAF_V2_ATTEMPT_NAMESPACES)
 
 #: R17 正式资格面(数据入口四件套;§6.5)。R18 尝试按其 journal §11
 #: 处方("R17 永久结束,下一轮必须 R17 + 全新 namespace")以全新
@@ -665,7 +667,7 @@ CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
 ) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR + (
-    _QAF_ATTEMPT_FORMAL_FOUR)
+    _QAF_ATTEMPT_FORMAL_FOUR) + (_QAF_V2_ATTEMPT_FORMAL_FOUR)
 
 #: R25 cue-bias 开发研究一次性 namespace(RouteC_CueBias_DevelopmentStudy_
 #: _v1;engineering-only 开发估计研究,不属正式资格面;11 对研究坐标
@@ -1537,6 +1539,7 @@ def _default_recorder(namespace: str, family: str, rung: str,
         # 其余历史名保持子串序(R0-R11 与 R11 行为一致)。
         iteration: str | None = None
         for _names, _label in (
+                (_QAF_V2_ATTEMPT_NAMESPACES, "qaf_v2"),
                 (_QAF_ATTEMPT_NAMESPACES, "qaf_v1"),
                 (_R19_ATTEMPT_NAMESPACES, "r19"),
                 (_R18_ATTEMPT_NAMESPACES, "r18")):

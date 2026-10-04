@@ -49,6 +49,9 @@ from rl_curriculum.curriculum261_qprod_formal import (
     load_formal_approval, preflight_content_identity,
     validate_formal_approval, validate_formal_permit,
 )
+from rl_curriculum.curriculum261_qaf_attempt import (
+    QAF_ATTEMPT_IDS, qaf_iteration_id_for_attempt,
+)
 
 #: 允许的停止边界:qualify(第 13 步后停;smoke/full-cold/
 #: report-read/verify-formal-logs 标 NOT_RUN)或完整链
@@ -63,16 +66,20 @@ _SHA40_RE = re.compile(r"^[0-9a-f]{40}$")
 # 旧 seed 空间。QAF 族为唯一 A 数据面;链内机械面(determinism/
 # design/cue-audit/audit/smoke 工程命名空间)按 R18/R19 前例保持
 # 冻结工程身份,不属用户预注册数据范围)。
-def formal_level_a_input_scope() -> tuple[str, ...]:
-    from rl_curriculum.curriculum261_qaf_attempt import QAF_INPUT_SCOPE
-    return tuple(QAF_INPUT_SCOPE)
+def formal_level_a_input_scope(
+        formal_attempt: str = "qaf_v1") -> tuple[str, ...]:
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_input_scope_for_attempt,
+    )
+    return tuple(qaf_input_scope_for_attempt(formal_attempt))
 
 
 def build_formal_level_a_plan(
         *, code_freeze_sha: str,
         code_identity: dict[str, Any],
         authorized_stop_after: str,
-        model_update_authorized: bool) -> dict[str, Any]:
+        model_update_authorized: bool,
+        formal_attempt: str = "qaf_v1") -> dict[str, Any]:
     """正式 Level A 数据前 run-plan 载荷(冻结前可算 digest)。
 
     预算面由 curriculum261_qprod_formal_budget 授权面给出
@@ -114,7 +121,7 @@ def build_formal_level_a_plan(
     payload = {
         "format": QPROD_RESEARCH_PLAN_FORMAT,
         "level": "level_a",
-        "iteration_id": QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+        "iteration_id": qaf_iteration_id_for_attempt(formal_attempt),
         "profile": "formal",
         "code_freeze_sha": code_freeze_sha,
         "run_scope": {
@@ -215,7 +222,8 @@ def build_formal_level_a_plan(
 def preflight_formal_level_a(
         deploy_root: Path | str, *, code_freeze_sha: str,
         code_identity: dict[str, Any],
-        authorized_stop_after: str = "qualify") -> dict[str, Any]:
+        authorized_stop_after: str = "qualify",
+        formal_attempt: str = "qaf_v1") -> dict[str, Any]:
     """Level A 正式预检(零生成、零写入;重复预检身份稳定)。"""
     from rl_curriculum.curriculum261_r17_admission import deploy_root_of
     from rl_curriculum.curriculum261_r17_workflow import (
@@ -229,7 +237,7 @@ def preflight_formal_level_a(
     try:
         art, state, authority = _read_formal_roots(
             Path(deploy_root), level="level_a",
-            iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+            iteration_id=qaf_iteration_id_for_attempt(formal_attempt))
     except QProdContextError as exc:
         deployment_ok = False
         findings.append(f"deployment: {exc}")
@@ -239,7 +247,8 @@ def preflight_formal_level_a(
         code_identity=code_identity,
         authorized_stop_after=authorized_stop_after,
         model_update_authorized=(
-            authorized_stop_after == "verify-formal-logs"))
+            authorized_stop_after == "verify-formal-logs"),
+        formal_attempt=formal_attempt)
     digest = research_plan_digest(payload)
     budget_face = _budget_face(stop_after=authorized_stop_after)
     budget_items = _budget_items()
@@ -307,7 +316,7 @@ def preflight_formal_level_a(
     report = {
         "format": "cur261-qprod-formal-preflight-v1",
         "level": "level_a",
-        "iteration_id": QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+        "iteration_id": qaf_iteration_id_for_attempt(formal_attempt),
         "deployment_ok": deployment_ok,
         "deployment_note": (
             "正式执行未授权是预期状态:生产部署配置不存在/非 "
@@ -349,6 +358,7 @@ class FormalLaunchRefused(QProdContextError):
 def _child_argv_and_env(
         *, project_dir: Path, art: Path, state: Path,
         freeze_sha: str, authorized_stop_after: str,
+        formal_attempt: str = "qaf_v1",
 ) -> tuple[list[str], dict[str, str]]:
     """权威链子进程 argv/env(真实业务入口;显式构造,不继承重定向)。
 
@@ -371,14 +381,14 @@ def _child_argv_and_env(
         argv = [sys.executable, "-m",
                 "rl_curriculum.curriculum261_r17_cli", "chain-run",
                 "--out-dir", str(art), "--freeze-sha", freeze_sha,
-                "--formal-namespace-attempt", "qaf_v1"]
+                "--formal-namespace-attempt", formal_attempt]
     else:
         argv = [sys.executable, "-m",
                 "rl_curriculum.curriculum261_qprod_formal_levela",
                 "_chain-bounded", "--out-dir", str(art),
                 "--freeze-sha", freeze_sha,
                 "--stop-after", authorized_stop_after,
-                "--formal-namespace-attempt", "qaf_v1"]
+                "--formal-namespace-attempt", formal_attempt]
     return argv, env
 
 
@@ -387,7 +397,8 @@ def launch_formal_level_a(
         code_freeze_sha: str, code_identity: dict[str, Any],
         authorized_stop_after: str, model_update_authorized: bool,
         sentinel_before_chain: bool = False,
-        child_timeout_s: int | None = None) -> dict[str, Any]:
+        child_timeout_s: int | None = None,
+        formal_attempt: str = "qaf_v1") -> dict[str, Any]:
     """正式 Level A 启动(门禁→受控写→权威链派发/哨兵停止)。
 
     门禁(全部先于任何受控副作用;失败抛 FormalLaunchRefused,
@@ -418,29 +429,27 @@ def launch_formal_level_a(
             code_freeze_sha=code_freeze_sha,
             code_identity=code_identity,
             authorized_stop_after=authorized_stop_after,
-            model_update_authorized=model_update_authorized)
+            model_update_authorized=model_update_authorized,
+            formal_attempt=formal_attempt)
         digest = research_plan_digest(payload)
+        _iter = qaf_iteration_id_for_attempt(formal_attempt)
         art, state, authority = _read_formal_roots(
-            deploy_root, level="level_a",
-            iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+            deploy_root, level="level_a", iteration_id=_iter)
         approval = load_formal_approval(
-            authority, level="level_a",
-            iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+            authority, level="level_a", iteration_id=_iter)
         validate_formal_approval(
-            approval, level="level_a",
-            iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+            approval, level="level_a", iteration_id=_iter,
             artifact_root=art, state_root=state,
             authority_dir=authority,
             code_freeze_sha=code_freeze_sha,
             research_plan_digest=digest,
-            namespaces=formal_level_a_input_scope(),
+            namespaces=formal_level_a_input_scope(formal_attempt),
             coordinate_ids=[],
             quota=payload["quota"],
             authorized_stop_after=authorized_stop_after,
             model_update_authorized=model_update_authorized)
         ctx = build_formal_context(
-            deploy_root, level="level_a",
-            iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+            deploy_root, level="level_a", iteration_id=_iter,
             code_freeze_sha=code_freeze_sha,
             research_plan_digest=digest,
             approval_digest=approval["approval_digest"])
@@ -481,6 +490,25 @@ def launch_formal_level_a(
                     f"重入或旧状态残留拒绝;一轮只有一次被接受的"
                     f"运行)")
 
+    # ---- 签发后目标漂移重查(A2-R2 §A3) -------------------------
+    # 消费许可之前按钉死 sha 重查实际目标两件字节(签发后更换/
+    # 漂移目标必须在此被捕获,而不是链步 1 消费一次性资格后失败;
+    # 与签发前守卫同一绑定)。
+    from rl_curriculum.curriculum261_qaf_provenance_guard import (
+        inspect_target as _guard_inspect_target,
+    )
+    _target_recheck = _guard_inspect_target(art)
+    if not _target_recheck["ready"] or _target_recheck.get(
+            "foreign_objects"):
+        raise _refuse(
+            "签发后 provenance 目标漂移重查失败(实际 A artifact 根 "
+            f"{art} 与钉死字节不一致或有异物 {_target_recheck};"
+            "不消费许可,受控停下先核实)")
+    if not (Path(project_dir) / "stage2_6_1_runner").is_dir():
+        raise _refuse(
+            f"project_dir {project_dir} 缺 stage2_6_1_runner(链子"
+            f"进程入口不可达;受控停下)")
+
     # ---- 受控写(有序) ------------------------------------------
     harden_root(art, label="artifact_root", create=True)
     harden_root(state, label="state_root", create=True)
@@ -488,7 +516,7 @@ def launch_formal_level_a(
     consume_permit(ctx.permit_path, context=ctx)
     session = QProdRunSession(
         state, level="level_a",
-        iteration_id=QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+        iteration_id=qaf_iteration_id_for_attempt(formal_attempt))
     session.acquire({
         "entry": "qprod_formal_level_a_entry.launch",
         "deploy_root": str(deploy_root),
@@ -503,11 +531,12 @@ def launch_formal_level_a(
     argv, env = _child_argv_and_env(
         project_dir=project_dir, art=art, state=state,
         freeze_sha=code_freeze_sha,
-        authorized_stop_after=authorized_stop_after)
+        authorized_stop_after=authorized_stop_after,
+        formal_attempt=formal_attempt)
     handoff = {
         "format": "cur261-qprod-formal-launch-handoff-v1",
         "level": "level_a",
-        "iteration_id": QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+        "iteration_id": qaf_iteration_id_for_attempt(formal_attempt),
         "business_entry": argv[:4],
         "argv": argv,
         "cwd": str(project_dir),
@@ -735,7 +764,7 @@ def main(argv: list[str] | None = None) -> int:
     bounded.add_argument("--freeze-sha", required=True)
     bounded.add_argument("--stop-after", required=True)
     bounded.add_argument("--formal-namespace-attempt", default=None,
-                         choices=("qaf_v1",))
+                         choices=QAF_ATTEMPT_IDS)
     ns = ap.parse_args(argv)
     if ns.cmd == "_chain-bounded":
         return run_bounded_formal_chain(
@@ -744,7 +773,5 @@ def main(argv: list[str] | None = None) -> int:
             formal_attempt=getattr(
                 ns, "formal_namespace_attempt", None))
     return 2
-
-
 if __name__ == "__main__":
     raise SystemExit(main())

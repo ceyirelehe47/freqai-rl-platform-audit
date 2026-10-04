@@ -36,9 +36,19 @@ FREEZE = "a" * 40
 
 class TestA2GenerationFamily:
     def test_registration_counts(self):
+        # A2-R2:qaf_v2 尝试族并入注册面(26 名);旧 qaf_v1 26 名
+        # 保持不变。全集 = 183 + 26(qaf_v2)。
         assert len(QAF_ALL_NEW) == 26
         assert len(QAF_GENERATION_FAMILY) == 10
-        assert len(R17_ALL) == 183
+        assert len(R17_ALL) == 209
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF2_ALL_NEW,
+        )
+        assert len(QAF2_ALL_NEW) == 26
+        for ns in QAF2_ALL_NEW:
+            assert ns in CURRICULUM261_SEED_NAMESPACES, ns
+            assert ns in R17_ALL, ns
+        assert not (set(QAF2_ALL_NEW) & set(QAF_ALL_NEW))
         for ns in QAF_GENERATION_FAMILY:
             assert ns in CURRICULUM261_SEED_NAMESPACES, ns
             assert ns in R17_ALL, ns

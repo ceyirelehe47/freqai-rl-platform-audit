@@ -26,6 +26,10 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+from rl_curriculum.curriculum261_qaf_attempt import (
+    QAF_ATTEMPT_IDS,
+)
 from typing import Any
 
 #: R17 启动基线 = R13 Commit B(诚实 FAIL 结果提交);§一 ancestry 语义。
@@ -1076,8 +1080,11 @@ def cmd_audit(args: argparse.Namespace) -> int:
         return 2
     audit_attempt = getattr(args, "formal_namespace_attempt",
                              None)
-    audit_bank_ns = ("preplan_audit_bank_qaf_v1"
-                     if audit_attempt == "qaf_v1"
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _audit_fam = qaf_attempt_family(audit_attempt)
+    audit_bank_ns = (_audit_fam.audit_bank if _audit_fam is not None
                      else "preplan_smoke_r17")
     records = generate_fit_bank(audit_bank_ns, args.fit_pairs)
     fit_df = fit_matrix_from_records(records)
@@ -1379,9 +1386,13 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
         print(f"[cue-audit] 预算门拒绝(零叶调用): {exc}")
         return 2
     cue_attempt = getattr(args, "formal_namespace_attempt", None)
-    if cue_attempt == "qaf_v1":
-        cue_model_ns = "cue_contract_model_qaf_v1"
-        cue_validation_ns = "cue_contract_validation_qaf_v1"
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _cue_fam = qaf_attempt_family(cue_attempt)
+    if _cue_fam is not None:
+        cue_model_ns = _cue_fam.cue_contract_model
+        cue_validation_ns = _cue_fam.cue_contract_validation
     else:
         cue_model_ns = cue_validation_ns = None
     if not (out / "cue_audit_plan.json").is_file():
@@ -1390,7 +1401,7 @@ def cmd_cue_audit(args: argparse.Namespace) -> int:
             validation_namespace=cue_validation_ns)
         print(f"[cue-audit] audit plan locked digest={plan_digest}")
     _locked = load_locked_cue_audit_plan_r17(out)
-    if cue_attempt == "qaf_v1":
+    if _cue_fam is not None:
         _locked_ns = _locked["audit_namespaces"]
         if (_locked_ns["model"] != cue_model_ns
                 or _locked_ns["validation"] != cue_validation_ns):
@@ -1468,7 +1479,11 @@ def cmd_preplan_smoke(args: argparse.Namespace) -> int:
         print(f"[preplan-smoke] 预算门拒绝(零叶调用): {exc}")
         return 2
     attempt = getattr(args, "formal_namespace_attempt", None)
-    ns_smoke = ("preplan_smoke_qaf_v1" if attempt == "qaf_v1"
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _smoke_fam = qaf_attempt_family(attempt)
+    ns_smoke = (_smoke_fam.preplan_smoke if _smoke_fam is not None
                 else "preplan_smoke_r17")
     sentinel = {r: dict(p) for r, p in C2_RUNG_PARAMS.items()}
     blocks = [generate_matched_block_with_attempts(
@@ -1963,19 +1978,18 @@ def cmd_design_plan_lock(args: argparse.Namespace) -> int:
         audit_plan = load_locked_cue_audit_plan_r17(out)
         audit_plan_digest_value = str(
             audit_plan["cue_audit_plan_digest"])
-        if getattr(args, "formal_namespace_attempt",
-                   None) == "qaf_v1":
-            from rl_curriculum.curriculum261_qaf_attempt import (
-                QAF_DESIGN_INDEPENDENT, QAF_DESIGN_MATCHED_MAIN,
-                QAF_DESIGN_MATCHED_VALIDATION,
-                QAF_SEMANTIC_DESIGN_MAIN,
-                QAF_SEMANTIC_DESIGN_VALIDATION,
-            )
-            design_namespaces = (QAF_DESIGN_MATCHED_MAIN,
-                                 QAF_DESIGN_MATCHED_VALIDATION)
-            semantic_namespaces = (QAF_SEMANTIC_DESIGN_MAIN,
-                                   QAF_SEMANTIC_DESIGN_VALIDATION)
-            independent_namespace = QAF_DESIGN_INDEPENDENT
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            qaf_attempt_family,
+        )
+        _design_fam = qaf_attempt_family(
+            getattr(args, "formal_namespace_attempt", None))
+        if _design_fam is not None:
+            design_namespaces = (_design_fam.design_matched_main,
+                                 _design_fam.design_matched_validation)
+            semantic_namespaces = (
+                _design_fam.semantic_design_main,
+                _design_fam.semantic_design_validation)
+            independent_namespace = _design_fam.design_independent
         else:
             design_namespaces = None
             semantic_namespaces = None
@@ -2221,21 +2235,21 @@ def _cmd_calibrate_inner(args: argparse.Namespace,
             fit_ns_hold = R19_FIT_HOLDOUT
             conditioning_eval_ns = R19_C13_MAIN
             stress_ns = R19_STRESS
-        elif attempt == "qaf_v1":
-            from rl_curriculum.curriculum261_qaf_attempt import (
-                QAF_C13_MAIN, QAF_FIT_HOLDOUT, QAF_FIT_MAIN,
-                QAF_STRESS,
-            )
-            fit_ns_main = QAF_FIT_MAIN
-            fit_ns_hold = QAF_FIT_HOLDOUT
-            conditioning_eval_ns = QAF_C13_MAIN
-            # stress 属校准数据面(R18/R19 前例:每尝试各带
-            # stress_r18/r19);QAF 尝试带 QAF_STRESS。
-            stress_ns = QAF_STRESS
         else:
-            raise SystemExit(
-                f"未知 --formal-namespace-attempt {attempt!r}"
-                f"(合法: qaf_v1;缺省=既有 R19 数据面)")
+            from rl_curriculum.curriculum261_qaf_attempt import (
+                qaf_attempt_family,
+            )
+            _cal_fam = qaf_attempt_family(attempt)
+            if _cal_fam is None:
+                raise SystemExit(
+                    f"未知 --formal-namespace-attempt {attempt!r}"
+                    f"(合法: QAF 尝试;缺省=既有 R19 数据面)")
+            fit_ns_main = _cal_fam.fit_main
+            fit_ns_hold = _cal_fam.fit_holdout
+            conditioning_eval_ns = _cal_fam.c13_main
+            # stress 属校准数据面(R18/R19 前例:每尝试各带
+            # stress_r18/r19);QAF 尝试按家族带各自 stress。
+            stress_ns = _cal_fam.stress
         profile_main_obj = formal_main_profile_r17(
             n_blocks, attempt=attempt)
         profile_holdout_obj = formal_holdout_profile_r17(
@@ -2388,9 +2402,13 @@ def cmd_preflight_static(args: argparse.Namespace) -> int:
     except QProdContextError as exc:
         print(f"[preflight-static] 预算门拒绝(零叶调用): {exc}")
         return 2
-    pf_ns = ("ppo_smoke_qaf_v1"
-             if getattr(args, "formal_namespace_attempt",
-                        None) == "qaf_v1" else "ppo_smoke_r17")
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _pf_fam = qaf_attempt_family(
+        getattr(args, "formal_namespace_attempt", None))
+    pf_ns = (_pf_fam.ppo_smoke if _pf_fam is not None
+             else "ppo_smoke_r17")
     result = run_prelock_static_preflight_r17(
         out, VENDOR_PIN, smoke_namespace=pf_ns)
     print(f"[preflight-static] pass={result['pass']}")
@@ -2676,9 +2694,12 @@ def cmd_smoke(args: argparse.Namespace) -> int:
     except QProdContextError as exc:
         print(f"[smoke] 预算门拒绝(零叶调用): {exc}")
         return 2
-    smoke_ns = ("ppo_smoke_qaf_v1"
-                if getattr(args, "formal_namespace_attempt",
-                           None) == "qaf_v1"
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _smk_fam = qaf_attempt_family(
+        getattr(args, "formal_namespace_attempt", None))
+    smoke_ns = (_smk_fam.ppo_smoke if _smk_fam is not None
                 else "ppo_smoke_r17")
     smoke = run_ppo_smoke_r17(pack=pack, namespace=smoke_ns)
     _write_json(out, "ppo_256step_smoke.json", smoke)
@@ -2719,9 +2740,12 @@ def cmd_determinism_matrix(args: argparse.Namespace) -> int:
     except QProdContextError as exc:
         print(f"[determinism-matrix] 预算门拒绝(零叶调用): {exc}")
         return 2
-    det_ns = ("stress_qaf_v1"
-              if getattr(args, "formal_namespace_attempt",
-                         None) == "qaf_v1" else None)
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_attempt_family,
+    )
+    _det_fam = qaf_attempt_family(
+        getattr(args, "formal_namespace_attempt", None))
+    det_ns = (_det_fam.stress if _det_fam is not None else None)
     print("[determinism] A4: generator mutable state audit ...")
     state = audit_generator_mutable_state(out, stress_namespace=det_ns)
     print(f"[determinism] A4 pass={state['pass']} "
@@ -4441,7 +4465,7 @@ def main(argv: list[str] | None = None) -> int:
     audit_parser.add_argument("--code-freeze-sha", default=None)
     audit_parser.add_argument(
         "--formal-namespace-attempt", default=None,
-        choices=("qaf_v1",),
+        choices=QAF_ATTEMPT_IDS,
         help="QAF 全新输入身份(R2 修复 A.2;audit 步 bank="
              "preplan_audit_bank_qaf_v1;缺省=preplan_smoke_r17)")
 
@@ -4456,19 +4480,19 @@ def main(argv: list[str] | None = None) -> int:
         if name in ("preplan-smoke", "design", "smoke"):
             p.add_argument(
                 "--formal-namespace-attempt", default=None,
-                choices=("qaf_v1",),
+                choices=QAF_ATTEMPT_IDS,
                 help="QAF 全新输入身份(R2 修复 A.2;缺省=既有 "
                      "R17 名)")
     ps = _with_out(sub.add_parser("preflight-static"))
     ps.add_argument(
         "--formal-namespace-attempt", default=None,
-        choices=("qaf_v1",),
+        choices=QAF_ATTEMPT_IDS,
         help="QAF 全新输入身份(R2 复批 A.2-1;内嵌 smoke+matched"
              " probe 使用 ppo_smoke_qaf_v1;缺省=ppo_smoke_r17)")
     dm = _with_out(sub.add_parser("determinism-matrix"))
     dm.add_argument(
         "--formal-namespace-attempt", default=None,
-        choices=("qaf_v1",),
+        choices=QAF_ATTEMPT_IDS,
         help="QAF 全新输入身份(R2 修复 A.2;A4 目标面 stress="
              "stress_qaf_v1;A5 prelude 工程探针身份不变)")
     for name in ("cue-audit", "design-plan-lock", "calibrate"):
@@ -4480,14 +4504,14 @@ def main(argv: list[str] | None = None) -> int:
         if name in ("cue-audit", "design-plan-lock"):
             p.add_argument(
                 "--formal-namespace-attempt", default=None,
-                choices=("qaf_v1",),
+                choices=QAF_ATTEMPT_IDS,
                 help="QAF 全新输入身份(R2 修复 A.2;cue-audit 锁定"
                      " cue_contract_*_qaf_v1 语料 / design 计划锁"
                      " design_qaf_* 命名空间;缺省=既有 R17 名)")
         if name == "calibrate":
             p.add_argument(
                 "--formal-namespace-attempt", default=None,
-                choices=("qaf_v1",),
+                choices=QAF_ATTEMPT_IDS,
                 help="正式数据面命名空间尝试(缺省=既有 R19 族;"
                      "qaf_v1=QProd 正式 Level A 全新输入身份,"
                      "RouteC_FormalLaunch_Preparation_v1 R1/F06;"
@@ -4500,7 +4524,7 @@ def main(argv: list[str] | None = None) -> int:
                          "接收绑定本实例的 token;正式必填)")
     qp.add_argument(
         "--formal-namespace-attempt", default=None,
-        choices=("qaf_v1",),
+        choices=QAF_ATTEMPT_IDS,
         help="正式资格四件套尝试(缺省=既有 R18 四件套;"
              "qaf_v1=QAF 四件套,RouteC_FormalLaunch_Preparation_v1"
              " R1/F06)")
@@ -4521,7 +4545,7 @@ def main(argv: list[str] | None = None) -> int:
     cr.add_argument("--rehearsal", action="store_true")
     cr.add_argument(
         "--formal-namespace-attempt", default=None,
-        choices=("qaf_v1",),
+        choices=QAF_ATTEMPT_IDS,
         help="传递给链内 calibrate/qualify 的正式数据面命名空间"
              "尝试(缺省=既有 R18/R19 行为;qaf_v1=QProd 正式 "
              "Level A 全新输入身份)")

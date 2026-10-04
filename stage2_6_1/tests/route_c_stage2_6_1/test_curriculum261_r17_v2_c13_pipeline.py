@@ -428,28 +428,29 @@ def test_v04_registry_exact_increment():
             R17_ALL_NAMESPACES, R17_FORMAL_QUALIFICATION_NAMESPACES)
     except ModuleNotFoundError:
         pytest.skip('rl_curriculum not importable in this layout')
-    # 精确 183/16(v2c13 97/4 + R18 30/4 + R19 30/4 + QAF
-    # 校准/资格 16[R1/F06] + 生成/设计/smoke 10[R2/A.2]);非重言式:
-    # 与显式基线集合 + v1 四名 + v2 四名 + R18/R19/QAF 尝试名的
-    # 并集精确相等。
+    # 精确 209/20(v2c13 97/4 + R18 30/4 + R19 30/4 + QAF
+    # 校准/资格 16[R1/F06] + 生成/设计/smoke 10[R2/A.2]
+    # + qaf_v2 26/4[A2-R2]);非重言式:与显式基线集合 + v1 四名
+    # + v2 四名 + R18/R19/QAF(含 qaf_v2)尝试名的并集精确相等。
     from rl_curriculum.curriculum261_qaf_attempt import (
-        QAF_ALL_NEW, QAF_FORMAL_FOUR)
+        QAF2_ALL_NEW, QAF2_FORMAL_FOUR, QAF_ALL_NEW, QAF_FORMAL_FOUR)
     from rl_curriculum.curriculum261_r18_attempt import (
         R18_ALL_NEW, R18_FORMAL_FOUR)
     from rl_curriculum.curriculum261_r19_attempt import (
         R19_ALL_NEW, R19_FORMAL_FOUR)
-    assert len(ns) == 183 and len(formal) == 16
+    assert len(ns) == 209 and len(formal) == 20
     assert tuple(ns) == R17_ALL_NAMESPACES
     v1_names = (*prof.V1_FIT_NAMESPACES.values(),
                 *prof.V1_EVAL_NAMESPACES.values())
     v2_names = (*prof.FIT_NAMESPACES.values(),
                 *prof.EVAL_NAMESPACES.values())
     baseline_89 = set(R17_ALL_NAMESPACES) - set(v1_names) - set(v2_names) \
-        - set(R18_ALL_NEW) - set(R19_ALL_NEW) - set(QAF_ALL_NEW)
+        - set(R18_ALL_NEW) - set(R19_ALL_NEW) - set(QAF_ALL_NEW) \
+        - set(QAF2_ALL_NEW)
     assert len(baseline_89) == 89  # v1 之前的历史基线
     assert set(R17_ALL_NAMESPACES) == baseline_89 | set(v1_names) \
         | set(v2_names) | set(R18_ALL_NEW) | set(R19_ALL_NEW) \
-        | set(QAF_ALL_NEW)
+        | set(QAF_ALL_NEW) | set(QAF2_ALL_NEW)
     assert set(v1_names) & set(v2_names) == set()
     for name in v2_names:
         assert name in ns and name not in formal

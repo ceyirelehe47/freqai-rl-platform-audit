@@ -223,6 +223,26 @@ def _setup_a(tmp_path: Path, *, stop="qualify", model_update=False,
             json.dumps({"admission_id": "adm-test-1",
                         "commit_a_sha": FREEZE_SHA}),
             encoding="utf-8")
+    # A2-R2 §A3 新契约:launch 在消费许可前按钉死 sha 重查实际
+    # 目标两件 + project_dir 须有 stage2_6_1_runner(链子进程入口)。
+    # 沙箱按固定 Git 源安装钉死 provenance(FBAB v1 错装事故的
+    # 消费前兜底;真实源读取,repo 不可达则跳过本组)。
+    import os as _os
+    _repo = _os.environ.get("A2R2_TEST_REPO")
+    if not _repo:
+        for _cand in ("/mnt/f/trading/freqai-rl-audit",
+                      "F:/trading/freqai-rl-audit"):
+            if Path(_cand, ".git").exists():
+                _repo = _cand
+                break
+    if _repo is None:
+        pytest.skip("钉死源 Git 仓库不可达(A2R2_TEST_REPO)")
+    from rl_curriculum.curriculum261_qaf_provenance_guard import (
+        install_to_target, read_pinned_source,
+    )
+    install_to_target(art, read_pinned_source(Path(_repo)))
+    (tmp_path / "project" / "stage2_6_1_runner").mkdir(
+        parents=True, exist_ok=True)
     return deploy, art, state, authority, payload, digest, ctx
 
 
@@ -598,8 +618,11 @@ class TestFormalLevelALaunch:
             _setup_a(tmp_path))
         (authority / "qprod_formal_approval_level_a_"
          f"{QPROD_FORMAL_LEVEL_A_ITERATION_ID}.json").unlink()
-        art.parent.mkdir(parents=True, exist_ok=True)
-        art.rmdir() if art.exists() else None
+        # A2-R2 新契约:沙箱预装钉死 provenance(见 _setup_a),
+        # 整树移除以保持"拒绝前零受控副作用"前提(非空 rmdir 改
+        # rmtree;移除的是 fixture 预装面,不是 launch 写入)。
+        import shutil as _shutil
+        _shutil.rmtree(art) if art.exists() else None
         with pytest.raises(FormalLaunchRefused, match="批准"):
             launch_formal_level_a(
                 deploy_root=deploy, project_dir=tmp_path / "project",

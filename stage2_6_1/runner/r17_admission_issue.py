@@ -191,9 +191,98 @@ def main() -> int:
     ap.add_argument("--state-root", type=Path, required=True)
     ap.add_argument("--commit-a", required=True)
     ap.add_argument("--preregistration", type=Path, required=True)
+    ap.add_argument("--project-dir", type=Path, default=None,
+                    help="签发前守卫同源验证用部署树"
+                         "(preregistration.formal_attempt=qaf_v2 "
+                         "时必填)")
+    ap.add_argument("--guard-repo", type=Path, default=None,
+                    help="签发前守卫钉死源 Git 仓库(缺省同 --repo;"
+                         "内容摘要钉死使任何含钉死对象的仓库等价)")
     args = ap.parse_args()
     prereg = json.loads(
         args.preregistration.read_text(encoding="utf-8"))
+    # A2-R2 签发前硬门:触发条件由 prereg["iteration"] 决定(凡
+    # QAF 注册表派生的非 v1 迭代一律强制),formal_attempt 缺失
+    # 或与 iteration 不一致即拒——自由字段不是开关,缺字段不能
+    # 绕过前置检查;直接调用本命令(绕过统一入口)同样过此门。
+    # 守卫拒绝时不消耗一次性资格。
+    sys.path.insert(
+        0, str(Path(__file__).resolve().parents[1] / "src"))
+    from rl_curriculum.curriculum261_qaf_attempt import QAF_ATTEMPTS
+    _iter2attempt = {
+        fam.qprod_iteration_id: fam.attempt_id
+        for fam in QAF_ATTEMPTS.values()}
+    _iteration = prereg.get("iteration")
+    _attempt = prereg.get("formal_attempt")
+    _derived_attempt = _iter2attempt.get(_iteration)
+    _gate_required = (
+        _derived_attempt is not None and _derived_attempt != "qaf_v1")
+    if _derived_attempt == "qaf_v1":
+        # v1 标签不得单独豁免:该部署配置未把 v1 登记为正式迭代
+        # (如仅登记 v2 的新部署)时,v1 标签 prereg 一律拒——
+        # 标签不是开关,部署登记才是。无配置(历史/沙箱 legacy)
+        # 保持既有跳过行为(该形态无 formal_ready 面,launch 恒拒)。
+        from rl_curriculum.curriculum261_qprod_context import (
+            QProdContextError, load_deploy_config,
+        )
+        try:
+            _cfg = load_deploy_config(Path(args.deploy_root))
+        except QProdContextError:
+            _cfg = None
+        if _cfg is not None and "qprod_a_formal_v1" not in (
+                _cfg.get("formal_roots") or {}):
+            print(json.dumps({
+                "refused": (
+                    "preregistration.iteration='qprod_a_formal_v1' 而"
+                    " 该部署配置未登记 v1 迭代(标签不匹配部署登记;"
+                    "不得以旧标签豁免签发前 provenance 守卫)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+    if _gate_required and _attempt != _derived_attempt:
+        print(json.dumps({
+            "refused": (
+                f"preregistration.iteration={_iteration!r} 属新尝试"
+                f"(attempt={_derived_attempt!r}),formal_attempt 必须"
+                f"在场且一致(读到 {_attempt!r};缺字段/错配不可"
+                f"绕过签发前 provenance 守卫)"),
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
+    if _gate_required:
+        if args.project_dir is None:
+            print(json.dumps({
+                "refused": (
+                    f"preregistration.formal_attempt={_attempt!r} "
+                    f"签发必须提供 --project-dir(签发前 provenance "
+                    f"守卫;不得以缺参绕过前置检查)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+        sys.path.insert(
+            0, str(Path(__file__).resolve().parents[1] / "src"))
+        from rl_curriculum.curriculum261_qaf_provenance_guard import (
+            ProvenanceGuardError, preissue_gate,
+        )
+        try:
+            gate = preissue_gate(
+                repo=(args.guard_repo or args.repo),
+                deploy_root=args.deploy_root,
+                project_dir=args.project_dir, attempt=_attempt)
+        except ProvenanceGuardError as exc:
+            print(json.dumps({"refused": f"签发前守卫拒绝: {exc}",
+                              "one_shot_writes": 0},
+                             ensure_ascii=False))
+            return 96
+        if not gate.get("ok"):
+            print(json.dumps({
+                "refused": (
+                    "签发前守卫拒绝(首一次性写前): "
+                    + str(gate.get("refusal"))),
+                "guard_report": gate.get("checks"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
     admission = issue(args.repo, args.deploy_root, args.state_root,
                       args.commit_a, prereg)
     print(json.dumps(admission, ensure_ascii=False, sort_keys=True))

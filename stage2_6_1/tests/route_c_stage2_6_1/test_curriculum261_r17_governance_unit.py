@@ -61,11 +61,11 @@ class TestRegistryApi:
         assert doc["api_namespaces_match"] and doc["api_formal_match"]
         # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
         # = 97;R18 尝试族增量 30 后 = 127(正式 8);R19 尝试族
-        # (R19 处方后 157;QAF 校准/资格 16[R1/F06]+生成/设计/smoke 10[R2/A.2] = 183,正式 16 不变;
-        # QAF 尝试族(RouteC_FormalLaunch_Preparation_v1 R1/F06)
-        # 增 16(校准族 12 含 stress+四件套 4)= 173,正式 16。
-        # 集合精确性由增量检查承载,不是单纯改一个数字绕过集合核验。
-        assert doc["n_namespaces"] == 183 and doc["n_formal"] == 16
+        # (R19 处方后 157;QAF 校准/资格 16[R1/F06]+生成/设计/smoke 10[R2/A.2] = 183,正式 16;
+        # A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 尝试族
+        # 增 26(校准族 12+四件套 4+生成/设计/smoke 10)= 209,
+        # 正式面 +4 = 20。集合精确性由增量检查承载,不是单纯改数字。
+        assert doc["n_namespaces"] == 209 and doc["n_formal"] == 20
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
               "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}
@@ -82,7 +82,8 @@ class TestRegistryApi:
         # R18/R19/QAF 尝试四件套先后加入正式面(journal §11 处方、
         # R19 处方与 QAF 尝试——RouteC_FormalLaunch_Preparation_v1
         # R1/F06:R17 框架 + 全新 namespace);旧四件套保持注册未消费。
-        from rl_curriculum.curriculum261_qaf_attempt import QAF_FORMAL_FOUR
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF2_FORMAL_FOUR, QAF_FORMAL_FOUR)
         from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
         from rl_curriculum.curriculum261_r19_attempt import R19_FORMAL_FOUR
         assert set(CURRICULUM261_R17_FORMAL_NAMESPACES) == {
@@ -90,7 +91,8 @@ class TestRegistryApi:
             "preprocess_fit_qualification_r17",
             "c2_independent_qualification_r17",
             "cue_semantic_qualification_r17"} | set(R18_FORMAL_FOUR) \
-            | set(R19_FORMAL_FOUR) | set(QAF_FORMAL_FOUR)
+            | set(R19_FORMAL_FOUR) | set(QAF_FORMAL_FOUR) \
+            | set(QAF2_FORMAL_FOUR)
         assert not (set(CURRICULUM261_R17_NAMESPACES)
                     & set() )
 

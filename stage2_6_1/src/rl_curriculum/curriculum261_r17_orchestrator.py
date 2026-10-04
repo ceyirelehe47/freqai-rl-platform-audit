@@ -139,19 +139,20 @@ def formal_main_profile_r17(
         supervised = R19_SUPERVISED_MAIN
         semantic = R19_SEMANTIC_MAIN
         c2_indep = R19_C2_INDEPENDENT_MAIN
-    elif attempt == "qaf_v1":
-        from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF_C13_MAIN, QAF_C2_INDEPENDENT_MAIN, QAF_SEMANTIC_MAIN,
-            QAF_SUPERVISED_MAIN,
-        )
-        c13 = QAF_C13_MAIN
-        supervised = QAF_SUPERVISED_MAIN
-        semantic = QAF_SEMANTIC_MAIN
-        c2_indep = QAF_C2_INDEPENDENT_MAIN
     else:
-        raise ValueError(
-            f"未知正式 calibrate attempt {attempt!r}(合法: None|"
-            f"'qaf_v1';namespace 族是安全面,不接受任意字符串)")
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            qaf_attempt_family,
+        )
+        fam = qaf_attempt_family(attempt)
+        if fam is None:
+            raise ValueError(
+                f"未知正式 calibrate attempt {attempt!r}"
+                f"(合法: None|QAF;namespace 族是安全面,"
+                f"不接受任意字符串)")
+        c13 = fam.c13_main
+        supervised = fam.supervised_main
+        semantic = fam.semantic_main
+        c2_indep = fam.c2_independent_main
     return R17ExecutionProfile(
         name="formal_main", preplan=False,
         c13_eval_namespace=c13,
@@ -184,19 +185,19 @@ def formal_holdout_profile_r17(
         supervised = R19_SUPERVISED_HOLDOUT
         semantic = R19_SEMANTIC_HOLDOUT
         c2_indep = R19_C2_INDEPENDENT_HOLDOUT
-    elif attempt == "qaf_v1":
-        from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF_C13_HOLDOUT, QAF_C2_INDEPENDENT_HOLDOUT,
-            QAF_SEMANTIC_HOLDOUT, QAF_SUPERVISED_HOLDOUT,
-        )
-        c13 = QAF_C13_HOLDOUT
-        supervised = QAF_SUPERVISED_HOLDOUT
-        semantic = QAF_SEMANTIC_HOLDOUT
-        c2_indep = QAF_C2_INDEPENDENT_HOLDOUT
     else:
-        raise ValueError(
-            f"未知正式 calibrate attempt {attempt!r}(合法: None|"
-            f"'qaf_v1')")
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            qaf_attempt_family,
+        )
+        fam = qaf_attempt_family(attempt)
+        if fam is None:
+            raise ValueError(
+                f"未知正式 calibrate attempt {attempt!r}"
+                f"(合法: None|QAF)")
+        c13 = fam.c13_holdout
+        supervised = fam.supervised_holdout
+        semantic = fam.semantic_holdout
+        c2_indep = fam.c2_independent_holdout
     return R17ExecutionProfile(
         name="formal_holdout", preplan=False,
         c13_eval_namespace=c13,

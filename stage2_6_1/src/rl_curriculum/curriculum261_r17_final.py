@@ -228,11 +228,12 @@ def run_final_qualification_r17(out_dir: Path,
             formal_attempt, plan)
 
     # ---- 受控委派协议:注册身份 → 等待绑定本进程实例的 token ---------
-    if grant_four_source == "qaf_v1":
+    if grant_four_source.startswith("qaf_"):
         from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF_FORMAL_FOUR,
+            QAF_FORMAL_FOUR, QAF2_FORMAL_FOUR,
         )
-        grant_four = QAF_FORMAL_FOUR
+        grant_four = (QAF_FORMAL_FOUR if grant_four_source == "qaf_v1"
+                      else QAF2_FORMAL_FOUR)
     else:
         from rl_curriculum.curriculum261_r18_attempt import (
             R18_FORMAL_FOUR,
@@ -287,28 +288,26 @@ def formal_attempt_core_kwargs(
             semantic_namespace_override=R18_SEMANTIC_QUALIFICATION,
             fresh_seed_final_namespace=R18_QUALIFICATION,
             fresh_seed_holdout_namespace=R18_FRESH_HOLDOUT), "r18"
-    if attempt == "qaf_v1":
-        from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF_C2_INDEPENDENT_QUALIFICATION,
-            QAF_FIT_QUALIFICATION, QAF_FRESH_HOLDOUT,
-            QAF_QUALIFICATION, QAF_SEMANTIC_QUALIFICATION,
-        )
+    from rl_curriculum.curriculum261_qaf_attempt import qaf_attempt_family
+    fam = qaf_attempt_family(attempt)
+    if fam is not None:
         return dict(
-            profile_name="formal_final_qaf_v1",
-            final_namespace=QAF_QUALIFICATION,
-            fit_namespace=QAF_FIT_QUALIFICATION,
+            profile_name=f"formal_final_{fam.attempt_id}",
+            final_namespace=fam.qualification,
+            fit_namespace=fam.fit_qualification,
             c13_pairs_per_rung=10,
             c2_blocks=c2_blocks,
             semantic_block_count=160,
             independent_pairs_per_rung=20,
             independent_namespace=(
-                QAF_C2_INDEPENDENT_QUALIFICATION),
+                fam.c2_independent_qualification),
             semantic_namespace_override=(
-                QAF_SEMANTIC_QUALIFICATION),
-            fresh_seed_final_namespace=QAF_QUALIFICATION,
-            fresh_seed_holdout_namespace=QAF_FRESH_HOLDOUT), "qaf_v1"
+                fam.semantic_qualification),
+            fresh_seed_final_namespace=fam.qualification,
+            fresh_seed_holdout_namespace=fam.fresh_holdout,
+        ), fam.attempt_id
     raise RuntimeError(
-        f"未知 formal_attempt {attempt!r}(合法: None|'qaf_v1';"
+        f"未知 formal_attempt {attempt!r}(合法: None|QAF;"
         f"namespace 四件套是安全面)")
 
 

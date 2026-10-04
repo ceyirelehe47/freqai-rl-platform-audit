@@ -233,6 +233,22 @@ FLP_V1_R3_REGISTERED_CODE_CHANGES = {
 #: 全部迭代登记的合并视图(R6-R11 覆盖同名键;run_input_lock 的
 #: 守卫数据源;artifact 键名沿用 registered_r3_iteration_changes 以保持
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
+
+#: A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 新尝试族接线
+#: (qaf_attempt 注册表+api/registry/seed 名单+r17_cli 消费者+levela
+#: 计划/签发线程);登记当前树实际 sha256(覆盖同名旧值;再漂移
+#: 仍 fail)。
+A2R2_V1_REGISTERED_CODE_CHANGES = {
+    "curriculum261_api.py":
+        "b8ecba7d1a90a5913691b123aa881350c30958141b700e01229b62171a508c8b",
+    "curriculum261_qaf_attempt.py":
+        "ce2ae936c75f1b79ca768d6f81d266fb103100ba5f96ab22968b663dc144c090",
+    "curriculum261_qprod_formal.py":
+        "ce7862884782932a7d47ec902cb042be4cf28d014959bc3cd95ff4af2539f765",
+    "curriculum261_qprod_formal_levela.py":
+        "2b99e12b06e377880a9fb99ff0cf3c0df470a9480188fa5c6ce814fe932fa0cd",
+}
+
 REGISTERED_261_CODE_CHANGES = {
     **R3_REGISTERED_CODE_CHANGES, **R4_REGISTERED_CODE_CHANGES,
     **R5_REGISTERED_CODE_CHANGES, **R6_REGISTERED_CODE_CHANGES,
@@ -243,7 +259,8 @@ REGISTERED_261_CODE_CHANGES = {
     **QPROD_V1_REGISTERED_CODE_CHANGES,
     **FLP_V1_REGISTERED_CODE_CHANGES,
     **FLP_V1_R2_REGISTERED_CODE_CHANGES,
-    **FLP_V1_R3_REGISTERED_CODE_CHANGES}
+    **FLP_V1_R3_REGISTERED_CODE_CHANGES,
+    **A2R2_V1_REGISTERED_CODE_CHANGES}
 VENDOR_DIR = PROJECT_ROOT / "vendor" / "freqtrade"
 RL_PLATFORM_DIR = PROJECT_ROOT / "src" / "rl_platform"
 #: 2.6.1 code_identity 的模块清单(plan.code_identity 的键即合同)

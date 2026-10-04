@@ -424,16 +424,19 @@ def validate_formal_permit(permit_path: Path | str, *,
     # (level_a=QAF 全集;旧正式/工程名混入或缺项在许可层即拒)。
     if context.level == "level_a":
         from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF_INPUT_SCOPE,
+            QAF_ATTEMPTS,
         )
         scope_ns = sorted(
             permit["preregistered_input_scope"].get("namespaces")
             or [])
-        if scope_ns != sorted(QAF_INPUT_SCOPE):
+        _scope_ok = any(
+            scope_ns == sorted(fam.input_scope)
+            for fam in QAF_ATTEMPTS.values())
+        if not _scope_ok:
             raise QProdContextError(
                 f"level_a 许可输入范围与 QAF 规范域不一致(许可 "
-                f"{len(scope_ns)} 名 vs QAF {len(QAF_INPUT_SCOPE)} 名;"
-                f"旧正式/工程名混入或缺项均拒)")
+                f"{len(scope_ns)} 名;旧正式/工程名混入、缺项或跨"
+                f"尝试混合均拒)")
     approved = approval.get("approved") or {}
     for key, want in (
             ("code_freeze_sha", permit["code_freeze_sha"]),

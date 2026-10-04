@@ -41,7 +41,9 @@ R17_ITERATION = "r17"
 # FLP v1 修复轮(R1/F06):QAF 尝试族同属 R17 框架迭代
 # (信封 iteration 标识由 api 注册表派生;不含 qaf_v1 会使
 # QAF 台账行被 §15 完备性门丢弃 → 校准阶段必败)。
-R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19", "qaf_v1")
+# A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 新尝试同属
+# R17 框架迭代(同一处方;不含 qaf_v2 会使 v2 台账行被完备性门丢弃)。
+R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19", "qaf_v1", "qaf_v2")
 
 
 

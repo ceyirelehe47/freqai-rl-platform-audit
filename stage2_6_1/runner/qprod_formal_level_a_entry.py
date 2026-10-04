@@ -28,6 +28,8 @@ from rl_curriculum.curriculum261_qprod_coordinate import (  # noqa: E402
     qprod_coordinate_code_identity)
 from rl_curriculum.curriculum261_qprod_formal import (  # noqa: E402
     QPROD_FORMAL_LEVEL_A_ITERATION_ID)
+from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
+    QAF_ATTEMPT_IDS, qaf_iteration_id_for_attempt)
 from rl_curriculum.curriculum261_qprod_formal_budget import (  # noqa: E402
     authorization_face as _budget_face,
 )
@@ -57,14 +59,17 @@ def cmd_draft_plan(args: argparse.Namespace) -> int:
         code_freeze_sha=args.code_freeze_sha or "",
         code_identity=_code_identity(),
         authorized_stop_after=args.stop_after,
-        model_update_authorized=args.model_update)
+        model_update_authorized=args.model_update,
+        formal_attempt=args.formal_attempt)
     digest = research_plan_digest(payload)
     prep = Path(args.prep_dir)
     prep.mkdir(parents=True, exist_ok=True)
     out = {
         "format": "cur261-qprod-formal-draft-plan-v1",
         "level": "level_a",
-        "iteration_id": QPROD_FORMAL_LEVEL_A_ITERATION_ID,
+        "iteration_id": qaf_iteration_id_for_attempt(
+            args.formal_attempt),
+        "formal_attempt": args.formal_attempt,
         "status": "DRAFT_PENDING_USER_APPROVAL",
         "code_freeze_sha_binding": (
             "草案绑定当前已验代码身份与冻结程序;最终 Commit A "
@@ -101,7 +106,8 @@ def cmd_preflight(args: argparse.Namespace) -> int:
     report = preflight_formal_level_a(
         args.deploy_root, code_freeze_sha=args.code_freeze_sha or "",
         code_identity=_code_identity(),
-        authorized_stop_after=args.stop_after)
+        authorized_stop_after=args.stop_after,
+        formal_attempt=args.formal_attempt)
     print(json.dumps(report, ensure_ascii=False, indent=2,
                      default=str))
     return 0 if report["status"] == "PREPARED_PENDING_USER_APPROVAL" \
@@ -125,7 +131,8 @@ def cmd_launch(args: argparse.Namespace) -> int:
             authorized_stop_after=args.stop_after,
             model_update_authorized=args.model_update,
             sentinel_before_chain=args.sentinel_before_chain,
-            child_timeout_s=args.child_timeout)
+            child_timeout_s=args.child_timeout,
+            formal_attempt=args.formal_attempt)
     except FormalLaunchRefused as exc:
         print(json.dumps({
             "refused": str(exc),
@@ -151,12 +158,16 @@ def main(argv: list[str] | None = None) -> int:
     p_draft.add_argument("--stop-after", default="qualify",
                          choices=QPROD_FORMAL_STOP_CHOICES)
     p_draft.add_argument("--model-update", action="store_true")
+    p_draft.add_argument("--formal-attempt", default="qaf_v1",
+                         choices=QAF_ATTEMPT_IDS)
     p_draft.set_defaults(fn=cmd_draft_plan)
     p_pre = sub.add_parser("preflight", help="只读预检")
     p_pre.add_argument("--deploy-root", required=True)
     p_pre.add_argument("--code-freeze-sha", default="")
     p_pre.add_argument("--stop-after", default="qualify",
                        choices=QPROD_FORMAL_STOP_CHOICES)
+    p_pre.add_argument("--formal-attempt", default="qaf_v1",
+                       choices=QAF_ATTEMPT_IDS)
     p_pre.set_defaults(fn=cmd_preflight)
     p_launch = sub.add_parser("launch", help="正式启动(门禁→受控写→链)")
     p_launch.add_argument("--deploy-root", required=True)
@@ -170,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
                           help="边界哨兵:链执行器调用前停止(验证用;"
                                "诚实中断,零步骤执行)")
     p_launch.add_argument("--child-timeout", type=int, default=None)
+    p_launch.add_argument("--formal-attempt", default="qaf_v1",
+                          choices=QAF_ATTEMPT_IDS)
     p_launch.set_defaults(fn=cmd_launch)
     args = parser.parse_args(argv)
     return args.fn(args)
