@@ -1,0 +1,205 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 22%]
+..........................................................s............. [ 24%]
+...................................s.................................... [ 26%]
+.........................................................s......F....... [ 29%]
+........................................................................ [ 31%]
+........................................................................ [ 34%]
+..................................s......F.............................. [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+...................s.s.s................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+.................................R17ALERT {"event":"t06","n":1,"utc":"2026-10-04T07:43:20Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-04T07:43:20Z","run_id":"run"}
+....................................... [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+..................................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-04T07:53:31Z","run_id":"run"}
+...................................... [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................F................F.............................. [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+.........................................................                [100%]
+=================================== FAILURES ===================================
+_________ TestFreezeGovernance.test_write_requires_commit_a_head_match _________
+
+self = <test_curriculum261_r14_governance.TestFreezeGovernance object at 0x77cf2a48cbd0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_write_requires_commit_a_h0')
+
+    def test_write_requires_commit_a_head_match(self, tmp_path):
+        """code_freeze_sha 必须等于 repo HEAD(冻结绑定 Commit A)。"""
+        from rl_curriculum.curriculum261_r14_dependencies import (
+            write_r14_code_freeze,
+        )
+    
+        with pytest.raises(RuntimeError) as excinfo:
+            write_r14_code_freeze(tmp_path, code_freeze_sha="0" * 40)
+        # 两种 fail closed 之一:repo 不可达(纯 tmp)或 sha 不匹配
+>       assert ("code_freeze_sha 与 repo HEAD 不一致"
+                in str(excinfo.value)) or ("不可达" in str(excinfo.value))
+E       assert ('code_freeze_sha 与 repo HEAD 不一致' in "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" or '不可达' in "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']")
+E        +  where "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" = str(RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']"))
+E        +    where RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") = <ExceptionInfo RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") tblen=2>.value
+E        +  and   "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" = str(RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']"))
+E        +    where RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") = <ExceptionInfo RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") tblen=2>.value
+
+tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py:234: AssertionError
+_________ TestFreezeGovernance.test_write_requires_commit_a_head_match _________
+
+self = <test_curriculum261_r15_governance.TestFreezeGovernance object at 0x77cf2a251950>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_write_requires_commit_a_h1')
+
+    def test_write_requires_commit_a_head_match(self, tmp_path):
+        """code_freeze_sha 必须等于 repo HEAD(冻结绑定 Commit A)。"""
+        from rl_curriculum.curriculum261_r15_dependencies import (
+            write_r15_code_freeze,
+        )
+    
+        with pytest.raises(RuntimeError) as excinfo:
+            write_r15_code_freeze(tmp_path, code_freeze_sha="0" * 40)
+        # 两种 fail closed 之一:repo 不可达(纯 tmp)或 sha 不匹配
+>       assert ("code_freeze_sha 与 repo HEAD 不一致"
+                in str(excinfo.value)) or ("不可达" in str(excinfo.value))
+E       assert ('code_freeze_sha 与 repo HEAD 不一致' in "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" or '不可达' in "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']")
+E        +  where "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" = str(RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']"))
+E        +    where RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") = <ExceptionInfo RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") tblen=2>.value
+E        +  and   "freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']" = str(RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']"))
+E        +    where RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") = <ExceptionInfo RuntimeError("freeze surface 不完整(fail closed): 缺失 ['activate-freqtrade.sh', 'environment.yml', 'requirements-lock.txt']") tblen=2>.value
+
+tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py:247: AssertionError
+__________ TestRealPipelineD01D04D06.test_v4_insufficient_coordinates __________
+
+self = <test_curriculum261_r25_cue_dev_entry.TestRealPipelineD01D04D06 object at 0x77cf296520d0>
+mini_run = (PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0/mini_p...ers': 4, 'n_boot': 20000, ...}, ...}, ...}, PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0/binding_24416.json'))
+
+    def test_v4_insufficient_coordinates(self, mini_run):
+        import importlib.util
+        v4_path = _DEPLOY_ROOT / "stage2_6_1_runner" / (
+            "r20_design_calc_v4.py")
+        if not v4_path.is_file():
+            v4_path = _DEPLOY_ROOT.parents[0] / (
+                "freqai-rl-audit") / "stage2_6_1" / "report" / (
+                "r20_design_calc_v4.py")
+        spec = importlib.util.spec_from_file_location("v4m", v4_path)
+        v4 = importlib.util.module_from_spec(spec)
+>       spec.loader.exec_module(v4)
+
+tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py:328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<frozen importlib._bootstrap_external>:936: in exec_module
+    ???
+<frozen importlib._bootstrap_external>:1073: in get_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <_frozen_importlib_external.SourceFileLoader object at 0x77ce54ca19d0>
+path = '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+<frozen importlib._bootstrap_external>:1130: FileNotFoundError
+_______ TestReaderBehaviorsB07B08.test_b08_primary_matches_v4_fixed_math _______
+
+self = <test_curriculum261_r25_cue_dev_entry.TestReaderBehaviorsB07B08 object at 0x77cf2965f850>
+two_coord_run = (PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0/mini_plan.json'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0/out'))
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_b08_primary_matches_v4_fi0')
+
+    def test_b08_primary_matches_v4_fixed_math(self, two_coord_run,
+                                               tmp_path):
+        _, plan, out = two_coord_run
+        result_path = tmp_path / "r.json"
+        assert _run("cold-read", "--plan", str(plan),
+                    "--out-root", str(out),
+                    "--result", str(result_path)).returncode == 0
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        import importlib.util
+        v4_path = _DEPLOY_ROOT / "stage2_6_1_runner" / (
+            "r20_design_calc_v4.py")
+        if not v4_path.is_file():
+            v4_path = _DEPLOY_ROOT.parents[0] / (
+                "freqai-rl-audit") / "stage2_6_1" / "report" / (
+                "r20_design_calc_v4.py")
+        spec = importlib.util.spec_from_file_location("v4m2", v4_path)
+        v4 = importlib.util.module_from_spec(spec)
+>       spec.loader.exec_module(v4)
+
+tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py:853: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<frozen importlib._bootstrap_external>:936: in exec_module
+    ???
+<frozen importlib._bootstrap_external>:1073: in get_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <_frozen_importlib_external.SourceFileLoader object at 0x77ce54e08550>
+path = '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+<frozen importlib._bootstrap_external>:1130: FileNotFoundError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r14_governance.py::TestFreezeGovernance::test_write_requires_commit_a_head_match
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r15_governance.py::TestFreezeGovernance::test_write_requires_commit_a_head_match
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py::TestRealPipelineD01D04D06::test_v4_insufficient_coordinates
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py::TestReaderBehaviorsB07B08::test_b08_primary_matches_v4_fixed_math
+4 failed, 2926 passed, 7 skipped, 10 warnings in 2756.70s (0:45:56)
