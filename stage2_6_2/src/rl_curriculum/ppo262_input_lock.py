@@ -235,18 +235,14 @@ FLP_V1_R3_REGISTERED_CODE_CHANGES = {
 #: 2.6.2 测试契约稳定,语义为"迭代登记变更全集")。
 
 #: A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 新尝试族接线
-#: (qaf_attempt 注册表+api/registry/seed 名单+r17_cli 消费者+levela
-#: 计划/签发线程);登记当前树实际 sha256(覆盖同名旧值;再漂移
-#: 仍 fail)。登记键必须 ⊆ R2 plan code_identity 键集
-#: (262 test_stage261_directory_unmodified_by_262 合同;qaf_attempt.py
-#: 非 R2 基线成员,其变更由新 plan code_identity 承载,不入此表)。
+#: qaf_v2 族接线变更 R2 plan code_identity 基线成员的登记面。
+#: 登记键必须 ⊆ R2 基线键集(262 test_stage261_directory_#: unmodified_by_262 合同;qaf_attempt/qprod_formal/levela 均
+#: 非 R2 基线成员——其变更由新 plan code_identity 承载,
+#: 不入此表;FLP_V1_R3 前例同形=仅 api.py)。登记值=当前树
+#: 实际 sha256(再漂移仍 fail)。
 A2R2_V1_REGISTERED_CODE_CHANGES = {
     "curriculum261_api.py":
         "b8ecba7d1a90a5913691b123aa881350c30958141b700e01229b62171a508c8b",
-    "curriculum261_qprod_formal.py":
-        "ce7862884782932a7d47ec902cb042be4cf28d014959bc3cd95ff4af2539f765",
-    "curriculum261_qprod_formal_levela.py":
-        "2b99e12b06e377880a9fb99ff0cf3c0df470a9480188fa5c6ce814fe932fa0cd",
 }
 
 REGISTERED_261_CODE_CHANGES = {
