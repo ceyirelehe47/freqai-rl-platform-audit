@@ -68,14 +68,33 @@ def cmd_init(args: argparse.Namespace) -> int:
         "qprod-formal-authority-"
         + hashlib.sha256(str(adir.resolve()).encode("utf-8")
                          ).hexdigest()[:12])
-    ident_path.write_text(json.dumps({
-        "format": AUTHORITY_IDENTITY_FORMAT,
-        "authority_id": authority_id,
-        "kind": QPROD_FORMAL_AUTHORITY_KIND,
-        "note": ("正式许可签发边界:只依用户批准原件签发;工程 "
-                 "authority/测试 authority 不可签正式许可"),
-        "created_utc": _now(),
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    # RC04(QAFv2_ReviewClosure):create-only 原子创建("x"=O_EXCL)
+    # ——两个并发 init 只有一个成功;败者按在场身份分类拒绝,
+    # 消除 check→write 窗口的双重写入。
+    try:
+        with open(ident_path, "x", encoding="utf-8") as fh:
+            fh.write(json.dumps({
+                "format": AUTHORITY_IDENTITY_FORMAT,
+                "authority_id": authority_id,
+                "kind": QPROD_FORMAL_AUTHORITY_KIND,
+                "note": ("正式许可签发边界:只依用户批准原件签发;"
+                         "工程 authority/测试 authority 不可签"
+                         "正式许可"),
+                "created_utc": _now(),
+            }, ensure_ascii=False, indent=2))
+    except FileExistsError:
+        existing = json.loads(
+            ident_path.read_text(encoding="utf-8"))
+        if existing.get("kind") == QPROD_FORMAL_AUTHORITY_KIND:
+            print(json.dumps({
+                "authority_id": existing["authority_id"],
+                "note": ("already-initialized(create-only;"
+                         "concurrent-loser)")},
+                ensure_ascii=False))
+            return 0
+        print(f"[init] 目录已含非正式 authority 身份: "
+              f"{ident_path}")
+        return 1
     print(json.dumps({"authority_id": authority_id,
                       "identity": str(ident_path)}, ensure_ascii=False))
     return 0
@@ -148,8 +167,15 @@ def cmd_record_approval(args: argparse.Namespace) -> int:
               f"{target}")
         return 1
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(approval, ensure_ascii=False,
-                                 indent=2), encoding="utf-8")
+    # RC04:原子 create-only("x");并发败者按已存在拒绝
+    try:
+        with open(target, "x", encoding="utf-8") as fh:
+            fh.write(json.dumps(approval, ensure_ascii=False,
+                                indent=2))
+    except FileExistsError:
+        print(f"[record-approval] 批准原件已存在(create-only): "
+              f"{target}")
+        return 1
     print(json.dumps({
         "recorded_approval": str(target),
         "approval_id": approval.get("approval_id"),
@@ -277,8 +303,15 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
     if out_path.is_file():
         print(f"[issue-permit] 许可已存在(签发一次性): {out_path}")
         return 1
-    out_path.write_text(json.dumps(permit, ensure_ascii=False,
-                                   indent=2), encoding="utf-8")
+    # RC04:原子 create-only("x");并发败者按已存在拒绝,
+    # 消除 check→write 窗口的双许可写入。
+    try:
+        with open(out_path, "x", encoding="utf-8") as fh:
+            fh.write(json.dumps(permit, ensure_ascii=False,
+                                indent=2))
+    except FileExistsError:
+        print(f"[issue-permit] 许可已存在(签发一次性): {out_path}")
+        return 1
     print(json.dumps({"permit_path": str(out_path),
                       "permit_id": permit_id,
                       "permit_digest": permit["permit_digest"],
