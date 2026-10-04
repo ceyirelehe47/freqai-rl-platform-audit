@@ -1,6 +1,6 @@
 # QAFv2 ReviewClosure RC01–RC08 收口报告(RouteC_QAFv2_ReviewClosure_v1)
 
-日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `513e75e35f05ed18a5ebd9db76834de938e44113` | 前候选 `9210cd24…`(gate1 修复轮)、`8c160d0a…`(RC 首轮)(未 amend,保留为祖先)
+日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `9d735c8cb7863d44e1c6325761b828f03f100b8b` | 前候选 `513e75e3…`(RC 轮)、`9210cd24…`/`8c160d0a…`(gate1 轮)(未 amend,保留为祖先)
 reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_APPROVAL`(ChatGPT 完整终验未签,不代签)
 
 ## 结论总表
@@ -18,9 +18,9 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 
 ## 新证据绑定(分支 B 后)
 
-- Commit A:`513e75e35f05ed18a5ebd9db76834de938e44113`(parent=fc165e16;变更=authority 原子化+operator 绑定门+init 有界重读(两读点)+新测试)
-- 新计划 digest:`qbpl-d10885c132872b056249ad02b01b3309afe79e6c19da0617bdbaf71de9db33ce`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
-- D2 新 record:`864cc48ee670708d26f4d4243216db6504b8e04d7f298ad1e1d9a7fc05a8bbaa`(261 全收集 2943=2936 passed+7 skipped/0F/0E,run r21_20261005_020425,cwd=D2,commit 513e75e3)+ 同根 substance verify rc=0(r17sub-1596cd46→r2fix 实测,tree e2769ea1bad1…)+ 错根 rc=2
+- Commit A:`9d735c8cb7863d44e1c6325761b828f03f100b8b`(parent=cff3f5d2;变更=RCF-01 harden_install_target 全接入/RCF-02 状态矩阵+真实签发日志+计数/RCF-03 叶哨兵+双守卫/env 守卫+新测试)
+- 新计划 digest:`qbpl-c080e60743bb21df946ea47e260d58cdba003df2bb0135a937aa622306fd515e`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
+- D2 新 record:`a102f967af986cb6cf921892faacaafd7aa7fb80c8355ef1d6b6a68809a0a4c2`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_054959,cwd=D2,commit 9d735c8c)+ 同根 substance verify rc=0(r17sub-9f074988b03a22487…,tree 6a81d73431a8…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
 ## 源码快照(包内 source_snapshots/,候选 513e75e3 git blob 原字节)

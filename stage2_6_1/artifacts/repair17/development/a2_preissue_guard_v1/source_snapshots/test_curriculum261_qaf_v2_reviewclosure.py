@@ -273,7 +273,7 @@ class TestConcurrentOneShot:
         assert adm.is_file(), "恰一份 admission 落盘"
         winners = [rc for rc in (rc1, rc2) if rc == 0]
         assert len(winners) == 1, (rc1, rc2, out1, out2, err1, err2)
-        log = d["state"] / "r17_admission_issuance.log.jsonl"
+        log = d["deploy"] / "r17_admission_issued.jsonl"
         if log.is_file():
             ids = [json.loads(line)["admission_id"]
                    for line in log.read_text(encoding="utf-8")
@@ -485,3 +485,384 @@ class TestContinuousWorkflowPrefix:
             os.environ.pop("CURRICULUM261_R17_DEPLOYED_STATE_ROOT",
                            None)
             os.environ.pop("CURRICULUM261_R17_STATE_ROOT", None)
+
+
+# ------------------------------------------------------------------
+# ReviewClosure 修复轮(RCF-01/02/03;ChatGPT 独立终验 FAIL 项)
+# ------------------------------------------------------------------
+
+class TestRCF01Paths:
+    """RCF-01:prepare/installer/验证报告写前路径硬化。"""
+
+    def _prepare(self, deploy: Path, *, extra_cfg=None):
+        runner = _runner_dir()
+        return subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "prepare",
+             "--repo", str(_guard_repo()), "--deploy-root", str(deploy),
+             "--project-dir", str(_project_tree_root()),
+             "--attempt", "qaf_v2"],
+            capture_output=True, text=True)
+
+    def _config(self, deploy: Path, artifact_root) -> None:
+        deploy.mkdir(parents=True, exist_ok=True)
+        state = deploy / "artifacts/route_c_stage2_6_1_repair17/state"
+        cfg = {
+            "format": "cur261-qprod-deploy-config-v1",
+            "mode": "formal_ready",
+            "formal_roots": {"qprod_a_formal_v2": {
+                "artifact_root": str(artifact_root),
+                "state_root": str(state),
+                "authority_dir": str(deploy / "authority"),
+            }},
+        }
+        (deploy / "qprod_deploy_config.json").write_text(
+            json.dumps(cfg, ensure_ascii=False, indent=1),
+            encoding="utf-8")
+
+    def _snap(self, root: Path) -> dict:
+        if not root.exists():
+            return {"exists": False}
+        return {"exists": True, "entries": sorted(
+            p.name for p in root.rglob("*"))}
+
+    def test_positive_new_dir_and_idempotent(self, tmp_path):
+        deploy = tmp_path / "deploy"
+        art = tmp_path / "fresh_art"
+        self._config(deploy, art)
+        r1 = self._prepare(deploy)
+        assert r1.returncode == 0, r1.stdout + r1.stderr
+        assert (art / "gate_topology_reconciliation.json").is_file()
+        mtime = (art / "gate_topology_reconciliation.json"
+                 ).stat().st_mtime_ns
+        r2 = self._prepare(deploy)
+        assert r2.returncode == 0, r2.stdout + r2.stderr
+        assert (art / "gate_topology_reconciliation.json"
+                ).stat().st_mtime_ns == mtime
+        assert (art / "gate_topology_provenance_verify.json").is_file()
+
+    def test_protected_dir_refused_pre_write(self, tmp_path):
+        tree = _project_tree_root()
+        prot = tree / "artifacts/route_c_stage2_6_1_repair17/rcf01"
+        prot.mkdir(parents=True, exist_ok=True)
+        before = self._snap(prot)
+        deploy = tmp_path / "deploy_p"
+        self._config(deploy, prot)
+        r = self._prepare(deploy)
+        assert r.returncode != 0
+        assert "受保护历史根" in (r.stdout + r.stderr)
+        assert self._snap(prot) == before, "拒绝后保护面字节/成员不变"
+
+    def test_symlink_to_protected_refused(self, tmp_path):
+        tree = _project_tree_root()
+        prot = tree / "artifacts/route_c_stage2_6_1_repair17/rcf01s"
+        prot.mkdir(parents=True, exist_ok=True)
+        link = tmp_path / "alias_art"
+        link.symlink_to(prot, target_is_directory=True)
+        before = self._snap(prot)
+        deploy = tmp_path / "deploy_l"
+        self._config(deploy, link)
+        r = self._prepare(deploy)
+        assert r.returncode != 0
+        assert "受保护历史根" in (r.stdout + r.stderr)
+        assert self._snap(prot) == before
+
+    def test_relative_target_refused(self, tmp_path):
+        deploy = tmp_path / "deploy_rel"
+        self._config(deploy, "relative_art_root")
+        cwd_snap = self._snap(tmp_path)
+        r = self._prepare(deploy)
+        assert r.returncode != 0
+        assert "绝对路径" in (r.stdout + r.stderr)
+        assert not (tmp_path / "relative_art_root").exists()
+
+    def test_allow_replace_broken_mixed_dir_refused(self, tmp_path):
+        from rl_curriculum.curriculum261_qaf_provenance_guard import (
+            install_to_target, read_pinned_source,
+        )
+        art = tmp_path / "mixed_art"
+        install_to_target(art, read_pinned_source(_guard_repo()))
+        (art / "historical_evidence.json").write_text(
+            '{"keep": true}', encoding="utf-8")
+        (art / "gate_topology_reconciliation.json").write_text("{}")
+        with pytest.raises(Exception, match="两件之外的文件"):
+            install_to_target(
+                art, read_pinned_source(_guard_repo()),
+                allow_replace_broken=True)
+        assert json.loads(
+            (art / "historical_evidence.json").read_text(
+                encoding="utf-8")) == {"keep": True}
+
+
+class TestRCF02StateMatrix:
+    """RCF-02:首签发前核清实际使用对象与已有一次性状态。"""
+
+    def _execute(self, d, approval_file, evidence, **over):
+        runner = _runner_dir()
+        argv = [PY, str(runner / "qaf_v2_operator_entry.py"),
+                "execute",
+                "--repo", str(d["repo"]),
+                "--guard-repo", str(_guard_repo()),
+                "--deploy-root", str(d["deploy"]),
+                "--project-dir", str(_project_tree_root()),
+                "--approval-json", str(approval_file),
+                "--regression-evidence", str(evidence),
+                "--admission-id", "rcf02-test",
+                "--authorization", "test-harness:RCF02",
+                "--plan-digest", over.get(
+                    "plan_digest", d["tree"]),
+                "--plan-digest-method", "git_tree_digest",
+                "--code-freeze-sha", over.get(
+                    "code_sha", d["commit_a"]),
+                "--stop-after", "verify-formal-logs",
+                "--model-update", "--attempt", "qaf_v2",
+                "--test-domain"]
+        return subprocess.run(argv, capture_output=True, text=True)
+
+    def _domain_with_tree(self, tmp_path_factory):
+        d = _make_rc_domain(
+            tmp_path_factory.mktemp("rcf02"), "rcf02")
+        d["tree"] = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^{tree}"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        return d
+
+    def test_stored_approval_mismatch_refused_zero_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        # 已存批准绑定旧候选(上一 PG 身份)
+        old = json.loads(
+            _approval_path(d).read_text(encoding="utf-8"))
+        old["approved"]["code_freeze_sha"] = "0" * 40
+        old.pop("approval_digest", None)
+        from rl_curriculum.curriculum261_qprod_formal import (
+            formal_approval_digest,
+        )
+        old["approval_digest"] = formal_approval_digest(old)
+        adir = d["authority"]
+        adir.mkdir(parents=True, exist_ok=True)
+        (adir / ("qprod_formal_approval_level_a_qprod_a_formal_v2"
+                 ".json")).write_text(
+            json.dumps(old, ensure_ascii=False, indent=1),
+            encoding="utf-8")
+        before = sorted(str(p.relative_to(adir))
+                        for p in adir.rglob("*") if p.is_file())
+        proc = self._execute(d, _approval_path(d), d["record"])
+        assert proc.returncode == 96, proc.stdout
+        assert "digest" in proc.stdout and "不一致" in proc.stdout
+        after = sorted(str(p.relative_to(adir))
+                       for p in adir.rglob("*") if p.is_file())
+        assert after == before
+
+    def test_evidence_missing_and_wrong_candidate_refused(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        missing = d["base"] / "nope.json"
+        proc = self._execute(d, _approval_path(d), missing)
+        assert proc.returncode == 96
+        assert "不可读" in proc.stdout
+        rec = json.loads(
+            Path(d["record"]).read_text(encoding="utf-8"))
+        rec["commit_a_sha"] = "1" * 40
+        wrong = d["base"] / "wrong_commit_record.json"
+        wrong.write_text(json.dumps(rec, ensure_ascii=False),
+                         encoding="utf-8")
+        proc2 = self._execute(d, _approval_path(d), wrong)
+        assert proc2.returncode == 96, proc2.stdout
+        assert "record 绑定候选" in proc2.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
+    def test_existing_permit_and_admission_refused_pre_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        adir = d["authority"]
+        (adir / ("qprod_permit_level_a_qprod_a_formal_v2.json")
+         ).write_text('{"format": "stub"}', encoding="utf-8")
+        proc = self._execute(d, _approval_path(d), d["record"])
+        assert proc.returncode == 4
+        assert "许可已在场" in proc.stdout
+        (adir / ("qprod_permit_level_a_qprod_a_formal_v2.json")
+         ).unlink()
+        (d["deploy"] / ".r17_formal_admission.json").write_text(
+            '{"format": "cur261-r17-formal-admission-v1"}',
+            encoding="utf-8")
+        proc2 = self._execute(d, _approval_path(d), d["record"])
+        assert proc2.returncode == 4
+        assert "admission 已签发" in proc2.stdout
+        assert not list(adir.glob("qprod_permit_*"))
+
+    def test_real_issuance_log_refused_pre_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        # 真实签发日志在 deploy 根(准入文件不在场=中断/回执缺失
+        # 形态)→ 首个一次性写前拒绝,不重签准入
+        (d["deploy"] / "r17_admission_issued.jsonl").write_text(
+            json.dumps({"admission_id": "prior-test",
+                        "commit_a_sha": d["commit_a"]}) + "\n",
+            encoding="utf-8")
+        adir = d["authority"]
+        before = sorted(str(p.relative_to(adir))
+                        for p in adir.rglob("*") if p.is_file())
+        proc = self._execute(d, _approval_path(d), d["record"])
+        assert proc.returncode == 4, proc.stdout
+        assert "签发日志在场" in proc.stdout
+        after = sorted(str(p.relative_to(adir))
+                       for p in adir.rglob("*") if p.is_file())
+        assert after == before
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+
+    def test_leaf_sentinel_without_test_domain_zero_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        runner = _runner_dir()
+        proc = subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(_approval_path(d)),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rcf02-leafnodomain",
+             "--authorization", "test-harness",
+             "--plan-digest", d["tree"],
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", d["commit_a"],
+             "--stop-after", "verify-formal-logs",
+             "--model-update", "--attempt", "qaf_v2",
+             "--leaf-sentinel", "determinism-matrix"],
+            capture_output=True, text=True)
+        assert proc.returncode == 96, proc.stdout
+        assert "--leaf-sentinel 仅限 --test-domain" in proc.stdout
+        assert '"one_shot_writes": 0' in proc.stdout
+        adir = d["authority"]
+        assert not list(adir.glob("qprod_permit_*"))
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+        assert not (d["deploy"]
+                    / "r17_admission_issued.jsonl").exists()
+
+    def test_manual_leaf_env_without_test_domain_zero_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        runner = _runner_dir()
+        env = dict(os.environ)
+        env["CURRICULUM261_QAF_TEST_LEAF_SENTINEL"] = (
+            "determinism-matrix")
+        proc = subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(_approval_path(d)),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rcf02-envleaf",
+             "--authorization", "test-harness",
+             "--plan-digest", d["tree"],
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", d["commit_a"],
+             "--stop-after", "verify-formal-logs",
+             "--model-update", "--attempt", "qaf_v2"],
+            capture_output=True, text=True, env=env)
+        assert proc.returncode == 96, proc.stdout
+        assert "CURRICULUM261_QAF_TEST_LEAF_SENTINEL" in proc.stdout
+        assert '"one_shot_writes": 0' in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+
+    def test_post_permit_refusal_reports_one_shot_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        # 部署面字节漂移(追加注释):preissue 门与全部首写前预检
+        # 均不比对部署树;admission substance 深核部署面 → permit
+        # 落盘后 admission 拒绝 → 该调用计数必须如实=1
+        cand = sorted((Path(d["deploy"]) / "src" / "rl_curriculum")
+                      .glob("*.py"))
+        assert cand, "沙箱部署树 src 面异常"
+        probe = cand[0]
+        original = probe.read_bytes()
+        try:
+            probe.write_bytes(original + b"\n# drift\n")
+            proc = self._execute(d, _approval_path(d), d["record"])
+        finally:
+            probe.write_bytes(original)
+        assert proc.returncode == 96, proc.stdout
+        assert '"one_shot_writes": 1' in proc.stdout, proc.stdout
+        assert list(d["authority"].glob("qprod_permit_*"))
+
+
+class TestRCF03ContinuousLeafBoundary:
+    """RCF-03:operator 全链真实排程到下一科学叶首昂贵调用边界。"""
+
+    def test_execute_to_determinism_leaf_sentinel(
+            self, tmp_path_factory):
+        d = _make_rc_domain(
+            tmp_path_factory.mktemp("rcf03"), "rcf03")
+        tree = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^{tree}"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        approval = _approval_path(d)
+        runner = _runner_dir()
+        env = dict(os.environ)
+        # 沙箱 release repo:launch/chain 的 admission 闸门按
+        # R17_RELEASE_REPO 解析候选 git 对象(默认指向生产仓库)
+        env["R17_RELEASE_REPO"] = str(d["repo"])
+        proc = subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(approval),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rcf03-continuous",
+             "--authorization", "test-harness:RCF03 连续前缀",
+             "--plan-digest", tree,
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", d["commit_a"],
+             "--stop-after", "verify-formal-logs",
+             "--model-update", "--attempt", "qaf_v2",
+             "--test-domain", "--leaf-sentinel",
+             "determinism-matrix"],
+            capture_output=True, text=True, timeout=600, env=env)
+        out = proc.stdout
+        # 全链真实:init/record/permit/admission 各一次
+        assert (d["authority"] / "authority_identity.json").is_file()
+        assert list(d["authority"].glob(
+            "qprod_formal_approval_*"))
+        assert len(list(d["authority"].glob(
+            "qprod_permit_*"))) == 1
+        assert (d["deploy"] / ".r17_formal_admission.json").is_file()
+        # 步 1 真实产物(读安装目标)
+        verify = d["art"] / "gate_topology_provenance_verify.json"
+        assert verify.is_file(), out[-2000:]
+        # 步 2 到达首个昂贵科学调用边界,恰一次,科学零执行
+        marker = d["art"] / "leaf_sentinel_marker.json"
+        assert marker.is_file(), out[-2000:]
+        mdoc = json.loads(marker.read_text(encoding="utf-8"))
+        assert mdoc["step"] == "determinism-matrix"
+        assert mdoc["science_executed"] is False
+        assert not (d["art"] / "determinism"
+                    / "generation_determinism_contract.json").exists()
+        # manifest 含步1与步2事件(连续同一路径)
+        manifest = d["art"] / "r17_formal_log_manifest.jsonl"
+        assert manifest.is_file()
+        steps = [json.loads(x).get("step")
+                 for x in manifest.read_text(encoding="utf-8")
+                 .splitlines() if x.strip()]
+        assert "provenance-verify" in steps and \
+               "determinism-matrix" in steps, steps
+        # 链诚实失败于步 3 前置(科学未跑);整体非成功
+        assert proc.returncode != 0
+        result = d["art"] / "r17_chain_result.json"
+        assert result.is_file()
+        cdoc = json.loads(result.read_text(encoding="utf-8"))
+        assert cdoc["ok"] is False
+        assert cdoc["failed_step"] in ("audit",
+                                       "determinism-matrix"), cdoc

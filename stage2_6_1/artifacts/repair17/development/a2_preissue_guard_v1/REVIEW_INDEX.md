@@ -25,3 +25,13 @@ P3(计数措辞)已在 6a4ea870 修复(guard+7 既有=8 文件 222 全绿;review
 | gate1-R3(修复 513e75e3 后) | **PASS(1 P3 文档 nit 已修)** | REVIEW_REPORT_RC_GATE1_R3.md;fastpath_demo_513e/init_natural_ab_513e(0 回溯)/positiveprep_513e(PREP 正例全链)/rc04_ab_513e/substance_*_rerun_513e/tests 套件 73/73 |
 
 候选演进:efb35552(A2-R2)→8c160d0a(RC:authority O_EXCL+并发/前缀测试)→9210cd24(F1 绑定门+F2 部分+文档)→**513e75e3(F2 快速路径有界重读+PREP 迁移+文档 rebase;最终候选)**。
+
+## RCF 有限修复轮(ChatGPT 终验 FAIL→FiniteRepair_Brief;dsv4.1f 同线 RcfRepairGate1)
+
+| 阶段 | 结论 | 关键证据(local/rcf_review/→已归档 evidence/reviewer_rcf_archive/) |
+|---|---|---|
+| RCF R1 | incorrect(2×P2:签发日志幽灵路径漏检再签;leaf 旗标校验晚于三件一次性写) | REVIEWER_DSV41F_RCF_RECHECK.md;probe_B_state B5/B6/B8 |
+| RCF R2/R3(修复 f4684c1e→cff3f5d2) | **PASS**(真实日志首写前 rc4 零写;旗标前移;生产根守卫恢复;report-out 硬化;85/85;生产等价性验证) | r2_probe_{A,C,C2,D}.json;r2_suites.log |
+| R4(残余观察闭环 9d735c8c) | 手工 env 哨兵首写前拒(测试 19/19) | closure 测试套件 |
+
+候选演进续:513e75e3→1ea6bba8(RCF 实现)→f4684c1e(真实日志+前移)→cff3f5d2(生产根守卫)→**9d735c8c(env 守卫;最终候选)**。

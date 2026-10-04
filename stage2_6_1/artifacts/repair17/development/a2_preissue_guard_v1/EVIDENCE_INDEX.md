@@ -4,7 +4,8 @@
 
 | 证据 | 仓库路径(stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/ 下) | 首次提交 |
 |---|---|---|
-| 最终 261 record 864cc48e(run r21_20261005_020425) | evidence/regress261_d2/ | e5191881 系(见 git log --follow) |
+| 最终 261 record a102f967(run r21_20261005_054959,commit 9d735c8c) | evidence/regress261_d2/ | 本轮(见 git log --follow) |
+| RCF 前 record 864cc48e(commit 513e75e3) | evidence/regress261_d2_rcf_513e75e3/ | e5191881 系 |
 | RC 首轮 record 7b4b2be2(commit 8c160d0a) | evidence/regress261_d2_rc_gate1_8c160d0a/ | 9a8d95f0 |
 | gate1-R2 record 0e106730(commit 9210cd24) | evidence/regress261_d2_r2fix_9210cd24/ | fc165e16 |
 | A2-R2 v3 record 8436a1a7(commit efb35552) | evidence/regress261_d2_a2r2_efb35552/ | 8ffece2b |

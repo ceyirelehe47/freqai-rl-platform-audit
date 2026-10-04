@@ -1,12 +1,12 @@
 # A2-R2 未来一次性执行命令附录(批准后使用;本轮未执行)
 
-固定值:Commit A=`513e75e35f05ed18a5ebd9db76834de938e44113` |
+固定值:Commit A=`9d735c8cb7863d44e1c6325761b828f03f100b8b` |
 P2=`/home/cryptorl/projects/crypto_rl_qaf_v2` |
 D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2` |
 REPO=`/mnt/f/trading/freqai-rl-audit` |
-计划=`qbpl-d10885c132872b056249ad02b01b3309afe79e6c19da0617bdbaf71de9db33ce` |
-tree digest=`e2769ea1bad1bada8d98bc31ee778f60d9770176` |
-record=`…/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json`(sha256 `864cc48ee670708d…`) |
+计划=`qbpl-c080e60743bb21df946ea47e260d58cdba003df2bb0135a937aa622306fd515e` |
+tree digest=`6a81d73431a83f0ffa2de0a6c5113df331e0a2ff` |
+record=`…/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json`(sha256 `a102f967af986cb6…`) |
 PY=`/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python` |
 PREP=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/prep_qaf_v2`(批准原件落点=普通目录,guard/freshness 不扫描;勿写 A artifact 根)
 
@@ -42,11 +42,11 @@ cd $P2 && PYTHONDONTWRITEBYTECODE=1 $PY $P2/stage2_6_1_runner/qaf_v2_operator_en
   --deploy-root $D2 --project-dir $P2 \
   --approval-json $PREP/approval_qaf_v2.json \
   --regression-evidence $REPO/stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json \
-  --admission-id qaf-v2-513e75e3-a2 \
+  --admission-id qaf-v2-9d735c8c-a2 \
   --authorization "<批准原文引用 + statement sha256>" \
-  --plan-digest e2769ea1bad1bada8d98bc31ee778f60d9770176 \
+  --plan-digest 6a81d73431a83f0ffa2de0a6c5113df331e0a2ff \
   --plan-digest-method git_tree_digest \
-  --code-freeze-sha 513e75e35f05ed18a5ebd9db76834de938e44113 \
+  --code-freeze-sha 9d735c8cb7863d44e1c6325761b828f03f100b8b \
   --stop-after verify-formal-logs --model-update --attempt qaf_v2
 ```
 
