@@ -1,0 +1,78 @@
+{
+ "D1": {
+  "rc": 4,
+  "refused": "admission 已签发/消费或签发日志在场(一次性资源;受控停下先核清状态,不生成新 permit)",
+  "mentions_log": true,
+  "state": {
+   "admission_file": false,
+   "consumed_log": false,
+   "issuance_log": true
+  },
+  "one_shot_writes": 0,
+  "authority_unchanged": true,
+  "no_permit": true,
+  "no_admission": true,
+  "no_prereg": true,
+  "log_lines_unchanged": true
+ },
+ "D2": {
+  "rc": 1,
+  "phantom_refusal_absent": true,
+  "permit_written": true,
+  "admission_written": true,
+  "real_log_lines": 1,
+  "chain_result": {
+   "ok": false,
+   "failed_step": "audit"
+  }
+ },
+ "D3": {
+  "rc": 96,
+  "refused": "--leaf-sentinel 仅限 --test-domain(科学叶哨兵只在隔离测试域;首一次性写前拒绝)",
+  "one_shot_writes": 0,
+  "authority_delta": [],
+  "no_permit": true,
+  "no_admission": true,
+  "no_prereg": true,
+  "no_identity": true
+ },
+ "D4": {
+  "leaf_on_prod_root": {
+   "rc": 96,
+   "refused": "部署根 /home/cryptorl/projects/crypto_rl_rcf_probe_r2 属生产根清单,禁止哨兵试跑(一次性资格",
+   "dir_absent": true
+  },
+  "sentinel_before_chain_on_prod_root": {
+   "rc": 96,
+   "refused": "部署根 /home/cryptorl/projects/crypto_rl_rcf_probe_r2 属生产根清单,禁止哨兵试跑(一次性资格",
+   "dir_absent": true
+  },
+  "sentinel_before_chain_no_domain": {
+   "rc": 96,
+   "refused": "真实根禁止 --sentinel-before-chain(哨兵只存在于隔离测试域;须显式--test-domain)",
+   "one_shot_writes": 0
+  },
+  "d4_authority_untouched": true
+ },
+ "D5": {
+  "protected": {
+   "rc": 3,
+   "refused_hardening": true,
+   "prot_bytes_unchanged": true
+  },
+  "relative": {
+   "rc": 3,
+   "refused_abs": true,
+   "no_file": true
+  },
+  "symlink": {
+   "rc": 3,
+   "refused_hardening": true,
+   "prot_bytes_unchanged": true
+  },
+  "positive_fresh_path": {
+   "rc": 2,
+   "report_written": true
+  }
+ }
+}

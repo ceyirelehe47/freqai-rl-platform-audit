@@ -34,4 +34,7 @@ P3(计数措辞)已在 6a4ea870 修复(guard+7 既有=8 文件 222 全绿;review
 | RCF R2/R3(修复 f4684c1e→cff3f5d2) | **PASS**(真实日志首写前 rc4 零写;旗标前移;生产根守卫恢复;report-out 硬化;85/85;生产等价性验证) | r2_probe_{A,C,C2,D}.json;r2_suites.log |
 | R4(残余观察闭环 9d735c8c) | 手工 env 哨兵首写前拒(测试 19/19) | closure 测试套件 |
 
-候选演进续:513e75e3→1ea6bba8(RCF 实现)→f4684c1e(真实日志+前移)→cff3f5d2(生产根守卫)→**9d735c8c(env 守卫;最终候选)**。
+| RCF R4(残余观察闭环 9d735c8c) | 手工 env 哨兵首写前拒(closure 19/19) | closure 套件;evidence/r4_probe_E.json |
+| RCF R5(终审 90b3a44a) | **PASS**(env 角闭环进生产根守卫第三条件;面无回退;最终绑定逐项复核) | r5_{probe_E,probe_D}.json、r5_closure.log、r5_bindings.txt |
+
+候选演进续:513e75e3→1ea6bba8(RCF 实现)→f4684c1e(真实日志+前移)→cff3f5d2(生产根守卫)→9d735c8c(env 守卫)→**90b3a44a(生产根守卫扩展;最终候选)**。
