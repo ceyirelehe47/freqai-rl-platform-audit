@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 新 Commit A | `9d735c8cb7863d44e1c6325761b828f03f100b8b`(已推;祖先链 …→513e75e3→RCF 修复轮 R1-R4;RCF-01 路径硬化/RCF-02 首签发状态矩阵+真实签发日志预检/RCF-03 叶哨兵,无 amend) |
+| 新 Commit A | `90b3a44abca514d642d5f6afbf00a3157209f2a5`(已推;祖先链 …→9d735c8c→R5 生产根守卫扩展;RCF-01/02/03+残余观察全闭,无 amend) |
 | 尝试 | `qaf_v2`(26 全新 namespace,含 design_qaf_v2_* 显式三名;与 v1 逐名不相交) |
 | QProd 迭代 | `qprod_a_formal_v2` |
-| 新 A2 计划 digest | `qbpl-c080e60743bb21df946ea47e260d58cdba003df2bb0135a937aa622306fd515e`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 6a81d73431a83f0ffa2de0a6c5113df331e0a2ff) |
-| D2 同根 record | sha256 `a102f967af986cb6cf921892faacaafd7aa7fb80c8355ef1d6b6a68809a0a4c2`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_054959,cwd=D2;同根 substance verify rc=0,r17sub-9f074988b03a22487…;错根 rc=2 拒) |
+| 新 A2 计划 digest | `qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 1bc17f33d5e54b901818464c34dff5c03406f601) |
+| D2 同根 record | sha256 `ff8040fc00bb55326391042bda7c98b3df2aa8d30314d6b2b57bb747e091d69e`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_065335,cwd=D2,commit 90b3a44a;同根 substance verify rc=0,r17sub-4ed46d7cc1218a1…;错根 rc=2 拒) |
 | 262 适用 | 240/240 全绿(api/输入锁/镜像受影响面实跑) |
 | 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 625 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
 
@@ -30,4 +30,4 @@ gate2 终审 P0 已修复:D2 未来 A state 根陈旧 R17 运行态(自 P 全量
 
 ## 5. 批准请求(仅一次)
 
-请批准:以 Commit A `9d735c8cb7863d44e1c6325761b828f03f100b8b` / 计划 `qbpl-c080e60743bb21df946ea47e260d58cdba003df2bb0135a937aa622306fd515e` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,入口自动完成 配置→前置安装→同源验证→签发(守卫内建)→一次性 launch→收尾)。批准原文将按 statement digest 绑定进 qfap 原件。
+请批准:以 Commit A `90b3a44abca514d642d5f6afbf00a3157209f2a5` / 计划 `qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,入口自动完成 配置→前置安装→同源验证→签发(守卫内建)→一次性 launch→收尾)。批准原文将按 statement digest 绑定进 qfap 原件。

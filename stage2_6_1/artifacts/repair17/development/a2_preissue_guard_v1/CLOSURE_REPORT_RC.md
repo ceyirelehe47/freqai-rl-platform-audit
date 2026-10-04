@@ -1,6 +1,6 @@
 # QAFv2 ReviewClosure RC01–RC08 收口报告(RouteC_QAFv2_ReviewClosure_v1)
 
-日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `9d735c8cb7863d44e1c6325761b828f03f100b8b` | 前候选 `513e75e3…`(RC 轮)、`9210cd24…`/`8c160d0a…`(gate1 轮)(未 amend,保留为祖先)
+日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `90b3a44abca514d642d5f6afbf00a3157209f2a5` | 前候选 `9d735c8c…`(R4)、`513e75e3…`(RC 轮)等(未 amend,保留为祖先)
 reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_APPROVAL`(ChatGPT 完整终验未签,不代签)
 
 ## 结论总表
@@ -18,12 +18,12 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 
 ## 新证据绑定(分支 B 后)
 
-- Commit A:`9d735c8cb7863d44e1c6325761b828f03f100b8b`(parent=cff3f5d2;变更=RCF-01 harden_install_target 全接入/RCF-02 状态矩阵+真实签发日志+计数/RCF-03 叶哨兵+双守卫/env 守卫+新测试)
-- 新计划 digest:`qbpl-c080e60743bb21df946ea47e260d58cdba003df2bb0135a937aa622306fd515e`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
-- D2 新 record:`a102f967af986cb6cf921892faacaafd7aa7fb80c8355ef1d6b6a68809a0a4c2`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_054959,cwd=D2,commit 9d735c8c)+ 同根 substance verify rc=0(r17sub-9f074988b03a22487…,tree 6a81d73431a8…)+ 错根 rc=2
+- Commit A:`90b3a44abca514d642d5f6afbf00a3157209f2a5`(parent=1364953b;变更=RCF-01/02/03+R5 生产根守卫扩展到手工 env 哨兵+文档消歧)
+- 新计划 digest:`qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
+- D2 新 record:`ff8040fc00bb55326391042bda7c98b3df2aa8d30314d6b2b57bb747e091d69e`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_065335,cwd=D2,commit 90b3a44a)+ 同根 substance verify rc=0(r17sub-4ed46d7cc1218a1…,tree 1bc17f33d5e5…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
-## 源码快照(包内 source_snapshots/,候选 9d735c8c git blob 原字节,10 文件含 curriculum261_r17_cli.py)
+## 源码快照(包内 source_snapshots/,候选 90b3a44a git blob 原字节,10 文件含 curriculum261_r17_cli.py)
 
 qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha)
 

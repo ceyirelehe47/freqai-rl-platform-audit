@@ -205,7 +205,9 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "one_shot_writes": 0,
         }, ensure_ascii=False))
         return 96
-    if (args.sentinel_before_chain or args.leaf_sentinel) \
+    if (args.sentinel_before_chain or args.leaf_sentinel
+            or os.environ.get(
+                "CURRICULUM261_QAF_TEST_LEAF_SENTINEL")) \
             and args.test_domain \
             and _is_production_root(deploy_root):
         print(json.dumps({
