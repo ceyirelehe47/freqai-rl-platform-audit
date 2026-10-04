@@ -25,7 +25,7 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 
 ## 源码快照(包内 source_snapshots/,候选 90b3a44a git blob 原字节,10 文件含 curriculum261_r17_cli.py)
 
-qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha)
+qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / curriculum261_r17_cli.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha)
 
 ## 保留限制
 
