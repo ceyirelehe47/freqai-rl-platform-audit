@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 import subprocess
 import sys
 from pathlib import Path
@@ -2729,6 +2730,27 @@ def cmd_determinism_matrix(args: argparse.Namespace) -> int:
     )
 
     out = Path(args.out_dir) / "determinism"
+    # RCF-03(QAFv2 ReviewClosure 修复轮):测试叶哨兵——在
+    # determinism-matrix 的第一个昂贵科学调用边界(可观测、恰一次)
+    # 停止,科学计算零执行。仅当环境变量显式设置时生效(生产不设
+    # 即零影响);标记文件落 out_dir 供连续前缀断言。
+    _leaf = os.environ.get("CURRICULUM261_QAF_TEST_LEAF_SENTINEL")
+    if _leaf == "determinism-matrix":
+        out.mkdir(parents=True, exist_ok=True)
+        marker = {
+            "format": "cur261-qaf-test-leaf-sentinel-v1",
+            "step": "determinism-matrix",
+            "boundary": "first_expensive_science_call",
+            "science_executed": False,
+            "pid": os.getpid(),
+            "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        (Path(args.out_dir) / "leaf_sentinel_marker.json").write_text(
+            json.dumps(marker, ensure_ascii=False, indent=1),
+            encoding="utf-8")
+        print("[leaf-sentinel] determinism-matrix 首个昂贵科学调用"
+              "边界到达;科学 NOT 执行(测试哨兵)")
+        return 0
     from rl_curriculum.curriculum261_qprod_formal_budget import (
         assert_stage_budget_gate,
     )

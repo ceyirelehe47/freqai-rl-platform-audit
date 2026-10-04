@@ -190,6 +190,27 @@ def inspect_target(artifact_root: Path) -> dict[str, Any]:
     return report
 
 
+def harden_install_target(artifact_root: Path) -> Path:
+    """RCF-01:安装/验证写前路径硬化(复用既有 harden_root 规则)。
+
+    绝对路径、无 '..'、realpath 解析 symlink/别名后不得落在
+    protected_old_roots(历史冻结正式产物面)内。返回规范化真实
+    路径;调用方只用返回值落盘。拒绝在任何写入(mkdir/write/
+    unlink)之前发生——本函数自身零写。
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from rl_curriculum.curriculum261_qprod_context import (
+        QProdContextError, harden_root,
+    )
+    try:
+        return harden_root(Path(str(artifact_root)),
+                           label="安装目标(A artifact 根)",
+                           create=False)
+    except QProdContextError as exc:
+        raise ProvenanceGuardError(
+            f"安装目标路径拒绝(首次写入前): {exc}") from exc
+
+
 def install_to_target(
         artifact_root: Path, source: dict[str, Any], *,
         allow_replace_broken: bool = False) -> dict[str, Any]:
@@ -201,7 +222,7 @@ def install_to_target(
     半写状态(json 在 digest 缺,或反之)= 异常面,拒绝并如实报告
     (调用方显式处理,不静默补齐冒称完成)。
     """
-    root = Path(artifact_root)
+    root = harden_install_target(artifact_root)
     jp = root / PROVENANCE_JSON_TARGET_NAME
     dp = root / PROVENANCE_DIGEST_TARGET_NAME
     pre = inspect_target(root)
@@ -221,6 +242,19 @@ def install_to_target(
                         f"目标 {label} 件为异物(sha {actual[:16]}… != "
                         f"钉死 {pinned[:16]}…);不静默覆盖——显式处理"
                         f"(allow_replace_broken 仅限本轮新准备域)")
+                # RCF-01:allow_replace_broken 的"仅新准备域"实际
+                # 执行——目录内存在两件钉死件之外的任何文件(混合
+                # 目录/历史证据面)时拒绝替换;目标本身已经过
+                # harden_install_target(保护域内不可达)。
+                others = [q.name for q in root.iterdir()
+                          if q.name not in (
+                              PROVENANCE_JSON_TARGET_NAME,
+                              PROVENANCE_DIGEST_TARGET_NAME)]
+                if others:
+                    raise ProvenanceGuardError(
+                        f"allow_replace_broken 拒绝:目标目录含钉死"
+                        f"两件之外的文件 {others[:6]}(混合/历史面"
+                        f"不可替换)")
                 path.unlink()
                 actions.append(f"replaced_broken:{label}")
     if jp.is_file() and not dp.is_file():
@@ -257,7 +291,7 @@ def run_same_source_verify(
     输出不可解析。
     """
     project_dir = Path(project_dir)
-    artifact_root = Path(artifact_root)
+    artifact_root = harden_install_target(artifact_root)
     env = dict(os.environ)
     env["PYTHONPATH"] = str(project_dir / "src") + (
         os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")

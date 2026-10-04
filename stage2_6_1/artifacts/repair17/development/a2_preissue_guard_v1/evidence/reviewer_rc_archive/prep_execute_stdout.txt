@@ -1,0 +1,55 @@
+{
+ "format": "cur261-qaf-v2-operator-entry-v1",
+ "cmd": "check",
+ "attempt": "qaf_v2",
+ "one_shot_writes": 0,
+ "business_leaf_calls": 0,
+ "env_whitelist_ok": true,
+ "env_violations": [],
+ "deploy_roots": {
+  "iteration": "qprod_a_formal_v2",
+  "artifact_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/formal_a_qaf_v2",
+  "state_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/route_c_stage2_6_1_repair17/state",
+  "authority_dir": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/authority"
+ },
+ "deploy_config_present": true,
+ "target": {
+  "artifact_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/formal_a_qaf_v2",
+  "json_present": true,
+  "digest_present": true,
+  "json_sha256": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff",
+  "json_bytes": 6433,
+  "json_matches_pinned": true,
+  "stored_topology_digest": "r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d",
+  "digest_sha256": "cde2b72a08e62f9a2a54438da53c2bcbdb9b9067dff67cb11d4e7e04f70cc189",
+  "digest_matches_pinned": true,
+  "foreign_objects": [
+   "approval_qaf_v2.json"
+  ],
+  "ready": true
+ },
+ "freshness": {
+  "state_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/route_c_stage2_6_1_repair17/state",
+  "markers_present": {
+   "research_plan": false,
+   "run_journal": false,
+   "permit_consumed": false,
+   "admission_consumed": false,
+   "iteration_aborted": false,
+   "execution_journal": false
+  },
+  "fresh": true,
+  "blocking_markers": []
+ },
+ "pinned_source_ok": true,
+ "pinned_source": {
+  "commit": "de81aba2b3cdcc2c0febe2b3c439027496ab9d05",
+  "json_sha256": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff",
+  "digest_sha256": "cde2b72a08e62f9a2a54438da53c2bcbdb9b9067dff67cb11d4e7e04f70cc189"
+ }
+}
+
+====
+{"refused": "签发前守卫拒绝: target_installed: 实际 A artifact 根存在异物文件 ['approval_qaf_v2.json'](仅允许 provenance 两件+verifier 报告+守卫报告;链运行产物在场的重入已被新鲜度检查先行拒绝)", "guard_report": {"env_whitelist": {"ok": true}, "deploy_roots": {"ok": true, "artifact_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/formal_a_qaf_v2", "state_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/route_c_stage2_6_1_repair17/state", "authority_dir": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/authority", "iteration": "qprod_a_formal_v2"}, "pinned_source": {"ok": true, "commit": "de81aba2b3cdcc2c0febe2b3c439027496ab9d05", "json_sha256": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff", "digest_sha256": "cde2b72a08e62f9a2a54438da53c2bcbdb9b9067dff67cb11d4e7e04f70cc189"}, "freshness": {"state_root": "/home/cryptorl/tmp_rc_review/domPrep2/deploy/artifacts/route_c_stage2_6_1_repair17/state", "markers_present": {"research_plan": false, "run_journal": false, "permit_consumed": false, "admission_consumed": false, "iteration_aborted": false, "execution_journal": false}, "fresh": true, "blocking_markers": []}, "target_installed": {"ok": false, "reason": "实际 A artifact 根存在异物文件 ['approval_qaf_v2.json'](仅允许 provenance 两件+verifier 报告+守卫报告;链运行产物在场的重入已被新鲜度检查先行拒绝)"}}, "one_shot_writes": 0}
+
+====

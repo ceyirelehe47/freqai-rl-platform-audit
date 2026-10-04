@@ -282,6 +282,94 @@ def cmd_execute(args: argparse.Namespace) -> int:
     authority = Path(roots["authority_dir"])
     py = sys.executable
     here = Path(__file__).resolve().parent
+    # ---- RCF-02(ReviewClosure 修复轮):首个一次性写之前核清
+    # "实际将使用的对象"与已有一次性状态。所有检查只读、零写。
+    one_shot_writes = 0
+    permit_path = (authority / (
+        f"qprod_permit_level_a_{roots['iteration']}.json"))
+    approval_path = (authority / (
+        f"qprod_formal_approval_level_a_{roots['iteration']}.json"))
+    state_root = Path(roots["state_root"])
+    if permit_path.exists():
+        print(json.dumps({
+            "refused": f"许可已在场 {permit_path}(一次性资源;先核实"
+                       f"既有原件与消费状态,不重复签发)",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 4
+    admission_file = deploy_root / ".r17_formal_admission.json"
+    consumed_log = state_root / "r17_admission_consumed.jsonl"
+    issuance_log = state_root / "r17_admission_issuance.log.jsonl"
+    if admission_file.exists() or consumed_log.exists() \
+            or issuance_log.exists():
+        print(json.dumps({
+            "refused": ("admission 已签发/消费或签发日志在场(一次性"
+                        "资源;受控停下先核清状态,不生成新 permit)"),
+            "state": {
+                "admission_file": admission_file.exists(),
+                "consumed_log": consumed_log.exists(),
+                "issuance_log": issuance_log.exists()},
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 4
+    # 已存批准原件 = 签发实际读取对象;必须与刚校验的传入批准
+    # 同 digest(不同名静默跳过 = 校验对象与使用对象分离)。
+    if approval_path.is_file():
+        from rl_curriculum.curriculum261_qprod_formal import (
+            formal_approval_digest,
+        )
+        try:
+            stored_approval = json.loads(
+                approval_path.read_text(encoding="utf-8"))
+            stored_digest = formal_approval_digest(stored_approval)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(json.dumps({
+                "refused": f"已存批准原件不可读/不可解析: {exc}",
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+        input_digest = approval_doc.get("approval_digest")
+        if stored_digest != input_digest:
+            print(json.dumps({
+                "refused": ("authority 已存批准原件与传入批准 digest "
+                            "不一致(签发读取已存原件;校验对象必须"
+                            "=使用对象):停止,不覆盖不跳过"),
+                "stored_approval_digest": stored_digest,
+                "input_approval_digest": input_digest,
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+    # 同根证据适用性只读预检(permit 写前;完整核验仍在 admission
+    # issuer——时点前移,不是替代)。
+    try:
+        evidence_doc = json.loads(
+            Path(args.regression_evidence).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(json.dumps({
+            "refused": f"回归证据不可读/不可解析: {exc}",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
+    evidence_problems: list[str] = []
+    if evidence_doc.get("format") != (
+            "cur261-r17-candidate-regression-evidence-v6"):
+        evidence_problems.append("format 非 v6")
+    if evidence_doc.get("commit_a_sha") != args.code_freeze_sha:
+        bound = str(evidence_doc.get("commit_a_sha") or "?")[:12]
+        evidence_problems.append(
+            f"record 绑定候选 {bound} != 调用 "
+            f"{args.code_freeze_sha[:12]}")
+    _counts = evidence_doc.get("counts") or {}
+    if _counts.get("failures") or _counts.get("errors"):
+        evidence_problems.append(
+            f"record 计数非零失败/错误: {_counts}")
+    if evidence_problems:
+        print(json.dumps({
+            "refused": "同根回归证据适用性预检失败(首 permit 写前): "
+                       + "; ".join(evidence_problems),
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
     # 2) authority init(create-only;在场跳过)
     if not (authority / "authority_identity.json").is_file():
         r = subprocess.run(
@@ -308,14 +396,13 @@ def cmd_execute(args: argparse.Namespace) -> int:
                               "one_shot_writes": 0},
                              ensure_ascii=False))
             return 96
-    # 4) issue-permit(守卫内建;在场=受控停下不重签)
-    permit_path = (authority / (
-        f"qprod_permit_level_a_{roots['iteration']}.json"))
+    # 4) issue-permit(守卫内建;在场=受控停下不重签——RCF-02 预检
+    # 已在首写前拒绝同场次重入;此处为防御性二次确认,零新写)
     if permit_path.is_file():
         print(json.dumps({
             "refused": f"许可已在场 {permit_path}(一次性资源;"
                        f"先核实既有原件与消费状态,不重复签发)",
-            "one_shot_writes": 0,
+            "one_shot_writes": one_shot_writes,
         }, ensure_ascii=False))
         return 4
     r = subprocess.run(
@@ -328,18 +415,20 @@ def cmd_execute(args: argparse.Namespace) -> int:
     print(r.stdout.strip())
     if r.returncode != 0:
         print(json.dumps({"refused": f"issue-permit rc={r.returncode}",
-                          "one_shot_writes": 0,
+                          "one_shot_writes": one_shot_writes,
                           "stderr": r.stderr[-400:]},
                          ensure_ascii=False))
         return 96
-    # 5) prereg + admission(守卫内建;在场=受控停下)
-    state_root = Path(roots["state_root"])
+    # permit 已落盘:此后任何拒绝的写计数如实为 1
+    one_shot_writes = 1
+    # 5) prereg + admission(守卫内建;RCF-02 预检已在首写前拒绝
+    # 已签发/已消费状态;此处防御性二次确认)
     if (state_root / "r17_admission_consumed.jsonl").is_file() \
             or (deploy_root / ".r17_formal_admission.json").is_file():
         print(json.dumps({
             "refused": "admission 已签发/消费(一次性资源;受控"
                        "停下,不盲目重试)",
-            "one_shot_writes": 0,
+            "one_shot_writes": one_shot_writes,
         }, ensure_ascii=False))
         return 4
     prereg_path = authority / f"preregistration_{args.attempt}.json"
@@ -366,10 +455,11 @@ def cmd_execute(args: argparse.Namespace) -> int:
     if r.returncode != 0:
         print(json.dumps({"refused": f"admission 签发 rc="
                                     f"{r.returncode}",
-                          "one_shot_writes": 1,
+                          "one_shot_writes": one_shot_writes,
                           "stderr": r.stderr[-400:]},
                          ensure_ascii=False))
         return 96
+    one_shot_writes = 2
     # 6) 一次性 launch(P2 入口形态;A2 双参数)
     launch_argv = [
         py, str(project_dir / "stage2_6_1_runner"
@@ -386,9 +476,20 @@ def cmd_execute(args: argparse.Namespace) -> int:
         launch_argv.append("--sentinel-before-chain")
     if args.child_timeout:
         launch_argv += ["--child-timeout", str(args.child_timeout)]
+    launch_env = dict(os.environ)
+    if args.leaf_sentinel:
+        if not args.test_domain:
+            print(json.dumps({
+                "refused": ("--leaf-sentinel 仅限 --test-domain "
+                            "(科学叶哨兵只在隔离测试域)"),
+                "one_shot_writes": one_shot_writes,
+            }, ensure_ascii=False))
+            return 96
+        launch_env["CURRICULUM261_QAF_TEST_LEAF_SENTINEL"] = (
+            args.leaf_sentinel)
     proc = subprocess.run(
         launch_argv, cwd=str(project_dir), capture_output=True,
-        text=True)
+        text=True, env=launch_env)
     print(proc.stdout[-8000:])
     if proc.stderr:
         print(proc.stderr[-2000:], file=sys.stderr)
@@ -440,6 +541,11 @@ def main(argv: list[str] | None = None) -> int:
     p_exe.add_argument("--test-domain", action="store_true",
                        help="显式声明隔离测试域(哨兵仅此域可用)")
     p_exe.add_argument("--child-timeout", type=int, default=None)
+    p_exe.add_argument("--leaf-sentinel", default=None,
+                       metavar="STEP",
+                       help=("测试域科学叶哨兵(仅 --test-domain;"
+                             "如 determinism-matrix:在该叶首个昂贵"
+                             "科学调用边界停止,科学零执行)"))
     p_exe.set_defaults(fn=cmd_execute)
     args = ap.parse_args(argv)
     return args.fn(args)

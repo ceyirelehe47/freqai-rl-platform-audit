@@ -32,7 +32,7 @@ cd $P2 && PYTHONDONTWRITEBYTECODE=1 $PY $P2/stage2_6_1_runner/qaf_v2_operator_en
 `quota`=计划 payload.quota;roots=D2 三根;stop=verify-formal-logs;model_update=true;
 `approval_source.statement_digest`=批准原文 sha256)。写 `$PREP/approval_qaf_v2.json`(先 mkdir -p $PREP)。
 
-## E4. 一次性执行(operator execute;无哨兵;入口内建顺序(自动完成 E2 安装核验与全部签发;不含 E1 配置激活与 E3 批准原件构造):
+## E4. 一次性执行(operator execute;**前置要求 E1-E3 已完成**:execute 要求安装目标已就绪(preissue 门核验,不自动执行 E2);其自动完成的部分=环境白名单→preissue 门→批准↔参数绑定门→已存状态/证据预检→authority init→record-approval→issue-permit→prereg→admission→launch。E1 配置激活、E2 prepare 安装、E3 批准原件构造是操作员手动前置步;已完成 E2 时幂等可复核):
 ## 环境白名单→preissue 硬门→authority init→record-approval→
 ## issue-permit(守卫)→prereg→admission(守卫)→launch(A2 双参数)→收尾)
 
