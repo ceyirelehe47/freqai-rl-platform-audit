@@ -744,6 +744,36 @@ class TestRCF02StateMatrix:
         assert not (d["deploy"]
                     / "r17_admission_issued.jsonl").exists()
 
+    def test_manual_leaf_env_without_test_domain_zero_write(
+            self, tmp_path_factory):
+        d = self._domain_with_tree(tmp_path_factory)
+        runner = _runner_dir()
+        env = dict(os.environ)
+        env["CURRICULUM261_QAF_TEST_LEAF_SENTINEL"] = (
+            "determinism-matrix")
+        proc = subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(_approval_path(d)),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rcf02-envleaf",
+             "--authorization", "test-harness",
+             "--plan-digest", d["tree"],
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", d["commit_a"],
+             "--stop-after", "verify-formal-logs",
+             "--model-update", "--attempt", "qaf_v2"],
+            capture_output=True, text=True, env=env)
+        assert proc.returncode == 96, proc.stdout
+        assert "CURRICULUM261_QAF_TEST_LEAF_SENTINEL" in proc.stdout
+        assert '"one_shot_writes": 0' in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+
     def test_post_permit_refusal_reports_one_shot_write(
             self, tmp_path_factory):
         d = self._domain_with_tree(tmp_path_factory)

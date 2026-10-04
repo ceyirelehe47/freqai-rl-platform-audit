@@ -194,6 +194,17 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "one_shot_writes": 0,
         }, ensure_ascii=False))
         return 96
+    # 残余观察闭环:手工 export 的叶哨兵 env 同样按测试域守卫
+    # (旗标路径已有双守卫;env 直达路径此前不受 operator 拒)。
+    if os.environ.get("CURRICULUM261_QAF_TEST_LEAF_SENTINEL") \
+            and not args.test_domain:
+        print(json.dumps({
+            "refused": ("环境变量 CURRICULUM261_QAF_TEST_LEAF_SENTINEL"
+                        " 在场而未声明 --test-domain(科学叶哨兵仅"
+                        "限隔离测试域;首一次性写前拒绝)"),
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
     if (args.sentinel_before_chain or args.leaf_sentinel) \
             and args.test_domain \
             and _is_production_root(deploy_root):
