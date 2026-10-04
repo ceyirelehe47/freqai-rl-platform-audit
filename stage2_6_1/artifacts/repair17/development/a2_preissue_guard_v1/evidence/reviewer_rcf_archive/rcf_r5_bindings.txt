@@ -1,0 +1,25 @@
+HEAD = 3bf779cc5a63c617c1a07e1b007f3803c05f610a
+record sha256 = ff8040fc00bb5532 | claimed ff8040fc
+counts {'tests': 2956, 'failures': 0, 'errors': 0, 'skipped': 7} | commit 90b3a44abca5 | run r21_20261005_065335 | deploy_root /home/cryptorl/projects/crypto_rl_formal_a_qaf_v2
+plan digest recomputed == True
+plan digest = qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b | code_freeze_sha False
+plan_diff: {"format": "rc-plan-diff-v5", "old_plan": {"digest": "qbpl-dca8ee032cf7f806ab2001ea265ce02b1ec3a2c0c3e0e8c6bae8fbfe5c8e43ee", "commit": "de81aba2b3cdcc2c0febe2b3c439027496ab9d05", "attempt": "qaf_v1"}, "new_plan": {"digest": "qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b", "commit": "90b3a44abca514d642d5f6afbf00a3157209f2a5", "attempt": "qaf_v2"}, "only_in_old": [], "only_i
+baseline digest qbpl-c080e60743bb21d | payload diffs: {'code_freeze_sha': ('9d735c8cb7863d44e1c6325761b828f03f100b8b', '90b3a44abca514d642d5f6afbf00a3157209f2a5')}
+invariants equal (minus code_freeze_sha): True
+evidence/rc_closure/substance_verify_D2.json | tree 1bc17f33d5e5 claimed==recomputed: True | record sha ff8040fc00bb5532 | counts {'errors': 0, 'failures': 0, 'skipped': 7, 'tests': 2956}
+   other keys: {'substance_digest': 'r17sub-4ed46d7cc1218a19af07826d8e3917077c4d5fc506d3da1ddf90863b58382cb4'}
+evidence/rc_closure/preissue_wrong_deployroot.json | ok False | refusal deploy_roots: 受信任部署配置缺失: /home/cryptorl/projects/crypto_rl_qaf_v2/qprod_deploy_config.json | one_shot_writes 0
+evidence/deploy/three_way_compare.json | commit 90b3a44abca5 | files 625 | all_equal True | mismatches []
+snapshot INDEX commit == 90b3a44abca514d642d5f6afbf00a3157209f2a5 | files 10
+snapshots 10/10 == git blob@index commit: True
+rcf archive files: ['REVIEWER_DSV41F_RCF_RECHECK.md', 'rcf_r2_probe_A.json', 'rcf_r2_probe_A2_reportout.json', 'rcf_r2_probe_C.json', 'rcf_r2_probe_C2.json', 'rcf_r2_probe_D.json', 'EVIDENCE_SHA256SUMS.txt', 'rcf_r2_suites.log', 'rcf_probe_B_state.py']
+  ARC OK   REVIEWER_DSV41F_RCF_RECHECK.md | local twin: None
+  ARC OK   rcf_r2_probe_A.json | local twin: None
+  ARC OK   rcf_r2_probe_A2_reportout.json | local twin: None
+  ARC OK   rcf_r2_probe_C.json | local twin: None
+  ARC OK   rcf_r2_probe_C2.json | local twin: None
+  ARC OK   rcf_r2_probe_D.json | local twin: None
+  ARC OK   EVIDENCE_SHA256SUMS.txt | local twin: None
+  ARC OK   rcf_r2_suites.log | local twin: None
+  ARC OK   rcf_probe_B_state.py | local twin: None
+R4-record archive: a102f967af986cb6 (expect a102f967) | commit 9d735c8c | run r21_20261005_054959
