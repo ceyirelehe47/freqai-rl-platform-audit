@@ -194,13 +194,15 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "one_shot_writes": 0,
         }, ensure_ascii=False))
         return 96
-        if _is_production_root(deploy_root):
-            print(json.dumps({
-                "refused": f"部署根 {deploy_root} 属生产根清单,"
-                           f"禁止哨兵试跑(一次性资格会被消耗)",
-                "one_shot_writes": 0,
-            }, ensure_ascii=False))
-            return 96
+    if (args.sentinel_before_chain or args.leaf_sentinel) \
+            and args.test_domain \
+            and _is_production_root(deploy_root):
+        print(json.dumps({
+            "refused": f"部署根 {deploy_root} 属生产根清单,"
+                       f"禁止哨兵试跑(一次性资格会被消耗)",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
     # 1) 签发前硬门(全只读;含目标安装/同源验证/新鲜度)
     try:
         gate = preissue_gate(
