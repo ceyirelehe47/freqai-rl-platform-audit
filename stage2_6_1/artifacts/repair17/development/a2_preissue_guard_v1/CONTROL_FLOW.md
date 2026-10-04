@@ -1,4 +1,4 @@
-# 控制流:操作员入口 → 两 issuer → launch → workflow 首步(候选 8c160d0a)
+# 控制流:操作员入口 → 两 issuer → launch → workflow 首步(候选 9210cd24)
 
 文本调用图(锁/检查/写/消费/异常;无新 schema):
 
@@ -14,6 +14,11 @@ qaf_v2_operator_entry.py(操作员唯一受控入口)
 └─ execute 串行受控(每步写前查在场;不盲重试):
    1 env 白名单(拒手动 R17/QProd 根重定向)
    2 preissue 硬门(guard.preissue_gate:源/目标/同源/新鲜度)
+   2b 批准↔调用参数绑定门(RC gate1 F1;首一次性写前):
+     批准原件解析 → --plan-digest == 候选 tree digest 重算 →
+     build_formal_level_a_plan+research_plan_digest+
+     validate_formal_approval(逐项:freeze/三根/范围/quota/
+     stop/model_update);不符零写拒(rc=96)
    3 authority init ──────────── O_EXCL 创建 authority_identity.json
      (并发败者:正式身份→already(rc0)/异物→rc1)
    4 record-approval(用户原文)── O_EXCL 创建批准原件

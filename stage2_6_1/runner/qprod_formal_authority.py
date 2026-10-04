@@ -50,12 +50,33 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _read_identity_bounded(ident_path: Path,
+                           note: str) -> dict | None:
+    """有界重读身份文件(并发赢者可能 open 建档而内容未落盘)。
+
+    返回解析后的 dict;超时(仍空/半写)返回 None(调用方按
+    "写入中"分类拒绝,不崩溃、不误判异物)。
+    """
+    import time as _time
+    for _ in range(40):
+        try:
+            return json.loads(
+                ident_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _time.sleep(0.05)
+    print(f"[{note}] 并发 authority 身份仍在写入"
+          "(concurrent-loser 稍后重试;不重复创建)")
+    return None
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     adir = Path(args.dir)
     adir.mkdir(parents=True, exist_ok=True)
     ident_path = adir / "authority_identity.json"
     if ident_path.is_file():
-        existing = json.loads(ident_path.read_text(encoding="utf-8"))
+        existing = _read_identity_bounded(ident_path, "init")
+        if existing is None:
+            return 1
         if existing.get("kind") == QPROD_FORMAL_AUTHORITY_KIND:
             print(json.dumps({
                 "authority_id": existing["authority_id"],
@@ -83,21 +104,11 @@ def cmd_init(args: argparse.Namespace) -> int:
                 "created_utc": _now(),
             }, ensure_ascii=False, indent=2))
     except FileExistsError:
-        # RC gate1 F2:并发赢者可能仍在写入(open 建档而内容未落
-        # 盘);败者有界重读,超时按"写入中"分类拒绝,不崩溃、
-        # 不误判异物。
-        import time as _time
-        existing = None
-        for _ in range(40):
-            try:
-                existing = json.loads(
-                    ident_path.read_text(encoding="utf-8"))
-                break
-            except (OSError, ValueError):
-                _time.sleep(0.05)
+        # RC gate1 F2/R2:并发赢者可能仍在写入(open 建档而内容
+        # 未落盘);败者有界重读(同快速路径助手),超时按
+        # "写入中"分类拒绝,不崩溃、不误判异物。
+        existing = _read_identity_bounded(ident_path, "init")
         if existing is None:
-            print("[init] 并发 authority 身份仍在写入"
-                  "(concurrent-loser 稍后重试;不重复创建)")
             return 1
         if existing.get("kind") == QPROD_FORMAL_AUTHORITY_KIND:
             print(json.dumps({

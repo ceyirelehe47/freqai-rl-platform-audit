@@ -12,7 +12,7 @@
 | 新 A2 计划 digest | `qbpl-4bd63545b2dde265b5c2b2b99f929b36827ea72ce9a05ac3e55725bdb1fde992`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 见附录) |
 | D2 同根 record | sha256 `0e106730d2e20c0864c0f92b5a43236ed8b9484a2b87fe45398bd924f71fb2f3`(261 全收集 2943=2936 passed+7 skipped/0F/0E,run r21_20261005_005619,cwd=D2;同根 substance verify rc=0,r17sub-3eefd76a…;错根 rc=2 拒) |
 | 262 适用 | 240/240 全绿(api/输入锁/镜像受影响面实跑) |
-| 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 624 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
+| 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 625 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
 
 ## 2. 旧失败保留
 

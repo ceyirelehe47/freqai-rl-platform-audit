@@ -8,7 +8,7 @@ REPO=`/mnt/f/trading/freqai-rl-audit` |
 tree digest=`2caa542b161b31577139db167b549164e170676e` |
 record=`…/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json`(sha256 `0e106730d2e20c08…`) |
 PY=`/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python` |
-PREP=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/artifacts/``formal_a_qaf_v2`(批准原件落点;prepare 产物同根)
+PREP=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2/prep_qaf_v2`(批准原件落点=普通目录,guard/freshness 不扫描;勿写 A artifact 根)
 
 ## E1. 部署配置激活(自准备域候选副本;仅批准轮)
 
@@ -30,7 +30,7 @@ cd $P2 && PYTHONDONTWRITEBYTECODE=1 $PY $P2/stage2_6_1_runner/qaf_v2_operator_en
 按 FFAB v1 批准轮同形(模块 `curriculum261_qprod_formal.formal_approval_digest`;
 `namespaces`=QAF2 26 名(经 `qaf_input_scope_for_attempt("qaf_v2")`);
 `quota`=计划 payload.quota;roots=D2 三根;stop=verify-formal-logs;model_update=true;
-`approval_source.statement_digest`=批准原文 sha256)。写 `$PREP/approval_qaf_v2.json`。
+`approval_source.statement_digest`=批准原文 sha256)。写 `$PREP/approval_qaf_v2.json`(先 mkdir -p $PREP)。
 
 ## E4. 一次性执行(operator execute;无哨兵;入口内建顺序(自动完成 E2 安装核验与全部签发;不含 E1 配置激活与 E3 批准原件构造):
 ## 环境白名单→preissue 硬门→authority init→record-approval→
