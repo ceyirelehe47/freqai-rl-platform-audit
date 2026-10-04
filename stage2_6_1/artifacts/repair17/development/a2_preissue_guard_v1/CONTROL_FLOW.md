@@ -1,4 +1,4 @@
-# 控制流:操作员入口 → 两 issuer → launch → workflow 首步(候选 9210cd24)
+# 控制流:操作员入口 → 两 issuer → launch → workflow 首步(候选 513e75e3)
 
 文本调用图(锁/检查/写/消费/异常;无新 schema):
 

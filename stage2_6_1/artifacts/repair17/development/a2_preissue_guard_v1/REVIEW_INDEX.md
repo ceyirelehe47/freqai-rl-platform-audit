@@ -15,3 +15,13 @@
 
 P3(计数措辞)已在 6a4ea870 修复(guard+7 既有=8 文件 222 全绿;reviewer 超集 11 文件 287/287)。
 封包基线:HEAD=6a4ea870;src/tests/runner 相对候选 efb35552 零变化(git diff 空)。
+
+## RC 轮(RouteC_QAFv2_ReviewClosure_v1;dsv4.1f 同线 RcClosureGate1)
+
+| 阶段 | 结论 | 关键证据(local/rc_review/) |
+|---|---|---|
+| gate1 | incorrect(4:1×P1+2×P2+1×P3) | REVIEW_REPORT_RC.md;rc04_ab_report/init_natural_ab_report/mismatch_*/reentry_probe |
+| gate1-R2(修复 9210cd24 后) | incorrect(2×P2+1×P3:F2 快速路径未闭/PREP 阻断/文档旧值) | REVIEW_REPORT_RC_GATE1_R2.md;fastpath_demo/prep_demo/mismatch_*_9210 |
+| gate1-R3(修复 513e75e3 后) | **PASS(1 P3 文档 nit 已修)** | REVIEW_REPORT_RC_GATE1_R3.md;fastpath_demo_513e/init_natural_ab_513e(0 回溯)/positiveprep_513e(PREP 正例全链)/rc04_ab_513e/substance_*_rerun_513e/tests 套件 73/73 |
+
+候选演进:efb35552(A2-R2)→8c160d0a(RC:authority O_EXCL+并发/前缀测试)→9210cd24(F1 绑定门+F2 部分+文档)→**513e75e3(F2 快速路径有界重读+PREP 迁移+文档 rebase;最终候选)**。
