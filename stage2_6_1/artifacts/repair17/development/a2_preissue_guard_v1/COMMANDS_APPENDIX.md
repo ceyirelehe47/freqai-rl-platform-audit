@@ -1,12 +1,12 @@
 # A2-R2 未来一次性执行命令附录(批准后使用;本轮未执行)
 
-固定值:Commit A=`efb3555298683513a35f02a5a903917969dfb62b` |
+固定值:Commit A=`8c160d0a7320748f2485bdc5d993da355b317663` |
 P2=`/home/cryptorl/projects/crypto_rl_qaf_v2` |
 D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2` |
 REPO=`/mnt/f/trading/freqai-rl-audit` |
-计划=`qbpl-9aef2bce6f6c77149a31b7d598e6e5b084f9a3fe121f7d4ed5ec3f07b52d16f0` |
-tree digest=`4980c8c12e76b832411ebdce1aca83ed51c9b017` |
-record=`…/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json`(sha256 `8436a1a7…`) |
+计划=`qbpl-4f20253496c7c4552a6283f987e7f95eab82f011dcac6b9024c5d5dde1ac6e47` |
+tree digest=`33a77e54a46300fc309c3357d5e789fc753c03fb` |
+record=`…/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json`(sha256 `7b4b2be2…`) |
 PY=`/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python`
 
 ## E1. 部署配置激活(自准备域候选副本;仅批准轮)
@@ -31,7 +31,7 @@ cd $P2 && PYTHONDONTWRITEBYTECODE=1 $PY $P2/stage2_6_1_runner/qaf_v2_operator_en
 `quota`=计划 payload.quota;roots=D2 三根;stop=verify-formal-logs;model_update=true;
 `approval_source.statement_digest`=批准原文 sha256)。写 `$PREP/approval_qaf_v2.json`。
 
-## E4. 一次性执行(operator execute;无哨兵;入口内建顺序:
+## E4. 一次性执行(operator execute;无哨兵;入口内建顺序(自动完成 E2 安装核验与全部签发;不含 E1 配置激活与 E3 批准原件构造):
 ## 环境白名单→preissue 硬门→authority init→record-approval→
 ## issue-permit(守卫)→prereg→admission(守卫)→launch(A2 双参数)→收尾)
 
@@ -41,11 +41,11 @@ cd $P2 && PYTHONDONTWRITEBYTECODE=1 $PY $P2/stage2_6_1_runner/qaf_v2_operator_en
   --deploy-root $D2 --project-dir $P2 \
   --approval-json $PREP/approval_qaf_v2.json \
   --regression-evidence $REPO/stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/evidence/regress261_d2/regression_evidence_v3_record.json \
-  --admission-id qaf-v2-efb35552-a2 \
+  --admission-id qaf-v2-8c160d0a-a2 \
   --authorization "<批准原文引用 + statement sha256>" \
-  --plan-digest 4980c8c12e76b832411ebdce1aca83ed51c9b017 \
+  --plan-digest 33a77e54a46300fc309c3357d5e789fc753c03fb \
   --plan-digest-method git_tree_digest \
-  --code-freeze-sha efb3555298683513a35f02a5a903917969dfb62b \
+  --code-freeze-sha 8c160d0a7320748f2485bdc5d993da355b317663 \
   --stop-after verify-formal-logs --model-update --attempt qaf_v2
 ```
 

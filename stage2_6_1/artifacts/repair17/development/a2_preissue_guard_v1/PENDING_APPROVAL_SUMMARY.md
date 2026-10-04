@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 新 Commit A | `efb3555298683513a35f02a5a903917969dfb62b`(已推;父链 f157af97→7b050309→d6db162a,无 amend) |
+| 新 Commit A | `8c160d0a7320748f2485bdc5d993da355b317663`(已推;祖先链 …→efb35552→8ffece2b;RC 轮=qprod_formal_authority 一次性写原子化+收口测试,无 amend) |
 | 尝试 | `qaf_v2`(26 全新 namespace,含 design_qaf_v2_* 显式三名;与 v1 逐名不相交) |
 | QProd 迭代 | `qprod_a_formal_v2` |
-| 新 A2 计划 digest | `qbpl-9aef2bce6f6c77149a31b7d598e6e5b084f9a3fe121f7d4ed5ec3f07b52d16f0`(真实构建器;与旧 A2 逐项差异仅身份字段,quota/rules/stop_mode/gate_set 全等) |
-| D2 同根 record | sha256 `8436a1a7bc7a60e6f1b92609071f1c208a6c31a0a6a33e539617a705f4bb9f98`(261 全收集 2937/0F/0E/7S,run r21_20261004_185110,cwd=D2;同根 substance verify rc=0,r17sub-46e99ab3…;错根 rc=2 拒) |
+| 新 A2 计划 digest | `qbpl-4f20253496c7c4552a6283f987e7f95eab82f011dcac6b9024c5d5dde1ac6e47`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 33a77e54a46300fc309c3357d5e789fc753c03fb) |
+| D2 同根 record | sha256 `7b4b2be2af91396d867e2c8af61bddc9f0a672aea7e73b55c92542c7c84077ef`(261 全收集 2942 collected=2935 passed+7 skipped/0F/0E,run r21_20261004_231816,cwd=D2;同根 substance verify rc=0,r17sub-1596cd46…;错根 rc=2 拒) |
 | 262 适用 | 240/240 全绿(api/输入锁/镜像受影响面实跑) |
 | 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 624 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
 
