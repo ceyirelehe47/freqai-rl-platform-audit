@@ -83,8 +83,22 @@ def cmd_init(args: argparse.Namespace) -> int:
                 "created_utc": _now(),
             }, ensure_ascii=False, indent=2))
     except FileExistsError:
-        existing = json.loads(
-            ident_path.read_text(encoding="utf-8"))
+        # RC gate1 F2:并发赢者可能仍在写入(open 建档而内容未落
+        # 盘);败者有界重读,超时按"写入中"分类拒绝,不崩溃、
+        # 不误判异物。
+        import time as _time
+        existing = None
+        for _ in range(40):
+            try:
+                existing = json.loads(
+                    ident_path.read_text(encoding="utf-8"))
+                break
+            except (OSError, ValueError):
+                _time.sleep(0.05)
+        if existing is None:
+            print("[init] 并发 authority 身份仍在写入"
+                  "(concurrent-loser 稍后重试;不重复创建)")
+            return 1
         if existing.get("kind") == QPROD_FORMAL_AUTHORITY_KIND:
             print(json.dumps({
                 "authority_id": existing["authority_id"],
@@ -264,7 +278,12 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
         print(f"[issue-permit] authority 身份缺失(先 init): "
               f"{ident_path}")
         return 96
-    ident = json.loads(ident_path.read_text(encoding="utf-8"))
+    try:
+        ident = json.loads(ident_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        print(f"[issue-permit] authority 身份不可读(可能并发写入"
+              f"中;不签发): {ident_path}")
+        return 96
     if ident.get("kind") != QPROD_FORMAL_AUTHORITY_KIND:
         print(f"[issue-permit] authority 身份种类 "
               f"{ident.get('kind')!r} 非正式(不签发)")

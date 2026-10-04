@@ -210,6 +210,75 @@ def cmd_execute(args: argparse.Namespace) -> int:
         }, ensure_ascii=False))
         return 96
     roots = _roots(deploy_root, args.attempt)
+    # RC03 修复(RC gate1 F1):首个一次性写之前核清批准原件与
+    # 调用参数绑定(launch 同款只读校验;不得等 permit/admission
+    # 落盘后才首次发现不符)。
+    try:
+        approval_doc = json.loads(
+            Path(args.approval_json).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(json.dumps({
+            "refused": f"批准原件不可读/不可解析: {exc}",
+            "phase": "before_first_one_shot",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
+    from rl_curriculum.curriculum261_qaf_attempt import (
+        qaf_input_scope_for_attempt,
+    )
+    from rl_curriculum.curriculum261_qprod_coordinate import (
+        qprod_coordinate_code_identity,
+    )
+    from rl_curriculum.curriculum261_qprod_formal import (
+        validate_formal_approval,
+    )
+    from rl_curriculum.curriculum261_qprod_formal_levela import (
+        build_formal_level_a_plan,
+    )
+    from rl_curriculum.curriculum261_qprod_plan import (
+        research_plan_digest,
+    )
+    tree_digest = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse",
+         args.code_freeze_sha + "^{tree}"],
+        capture_output=True, text=True)
+    if tree_digest.returncode != 0 \
+            or tree_digest.stdout.strip() != args.plan_digest:
+        print(json.dumps({
+            "refused": ("--plan-digest 与候选 Commit A tree digest "
+                        "重算不一致(首签发前拒绝)"),
+            "recomputed_tree": tree_digest.stdout.strip(),
+            "claimed": args.plan_digest,
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
+    try:
+        _payload = build_formal_level_a_plan(
+            code_freeze_sha=args.code_freeze_sha,
+            code_identity=qprod_coordinate_code_identity(),
+            authorized_stop_after=args.stop_after,
+            model_update_authorized=bool(args.model_update),
+            formal_attempt=args.attempt)
+        validate_formal_approval(
+            approval_doc, level="level_a",
+            iteration_id=qaf_iteration_id_for_attempt(args.attempt),
+            artifact_root=Path(roots["artifact_root"]),
+            state_root=Path(roots["state_root"]),
+            authority_dir=Path(roots["authority_dir"]),
+            code_freeze_sha=args.code_freeze_sha,
+            research_plan_digest=research_plan_digest(_payload),
+            namespaces=qaf_input_scope_for_attempt(args.attempt),
+            coordinate_ids=[],
+            quota=_payload["quota"],
+            authorized_stop_after=args.stop_after,
+            model_update_authorized=bool(args.model_update))
+    except Exception as exc:  # noqa: BLE001 门禁统一拒绝面
+        print(json.dumps({
+            "refused": f"批准↔调用参数绑定核验失败: {exc}",
+            "phase": "before_first_one_shot",
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
     authority = Path(roots["authority_dir"])
     py = sys.executable
     here = Path(__file__).resolve().parent

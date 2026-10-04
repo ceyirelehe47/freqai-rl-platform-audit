@@ -222,7 +222,7 @@ class TestConcurrentOneShot:
         adir = tmp_path / "auth_c03"
         argv = [PY, str(_authority_runner()), "init",
                 "--dir", str(adir)]
-        (rc1, out1, _), (rc2, out2, _) = _concurrent_pair(
+        (rc1, out1, err1), (rc2, out2, err2) = _concurrent_pair(
             argv, list(argv), tmp_path / "c03")
         idents = list(adir.glob("authority_identity.json"))
         assert len(idents) == 1
@@ -236,6 +236,9 @@ class TestConcurrentOneShot:
         already = sum(1 for rc, out in ((rc1, out1), (rc2, out2))
                       if rc == 0 and "already-initialized" in out)
         assert already in (1, 2), (rc1, rc2, out1, out2)
+        # RC gate1 F2:败者不得以崩溃收场(分类拒绝,无回溯)
+        for out, err in ((out1, err1), (out2, err2)):
+            assert "Traceback" not in (out or "") + (err or ""), out
 
     def test_concurrent_admission_issue_single_writer(
             self, rc_domain, tmp_path):
@@ -276,6 +279,71 @@ class TestConcurrentOneShot:
                    for line in log.read_text(encoding="utf-8")
                    .splitlines() if line.strip()]
             assert ids.count("rc-c04-concurrent-admission") == 1, ids
+
+
+class TestExecuteBindingGate:
+    """RC gate1 F1 回归:execute 首个一次性写前核清批准↔参数。"""
+
+    def _execute(self, d, approval_file, code_sha, plan_digest):
+        runner = _runner_dir()
+        return subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "execute",
+             "--repo", str(d["repo"]),
+             "--guard-repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--approval-json", str(approval_file),
+             "--regression-evidence", str(d["record"]),
+             "--admission-id", "rc-f1-binding-test",
+             "--authorization", "test-harness:F1 binding gate",
+             "--plan-digest", plan_digest,
+             "--plan-digest-method", "git_tree_digest",
+             "--code-freeze-sha", code_sha,
+             "--stop-after", "verify-formal-logs", "--model-update",
+             "--attempt", "qaf_v2", "--test-domain"],
+            capture_output=True, text=True)
+
+    def test_mismatch_refused_before_first_one_shot(
+            self, tmp_path_factory):
+        d = _make_rc_domain(
+            tmp_path_factory.mktemp("rc_f1_domain"), "rc-f1")
+        approval = _approval_path(d)
+        plan = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^{tree}"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        parent = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        parent_tree = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             parent + "^{tree}"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        # 域构造含 authority init(合法既有件);execute 的任何
+        # 一次性写都不得发生:记录在场文件集,两次拒绝后不变。
+        adir = d["authority"]
+        before = sorted(str(p.relative_to(adir))
+                        for p in adir.rglob("*") if p.is_file())
+        # (a) 冻结 SHA 不符(批准绑 commit_a;调用传 parent)
+        proc = self._execute(d, approval, parent, parent_tree)
+        assert proc.returncode == 96, proc.stdout
+        assert "绑定核验失败" in proc.stdout, proc.stdout
+        # (b) tree digest 与 --plan-digest 不符
+        proc2 = self._execute(d, approval, d["commit_a"], "0" * 40)
+        assert proc2.returncode == 96, proc2.stdout
+        assert "重算不一致" in proc2.stdout, proc2.stdout
+        # 零一次性写:authority 文件集不变;admission 不落盘
+        after = sorted(str(p.relative_to(adir))
+                       for p in adir.rglob("*") if p.is_file())
+        assert after == before, (before, after)
+        assert not (d["deploy"]
+                    / ".r17_formal_admission.json").exists()
+        assert not (d["state"] / "r17_admission_issuance.log.jsonl"
+                    ).exists()
 
 
 # ------------------------------------------------------------------
