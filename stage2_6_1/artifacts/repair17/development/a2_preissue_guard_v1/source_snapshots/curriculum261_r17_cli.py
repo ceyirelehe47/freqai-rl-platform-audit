@@ -4140,7 +4140,22 @@ def cmd_provenance_verify(args: argparse.Namespace) -> int:
 
     out = Path(args.out_dir)
     check = verify_gate_topology_reconciliation(out)
-    _write_json(out, "gate_topology_provenance_verify.json", check)
+    # RCF R2-01(R3 轮):固定验证报告纳入最终文件保护——
+    # 最终文件已存在且为链接(含悬空)→ 拒绝(不跟随/不覆盖/
+    # 不删除历史原件);普通文件覆盖走 O_TRUNC 安全发布。
+    _report = out / "gate_topology_provenance_verify.json"
+    _payload = json.dumps(
+        check, indent=2, ensure_ascii=False, default=float)
+    if os.path.lexists(_report) and _report.is_symlink():
+        print("[provenance-verify] 拒绝: 验证报告路径是符号链接"
+              f"({_report});不跟随、不覆盖历史原件")
+        return 96
+    out.mkdir(parents=True, exist_ok=True)
+    _fd = os.open(
+        _report, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW,
+        0o644)
+    with os.fdopen(_fd, "w", encoding="utf-8") as _fh:
+        _fh.write(_payload)
     print(f"[provenance-verify] pass={check.get('pass')} "
           f"stored={str(check.get('stored_digest', ''))[:22]}... "
           f"recomputed={str(check.get('recomputed_digest', ''))[:22]}...")

@@ -465,18 +465,13 @@ class TestPermitIssueGate:
              "init", "--dir", str(authority)],
             capture_output=True, text=True)
         assert init.returncode == 0, init.stdout + init.stderr
+        # R3:直接签发须完整同根核验参数;本迷你沙箱无同根 record,
+        # 期望缺参拒绝、零 permit(正例一次性语义见 reviewclosure
+        # TestRCFR2DirectPermitPremit 全域测试)。
         proc = subprocess.run(argv, capture_output=True, text=True)
-        assert proc.returncode == 0, proc.stdout + proc.stderr
-        permits = list(authority.glob("qprod_permit_*.json"))
-        assert len(permits) == 1
-        permit = json.loads(permits[0].read_text(encoding="utf-8"))
-        assert permit["iteration_id"] == "qprod_a_formal_v2"
-        assert sorted(permit["preregistered_input_scope"][
-            "namespaces"]) == sorted(QAF_V2_FAMILY.input_scope)
-        # 重复签发=一次性拒绝
-        proc2 = subprocess.run(argv, capture_output=True, text=True)
-        assert proc2.returncode == 1
-        assert len(list(authority.glob("qprod_permit_*.json"))) == 1
+        assert proc.returncode == 96, proc.stdout + proc.stderr
+        assert "完整同根核验" in proc.stdout
+        assert not list(authority.glob("qprod_permit_*.json"))
 
 
 # ------------------------------------------------------------------
@@ -968,14 +963,22 @@ class TestOperatorEntryWiring:
              "record-approval", "--dir", str(authority),
              "--approval-json", str(approval)],
             capture_output=True, text=True, check=True)
+        _tree = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^{tree}"],
+            capture_output=True, text=True, check=True).stdout.strip()
         r = subprocess.run(
             [sys.executable, str(runner / "qprod_formal_authority.py"),
              "issue-permit", "--dir", str(authority),
              "--deploy-root", str(d["deploy"]),
              "--task-level", "level_a", "--attempt", "qaf_v2",
              "--repo", str(_guard_repo()),
-             "--project-dir", str(_project_tree_root())],
-            capture_output=True, text=True)
+             "--project-dir", str(_project_tree_root()),
+             "--regression-evidence", str(d["record"]),
+             "--code-freeze-sha", str(d["commit_a"]),
+             "--plan-digest", _tree,
+             "--candidate-repo", str(d["repo"])],
+            capture_output=True, text=True, timeout=900)
         assert r.returncode == 0, r.stdout + r.stderr
         import subprocess as sp
         plan_digest = sp.run(

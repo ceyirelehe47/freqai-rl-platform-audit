@@ -284,6 +284,60 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
             print(f"[issue-permit] 批准绑定 {key}={have!r} 与受信任"
                   f"部署配置 {want!r} 不一致(签发拒绝)")
             return 96
+    # RCF R2-02(R3 轮):直接签发路径与 operator execute 共享同一
+    # 完整同根核验——首 permit 写之前验证同一候选/同一部署/实际
+    # 证据原件(既有 admission substance verifier;不新建宽松
+    # 检查,不只信调用方布尔)。必需参数缺失=写前拒绝。
+    if level == "level_a" and attempt != "qaf_v1":
+        _ev = getattr(args, "regression_evidence", None)
+        _cfs = getattr(args, "code_freeze_sha", None)
+        _pd = getattr(args, "plan_digest", None)
+        if not (_ev and _cfs and _pd):
+            print(json.dumps({
+                "refused": (
+                    f"attempt={attempt} 直接签发必须提供 "
+                    f"--regression-evidence/--code-freeze-sha/"
+                    f"--plan-digest(首 permit 写前完整同根核验;"
+                    f"不得以缺参绕过)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+        from rl_curriculum.curriculum261_qaf_provenance_guard import (
+            pre_permit_substance_verify,
+        )
+        _state_root = str(
+            Path(str(entry.get("state_root", ""))).resolve())
+        _py = sys.executable
+        # 与 operator validate_formal_approval 同一候选绑定保证:
+        # 核验候选必须等于批准原件绑定的候选(空 tree 同形提交/
+        # 换提交不得通过——统一入口与直接入口同一绑定语义)。
+        if _cfs != str(approved.get("code_freeze_sha") or ""):
+            print(json.dumps({
+                "refused": (
+                    f"核验候选 {_cfs} 与批准绑定候选 "
+                    f"{approved.get('code_freeze_sha')} 不一致"
+                    f"(错候选拒绝;两入口同一绑定保证)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
+        _cand_repo = (getattr(args, "candidate_repo", None)
+                      or getattr(args, "repo", None))
+        _pv = pre_permit_substance_verify(
+            repo=_cand_repo, commit_a=_cfs,
+            deploy_root=Path(args.deploy_root),
+            state_root=_state_root, plan_digest=_pd,
+            plan_digest_method=getattr(
+                args, "plan_digest_method", "git_tree_digest"),
+            regression_evidence=_ev, iteration=iteration_id,
+            attempt=attempt, python=_py,
+            label="authority issue-permit")
+        if _pv["rc"] != 0:
+            print(json.dumps({
+                "refused": ("首 permit 写前完整同根核验失败"
+                            f"(rc={_pv['rc']}): " + _pv["tail"]),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
     ident_path = adir / "authority_identity.json"
     if not ident_path.is_file():
         print(f"[issue-permit] authority 身份缺失(先 init): "
@@ -380,6 +434,20 @@ def main(argv: list[str] | None = None) -> int:
     p_issue.add_argument("--project-dir", default=None,
                          help="签发前守卫同源验证用部署树"
                               "(qaf_v2 必填)")
+    p_issue.add_argument("--regression-evidence", default=None,
+                         help="首 permit 写前完整同根核验用回归"
+                              "证据 record(qaf_v2 必填;R3)")
+    p_issue.add_argument("--code-freeze-sha", default=None,
+                         help="完整同根核验绑定候选 commit(qaf_v2 "
+                              "必填;R3)")
+    p_issue.add_argument("--plan-digest", default=None,
+                         help="完整同根核验计划摘要(qaf_v2 必填;R3)")
+    p_issue.add_argument("--plan-digest-method",
+                         default="git_tree_digest",
+                         help="计划摘要方法(默认 git_tree_digest)")
+    p_issue.add_argument("--candidate-repo", default=None,
+                         help="完整同根核验用候选 git 仓(缺省回落 "
+                              "--repo;候选 commit 须在此仓可达)")
     p_issue.set_defaults(fn=cmd_issue_permit)
     args = parser.parse_args(argv)
     return args.fn(args)

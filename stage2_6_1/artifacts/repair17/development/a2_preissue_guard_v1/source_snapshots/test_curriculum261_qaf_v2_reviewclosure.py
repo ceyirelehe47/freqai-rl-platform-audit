@@ -40,6 +40,7 @@ from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
 from test_curriculum261_qaf_v2_preissue_guard import (  # noqa: E402
     GUARD_REPO_CANDIDATES, _guard_repo, _project_tree_root,
     _runner_dir, _sandbox_v2_payload_digest, _write_deploy_config,
+    _write_v2_approval,
 )
 
 PY = sys.executable
@@ -95,6 +96,10 @@ def _issue_permit_argv(domain, permit_id: str) -> list[str]:
             "--repo", str(_guard_repo()),
             "--deploy-root", str(domain["deploy"]),
             "--project-dir", str(_project_tree_root()),
+            "--regression-evidence", str(domain["record"]),
+            "--code-freeze-sha", str(domain["commit_a"]),
+            "--plan-digest", _tree4d(domain),
+            "--candidate-repo", str(domain["repo"]),
             "--permit-id", permit_id]
 
 
@@ -370,8 +375,12 @@ class TestContinuousWorkflowPrefix:
              "--attempt", "qaf_v2", "--repo", str(_guard_repo()),
              "--deploy-root", str(d["deploy"]),
              "--project-dir", str(_project_tree_root()),
+             "--regression-evidence", str(d["record"]),
+             "--code-freeze-sha", str(d["commit_a"]),
+             "--plan-digest", _tree4d(d),
+             "--candidate-repo", str(d["repo"]),
              "--permit-id", "rc-permit-c05"],
-            capture_output=True, text=True)
+            capture_output=True, text=True, timeout=900)
         assert r.returncode == 0, r.stdout + r.stderr
         summary = json.loads(r.stdout.splitlines()[-1])
         permit = json.loads(
@@ -1106,3 +1115,213 @@ def _record_junit_paths(rec: dict, base: Path) -> list:
             if isinstance(e, dict) and e.get("path"):
                 out.append(base / e["path"])
     return [q for q in out if q.exists()]
+
+
+class TestRCFR2DirectPermitPrecheck:
+    """R3(R2-02):直接 authority issue-permit 共享首写前完整同核。"""
+
+    def _issue(self, d, ev, cfs, pd, method="git_tree_digest"):
+        runner = _runner_dir()
+        return subprocess.run(
+            [PY, str(runner / "qprod_formal_authority.py"),
+             "issue-permit", "--dir", str(d["authority"]),
+             "--deploy-root", str(d["deploy"]),
+             "--task-level", "level_a", "--attempt", "qaf_v2",
+             "--repo", str(_guard_repo()),
+             "--project-dir", str(_project_tree_root()),
+             "--regression-evidence", str(ev),
+             "--code-freeze-sha", str(cfs),
+             "--plan-digest", str(pd),
+             "--plan-digest-method", method,
+             "--candidate-repo", str(d["repo"])],
+            capture_output=True, text=True, timeout=900)
+
+    def _prepared(self, tmp_path_factory, label):
+        d = _make_rc_domain(tmp_path_factory.mktemp(label), label)
+        payload, digest = _sandbox_v2_payload_digest(d)
+        approval = _write_v2_approval(d, payload, digest)
+        r = subprocess.run(
+            [PY, str(_authority_runner()), "record-approval",
+             "--dir", str(d["authority"]),
+             "--approval-json", str(approval)],
+            capture_output=True, text=True)
+        assert r.returncode == 0, r.stdout + r.stderr
+        tree = subprocess.run(
+            ["git", "-C", str(d["repo"]), "rev-parse",
+             d["commit_a"] + "^{tree}"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        return d, tree
+
+    def test_missing_params_refused_zero_permit(
+            self, tmp_path):
+        runner = _runner_dir()
+        deploy = Path(tmp_path) / "deploy"
+        _write_deploy_config(deploy)
+        authority = deploy / "authority"
+        authority.mkdir(parents=True)
+        from rl_curriculum.curriculum261_qaf_provenance_guard import (
+            install_to_target, read_pinned_source,
+        )
+        from test_curriculum261_qaf_v2_preissue_guard import (
+            _build_v2_approval,
+        )
+        art = deploy / "artifacts/formal_a_qaf_v2"
+        install_to_target(art, read_pinned_source(_guard_repo()))
+        (authority / (
+            "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+        )).write_text(
+            json.dumps(_build_v2_approval(deploy, "a" * 40),
+                       ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [PY, str(runner / "qprod_formal_authority.py"),
+             "issue-permit", "--dir", str(authority),
+             "--deploy-root", str(deploy),
+             "--task-level", "level_a", "--attempt", "qaf_v2",
+             "--repo", str(_guard_repo()),
+             "--project-dir", str(_project_tree_root())],
+            capture_output=True, text=True)
+        assert proc.returncode == 96
+        assert "完整同根核验" in proc.stdout
+        assert not list(authority.glob("qprod_permit_*"))
+
+    def test_no_record_arg_refused_zero_permit(
+            self, tmp_path_factory):
+        d, tree = self._prepared(tmp_path_factory, "r3np")
+        proc = self._issue(d, "", d["commit_a"], tree)
+        assert proc.returncode == 96
+        assert "完整同根核验" in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
+    def test_wrong_cwd_record_refused_zero_permit(
+            self, tmp_path_factory):
+        d, tree = self._prepared(tmp_path_factory, "r3wc")
+        rec_path = Path(d["record"])
+        rec = json.loads(rec_path.read_text(encoding="utf-8"))
+        rec["collection_run"]["runs"][0]["cwd"] = "/nonexistent/root"
+        bad = rec_path.parent / "wrong_cwd.json"
+        bad.write_text(json.dumps(rec, ensure_ascii=False),
+                       encoding="utf-8")
+        try:
+            proc = self._issue(d, bad, d["commit_a"], tree)
+        finally:
+            bad.unlink(missing_ok=True)
+        assert proc.returncode == 96, proc.stdout[-600:]
+        assert "cwd" in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
+    def test_drifted_deploy_refused_zero_permit(
+            self, tmp_path_factory):
+        d, tree = self._prepared(tmp_path_factory, "r3dr")
+        probe = sorted((Path(d["deploy"]) / "src" / "rl_curriculum")
+                       .glob("*.py"))[0]
+        original = probe.read_bytes()
+        try:
+            probe.write_bytes(original + b"\n# drift\n")
+            proc = self._issue(d, d["record"], d["commit_a"], tree)
+        finally:
+            probe.write_bytes(original)
+        assert proc.returncode == 96, proc.stdout[-600:]
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
+    def test_same_tree_foreign_commit_refused(
+            self, tmp_path_factory):
+        """R3 gate:同 tree 空提交 X2 冒充候选 → 与批准绑定候选
+        不一致拒绝(operator validate_formal_approval 同语义)。"""
+        import subprocess as _sp
+        d = _make_rc_domain(tmp_path_factory.mktemp("r3st"), "r3st")
+        payload, digest = _sandbox_v2_payload_digest(d)
+        approval = _write_v2_approval(d, payload, digest)
+        r = _sp.run(
+            [PY, str(_authority_runner()), "record-approval",
+             "--dir", str(d["authority"]),
+             "--approval-json", str(approval)],
+            capture_output=True, text=True)
+        assert r.returncode == 0, r.stdout + r.stderr
+        # 同 tree 空提交(内容与候选完全一致,仅 sha 不同)
+        x2 = _sp.run(
+            ["git", "-C", str(d["repo"]), "commit-tree",
+             d["commit_a"] + "^{tree}", "-m", "same-tree-x2"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        tree = _tree4d(d)
+        proc = self._issue(d, d["record"], x2, tree)
+        assert proc.returncode == 96, proc.stdout[-600:]
+        assert "不一致" in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
+    def test_valid_same_root_permits_once(
+            self, tmp_path_factory):
+        d, tree = self._prepared(tmp_path_factory, "r3ok")
+        proc = self._issue(d, d["record"], d["commit_a"], tree)
+        assert proc.returncode == 0, proc.stdout[-800:]
+        permits = list(d["authority"].glob("qprod_permit_*"))
+        assert len(permits) == 1
+        again = self._issue(d, d["record"], d["commit_a"], tree)
+        assert again.returncode != 0  # create-only 不二签
+
+
+class TestRCFR2VerifierReportProtection:
+    """R3(R2-01):同源 verifier 固定报告的最终文件保护。
+
+    经真实 operator prepare(→run_same_source_verify→CLI
+    cmd_provenance_verify 真实写出);只有 provenance 历史提交
+    重算由域内既有 pinned 输入承担(域构建器语义),报告 writer
+    为生产原样代码。
+    """
+
+    def _prepare(self, d):
+        runner = _runner_dir()
+        return subprocess.run(
+            [PY, str(runner / "qaf_v2_operator_entry.py"), "prepare",
+             "--repo", str(_guard_repo()),
+             "--deploy-root", str(d["deploy"]),
+             "--project-dir", str(_project_tree_root()),
+             "--attempt", "qaf_v2"],
+            capture_output=True, text=True, timeout=900)
+
+    def test_prepare_refuses_report_symlink_no_clobber(
+            self, tmp_path_factory):
+        d = _make_rc_domain(tmp_path_factory.mktemp("r3sy"), "r3sy")
+        hist = d["base"] / "historical_original.json"
+        hist.write_text('{"irreplaceable": true}', encoding="utf-8")
+        (d["art"] / "gate_topology_provenance_verify.json").symlink_to(
+            hist)
+        proc = self._prepare(d)
+        assert proc.returncode != 0, proc.stdout[-500:]
+        assert "符号链接" in proc.stdout or proc.returncode != 0
+        assert json.loads(hist.read_text(encoding="utf-8")) == {
+            "irreplaceable": True}
+        _rpt = d["art"] / "gate_topology_provenance_verify.json"
+        assert _rpt.is_symlink(), "链接应原样保留(未被跟随/覆盖)"
+
+    def test_report_link_dangling_refused(self, tmp_path_factory):
+        d = _make_rc_domain(tmp_path_factory.mktemp("r3dg"), "r3dg")
+        victim_dir = d["base"] / "historical_dir"
+        victim_dir.mkdir()
+        (d["art"] / "gate_topology_provenance_verify.json").symlink_to(
+            victim_dir / "never_existed.json")
+        proc = self._prepare(d)
+        assert proc.returncode != 0, proc.stdout[-500:]
+        assert list(victim_dir.iterdir()) == [], "悬空目标目录零新增"
+
+    def test_report_plain_file_long_to_short(self, tmp_path_factory):
+        d = _make_rc_domain(tmp_path_factory.mktemp("r3ls"), "r3ls")
+        long_pad = {"pad": ["x" * 4000]}
+        (d["art"] / "gate_topology_provenance_verify.json").write_text(
+            json.dumps(long_pad) * 20, encoding="utf-8")
+        proc = self._prepare(d)
+        assert proc.returncode == 0, proc.stdout[-500:]
+        doc = json.loads(
+            (d["art"] / "gate_topology_provenance_verify.json")
+            .read_text(encoding="utf-8"))
+        assert "pass" in doc
+        size = (d["art"] / "gate_topology_provenance_verify.json")
+        assert size.stat().st_size < 20000, "短报告不得残留长旧尾"
+
+
+def _tree4d(d) -> str:
+    return subprocess.run(
+        ["git", "-C", str(d["repo"]), "rev-parse",
+         d["commit_a"] + "^{tree}"],
+        capture_output=True, text=True, check=True).stdout.strip()

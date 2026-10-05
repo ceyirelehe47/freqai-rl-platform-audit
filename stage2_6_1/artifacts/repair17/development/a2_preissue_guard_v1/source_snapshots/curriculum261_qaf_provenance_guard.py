@@ -429,6 +429,56 @@ def _resolve_roots_from_config(deploy_root: Path, attempt: str):
             Path(entry["authority_dir"]), iteration)
 
 
+def pre_permit_substance_verify(
+        *, repo, commit_a, deploy_root, state_root, plan_digest,
+        plan_digest_method, regression_evidence, iteration, attempt,
+        python, label="pre-permit") -> dict:
+    """首个一次性写之前的完整同根实质核验(RCF R2-02/R3 轮)。
+
+    统一入口(operator execute)与直接 authority issue-permit 共享
+    同一实现:临时 prereg(只读核验输入,非签发件)→ 复用既有
+    admission substance verifier(不新建宽松检查)。返回
+    {"rc": int, "tail": str};调用方对 rc!=0 一律零一次性写拒绝。
+    """
+    import tempfile
+    repo = Path(repo)
+    deploy_root = Path(deploy_root)
+    argv = [str(python), "-m",
+            "rl_curriculum.curriculum261_r17_admission_substance",
+            "verify", "--repo", str(repo),
+            "--commit-a", str(commit_a),
+            "--deploy-root", str(deploy_root)]
+    with tempfile.TemporaryDirectory(
+            prefix="qaf2_prepermit_verify_") as td:
+        pre = {
+            "admission_id": "PRE-PERMIT-READONLY-VERIFY",
+            "iteration": iteration,
+            "plan_digest": plan_digest,
+            "plan_digest_method": plan_digest_method,
+            "authorization": (
+                "NOT_AN_AUTHORIZATION: read-only same-root "
+                f"{label} verification"),
+            "regression_evidence": str(
+                Path(regression_evidence).resolve()),
+            "deploy_state_root": str(state_root),
+            "formal_attempt": attempt,
+        }
+        pre_path = Path(td) / "prereg_ro.json"
+        pre_path.write_text(
+            json.dumps(pre, ensure_ascii=False, indent=1),
+            encoding="utf-8")
+        argv += ["--preregistration", str(pre_path)]
+        env = dict(os.environ)
+        env["PYTHONPATH"] = str(deploy_root / "src") + (
+            os.pathsep + env["PYTHONPATH"]
+            if env.get("PYTHONPATH") else "")
+        proc = subprocess.run(argv, cwd=str(deploy_root), env=env,
+                              capture_output=True, text=True,
+                              timeout=600)
+    return {"rc": proc.returncode,
+            "tail": (proc.stdout or proc.stderr)[-4000:]}
+
+
 def preissue_gate(
         *, repo: Path, deploy_root: Path, project_dir: Path,
         attempt: str, python: str | None = None,

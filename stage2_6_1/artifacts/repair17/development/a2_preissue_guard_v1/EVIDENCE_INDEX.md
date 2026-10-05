@@ -1,10 +1,12 @@
 # RC 轮证据索引(仓库不可变路径;归档不入包)
 
-最终候选 d705c494b031823570a90deeed891bcbe763d1d9 | 证据 HEAD 见 DELIVERY_RECEIPT
+最终候选 a96bedea24b3a84a19d30f505a121d8c3d68bba3 | 证据 HEAD 见 DELIVERY_RECEIPT
 
 | 证据 | 仓库路径(stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/ 下) | 首次提交 |
 |---|---|---|
-| 最终 261 record 0b1bd93f(run r21_20261005_132145,commit d705c494) | evidence/regress261_d2/ | 本轮(见 git log --follow) |
+| 最终 261 record ac3ff150(run r21_20261005_161825,commit a96bedea) | evidence/regress261_d2/ | 本轮(见 git log --follow) |
+| R2 轮 record 0b1bd93f(commit d705c494) | evidence/regress261_d2_r3_d705c494/ | d705c494 系 |
+| R3 初跑 af5c9d86 已取消(候选被取代) | —(未留档:deploy 已被 a96bedea 重建) | af5c9d86 系 |
 | R1 轮 record ff8040fc(commit 90b3a44a) | evidence/regress261_d2_r2_90b3a44a/ | 1364953b 系 |
 | 已取消半跑 eca28ea1(候选作废前中止,executor.log 注明) | evidence/regress261_d2_partial_eca28ea1_cancelled/ | eca28ea1 系 |
 | R4 record a102f967(commit 9d735c8c) | evidence/regress261_d2_r5_9d735c8c/ | 1364953b 系 |

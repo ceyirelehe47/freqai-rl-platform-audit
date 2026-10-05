@@ -6,11 +6,11 @@
 
 | 项 | 值 |
 |---|---|
-| 新 Commit A | `d705c494b031823570a90deeed891bcbe763d1d9`(已推;祖先链 …→90b3a44a→RCF R2 文件链接边界/首写前完整同核/哨兵移位+预算门接线修复;无 amend) |
+| 新 Commit A | `a96bedea24b3a84a19d30f505a121d8c3d68bba3`(已推;祖先链 …→90b3a44a→RCF R2 文件链接边界/首写前完整同核/哨兵移位+预算门接线修复;无 amend) |
 | 尝试 | `qaf_v2`(26 全新 namespace,含 design_qaf_v2_* 显式三名;与 v1 逐名不相交) |
 | QProd 迭代 | `qprod_a_formal_v2` |
-| 新 A2 计划 digest | `qbpl-212a30ef617b70195128449e316e3d44d2aa9b5138ba9666717025c0282a9523`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest d9a19212bbea154ceea83896207e85e2039bf68c) |
-| D2 同根 record | sha256 `0b1bd93f10a825d5790253ca177f4f7cbe6075fd975141f5bbf751f2d0b89355`(261 全收集 2963=2956 passed+7 skipped/0F/0E,run r21_20261005_132145,cwd=D2,commit d705c494;同根 substance verify rc=0,r17sub-a2b0b30e7…;错根 rc=2 拒) |
+| 新 A2 计划 digest | `qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 863ab24c72b19296d58790b4bbd5b2fa8e163f58) |
+| D2 同根 record | sha256 `ac3ff15083c0dee5a5daca7fd8f64c02bc172112359d0bae4bf73ff1baabf73d`(261 全收集 2972=2965 passed+7 skipped/0F/0E,run r21_20261005_161825,cwd=D2,commit a96bedea;同根 substance verify rc=0,r17sub-a2b0b30e7…;错根 rc=2 拒) |
 | 262 适用 | 240/240 全绿(api/输入锁/镜像受影响面实跑) |
 | 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 625 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
 
@@ -30,4 +30,4 @@ gate2 终审 P0 已修复:D2 未来 A state 根陈旧 R17 运行态(自 P 全量
 
 ## 5. 批准请求(仅一次)
 
-请批准:以 Commit A `d705c494b031823570a90deeed891bcbe763d1d9` / 计划 `qbpl-212a30ef617b70195128449e316e3d44d2aa9b5138ba9666717025c0282a9523` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,E1 配置激活/E2 prepare 前置安装(幂等)/E3 批准原件为手动前置步;E4 execute 自动完成 环境白名单→preissue 门→批准↔参数绑定门→首写前状态/证据全核(含只读同根实质核验)→签发(守卫内建)→一次性 launch→收尾(execute 不自动执行 E2))。批准原文将按 statement digest 绑定进 qfap 原件。
+请批准:以 Commit A `a96bedea24b3a84a19d30f505a121d8c3d68bba3` / 计划 `qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,E1 配置激活/E2 prepare 前置安装(幂等)/E3 批准原件为手动前置步;E4 execute 自动完成 环境白名单→preissue 门→批准↔参数绑定门→首写前状态/证据全核(含只读同根实质核验)→签发(守卫内建)→一次性 launch→收尾(execute 不自动执行 E2))。批准原文将按 statement digest 绑定进 qfap 原件。

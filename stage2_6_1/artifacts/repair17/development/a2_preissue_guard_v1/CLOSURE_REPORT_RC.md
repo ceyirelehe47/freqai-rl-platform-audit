@@ -1,6 +1,6 @@
 # QAFv2 ReviewClosure RC01–RC08 收口报告(RouteC_QAFv2_ReviewClosure_v1)
 
-日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `d705c494b031823570a90deeed891bcbe763d1d9` | 前候选 `90b3a44a…`(R1 轮)、`9d735c8c…`(R4)、`513e75e3…`(RC 轮)等(未 amend,保留为祖先)
+日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `a96bedea24b3a84a19d30f505a121d8c3d68bba3` | 前候选 `af5c9d86…`(R3 两工作面)、`d705c494…`(R2)、`90b3a44a…`(R1)、`9d735c8c…`/`513e75e3…` 等(未 amend,保留为祖先)
 reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_APPROVAL`(ChatGPT 完整终验未签,不代签)
 
 ## 结论总表
@@ -18,12 +18,12 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 
 ## 新证据绑定(分支 B 后)
 
-- Commit A:`d705c494b031823570a90deeed891bcbe763d1d9`(parent=97f81a6d;变更=RCF-01 文件链接边界(O_NOFOLLOW/lexists)/RCF-02 首写前完整同根核验/RCF-03 哨兵移位+预算门根查找接线修复+F1 O_TRUNC+F2 测试真实字段)
-- 新计划 digest:`qbpl-212a30ef617b70195128449e316e3d44d2aa9b5138ba9666717025c0282a9523`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
-- D2 新 record:`0b1bd93f10a825d5790253ca177f4f7cbe6075fd975141f5bbf751f2d0b89355`(261 全收集 2963=2956 passed+7 skipped/0F/0E,run r21_20261005_132145,cwd=D2,commit d705c494)+ 同根 substance verify rc=0(r17sub-a2b0b30e7…,tree d9a19212bbea…)+ 错根 rc=2
+- Commit A:`a96bedea24b3a84a19d30f505a121d8c3d68bba3`(parent=af5c9d86;R3 变更=R2-01 固定报告 lexists+O_NOFOLLOW|O_TRUNC、R2-02 直接 issue-permit 共享 pre_permit_substance_verify(--candidate-repo)+候选绑定门变更=RCF-01 文件链接边界(O_NOFOLLOW/lexists)/RCF-02 首写前完整同根核验/RCF-03 哨兵移位+预算门根查找接线修复+F1 O_TRUNC+F2 测试真实字段)
+- 新计划 digest:`qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
+- D2 新 record:`ac3ff15083c0dee5a5daca7fd8f64c02bc172112359d0bae4bf73ff1baabf73d`(261 全收集 2972=2965 passed+7 skipped/0F/0E,run r21_20261005_161825,cwd=D2,commit a96bedea)+ 同根 substance verify rc=0(r17sub-a2b0b30e7…,tree d9a19212bbea…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
-## 源码快照(包内 source_snapshots/,候选 d705c494 git blob 原字节,10 文件含 curriculum261_r17_cli.py)
+## 源码快照(包内 source_snapshots/,候选 a96bedea git blob 原字节,10 文件含 curriculum261_r17_cli.py)
 
 qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / curriculum261_r17_cli.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha;全部 @d705c494)
 
