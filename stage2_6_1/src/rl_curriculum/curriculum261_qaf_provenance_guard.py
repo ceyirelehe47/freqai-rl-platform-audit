@@ -222,6 +222,10 @@ def _open_no_follow(path: Path, *, exclusive: bool) -> int:
     flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
     if exclusive:
         flags |= os.O_EXCL
+    else:
+        # 非 exclusive 覆盖写必须截断:短报告覆盖长文件时残留
+        # 陈旧尾部会破坏 JSON(reviewer F1)。
+        flags |= os.O_TRUNC
     try:
         fd = os.open(str(path), flags, 0o644)
     except FileExistsError:

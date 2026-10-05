@@ -1044,16 +1044,25 @@ class TestRCFR1PrepermitFullVerify:
     def test_wrong_cwd_record_refused_pre_permit(
             self, tmp_path_factory):
         d = self._domain(tmp_path_factory)
-        rec = json.loads(
-            Path(d["record"]).read_text(encoding="utf-8"))
-        rec["collection_run"]["cwd"] = "/nonexistent/other/root"
-        rec["execution"]["cwd"] = "/nonexistent/other/root"
-        bad = d["base"] / "wrong_cwd_record.json"
+        rec_path = Path(d["record"])
+        rec = json.loads(rec_path.read_text(encoding="utf-8"))
+        # 真实字段:cwd 位于 collection_run.runs[0] 与
+        # execution.runs[*](reviewer F2);记录保留原目录使
+        # junit/stdout 等相对原件引用仍可解析。
+        rec["collection_run"]["runs"][0]["cwd"] = (
+            "/nonexistent/other/root")
+        for _run in rec["execution"].get("runs", []):
+            _run["cwd"] = "/nonexistent/other/root"
+        bad = rec_path.parent / "wrong_cwd_record.json"
         bad.write_text(json.dumps(rec, ensure_ascii=False),
                        encoding="utf-8")
-        proc = self._execute(d, bad)
+        try:
+            proc = self._execute(d, bad)
+        finally:
+            bad.unlink(missing_ok=True)
         assert proc.returncode == 96, proc.stdout[-800:]
         assert "同根核验失败" in proc.stdout
+        assert "cwd" in proc.stdout
         assert not list(d["authority"].glob("qprod_permit_*"))
 
     def test_junit_missing_refused_pre_permit(
