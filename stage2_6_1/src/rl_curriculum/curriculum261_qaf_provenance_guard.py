@@ -498,12 +498,17 @@ RUNTIME_ORIGINAL_DIGESTS = {
      "config_stage252a-rc-e9b373b3c9_smoke-reload.json"):
         "37c03d340b43e67f",
 }
+#: 树比对允许的项目根额外件(git 未跟踪但运行必需;字节钉死)
+#: __init__.py:包导入必需;权威=旧 P 原件字节。
+RUNTIME_TREE_ALLOWED_EXTRAS = {
+    "src/rl_curriculum/__init__.py":
+        "7aa2541d571b16be13c83ddcb2894970b7b32c4000095bb7a7d26e0209897285",
+}
 #: git 权威(候选 A blob CR 投影)的开发根映射:repo 路径 -> 项目根路径
 RUNTIME_GIT_BACKED_MAP = {
     "stage2_6_1/report/r20_design_calc_v4.py": "report/r20_design_calc_v4.py",
     "stage2_6_1/report/r20_design_calc_v4.json": "report/r20_design_calc_v4.json",
-    ("stage2_6_1/artifacts/route_c_stage2_6_1_repair10/"
-     "r10_design_plan.json"):
+    "stage2_6_1/artifacts/repair10/r10_design_plan.json":
         "artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json",
 }
 #: 开发根 vs 候选 A CR 投影的递归目录映射(repo 前缀 -> 项目根目录)
@@ -534,6 +539,10 @@ for repo_pref, dev_dir in RUNTIME_TREE_COMPARE_DIRS:
         if not line or line.endswith("/"):
             continue
         rel = line[len(repo_pref) + 1:]
+        # git 内冻结标识件(r14/r15 manifest 组成项)不属部署消费源;
+        # 部署树 CR 投影形态本就不含 __pycache__。
+        if "__pycache__" in rel:
+            continue
         tracked[rel] = line
     actual_dir = project_dir / dev_dir
     actual = {}
@@ -554,7 +563,14 @@ for repo_pref, dev_dir in RUNTIME_TREE_COMPARE_DIRS:
         if hashlib.sha256(f.read_bytes()).hexdigest() != hashlib.sha256(
                 blob.replace(b"\r", b"")).hexdigest():
             mismatched.append(f"{dev_dir}/{rel}")
-    extra.extend(f"{dev_dir}/{r}" for r in sorted(actual))
+    allowed = RUNTIME_TREE_ALLOWED_EXTRAS
+    for r in sorted(actual):
+        rel_key = f"{dev_dir}/{r}"
+        if rel_key in allowed:
+            import hashlib as _h
+            if _h.sha256(actual[r].read_bytes()).hexdigest() == allowed[rel_key]:
+                continue
+        extra.append(rel_key)
 for rel, expect in RUNTIME_ORIGINAL_DIGESTS.items():
     f = project_dir / rel
     if not f.is_file():
@@ -608,7 +624,8 @@ def runtime_dependency_preflight(
         tf.write(
             "from rl_curriculum.curriculum261_qaf_provenance_guard "
             "import (RUNTIME_ORIGINAL_DIGESTS,"
-            " RUNTIME_GIT_BACKED_MAP, RUNTIME_TREE_COMPARE_DIRS)\n"
+            " RUNTIME_GIT_BACKED_MAP, RUNTIME_TREE_COMPARE_DIRS,"
+            " RUNTIME_TREE_ALLOWED_EXTRAS)\n"
             + _PREFLIGHT_PROBE)
         probe = tf.name
     try:
