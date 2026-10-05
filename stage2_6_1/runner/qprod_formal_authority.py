@@ -308,6 +308,18 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
         _state_root = str(
             Path(str(entry.get("state_root", ""))).resolve())
         _py = sys.executable
+        # 与 operator validate_formal_approval 同一候选绑定保证:
+        # 核验候选必须等于批准原件绑定的候选(空 tree 同形提交/
+        # 换提交不得通过——统一入口与直接入口同一绑定语义)。
+        if _cfs != str(approved.get("code_freeze_sha") or ""):
+            print(json.dumps({
+                "refused": (
+                    f"核验候选 {_cfs} 与批准绑定候选 "
+                    f"{approved.get('code_freeze_sha')} 不一致"
+                    f"(错候选拒绝;两入口同一绑定保证)"),
+                "one_shot_writes": 0,
+            }, ensure_ascii=False))
+            return 96
         _cand_repo = (getattr(args, "candidate_repo", None)
                       or getattr(args, "repo", None))
         _pv = pre_permit_substance_verify(

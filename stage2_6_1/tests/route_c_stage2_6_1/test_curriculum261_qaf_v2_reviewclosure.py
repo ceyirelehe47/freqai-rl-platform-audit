@@ -1224,6 +1224,32 @@ class TestRCFR2DirectPermitPrecheck:
         assert proc.returncode == 96, proc.stdout[-600:]
         assert not list(d["authority"].glob("qprod_permit_*"))
 
+    def test_same_tree_foreign_commit_refused(
+            self, tmp_path_factory):
+        """R3 gate:同 tree 空提交 X2 冒充候选 → 与批准绑定候选
+        不一致拒绝(operator validate_formal_approval 同语义)。"""
+        import subprocess as _sp
+        d = _make_rc_domain(tmp_path_factory.mktemp("r3st"), "r3st")
+        payload, digest = _sandbox_v2_payload_digest(d)
+        approval = _write_v2_approval(d, payload, digest)
+        r = _sp.run(
+            [PY, str(_authority_runner()), "record-approval",
+             "--dir", str(d["authority"]),
+             "--approval-json", str(approval)],
+            capture_output=True, text=True)
+        assert r.returncode == 0, r.stdout + r.stderr
+        # 同 tree 空提交(内容与候选完全一致,仅 sha 不同)
+        x2 = _sp.run(
+            ["git", "-C", str(d["repo"]), "commit-tree",
+             d["commit_a"] + "^{tree}", "-m", "same-tree-x2"],
+            capture_output=True, text=True,
+            check=True).stdout.strip()
+        tree = _tree4d(d)
+        proc = self._issue(d, d["record"], x2, tree)
+        assert proc.returncode == 96, proc.stdout[-600:]
+        assert "不一致" in proc.stdout
+        assert not list(d["authority"].glob("qprod_permit_*"))
+
     def test_valid_same_root_permits_once(
             self, tmp_path_factory):
         d, tree = self._prepared(tmp_path_factory, "r3ok")
