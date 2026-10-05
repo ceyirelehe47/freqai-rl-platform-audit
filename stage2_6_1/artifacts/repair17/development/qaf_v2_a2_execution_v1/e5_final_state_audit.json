@@ -1,0 +1,110 @@
+{
+ "format": "cur261-qaf-v2-a2-execution-final-state-audit-v1",
+ "generated_utc": "2026-10-05T11:07:52.293031+00:00",
+ "outcome_classification": "technical_failure_fail_closed",
+ "approval": {
+  "user_statement_sha256": "724d9fff7e948b4637903f20101e4ec8b657e3e2718f85f837b8239c54315556",
+  "received_utc": "2026-10-05 (omp session §1603; same binding reused per NEXT_GOAL §3)",
+  "approval_digest": "qfap-fb6a072afaef04f693c54107e58de894d405b1d0fbe1cefd384c3228f99aa20e",
+  "copy_sha256": "97035270e8b81d0cbc664d84626353b3db4e3fba5795cadaadd3f277cfe50347"
+ },
+ "identity": {
+  "commit_a": "a96bedea24b3a84a19d30f505a121d8c3d68bba3",
+  "tree": "863ab24c72b19296d58790b4bbd5b2fa8e163f58",
+  "plan_digest": "qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5",
+  "attempt": "qaf_v2",
+  "iteration": "qprod_a_formal_v2",
+  "regression_record": "ac3ff15083c0dee5a5daca7fd8f64c02bc172112359d0bae4bf73ff1baabf73d"
+ },
+ "issuance_and_consumption": {
+  "authority_identity": true,
+  "approval_recorded": true,
+  "permit": {
+   "id": "qppm-formal-09528745505f936b",
+   "consumed_utc": "2026-10-05T10:29:45+00:00",
+   "journal_lines": 1
+  },
+  "prereg": true,
+  "admission": {
+   "id": "qaf-v2-a96bedea-a2",
+   "consumed_utc": "2026-10-05T10:31:07Z",
+   "root_file_sha256": "4226a7ada784633760ad481cb25674da8b3a857b996af5cba5e32ee4ffee5784",
+   "consumed_journal_lines": 1
+  },
+  "research_plan_frozen": {
+   "digest_file": "qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5",
+   "sha256": "d438d3e5bbcbd7fdf761b9116489028ffac46011ef24c9c229cd0276d1007574"
+  },
+  "pre_first_write_refusals_zero_consumption": {
+   "take1": "approved missing 3 fields (rc96, one_shot_writes=0)",
+   "take2": "approval_source.kind != user_direct_approval (rc96, one_shot_writes=0)",
+   "logs": [
+    "e4_attempt1_refused_missing_fields.log"
+   ]
+  }
+ },
+ "executed_prefix": {
+  "steps_completed_pass": [
+   "provenance-verify",
+   "determinism-matrix"
+  ],
+  "determinism_matrix": {
+   "pass": true,
+   "duration_s": 61,
+   "contract_sha256": "6f232d3b8fad720046d1d8d523a0e4d943ce1e94c2192c124ec9dc02479b864f"
+  },
+  "failed_step": {
+   "step": "audit",
+   "rc": 1,
+   "utc": "2026-10-05T10:32:12Z",
+   "error": "freeze surface 不完整(fail closed): 缺失 ['environment.yml', 'requirements-lock.txt']",
+   "stderr_sha256": "8f454620218e6cec738a116e6551011aa7d95681bf8d711d216fec3242b6065c",
+   "outputs_all_null": true
+  },
+  "not_run": [
+   "cue-audit",
+   "preplan-smoke",
+   "plan-roundtrip",
+   "design-plan-lock",
+   "design",
+   "calibrate",
+   "preflight-static",
+   "lock-plan",
+   "preflight-sealed",
+   "qualify",
+   "smoke",
+   "full-cold",
+   "report-read",
+   "verify-formal-logs"
+  ]
+ },
+ "budget": {
+  "gate_file": "e345f61f89c701c1ec431cfdb4869ea09ce16a5b6765bdc57ff037d3c5d91880",
+  "consumed": {
+   "determinism-matrix": "2026-10-05T10:31:10+00:00"
+  },
+  "caps_determinism": {
+   "generation_episodes": 2500,
+   "v2_preprocessor_fits": 5,
+   "supervised_mlp_fits": 4,
+   "subprocesses": 17
+  },
+  "note": "gate consumed 字段按步骤时间戳记账;步内详细计数未在 gate 原件中单列(不可测部分见主报告)"
+ },
+ "fail_closure": {
+  "abort_file_sha256": "ca1096d74041daa528e14d46ffbb2c391b0c84a0357a0341d89c097054265245",
+  "abort_reason": "formal chain step audit rc=1(R17:停止后续正式计算;已冻结代码封口;不修代码继续)",
+  "abort_utc": "2026-10-05T10:32:13.022889+00:00",
+  "journal_last_events": [
+   "chain_step_failed(audit,rc1,seq7)",
+   "chain_iteration_aborted(seq8)",
+   "chain_released(seq9, summary=R17 chain failed at audit)"
+  ]
+ },
+ "protection_faces": {
+  "old_P_admission_sha256_prefix": "b465e5f17a651d0a",
+  "old_P_new_files_since_1800_local": "none observed",
+  "business_leaf_calls_after_failure": 0,
+  "no_resign_no_relaunch": "operator not re-invoked after 10:32:13Z"
+ }
+}
