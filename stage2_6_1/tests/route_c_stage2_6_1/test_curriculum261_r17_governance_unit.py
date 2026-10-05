@@ -65,7 +65,8 @@ class TestRegistryApi:
         # A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 尝试族
         # 增 26(校准族 12+四件套 4+生成/设计/smoke 10)= 209,
         # 正式面 +4 = 20。集合精确性由增量检查承载,不是单纯改数字。
-        assert doc["n_namespaces"] == 209 and doc["n_formal"] == 20
+        # A2 RuntimeClosure:qaf_v3 尝试族再增 26/4 = 235/24。
+        assert doc["n_namespaces"] == 235 and doc["n_formal"] == 24
         assert {"c3_reserve_main_eng_r17", "c3_reserve_validation_eng_r17"} <= set(R17_ALL_NAMESPACES)
         v1 = {"preplan_v2c13_fit_main_r17", "preplan_v2c13_fit_validation_r17",
               "preplan_v2c13_eval_main_r17", "preplan_v2c13_eval_validation_r17"}
@@ -83,7 +84,7 @@ class TestRegistryApi:
         # R19 处方与 QAF 尝试——RouteC_FormalLaunch_Preparation_v1
         # R1/F06:R17 框架 + 全新 namespace);旧四件套保持注册未消费。
         from rl_curriculum.curriculum261_qaf_attempt import (
-            QAF2_FORMAL_FOUR, QAF_FORMAL_FOUR)
+            QAF2_FORMAL_FOUR, QAF3_FORMAL_FOUR, QAF_FORMAL_FOUR)
         from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
         from rl_curriculum.curriculum261_r19_attempt import R19_FORMAL_FOUR
         assert set(CURRICULUM261_R17_FORMAL_NAMESPACES) == {
@@ -92,7 +93,7 @@ class TestRegistryApi:
             "c2_independent_qualification_r17",
             "cue_semantic_qualification_r17"} | set(R18_FORMAL_FOUR) \
             | set(R19_FORMAL_FOUR) | set(QAF_FORMAL_FOUR) \
-            | set(QAF2_FORMAL_FOUR)
+            | set(QAF2_FORMAL_FOUR) | set(QAF3_FORMAL_FOUR)
         assert not (set(CURRICULUM261_R17_NAMESPACES)
                     & set() )
 

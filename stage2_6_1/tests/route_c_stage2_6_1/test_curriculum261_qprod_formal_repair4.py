@@ -40,7 +40,7 @@ class TestA2GenerationFamily:
         # 保持不变。全集 = 183 + 26(qaf_v2)。
         assert len(QAF_ALL_NEW) == 26
         assert len(QAF_GENERATION_FAMILY) == 10
-        assert len(R17_ALL) == 209
+        assert len(R17_ALL) == 235  # +qaf_v3 26(A2 RuntimeClosure)
         from rl_curriculum.curriculum261_qaf_attempt import (
             QAF2_ALL_NEW,
         )
