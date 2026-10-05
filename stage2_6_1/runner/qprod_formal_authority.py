@@ -226,6 +226,7 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
     if level == "level_a" and attempt != "qaf_v1":
         repo = getattr(args, "repo", None)
         project_dir = getattr(args, "project_dir", None)
+        cfs = getattr(args, "code_freeze_sha", None)
         if not repo or not project_dir:
             print(json.dumps({
                 "refused": (
@@ -241,7 +242,8 @@ def cmd_issue_permit(args: argparse.Namespace) -> int:
         try:
             gate = preissue_gate(
                 repo=Path(repo), deploy_root=Path(args.deploy_root),
-                project_dir=Path(project_dir), attempt=attempt)
+                project_dir=Path(project_dir), attempt=attempt,
+                candidate_sha=cfs)
         except ProvenanceGuardError as exc:
             print(json.dumps({"refused": f"签发前守卫拒绝: {exc}",
                               "one_shot_writes": 0},

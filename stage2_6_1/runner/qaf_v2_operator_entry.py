@@ -221,7 +221,8 @@ def cmd_execute(args: argparse.Namespace) -> int:
         gate = preissue_gate(
             repo=(Path(args.guard_repo) if args.guard_repo else repo),
             deploy_root=deploy_root,
-            project_dir=project_dir, attempt=args.attempt)
+            project_dir=project_dir, attempt=args.attempt,
+            candidate_sha=args.code_freeze_sha)
     except ProvenanceGuardError as exc:
         print(json.dumps({"refused": f"签发前守卫拒绝: {exc}",
                           "one_shot_writes": 0},

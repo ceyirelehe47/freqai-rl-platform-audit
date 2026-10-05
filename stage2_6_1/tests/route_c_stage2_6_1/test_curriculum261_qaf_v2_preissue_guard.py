@@ -97,7 +97,7 @@ def _project_tree_root() -> Path:
 
 class TestQafV2Identity:
     def test_registry_and_names(self):
-        assert QAF_ATTEMPT_IDS == ("qaf_v1", "qaf_v2")
+        assert QAF_ATTEMPT_IDS == ("qaf_v1", "qaf_v2", "qaf_v3")
         fam = QAF_ATTEMPTS["qaf_v2"]
         assert len(fam.input_scope) == 26
         assert len(set(fam.input_scope)) == 26

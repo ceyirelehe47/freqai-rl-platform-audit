@@ -197,6 +197,80 @@ assert not (set(QAF2_ALL_NEW) & set(QAF_ALL_NEW)), (
     "QAF v2 与 v1 命名空间必须不相交(全新身份)")
 
 
+# ==== QAF v3(RouteC_A2_RuntimeClosure_NewAttempt_v1;qaf_v2 已耗尽) ====
+# 全新身份面:26 namespace 与 v1/v2 逐名不相交;迭代 qprod_a_formal_v3。
+QAF3_ATTEMPT_ID = "qaf_v3"
+
+# ---- 正式 calibration 族(v3) ----
+QAF3_FIT_MAIN = "preprocess_fit_calibration_qaf_v3"
+QAF3_FIT_HOLDOUT = "preprocess_fit_holdout_qaf_v3"
+QAF3_C13_MAIN = "calibration_qaf_v3"
+QAF3_C13_HOLDOUT = "calibration_holdout_qaf_v3"
+QAF3_SUPERVISED_MAIN = "supervised_main_qaf_v3"
+QAF3_SUPERVISED_HOLDOUT = "supervised_holdout_qaf_v3"
+QAF3_SEMANTIC_MAIN = "cue_semantic_calibration_qaf_v3"
+QAF3_SEMANTIC_HOLDOUT = "cue_semantic_holdout_qaf_v3"
+QAF3_C2_INDEPENDENT_MAIN = "c2_independent_calibration_qaf_v3"
+QAF3_C2_INDEPENDENT_HOLDOUT = "c2_independent_holdout_qaf_v3"
+QAF3_STRESS = "stress_qaf_v3"
+QAF3_FRESH_HOLDOUT = "fresh_holdout_qaf_v3"
+
+# ---- 正式资格四件套(v3) ----
+QAF3_QUALIFICATION = "qualification_qaf_v3"
+QAF3_FIT_QUALIFICATION = "preprocess_fit_qualification_qaf_v3"
+QAF3_C2_INDEPENDENT_QUALIFICATION = (
+    "c2_independent_qualification_qaf_v3")
+QAF3_SEMANTIC_QUALIFICATION = "cue_semantic_qualification_qaf_v3"
+
+QAF3_FORMAL_FOUR = (
+    QAF3_QUALIFICATION,
+    QAF3_FIT_QUALIFICATION,
+    QAF3_C2_INDEPENDENT_QUALIFICATION,
+    QAF3_SEMANTIC_QUALIFICATION,
+)
+
+QAF3_CALIBRATION_FAMILY = (
+    QAF3_FIT_MAIN, QAF3_FIT_HOLDOUT, QAF3_C13_MAIN, QAF3_C13_HOLDOUT,
+    QAF3_SUPERVISED_MAIN, QAF3_SUPERVISED_HOLDOUT,
+    QAF3_SEMANTIC_MAIN, QAF3_SEMANTIC_HOLDOUT,
+    QAF3_C2_INDEPENDENT_MAIN, QAF3_C2_INDEPENDENT_HOLDOUT,
+    QAF3_STRESS, QAF3_FRESH_HOLDOUT,
+)
+
+# ---- 生成/设计/获准 smoke 消费者族(v3;职责与 v1/v2 一一对应) ----
+QAF3_AUDIT_BANK = "preplan_audit_bank_qaf_v3"
+QAF3_PREPLAN_SMOKE = "preplan_smoke_qaf_v3"
+QAF3_CUE_CONTRACT_MODEL = "cue_contract_model_qaf_v3"
+QAF3_CUE_CONTRACT_VALIDATION = "cue_contract_validation_qaf_v3"
+QAF3_DESIGN_MATCHED_MAIN = "design_qaf_v3_matched_main"
+QAF3_DESIGN_MATCHED_VALIDATION = "design_qaf_v3_matched_validation"
+QAF3_DESIGN_INDEPENDENT = "design_qaf_v3_independent_marginal"
+QAF3_SEMANTIC_DESIGN_MAIN = "cue_semantic_design_main_qaf_v3"
+QAF3_SEMANTIC_DESIGN_VALIDATION = (
+    "cue_semantic_design_validation_qaf_v3")
+QAF3_PPO_SMOKE = "ppo_smoke_qaf_v3"
+
+QAF3_GENERATION_FAMILY = (
+    QAF3_AUDIT_BANK, QAF3_PREPLAN_SMOKE,
+    QAF3_CUE_CONTRACT_MODEL, QAF3_CUE_CONTRACT_VALIDATION,
+    QAF3_DESIGN_MATCHED_MAIN, QAF3_DESIGN_MATCHED_VALIDATION,
+    QAF3_DESIGN_INDEPENDENT,
+    QAF3_SEMANTIC_DESIGN_MAIN, QAF3_SEMANTIC_DESIGN_VALIDATION,
+    QAF3_PPO_SMOKE,
+)
+
+QAF3_ALL_NEW = (QAF3_CALIBRATION_FAMILY + QAF3_FORMAL_FOUR
+                + QAF3_GENERATION_FAMILY)
+QAF3_INPUT_SCOPE = QAF3_ALL_NEW
+
+assert len(set(QAF3_ALL_NEW)) == len(QAF3_ALL_NEW), (
+    "QAF v3 命名空间必须唯一")
+assert not (set(QAF3_ALL_NEW) & set(QAF_ALL_NEW)), (
+    "QAF v3 与 v1 命名空间必须不相交(全新身份)")
+assert not (set(QAF3_ALL_NEW) & set(QAF2_ALL_NEW)), (
+    "QAF v3 与 v2 命名空间必须不相交(全新身份)")
+
+
 # ---- 尝试注册表(单一权威;attempt→身份族/迭代/范围) --------------
 from dataclasses import dataclass
 
@@ -301,11 +375,42 @@ QAF_V2_FAMILY = QAFAttemptFamily(
     ppo_smoke=QAF2_PPO_SMOKE,
 )
 
+QAF_V3_FAMILY = QAFAttemptFamily(
+    attempt_id=QAF3_ATTEMPT_ID,
+    iteration_label="qaf_v3",
+    qprod_iteration_id="qprod_a_formal_v3",
+    input_scope=QAF3_INPUT_SCOPE,
+    formal_four=QAF3_FORMAL_FOUR,
+    fit_main=QAF3_FIT_MAIN, fit_holdout=QAF3_FIT_HOLDOUT,
+    c13_main=QAF3_C13_MAIN, c13_holdout=QAF3_C13_HOLDOUT,
+    supervised_main=QAF3_SUPERVISED_MAIN,
+    supervised_holdout=QAF3_SUPERVISED_HOLDOUT,
+    semantic_main=QAF3_SEMANTIC_MAIN,
+    semantic_holdout=QAF3_SEMANTIC_HOLDOUT,
+    c2_independent_main=QAF3_C2_INDEPENDENT_MAIN,
+    c2_independent_holdout=QAF3_C2_INDEPENDENT_HOLDOUT,
+    stress=QAF3_STRESS, fresh_holdout=QAF3_FRESH_HOLDOUT,
+    qualification=QAF3_QUALIFICATION,
+    fit_qualification=QAF3_FIT_QUALIFICATION,
+    c2_independent_qualification=QAF3_C2_INDEPENDENT_QUALIFICATION,
+    semantic_qualification=QAF3_SEMANTIC_QUALIFICATION,
+    audit_bank=QAF3_AUDIT_BANK, preplan_smoke=QAF3_PREPLAN_SMOKE,
+    cue_contract_model=QAF3_CUE_CONTRACT_MODEL,
+    cue_contract_validation=QAF3_CUE_CONTRACT_VALIDATION,
+    design_matched_main=QAF3_DESIGN_MATCHED_MAIN,
+    design_matched_validation=QAF3_DESIGN_MATCHED_VALIDATION,
+    design_independent=QAF3_DESIGN_INDEPENDENT,
+    semantic_design_main=QAF3_SEMANTIC_DESIGN_MAIN,
+    semantic_design_validation=QAF3_SEMANTIC_DESIGN_VALIDATION,
+    ppo_smoke=QAF3_PPO_SMOKE,
+)
+
 #: 尝试注册表(合法 QAF attempt 全集;CLI choices 与 workflow 校验
 # 的单一来源;新增尝试必须在此显式注册)。
 QAF_ATTEMPTS: dict[str, QAFAttemptFamily] = {
     QAF_ATTEMPT_ID: QAF_V1_FAMILY,
     QAF2_ATTEMPT_ID: QAF_V2_FAMILY,
+    QAF3_ATTEMPT_ID: QAF_V3_FAMILY,
 }
 
 #: 合法 QAF attempt 元组(argparse choices 直接引用)。

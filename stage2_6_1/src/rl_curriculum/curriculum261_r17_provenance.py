@@ -125,8 +125,10 @@ R14_ORCHESTRATION_MARKERS = {
 
 
 def _release_repo() -> Path:
-    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
-                 Path("F:/trading/freqai-rl-audit"),
+    from rl_curriculum.curriculum261_r17_dependencies import (
+        release_repo_candidates,
+    )
+    for cand in (*release_repo_candidates(),
                  Path(__file__).resolve().parents[3] / "freqai-rl-audit"):
         if (cand / ".git").exists():
             return cand

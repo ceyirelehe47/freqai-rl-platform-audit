@@ -597,6 +597,8 @@ from rl_curriculum.curriculum261_qaf_attempt import (  # noqa: E402
     QAF_FORMAL_FOUR as _QAF_ATTEMPT_FORMAL_FOUR,
     QAF2_ALL_NEW as _QAF_V2_ATTEMPT_NAMESPACES,
     QAF2_FORMAL_FOUR as _QAF_V2_ATTEMPT_FORMAL_FOUR,
+    QAF3_ALL_NEW as _QAF_V3_ATTEMPT_NAMESPACES,
+    QAF3_FORMAL_FOUR as _QAF_V3_ATTEMPT_FORMAL_FOUR,
 )
 
 CURRICULUM261_R17_NAMESPACES = (
@@ -1539,6 +1541,7 @@ def _default_recorder(namespace: str, family: str, rung: str,
         # 其余历史名保持子串序(R0-R11 与 R11 行为一致)。
         iteration: str | None = None
         for _names, _label in (
+                (_QAF_V3_ATTEMPT_NAMESPACES, "qaf_v3"),
                 (_QAF_V2_ATTEMPT_NAMESPACES, "qaf_v2"),
                 (_QAF_ATTEMPT_NAMESPACES, "qaf_v1"),
                 (_R19_ATTEMPT_NAMESPACES, "r19"),

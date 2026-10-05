@@ -82,6 +82,10 @@ PROVENANCE_DIGEST_TARGET_NAME = "gate_topology_reconciliation_digest.txt"
 #: 此常量只用于快速自检与负例对照,不替代 verifier)。
 EXPECTED_TOPOLOGY_DIGEST_PREFIX = "r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d"
 
+#: A2 RuntimeClosure(qaf_v3):release repo 必须解析到的 pinned 根
+#: (与 curriculum261_r17_dependencies.R17_RELEASE_PIN_ROOT 一致)。
+R17_PIN_EXPECTED_ROOT = "/home/cryptorl/release_pin_qaf_v3"
+
 GUARD_FORMAT = "cur261-qaf-provenance-guard-v1"
 
 
@@ -479,9 +483,180 @@ def pre_permit_substance_verify(
             "tail": (proc.stdout or proc.stderr)[-4000:]}
 
 
+#: A2 RuntimeClosure(qaf_v3):开发根(P3)已接受原件 digest(旧 P
+#: 实测;git 无这些路径,权威=原件字节)。
+RUNTIME_ORIGINAL_DIGESTS = {
+    "user_data/strategies/RouteCStrategy.py":
+        "dc5deab41647d2bd5ce022ca8be08f3c229335162c81549eb07b3b1ca94c1fac",
+    "requirements-lock.txt":
+        "4e727d3daed162cec3a47ee8d6d8602e44bf8f19a5d99032d51cfe3957c4d99b",
+    "environment.yml":
+        "e7a0850eb6c965a6f4dc6389802a0b388f2424eec6b80d7e62077197549f8899",
+    "activate-freqtrade.sh":
+        "6c43ec584dfa36722b69f4c6a96310fe427263cf06cf1d0a6f5eec2f431fa92e",
+    ("experiments/freqai_rl_stage2_5_2a/runtime/"
+     "config_stage252a-rc-e9b373b3c9_smoke-reload.json"):
+        "37c03d340b43e67f",
+}
+#: git 权威(候选 A blob CR 投影)的开发根映射:repo 路径 -> 项目根路径
+RUNTIME_GIT_BACKED_MAP = {
+    "stage2_6_1/report/r20_design_calc_v4.py": "report/r20_design_calc_v4.py",
+    "stage2_6_1/report/r20_design_calc_v4.json": "report/r20_design_calc_v4.json",
+    ("stage2_6_1/artifacts/route_c_stage2_6_1_repair10/"
+     "r10_design_plan.json"):
+        "artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json",
+}
+#: 开发根 vs 候选 A CR 投影的递归目录映射(repo 前缀 -> 项目根目录)
+RUNTIME_TREE_COMPARE_DIRS = (
+    ("stage2_6_1/src/rl_curriculum", "src/rl_curriculum"),
+    ("stage2_6_1/tests/route_c_stage2_6_1", "tests/route_c_stage2_6_1"),
+    ("stage2_6_1/runner", "stage2_6_1_runner"),
+)
+
+_PREFLIGHT_PROBE = r"""
+import json, subprocess, sys
+from pathlib import Path
+project_dir = Path(sys.argv[1]); repo = sys.argv[2]
+candidate = sys.argv[3]; pin_root = sys.argv[4]
+import rl_curriculum.curriculum261_r17_dependencies as dep
+if len(sys.argv) > 4 and sys.argv[4]:
+    dep.R17_RELEASE_PIN_ROOT = Path(sys.argv[4])
+m = dep.freeze_surface_manifest_r17()
+status = dep._real_status_entries(Path(m["repo_root"]))
+def git(*a):
+    r = subprocess.run(["git", "-C", str(repo), *a], capture_output=True)
+    return r.stdout
+missing, mismatched, extra = [], [], []
+for repo_pref, dev_dir in RUNTIME_TREE_COMPARE_DIRS:
+    tracked = {}
+    for line in git("ls-tree", "-r", "--name-only", candidate,
+                    "--", repo_pref).decode().splitlines():
+        if not line or line.endswith("/"):
+            continue
+        rel = line[len(repo_pref) + 1:]
+        tracked[rel] = line
+    actual_dir = project_dir / dev_dir
+    actual = {}
+    if actual_dir.is_dir():
+        for f in actual_dir.rglob("*"):
+            if any(part in ("__pycache__", ".pytest_cache", ".cache")
+                   for part in f.relative_to(actual_dir).parts):
+                continue
+            if f.is_file() and not f.is_symlink():
+                actual[f.relative_to(actual_dir).as_posix()] = f
+    import hashlib
+    for rel, gl in tracked.items():
+        f = actual.pop(rel, None)
+        if f is None:
+            missing.append(f"{dev_dir}/{rel}")
+            continue
+        blob = git("cat-file", "blob", f"{candidate}:{gl}")
+        if hashlib.sha256(f.read_bytes()).hexdigest() != hashlib.sha256(
+                blob.replace(b"\r", b"")).hexdigest():
+            mismatched.append(f"{dev_dir}/{rel}")
+    extra.extend(f"{dev_dir}/{r}" for r in sorted(actual))
+for rel, expect in RUNTIME_ORIGINAL_DIGESTS.items():
+    f = project_dir / rel
+    if not f.is_file():
+        missing.append(rel); continue
+    import hashlib
+    got = hashlib.sha256(f.read_bytes()).hexdigest()
+    if not expect.startswith(got[:16]) and got != expect:
+        mismatched.append(rel)
+for repo_path, dev_rel in RUNTIME_GIT_BACKED_MAP.items():
+    f = project_dir / dev_rel
+    import hashlib
+    blob = git("cat-file", "blob", f"{candidate}:{repo_path}")
+    want = hashlib.sha256(blob.replace(b"\r", b"")).hexdigest()
+    if not f.is_file():
+        missing.append(dev_rel)
+    elif hashlib.sha256(f.read_bytes()).hexdigest() != want:
+        mismatched.append(dev_rel)
+print("@@RESULT@@" + json.dumps({
+    "dev_root": m["dev_root"], "repo_root": m["repo_root"],
+    "repo_head_commit": m["repo_head_commit"],
+    "repo_head_tree": m["repo_head_tree"],
+    "missing_required": m["missing_required"],
+    "dirty_freeze_paths": status[:20], "n_dev_files": m["n_dev_files"],
+    "tree_missing": missing[:50], "tree_mismatched": mismatched[:50],
+    "tree_extra": extra[:50]}, ensure_ascii=False))
+"""
+
+
+def runtime_dependency_preflight(
+        *, repo: Path, project_dir: Path, candidate_sha: str,
+        python: str | None = None) -> dict[str, Any]:
+    """运行时静态依赖前置(只读;读最终消费源,不读替身)。
+
+    在 project_dir(开发根 P3)真实 import 冻结函数,核:
+    freeze manifest 完整性(missing_required 空)、release repo 解析
+    到 pinned 候选源且 HEAD==candidate、freeze 路径 clean、
+    src/tests/runner 三面 vs 候选 A CR 投影逐文件一致、
+    已接受原件与 git 权威文件字节一致。任何缺件/错源/错字节
+    =前置失败(调用方在首一次性写前拒绝)。
+    """
+    import tempfile
+    py = python or sys.executable
+    env = {"PATH": "/usr/bin:/bin:/home/cryptorl/miniforge3/envs:"
+           "/usr/local/bin",
+           "HOME": "/home/cryptorl",
+           "PYTHONDONTWRITEBYTECODE": "1",
+           "PYTHONPATH": str(Path(project_dir) / "src")}
+    with tempfile.NamedTemporaryFile(
+            "w", suffix=".py", delete=False,
+            encoding="utf-8", newline="\n") as tf:
+        tf.write(
+            "from rl_curriculum.curriculum261_qaf_provenance_guard "
+            "import (RUNTIME_ORIGINAL_DIGESTS,"
+            " RUNTIME_GIT_BACKED_MAP, RUNTIME_TREE_COMPARE_DIRS)\n"
+            + _PREFLIGHT_PROBE)
+        probe = tf.name
+    try:
+        proc = subprocess.run(
+            [py, probe, str(project_dir), str(repo), candidate_sha,
+             str(R17_PIN_EXPECTED_ROOT)],
+            capture_output=True, text=True, env=env,
+            cwd=str(project_dir), timeout=600)
+    finally:
+        os.unlink(probe)
+    out = {}
+    for line in (proc.stdout or "").splitlines():
+        if line.startswith("@@RESULT@@"):
+            out = json.loads(line[len("@@RESULT@@"):])
+    if proc.returncode != 0 or not out:
+        return {"ok": False, "reason": "preflight 探针失败",
+                "rc": proc.returncode,
+                "stderr_tail": (proc.stderr or "")[-800:]}
+    problems: list[str] = []
+    if out["missing_required"]:
+        problems.append(f"freeze 面缺失必需要件: {out['missing_required']}")
+    if out["repo_head_commit"] != candidate_sha:
+        problems.append(
+            f"release repo HEAD {out['repo_head_commit'][:12]} != 候选 "
+            f"{candidate_sha[:12]}(冻结必须绑定 Commit A)")
+    if not str(out["repo_root"]).startswith(str(R17_PIN_EXPECTED_ROOT)):
+        problems.append(
+            f"release repo 解析到非 pinned 源 {out['repo_root']}"
+            f"(须为 {R17_PIN_EXPECTED_ROOT};证据分支 HEAD 漂移会破坏"
+            f" HEAD==A 检查)")
+    if out["dirty_freeze_paths"]:
+        problems.append(
+            f"freeze 路径 dirty: {out['dirty_freeze_paths'][:5]}")
+    for key in ("tree_missing", "tree_mismatched"):
+        if out[key]:
+            problems.append(f"{key}: {out[key][:10]}")
+    if out["tree_extra"]:
+        problems.append(f"tree_extra: {out['tree_extra'][:10]}")
+    return {"ok": not problems, "problems": problems,
+            "dev_root": out["dev_root"], "repo_root": out["repo_root"],
+            "repo_head_commit": out["repo_head_commit"],
+            "n_dev_files": out["n_dev_files"]}
+
+
 def preissue_gate(
         *, repo: Path, deploy_root: Path, project_dir: Path,
-        attempt: str, python: str | None = None,
+        attempt: str, candidate_sha: str | None = None,
+        python: str | None = None,
         report_out: Path | None = None) -> dict[str, Any]:
     """签发前硬门(全部只读;供两条一次性签发边界首写前调用)。
 
@@ -590,6 +765,29 @@ def preissue_gate(
     if not verify.get("ok"):
         return _fail("same_source_verify",
                      str(verify.get("reason")))
+
+    # 7) 运行时静态依赖前置(A2 RuntimeClosure:读最终消费源;
+    #    上轮 audit 步失败面在此之前拦截)。已消费历史尝试
+    #    (qaf_v1/qaf_v2;freshness 在真实根恒 false)豁免——本检查
+    #    面向新尝试(qaf_v3+),与 attempt 条件门既有形态一致。
+    _preflight_exempt = attempt in ("qaf_v1", "qaf_v2")
+    if _preflight_exempt:
+        report["checks"]["runtime_dependencies"] = {
+            "ok": True, "exempt": True,
+            "reason": "attempt=qaf_v1/qaf_v2(已消费历史尝试;"
+                      "运行时依赖前置仅对新尝试强制)"}
+    elif candidate_sha is None:
+        return _fail("runtime_dependencies",
+                     "preissue_gate 需要 candidate_sha(候选 Commit A)"
+                     "以执行运行时依赖前置")
+    else:
+        rd = runtime_dependency_preflight(
+            repo=Path(repo), project_dir=Path(project_dir),
+            candidate_sha=candidate_sha, python=python)
+        report["checks"]["runtime_dependencies"] = rd
+        if not rd.get("ok"):
+            return _fail("runtime_dependencies",
+                         "; ".join(rd.get("problems", []))[:800])
 
     report["ok"] = True
     report["elapsed_ms"] = int((time.time() - t0) * 1000)

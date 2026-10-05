@@ -307,14 +307,32 @@ def _freeze_dev_root() -> Path:
     return Path(rl_curriculum.__file__).resolve().parents[2]
 
 
+#: A2 RuntimeClosure(qaf_v3 轮):只读候选 pinned worktree——固定检出
+#: 于当轮 Commit A 的 git worktree(由部署轮创建;证据分支持续推进
+#: 不影响 pin 的 HEAD)。release 解析 pin 优先,原两路径仅作回退;
+#: 严格性不变(HEAD==code_freeze_sha + freeze 路径 clean 仍强制)。
+R17_RELEASE_PIN_ROOT = Path("/home/cryptorl/release_pin_qaf_v3")
+
+
+def release_repo_candidates() -> tuple[Path, ...]:
+    """release repo 候选(单一来源;pin 优先,历史路径回退)。
+
+    r17_cli/provenance 的历史绑定读取与 dependencies 的 freeze
+    读取共用本函数,保证同一运行读同一 Git 权威树。
+    """
+    return (R17_RELEASE_PIN_ROOT,
+            Path("/mnt/f/trading/freqai-rl-audit"),
+            Path("F:/trading/freqai-rl-audit"))
+
+
 def _freeze_release_repo() -> Path:
-    for cand in (Path("/mnt/f/trading/freqai-rl-audit"),
-                 Path("F:/trading/freqai-rl-audit")):
+    for cand in release_repo_candidates():
         if (cand / ".git").exists():
             return cand
     raise RuntimeError(
         "release repo 不可达:R17 freeze 需要 git 权威树"
-        "(/mnt/f/trading/freqai-rl-audit 或 F:/trading/freqai-rl-audit)")
+        "(pin /home/cryptorl/release_pin_qaf_v3 或 "
+        "/mnt/f/trading/freqai-rl-audit 或 F:/trading/freqai-rl-audit)")
 
 
 def _scan_freeze_dir(root: Path) -> dict[str, dict[str, Any]]:
