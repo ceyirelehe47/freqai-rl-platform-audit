@@ -43,7 +43,9 @@ R17_ITERATION = "r17"
 # QAF 台账行被 §15 完备性门丢弃 → 校准阶段必败)。
 # A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 新尝试同属
 # R17 框架迭代(同一处方;不含 qaf_v2 会使 v2 台账行被完备性门丢弃)。
-R17_FRAMEWORK_ITERATIONS = ("r17", "r18", "r19", "qaf_v1", "qaf_v2")
+# A2 RuntimeClosure(qaf_v3):qaf_v3 同形登记(v2 已消费封口)。
+R17_FRAMEWORK_ITERATIONS = (
+    "r17", "r18", "r19", "qaf_v1", "qaf_v2", "qaf_v3")
 
 
 
