@@ -998,8 +998,9 @@ def preissue_gate(
             candidate_sha=candidate_sha, python=python)
         report["checks"]["runtime_dependencies"] = rd
         if not rd.get("ok"):
+            detail = rd.get("problems") or [rd.get("reason") or "未知原因"]
             return _fail("runtime_dependencies",
-                         "; ".join(rd.get("problems", []))[:800])
+                         "; ".join(str(d) for d in detail)[:800])
 
     report["ok"] = True
     report["elapsed_ms"] = int((time.time() - t0) * 1000)

@@ -483,3 +483,25 @@ def test_rd04_admission_issuer_passes_candidate_sha(tmp_path, monkeypatch):
     assert "runtime_dependencies" not in out, out[-600:]
     # 门后业务边界(批准原件缺失)为预期拒绝面
     assert proc.returncode in (0, 1, 96)
+
+
+def test_rd03_r17_cli_release_candidates_importable(tmp_path):
+    """R2-P0 回归:r17_cli 的 12 处 release_repo_candidates() 调用
+    必须有模块级名字(历史修复曾只写进函数内 import,audit 步
+    NameError 崩链而测试面全绿)。真实调用 _historical_binding。"""
+    repo, sha, pin, project = _build_fixture(tmp_path)
+    proc = subprocess.run(
+        [PY, "-c",
+         "import rl_curriculum.curriculum261_r17_cli as c; "
+         "print('NS_OK', c.release_repo_candidates()[0]); "
+         "b = c._historical_binding(); "
+         "print('BIND_OK', 'r10_design_plan_digest_expected' in b)"],
+        capture_output=True, text=True,
+        env={"PYTHONPATH": str(project / "src"),
+             "PYTHONDONTWRITEBYTECODE": "1",
+             "PATH": "/usr/bin:/bin", "HOME": "/home/cryptorl"},
+        cwd=project)
+    assert "NS_OK /home/cryptorl/release_pin_qaf_v3" in proc.stdout, (
+        proc.stdout + proc.stderr)[-500:]
+    assert "BIND_OK True" in proc.stdout, (
+        proc.stdout + proc.stderr)[-500:]

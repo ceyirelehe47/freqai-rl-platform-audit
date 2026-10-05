@@ -31,6 +31,9 @@ from pathlib import Path
 from rl_curriculum.curriculum261_qaf_attempt import (
     QAF_ATTEMPT_IDS,
 )
+from rl_curriculum.curriculum261_r17_dependencies import (  # noqa: E402
+    release_repo_candidates,
+)
 from typing import Any
 
 #: R17 启动基线 = R13 Commit B(诚实 FAIL 结果提交);§一 ancestry 语义。
@@ -730,6 +733,7 @@ def _r8_abort_binding(out_dir: Path) -> dict:
 def _code_freeze_sha(out_dir: Path) -> str:
     """读取并校验 code freeze(§6;正式数据开始前必须存在)。"""
     from rl_curriculum.curriculum261_r17_dependencies import (
+        release_repo_candidates,
         verify_r17_code_freeze,
     )
 

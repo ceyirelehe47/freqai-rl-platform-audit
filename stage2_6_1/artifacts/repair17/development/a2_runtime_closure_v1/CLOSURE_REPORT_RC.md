@@ -1,7 +1,7 @@
 # CLOSURE REPORT — RouteC_A2_RuntimeClosure_NewAttempt_v1（RD01–RD09）
 
 日期：2026-10-06 | 出口：**A2_RUNTIME_READY_PENDING_USER_APPROVAL**
-候选（分支 B）= `b3e3bffd56253575298dac36f2681d6bf55507ba`（tree `0091237f9366aba091a2dcaef9ac1b347e298207`；前候选 `2f3e7faa`/`61180756`/`8916ab9d`/`0cab6ec8` 为本轮迭代与 RcwGate1 修复轮，保留为祖先）；证据+文档 HEAD=`6087776c`（纯 artifacts，src/tests/runner 相对 2f3e7faa 零变化）。
+候选（分支 B）= `b3e3bffd56253575298dac36f2681d6bf55507ba`（tree `0091237f9366aba091a2dcaef9ac1b347e298207`；前候选 `2f3e7faa`/`61180756`/`8916ab9d`/`0cab6ec8` 为本轮迭代与 RcwGate1 修复轮，保留为祖先）；证据+文档 HEAD=`f5e27f91`(修复轮后)（纯 artifacts，src/tests/runner 相对 b3e3bffd 零变化）。
 
 ## RD01 失败保留
 旧 P2/D2/qaf_v1/qaf_v2 零触碰（`evidence/w1_audit/old_scene_identity.txt` 前后实测；旧 P admission `b465e5f1` 未变）；新根 P3/D3/PIN 与旧域不重叠；本轮零签发/零消费/零 launch/零科学计算。
@@ -19,10 +19,10 @@
 真实域：preflight_P3 ok=true（pin head==候选、572 dev files、零问题）+ `write_r17_code_freeze` 工程隔离写出成功（`evidence/runtime_verify/`）；隔离域 14 项正反例；科学依赖仍在真正叶处截停（哨兵位置未动）。
 
 ## RD06 新尝试无科学漂移
-qaf_v3：26 全新 namespace（与 v1/v2 逐名不相交断言）、迭代 `qprod_a_formal_v3`、注册表单一来源（CLI choices 自动扩展）、api recorder 匹配表首项、262 `A2RC_V1` 登记（仅 api.py 新 sha）；quota/rules/stop_mode/gate_set 与旧 A2 全等（计划不变量断言+真实构建器 `qbpl-46bb0062…`）。v2 消费不恢复（freshness 面未动）。
+qaf_v3：26 全新 namespace（与 v1/v2 逐名不相交断言）、迭代 `qprod_a_formal_v3`、注册表单一来源（CLI choices 自动扩展）、api recorder 匹配表首项、262 `A2RC_V1` 登记（仅 api.py 新 sha）；quota/rules/stop_mode/gate_set 与旧 A2 全等（计划不变量断言+真实构建器 `qbpl-0a16746c…`）。v2 消费不恢复（freshness 面未动）。
 
 ## RD07 最终部署/证据
-P3=668→765 文件（全 src 基座+候选投影+extras）、D3=完整部署根（runner/静态面/262 tests/report 65 件/历史 repair 面/vendor/data/configs）、PIN=worktree@2f3e7faa；三方对拍 **1190 全等**（`three_way_compare.json`）；**全收集 2987=2980P+7S/0F/0E**（run `r21_20261006_034116`，cwd=D3，record `ae203c41…`，verify ok=true）+ 同根 substance **rc=0**（plan digest `f5931ebd` claimed==recomputed）/错根 rc=2；262 适用=注册面变更（`A2RC_V1`，镜像两树同步），历史 240 passed 复用不重签。失败尝试 1–6 全归档（badprotocol/refused/collection_errors/3errors/103f/stale-record）。
+P3=668→765 文件（全 src 基座+候选投影+extras）、D3=完整部署根（runner/静态面/262 tests/report 65 件/历史 repair 面/vendor/data/configs）、PIN=worktree@b3e3bffd；三方对拍 **1190 全等**（`three_way_compare.json`）；**全收集 2987=2980P+7S/0F/0E**（run `r21_20261006_034116`，cwd=D3，record `50093853…`，verify ok=true）+ 同根 substance **rc=0**（plan digest `0091237f` claimed==recomputed）/错根 rc=2；262 适用=注册面变更（`A2RC_V1`，镜像两树同步），历史 240 passed 复用不重签。失败尝试 1–8 全归档（badprotocol/refused/collection_errors/3errors/103f/stale-record/2F-r20 恢复前/stale-record2）。
 
 ## RD08 日志/用量
 各次回归尝试唯一 out-dir+归档；执行器日志落证据根；无恢复件冒称现场日志（恢复件仅上一轮执行轮使用且已注明）。
