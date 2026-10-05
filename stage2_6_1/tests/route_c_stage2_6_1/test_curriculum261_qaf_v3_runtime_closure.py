@@ -505,3 +505,27 @@ def test_rd03_r17_cli_release_candidates_importable(tmp_path):
         proc.stdout + proc.stderr)[-500:]
     assert "BIND_OK True" in proc.stdout, (
         proc.stdout + proc.stderr)[-500:]
+
+
+def test_rd06_qaf_v3_seed_namespace_registered(tmp_path):
+    """R3 轮补面:qaf_v3 全部 26 namespace 必须进入 api 种子注册表
+    (CURRICULUM261_SEED_NAMESPACES;audit 步 generate_fit_bank 真实
+    消费 derive261_seed)。"""
+    repo, sha, pin, project = _build_fixture(tmp_path)
+    code = (
+        "from rl_curriculum.curriculum261_qaf_attempt import QAF3_ALL_NEW\n"
+        "import rl_curriculum.curriculum261_api as api\n"
+        "missing = [n for n in QAF3_ALL_NEW\n"
+        "           if n not in api.CURRICULUM261_SEED_NAMESPACES]\n"
+        "assert not missing, missing\n"
+        "s1 = api.derive261_seed(QAF3_ALL_NEW[0], 'cue', 'r1', 0, 1)\n"
+        "s2 = api.derive261_seed(QAF3_ALL_NEW[0], 'cue', 'r1', 0, 2)\n"
+        "assert s1 != s2\n"
+        "print('SEED_REG_OK', len(QAF3_ALL_NEW))")
+    proc = subprocess.run(
+        [PY, "-c", code], capture_output=True, text=True,
+        env={"PYTHONPATH": str(project / "src"),
+             "PYTHONDONTWRITEBYTECODE": "1",
+             "PATH": "/usr/bin:/bin", "HOME": "/home/cryptorl"},
+        cwd=project)
+    assert "SEED_REG_OK 26" in proc.stdout, (proc.stdout + proc.stderr)[-500:]

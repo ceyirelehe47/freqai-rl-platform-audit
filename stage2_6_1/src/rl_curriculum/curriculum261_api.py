@@ -658,7 +658,8 @@ CURRICULUM261_R17_NAMESPACES = (
     "preplan_v2c13_v2_eval_main_r17",
     "preplan_v2c13_v2_eval_validation_r17",
 ) + _R18_ATTEMPT_NAMESPACES + _R19_ATTEMPT_NAMESPACES + (
-    _QAF_ATTEMPT_NAMESPACES) + (_QAF_V2_ATTEMPT_NAMESPACES)
+    _QAF_ATTEMPT_NAMESPACES) + (_QAF_V2_ATTEMPT_NAMESPACES) + (
+    _QAF_V3_ATTEMPT_NAMESPACES)
 
 #: R17 正式资格面(数据入口四件套;§6.5)。R18 尝试按其 journal §11
 #: 处方("R17 永久结束,下一轮必须 R17 + 全新 namespace")以全新
