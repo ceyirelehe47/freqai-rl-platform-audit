@@ -23,9 +23,9 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 - D2 新 record:`0b1bd93f10a825d5790253ca177f4f7cbe6075fd975141f5bbf751f2d0b89355`(261 全收集 2963=2956 passed+7 skipped/0F/0E,run r21_20261005_132145,cwd=D2,commit d705c494)+ 同根 substance verify rc=0(r17sub-a2b0b30e7…,tree d9a19212bbea…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
-## 源码快照(包内 source_snapshots/,候选 90b3a44a git blob 原字节,10 文件含 curriculum261_r17_cli.py)
+## 源码快照(包内 source_snapshots/,候选 d705c494 git blob 原字节,10 文件含 curriculum261_r17_cli.py)
 
-qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / curriculum261_r17_cli.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha)
+qaf_v2_operator_entry.py / curriculum261_qaf_provenance_guard.py / qprod_formal_authority.py / r17_admission_issue.py / qprod_formal_level_a_entry.py / curriculum261_qprod_formal_levela.py / curriculum261_r17_workflow.py / curriculum261_r17_cli.py / test_curriculum261_qaf_v2_preissue_guard.py / test_curriculum261_qaf_v2_reviewclosure.py(索引含 blob sha 与部署 CR 投影 sha;全部 @d705c494)
 
 ## 保留限制
 
