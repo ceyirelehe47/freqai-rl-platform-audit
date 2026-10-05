@@ -30,4 +30,4 @@ gate2 终审 P0 已修复:D2 未来 A state 根陈旧 R17 运行态(自 P 全量
 
 ## 5. 批准请求(仅一次)
 
-请批准:以 Commit A `90b3a44abca514d642d5f6afbf00a3157209f2a5` / 计划 `qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,入口自动完成 配置→前置安装→同源验证→签发(守卫内建)→一次性 launch→收尾)。批准原文将按 statement digest 绑定进 qfap 原件。
+请批准:以 Commit A `90b3a44abca514d642d5f6afbf00a3157209f2a5` / 计划 `qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b` / qaf_v2 身份,经本轮交付的操作员入口执行**一次** A2(`--stop-after verify-formal-logs --model-update` 全链;命令序列见 RETURN 包 COMMANDS_APPENDIX,E1 配置激活/E2 prepare 前置安装(幂等)/E3 批准原件为手动前置步;E4 execute 自动完成 环境白名单→preissue 门→批准↔参数绑定门→首写前状态/证据全核(含只读同根实质核验)→签发(守卫内建)→一次性 launch→收尾(execute 不自动执行 E2))。批准原文将按 statement digest 绑定进 qfap 原件。
