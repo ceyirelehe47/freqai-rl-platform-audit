@@ -4,7 +4,7 @@
 
 ## 请批准(一次)
 
-以 **Commit A `2f3e7faad5aca77aed29eec3e4b70d35484f84fb`**(tree `f5931ebd27f3ce7b6a6bca742730d0d155ad96bd`)、尝试 **qaf_v3 / 迭代 qprod_a_formal_v3**、计划 **`qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760`**(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等)及包内全部冻结分项预算,执行**一次** A2(17 步权威链,stop=verify-formal-logs,model-update)。E1 配置激活/E2 prepare/E3 批准原件为手动前置步(批准原文到位后由操作员连续完成),E4 execute 自动完成:环境白名单→preissue 硬门(含**运行时静态依赖前置**)→批准↔参数绑定门→authority init→record-approval→issue-permit(守卫)→prereg→admission(守卫)→launch→收尾。
+以 **Commit A `b3e3bffd56253575298dac36f2681d6bf55507ba`**(tree `0091237f9366aba091a2dcaef9ac1b347e298207`)、尝试 **qaf_v3 / 迭代 qprod_a_formal_v3**、计划 **`qbpl-0a16746c4533122529dc4c2ca69dd211f5bcfa39095207302802b9af82a628d1`**(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等)及包内全部冻结分项预算,执行**一次** A2(17 步权威链,stop=verify-formal-logs,model-update)。E1 配置激活/E2 prepare/E3 批准原件为手动前置步(批准原文到位后由操作员连续完成),E4 execute 自动完成:环境白名单→preissue 硬门(含**运行时静态依赖前置**)→批准↔参数绑定门→authority init→record-approval→issue-permit(守卫)→prereg→admission(守卫)→launch→收尾。
 
 ## 本轮闭合(RuntimeClosure)
 
@@ -16,7 +16,7 @@
 | 隔离验证 | 14 项 RD03-RD06 正反例(缺件/错字节/错 HEAD/dirty/非 pin 解析/gate 首写前拒/注册表身份/api 接线)全绿;真实域 preflight_P3 ok=true+freeze 工程隔离写出成功 |
 | 部署与对拍 | P3/D3/PIN 三新根;三方对拍 blob→CR 投影→P3/D3 **1190 全等**;旧 P2/D2/qaf_v1/v2 现场零触碰 |
 | 回归 | 见 record(全收集,cwd=D3;历史失败尝试归档保留) |
-| 计划 | `qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760`(真实构建器,P3 内构建;不变量与旧 A2 全等) |
+| 计划 | `qbpl-0a16746c4533122529dc4c2ca69dd211f5bcfa39095207302802b9af82a628d1`(真实构建器,P3 内构建;不变量与旧 A2 全等) |
 
 ## 边界
 

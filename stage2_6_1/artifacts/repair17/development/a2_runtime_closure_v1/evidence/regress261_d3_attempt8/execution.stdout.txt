@@ -23,19 +23,19 @@
 ........................................................................ [ 55%]
 ........................................................................ [ 57%]
 ........................................................................ [ 60%]
-...........R17ALERT {"event":"t06","n":1,"utc":"2026-10-05T19:11:11Z","run_id":"run"}
-.R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T19:11:11Z","run_id":"run"}
+...........R17ALERT {"event":"t06","n":1,"utc":"2026-10-05T18:21:53Z","run_id":"run"}
+.R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T18:21:53Z","run_id":"run"}
 ............................................................ [ 62%]
 ........................................................................ [ 65%]
 ........................................................................ [ 67%]
 ........................................................................ [ 69%]
 ........................................................................ [ 72%]
-............R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T19:21:26Z","run_id":"run"}
+............R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T18:32:11Z","run_id":"run"}
 ............................................................ [ 74%]
 ........................................................................ [ 77%]
 ........................................................................ [ 79%]
 ........................................................................ [ 81%]
-........................................................................ [ 84%]
+..F................F.................................................... [ 84%]
 ........................................................................ [ 86%]
 ........................................................................ [ 89%]
 ........................................................................ [ 91%]
@@ -43,6 +43,79 @@
 ........................................................................ [ 96%]
 ........................................................................ [ 98%]
 ...................................                                      [100%]
+=================================== FAILURES ===================================
+__________ TestRealPipelineD01D04D06.test_v4_insufficient_coordinates __________
+
+self = <test_curriculum261_r25_cue_dev_entry.TestRealPipelineD01D04D06 object at 0x7605d61da6d0>
+mini_run = (PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0/mini_p...ers': 4, 'n_boot': 20000, ...}, ...}, ...}, PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_mini0/binding_53056.json'))
+
+    def test_v4_insufficient_coordinates(self, mini_run):
+        import importlib.util
+        v4_path = _DEPLOY_ROOT / "stage2_6_1_runner" / (
+            "r20_design_calc_v4.py")
+        if not v4_path.is_file():
+            v4_path = _DEPLOY_ROOT.parents[0] / (
+                "freqai-rl-audit") / "stage2_6_1" / "report" / (
+                "r20_design_calc_v4.py")
+        spec = importlib.util.spec_from_file_location("v4m", v4_path)
+        v4 = importlib.util.module_from_spec(spec)
+>       spec.loader.exec_module(v4)
+
+tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py:328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<frozen importlib._bootstrap_external>:936: in exec_module
+    ???
+<frozen importlib._bootstrap_external>:1073: in get_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <_frozen_importlib_external.SourceFileLoader object at 0x76050188a2d0>
+path = '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+<frozen importlib._bootstrap_external>:1130: FileNotFoundError
+_______ TestReaderBehaviorsB07B08.test_b08_primary_matches_v4_fixed_math _______
+
+self = <test_curriculum261_r25_cue_dev_entry.TestReaderBehaviorsB07B08 object at 0x7605d61dff50>
+two_coord_run = (PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0/mini_plan.json'), PosixPath('/tmp/pytest-of-cryptorl/pytest-0/r25_two0/out'))
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_b08_primary_matches_v4_fi0')
+
+    def test_b08_primary_matches_v4_fixed_math(self, two_coord_run,
+                                               tmp_path):
+        _, plan, out = two_coord_run
+        result_path = tmp_path / "r.json"
+        assert _run("cold-read", "--plan", str(plan),
+                    "--out-root", str(out),
+                    "--result", str(result_path)).returncode == 0
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        import importlib.util
+        v4_path = _DEPLOY_ROOT / "stage2_6_1_runner" / (
+            "r20_design_calc_v4.py")
+        if not v4_path.is_file():
+            v4_path = _DEPLOY_ROOT.parents[0] / (
+                "freqai-rl-audit") / "stage2_6_1" / "report" / (
+                "r20_design_calc_v4.py")
+        spec = importlib.util.spec_from_file_location("v4m2", v4_path)
+        v4 = importlib.util.module_from_spec(spec)
+>       spec.loader.exec_module(v4)
+
+tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py:853: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<frozen importlib._bootstrap_external>:936: in exec_module
+    ???
+<frozen importlib._bootstrap_external>:1073: in get_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <_frozen_importlib_external.SourceFileLoader object at 0x760503fe0650>
+path = '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/freqai-rl-audit/stage2_6_1/report/r20_design_calc_v4.py'
+
+<frozen importlib._bootstrap_external>:1130: FileNotFoundError
 =============================== warnings summary ===============================
 tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
   /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
@@ -79,4 +152,7 @@ tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detect
     ep.df['date'] += __import__('pandas').Timedelta('1d')
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-2980 passed, 7 skipped, 10 warnings in 2895.32s (0:48:15)
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py::TestRealPipelineD01D04D06::test_v4_insufficient_coordinates
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py::TestReaderBehaviorsB07B08::test_b08_primary_matches_v4_fixed_math
+2 failed, 2978 passed, 7 skipped, 10 warnings in 2930.05s (0:48:50)
