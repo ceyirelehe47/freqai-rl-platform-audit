@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import errno
 import json
 import os
 import subprocess
@@ -211,6 +212,40 @@ def harden_install_target(artifact_root: Path) -> Path:
             f"安装目标路径拒绝(首次写入前): {exc}") from exc
 
 
+def _open_no_follow(path: Path, *, exclusive: bool) -> int:
+    """RCF-01(R1 复审):最终文件对象零链接跟随写入。
+
+    O_NOFOLLOW:最终分量是符号链接(含悬空)→ELOOP 拒绝;
+    exclusive 模式用于一次性创建(O_CREAT|O_EXCL),非 exclusive
+    用于诊断报告的普通覆盖(仍不跟随链接、不截断链接目标)。
+    """
+    flags = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW
+    if exclusive:
+        flags |= os.O_EXCL
+    else:
+        # 非 exclusive 覆盖写必须截断:短报告覆盖长文件时残留
+        # 陈旧尾部会破坏 JSON(reviewer F1)。
+        flags |= os.O_TRUNC
+    try:
+        fd = os.open(str(path), flags, 0o644)
+    except FileExistsError:
+        raise
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.EMLINK):
+            raise ProvenanceGuardError(
+                f"目标文件 {path} 是符号链接(含悬空)——零跟随"
+                f"写入拒绝(不得经链接落到保护域/任意外部对象)") from exc
+        raise
+    return fd
+
+
+def _write_no_follow(path: Path, data: bytes, *,
+                     exclusive: bool = False) -> None:
+    fd = _open_no_follow(path, exclusive=exclusive)
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
+
+
 def install_to_target(
         artifact_root: Path, source: dict[str, Any], *,
         allow_replace_broken: bool = False) -> dict[str, Any]:
@@ -234,6 +269,12 @@ def install_to_target(
             (jp, source["json_bytes"], PROVENANCE_JSON_SHA256, "json"),
             (dp, source["digest_bytes"], PROVENANCE_DIGEST_SHA256,
              "digest")):
+        # RCF-01(R1 复审):最终文件对象的链接边界——lexists 捕获
+        # 悬空链接(is_file() 为 false 但链接在场),写入一律不跟随。
+        if os.path.lexists(path) and not path.is_file():
+            raise ProvenanceGuardError(
+                f"目标 {label} 件路径是符号链接/非普通文件"
+                f"(含悬空链接):{path};零跟随写入拒绝")
         if path.is_file():
             actual = _sha256(path.read_bytes())
             if actual != pinned:
@@ -267,10 +308,10 @@ def install_to_target(
             "中断恢复必须显式")
     root.mkdir(parents=True, exist_ok=True)
     if not jp.is_file():
-        jp.write_bytes(source["json_bytes"])
+        _write_no_follow(jp, source["json_bytes"], exclusive=True)
         actions.append("wrote:json")
     if not dp.is_file():
-        dp.write_bytes(source["digest_bytes"])
+        _write_no_follow(dp, source["digest_bytes"], exclusive=True)
         actions.append("wrote:digest")
     post = inspect_target(root)
     if not post["ready"]:
@@ -402,7 +443,14 @@ def preissue_gate(
     # RCF-01(复验观察补面):诊断报告落点与安装/验证报告同受
     # 路径约束——保护域/相对/别名路径拒绝,不在此写任何字节。
     if report_out is not None:
-        harden_install_target(Path(report_out).parent)
+        _rp = Path(report_out)
+        harden_install_target(_rp.parent)
+        # RCF-01(R1 复审):报告文件自身的链接边界——链接(含指向
+        # 保护域原件)→ 拒绝,不覆盖链接目标。
+        if os.path.lexists(_rp) and not _rp.is_file():
+            raise ProvenanceGuardError(
+                f"诊断报告路径 {_rp} 是符号链接/非普通文件(含指向"
+                f"历史原件的链接):零跟随写入拒绝")
     report: dict[str, Any] = {
         "format": GUARD_FORMAT,
         "phase": "preissue_gate",
@@ -421,9 +469,10 @@ def preissue_gate(
         report["refusal"] = f"{key}: {reason}"
         report["elapsed_ms"] = int((time.time() - t0) * 1000)
         if report_out is not None:
-            Path(report_out).write_text(
-                json.dumps(report, ensure_ascii=False, indent=1),
-                encoding="utf-8")
+            _write_no_follow(
+                Path(report_out),
+                json.dumps(report, ensure_ascii=False,
+                           indent=1).encode("utf-8"))
         return report
 
     # 1) 环境白名单:签发时不得携带根重定向(操作员不得手写)。
@@ -495,9 +544,10 @@ def preissue_gate(
     report["ok"] = True
     report["elapsed_ms"] = int((time.time() - t0) * 1000)
     if report_out is not None:
-        Path(report_out).write_text(
-            json.dumps(report, ensure_ascii=False, indent=1),
-            encoding="utf-8")
+        _write_no_follow(
+            Path(report_out),
+            json.dumps(report, ensure_ascii=False,
+                       indent=1).encode("utf-8"))
     return report
 
 

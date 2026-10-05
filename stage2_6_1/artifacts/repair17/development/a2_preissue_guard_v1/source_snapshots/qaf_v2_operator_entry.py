@@ -398,6 +398,54 @@ def cmd_execute(args: argparse.Namespace) -> int:
             "one_shot_writes": 0,
         }, ensure_ascii=False))
         return 96
+    # RCF-02(R1 复审):首个一次性写之前执行完整同根实质核验——
+    # 复用既有只读核验器(admission substance verify;不新建宽松
+    # 检查)。临时 prereg 落 tempfile(非 authority 面,非一次性
+    # 资源);任何 rc!=0 / 不可解析 = 拒绝,零一次性写。admission
+    # 签发器内的防御性重核保留。
+    import tempfile
+    _tree_digest = None
+    _pv_argv = [py, "-m",
+                "rl_curriculum.curriculum261_r17_admission_substance",
+                "verify", "--repo", str(repo),
+                "--commit-a", args.code_freeze_sha,
+                "--deploy-root", str(deploy_root)]
+    with tempfile.TemporaryDirectory(
+            prefix="qaf2_prepermit_verify_") as _td:
+        _pre = {
+            "admission_id": "PRE-PERMIT-READONLY-VERIFY",
+            "iteration": roots["iteration"],
+            "plan_digest": args.plan_digest,
+            "plan_digest_method": args.plan_digest_method,
+            "authorization": (
+                "NOT_AN_AUTHORIZATION: read-only same-root "
+                "pre-permit verification (operator internal)"),
+            "regression_evidence": str(
+                Path(args.regression_evidence).resolve()),
+            "deploy_state_root": str(state_root),
+            "formal_attempt": args.attempt,
+        }
+        _pre_path = Path(_td) / "prereg_ro.json"
+        _pre_path.write_text(
+            json.dumps(_pre, ensure_ascii=False, indent=1),
+            encoding="utf-8")
+        _pv_argv += ["--preregistration", str(_pre_path)]
+        _pv_env = dict(os.environ)
+        _pv_env["PYTHONPATH"] = str(
+            Path(deploy_root) / "src") + (
+            os.pathsep + _pv_env["PYTHONPATH"]
+            if _pv_env.get("PYTHONPATH") else "")
+        _pv = subprocess.run(_pv_argv, cwd=str(deploy_root),
+                             env=_pv_env, capture_output=True,
+                             text=True, timeout=600)
+    if _pv.returncode != 0:
+        print(json.dumps({
+            "refused": ("首 permit 写前完整同根核验失败"
+                        f"(rc={_pv.returncode}): "
+                        + (_pv.stdout or _pv.stderr)[-600:]),
+            "one_shot_writes": 0,
+        }, ensure_ascii=False))
+        return 96
     # 2) authority init(create-only;在场跳过)
     if not (authority / "authority_identity.json").is_file():
         r = subprocess.run(

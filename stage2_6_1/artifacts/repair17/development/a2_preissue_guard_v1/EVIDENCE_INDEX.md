@@ -1,10 +1,11 @@
 # RC 轮证据索引(仓库不可变路径;归档不入包)
 
-最终候选 90b3a44abca514d642d5f6afbf00a3157209f2a5 | 证据 HEAD 见 DELIVERY_RECEIPT
+最终候选 d705c494b031823570a90deeed891bcbe763d1d9 | 证据 HEAD 见 DELIVERY_RECEIPT
 
 | 证据 | 仓库路径(stage2_6_1/artifacts/repair17/development/a2_preissue_guard_v1/ 下) | 首次提交 |
 |---|---|---|
-| 最终 261 record ff8040fc(run r21_20261005_065335,commit 90b3a44a) | evidence/regress261_d2/ | 本轮(见 git log --follow) |
+| 最终 261 record 0b1bd93f(run r21_20261005_132145,commit d705c494) | evidence/regress261_d2/ | 本轮(见 git log --follow) |
+| R1 轮 record ff8040fc(commit 90b3a44a) | evidence/regress261_d2_r2_90b3a44a/ | 1364953b 系 |
 | R4 record a102f967(commit 9d735c8c) | evidence/regress261_d2_r5_9d735c8c/ | 1364953b 系 |
 | RCF 前 record 864cc48e(commit 513e75e3) | evidence/regress261_d2_rcf_513e75e3/ | e5191881 系 |
 | RC 首轮 record 7b4b2be2(commit 8c160d0a) | evidence/regress261_d2_rc_gate1_8c160d0a/ | 9a8d95f0 |

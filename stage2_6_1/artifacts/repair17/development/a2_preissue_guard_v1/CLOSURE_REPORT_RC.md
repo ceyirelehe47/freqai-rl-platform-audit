@@ -1,6 +1,6 @@
 # QAFv2 ReviewClosure RC01–RC08 收口报告(RouteC_QAFv2_ReviewClosure_v1)
 
-日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `90b3a44abca514d642d5f6afbf00a3157209f2a5` | 前候选 `9d735c8c…`(R4)、`513e75e3…`(RC 轮)等(未 amend,保留为祖先)
+日期 2026-10-04 | 候选(分支 B,证实缺陷修复)= `d705c494b031823570a90deeed891bcbe763d1d9` | 前候选 `90b3a44a…`(R1 轮)、`9d735c8c…`(R4)、`513e75e3…`(RC 轮)等(未 amend,保留为祖先)
 reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_APPROVAL`(ChatGPT 完整终验未签,不代签)
 
 ## 结论总表
@@ -18,9 +18,9 @@ reviewer 线:dsv4.1f(同线续验)| 出口目标:`A2_RETRY_READY_PENDING_USER_AP
 
 ## 新证据绑定(分支 B 后)
 
-- Commit A:`90b3a44abca514d642d5f6afbf00a3157209f2a5`(parent=1364953b;变更=RCF-01/02/03+R5 生产根守卫扩展到手工 env 哨兵+文档消歧)
-- 新计划 digest:`qbpl-136cade5042ad66b9677c022a9290d4498d966a827052eaeac16a0a2a3ab7f6b`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
-- D2 新 record:`ff8040fc00bb55326391042bda7c98b3df2aa8d30314d6b2b57bb747e091d69e`(261 全收集 2956=2949 passed+7 skipped/0F/0E,run r21_20261005_065335,cwd=D2,commit 90b3a44a)+ 同根 substance verify rc=0(r17sub-4ed46d7cc1218a1…,tree 1bc17f33d5e5…)+ 错根 rc=2
+- Commit A:`d705c494b031823570a90deeed891bcbe763d1d9`(parent=97f81a6d;变更=RCF-01 文件链接边界(O_NOFOLLOW/lexists)/RCF-02 首写前完整同根核验/RCF-03 哨兵移位+预算门根查找接线修复+F1 O_TRUNC+F2 测试真实字段)
+- 新计划 digest:`qbpl-212a30ef617b70195128449e316e3d44d2aa9b5138ba9666717025c0282a9523`(真实构建器;与旧 A2 差异=code_freeze_sha/iteration/code_identity 4 文件身份哈希,quota/rules/stop/gate_set 全等——evidence/rc_closure/plan_diff.json)
+- D2 新 record:`0b1bd93f10a825d5790253ca177f4f7cbe6075fd975141f5bbf751f2d0b89355`(261 全收集 2963=2956 passed+7 skipped/0F/0E,run r21_20261005_132145,cwd=D2,commit d705c494)+ 同根 substance verify rc=0(r17sub-a2b0b30e7…,tree d9a19212bbea…)+ 错根 rc=2
 - 部署:P2/D2 重建;三方对拍 625 全等;保护面(旧 P/D)前后一致
 
 ## 源码快照(包内 source_snapshots/,候选 90b3a44a git blob 原字节,10 文件含 curriculum261_r17_cli.py)
