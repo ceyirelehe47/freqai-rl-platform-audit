@@ -5,8 +5,8 @@
 
 ## 1. 本次到底运行了什么
 
-- 用户批准（§1603，omp 会话，sha256 `724d9fff…`，同绑定复用）→ E1 配置激活（`289f1ccb…`）→ E2 prepare（幂等 + 同源 `r17gtrec-3112e5de…` ok）→ E3 批准原件（`qfap-fb6a072a…`，`user_direct_approval`）→ E4 execute。
-- E4 前两次尝试在**首一次性写前**被绑定门拒绝（approved 缺 3 字段；approval_source.kind 错）——rc96，`one_shot_writes=0`，零消耗（日志 `e4_attempt1_refused_missing_fields.log`）。
+- 用户批准（§1603，omp 会话 user 消息，2026-10-05，sha256 `724d9fff…`；恢复副本 `user_approval_statement_20261005.recovered.txt` 同 sha，来源=会话 transcript）→ E1 配置激活（`289f1ccb…`）→ E2 prepare（**本轮实际输出**=幂等 installed=false/actions=[] + 同源 `r17gtrec-3112e5de…` ok，`e1_e2/prepare_output_20261005T1020Z.recovered.txt`；`e1_e2/install.json` 为 R3 安装点原始记录（同字节于 rc_closure 旧件），非本轮输出）→ E3 批准原件（`qfap-fb6a072a…`，`user_direct_approval`）→ E4 execute。
+- E4 前两次尝试在**首一次性写前**被绑定门拒绝（take1 approved 缺 3 字段；take2 `approval_source.kind` 应为 `user_direct_approval`）——均 rc96，`one_shot_writes=0`，零消耗。take1 有现场日志 `e4_attempt1_refused_missing_fields.log`；take2 现场日志被 take3 重定向覆盖，恢复文本 `e4_attempt2_refused_approval_source.recovered.log`（来源=omp 会话 transcript，非现场原字节）。
 - 第三次全门通过：完整同根核验 → authority init → record-approval → **permit `qppm-formal-09528745505f936b`**（消费 10:29:45Z）→ prereg → **admission `qaf-v2-a96bedea-a2`**（消费 10:31:07Z）→ launch。
 - 链执行（17 步权威序）：
   - `provenance-verify` **PASS**
@@ -27,6 +27,10 @@
 
 audit 步 freeze 面以 **cwd=P2**（入口树）解析环境三件套；`environment.yml`/`requirements-lock.txt` 在 P2 缺失（D2 根与旧 P 均有，旧 P sha `e7a0850e`/`4e727d3d`；部署脚本只拷入 D2）。R0–R3 十轮工程验收均在隔离沙箱/回归域，未以真实 P2 cwd 跑过 audit 冻结面，故未暴露。属部署面遗漏，非冻结代码缺陷。
 
+## 3.5 绑定注记
+
+prereg/admission 的 `authorization` 字段为操作层自由文本，其内嵌 `(approval qfap-06b072824a45e0eb…)` 是 **take2 被拒修订版**的摘要（与终版仅 approval_source.kind 不同）；生效绑定以批准原件与 permit `bound_approval_digest` = `qfap-fb6a072a…` 为准（reviewer 已用冻结代码复算证实两者关系）。
+
 ## 4. 保护面
 
 旧 P admission `b465e5f1…` 未变；18:00 后旧 P 零新文件；qaf_v1 现场原样；B/教学/C3/资金零触碰；未清账/解锁/换 seed/修冻结代码。
@@ -37,7 +41,7 @@ audit 步 freeze 面以 **cwd=P2**（入口树）解析环境三件套；`enviro
 
 ## 6. 证据
 
-冷拷 `…/qaf_v2_a2_execution_v1/d_side_originals/`（41 件：state 账本/中止/锁、formal 根预算门/清单/determinism 三件/chain_logs、authority 四件、prep 批准、admission 根文件、激活配置）+ `e4_execute_stdout.log`（operator 全输出）+ `e4_attempt1_refused…log` + `e1_e2/` + `e5_final_state_audit.json`（逐项摘要，`81567938…`）。原件在 D2 原位未动。
+冷拷 `d_side_originals/`（**41 件**：state 账本/中止/锁、formal 根预算门/清单/determinism 三件/chain_logs/reconciliation digest、authority 四件、prep 批准、admission 根文件+**admission 签发日志** `r17_admission_issued.jsonl`、激活配置、**环境三件套证据** environment.yml/requirements-lock.txt（部署输入，与旧 P 同字节））+ `e4_execute_stdout.log` + 两 take 拒绝日志（take1 现场/take2 恢复）+ `e1_e2/`（本轮 prepare 输出恢复件+安装点原始记录）+ `user_approval_statement_20261005.recovered.txt` + `e0_preflight/e0_prerun_snapshot.json` + `e5_final_state_audit.json`（`81567938…`）。证据目录合计 50 文件；原件在 D2 原位未动。
 
 ## 7. EX01–EX10 自验
 

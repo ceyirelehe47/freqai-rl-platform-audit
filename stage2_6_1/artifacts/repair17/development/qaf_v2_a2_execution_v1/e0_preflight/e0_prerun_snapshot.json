@@ -1,0 +1,28 @@
+{
+ "format": "cur261-qaf-v2-a2-e0-prerun-snapshot-v1",
+ "recovered_utc": "2026-10-05",
+ "provenance": "omp 会话 transcript 恢复(E0 预检实际输出,运行前只读;原始终端输出未落盘,此为会话记录整理,逐值与当时实读一致)",
+ "checked_utc_approx": "2026-10-05T10:14-10:17Z (E4 之前)",
+ "one_shot_resources_prerun": {
+  "D2/.r17_formal_admission.json": "absent",
+  "D2/qprod_deploy_config.json": "absent",
+  "D2/authority/": "absent",
+  "D2/artifacts/formal_a_qaf_v2/state/": "absent",
+  "D2/artifacts/route_c_stage2_6_1_repair17/state/": "absent (R17-state-clean)",
+  "D2/r17_admission_issued.jsonl": "absent (journal-absent)"
+ },
+ "install_target_prerun": {
+  "D2/artifacts/formal_a_qaf_v2/": [
+   "gate_topology_provenance_verify.json",
+   "gate_topology_reconciliation.json",
+   "gate_topology_reconciliation_digest.txt"
+  ],
+  "note": "R3 W4 prepare 已安装的钉死 provenance(幂等面)"
+ },
+ "git_prerun": {"head": "37c5c164af82e10bacea00cf361e8a81a4764e83", "src_tests_runner_status": "clean"},
+ "plan_digest_stored": "qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5",
+ "post_run_comparison": {
+  "note": "运行后对拍见 e5_final_state_audit.json(protection_faces);两时点间唯一新增=D2 授权面写入+P2 无写入+旧 P 零变化",
+  "old_P_admission_sha256": "b465e5f17a651d0a…(9 月值,前后一致)"
+ }
+}
