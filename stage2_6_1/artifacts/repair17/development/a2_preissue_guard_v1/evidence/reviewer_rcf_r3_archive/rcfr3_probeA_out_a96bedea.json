@@ -1,0 +1,45 @@
+{
+ "probe": "A_report_writer",
+ "cli_sha256": "3047702dda71e0b441cfbfd0adecf35fa4fe2f779f03db4b8607408fd71035ca",
+ "guard_sha256": "7c4a4ba6df77eae5998b984710d5a26467b4b65b76cfa7f916a7c32d17cbbdfa",
+ "rows": [
+  {
+   "case": "c1_plain_new",
+   "rc": 0,
+   "report_is_symlink": false,
+   "pass": true,
+   "stored_digest": "r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d",
+   "size": 230,
+   "stdout_tail": "[provenance-verify] pass=True stored=r17gtrec-3112e5deb863a... recomputed=r17gtrec-3112e5deb863a...",
+   "stderr_tail": ""
+  },
+  {
+   "case": "c2_existing_symlink",
+   "rc": 96,
+   "historical_unchanged": true,
+   "report_still_symlink": true,
+   "refusal_text": true,
+   "stdout_tail": "[provenance-verify] 拒绝: 验证报告路径是符号链接(/home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeA/c2_link/art/gate_topology_provenance_verify.json);不跟随、不覆盖历史原件"
+  },
+  {
+   "case": "c3_dangling_symlink",
+   "rc": 96,
+   "victim_dir_entries": [],
+   "report_still_symlink": true,
+   "stdout_tail": "[provenance-verify] 拒绝: 验证报告路径是符号链接(/home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeA/c3_dangling/art/gate_topology_provenance_verify.json);不跟随、不覆盖历史原件"
+  },
+  {
+   "case": "c4_long_to_short",
+   "rc": 0,
+   "size_before": 80260,
+   "size_after": 230,
+   "parse_ok": true,
+   "pass": true
+  },
+  {
+   "case": "c5_normal_rerun",
+   "rc": 0,
+   "parse_ok": true
+  }
+ ]
+}

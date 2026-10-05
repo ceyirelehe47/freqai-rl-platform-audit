@@ -1,0 +1,76 @@
+{
+ "probe": "B_prepare_preissue",
+ "operator_sha256": "c19c0914f36fcae5f3658767e05e35ae4b65b80a74b740b51569e0861e495441",
+ "guard_sha256": "7c4a4ba6df77eae5998b984710d5a26467b4b65b76cfa7f916a7c32d17cbbdfa",
+ "rows": [
+  {
+   "case": "b1_prepare_fresh",
+   "rc": 0,
+   "report_is_file": true,
+   "report_pass": true,
+   "install_actions": [
+    "wrote:json",
+    "wrote:digest"
+   ],
+   "stdout_tail": "392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d\",\n  \"stored_digest\": \"r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d\"\n },\n \"one_shot_writes\": 0,\n \"business_leaf_calls\": 0\n}"
+  },
+  {
+   "case": "b1b_prepare_rerun",
+   "rc": 0,
+   "install_idempotent": true,
+   "report_pass": true
+  },
+  {
+   "case": "b2_prepare_existing_link",
+   "rc": 2,
+   "historical_unchanged": true,
+   "report_still_symlink": true,
+   "verify_ok_false": true,
+   "mentions_symlink_refusal": true
+  },
+  {
+   "case": "b4_preissue_gate_existing_link",
+   "rc": 2,
+   "historical_unchanged": true,
+   "mentions_same_source_verify": true,
+   "stdout_tail": "me_source_verify\": {\n   \"ok\": false,\n   \"reason\": \"verifier_rc_nonzero\"\n  }\n },\n \"one_shot_writes\": 0,\n \"business_leaf_calls\": 0,\n \"ok\": false,\n \"refusal\": \"same_source_verify: verifier_rc_nonzero\",\n \"elapsed_ms\": 1954\n}"
+  },
+  {
+   "case": "b4b_preissue_fail_report_out",
+   "rc": 2,
+   "report_out_written": true,
+   "report_out_ok": false,
+   "stdout_tail": "\n   \"ok\": false,\n   \"reason\": \"verifier_rc_nonzero\"\n  }\n },\n \"one_shot_writes\": 0,\n \"business_leaf_calls\": 0,\n \"ok\": false,\n \"refusal\": \"same_source_verify: verifier_rc_nonzero\",\n \"elapsed_ms\": 2058\n}",
+   "stderr_tail": "",
+   "historical_unchanged": true
+  },
+  {
+   "case": "b3_prepare_dangling_link",
+   "rc": 2,
+   "victim_dir_entries": [],
+   "report_still_symlink": true
+  },
+  {
+   "case": "b5_preissue_green_normal_report_out",
+   "rc": 0,
+   "report_out_ok": true,
+   "same_source_verify_ok": true
+  },
+  {
+   "case": "b6_preissue_report_out_symlink",
+   "rc": 3,
+   "historical_unchanged": true,
+   "refusal_json": true,
+   "stdout_tail": "{\"refused\": \"目标文件 /home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeB/b6_report.json 是符号链接(含悬空)——零跟随写入拒绝(不得经链接落到保护域/任意外部对象)\", \"one_shot_writes\": 0, \"business_leaf_calls\": 0}"
+  },
+  {
+   "case": "b7_install_member_dangling",
+   "rc": 1,
+   "victim_dir_entries": [],
+   "art_entries": [
+    "gate_topology_reconciliation.json"
+   ],
+   "refusal_text": true
+  }
+ ]
+}

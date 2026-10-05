@@ -1,0 +1,51 @@
+{
+ "probe": "D_binding",
+ "rows": [
+  {
+   "case": "trees",
+   "commit_x": "e897a6b8ca2ba4f918676dec4a69224862f93b0f",
+   "tree_x": "625ef1bf5c283ee8a4c09bd00b0996287787a7d6",
+   "commit_x2": "2d47502e7e8d05dbee83fb70a808b8fb8be32617",
+   "tree_x2": "625ef1bf5c283ee8a4c09bd00b0996287787a7d6",
+   "x2_tree_equals_x": true,
+   "commit_x3": "743db2683b5fb02f16bfb6e3ae48ad4e84ad2a7a",
+   "tree_x3": "0b854b66177b622c6ae167a0c8304cdc45d599c0",
+   "x3_tree_equals_x": false
+  },
+  {
+   "case": "manual_verify_x2_same_tree",
+   "rc": 0,
+   "out_head": "{\"substance\": {\"format\": \"cur261-r17-admission-substance-v1\", \"plan_digest_claimed\": \"625ef1bf5c283ee8a4c09bd00b09962877"
+  },
+  {
+   "case": "authority_x2_same_tree",
+   "rc": 0,
+   "permits": [
+    "qprod_permit_level_a_qprod_a_formal_v2.json"
+   ],
+   "stdout_tail": "b2e3eb3176\", \"permit_digest\": \"qppm-3843e6cc36f654d9698bb2fee62b756b0b1cbf8c018223303b10732c73f0b7c9\", \"bound_approval_digest\": \"qfap-51cffbbdeccc9488a619ce75e34abf4d032291b08590d8a8bd8daa3ce0615601\"}"
+  },
+  {
+   "case": "manual_verify_x3_issuer_tree",
+   "rc": 0,
+   "out_head": "{\"substance\": {\"format\": \"cur261-r17-admission-substance-v1\", \"plan_digest_claimed\": \"0b854b66177b622c6ae167a0c8304cdc45"
+  },
+  {
+   "case": "authority_x3_issuer_tree",
+   "rc": 1,
+   "permits": [
+    "qprod_permit_level_a_qprod_a_formal_v2.json"
+   ],
+   "stdout_tail": "[issue-permit] 许可已存在(签发一次性): /home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeD/dom/deploy/authority/qprod_permit_level_a_qprod_a_formal_v2.json"
+  },
+  {
+   "case": "control_true_positive",
+   "rc": 1,
+   "permits": [
+    "qprod_permit_level_a_qprod_a_formal_v2.json"
+   ],
+   "permit_binds_commit": "e897a6b8ca2ba4f918676dec4a69224862f93b0f",
+   "stdout_tail": "[issue-permit] 许可已存在(签发一次性): /home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeD/dom/deploy/authority/qprod_permit_level_a_qprod_a_formal_v2.json"
+  }
+ ]
+}

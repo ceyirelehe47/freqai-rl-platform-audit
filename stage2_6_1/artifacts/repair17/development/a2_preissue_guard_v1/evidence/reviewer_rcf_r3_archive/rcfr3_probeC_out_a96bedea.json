@@ -1,0 +1,212 @@
+{
+ "probe": "C_direct_issue",
+ "authority_sha256": "04170fe376dc73b9f1d521b21c519bccc9472311f4729f2acd0fdb08e3adfe28",
+ "domain": {
+  "commit_a": "e36d030efd10e57d4605cff655396da44a0650b4",
+  "record": "/home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeC/dom/run/regression_evidence_v3_record.json",
+  "record_format": "cur261-r17-candidate-regression-evidence-v6"
+ },
+ "rows": [
+  {
+   "case": "N1_missing_params",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"attempt=qaf_v2 直接签发必须提供 --regression-evidence/--code-freeze-sha/--plan-digest(首 permit 写前完整同根核验;不得以缺参绕过)\", \"one_shot_writes\": 0}",
+   "mentions_precheck": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N2_record_file_missing",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_evidence_missing\\n\", \"one_shot_writes\": 0}",
+   "mentions_missing": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N3_wrong_cwd",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_collection_run_cwd_not_deploy_root\\n\", \"one_shot_writes\": 0}",
+   "mentions_cwd": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N3b_junit_missing",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_junit_missing:missing_junit.xml\\n\", \"one_shot_writes\": 0}",
+   "mentions_junit_missing": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N3c_junit_tampered",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_junit_sha_mismatch:tampered_junit.xml\\n\", \"one_shot_writes\": 0}",
+   "mentions_sha_mismatch": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N4_deploy_drift",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_import_surface_deploy_mismatch:stage2_6_1/src/rl_curriculum/__init__.py\\n\", \"one_shot_writes\": 0}",
+   "mentions_deploy": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N5_wrong_candidate_repo",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): commit_a_tree_unavailable\\n\", \"one_shot_writes\": 0}",
+   "mentions_tree_unavailable": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N6_wrong_plan_digest",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): plan_digest_mismatch\\n\", \"one_shot_writes\": 0}",
+   "mentions_plan_digest": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "N7_record_commit_drift",
+   "rc": 96,
+   "stdout_tail": "{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_evidence_commit_unbound\\n\", \"one_shot_writes\": 0}",
+   "mentions_commit_unbound": true,
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "V0_same_verifier_manual_positive",
+   "rc": 0,
+   "output_head": "{\"substance\": {\"format\": \"cur261-r17-admission-substance-v1\", \"plan_digest_claimed\": \"625ef1bf5c283ee8a4c09bd00b0996287787a7d6\", \"plan_digest_method\": \"git_tree_digest\", \"plan_digest_recomputed\": \"625",
+   "snap": {
+    "permits": [],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "P0_valid_positive",
+   "rc": 0,
+   "stdout_tail": "_a_qprod_a_formal_v2.json\", \"permit_id\": \"qppm-formal-6113c24d3c152b05\", \"permit_digest\": \"qppm-1762c1045f7caa97e44205f01f2a3ebf05d34802a05ecd32ade13d5e1628d242\", \"bound_approval_digest\": \"qfap-43485cd00b8b64186397de9f0f70f36a76f2d8faaef7b159d64afbf8621205f0\"}",
+   "permit_count": 1,
+   "permit_iteration": "qprod_a_formal_v2",
+   "permit_approval_digest_match": true,
+   "permit_digest_selfcheck": true,
+   "snap": {
+    "permits": [
+     "qprod_permit_level_a_qprod_a_formal_v2.json"
+    ],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json",
+     "qprod_permit_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  },
+  {
+   "case": "P1_repeat_create_only",
+   "rc": 1,
+   "stdout_tail": "[issue-permit] 许可已存在(签发一次性): /home/cryptorl/tmp_a2r2/rcf_r3_review_work/probeC/dom/deploy/authority/qprod_permit_level_a_qprod_a_formal_v2.json",
+   "permit_count": 1,
+   "refusal_text": true,
+   "snap": {
+    "permits": [
+     "qprod_permit_level_a_qprod_a_formal_v2.json"
+    ],
+    "authority_entries": [
+     "authority_identity.json",
+     "qprod_formal_approval_level_a_qprod_a_formal_v2.json",
+     "qprod_permit_level_a_qprod_a_formal_v2.json"
+    ],
+    "admission_file": false,
+    "issuance_log": false,
+    "state_entries": []
+   }
+  }
+ ]
+}

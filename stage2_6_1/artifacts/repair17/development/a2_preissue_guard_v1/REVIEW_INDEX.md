@@ -47,3 +47,12 @@ P3(计数措辞)已在 6a4ea870 修复(guard+7 既有=8 文件 222 全绿;review
 | R2 修复复验(d705c494) | **PASS**(F1 精确 668B 截断;F2 reason=cwd_not_deploy_root;P1 14/14+P1B 3/3+P2 9/9+P4 7/7;closure 26/26+guard/launch 67/67;部署树 blob 相等) | reverify_d705c494.log |
 
 候选演进续(R2):90b3a44a→eca28ea1(RCF-01 文件链接/RCF-02 首写前完整同核/RCF-03 哨兵移位+预算门根查找接线)→**d705c494(F1/F2;最终候选)**;最终 record 0b1bd93f(run r21_20261005_132145,2963=2956P+7S)。
+
+## RCF R3 轮(ChatGPT R2 复审 FAIL→同任务修复;dsv4.1f 线 RcfR3Gate1)
+
+| 阶段 | 结论 | 关键证据(local/rcf_r3_review/→已归档 evidence/reviewer_rcf_r3_archive/,15 件) |
+|---|---|---|
+| R3 gate1(候选 af5c9d86) | incorrect(1×P2:直接签发核验候选未绑定批准候选;probe D 同 tree 空提交/异 tree 提交可通过核验) | REVIEW_NOTES_R3;probeA-D 原件 |
+| R3 修复复验(a96bedea) | **PASS**(绑定门 `_cfs != approved.code_freeze_sha → rc96 零写` 先于核验;X2/X3 拒、正例恰 1 permit、重复 rc1、面无回退 probe A/B/C 行级一致;pytest 19+2) | probeA-D_out_a96bedea.json;pytest_subset_a96bedea.log |
+
+R3 闭合:R2-01 固定报告 lexists+O_NOFOLLOW\|O_TRUNC;R2-02 直接 issue-permit 共享 pre_permit_substance_verify(--candidate-repo)+候选绑定门。候选演进:…→d705c494→af5c9d86(R3 两工作面)→**a96bedea(绑定门;最终候选)**。
