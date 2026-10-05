@@ -101,13 +101,16 @@ def _build_fixture(tmp_path, *, pin_at="candidate"):
                ).is_dir()
            else proj_base / "stage2_6_1" / "artifacts"
            / "route_c_stage2_6_1_repair10")
-    for rel, origin in (
-            ("report/r20_design_calc_v4.py", rep / "r20_design_calc_v4.py"),
+    #: repo 路径=真实 git 布局(artifacts/repair10)——与
+    #: GIT_BACKED_MAP/真实仓一致;项目根映射在 project 构建后落。
+    for repo_rel, origin in (
+            ("report/r20_design_calc_v4.py",
+             rep / "r20_design_calc_v4.py"),
             ("report/r20_design_calc_v4.json",
              rep / "r20_design_calc_v4.json"),
-            ("artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json",
+            ("artifacts/repair10/r10_design_plan.json",
              r10 / "r10_design_plan.json")):
-        dst = repo / "stage2_6_1" / rel
+        dst = repo / "stage2_6_1" / repo_rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(origin, dst)
     _run([GIT, "add", "-A"], cwd=repo)
@@ -148,11 +151,16 @@ def _build_fixture(tmp_path, *, pin_at="candidate"):
                 continue
             rel = f.relative_to(repo / _GIT_PREFIXED[d])
             _copy_projected(f, project / d / rel)
-    for rel in ("report/r20_design_calc_v4.py",
-                "report/r20_design_calc_v4.json",
-                "artifacts/route_c_stage2_6_1_repair10/"
-                "r10_design_plan.json"):
-        _copy_projected(repo / "stage2_6_1" / rel, project / rel)
+    for repo_rel, proj_rel in (
+            ("report/r20_design_calc_v4.py",
+             "report/r20_design_calc_v4.py"),
+            ("report/r20_design_calc_v4.json",
+             "report/r20_design_calc_v4.json"),
+            ("artifacts/repair10/r10_design_plan.json",
+             "artifacts/route_c_stage2_6_1_repair10/"
+             "r10_design_plan.json")):
+        _copy_projected(repo / "stage2_6_1" / repo_rel,
+                        project / proj_rel)
     # 已接受原件(旧 P 实测字节):env 三件套+strategy+runtime config
     old_p = Path("/home/cryptorl/projects/crypto_rl")
     for rel in ("user_data/strategies/RouteCStrategy.py",
