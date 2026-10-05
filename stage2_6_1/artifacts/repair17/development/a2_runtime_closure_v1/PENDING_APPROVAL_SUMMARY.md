@@ -4,7 +4,7 @@
 
 ## 请批准(一次)
 
-以 **Commit A `61180756b87878db7840c52b3c979fc7b02159c2`**(tree `97f1d564223c27bca151175df50fc33338b5a464`)、尝试 **qaf_v3 / 迭代 qprod_a_formal_v3**、计划 **`qbpl-5adb489e65e4bd4401a3493d86fe83b1481195849e99506db50dce255b0252ef`**(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等)及包内全部冻结分项预算,执行**一次** A2(17 步权威链,stop=verify-formal-logs,model-update)。E1 配置激活/E2 prepare/E3 批准原件为手动前置步(批准原文到位后由操作员连续完成),E4 execute 自动完成:环境白名单→preissue 硬门(含**运行时静态依赖前置**)→批准↔参数绑定门→authority init→record-approval→issue-permit(守卫)→prereg→admission(守卫)→launch→收尾。
+以 **Commit A `2f3e7faad5aca77aed29eec3e4b70d35484f84fb`**(tree `f5931ebd27f3ce7b6a6bca742730d0d155ad96bd`)、尝试 **qaf_v3 / 迭代 qprod_a_formal_v3**、计划 **`qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760`**(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等)及包内全部冻结分项预算,执行**一次** A2(17 步权威链,stop=verify-formal-logs,model-update)。E1 配置激活/E2 prepare/E3 批准原件为手动前置步(批准原文到位后由操作员连续完成),E4 execute 自动完成:环境白名单→preissue 硬门(含**运行时静态依赖前置**)→批准↔参数绑定门→authority init→record-approval→issue-permit(守卫)→prereg→admission(守卫)→launch→收尾。
 
 ## 本轮闭合(RuntimeClosure)
 

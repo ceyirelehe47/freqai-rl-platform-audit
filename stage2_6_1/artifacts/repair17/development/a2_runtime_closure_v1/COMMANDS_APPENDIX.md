@@ -1,11 +1,11 @@
 # COMMANDS APPENDIX — A2 RuntimeClosure(qaf_v3 未来一次性执行;批准后使用)
 
-固定值:Commit A=`61180756b87878db7840c52b3c979fc7b02159c2`(tree `97f1d564223c27bca151175df50fc33338b5a464`) |
+固定值:Commit A=`2f3e7faad5aca77aed29eec3e4b70d35484f84fb`(tree `f5931ebd27f3ce7b6a6bca742730d0d155ad96bd`) |
 P3=`/home/cryptorl/projects/crypto_rl_qaf_v3` |
 D3=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3` |
 PIN=`/home/cryptorl/release_pin_qaf_v3`(只读候选 worktree,检出=Commit A) |
 REPO=`/mnt/f/trading/freqai-rl-audit` |
-计划=`qbpl-5adb489e65e4bd4401a3493d86fe83b1481195849e99506db50dce255b0252ef` |
+计划=`qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760` |
 record=`…/a2_runtime_closure_v1/evidence/regress261_d3/regression_evidence_v3_record.json` |
 PY=`/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python` |
 PREP=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/prep_qaf_v3`(批准原件落点=普通目录)
@@ -46,10 +46,10 @@ cd $P3 && PYTHONDONTWRITEBYTECODE=1 $PY $P3/stage2_6_1_runner/qaf_v2_operator_en
   --deploy-root $D3 --project-dir $P3 \
   --approval-json $PREP/approval_qaf_v3.json \
   --regression-evidence $REPO/stage2_6_1/artifacts/repair17/development/a2_runtime_closure_v1/evidence/regress261_d3/regression_evidence_v3_record.json \
-  --admission-id qaf-v3-61180756-a2 \
+  --admission-id qaf-v3-2f3e7faa-a2 \
   --authorization "<批准原文引用 + statement sha256>" \
-  --plan-digest 97f1d564223c27bca151175df50fc33338b5a464 --plan-digest-method git_tree_digest \
-  --code-freeze-sha 61180756b87878db7840c52b3c979fc7b02159c2 \
+  --plan-digest f5931ebd27f3ce7b6a6bca742730d0d155ad96bd --plan-digest-method git_tree_digest \
+  --code-freeze-sha 2f3e7faad5aca77aed29eec3e4b70d35484f84fb \
   --stop-after verify-formal-logs --model-update --attempt qaf_v3
 ```
 

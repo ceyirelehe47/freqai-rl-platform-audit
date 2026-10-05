@@ -1,0 +1,2255 @@
+........................................................................ [  2%]
+....................................................F................... [  4%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+...................................................FFFF.FFF............. [ 12%]
+.............FFFFFF......F..............................FFFFFFFF........ [ 14%]
+..FFFFF...........FFFFF.....FFFFF....................................... [ 16%]
+..........................F............................................. [ 19%]
+.............F.......................................................... [ 21%]
+........................................................................ [ 24%]
+...................................s.................................... [ 26%]
+............s........................................................... [ 28%]
+..................................s..................................... [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 36%]
+...........s............................................................ [ 38%]
+........................................................................ [ 40%]
+....................................................................s.s. [ 43%]
+s....................................................................... [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+..........R17ALERT {"event":"t06","n":1,"utc":"2026-10-05T15:33:45Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T15:33:45Z","run_id":"run"}
+.............................................................. [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 72%]
+...........R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T15:44:04Z","run_id":"run"}
+............................................................. [ 74%]
+........................................................................ [ 77%]
+........................................................................ [ 79%]
+............F........................................FF................. [ 81%]
+..s................F.................................................... [ 84%]
+........................................................................ [ 86%]
+..s.s................................................................... [ 89%]
+........................................................................ [ 91%]
+.............................................F.......................... [ 94%]
+.F................F.........................................F........... [ 96%]
+........................................................................ [ 98%]
+..................................                                       [100%]
+=================================== FAILURES ===================================
+_________________________ test_rd04_preflight_positive _________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_rd04_preflight_positive0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x78a74e00d050>
+
+    def test_rd04_preflight_positive(tmp_path, monkeypatch):
+        repo, sha, pin, project = _build_fixture(tmp_path)
+        rd = _preflight(repo, sha, pin, project, monkeypatch, tmp_path)
+>       assert rd["ok"], rd.get("problems")
+E       AssertionError: ["tree_mismatched: ['artifacts/route_c_stage2_6_1_repair10/r10_design_plan.json']"]
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_qaf_v3_runtime_closure.py:252: AssertionError
+_________________ test_rehearsal_happy_path_with_honest_ledger _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_rehearsal_happy_path_with0')
+
+    def test_rehearsal_happy_path_with_honest_ledger(tmp_path):
+>       ctx, out = _run(tmp_path)
+                   ^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:80: in _run
+    ctx, session, _fixture_inputs(tmp_path, **kw))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_result_binds_plan_and_engineering_markers ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_result_binds_plan_and_eng0')
+
+    def test_result_binds_plan_and_engineering_markers(tmp_path):
+>       ctx, out = _run(tmp_path)
+                   ^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:80: in _run
+    ctx, session, _fixture_inputs(tmp_path, **kw))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+___________________ test_gate_fail_seals_fail_not_exportable ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_gate_fail_seals_fail_not_0')
+
+    def test_gate_fail_seals_fail_not_exportable(tmp_path):
+>       ctx, out = _run(tmp_path, robustness_pass=False)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:80: in _run
+    ctx, session, _fixture_inputs(tmp_path, **kw))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+___________________ test_missing_gate_evidence_fails_closed ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_missing_gate_evidence_fai0')
+
+    def test_missing_gate_evidence_fails_closed(tmp_path):
+        ctx = _ctx(tmp_path)
+        session = QProdRunSession(ctx.state_root, level="level_a",
+                                  iteration_id=ctx.iteration_id)
+        session.acquire({})
+>       inputs = _fixture_inputs(tmp_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:156: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_broken_pack_structure_fails_at_preflight _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_broken_pack_structure_fai0')
+
+    def test_broken_pack_structure_fails_at_preflight(tmp_path):
+        ctx = _ctx(tmp_path)
+        session = QProdRunSession(ctx.state_root, level="level_a",
+                                  iteration_id=ctx.iteration_id)
+        session.acquire({})
+        with pytest.raises(QProdContextError, match="preflight-static"):
+            run_level_a_rehearsal(
+>               ctx, session, _fixture_inputs(tmp_path,
+                                              pack_pass_families=False))
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:184: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_judgment_core_gate_set_matches_run_scope _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_judgment_core_gate_set_ma0')
+
+    def test_judgment_core_gate_set_matches_run_scope(tmp_path):
+        """判定 gate 集与数据前运行计划声明一致(公共判定核心单源)。"""
+>       ctx, out = _run(tmp_path)
+                   ^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:80: in _run
+    ctx, session, _fixture_inputs(tmp_path, **kw))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_________________ test_bundle_mismatch_fails_calibration_gate __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_bundle_mismatch_fails_cal0')
+
+    def test_bundle_mismatch_fails_calibration_gate(tmp_path):
+>       ctx, out = _run(tmp_path, bundle_hash_override="r4pb-MISMATCH")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:202: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:80: in _run
+    ctx, session, _fixture_inputs(tmp_path, **kw))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_q1_preplan_fail_stops_chain_below_17_steps ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_preplan_fail_stops_cha0')
+
+    def test_q1_preplan_fail_stops_chain_below_17_steps(tmp_path):
+        ctx = tl._ctx(tmp_path)
+        s = QProdRunSession(ctx.state_root, level="level_a",
+                            iteration_id=ctx.iteration_id)
+        s.acquire({})
+>       inputs = tl._fixture_inputs(tmp_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+__________________ test_q1_missing_topology_fails_provenance ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_missing_topology_fails0')
+
+    def test_q1_missing_topology_fails_provenance(tmp_path):
+        ctx = tl._ctx(tmp_path)
+        s = QProdRunSession(ctx.state_root, level="level_a",
+                            iteration_id=ctx.iteration_id)
+        s.acquire({})
+>       inputs = tl._fixture_inputs(tmp_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_________________ test_q1_fake_topology_steps_fail_provenance __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_fake_topology_steps_fa0')
+
+    def test_q1_fake_topology_steps_fail_provenance(tmp_path):
+        """拓扑步骤名与权威 17 步不符(仅名字对齐不够——内容对拍)。"""
+        ctx = tl._ctx(tmp_path)
+        s = QProdRunSession(ctx.state_root, level="level_a",
+                            iteration_id=ctx.iteration_id)
+        s.acquire({})
+>       inputs = tl._fixture_inputs(tmp_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_q1_export_rejects_missing_terminal_journal ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_export_rejects_missing0')
+
+    def test_q1_export_rejects_missing_terminal_journal(tmp_path):
+        te = _producer_for_export_tests(tmp_path)
+>       ctx, out = te._producer(tmp_path)
+                   ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_q1_export_rejects_calibration_prereq_tamper _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_export_rejects_calibra0')
+
+    def test_q1_export_rejects_calibration_prereq_tamper(tmp_path):
+        te = _producer_for_export_tests(tmp_path)
+>       ctx, out = te._producer(tmp_path)
+                   ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+___________ test_q1_export_rejects_raw_tamper_with_consistent_outer ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_q1_export_rejects_raw_tam0')
+
+    def test_q1_export_rejects_raw_tamper_with_consistent_outer(tmp_path):
+        """raw 数据改坏(观测字段伪值)但外层 PASS/摘要自洽仍拒。"""
+        te = _producer_for_export_tests(tmp_path)
+>       ctx, out = te._producer(tmp_path)
+                   ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+__________________ test_q2_ledger_records_episode_unit_totals __________________
+
+    def test_q2_ledger_records_episode_unit_totals():
+        from rl_curriculum.curriculum261_qprod_coordinate import (
+            _GenerationLedger,
+        )
+    
+        # R2-Q2:episode 计数=真实动作累计(once 2x8=16;attempts 2 次
+        # block 调用、每次 attempts_made=2 → 2x2x8=32 中的 32;
+        # replay 2x8=16),wrapper 计数只作 legacy 口径保留。
+        class _FakeEp2:
+            def __init__(self):
+                import pandas as pd
+    
+                self.df = pd.DataFrame({"x": [1.0]})
+                self.hidden = pd.DataFrame({"y": [1.0]})
+    
+        def fake_once2(ladder, seed, ns):
+            return {"D0": {"A": _FakeEp2(), "B": _FakeEp2()},
+                    "D1": {"A": _FakeEp2(), "B": _FakeEp2()},
+                    "D2": {"A": _FakeEp2(), "B": _FakeEp2()},
+                    "D3": {"A": _FakeEp2(), "B": _FakeEp2()}}
+    
+        class _FakeBlock2:
+            block_index = 0
+    
+            class _Log2:
+                selected_attempt = 1
+                attempts = [0, 1]
+                seed_namespace = "qualification_r2"
+                block_index = 0
+    
+            attempt_log = _Log2()
+            episodes = {}
+    
+        def fake_attempts2(ladder, *, namespace, block_index):
+            return _FakeBlock2()
+    
+        ledger = _GenerationLedger(quota_max_episode_leaf_calls=320,
+                                   coordinate_id="cx")
+        import rl_curriculum.curriculum261_r6_tape as r6
+    
+        # patch 必须在 bind() 之前:bind() 的 from-import 绑定当前
+        # 模块属性(_once_impl/_attempts_impl 都来自这里)。
+        orig_att = r6.generate_matched_block_with_attempts
+        orig_once = r6.generate_matched_block_once
+        r6.generate_matched_block_with_attempts = fake_attempts2
+        r6.generate_matched_block_once = fake_once2
+        try:
+            h = ledger.bind()
+            h["generate_once"](None, 1, "ns")
+            h["generate_once"](None, 2, "ns")
+>           h["generate_attempts"]({}, namespace="qualification_r2",
+                                   block_index=0)
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_qprod_coordinate.py:612: in counting_attempts
+    "block_seed": int(matched_block_seed_of(block)),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_noise_replay.py:285: in matched_block_seed_of
+    return derive261_block_seed(
+src/rl_curriculum/curriculum261_r6_tape.py:98: in derive261_block_seed
+    return derive261_seed(namespace, FAMILY_C2, C2_BLOCK_RUNG_SEED_KEY,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+namespace = 'qualification_r2', family = 'c2_context', rung = 'matched_block'
+pair_index = 0, attempt = 1
+
+    def derive261_seed(
+        namespace: str, family: str, rung: str, pair_index: int, attempt: int,
+    ) -> int:
+        """阶段 2.6.1 确定性 seed 派生(单一来源,namespace 隔离)。
+    
+        seed 只按 (namespace, family, rung, pair, attempt) 派生,**不含 side**:
+        pair A/B 共享同一随机流(段表/事件表/噪声/wick/nuisance 逐位一致),
+        只在因果映射上不同——这是 pair nuisance 合同的构造基础。
+        qualification corpus 与 calibration corpus / training seed 通过
+        namespace 字符串天然隔离。
+        """
+        if namespace not in CURRICULUM261_SEED_NAMESPACES \
+                and not _is_candidate_semantic_namespace(namespace):
+            raise GeneratorError(
+                f"seed namespace {namespace!r} 不在 "
+                f"{CURRICULUM261_SEED_NAMESPACES}(calibration/qualification "
+                f"必须隔离;training 本阶段只允许 PPO smoke;候选级 "
+                f"dedicated semantic 派生 = base + '__' + "
+                f"{C2_LADDER_CANDIDATE_ID_SUFFIXES})")
+        if namespace == "qualification_r2" and not qualification_r2_unlocked():
+>           raise GeneratorError(
+                "qualification_r2 seed 在 qualification plan 锁定前不可访问"
+                "(final qualification corpus lock 前对任何代码路径封闭;"
+                "校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / "
+                "stress_r2 namespace)")
+E           rl_curriculum.generator_api.GeneratorError: qualification_r2 seed 在 qualification plan 锁定前不可访问(final qualification corpus lock 前对任何代码路径封闭;校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / stress_r2 namespace)
+
+src/rl_curriculum/curriculum261_api.py:920: GeneratorError
+_________________ test_r2q1_cue_checks_fail_top_pass_rejected __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_cue_checks_fail_top_0')
+
+    def test_r2q1_cue_checks_fail_top_pass_rejected(tmp_path):
+        """内部 checks/MC 失败但顶层 PASS(且 digest 公共函数重算自洽)
+        不得通过 gate1。"""
+        ctx = tl._ctx(tmp_path)
+        session = QProdRunSession(ctx.state_root, level="level_a",
+                                  iteration_id=ctx.iteration_id)
+        session.acquire({"entry": "t"})
+>       run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_r2q1_topology_empty_producers_fail_chain _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_topology_empty_produ0')
+
+    def test_r2q1_topology_empty_producers_fail_chain(tmp_path):
+        """producer 集合缺失/为空而步骤名齐全 → 链 FAIL(不允许 17 步
+        PASS)。"""
+        ctx = tl._ctx(tmp_path)
+        session = QProdRunSession(ctx.state_root, level="level_a",
+                                  iteration_id=ctx.iteration_id)
+        session.acquire({"entry": "t"})
+>       inputs = dict(tl._fixture_inputs(tmp_path))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_r2q1_raw_tamper_with_sha_update_rejected _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_raw_tamper_with_sha_0')
+
+    def test_r2q1_raw_tamper_with_sha_update_rejected(tmp_path):
+        """raw.verdict 篡改且 result.raw_evidence_sha256 同步更新(自洽
+        伪造)仍拒:raw 内容级矛盾。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:88: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_________________ test_r2q1_result_iteration_mismatch_rejected _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_result_iteration_mis0')
+
+    def test_r2q1_result_iteration_mismatch_rejected(tmp_path):
+        """result.iteration_id/source_iteration 与冻结计划不一致 → 拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:88: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________________ test_r2q1_ledger_fail_rejected ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_ledger_fail_rejected0')
+
+    def test_r2q1_ledger_fail_rejected(tmp_path):
+        """链步账本 FAIL(即使 result/journal 保持 PASS)→ 拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:88: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+____________ test_r2q1_research_plan_prerequisite_missing_rejected _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_research_plan_prereq0')
+
+    def test_r2q1_research_plan_prerequisite_missing_rejected(tmp_path):
+        """数据前研究计划缺失(prior_plan_digest 绑定断裂)→ 拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:88: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+__________________ test_r2q1_session_acquire_missing_rejected __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q1_session_acquire_miss0')
+
+    def test_r2q1_session_acquire_missing_rejected(tmp_path):
+        """journal 无 session_acquired(许可/会话消费来源缺失)→ 拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:153: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:88: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_r2q2_attempts_nested_per_action_counting _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r2q2_attempts_nested_per_0')
+
+    def test_r2q2_attempts_nested_per_action_counting(tmp_path):
+        """attempts 嵌套逐动作计数:5 attempts(每次 8 ep)=40,不是
+        wrapper×8=16(once 8 + attempts 8)。"""
+    
+        class _FakeEp:
+            def __init__(self):
+                import pandas as pd
+    
+                self.df = pd.DataFrame({"x": [1.0]})
+                self.hidden = pd.DataFrame({"y": [1.0]})
+    
+        def fake_once(ladder, seed, ns):
+            return {r: {"A": _FakeEp(), "B": _FakeEp()}
+                    for r in ("D0", "D1", "D2", "D3")}
+    
+        class _FakeBlock:
+            block_index = 0
+    
+            class _Log:
+                selected_attempt = 4
+                attempts = [0, 1, 2, 3, 4]
+                seed_namespace = "qualification_r2"
+                block_index = 0
+    
+            attempt_log = _Log()
+            episodes = {}
+    
+        def fake_attempts(ladder, *, namespace, block_index):
+            return _FakeBlock()
+    
+        import rl_curriculum.curriculum261_r6_tape as r6
+    
+        ledger = _GenerationLedger(quota_max_episode_leaf_calls=640,
+                                   coordinate_id="cx")
+        orig_att = r6.generate_matched_block_with_attempts
+        orig_once = r6.generate_matched_block_once
+        r6.generate_matched_block_with_attempts = fake_attempts
+        r6.generate_matched_block_once = fake_once
+        try:
+            h = ledger.bind()
+            h["generate_once"](None, 1, "ns")
+>           h["generate_attempts"]({}, namespace="qualification_r2",
+                                   block_index=0)
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py:208: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_qprod_coordinate.py:612: in counting_attempts
+    "block_seed": int(matched_block_seed_of(block)),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r17_noise_replay.py:285: in matched_block_seed_of
+    return derive261_block_seed(
+src/rl_curriculum/curriculum261_r6_tape.py:98: in derive261_block_seed
+    return derive261_seed(namespace, FAMILY_C2, C2_BLOCK_RUNG_SEED_KEY,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+namespace = 'qualification_r2', family = 'c2_context', rung = 'matched_block'
+pair_index = 0, attempt = 4
+
+    def derive261_seed(
+        namespace: str, family: str, rung: str, pair_index: int, attempt: int,
+    ) -> int:
+        """阶段 2.6.1 确定性 seed 派生(单一来源,namespace 隔离)。
+    
+        seed 只按 (namespace, family, rung, pair, attempt) 派生,**不含 side**:
+        pair A/B 共享同一随机流(段表/事件表/噪声/wick/nuisance 逐位一致),
+        只在因果映射上不同——这是 pair nuisance 合同的构造基础。
+        qualification corpus 与 calibration corpus / training seed 通过
+        namespace 字符串天然隔离。
+        """
+        if namespace not in CURRICULUM261_SEED_NAMESPACES \
+                and not _is_candidate_semantic_namespace(namespace):
+            raise GeneratorError(
+                f"seed namespace {namespace!r} 不在 "
+                f"{CURRICULUM261_SEED_NAMESPACES}(calibration/qualification "
+                f"必须隔离;training 本阶段只允许 PPO smoke;候选级 "
+                f"dedicated semantic 派生 = base + '__' + "
+                f"{C2_LADDER_CANDIDATE_ID_SUFFIXES})")
+        if namespace == "qualification_r2" and not qualification_r2_unlocked():
+>           raise GeneratorError(
+                "qualification_r2 seed 在 qualification plan 锁定前不可访问"
+                "(final qualification corpus lock 前对任何代码路径封闭;"
+                "校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / "
+                "stress_r2 namespace)")
+E           rl_curriculum.generator_api.GeneratorError: qualification_r2 seed 在 qualification plan 锁定前不可访问(final qualification corpus lock 前对任何代码路径封闭;校准/诊断一律使用 calibration_r2 / calibration_holdout_r2 / stress_r2 namespace)
+
+src/rl_curriculum/curriculum261_api.py:920: GeneratorError
+______________ test_r3q1_mc_numbers_fail_but_checks_true_rejected ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r3q1_mc_numbers_fail_but_0')
+
+    def test_r3q1_mc_numbers_fail_but_checks_true_rejected(tmp_path):
+        """MC 数值实际失败(|p_hat-p_contract|>tolerance)但 checks
+        全 True+顶层 PASS+digest 重算自洽 → gate1 数值重算拒。"""
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:44: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+____________ test_r3q1_corpus_numbers_fail_but_checks_true_rejected ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r3q1_corpus_numbers_fail_0')
+
+    def test_r3q1_corpus_numbers_fail_but_checks_true_rejected(tmp_path):
+        """validation 语料 emp-analytic 偏离超 max(3SE,0.005) 但
+        checks True → 数值重算拒。"""
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:44: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+__________________ test_r3q1_required_check_removed_rejected ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r3q1_required_check_remov0')
+
+    def test_r3q1_required_check_removed_rejected(tmp_path):
+        """删减必需 check(键集合 != 权威 8)→ 拒(即使剩余全 True)。"""
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:44: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_r3q1_duplicated_same_step_17_times_rejected _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r3q1_duplicated_same_step0')
+
+    def test_r3q1_duplicated_same_step_17_times_rejected(tmp_path):
+        """17 步账本复制同一步 17 次(全 ok=True)→ 权威序列核验拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:120: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+______________________ test_r3q1_step_order_swap_rejected ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r3q1_step_order_swap_reje0')
+
+    def test_r3q1_step_order_swap_rejected(tmp_path):
+        """步骤换序(依赖破坏)→ 拒。"""
+>       ctx = _exportable(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:141: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py:120: in _exportable
+    ctx, _ = te._producer(tmp_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_2/test_ppo262_qprod_export.py:53: in _producer
+    pack = _engineering_pack(variant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________________ test_r4q1_legal_control_passes ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r4q1_legal_control_passes0')
+
+    def test_r4q1_legal_control_passes(tmp_path):
+        """合法对照(未篡改 rehearse 产物)gate1 通过。"""
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+___________________ test_r4q1_ci_excludes_analytic_rejected ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r4q1_ci_excludes_analytic0')
+
+    def test_r4q1_ci_excludes_analytic_rejected(tmp_path):
+        """CI 排除解析值(p_contract 移出 CI95)但 checks 全 True+
+        digest 重算自洽 → 拒。"""
+        def mut(cue):
+            v = cue["direct_generator"]["validation"]
+            lo = float(v["block_cluster"]["ci95"][0])
+            # 把 CI 下界抬到 p_contract 之上 → 解析值落在 CI 外
+            cue["direct_generator"]["validation"]["block_cluster"][
+                "ci95"] = [float(cue["p_contract"]) + 0.02,
+                           float(cue["p_contract"]) + 0.05]
+            assert lo is not None
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________________ test_r4q1_replay_false_rejected ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r4q1_replay_false_rejecte0')
+
+    def test_r4q1_replay_false_rejected(tmp_path):
+        """replay_ok=False(exact noise replay 失败)但 checks 全 True+
+        digest 自洽 → 拒。"""
+        def mut(cue):
+            cue["direct_generator"]["model"]["replay_ok"] = False
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+___________________ test_r4q1_tail_numeric_failure_rejected ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r4q1_tail_numeric_failure0')
+
+    def test_r4q1_tail_numeric_failure_rejected(tmp_path):
+        """tail 数值失败(tail emp 远离 analytic,报告自带容差也放大
+        试图掩护)但 checks 全 True+digest 自洽 → 冻结公式重算拒。"""
+        def mut(cue):
+            t = cue["direct_generator"]["validation"]["tail"]
+            t["empirical_recall"] = float(t["analytic_conditional"]) + 0.5
+            t["diff_tolerance"] = 1.0  # 擅自放大 tail 容差
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_r4q1_mc_tolerance_inflated_to_one_rejected ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r4q1_mc_tolerance_inflate0')
+
+    def test_r4q1_mc_tolerance_inflated_to_one_rejected(tmp_path):
+        """报告把 MC 容限改为 1.0(p_hat 偏离超真实容差也判过)但
+        checks 全 True+digest 自洽 → 冻结容差 0.001 重算拒+阈值漂移
+        记录。"""
+        def mut(cue):
+            mc = cue["monte_carlo"]
+            mc["p_hat"] = float(cue["p_contract"]) + 0.05  # 真实失败
+            mc["tolerance"] = 1.0                            # 擅自放宽
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:141: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+____________________ test_r5q1a_legal_control_still_passes _____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r5q1a_legal_control_still0')
+
+    def test_r5q1a_legal_control_still_passes(tmp_path):
+        """合法对照(未篡改)通过;R5 收紧不误伤。"""
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+__________ test_r5q1b_ova_declared_consistent_but_numbers_contradict ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r5q1b_ova_declared_consis0')
+
+    def test_r5q1b_ova_declared_consistent_but_numbers_contradict(tmp_path):
+        """ova recall 字段与 direct_generator 矛盾+自身差值超冻结容差+
+        consistent=True+checks/digest 自洽 → 拒(数值重算,非声明)。"""
+        def mut(cue):
+            cue["once_vs_attempts"] = {
+                "recall_model": 0.30, "recall_validation": 0.95,
+                "recall_modes_consistent": True,
+                "k_modes_consistent": True,
+                "first_pass_bitwise_check": {"bitwise_ok": True}}
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_____________ test_r5q1c_tail_subinput_false_overrides_declared_ok _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r5q1c_tail_subinput_false0')
+
+    def test_r5q1c_tail_subinput_false_overrides_declared_ok(tmp_path):
+        """tail 完整性子输入 exact_noise_replay_ok=False 而 ok/pass=True、
+        violations 空 → 由真实子条件拒。"""
+        def mut(cue):
+            cue["tail_mirror_bound_integrity"] = {
+                "pass": True,
+                "per_corpus": {
+                    n: {"ok": True, "violations": [], "n_violations": 0,
+                        "exact_noise_replay_ok": False,
+                        "bounds_ok_all_positions": True}
+                    for n in ("model", "validation")}}
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______________ test_r5q1d_bad_replay_number_with_field_deleted ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r5q1d_bad_replay_number_w0')
+
+    def test_r5q1d_bad_replay_number_with_field_deleted(tmp_path):
+        """max_replay_abs_error=0.25 保留、replay_ok 删除 → fixture 委托
+        被否决,不得 FAIL 变 PASS。"""
+        def mut(cue):
+            for n in ("model", "validation"):
+                c = cue["direct_generator"][n]
+                c["max_replay_abs_error"] = 0.25
+                c.pop("replay_ok", None)
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_________ test_r5q1e_bad_replay_number_with_false_flag_still_rejected __________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_r5q1e_bad_replay_number_w0')
+
+    def test_r5q1e_bad_replay_number_with_false_flag_still_rejected(tmp_path):
+        """对照:replay_ok=False 保留(原 R4 路径)不变拒。"""
+        def mut(cue):
+            cue["direct_generator"]["model"]["replay_ok"] = False
+    
+>       ctx = _rehearse(tmp_path)
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py:40: in _rehearse
+    run_level_a_rehearsal(ctx, session, tl._fixture_inputs(tmp_path))
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py:46: in _fixture_inputs
+    pack = _engineering_pack("v1_r2_reference")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/ppo262_eng_fixture.py:168: in _engineering_pack
+    plan, _ = load_locked_plan(qualification_r2_lock_marker().parent)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_plan.py:204: in load_locked_plan
+    (out_dir / "qualification_plan.json").read_text(encoding="utf-8"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair2/qualification_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_matched_core_identity_matches_r8_baseline ________________
+
+    def test_matched_core_identity_matches_r8_baseline():
+        ident = verify_matched_core_identity_r9()
+>       assert ident["pass"], ident
+E       AssertionError: {'pass': False, 'error': 'R9 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair9/r9_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_design.py:88: AssertionError
+______________________ test_cli_plan_roundtrip_subcommand ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_cli_plan_roundtrip_subcom0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x78a68b857990>
+
+    def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
+        """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。
+    
+        torch 线程面隔离(v2 轮 S3 归因):CLI 的 plan-roundtrip 检查链在
+        主进程 import 依赖时触发 CUDA driver probe 线程(SigBlk=0),污染
+        后续直调形态 supervisor 测试;CLI 整体在一次性子进程执行,
+        rc/产物断言语义不变。
+        """
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+    
+        src = str(Path(__file__).resolve().parents[2] / 'src')
+        monkeypatch.setenv("CURRICULUM261_R10_LOCK_DIR",
+                           str(tmp_path / "lock"))
+        out = tmp_path / "art"
+        _write_preplan_inputs(out)
+        code = (
+            'import sys\n'
+            'from rl_curriculum.curriculum261_r10_cli import main\n'
+            'rc = main(["plan-roundtrip", "--out-dir", sys.argv[1]])\n'
+            'sys.exit(rc)\n')
+        env = dict(os.environ)
+        env['PYTHONPATH'] = src + (
+            os.pathsep + env['PYTHONPATH'] if env.get('PYTHONPATH') else '')
+        proc = subprocess.run(
+            [sys.executable, '-c', code, str(out)],
+            capture_output=True, text=True, timeout=600, env=env)
+>       assert proc.returncode == 0, proc.stderr[-2000:]
+E       AssertionError: Traceback (most recent call last):
+E           File "<string>", line 3, in <module>
+E           File "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/src/rl_curriculum/curriculum261_r10_cli.py", line 1472, in main
+E             return handlers[args.cmd](args)
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/src/rl_curriculum/curriculum261_r10_cli.py", line 782, in cmd_plan_roundtrip
+E             plan = design_plan_payload_r10(
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/src/rl_curriculum/curriculum261_r10_design.py", line 400, in design_plan_payload_r10
+E             raise RuntimeError(
+E         RuntimeError: matched-ladder 核心模块与 R7 baseline 身份不一致(§7): {'pass': False, 'error': 'R9 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair9/r9_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python', '-c', 'import sys\nfrom rl_curriculum...mal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair9/r9_design_plan.json(无法对拍 matched-ladder 模块身份)\', \'modules\': {}}\n').returncode
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py:152: AssertionError
+___________ TestCrossConsistency.test_md_quotes_json_values_verbatim ___________
+
+self = <test_curriculum261_r20_design_math.TestCrossConsistency object at 0x78a75db493d0>
+
+    def test_md_quotes_json_values_verbatim(self):
+>       md = MD_PATH.read_text(encoding="utf-8")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r20_design_math.py:384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/report/route_c_stage2_6_1_r20_research_design_v3.md')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/report/route_c_stage2_6_1_r20_research_design_v3.md'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+______ TestBoundariesAndProposal.test_md_states_rule_numbers_and_pending _______
+
+self = <test_curriculum261_r20_design_math_v4.TestBoundariesAndProposal object at 0x78a75ce4cb10>
+
+    def test_md_states_rule_numbers_and_pending(self):
+>       text = MD_PATH.read_text(encoding="utf-8")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py:301: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1058: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/report/route_c_stage2_6_1_r20_research_design_v4.md')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/report/route_c_stage2_6_1_r20_research_design_v4.md'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_______ TestBoundariesAndProposal.test_v3_originals_untouched_as_history _______
+
+self = <test_curriculum261_r20_design_math_v4.TestBoundariesAndProposal object at 0x78a75ce4d890>
+
+    def test_v3_originals_untouched_as_history(self):
+        """v3 脚本/JSON/提案保留为历史(不覆盖);v4 是现行入口。"""
+        assert (REPORT_DIR / "r20_design_calc_v3.py").is_file()
+        assert (REPORT_DIR / "r20_design_calc_v3.json").is_file()
+>       assert (REPORT_DIR / "route_c_stage2_6_1_r20_research_design_v3.md"
+                ).is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = (PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/report') / 'route_c_stage2_6_1_r20_research_design_v3.md').is_file
+
+tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py:313: AssertionError
+_ TestBindingEnforcementA01A06.test_a01_missing_binding_refused_pre_generation _
+
+self = <test_curriculum261_r25_cue_dev_entry.TestBindingEnforcementA01A06 object at 0x78a75ccc7d10>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_a01_missing_binding_refus0')
+
+    def test_a01_missing_binding_refused_pre_generation(self, tmp_path):
+        """真实旧研究计划只读副本 + c01 + 省略绑定:零生成拒绝。"""
+        plan_copy = tmp_path / "dev_plan_copy.json"
+>       plan_copy.write_bytes(_OLD_STUDY_PLAN.read_bytes())
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py:882: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1050: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/repair17/development/r25_cue_bias_dev/plan/dev_plan.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/repair17/development/r25_cue_bias_dev/plan/dev_plan.json'
+
+../../miniforge3/envs/freqtrade-rl/lib/python3.11/pathlib.py:1044: FileNotFoundError
+________________ test_matched_core_identity_matches_r7_baseline ________________
+
+    def test_matched_core_identity_matches_r7_baseline():
+        ident = verify_matched_core_identity_r7()
+>       assert ident["pass"], ident
+E       AssertionError: {'pass': False, 'error': 'R7 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair7/r7_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r8_design.py:87: AssertionError
+______________________ test_cli_plan_roundtrip_subcommand ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_cli_plan_roundtrip_subcom1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x78a5d44106d0>
+
+    def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
+        """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。"""
+        import pathlib
+    
+        from rl_curriculum.curriculum261_r8_cli import main
+    
+        monkeypatch.setenv("CURRICULUM261_R8_LOCK_DIR",
+                           str(tmp_path / "lock"))
+        out = tmp_path / "art"
+        _write_preplan_inputs(out)
+>       rc = main(["plan-roundtrip", "--out-dir", str(out)])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r8_cli.py:1252: in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r8_cli.py:444: in cmd_plan_roundtrip
+    plan = design_plan_payload_r8(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+baseline_commit = '11951f6d9b2f5fa63b17e3857aba92b330da029e'
+vendor_pin = '52bc96f4480b1a0da6a9b455bd00b17fbb6786a5'
+v2_contract_digest = 'r4pc-94530af76ebca3a48ec857800fd7c27f99e95a875afd79b7662049462d858035'
+prior_r2_plan_digest = 'qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99'
+prior_diag262r2_plan_digest = 'dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60'
+cue_audit = {'p_contract': 0.9509, 'pass': True, 'audit_digest': 'r8ca-0000000000000000000000000000000000000000000000000000000000000000'}
+preplan_smoke_identity = {'sentinel_digest': 'r8smoke-0000000000000000000000000000000000000000000000000000000000000000', 'cue_contract_digest':...c38be67b93d1a9a21f45a0c4012c', 'audit_digest': 'r8ca-0000000000000000000000000000000000000000000000000000000000000000'}
+
+    def design_plan_payload_r8(*, baseline_commit: str, vendor_pin: str,
+                               v2_contract_digest: str,
+                               prior_r2_plan_digest: str,
+                               prior_diag262r2_plan_digest: str,
+                               cue_audit: dict[str, Any],
+                               preplan_smoke_identity: dict[str, Any],
+                               ) -> dict[str, Any]:
+        """构建并返回 R8 design plan payload(锁定后不得修改任何字段)。
+    
+        §21 绑定清单全集:baseline/vendor/R4 pack/R5+R6+R7 historical
+        digests/V2 contract/matched contract(+R7 baseline 模块身份对拍)/
+        cue semantic contract v2/corrected p_contract/noninferiority
+        delta/recall floor/semantic block count 160/candidate grid(恰好
+        3)/formal block options/design block count 40/全部阈值/selection
+        rule/independent marginal guard(点护栏)/code identity/Route C
+        identity/preplan smoke identity/plan digest roundtrip 合同。
+        """
+        from rl_platform.versions import (
+            ENV_CORE_VERSION, OBSERVATION_SPEC_VERSION)
+    
+        grid = r8_candidate_grid()
+        problems = validate_r8_grid_semantics()
+        if problems:
+            raise RuntimeError(f"R8 candidate grid 语义非法: {problems}")
+        matched_core = verify_matched_core_identity_r7()
+        if not matched_core["pass"]:
+>           raise RuntimeError(
+                f"matched-ladder 核心模块与 R7 baseline 身份不一致(§7): "
+                f"{matched_core}")
+E           RuntimeError: matched-ladder 核心模块与 R7 baseline 身份不一致(§7): {'pass': False, 'error': 'R7 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair7/r7_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+
+src/rl_curriculum/curriculum261_r8_design.py:250: RuntimeError
+________________ test_matched_core_identity_matches_r8_baseline ________________
+
+    def test_matched_core_identity_matches_r8_baseline():
+        ident = verify_matched_core_identity_r8()
+>       assert ident["pass"], ident
+E       AssertionError: {'pass': False, 'error': 'R8 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair8/r8_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+E       assert False
+
+tests/route_c_stage2_6_1/test_curriculum261_r9_design.py:88: AssertionError
+______________________ test_cli_plan_roundtrip_subcommand ______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_cli_plan_roundtrip_subcom2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x78a5d4499110>
+
+    def test_cli_plan_roundtrip_subcommand(tmp_path, monkeypatch):
+        """§8.3:CLI plan-roundtrip 在临时目录执行真实生产路径。"""
+        import pathlib
+    
+        from rl_curriculum.curriculum261_r9_cli import main
+    
+        monkeypatch.setenv("CURRICULUM261_R9_LOCK_DIR",
+                           str(tmp_path / "lock"))
+        out = tmp_path / "art"
+        _write_preplan_inputs(out)
+>       rc = main(["plan-roundtrip", "--out-dir", str(out)])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/rl_curriculum/curriculum261_r9_cli.py:1446: in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+src/rl_curriculum/curriculum261_r9_cli.py:589: in cmd_plan_roundtrip
+    plan = design_plan_payload_r9(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+baseline_commit = 'dfe646bbdd53d6053d483343c62088f45e92fb34'
+vendor_pin = '52bc96f4480b1a0da6a9b455bd00b17fbb6786a5'
+v2_contract_digest = 'r4pc-94530af76ebca3a48ec857800fd7c27f99e95a875afd79b7662049462d858035'
+prior_r2_plan_digest = 'qp-8f64a1b5619c6eda4cf8639f4e5237e8b9b68a63a15fe67ee2e41c15db07af99'
+prior_diag262r2_plan_digest = 'dp-ee6f8dc109f795986ced4fbc6851ad063b8d2fa57f9863f2861e4c45b9c51d60'
+cue_audit = {'p_contract': 0.9509, 'pass': True, 'audit_digest': 'r9ca-0000000000000000000000000000000000000000000000000000000000000000'}
+preplan_smoke_identity = {'sentinel_digest': 'r9smoke-0000000000000000000000000000000000000000000000000000000000000000', 'cue_contract_digest':...c38be67b93d1a9a21f45a0c4012c', 'audit_digest': 'r9ca-0000000000000000000000000000000000000000000000000000000000000000'}
+dependency_identity = {'roundtrip_synth': True}
+artifact_writer_identity = {'roundtrip_synth': True}
+preplan_rehearsal_digest = 'r9pr-0000000000000000000000000000000000000000000000000000000000000000'
+r8_abort_evidence = {'roundtrip_synth': True}
+cue_audit_plan_digest = 'r9ap-0000000000000000000000000000000000000000000000000000000000000000'
+
+    def design_plan_payload_r9(*, baseline_commit: str, vendor_pin: str,
+                               v2_contract_digest: str,
+                               prior_r2_plan_digest: str,
+                               prior_diag262r2_plan_digest: str,
+                               cue_audit: dict[str, Any],
+                               preplan_smoke_identity: dict[str, Any],
+                               dependency_identity: dict[str, Any],
+                               artifact_writer_identity: dict[str, Any],
+                               preplan_rehearsal_digest: str,
+                               r8_abort_evidence: dict[str, Any],
+                               cue_audit_plan_digest: str = "",
+                               ) -> dict[str, Any]:
+        """构建并返回 R9 design plan payload(锁定后不得修改任何字段)。
+    
+        §21 绑定清单全集:baseline/vendor/R4 pack/R5+R6+R7 historical
+        digests/V2 contract/matched contract(+R7 baseline 模块身份对拍)/
+        cue semantic contract v2/corrected p_contract/noninferiority
+        delta/recall floor/semantic block count 160/candidate grid(恰好
+        3)/formal block options/design block count 40/全部阈值/selection
+        rule/independent marginal guard(点护栏)/code identity/Route C
+        identity/preplan smoke identity/plan digest roundtrip 合同。
+        """
+        grid = r9_candidate_grid()
+        problems = validate_r9_grid_semantics()
+        if problems:
+            raise RuntimeError(f"R9 candidate grid 语义非法: {problems}")
+        matched_core = verify_matched_core_identity_r8()
+        if not matched_core["pass"]:
+>           raise RuntimeError(
+                f"matched-ladder 核心模块与 R7 baseline 身份不一致(§7): "
+                f"{matched_core}")
+E           RuntimeError: matched-ladder 核心模块与 R7 baseline 身份不一致(§7): {'pass': False, 'error': 'R8 design plan 不存在: /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/route_c_stage2_6_1_repair8/r8_design_plan.json(无法对拍 matched-ladder 模块身份)', 'modules': {}}
+
+src/rl_curriculum/curriculum261_r9_design.py:385: RuntimeError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qaf_v3_runtime_closure.py::test_rd04_preflight_positive
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_rehearsal_happy_path_with_honest_ledger
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_result_binds_plan_and_engineering_markers
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_gate_fail_seals_fail_not_exportable
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_missing_gate_evidence_fails_closed
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_broken_pack_structure_fails_at_preflight
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_judgment_core_gate_set_matches_run_scope
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_levela.py::test_bundle_mismatch_fails_calibration_gate
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_preplan_fail_stops_chain_below_17_steps
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_missing_topology_fails_provenance
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_fake_topology_steps_fail_provenance
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_export_rejects_missing_terminal_journal
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_export_rejects_calibration_prereq_tamper
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q1_export_rejects_raw_tamper_with_consistent_outer
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_q123_fixes.py::test_q2_ledger_records_episode_unit_totals
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_cue_checks_fail_top_pass_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_topology_empty_producers_fail_chain
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_raw_tamper_with_sha_update_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_result_iteration_mismatch_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_ledger_fail_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_research_plan_prerequisite_missing_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q1_session_acquire_missing_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r2_fixes.py::test_r2q2_attempts_nested_per_action_counting
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py::test_r3q1_mc_numbers_fail_but_checks_true_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py::test_r3q1_corpus_numbers_fail_but_checks_true_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py::test_r3q1_required_check_removed_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py::test_r3q1_duplicated_same_step_17_times_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r3_fixes.py::test_r3q1_step_order_swap_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py::test_r4q1_legal_control_passes
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py::test_r4q1_ci_excludes_analytic_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py::test_r4q1_replay_false_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py::test_r4q1_tail_numeric_failure_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r4_fixes.py::test_r4q1_mc_tolerance_inflated_to_one_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py::test_r5q1a_legal_control_still_passes
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py::test_r5q1b_ova_declared_consistent_but_numbers_contradict
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py::test_r5q1c_tail_subinput_false_overrides_declared_ok
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py::test_r5q1d_bad_replay_number_with_field_deleted
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_r5_fixes.py::test_r5q1e_bad_replay_number_with_false_flag_still_rejected
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r10_design.py::test_matched_core_identity_matches_r8_baseline
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r10_preflight.py::test_cli_plan_roundtrip_subcommand
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r20_design_math.py::TestCrossConsistency::test_md_quotes_json_values_verbatim
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py::TestBoundariesAndProposal::test_md_states_rule_numbers_and_pending
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r20_design_math_v4.py::TestBoundariesAndProposal::test_v3_originals_untouched_as_history
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r25_cue_dev_entry.py::TestBindingEnforcementA01A06::test_a01_missing_binding_refused_pre_generation
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r8_design.py::test_matched_core_identity_matches_r7_baseline
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r8_preflight.py::test_cli_plan_roundtrip_subcommand
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r9_design.py::test_matched_core_identity_matches_r8_baseline
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r9_preflight.py::test_cli_plan_roundtrip_subcommand
+48 failed, 2928 passed, 10 skipped, 10 warnings in 2880.09s (0:48:00)
