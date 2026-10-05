@@ -10,7 +10,7 @@
 | 尝试 | `qaf_v2`(26 全新 namespace,含 design_qaf_v2_* 显式三名;与 v1 逐名不相交) |
 | QProd 迭代 | `qprod_a_formal_v2` |
 | 新 A2 计划 digest | `qbpl-4c654375cec2c20070816c75d0980b3ff50087e67364d50ad0cb6a4a6d4a77f5`(真实构建器;与旧 A2 差异仅身份字段+code_freeze_sha,quota/rules/stop_mode/gate_set 全等;tree digest 863ab24c72b19296d58790b4bbd5b2fa8e163f58) |
-| D2 同根 record | sha256 `ac3ff15083c0dee5a5daca7fd8f64c02bc172112359d0bae4bf73ff1baabf73d`(261 全收集 2972=2965 passed+7 skipped/0F/0E,run r21_20261005_161825,cwd=D2,commit a96bedea;同根 substance verify rc=0,r17sub-a2b0b30e7…;错根 rc=2 拒) |
+| D2 同根 record | sha256 `ac3ff15083c0dee5a5daca7fd8f64c02bc172112359d0bae4bf73ff1baabf73d`(261 全收集 2972=2965 passed+7 skipped/0F/0E,run r21_20261005_161825,cwd=D2,commit a96bedea;同根 substance verify rc=0,r17sub-1f9baeb0…;错根 rc=2 拒) |
 | 262 适用 | 240/240 全绿(api/输入锁/镜像受影响面实跑) |
 | 部署映射 | P2=`/home/cryptorl/projects/crypto_rl_qaf_v2`(业务入口);D2=`/home/cryptorl/projects/crypto_rl_formal_a_qaf_v2`(签发根,非激活);三方对拍 625 文件 blob-CR 投影==P2==D2,18 冻结 pyc 单独分类缺席 |
 
