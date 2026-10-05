@@ -1,0 +1,37 @@
+[
+ {
+  "scenario": "g1_no_gate_engineering_unchanged",
+  "ok": true,
+  "detail": "rc=0 marker_ns=stress_qaf_v2 det=[]"
+ },
+ {
+  "scenario": "g2_root_gate_hit_and_consumed",
+  "ok": true,
+  "detail": "rc=0 consumed=['determinism-matrix']"
+ },
+ {
+  "scenario": "g3_subdir_gate_fallback_hit",
+  "ok": true,
+  "detail": "rc=0 consumed=['determinism-matrix']"
+ },
+ {
+  "scenario": "g4_gate_step_not_in_plan_refused",
+  "ok": true,
+  "detail": "rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门:步骤 'determinism-matrix' 不在本链计划 ['audit', 'provenance-verify', 'verify-formal-logs'](停止边界后的后继不可达;A1 物理不"
+ },
+ {
+  "scenario": "g5_missing_gate_formal_context_fail_closed",
+  "ok": true,
+  "detail": "rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门缺失 /mnt/f/trading/local/rcf_r2_review/p4_work/g5/chain_budget_gate.json 且当前为正式部署上下文(R17_DEPLOYED_STATE_ROOT 在场):正式链缺门fail c"
+ },
+ {
+  "scenario": "g6_preconsumed_refused_no_marker",
+  "ok": true,
+  "detail": "rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门:步骤 'determinism-matrix' 已消费(consumed 于 prior-run;重试/重放不恢复,一次已开始=一次消费;重跑须新批准)"
+ },
+ {
+  "scenario": "g7_invalid_attempt_rejected",
+  "ok": true,
+  "detail": "rc=2 stderr=usage: r17-cli determinism-matrix [-h] [--out-dir OUT_DIR]\n                                  [--formal-namespace-attempt"
+ }
+]

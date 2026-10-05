@@ -1,0 +1,72 @@
+[
+ {
+  "scenario": "a1_dangling_links_refused",
+  "ok": true,
+  "detail": "refused(目标 json 件路径是符号链接/非普通文件(含悬空链接):/mnt/f/trading/local/rcf_r2_review/p1_work/a1/art/gate_topology_reconciliation.json;零跟随写入拒绝); prot=[] art=['gate_topology_reconciliation.json', 'gate_topology_reconciliation_digest.txt']"
+ },
+ {
+  "scenario": "a2_link_to_wrong_bytes_refused",
+  "ok": true,
+  "detail": "refused(目标 json 件为异物(sha 167a6e9c2f01a89c… != 钉死 9af551752d6b2989…);不静默覆盖——显式处理(allow_replace_broken 仅限本轮新准备域)); wrong-file-intact=True"
+ },
+ {
+  "scenario": "a3_link_correct_halfpair",
+  "ok": true,
+  "detail": "refused(目标半写状态(json 在而 digest 缺):拒绝自动补齐;中断恢复必须显式)"
+ },
+ {
+  "scenario": "a3b_both_links_correct_bytes",
+  "ok": true,
+  "detail": "behavior=False/True prot-untouched=True (observation: accepted idempotent, zero writes through links)"
+ },
+ {
+  "scenario": "a4_legit_install_idempotent",
+  "ok": true,
+  "detail": "first=['wrote:json', 'wrote:digest'] second=idempotent mt-equal=True"
+ },
+ {
+  "scenario": "a5_report_link_candidate_refused",
+  "ok": true,
+  "detail": "refused(目标文件 /mnt/f/trading/local/rcf_r2_review/p1_work/a5/diag_repo...); hist-intact=True"
+ },
+ {
+  "scenario": "a5_report_link_parent_clobbers",
+  "ok": true,
+  "detail": "parent returned report (ok=False); historical original overwritten via link=True"
+ },
+ {
+  "scenario": "a5b_dangling_report_link_candidate",
+  "ok": true,
+  "detail": "refused(诊断报告路径 /mnt/f/trading/local/rcf_r2_review/p1_work/...); target-not-created=True"
+ },
+ {
+  "scenario": "a5b_dangling_report_link_parent_writes_through",
+  "ok": true,
+  "detail": "parent wrote through dangling link; target created=True"
+ },
+ {
+  "scenario": "a5c_normal_report_positive",
+  "ok": true,
+  "detail": "refusal=target_installed: 实际 A artifact 根 /mnt/f/trading/local/rcf_r2_review/p1_work/a5c/deploy/artifacts/formal_a_qaf_v2 未装好钉死 provenance(json/digest 缺失或异物;检查 {'artifact_root': '/mnt/f/trading/local/rcf_r2_review/p1_work/a5c/deploy/artifacts/formal_a_qaf_v2', 'json_present': False, 'digest_present': False, 'foreign_objects': [], 'ready': False})"
+ },
+ {
+  "scenario": "a6_candidate_overwrite_corruption",
+  "ok": true,
+  "detail": "long=2215B short=669B file=2215B parse_fail=True tail-stale=True"
+ },
+ {
+  "scenario": "a6_parent_overwrite_clean_control",
+  "ok": true,
+  "detail": "parent file=670B exact-short=True parses=True"
+ },
+ {
+  "scenario": "a7_mixed_dir_refused",
+  "ok": true,
+  "detail": "refused(allow_replace_broken 拒绝:目标目录含钉死两件之外的文件 ['historical_evidence.json'](混合/历史面不可替换))"
+ },
+ {
+  "scenario": "a7b_allow_replace_link_target_untouched",
+  "ok": true,
+  "detail": "actions=['replaced_broken:json', 'wrote:json', 'wrote:digest'] prot-intact=True art-files-fresh=True"
+ }
+]

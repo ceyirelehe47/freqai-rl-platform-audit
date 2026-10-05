@@ -1,0 +1,42 @@
+[
+ {
+  "scenario": "s1a_verify_correct_field_cwd",
+  "ok": true,
+  "detail": "rc=2 reason=regression_collection_run_cwd_not_deploy_root"
+ },
+ {
+  "scenario": "s1b_operator_refuses_pre_permit_correct_cwd",
+  "ok": true,
+  "detail": "rc=96 stdout_tail='{\"refused\": \"首 permit 写前完整同根核验失败(rc=2): regression_collection_run_cwd_not_deploy_root\\\\n\", \"one_shot_writes\": 0}\\n' zero_writes=True"
+ },
+ {
+  "scenario": "s1c_author_style_reason_is_relocation_not_cwd",
+  "ok": true,
+  "detail": "rc=2 reason=regression_junit_missing:junit.xml (record relocated -> artifact refs break)"
+ },
+ {
+  "scenario": "s2a_verify_junit_missing",
+  "ok": true,
+  "detail": "rc=2 reason=regression_junit_missing:junit.xml"
+ },
+ {
+  "scenario": "s2b_operator_refuses_pre_permit_junit_missing",
+  "ok": true,
+  "detail": "rc=96 zero_writes=True"
+ },
+ {
+  "scenario": "s3_junit_tampered_refused_pre_permit",
+  "ok": true,
+  "detail": "verify_rc=2 reason=regression_junit_sha_mismatch:junit.xml operator_rc=96 zero_writes=True"
+ },
+ {
+  "scenario": "s4_deploy_drift_refused_pre_permit",
+  "ok": true,
+  "detail": "verify_rc=2 reason=regression_import_surface_deploy_mismatch:stage2_6_1/src/rl_curriculum/__init__.py operator_rc=96 zero_writes=True"
+ },
+ {
+  "scenario": "s5_operator_chain_to_leaf_sentinel",
+  "ok": true,
+  "detail": "rc=1 permit=1 admission=True marker_v2=cur261-qaf-test-leaf-sentinel-v2 stress_ns=stress_qaf_v2 gate_consumed=['determinism-matrix'] det_files=[] chain=False/audit"
+ }
+]

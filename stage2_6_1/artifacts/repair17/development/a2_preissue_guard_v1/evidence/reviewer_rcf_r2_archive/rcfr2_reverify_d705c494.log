@@ -1,0 +1,111 @@
+##### P1 04:35:39
+[PASS] a1_dangling_links_refused: refused(目标 json 件路径是符号链接/非普通文件(含悬空链接):/mnt/f/trading/local/rcf_r2_review/p1_work/a1/art/gate_topology_reconciliation.json;零跟随写入拒绝); prot=[] art=['gate_topology_reconciliation.json', 'gate_topology_reconciliation_digest.txt']
+[PASS] a2_link_to_wrong_bytes_refused: refused(目标 json 件为异物(sha 167a6e9c2f01a89c… != 钉死 9af551752d6b2989…);不静默覆盖——显式处理(allow_replace_broken 仅限本轮新准备域)); wrong-file-intact=True
+[PASS] a3_link_correct_halfpair: refused(目标半写状态(json 在而 digest 缺):拒绝自动补齐;中断恢复必须显式)
+[PASS] a3b_both_links_correct_bytes: behavior=False/True prot-untouched=True (observation: accepted idempotent, zero writes through links)
+[PASS] a4_legit_install_idempotent: first=['wrote:json', 'wrote:digest'] second=idempotent mt-equal=True
+[PASS] a5_report_link_candidate_refused: refused(目标文件 /mnt/f/trading/local/rcf_r2_review/p1_work/a5/diag_repo...); hist-intact=True
+[PASS] a5_report_link_parent_clobbers: parent returned report (ok=False); historical original overwritten via link=True
+[PASS] a5b_dangling_report_link_candidate: refused(诊断报告路径 /mnt/f/trading/local/rcf_r2_review/p1_work/...); target-not-created=True
+[PASS] a5b_dangling_report_link_parent_writes_through: parent wrote through dangling link; target created=True
+[PASS] a5c_normal_report_positive: refusal=target_installed: 实际 A artifact 根 /mnt/f/trading/local/rcf_r2_review/p1_work/a5c/deploy/artifacts/formal_a_qaf_v2 未装好钉死 provenance(json/digest 缺失或异物;检查 {'artifact_root': '/mnt/f/trading/local/rcf_r2_review/p1_work/a5c/deploy/artifacts/formal_a_qaf_v2', 'json_present': False, 'digest_present': False, 'foreign_objects': [], 'ready': False})
+[PASS] a6_overwrite_short_report_exact_truncated: long=2215B short=668B file=668B exact=True parses=True
+[PASS] a6_parent_overwrite_clean_control: parent file=669B exact-short=True parses=True
+[PASS] a7_mixed_dir_refused: refused(allow_replace_broken 拒绝:目标目录含钉死两件之外的文件 ['historical_evidence.json'](混合/历史面不可替换))
+[PASS] a7b_allow_replace_link_target_untouched: actions=['replaced_broken:json', 'wrote:json', 'wrote:digest'] prot-intact=True art-files-fresh=True
+
+==== SUMMARY ====
+14/14 scenario assertions passed
+P1_RC=0
+##### P1B
+[PASS] c1_prepare_cli_dangling_links: rc=1 out='Traceback (most recent call last):\n  File "/home/cryptorl/projects/crypto_rl_qaf_v2/stage2_6_1_runner/qaf_v2_operator_entry.py", line 632, in <module>\n    raise SystemExit(main())\n                    '
+[PASS] c2_prepare_cli_positive: rc=0 tail='1bf4e9d",\n  "stored_digest": "r17gtrec-3112e5deb863a810392bbaae0e4e21d9f7017c97d0fd172d6e66eb6551bf4e9d"\n },\n "one_shot_writes": 0,\n "business_leaf_calls": 0\n}\n'
+[PASS] c3_preissue_cli_report_link_refused: rc=3 out='{"refused": "目标文件 /mnt/f/trading/local/rcf_r2_review/p1_work/c3/report.json 是符号链接(含悬空)——零跟随写入拒绝(不得经链接落到保护域/任意外部对象)", "one_shot_writes": 0, "business_leaf_calls": 0}' hist-intact=True
+
+==== SUMMARY ====
+3/3 scenario assertions passed
+P1B_RC=0
+##### P2
+== building sandbox domain (real executor run) ==
+domain: {
+ "label": "p2",
+ "base": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom",
+ "repo": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/relrepo",
+ "commit_a": "6e4b563326523dae28626a009b258636d1f77fd0",
+ "deploy": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/deploy",
+ "record": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/run/regression_evidence_v3_record.json",
+ "art": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/deploy/artifacts/formal_a_qaf_v2",
+ "state": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/deploy/artifacts/route_c_stage2_6_1_repair17/state",
+ "authority": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/deploy/authority",
+ "tree": "3af789cfdbf4cd9d01e99f314109fecf6225bdfb"
+}
+[PASS] s1a_verify_correct_field_cwd: rc=2 reason=regression_collection_run_cwd_not_deploy_root
+[PASS] s1b_operator_refuses_pre_permit_correct_cwd: rc=96 stdout_tail='{"refused": "首 permit 写前完整同根核验失败(rc=2): regression_collection_run_cwd_not_deploy_root\\n", "one_shot_writes": 0}\n' zero_writes=True
+[PASS] s1c_author_style_reason_is_relocation_not_cwd: rc=2 reason=regression_junit_missing:junit.xml (record relocated -> artifact refs break)
+[PASS] s1d_fixed_test_shape_binds_cwd_reason: verify_rc=2 reason=regression_collection_run_cwd_not_deploy_root operator_rc=96 zero_writes=True
+[PASS] s2a_verify_junit_missing: rc=2 reason=regression_junit_missing:junit.xml
+[PASS] s2b_operator_refuses_pre_permit_junit_missing: rc=96 zero_writes=True
+[PASS] s3_junit_tampered_refused_pre_permit: verify_rc=2 reason=regression_junit_sha_mismatch:junit.xml operator_rc=96 zero_writes=True
+[PASS] s4_deploy_drift_refused_pre_permit: verify_rc=2 reason=regression_import_surface_deploy_mismatch:stage2_6_1/src/rl_curriculum/__init__.py operator_rc=96 zero_writes=True
+S5 rc: 1
+S5 permits: ['qprod_permit_level_a_qprod_a_formal_v2.json']
+S5 marker: {"format": "cur261-qaf-test-leaf-sentinel-v2", "step": "determinism-matrix", "boundary": "first_expensive_science_call", "prerequisites_executed": {"stage_budget_gate": true, "attempt_identity_resolved": true}, "science_executed": false, "stress_namespace": "stress_qaf_v2", "pid": 5424, "utc": "2026-10-05T04:37:00Z"}
+S5 gate consumed: {'determinism-matrix': '2026-10-05T04:37:00+00:00'}
+S5 determinism dir: []
+S5 chain result ok/failed_step: False audit
+S5 stdout tail: acts/formal_a_qaf_v2_chain_logs/audit.log",
+        "stderr_path": "/mnt/f/trading/local/rcf_r2_review/p2_work/dom/deploy/artifacts/formal_a_qaf_v2_chain_logs/audit.err",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "a5add7a57fca67fa6c6623e8925ec0eafdb981b637881aa4a85d3a077a1ede4c",
+        "stdout_bytes": 0,
+        "stderr_bytes": 87,
+        "input_artifacts": {
+          "gate_topology_reconciliation.json": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff",
+          "determinism/generation_determinism_contract.json": null
+        },
+        "output_artifacts": {
+          "r17_code_freeze.json": null,
+          "baseline_ancestry.json": null,
+          "historical_evidence_binding.json": null,
+          "r12_abort_binding.json": null,
+          "r12_iteration_failure_binding.json": null,
+          "r14_failure_binding.json": null,
+          "r15_failure_binding.json": null,
+          "gate_topology_reconciliation_verify.json": null
+        },
+        "delegation": null
+      }
+    ],
+    "qualification_terminal_status": null
+  },
+  "chain_rc": 1,
+  "stdout_tail": "",
+  "refusal": null
+}
+
+
+[PASS] s5_operator_chain_to_leaf_sentinel: rc=1 permit=1 admission=True marker_v2=cur261-qaf-test-leaf-sentinel-v2 stress_ns=stress_qaf_v2 gate_consumed=['determinism-matrix'] det_files=[] chain=False/audit
+
+==== SUMMARY ====
+9/9 scenario assertions passed
+P2_RC=0
+##### P4
+[PASS] g1_no_gate_engineering_unchanged: rc=0 marker_ns=stress_qaf_v2 det=[]
+[PASS] g2_root_gate_hit_and_consumed: rc=0 consumed=['determinism-matrix']
+[PASS] g3_subdir_gate_fallback_hit: rc=0 consumed=['determinism-matrix']
+[PASS] g4_gate_step_not_in_plan_refused: rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门:步骤 'determinism-matrix' 不在本链计划 ['audit', 'provenance-verify', 'verify-formal-logs'](停止边界后的后继不可达;A1 物理不
+[PASS] g5_missing_gate_formal_context_fail_closed: rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门缺失 /mnt/f/trading/local/rcf_r2_review/p4_work/g5/chain_budget_gate.json 且当前为正式部署上下文(R17_DEPLOYED_STATE_ROOT 在场):正式链缺门fail c
+[PASS] g6_preconsumed_refused_no_marker: rc=2 stdout=[determinism-matrix] 预算门拒绝(零叶调用): 预算门:步骤 'determinism-matrix' 已消费(consumed 于 prior-run;重试/重放不恢复,一次已开始=一次消费;重跑须新批准)
+[PASS] g7_invalid_attempt_rejected: rc=2 stderr=usage: r17-cli determinism-matrix [-h] [--out-dir OUT_DIR]
+                                  [--formal-namespace-attempt
+
+==== SUMMARY ====
+7/7 scenario assertions passed
+P4_RC=0
+##### closure suite
+..........................                                               [100%]
+26 passed in 95.12s (0:01:35)
+##### guard+launch suites
+...................................................................      [100%]
+67 passed in 36.44s
+##### DONE 04:39:16

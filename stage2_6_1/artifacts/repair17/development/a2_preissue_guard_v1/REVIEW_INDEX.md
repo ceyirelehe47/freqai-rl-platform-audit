@@ -38,3 +38,12 @@ P3(计数措辞)已在 6a4ea870 修复(guard+7 既有=8 文件 222 全绿;review
 | RCF R5(终审 90b3a44a) | **PASS**(env 角闭环进生产根守卫第三条件;面无回退;最终绑定逐项复核) | r5_{probe_E,probe_D}.json、r5_closure.log、r5_bindings.txt |
 
 候选演进续:513e75e3→1ea6bba8(RCF 实现)→f4684c1e(真实日志+前移)→cff3f5d2(生产根守卫)→9d735c8c(env 守卫)→**90b3a44a(生产根守卫扩展;最终候选)**。
+
+## RCF R2 轮(ChatGPT R1 复审 FAIL→同任务修复;dsv4.1f 线 RcfR2Gate1)
+
+| 阶段 | 结论 | 关键证据(local/rcf_r2_review/→已归档 evidence/reviewer_rcf_r2_archive/,24 件) |
+|---|---|---|
+| R2 gate1(候选 eca28ea1) | incorrect(2×P2:F1 非 exclusive 无 O_TRUNC 致短报告残留陈旧尾部;F2 wrong-cwd 测试改不存在键+移目录) | REVIEW_SUMMARY.md;P1/P2 探针;eca28ea1 基线 |
+| R2 修复复验(d705c494) | **PASS**(F1 精确 668B 截断;F2 reason=cwd_not_deploy_root;P1 14/14+P1B 3/3+P2 9/9+P4 7/7;closure 26/26+guard/launch 67/67;部署树 blob 相等) | reverify_d705c494.log |
+
+候选演进续(R2):90b3a44a→eca28ea1(RCF-01 文件链接/RCF-02 首写前完整同核/RCF-03 哨兵移位+预算门根查找接线)→**d705c494(F1/F2;最终候选)**;最终 record 0b1bd93f(run r21_20261005_132145,2963=2956P+7S)。
