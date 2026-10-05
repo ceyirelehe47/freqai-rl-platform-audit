@@ -268,7 +268,8 @@ def main() -> int:
             gate = preissue_gate(
                 repo=(args.guard_repo or args.repo),
                 deploy_root=args.deploy_root,
-                project_dir=args.project_dir, attempt=_attempt)
+                project_dir=args.project_dir, attempt=_attempt,
+                candidate_sha=args.commit_a)
         except ProvenanceGuardError as exc:
             print(json.dumps({"refused": f"签发前守卫拒绝: {exc}",
                               "one_shot_writes": 0},

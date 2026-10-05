@@ -771,7 +771,8 @@ for rel, expect in RUNTIME_ORIGINAL_DIGESTS.items():
         missing.append(rel); continue
     import hashlib
     got = hashlib.sha256(f.read_bytes()).hexdigest()
-    if not expect.startswith(got[:16]) and got != expect:
+    if not (got == expect
+            or (len(expect) == 16 and got.startswith(expect))):
         mismatched.append(rel)
 for repo_path, dev_rel in RUNTIME_GIT_BACKED_MAP.items():
     f = project_dir / dev_rel
@@ -1033,6 +1034,9 @@ def guard_cli(argv: list[str] | None = None) -> int:
     p_pre.add_argument("--deploy-root", required=True)
     p_pre.add_argument("--project-dir", required=True)
     p_pre.add_argument("--attempt", default="qaf_v2")
+    p_pre.add_argument(
+        "--candidate-sha", default=None,
+        help="候选 Commit A(runtime_dependencies 前置;qaf_v3+ 必需)")
     p_pre.add_argument("--python", default=None)
     p_pre.add_argument("--report-out", default=None)
     args = ap.parse_args(argv)
@@ -1064,6 +1068,7 @@ def guard_cli(argv: list[str] | None = None) -> int:
             out = preissue_gate(
                 repo=Path(args.repo), deploy_root=Path(args.deploy_root),
                 project_dir=Path(args.project_dir), attempt=args.attempt,
+                candidate_sha=args.candidate_sha,
                 python=args.python,
                 report_out=Path(args.report_out)
                 if args.report_out else None)

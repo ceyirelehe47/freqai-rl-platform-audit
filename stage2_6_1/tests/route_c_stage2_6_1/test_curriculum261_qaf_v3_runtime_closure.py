@@ -433,3 +433,53 @@ def test_rd06_qaf_v3_api_wiring(tmp_path):
              "PATH": "/usr/bin:/bin", "HOME": "/home/cryptorl"},
         cwd=project)
     assert "API_WIRING_OK" in code.stdout, code.stderr[-500:]
+
+
+def test_rd04_admission_issuer_passes_candidate_sha(tmp_path, monkeypatch):
+    """P0 回归:直接签发器(r17_admission_issue)对 qaf_v3 必须把
+    candidate_sha 传入 preissue_gate——拒绝面不得是"缺
+    candidate_sha"(其后的 approval/prereg 业务拒绝为预期边界)。
+    """
+    repo, sha, pin, project = _build_fixture(tmp_path)
+    import rl_curriculum.curriculum261_qaf_provenance_guard as guard
+    monkeypatch.setattr(guard, "R17_PIN_EXPECTED_ROOT", str(pin))
+    deploy = tmp_path / "deploy"
+    art = deploy / "artifacts" / "formal_a_qaf_v3"
+    art.mkdir(parents=True)
+    (deploy / "qprod_deploy_config.json").write_text(json.dumps({
+        "format": "cur261-qprod-deploy-config-v1",
+        "mode": "formal_ready",
+        "formal_roots": {"qprod_a_formal_v3": {
+            "artifact_root": str(art),
+            "state_root": str(deploy / "state"),
+            "authority_dir": str(deploy / "authority")}}},
+        ensure_ascii=False, indent=1), encoding="utf-8")
+    prereg = tmp_path / "prereg.json"
+    prereg.write_text(json.dumps({
+        "admission_id": "qaf-v3-test",
+        "iteration": "qprod_a_formal_v3",
+        "plan_digest": sha, "plan_digest_method": "git_tree_digest",
+        "regression_evidence": "unused",
+        "authorization": "test", "formal_attempt": "qaf_v3"}),
+        encoding="utf-8")
+    issuer = (SRC_DIR.parent / "stage2_6_1_runner"
+              if (SRC_DIR.parent / "stage2_6_1_runner").is_dir()
+              else SRC_DIR.parent / "runner") / "r17_admission_issue.py"
+    if not issuer.is_file():
+        issuer = project / "stage2_6_1_runner" / "r17_admission_issue.py"
+    proc = subprocess.run(
+        [PY, str(issuer), "--repo", str(repo),
+         "--deploy-root", str(deploy),
+         "--state-root", str(deploy / "state"),
+         "--commit-a", sha, "--preregistration", str(prereg),
+         "--project-dir", str(project)],
+        capture_output=True, text=True,
+        env={"PYTHONPATH": str(project / "src"),
+             "PYTHONDONTWRITEBYTECODE": "1",
+             "PATH": "/usr/bin:/bin", "HOME": "/home/cryptorl"},
+        cwd=project)
+    out = proc.stdout + proc.stderr
+    assert "candidate_sha" not in out, out[-600:]
+    assert "runtime_dependencies" not in out, out[-600:]
+    # 门后业务边界(批准原件缺失)为预期拒绝面
+    assert proc.returncode in (0, 1, 96)

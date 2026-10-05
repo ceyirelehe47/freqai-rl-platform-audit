@@ -16,7 +16,7 @@
 | 隔离验证 | 14 项 RD03-RD06 正反例(缺件/错字节/错 HEAD/dirty/非 pin 解析/gate 首写前拒/注册表身份/api 接线)全绿;真实域 preflight_P3 ok=true+freeze 工程隔离写出成功 |
 | 部署与对拍 | P3/D3/PIN 三新根;三方对拍 blob→CR 投影→P3/D3 **1190 全等**;旧 P2/D2/qaf_v1/v2 现场零触碰 |
 | 回归 | 见 record(全收集,cwd=D3;历史失败尝试归档保留) |
-| 计划 | `qbpl-5adb489e…`(真实构建器,P3 内构建;不变量与旧 A2 全等) |
+| 计划 | `qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760`(真实构建器,P3 内构建;不变量与旧 A2 全等) |
 
 ## 边界
 

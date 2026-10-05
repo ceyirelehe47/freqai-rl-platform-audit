@@ -34,8 +34,8 @@ cd $P3 && PYTHONDONTWRITEBYTECODE=1 $PY $P3/stage2_6_1_runner/qaf_v2_operator_en
 
 同 v2 轮合同:`formal_approval_digest`;approved 10 键(roots=D3 三根、`coordinate_ids=[]`、
 `authorized_stop_after="verify-formal-logs"`、`model_update_authorized=true`、quota=计划 quota、
-namespaces=`qaf_input_scope_for_attempt("qaf_v3")` 26 名、`code_freeze_sha`=61180756…、
-`research_plan_digest`=qbpl-5adb489e…);`approval_source={"kind":"user_direct_approval","statement_digest":<原文sha256>,…}`。
+namespaces=`qaf_input_scope_for_attempt("qaf_v3")` 26 名、`code_freeze_sha`=2f3e7faad5aca77aed29eec3e4b70d35484f84fb、
+`research_plan_digest`=qbpl-46bb0062aac8cbb1b57b5c979dc8bb6178b1a47041164b2f44413a01cdf3b760);`approval_source={"kind":"user_direct_approval","statement_digest":<原文sha256>,…}`。
 写 `$PREP/approval_qaf_v3.json`(mkdir -p $PREP)。
 
 ## E4. 一次性执行(operator execute;前置=E1-E3 已完成)
