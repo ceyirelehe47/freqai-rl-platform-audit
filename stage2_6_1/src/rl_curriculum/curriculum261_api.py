@@ -670,7 +670,8 @@ CURRICULUM261_R17_FORMAL_NAMESPACES = (
     "c2_independent_qualification_r17",
     "cue_semantic_qualification_r17",
 ) + _R18_ATTEMPT_FORMAL_FOUR + _R19_ATTEMPT_FORMAL_FOUR + (
-    _QAF_ATTEMPT_FORMAL_FOUR) + (_QAF_V2_ATTEMPT_FORMAL_FOUR)
+    _QAF_ATTEMPT_FORMAL_FOUR) + (_QAF_V2_ATTEMPT_FORMAL_FOUR) + (
+    _QAF_V3_ATTEMPT_FORMAL_FOUR)
 
 #: R25 cue-bias 开发研究一次性 namespace(RouteC_CueBias_DevelopmentStudy_
 #: _v1;engineering-only 开发估计研究,不属正式资格面;11 对研究坐标
