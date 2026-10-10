@@ -461,11 +461,11 @@ def build_budget_items(
              f"bank {K['bank_pairs_per_rung']}/rung={_bank_eps()} eps"
              "+1 pair=2 eps(cmd_smoke 不传 envelope)",
              smoke_eps, smoke_eps,
-             "fit_preprocessor_v2_from_bank_r17('ppo_smoke_r17')"
+             f"fit_preprocessor_v2_from_bank_r17('{ppo_smoke_ns}')"
              "+generate_pair",
-             "生成 envelope ledger(ppo_smoke_r17 工程面)"),
+             f"生成 envelope ledger({ppo_smoke_ns} 工程面)"),
         item("smoke", "v2_preprocessor_fits", "smoke 内 1 次", 1, 1,
-             "fit_preprocessor_v2_from_bank_r17(ppo_smoke_r17)",
+             f"fit_preprocessor_v2_from_bank_r17({ppo_smoke_ns})",
              "smoke manifest preprocessor_bundle_hash 绑定"),
         item("smoke", "ppo_learn_calls", "model.learn(256) 1 次",
              1, 1, "PPO.learn", "smoke manifest(n_steps=256)"),
