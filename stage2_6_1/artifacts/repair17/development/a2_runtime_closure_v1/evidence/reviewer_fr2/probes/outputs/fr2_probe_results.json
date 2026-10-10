@@ -1,0 +1,309 @@
+{
+ "real_roots": {
+  "ok": true,
+  "problems": [],
+  "dev_root": "/home/cryptorl/projects/crypto_rl_qaf_v3",
+  "repo_root": "/home/cryptorl/release_pin_qaf_v3",
+  "repo_head_commit": "c0fb685823eb4733bda9f5920601311228d55fde",
+  "n_dev_files": 574,
+  "vendor": {
+   "path": "/home/cryptorl/projects/crypto_rl_qaf_v3/vendor/freqtrade",
+   "exists": true,
+   "sha": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5",
+   "clean": true
+  },
+  "vendor_ok": true,
+  "hist_digests_match": true,
+  "bind_states": {
+   "r11": true,
+   "r12": true,
+   "r13": true
+  },
+  "bind_errors": {},
+  "heb_ok": true,
+  "heb_branch": "route-c-stage2-6-1-repair17"
+ },
+ "domain": {
+  "base": "/home/cryptorl/tmp_fr2_review/fr2_dom",
+  "pin": "/home/cryptorl/tmp_fr2_review/fr2_dom/release_pin",
+  "project": "/home/cryptorl/tmp_fr2_review/fr2_dom/project",
+  "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+  "vendor_pin": "52bc96f4480b1a0da6a9b455bd00b17fbb6786a5"
+ },
+ "scenarios": [
+  {
+   "name": "baseline_positive",
+   "ok": true,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": null,
+   "checks": {
+    "ok_true": true,
+    "bind_all_true": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r11_trace_missing",
+   "ok": false,
+   "bind_states": {
+    "r11": false,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r11']; {'r11': \"{'cue_event_trace_blob_matches_baseline': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r11_marker_bytes",
+   "ok": false,
+   "bind_states": {
+    "r11": false,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r11']; {'r11': \"{'abort_marker_blob_matches_baseline': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r11_final_appears",
+   "ok": false,
+   "bind_states": {
+    "r11": false,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r11']; {'r11': \"{'final_qualification_not_executed': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r11_audit_changed",
+   "ok": false,
+   "bind_states": {
+    "r11": false,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r11']; {'r11': \"{'cue_audit_result_blob_matches_baseline': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r13_abort_missing",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": false
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r13']; {'r13': \"FileNotFoundError(2, 'No such file or directory')\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r13_result_blob_changed",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": false
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r13']; {'r13': \"{'result_blob_matches_baseline': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r13_exposure_missing",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": false
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r13']; {'r13': \"FileNotFoundError(2, 'No such file or directory')\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r13_plan_digest_changed",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": false
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r13']; {'r13': \"{'qualification_plan_digest_ok': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r12_marker_bytes",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": false,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r12']; {'r12': \"{'abort_marker_blob_matches_baseline': False, 'pass': False}\"}",
+    "branch_lineage: PIN 分支/血统/历史证据不成立(branch='route-c-stage2-6-1-repair17', failed=['r12_abort_marker_content_matches_baseline'], err=)"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "only_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "r12_exposure_appears",
+   "ok": false,
+   "bind_states": {
+    "r11": true,
+    "r12": false,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": [
+    "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder 同源 checks): ['r12']; {'r12': \"{'qualification_exposure_absent': False, 'pass': False}\"}"
+   ],
+   "checks": {
+    "ok_false": true,
+    "target_bind_false": true,
+    "others_bind_true": true,
+    "historical_bindings_marker": true,
+    "no_vendor_static": true,
+    "no_historical_digests": true,
+    "no_branch_lineage": true,
+    "head_is_A": true
+   },
+   "all_pass": true
+  },
+  {
+   "name": "restore_positive",
+   "ok": true,
+   "bind_states": {
+    "r11": true,
+    "r12": true,
+    "r13": true
+   },
+   "head": "c0fb685823eb4733bda9f5920601311228d55fde",
+   "problems": null,
+   "checks": {
+    "ok_true": true,
+    "bind_all_true": true
+   },
+   "all_pass": true
+  }
+ ],
+ "verdict": "ALL_PASS"
+}
