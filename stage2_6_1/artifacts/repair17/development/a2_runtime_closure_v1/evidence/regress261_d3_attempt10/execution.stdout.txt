@@ -1,0 +1,185 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+........................................................F............... [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 24%]
+......................................s................................. [ 26%]
+...............s........................................................ [ 28%]
+.....................................s.................................. [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 36%]
+..............s......................................................... [ 38%]
+........................................................................ [ 40%]
+.......................................................................s [ 43%]
+.s.s.................................................................... [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+.............R17ALERT {"event":"t06","n":1,"utc":"2026-10-05T22:01:44Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T22:01:44Z","run_id":"run"}
+........................................................... [ 62%]
+.............FF......................................................... [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 72%]
+..............R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-05T22:12:10Z","run_id":"run"}
+.......................................................... [ 74%]
+................................F....................................... [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 89%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+.....................................                                    [100%]
+=================================== FAILURES ===================================
+_______________ TestA2GenerationFamily.test_registration_counts ________________
+
+self = <test_curriculum261_qprod_formal_repair4.TestA2GenerationFamily object at 0x7bb37191dd50>
+
+    def test_registration_counts(self):
+        # A2-R2:qaf_v2 尝试族并入注册面(26 名);旧 qaf_v1 26 名
+        # 保持不变。全集 = 183 + 26(qaf_v2)。
+        assert len(QAF_ALL_NEW) == 26
+        assert len(QAF_GENERATION_FAMILY) == 10
+>       assert len(R17_ALL) == 209
+E       AssertionError: assert 235 == 209
+E        +  where 235 = len(('cue_contract_model_r17', 'cue_contract_validation_r17', 'cue_k_global_null_r17', 'preplan_engineering_smoke_r17', 'preplan_smoke_r17', 'preplan_candidate_eval_r17', ...))
+
+tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair4.py:43: AssertionError
+___________________ TestRegistryApi.test_registry_alignment ____________________
+
+self = <test_curriculum261_r17_governance_unit.TestRegistryApi object at 0x7bb3711d93d0>
+
+    def test_registry_alignment(self):
+        doc = verify_r17_registry_alignment()
+        assert doc["api_namespaces_match"] and doc["api_formal_match"]
+        # R17V2C13EngineeringCalibration-v2:基线 89 + v1 四项 + v2 四项
+        # = 97;R18 尝试族增量 30 后 = 127(正式 8);R19 尝试族
+        # (R19 处方后 157;QAF 校准/资格 16[R1/F06]+生成/设计/smoke 10[R2/A.2] = 183,正式 16;
+        # A2-R2(RouteC_A2_PreIssueGuard_NewAttempt_v1):qaf_v2 尝试族
+        # 增 26(校准族 12+四件套 4+生成/设计/smoke 10)= 209,
+        # 正式面 +4 = 20。集合精确性由增量检查承载,不是单纯改数字。
+>       assert doc["n_namespaces"] == 209 and doc["n_formal"] == 20
+E       assert (235 == 209)
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py:68: AssertionError
+______________ TestRegistryApi.test_formal_four_namespaces_fresh _______________
+
+self = <test_curriculum261_r17_governance_unit.TestRegistryApi object at 0x7bb3711d8690>
+
+    def test_formal_four_namespaces_fresh(self):
+        # R18/R19/QAF 尝试四件套先后加入正式面(journal §11 处方、
+        # R19 处方与 QAF 尝试——RouteC_FormalLaunch_Preparation_v1
+        # R1/F06:R17 框架 + 全新 namespace);旧四件套保持注册未消费。
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF2_FORMAL_FOUR, QAF_FORMAL_FOUR)
+        from rl_curriculum.curriculum261_r18_attempt import R18_FORMAL_FOUR
+        from rl_curriculum.curriculum261_r19_attempt import R19_FORMAL_FOUR
+>       assert set(CURRICULUM261_R17_FORMAL_NAMESPACES) == {
+            "qualification_r17",
+            "preprocess_fit_qualification_r17",
+            "c2_independent_qualification_r17",
+            "cue_semantic_qualification_r17"} | set(R18_FORMAL_FOUR) \
+            | set(R19_FORMAL_FOUR) | set(QAF_FORMAL_FOUR) \
+            | set(QAF2_FORMAL_FOUR)
+E       AssertionError: assert {'c2_independ...ion_r19', ...} == {'c2_independ..._qaf_v1', ...}
+E         
+E         Extra items in the left set:
+E         'cue_semantic_qualification_qaf_v3'
+E         'preprocess_fit_qualification_qaf_v3'
+E         'c2_independent_qualification_qaf_v3'
+E         'qualification_qaf_v3'
+E         Use -v to get more diff
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py:89: AssertionError
+______________________ test_v04_registry_exact_increment _______________________
+
+    def test_v04_registry_exact_increment():
+        c = prof.fixed_contract()
+        assert c['n_planned_requests'] == 336
+        assert c['n_fit_requests'] == 160 and c['n_eval_requests'] == 176
+        assert c['max_pair_attempts'] == 1680
+        assert c['n_selected_fit_pairs'] == 144
+        assert c['n_selected_eval_pairs'] == 160
+        assert c['n_fit_manifest_entries_per_bank'] == 144
+        assert c['n_main_scaled_eval_episodes'] == 320
+        assert c['c1_c2_reserve_allowed'] is False
+        plan = prof.make_plan(fixture_runtime())
+        prof.validate_plan(plan)
+        try:
+            from rl_curriculum.curriculum261_api import (
+                CURRICULUM261_R17_NAMESPACES as ns,
+                CURRICULUM261_R17_FORMAL_NAMESPACES as formal)
+            from rl_curriculum.curriculum261_r17_registry import (
+                R17_ALL_NAMESPACES, R17_FORMAL_QUALIFICATION_NAMESPACES)
+        except ModuleNotFoundError:
+            pytest.skip('rl_curriculum not importable in this layout')
+        # 精确 209/20(v2c13 97/4 + R18 30/4 + R19 30/4 + QAF
+        # 校准/资格 16[R1/F06] + 生成/设计/smoke 10[R2/A.2]
+        # + qaf_v2 26/4[A2-R2]);非重言式:与显式基线集合 + v1 四名
+        # + v2 四名 + R18/R19/QAF(含 qaf_v2)尝试名的并集精确相等。
+        from rl_curriculum.curriculum261_qaf_attempt import (
+            QAF2_ALL_NEW, QAF2_FORMAL_FOUR, QAF_ALL_NEW, QAF_FORMAL_FOUR)
+        from rl_curriculum.curriculum261_r18_attempt import (
+            R18_ALL_NEW, R18_FORMAL_FOUR)
+        from rl_curriculum.curriculum261_r19_attempt import (
+            R19_ALL_NEW, R19_FORMAL_FOUR)
+>       assert len(ns) == 209 and len(formal) == 20
+E       AssertionError: assert (235 == 209)
+E        +  where 235 = len(('cue_contract_model_r17', 'cue_contract_validation_r17', 'cue_k_global_null_r17', 'preplan_engineering_smoke_r17', 'preplan_smoke_r17', 'preplan_candidate_eval_r17', ...))
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py:441: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_qprod_formal_repair4.py::TestA2GenerationFamily::test_registration_counts
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py::TestRegistryApi::test_registry_alignment
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_governance_unit.py::TestRegistryApi::test_formal_four_namespaces_fresh
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_v2_c13_pipeline.py::test_v04_registry_exact_increment
+4 failed, 2978 passed, 7 skipped, 10 warnings in 2877.97s (0:47:57)

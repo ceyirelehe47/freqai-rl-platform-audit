@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/cryptorl/projects/crypto_rl_qaf_v3/src/rl_curriculum/curriculum261_r17_cli.py", line 4666, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/cryptorl/projects/crypto_rl_qaf_v3/src/rl_curriculum/curriculum261_r17_cli.py", line 4662, in main
+    return handlers[args.cmd](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl_qaf_v3/src/rl_curriculum/curriculum261_r17_cli.py", line 1214, in cmd_audit
+    determinism_binding = _generation_determinism_gate_binding(out)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cryptorl/projects/crypto_rl_qaf_v3/src/rl_curriculum/curriculum261_r17_cli.py", line 901, in _generation_determinism_gate_binding
+    raise RuntimeError(
+RuntimeError: generation determinism contract 缺失:/home/cryptorl/tmp_a2rc_w5/audit_out/determinism/generation_determinism_contract.json(工作包 A6:确定性矩阵/mutable state 审计/合同门禁全部通过前,禁止访问任何 R17 正式 design/calibration/qualification namespace)

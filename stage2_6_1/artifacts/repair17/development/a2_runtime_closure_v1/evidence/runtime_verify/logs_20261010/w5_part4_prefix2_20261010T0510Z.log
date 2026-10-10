@@ -1,0 +1,28 @@
+== [R] restore PIN to branch ==
+Your branch is up to date with 'origin/route-c-stage2-6-1-repair17'.
+branch=route-c-stage2-6-1-repair17 head=85a879a46d0a20831644eb9aae52e0537436713f
+porcelain:[]
+== step1 provenance-verify ==
+rc1=0
+[provenance-verify] pass=True stored=r17gtrec-3112e5deb863a... recomputed=r17gtrec-3112e5deb863a...
+== step2 determinism-matrix (attempt qaf_v3) ==
+rc2=0
+[determinism] A5: cross-process matrix (14 scenarios) ...
+[determinism] A5 pass=True all_identical=True r10_consistent=True r10_failure_reproduced=False
+[determinism] A6 gate pass=True
+== step3 audit @ 85a879a46d0a20831644eb9aae52e0537436713f ==
+rc3=0
+[audit] code freeze anchored: 85a879a46d0a20831644eb9aae52e0537436713f (surface r17fs-c4b5818c...; dev_files=572 repo_tracked=613)
+[audit] equivalence pass=True ns pass=True digests_match=True ancestry ok=True r11_binding pass=True r12_binding pass=True r13_binding pass=True r14_binding pass=True workflow pass=True provenance pass=True dep pass=True entry pass=True determinism_contract=bound
+== ancestry after ==
+{
+  "format": "cur261-r17-baseline-ancestry-v1",
+  "expected_baseline": "14a889c2854571e3ab5245ef51da7c858c83f59b",
+  "release_repo_head": "85a879a46d0a20831644eb9aae52e0537436713f",
+  "ancestry_semantics": "merge-base --is-ancestor + merge-base == expected",
+  "merge_base": "c0da37a498740201c42898ea9b743ecfb54990da",
+  "baseline_is_ancestor": true,
+  "ok": true
+== freeze digest ==
+576f4728f6ab6f04a75c4b005558b73febca51df4d110bf0148bfadf47651eff
+rerun done

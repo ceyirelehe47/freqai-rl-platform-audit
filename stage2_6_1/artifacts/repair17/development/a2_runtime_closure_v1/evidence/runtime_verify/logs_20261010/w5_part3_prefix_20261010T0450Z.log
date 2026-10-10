@@ -1,0 +1,57 @@
+== step1 provenance-verify ==
+rc1=0
+[provenance-verify] pass=True stored=r17gtrec-3112e5deb863a... recomputed=r17gtrec-3112e5deb863a...
+== step2 determinism-matrix (attempt qaf_v3) ==
+rc2=0
+[determinism] A4 pass=True findings=0
+[determinism] A5: cross-process matrix (14 scenarios) ...
+[determinism] A5 pass=True all_identical=True r10_consistent=True r10_failure_reproduced=False
+[determinism] A6 gate pass=True
+== step3 audit @ 85a879a46d0a20831644eb9aae52e0537436713f ==
+rc3=1
+[audit] code freeze anchored: 85a879a46d0a20831644eb9aae52e0537436713f (surface r17fs-c4b5818c...; dev_files=572 repo_tracked=613)
+[audit] equivalence pass=True ns pass=True digests_match=True ancestry ok=False r11_binding pass=True r12_binding pass=True r13_binding pass=True r14_binding pass=True workflow pass=True provenance pass=True dep pass=True entry pass=True determinism_contract=bound
+== artifacts ==
+/home/cryptorl/tmp_a2rc_w5/prefix_out/:
+baseline_ancestry.json
+bundle_routing_contract.json
+bundle_routing_contract_digest.txt
+calibration_call_contract.json
+delegation_ast_checks.json
+delegation_signature_audit.json
+dependency_resolution.json
+determinism
+gate_topology_provenance_verify.json
+gate_topology_reconciliation.json
+gate_topology_reconciliation_digest.txt
+gate_topology_reconciliation_verify.json
+generation_determinism_binding.json
+historical_binding.json
+historical_evidence_binding.json
+historical_evidence_binding_digest.txt
+official_entrypoint_validation.json
+preprocessing_v2_contract.json
+preprocessing_v2_contract_digest.txt
+production_equivalence.json
+production_preprocessing_audit.json
+r10_abort_binding.json
+r11_abort_binding.json
+r11_cue_failure_binding.json
+r12_abort_binding.json
+r12_iteration_failure_binding.json
+r13_iteration_failure_binding.json
+r14_failure_binding.json
+r15_failure_binding.json
+r17_code_freeze.json
+r17_workflow_validation.json
+r8_abort_binding.json
+r9_abort_binding.json
+route_c_integrity.json
+seed_namespace_integrity_pre_design.json
+
+/home/cryptorl/tmp_a2rc_w5/prefix_out/determinism/:
+cross_process_determinism_matrix.json
+generation_determinism_contract.json
+generator_state_mutation_audit.json
+576f4728f6ab6f04a75c4b005558b73febca51df4d110bf0148bfadf47651eff  /mnt/f/trading/freqai-rl-audit/stage2_6_1/artifacts/repair17/development/a2_runtime_closure_v1/evidence/runtime_verify/prefix_probe_85a879a4/r17_code_freeze.json
+prefix_probe_85a879a4 done
