@@ -1,0 +1,29 @@
+== [0] sync test fix to P3/D3 ==
+43 passed in 56.80s
+== [A] PIN -> A'' (branch state) ==
+ * branch              route-c-stage2-6-1-repair17 -> FETCH_HEAD
+HEAD is now at 24ddea34 A2 RuntimeClosure R3 fix (reviewer F-1): parameterize plan authorization identity texts by qaf_attempt_family — embedded_preflight_smoke.description/smoke_policy ppo_smoke identity, budget_items audit-bank/preplan-smoke/preflight-smoke consumers, explicit run_scope.attempt_identity registration (chain cmd_audit/cmd_preplan_smoke/cmd_preflight_static/smoke same-source resolution); +RD06 regression test (125 affected subset green in P3)
+branch=route-c-stage2-6-1-repair17 head=24ddea34f2a32ae08bf1238e95112391c0d84ab4 porcelain:[]
+== [B] plan rebuild at A'' ==
+QPROD_PLAN_DIGEST: qbpl-cf43299003ae573108401e10b6f5eefbdf4afb2d59d3dd0bbc542d7c1197059e
+draft_equals_rebuilt: True
+== [C] preflight @A'' ==
+PREFLIGHT ok= True problems= []
+== [D] freeze engineering @A'' ==
+FREEZE_OK 24ddea34f2a3 digest r17fs-f835a8a2ea1e3a missing []
+== [F] three-way @A'' ==
+PAIRS {'P3D3': '698/698 equal', 'P3PIN': '597/597 equal', 'D3PIN': '660/660 equal'} mismatches: 0
+== [G] live prefix probe 3 steps @A'' ==
+rc1=0
+[provenance-verify] pass=True stored=r17gtrec-3112e5deb863a... recomputed=r17gtrec-3112e5deb863a...
+rc2=0
+[determinism] A5 pass=True all_identical=True r10_consistent=True r10_failure_reproduced=False
+[determinism] A6 gate pass=True
+rc3=0
+[audit] code freeze anchored: 24ddea34f2a32ae08bf1238e95112391c0d84ab4 (surface r17fs-f835a8a2...; dev_files=572 repo_tracked=613)
+[audit] equivalence pass=True ns pass=True digests_match=True ancestry ok=True r11_binding pass=True r12_binding pass=True r13_binding pass=True r14_binding pass=True workflow pass=True provenance pass=True dep pass=True entry pass=True determinism_contract=bound
+== [H] audit dummy-sha refusal @A'' ==
+rc_refused=1
+    raise RuntimeError(
+RuntimeError: code_freeze_sha 与 repo HEAD 不一致——冻结必须绑定Commit A 提交(HEAD=24ddea34f2a32ae08bf1238e95112391c0d84ab4,传入=0000000000000000000000000000000000000000)
+part7 done

@@ -22,7 +22,7 @@ qaf_v1/qaf_v2 一次性资源不恢复、无新签发/无新消费/无 launch(�
 
 ### 2.1 工程哨兵链探针写 r17_rt_runs(2026-10-05 04:27Z–10-06 07:09 本地时段)
 
-约 30 个 `r17_rt_runs/2026100[56]*` 运行目录,全部为 `--rehearsal` 模式、dummy freeze sha(`0000…`/`1111…`)的**负例探针**:每一个都在 audit 步被 `write_r17_code_freeze` 的 HEAD==Commit A 检查正确拒绝(报错样例:`code_freeze_sha 与 repo HEAD 不一致——冻结必须绑定Commit A 提交(HEAD=85a879a4…,传入=1111…)`),`exposure=not_exposed`、fail-closed 封口。报错中的 HEAD 值随当时候选演进而变(eca28ea1→d705c494→af5c9d86→71da73a6→61180756→2f3e7faa→b3e3bffd→45a47547→85a879a4),与提交时间线一致——这正是 RD03"齐件但错 HEAD 拒"的活运行证据(逐目录清单见 `rehearsal_inventory.txt`)。全部产物仅落 r17_rt_runs 运行目录(历史惯例的测试副产物位置),未触碰任何保护原件;不入提交。
+52 个 `r17_rt_runs/2026100[56]*` 运行目录(R3 复核勘正:reviewer 实数 52,初稿误写约 30;逐目录清单见 `rehearsal_inventory_20261010.txt`),全部为 `--rehearsal` 模式、dummy freeze sha(`0000…`/`1111…`)的**负例探针**:每一个都在 audit 步被 `write_r17_code_freeze` 的 HEAD==Commit A 检查正确拒绝(报错样例:`code_freeze_sha 与 repo HEAD 不一致——冻结必须绑定Commit A 提交(HEAD=85a879a4…,传入=1111…)`),`exposure=not_exposed`、fail-closed 封口。报错中的 HEAD 值随当时候选演进而变(eca28ea1→d705c494→af5c9d86→71da73a6→61180756→2f3e7faa→b3e3bffd→45a47547→85a879a4),与提交时间线一致——这正是 RD03"齐件但错 HEAD 拒"的活运行证据。全部产物仅落 r17_rt_runs 运行目录(历史惯例的测试副产物位置),未触碰任何保护原件;不入提交。
 
 ### 2.2 部署树候选同步(2 个 src 文件,2026-10-06 07:33 本地)
 

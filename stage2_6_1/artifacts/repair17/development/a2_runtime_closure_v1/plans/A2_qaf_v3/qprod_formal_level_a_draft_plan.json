@@ -3,7 +3,7 @@
  "level": "level_a",
  "iteration_id": "qprod_a_formal_v3",
  "profile": "formal",
- "code_freeze_sha": "85a879a46d0a20831644eb9aae52e0537436713f",
+ "code_freeze_sha": "24ddea34f2a32ae08bf1238e95112391c0d84ab4",
  "run_scope": {
   "entry": "qprod_formal_level_a_entry launch → rl_curriculum.curriculum261_r17_cli chain-run(受信任部署;PYTHONPATH=部署 src)",
   "gate_set": "r17 权威 17 步(prerequisites/postcondition 语义:smoke 仅 qualify final PASS 后;full-cold 仅 smoke PASS 后)+ qualification one_shot exposure",
@@ -73,7 +73,7 @@
     "formula": "bank 3 fam×4 rung×2 pair(--fit-pairs 默认 2)=24 pair=48 eps",
     "typical": 48,
     "worst_upper": 48,
-    "consumer": "generate_fit_bank('preplan_smoke_r17', fit_pairs=2)",
+    "consumer": "generate_fit_bank('preplan_audit_bank_qaf_v3', fit_pairs=2)",
     "metering": "生成 envelope ledger"
    },
    {
@@ -127,7 +127,7 @@
     "formula": "3 matched blocks×8",
     "typical": 24,
     "worst_upper": 24,
-    "consumer": "generate_matched_block_with_attempts(preplan_smoke_r17)",
+    "consumer": "generate_matched_block_with_attempts(preplan_smoke_qaf_v3)",
     "metering": "生成 envelope ledger"
    },
    {
@@ -217,7 +217,7 @@
     "formula": "内嵌 smoke bank 144+pair 2+matched probe 2 block×8(×5 worst)=162",
     "typical": 162,
     "worst_upper": 226,
-    "consumer": "run_prelock_static_preflight_r17 → run_ppo_smoke_r17+_matched_generator_probe_r17(preflight 内嵌)",
+    "consumer": "run_prelock_static_preflight_r17 → run_ppo_smoke_r17(输入身份 ppo_smoke_qaf_v3)+_matched_generator_probe_r17(preflight 内嵌)",
     "metering": "smoke 报告+生成 envelope ledger"
    },
    {
@@ -442,7 +442,7 @@
   "embedded_preflight_smoke": {
    "authorized": true,
    "step": "preflight-static",
-   "description": "链固有内嵌工程自检 smoke(R12 冻结):任何 A1/A2 批准显式包含该 PPO plumbing 自检;输入身份 ppo_smoke_qaf_v1(R3 修复 A-1:授权表示与真实可达更新路径一致)",
+   "description": "链固有内嵌工程自检 smoke(R12 冻结):任何 A1/A2 批准显式包含该 PPO plumbing 自检;输入身份 ppo_smoke_qaf_v3(R3 修复 A-1:授权表示与真实可达更新路径一致)",
    "ppo": {
     "learn_calls": 1,
     "rollout_env_steps": 256,
@@ -451,13 +451,20 @@
     "check_env_interactions_upper": 10,
     "model_save_load_pairs": 1
    }
+  },
+  "attempt_identity": {
+   "attempt": "qaf_v3",
+   "audit_bank": "preplan_audit_bank_qaf_v3",
+   "preplan_smoke": "preplan_smoke_qaf_v3",
+   "ppo_smoke": "ppo_smoke_qaf_v3",
+   "source": "qaf_attempt_family 解析;与 r17_cli cmd_audit/cmd_preplan_smoke/cmd_preflight_static/smoke 的链内解析同源(RD06:授权文本与真实可达消费身份一致)"
   }
  },
  "rules": {
   "gate_semantics_ref": "curriculum261_r17_workflow.R17_WORKFLOW_STEPS + curriculum261_r17_final(资格判定);qualification_plan 由链第 11 步 lock-plan 在校准后 create-only 冻结,不得事前捏造",
   "model_update_authorized": true,
   "post_qualification_smoke_authorized": true,
-  "smoke_policy": "两类 PPO 更新分开(R3 修复 A-1):①内嵌工程自检 smoke=preflight-static 链固有部分,A1/A2 批准均显式包含(1 次 learn、rollout 256、optimizer.step 上界 40、验证 ≤50、check_env ≤10、save 1+load 1;输入身份 ppo_smoke_qaf_v1;机器可读字段 run_scope.embedded_preflight_smoke);②第 14 步资格后验收 smoke=qualify final PASS 后链内验收的条件许可(同样逐类计量;仅 A2[stop=verify-formal-logs 且 model_update_authorized=True]授权),与正式教学分开;A1 停在 qualify,14-17 步 NOT_RUN——A1 不再宣称「PPO 面恒 0」,第 ① 类计量已如实入授权面"
+  "smoke_policy": "两类 PPO 更新分开(R3 修复 A-1):①内嵌工程自检 smoke=preflight-static 链固有部分,A1/A2 批准均显式包含(1 次 learn、rollout 256、optimizer.step 上界 40、验证 ≤50、check_env ≤10、save 1+load 1;输入身份 ppo_smoke_qaf_v3;机器可读字段 run_scope.embedded_preflight_smoke);②第 14 步资格后验收 smoke=qualify final PASS 后链内验收的条件许可(同样逐类计量;仅 A2[stop=verify-formal-logs 且 model_update_authorized=True]授权),与正式教学分开;A1 停在 qualify,14-17 步 NOT_RUN——A1 不再宣称「PPO 面恒 0」,第 ① 类计量已如实入授权面"
  },
  "quota": {
   "max_leaf_calls_per_coordinate": 113176,
@@ -486,8 +493,8 @@
   "curriculum261_qprod_coordinate.py": "e470ac1b1dce267844981f88b75cfb3bea5aaae8c4468c56188591347d01e238",
   "curriculum261_qprod_aggregate.py": "ea9bb967b409e07164cc1d7518a37a6e910b903db3facda57765b7ce59b8c45d",
   "curriculum261_qprod_formal.py": "ce7862884782932a7d47ec902cb042be4cf28d014959bc3cd95ff4af2539f765",
-  "curriculum261_qprod_formal_levela.py": "2b99e12b06e377880a9fb99ff0cf3c0df470a9480188fa5c6ce814fe932fa0cd",
-  "curriculum261_qprod_formal_budget.py": "0e2cc8107b4613065874caf59e0f5bb0b9609e576318b2f64678e0ea7fc89a4f",
+  "curriculum261_qprod_formal_levela.py": "d4d1ecd016760987e00893c77bd3737971710c3f40794d3a5bd6efe466f8f814",
+  "curriculum261_qprod_formal_budget.py": "4047a1323fe8aa18b3b7bc573e6b6c5b793eb0f42f5250e118438849b07adc69",
   "curriculum261_qaf_attempt.py": "84743403f5e18c8f513dfdb96020af7cfc479791e4291b64bf957af08e34d183"
  },
  "stop_mode": "collect_all_k",
