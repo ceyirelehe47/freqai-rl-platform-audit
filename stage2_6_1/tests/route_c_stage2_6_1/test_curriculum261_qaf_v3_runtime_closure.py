@@ -259,11 +259,20 @@ def test_rd03_freeze_negative_wrong_head(tmp_path):
 # ---- RD04:preflight 契约(两入口共同前置) ------------------------
 
 def test_rd04_preflight_positive(tmp_path, monkeypatch):
-    repo, sha, pin, project = _build_fixture(tmp_path)
-    rd = _preflight(repo, sha, pin, project, monkeypatch, tmp_path)
+    """FR 修复后:完整合法=真实 P3 + 真实 PIN(读最终消费源;
+    vendor/历史原件/分支血统三类新合同一并绿)。"""
+    pin = Path("/home/cryptorl/release_pin_qaf_v3")
+    p3 = Path("/home/cryptorl/projects/crypto_rl_qaf_v3")
+    if not (pin / ".git").exists() or not p3.is_dir():
+        pytest.skip("真实 PIN/P3 不可达(正例须真实消费源)")
+    sha = _run([GIT, "rev-parse", "HEAD"], cwd=pin).stdout.strip()
+    rd = runtime_dependency_preflight(
+        repo=pin, project_dir=p3, candidate_sha=sha, python=PY)
     assert rd["ok"], rd.get("problems")
     assert rd["repo_head_commit"] == sha
-    assert str(pin) in rd["repo_root"]
+    assert rd["vendor_ok"] is True
+    assert rd["hist_digests_match"] is True
+    assert rd["heb_ok"] is True
     assert rd["n_dev_files"] > 300
 
 

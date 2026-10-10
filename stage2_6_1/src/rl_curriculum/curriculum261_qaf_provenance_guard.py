@@ -783,6 +783,43 @@ for repo_path, dev_rel in RUNTIME_GIT_BACKED_MAP.items():
         missing.append(dev_rel)
     elif hashlib.sha256(f.read_bytes()).hexdigest() != want:
         mismatched.append(dev_rel)
+# ---- FiniteRepair R1:三类遗漏静态合同(真实消费者同源读取) ----
+# FR1 vendor:cmd_audit 的 vendor_dir_default/_vendor_state 同源
+# (VENDOR_PIN 判据与 cmd_audit 同一常量,位于 r17_cli)。
+from rl_curriculum.curriculum261_r6_preflight import (
+    _vendor_state, vendor_dir_default)
+import rl_curriculum.curriculum261_r17_cli as _r17cli
+vendor_pin = _r17cli.VENDOR_PIN
+vendor_state = _vendor_state(vendor_dir_default())
+vendor_ok = bool(vendor_state.get("exists")
+                 and vendor_state.get("sha") == vendor_pin
+                 and vendor_state.get("clean"))
+#
+_hb = _r17cli._historical_binding()
+_hist_ok = bool(_hb.get("digests_match"))
+_blob_ok = bool(_hb.get("r11_evidence_blob_identity_ok") is True
+                and _hb.get("r12_evidence_blob_identity_ok") is True)
+# FR2b/FR3 分支/血统/历史证据:audit 的 heb 同源(r16_branch_name_ok
+# 在 R17 语境按设计豁免——与 historical_evidence_binding 自身一致)。
+_rr = None
+for _c in dep.release_repo_candidates():
+    if _c.is_dir():
+        _rr = _c
+        break
+_heb = {"ok": False, "checks": {}}
+_heb_err = ""
+try:
+    if _rr is not None:
+        from rl_curriculum.curriculum261_r17_historical import (
+            historical_evidence_binding as _heb_fn)
+        _heb = _heb_fn(_rr)
+except Exception as _exc:  # noqa: BLE001
+    _heb_err = str(_exc)[:200]
+_heb_checks = _heb.get("checks", {}) if isinstance(
+    _heb.get("checks"), dict) else {}
+_heb_failed = sorted(
+    k for k, v in _heb_checks.items()
+    if isinstance(v, bool) and not v and k != "r16_branch_name_ok")
 print("@@RESULT@@" + json.dumps({
     "dev_root": m["dev_root"], "repo_root": m["repo_root"],
     "repo_head_commit": m["repo_head_commit"],
@@ -790,7 +827,15 @@ print("@@RESULT@@" + json.dumps({
     "missing_required": m["missing_required"],
     "dirty_freeze_paths": status[:20], "n_dev_files": m["n_dev_files"],
     "tree_missing": missing[:50], "tree_mismatched": mismatched[:50],
-    "tree_extra": extra[:50]}, ensure_ascii=False))
+    "tree_extra": extra[:50],
+    "vendor": {k: vendor_state.get(k)
+               for k in ("path", "exists", "sha", "clean")},
+    "vendor_ok": vendor_ok,
+    "hist_digests_match": _hist_ok, "hist_blob_ok": _blob_ok,
+    "heb_ok": bool(_heb.get("ok")),
+    "heb_branch": _heb_checks.get("current_branch", ""),
+    "heb_failed": _heb_failed[:10], "heb_error": _heb_err,
+    }, ensure_ascii=False))
 """
 
 
@@ -803,8 +848,11 @@ def runtime_dependency_preflight(
     freeze manifest 完整性(missing_required 空)、release repo 解析
     到 pinned 候选源且 HEAD==candidate、freeze 路径 clean、
     src/tests/runner 三面 vs 候选 A CR 投影逐文件一致、
-    已接受原件与 git 权威文件字节一致。任何缺件/错源/错字节
-    =前置失败(调用方在首一次性写前拒绝)。
+    已接受原件与 git 权威文件字节一致;FiniteRepair R1 起另核
+    audit 消费者的三类静态合同(同源读取,不放宽):vendor/
+    freqtrade HEAD==VENDOR_PIN 且 clean、PIN 工作树历史 digest
+    原件+r11/r12 blob 基线、PIN 命名分支/血统/历史证据(heb)。
+    任何缺件/错源/错字节/错分支=前置失败(首一次性写前拒绝)。
     """
     import tempfile
     py = python or sys.executable
@@ -859,10 +907,28 @@ def runtime_dependency_preflight(
             problems.append(f"{key}: {out[key][:10]}")
     if out["tree_extra"]:
         problems.append(f"tree_extra: {out['tree_extra'][:10]}")
+    if not out.get("vendor_ok"):
+        problems.append(
+            "vendor_static: vendor/freqtrade 不满足 audit 消费者"
+            f"合同(须 HEAD==VENDOR_PIN 且 clean): {out.get('vendor')}")
+    if not out.get("hist_digests_match"):
+        problems.append(
+            "historical_digests: PIN 历史原件 digest 不符/缺失"
+            f"(r2-r13 digest 文件;blob_ok={out.get('hist_blob_ok')})")
+    if not out.get("heb_ok"):
+        problems.append(
+            "branch_lineage: PIN 分支/血统/历史证据不成立"
+            f"(branch={out.get('heb_branch')!r}, failed="
+            f"{out.get('heb_failed')}, err={out.get('heb_error')})")
     return {"ok": not problems, "problems": problems,
             "dev_root": out["dev_root"], "repo_root": out["repo_root"],
             "repo_head_commit": out["repo_head_commit"],
-            "n_dev_files": out["n_dev_files"]}
+            "n_dev_files": out["n_dev_files"],
+            "vendor": out.get("vendor"),
+            "vendor_ok": out.get("vendor_ok"),
+            "hist_digests_match": out.get("hist_digests_match"),
+            "heb_ok": out.get("heb_ok"),
+            "heb_branch": out.get("heb_branch")}
 
 
 def preissue_gate(
