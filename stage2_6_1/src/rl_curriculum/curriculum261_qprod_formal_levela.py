@@ -50,7 +50,7 @@ from rl_curriculum.curriculum261_qprod_formal import (
     validate_formal_approval, validate_formal_permit,
 )
 from rl_curriculum.curriculum261_qaf_attempt import (
-    QAF_ATTEMPT_IDS, qaf_iteration_id_for_attempt,
+    QAF_ATTEMPT_IDS, qaf_attempt_family, qaf_iteration_id_for_attempt,
 )
 
 #: 允许的停止边界:qualify(第 13 步后停;smoke/full-cold/
@@ -91,7 +91,7 @@ def build_formal_level_a_plan(
        有,R12 冻结):任何 A1/A2 批准都**显式包含**该内嵌
        PPO plumbing smoke(1 次 learn、rollout 256、optimizer.
        step ≤40、验证 ≤50、check_env ≤10、save 1+load 1;
-       输入身份 ppo_smoke_qaf_v1)——机器可读字段
+       输入身份=该 attempt 族的 ppo_smoke namespace)——机器可读字段
        run_scope.embedded_preflight_smoke;
     2. **资格后验收 smoke**(第 14 步,条件许可):仅
        authorized_stop_after=verify-formal-logs(A2)且
@@ -117,7 +117,10 @@ def build_formal_level_a_plan(
             "smoke 授权)而停止边界=qualify:授权与停止边界不一致"
             "(批准口径必须二者一致;A1 停 qualify 即不授权第 14 步)")
     budget_face = _budget_face(stop_after=authorized_stop_after)
-    budget_items = _budget_items()
+    fam = qaf_attempt_family(formal_attempt)
+    ppo_smoke_ns = (fam.ppo_smoke if fam is not None
+                    else "ppo_smoke_r17")
+    budget_items = _budget_items(attempt_family=fam)
     payload = {
         "format": QPROD_RESEARCH_PLAN_FORMAT,
         "level": "level_a",
@@ -145,7 +148,7 @@ def build_formal_level_a_plan(
                 "description": (
                     "链固有内嵌工程自检 smoke(R12 冻结):任何 "
                     "A1/A2 批准显式包含该 PPO plumbing 自检;输入"
-                    "身份 ppo_smoke_qaf_v1(R3 修复 A-1:授权表示"
+                    f"身份 {ppo_smoke_ns}(R3 修复 A-1:授权表示"
                     "与真实可达更新路径一致)"),
                 "ppo": {
                     "learn_calls": 1,
@@ -155,6 +158,20 @@ def build_formal_level_a_plan(
                     "check_env_interactions_upper": 10,
                     "model_save_load_pairs": 1,
                 },
+            },
+            "attempt_identity": {
+                "attempt": formal_attempt,
+                "audit_bank": (fam.audit_bank if fam is not None
+                               else "preplan_smoke_r17"),
+                "preplan_smoke": (fam.preplan_smoke
+                                  if fam is not None
+                                  else "preplan_smoke_r17"),
+                "ppo_smoke": ppo_smoke_ns,
+                "source": (
+                    "qaf_attempt_family 解析;与 r17_cli cmd_audit/"
+                    "cmd_preplan_smoke/cmd_preflight_static/smoke "
+                    "的链内解析同源(RD06:授权文本与真实可达消费"
+                    "身份一致)"),
             },
         },
         "rules": {
@@ -171,7 +188,7 @@ def build_formal_level_a_plan(
                 " smoke=preflight-static 链固有部分,A1/A2 批准均"
                 "显式包含(1 次 learn、rollout 256、optimizer.step "
                 "上界 40、验证 ≤50、check_env ≤10、save 1+load 1;"
-                "输入身份 ppo_smoke_qaf_v1;机器可读字段 run_scope."
+                f"输入身份 {ppo_smoke_ns};机器可读字段 run_scope."
                 "embedded_preflight_smoke);②第 14 步资格后验收 "
                 "smoke=qualify final PASS 后链内验收的条件许可(同"
                 "样逐类计量;仅 A2[stop=verify-formal-logs 且 "
@@ -251,7 +268,8 @@ def preflight_formal_level_a(
         formal_attempt=formal_attempt)
     digest = research_plan_digest(payload)
     budget_face = _budget_face(stop_after=authorized_stop_after)
-    budget_items = _budget_items()
+    budget_items = _budget_items(
+        attempt_family=qaf_attempt_family(formal_attempt))
     problems = research_plan_structure_problems(payload)
     if problems:
         findings.append(f"plan_structure: {problems}")

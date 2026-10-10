@@ -154,8 +154,25 @@ def _pair_path_eps(pairs: int) -> int:
     return pairs * _PAIR
 
 
-def build_budget_items() -> list[dict[str, Any]]:
-    """A 链分项预算(每项含 formula/typical/worst/消费点)。"""
+def build_budget_items(
+        attempt_family: Any | None = None) -> list[dict[str, Any]]:
+    """A 链分项预算(每项含 formula/typical/worst/消费点)。
+
+    attempt_family=qaf_attempt_family(attempt) 的族对象;None=历史
+    r17 语义。文本指名的机械面输入身份(audit bank / preplan smoke /
+    PPO smoke namespace)按族参数化,与链内实际消费点(cmd_audit/
+    cmd_preplan_smoke/cmd_preflight_static/smoke 的 qaf_attempt_family
+    解析)同源——授权文本与真实可达更新路径一致(R3-A-1/RD06)。
+    """
+    audit_bank_ns = (attempt_family.audit_bank
+                     if attempt_family is not None
+                     else "preplan_smoke_r17")
+    preplan_smoke_ns = (attempt_family.preplan_smoke
+                        if attempt_family is not None
+                        else "preplan_smoke_r17")
+    ppo_smoke_ns = (attempt_family.ppo_smoke
+                    if attempt_family is not None
+                    else "ppo_smoke_r17")
     n = K["c2_blocks_max"]
     fam, rung = K["n_families"], K["n_rungs"]
     cal, indep = K["cal_pairs_per_rung"], K["c2_indep_pairs_per_rung"]
@@ -194,7 +211,7 @@ def build_budget_items() -> list[dict[str, Any]]:
         "bank 3 fam×4 rung×2 pair(--fit-pairs 默认 2)"
         "=24 pair=48 eps",
         48, 48,
-        "generate_fit_bank('preplan_smoke_r17', fit_pairs=2)",
+        f"generate_fit_bank('{audit_bank_ns}', fit_pairs=2)",
         "生成 envelope ledger")])
     # ---- cue-audit ---------------------------------------------
     corpus_blocks = K["audit_blocks"]
@@ -238,7 +255,7 @@ def build_budget_items() -> list[dict[str, Any]]:
     boot = K["audit_bootstrap"]  # =R17_CUE_BOOTSTRAP_RESAMPLES
     items.append([item(
         "preplan-smoke", "generation_episodes", "3 matched blocks×8",
-        24, 24, "generate_matched_block_with_attempts(preplan_smoke_r17)",
+        24, 24, f"generate_matched_block_with_attempts({preplan_smoke_ns})",
         "生成 envelope ledger"),
         item("preplan-smoke", "bootstrap_resamples",
              f"cluster_bootstrap_rate 1 次+semantic_cue_gate 2 统计"
@@ -344,7 +361,8 @@ def build_budget_items() -> list[dict[str, Any]]:
              f"内嵌 smoke bank {_bank_eps()}+pair 2+matched probe "
              f"2 block×8(×5 worst)={pf_eps_typ}",
              pf_eps_typ, pf_eps_worst,
-             "run_prelock_static_preflight_r17 → run_ppo_smoke_r17"
+             f"run_prelock_static_preflight_r17 → run_ppo_smoke_r17"
+             f"(输入身份 {ppo_smoke_ns})"
              "+_matched_generator_probe_r17(preflight 内嵌)",
              "smoke 报告+生成 envelope ledger"),
         item("preflight-static", "v2_preprocessor_fits",

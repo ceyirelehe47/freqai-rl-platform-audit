@@ -507,13 +507,29 @@ class TestPlanSemantics:
         f1, f2 = flat(p1), flat(p2)
         assert set(f1) == set(f2)
         diff = [k for k in f1 if f1[k] != f2[k]]
-        assert diff == ["/iteration_id"], diff
+        # R3 修复(F-1)后身份文本随 attempt 族参数化:差异必须
+        # 全部是身份承载键(迭代标识/机械面输入身份文本/
+        # attempt_identity 注册);科学语义字段不得漂移。
+        identity_keys = {
+            "/iteration_id",
+            "/run_scope/budget_items",
+            "/run_scope/embedded_preflight_smoke/description",
+            "/run_scope/attempt_identity/attempt",
+            "/run_scope/attempt_identity/audit_bank",
+            "/run_scope/attempt_identity/preplan_smoke",
+            "/run_scope/attempt_identity/ppo_smoke",
+            "/rules/smoke_policy",
+        }
+        assert set(diff) == identity_keys, diff
         assert p1["iteration_id"] == "qprod_a_formal_v1"
         assert p2["iteration_id"] == "qprod_a_formal_v2"
-        # 预算/停止/规则逐项相等
+        # 预算/停止逐项相等;规则除身份文本外逐项相等
         assert p1["quota"] == p2["quota"]
         assert p1["stop_mode"] == p2["stop_mode"]
-        assert p1["rules"] == p2["rules"]
+        assert {k: v for k, v in p1["rules"].items()
+                if k != "smoke_policy"} == {
+            k: v for k, v in p2["rules"].items()
+            if k != "smoke_policy"}
 
     def test_scope_mismatch_rejected_in_permit_validation(self):
         """跨尝试混名 scope 在许可层被拒(qprod_formal 通用化)。"""

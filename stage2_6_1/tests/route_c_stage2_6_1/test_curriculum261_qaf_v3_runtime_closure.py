@@ -43,6 +43,10 @@ from rl_curriculum.curriculum261_qaf_provenance_guard import (  # noqa: E402
     RUNTIME_ORIGINAL_DIGESTS, preissue_gate,
     runtime_dependency_preflight,
 )
+from rl_curriculum.curriculum261_qprod_formal_levela import (  # noqa: E402
+    build_formal_level_a_plan,
+)
+
 
 
 PY = sys.executable
@@ -409,6 +413,46 @@ def test_rd06_qaf_v3_design_names_explicit():
         "design_qaf_v3_matched_validation")
     assert fam.design_independent == (
         "design_qaf_v3_independent_marginal")
+
+def test_rd06_plan_identity_texts_follow_attempt_family():
+    """F-1 修复回归:计划授权文本的机械面输入身份随 attempt 族
+    参数化(与链内 qaf_attempt_family 解析同源),不再硬编码
+    v1/r17 旧 namespace(RD06 全输入身份贯通)。"""
+    fam3 = QAF_ATTEMPTS["qaf_v3"]
+    plan = build_formal_level_a_plan(
+        code_freeze_sha="0" * 40,
+        code_identity={"placeholder": "identity"},
+        authorized_stop_after="verify-formal-logs",
+        model_update_authorized=True,
+        formal_attempt="qaf_v3")
+    rs = plan["run_scope"]
+    desc = rs["embedded_preflight_smoke"]["description"]
+    policy = plan["rules"]["smoke_policy"]
+    assert fam3.ppo_smoke in desc and "ppo_smoke_qaf_v1" not in desc
+    assert fam3.ppo_smoke in policy \
+        and "ppo_smoke_qaf_v1" not in policy
+    ai = rs["attempt_identity"]
+    assert ai["ppo_smoke"] == fam3.ppo_smoke
+    assert ai["audit_bank"] == fam3.audit_bank
+    assert ai["preplan_smoke"] == fam3.preplan_smoke
+    consumers = [i["consumer"] for g in rs["budget_items"]
+                 for i in (g if isinstance(g, list) else [g])]
+    bank = [c for c in consumers if "generate_fit_bank(" in c]
+    assert bank and fam3.audit_bank in bank[0], bank
+    assert any(c == f"generate_matched_block_with_attempts("
+               f"{fam3.preplan_smoke})" for c in consumers), consumers
+    pf = [c for c in consumers
+          if c.startswith("run_prelock_static_preflight_r17")]
+    assert pf and fam3.ppo_smoke in pf[0], pf
+    # v1 尝试同参数化(族驱动而非恒定文本)
+    v1 = build_formal_level_a_plan(
+        code_freeze_sha="0" * 40,
+        code_identity={"placeholder": "identity"},
+        authorized_stop_after="qualify",
+        model_update_authorized=False,
+        formal_attempt="qaf_v1")
+    assert QAF_ATTEMPTS["qaf_v1"].ppo_smoke in v1["run_scope"][
+        "embedded_preflight_smoke"]["description"]
 
 
 def test_rd06_qaf_v3_api_wiring(tmp_path):
