@@ -820,6 +820,27 @@ _heb_checks = _heb.get("checks", {}) if isinstance(
 _heb_failed = sorted(
     k for k, v in _heb_checks.items()
     if isinstance(v, bool) and not v and k != "r16_branch_name_ok")
+# ---- FiniteRepair R2:r11/r12/r13 binding 层(真实 binder 同源
+# checks;硬缺失/读损坏/任一校验 false = 前置拒绝)。r14/r15 由
+# heb 派生键覆盖(其 binder 从 heb checks 机械提取)。
+_bind_states = {}
+_bind_errors = {}
+for _name, _fn in (
+        ("r11", _r17cli._r11_abort_checks),
+        ("r12", _r17cli._r12_abort_checks),
+        ("r13", _r17cli._r13_failure_checks)):
+    try:
+        _b = _fn(_rr)
+        _bind_states[_name] = bool(
+            _b.get("pass") and not _b.get("raise_reason"))
+        if not _bind_states[_name]:
+            _bind_errors[_name] = str(
+                _b.get("raise_reason")
+                or {k: v for k, v in _b.items()
+                    if isinstance(v, bool) and not v})[:160]
+    except Exception as _exc:  # noqa: BLE001
+        _bind_states[_name] = False
+        _bind_errors[_name] = repr(_exc)[:160]
 print("@@RESULT@@" + json.dumps({
     "dev_root": m["dev_root"], "repo_root": m["repo_root"],
     "repo_head_commit": m["repo_head_commit"],
@@ -835,6 +856,7 @@ print("@@RESULT@@" + json.dumps({
     "heb_ok": bool(_heb.get("ok")),
     "heb_branch": _heb_checks.get("current_branch", ""),
     "heb_failed": _heb_failed[:10], "heb_error": _heb_err,
+    "bind_states": _bind_states, "bind_errors": _bind_errors,
     }, ensure_ascii=False))
 """
 
@@ -915,6 +937,13 @@ def runtime_dependency_preflight(
         problems.append(
             "historical_digests: PIN 历史原件 digest 不符/缺失"
             f"(r2-r13 digest 文件;blob_ok={out.get('hist_blob_ok')})")
+    _bind_bad = sorted(
+        k for k, ok in (out.get("bind_states") or {}).items() if not ok)
+    if _bind_bad:
+        problems.append(
+            "historical_bindings: r11/r12/r13 绑定层不成立(真实 binder"
+            f" 同源 checks): {_bind_bad}; "
+            f"{ {k: out.get('bind_errors', {}).get(k) for k in _bind_bad} }")
     if not out.get("heb_ok"):
         problems.append(
             "branch_lineage: PIN 分支/血统/历史证据不成立"
@@ -927,6 +956,8 @@ def runtime_dependency_preflight(
             "vendor": out.get("vendor"),
             "vendor_ok": out.get("vendor_ok"),
             "hist_digests_match": out.get("hist_digests_match"),
+            "bind_states": out.get("bind_states"),
+            "bind_errors": out.get("bind_errors"),
             "heb_ok": out.get("heb_ok"),
             "heb_branch": out.get("heb_branch")}
 

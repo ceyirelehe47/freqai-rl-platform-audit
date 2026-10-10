@@ -341,23 +341,15 @@ def _historical_binding() -> dict:
     return binding
 
 
-def _r11_abort_binding(out_dir: Path) -> dict:
-    """§2/§6:R11 FAIL 与 abort 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+def _r11_abort_checks(release_repo: Path) -> dict:
+    """R11 绑定只读检查(FiniteRepair R2:前置与 binder 同源共享)。
 
-    机器验证(不手工转录长 digest):
-    - R11 abort marker 存在,iteration=r11,reason 指向 cue audit;
-    - marker 的 git blob 与基线提交内一致(未被修改);
-    - R11 qualification exposure 不存在;
-    - R11 qualification_result.json 不存在(final 从未执行);
-    - R11 cue audit 结果存在且 blob 与基线一致。
+    不写任何文件、不抛错(异常以 exc 字段返回,由 binder 语义重抛);
+    返回 dict 与 _r11_abort_binding 写盘内容同构。
     """
-    release_repo = None
-    for cand in release_repo_candidates():
-        if cand.is_dir():
-            release_repo = cand
-            break
     if release_repo is None:
-        raise RuntimeError("release repo 不可达(R11 abort binding)")
+        return {"pass": False,
+                "raise_reason": "release repo 不可达(R11 abort binding)"}
     art = release_repo / "stage2_6_1" / "artifacts" / "repair11"
 
     def _blob_matches(rel: str) -> bool:
@@ -377,13 +369,16 @@ def _r11_abort_binding(out_dir: Path) -> dict:
 
     marker = art / "r11_iteration_aborted.json"
     if not marker.is_file():
-        raise RuntimeError(
-            f"R11 aborted marker 缺失:{marker}(§2:R11 FAIL 证据必须"
-            "永久保留;缺失时拒绝 R17 正式阶段)")
+        return {"pass": False,
+                "raise_reason": (
+                    f"R11 aborted marker 缺失:{marker}(§2:R11 FAIL 证据"
+                    "必须永久保留;缺失时拒绝 R17 正式阶段)")}
     data = json.loads(marker.read_text(encoding="utf-8"))
     if data.get("iteration") != "r11":
-        raise RuntimeError(
-            f"R11 aborted marker iteration 异常:{data.get('iteration')}")
+        return {"pass": False,
+                "raise_reason": (
+                    f"R11 aborted marker iteration 异常:"
+                    f"{data.get('iteration')}")}
     exposure = art / "qualification_exposure_r11.json"
     final_result = art / "qualification_result.json"
     binding = {
@@ -419,6 +414,27 @@ def _r11_abort_binding(out_dir: Path) -> dict:
         and binding["cue_event_trace_blob_matches_baseline"]
         and binding["qualification_exposure_absent"]
         and binding["final_qualification_not_executed"])
+    return binding
+
+
+def _r11_abort_binding(out_dir: Path) -> dict:
+    """§2/§6:R11 FAIL 与 abort 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+
+    机器验证(不手工转录长 digest):
+    - R11 abort marker 存在,iteration=r11,reason 指向 cue audit;
+    - marker 的 git blob 与基线提交内一致(未被修改);
+    - R11 qualification exposure 不存在;
+    - R11 qualification_result.json 不存在(final 从未执行);
+    - R11 cue audit 结果存在且 blob 与基线一致。
+    """
+    release_repo = None
+    for cand in release_repo_candidates():
+        if cand.is_dir():
+            release_repo = cand
+            break
+    binding = _r11_abort_checks(release_repo)
+    if binding.get("raise_reason"):
+        raise RuntimeError(binding["raise_reason"])
     _write_json(out_dir, "r11_abort_binding.json", binding)
     if not binding["pass"]:
         raise RuntimeError(
@@ -426,8 +442,8 @@ def _r11_abort_binding(out_dir: Path) -> dict:
     return binding
 
 
-def _r12_abort_binding(out_dir: Path) -> dict:
-    """§二/§九:R12 FAIL 与 abort 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+def _r12_abort_checks(release_repo: Path) -> dict:
+    """R12 绑定只读检查(FiniteRepair R2:前置与 binder 同源共享)。
 
     机器验证(不手工转录长 digest):
     - R12 abort marker 存在,iteration=r12,reason 指向 lock-plan 阶段
@@ -438,14 +454,12 @@ def _r12_abort_binding(out_dir: Path) -> dict:
     - R12 qualification exposure 不存在;
     - R12 qualification plan 从未锁定(lock-plan 即崩溃点);
     - R12 final qualification 从未执行。
+    (不写文件;硬缺失以 raise_reason 返回,由 _r12_abort_binding
+    语义重抛。)
     """
-    release_repo = None
-    for cand in release_repo_candidates():
-        if cand.is_dir():
-            release_repo = cand
-            break
     if release_repo is None:
-        raise RuntimeError("release repo 不可达(R12 abort binding)")
+        return {"pass": False,
+                "raise_reason": "release repo 不可达(R12 abort binding)"}
     art = release_repo / "stage2_6_1" / "artifacts" / "repair12"
 
     def _blob_matches(rel: str) -> bool:
@@ -465,18 +479,20 @@ def _r12_abort_binding(out_dir: Path) -> dict:
 
     marker = art / "r12_iteration_aborted.json"
     if not marker.is_file():
-        raise RuntimeError(
-            f"R12 aborted marker 缺失:{marker}(§二:R12 FAIL 证据必须"
-            "永久保留;缺失时拒绝 R17 正式阶段)")
+        return {"pass": False,
+                "raise_reason": (
+                    f"R12 aborted marker 缺失:{marker}(§二:R12 FAIL 证据必须"
+                    "永久保留;缺失时拒绝 R17 正式阶段)")}
     data = json.loads(marker.read_text(encoding="utf-8"))
     reason = str(data.get("reason", ""))
     if (data.get("iteration") != "r12"
             or "'bundle_hash'" not in reason
             or "preprocessor_bundle_hash" not in reason):
-        raise RuntimeError(
-            f"R12 aborted marker 内容异常:{str(data)[:200]}(预期 "
-            "iteration=r12 且 reason 同时含 'bundle_hash' 与 "
-            "'preprocessor_bundle_hash')")
+        return {"pass": False,
+                "raise_reason": (
+                    f"R12 aborted marker 内容异常:{str(data)[:200]}(预期 "
+                    "iteration=r12 且 reason 同时含 'bundle_hash' 与 "
+                    "'preprocessor_bundle_hash')")}
     plan_digest_file = art / "r12_design_plan_digest.txt"
     pack_digest_file = art / "r12_parameter_pack_digest.txt"
     plan_ok = bool(
@@ -565,6 +581,23 @@ def _r12_abort_binding(out_dir: Path) -> dict:
         and binding["qualification_exposure_absent"]
         and binding["qualification_plan_never_locked"]
         and binding["final_qualification_not_executed"])
+    return binding
+
+
+def _r12_abort_binding(out_dir: Path) -> dict:
+    """§二/§九:R12 FAIL 与 abort 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+
+    语义与 FiniteRepair R2 前完全一致:checks 只读结果 + 写盘
+    r12_abort_binding.json + fail-closed 重抛(硬缺失按原消息)。
+    """
+    release_repo = None
+    for cand in release_repo_candidates():
+        if cand.is_dir():
+            release_repo = cand
+            break
+    binding = _r12_abort_checks(release_repo)
+    if binding.get("raise_reason"):
+        raise RuntimeError(binding["raise_reason"])
     _write_json(out_dir, "r12_abort_binding.json", binding)
     if not binding["pass"]:
         raise RuntimeError(
@@ -572,8 +605,8 @@ def _r12_abort_binding(out_dir: Path) -> dict:
     return binding
 
 
-def _r13_failure_binding(out_dir: Path) -> dict:
-    """§二:R13 FAIL 与 exposure 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+def _r13_failure_checks(release_repo: Path) -> dict:
+    """R13 绑定只读检查(FiniteRepair R2:前置与 binder 同源共享)。
 
     机器验证(不手工转录长 digest):
     - R13 qualification_result.json:verdict=FAIL 且唯一 false 检查 =
@@ -584,14 +617,12 @@ def _r13_failure_binding(out_dir: Path) -> dict:
       前缀——R13 身份清理缺口的历史事实绑定);
     - 关键 artifact 的 git blob 与基线提交(b8e1de0)一致;
     - R13 治理缺口清单(7 项)机械记录。
+    (不写文件;硬缺失以 raise_reason 返回,读损坏以 exc 返回原异常,
+    由 _r13_failure_binding 语义重抛。)
     """
-    release_repo = None
-    for cand in release_repo_candidates():
-        if cand.is_dir():
-            release_repo = cand
-            break
     if release_repo is None:
-        raise RuntimeError("release repo 不可达(R13 failure binding)")
+        return {"pass": False,
+                "raise_reason": "release repo 不可达(R13 failure binding)"}
     art = release_repo / "stage2_6_1" / "artifacts" / "repair13"
 
     def _blob_matches(rel: str) -> bool:
@@ -611,9 +642,10 @@ def _r13_failure_binding(out_dir: Path) -> dict:
 
     result_path = art / "qualification_result.json"
     if not result_path.is_file():
-        raise RuntimeError(
-            f"R13 qualification_result.json 缺失:{result_path}(§二:"
-            "R13 FAIL 证据必须永久保留)")
+        return {"pass": False,
+                "raise_reason": (
+                    f"R13 qualification_result.json 缺失:{result_path}"
+                    "(§二:R13 FAIL 证据必须永久保留)")}
     result = json.loads(result_path.read_text(encoding="utf-8"))
     failed_checks = sorted(
         k for k, v in result.get("checks", {}).items()
@@ -691,6 +723,24 @@ def _r13_failure_binding(out_dir: Path) -> dict:
         and binding["fail_path_cleanliness_blob_matches_baseline"]
         and binding["qualification_plan_digest_ok"]
         and binding["parameter_pack_digest_ok"])
+    return binding
+
+
+def _r13_failure_binding(out_dir: Path) -> dict:
+    """§二:R13 FAIL 与 exposure 保留性绑定(硬闸;缺失/漂移 => 拒绝)。
+
+    语义与 FiniteRepair R2 前完全一致:checks 只读结果 + 写盘
+    r13_iteration_failure_binding.json + fail-closed 重抛(硬缺失按
+    原消息;读损坏保持原异常类型直传)。
+    """
+    release_repo = None
+    for cand in release_repo_candidates():
+        if cand.is_dir():
+            release_repo = cand
+            break
+    binding = _r13_failure_checks(release_repo)
+    if binding.get("raise_reason"):
+        raise RuntimeError(binding["raise_reason"])
     _write_json(out_dir, "r13_iteration_failure_binding.json", binding)
     if not binding["pass"]:
         raise RuntimeError(

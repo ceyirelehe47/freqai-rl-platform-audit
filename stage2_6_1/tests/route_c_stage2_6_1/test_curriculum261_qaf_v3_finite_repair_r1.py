@@ -112,6 +112,7 @@ def _sparse_patterns():
     pats = ["/stage2_6_1/src/**", "/stage2_6_1/tests/**",
             "/stage2_6_1/runner/**", "/stage2_6_1/report/**",
             "/stage2_6_1/artifacts/repair10/r10_design_plan.json",
+            "/stage2_6_1/artifacts/repair11/**",
             "/stage2_6_1/artifacts/repair12/**",
             "/stage2_6_1/artifacts/repair13/**"]
     pats += [f"/{rel}" for rel in _HIST_FILES]
