@@ -25,7 +25,7 @@
 - **授权身份贯通**(reviewer R3 两轮修复 F-1/F-1R):计划全部身份文本随 qaf_attempt_family 参数化+attempt_identity 显式注册,payload 扫查零 v1/r17 namespace 残留;v1↔v2↔v3 深度 diff=纯身份键,科学语义/quota/rules 全等。
 - **活链证据@0f494d27**:provenance→determinism(A4/A5/A6)→audit 三步前缀全绿(freeze anchored r17fs-5f36c3ca,ancestry ok,全 binding pass);substance 同根 rc0/错根 rc2;三方对拍 698/597/660 全等;全量回归 2990 全绿。
 - **旧现场**:P2/D2/qaf_v1/qaf_v2 保护原件逐字节未变(P2 仍缺 env 两件=根因原样保留);标准部署树 crypto_rl 内工程动作(52 个 dummy-sha 负例探针+2 文件候选同步)如实披露。
-- **独立验收**:dsv4.1f 后端额度不足→用户授权换用→reviewer(glm-5.3-flash:max,配置解析)三轮内容审查(R3 全矩阵+两次复验),RD01–RD05/RD07–RD09 PASS,RD06 经 F-1/F-1R 修复后待最终复验签发;报告原件在包内 evidence/reviewer_r3/。
+- **独立验收**:dsv4.1f 后端额度不足→用户授权换用→reviewer(glm-5.3-flash:max,配置解析)三轮内容审查(R3 全矩阵+两次复验),RD01–RD05/RD07–RD09 PASS,RD06 经 F-1/F-1R 修复后由 reviewer v3 终报告全矩阵 PASS 并签发结论行;报告原件在包内 evidence/reviewer_r3/。
 
 ## 3. 仍未批准的动作
 
