@@ -32,13 +32,16 @@
 qaf_v3:26 全新 namespace、迭代 qprod_a_formal_v3、注册表单一来源、api 匹配表、262 A2RC_V1 登记(活 audit 探针逐层补齐 5 提交)。**F-1 修复后授权文本与真实可达消费身份一致**:计划 `run_scope.attempt_identity` 显式注册 audit_bank=preplan_audit_bank_qaf_v3/preplan_smoke=preplan_smoke_qaf_v3/ppo_smoke=ppo_smoke_qaf_v3(与链内 cmd_audit/cmd_preplan_smoke/cmd_preflight_static/smoke 同源),budget consumers/description/smoke_policy 全部随族参数化;v1↔v2 payload 深度 diff=8 身份承载键,quota/stop_mode/rules(除身份文本)全等(更新后测试断言)。计划=真实构建器 `qbpl-aaa1d6d9595f649efe8925a2fb17a0a5cb61d11004a72cd6395e48f7de0b103d`(draft==rebuilt 实测)。v2 消费不恢复。
 
 ## RD07 最终部署/证据
-P3/D3/PIN 三新根;三方对拍 CR 投影 **699/598/661 全等**(`three_way_compare.json` meta 绑定 0f494d27);全收集 **3004 tests(2997P+7S)/0F/0E**(run `r21_20261011_034944`,cwd=D3,record `1022baae5cc5f44050d31f69ce481de581f5e403c982f820fc85ed7445f9a81b`)由 substance 同根 rc0 复核;262 适用=A2RC_V1 注册面(两树镜像同步)。回归尝试 1–18 全归档(11/13/14=绿但候选更替;12=单失败如实保留;15=60 分钟包装超时半途[attempt15_partial];16/17=各 1 个既有**时序脆弱测试**满载 flake[W01 子进程 rc=94;r25a02 秒级时间戳同秒 digest 撞],两测试隔离与配对重跑均绿,非本修复逻辑所致;18=全绿 3004)。
+P3/D3/PIN 三新根;三方对拍 CR 投影 **699/598/661 全等**(`three_way_compare.json` meta 绑定 0735f255);全收集 **3004 tests(2997P+7S)/0F/0E**(run `r21_20261011_034944`,cwd=D3,record `1022baae5cc5f44050d31f69ce481de581f5e403c982f820fc85ed7445f9a81b`)由 substance 同根 rc0 复核;262 适用=A2RC_V1 注册面(两树镜像同步)。回归尝试 1–18 全归档(11/13/14=绿但候选更替;12=单失败如实保留;15=60 分钟包装超时半途[attempt15_partial];16/17=各 1 个既有**时序脆弱测试**满载 flake[W01 子进程 rc=94;r25a02 秒级时间戳同秒 digest 撞],两测试隔离与配对重跑均绿,非本修复逻辑所致;18=全绿 3004)。
 
 ## RD08 日志/用量
 各次尝试唯一 out-dir+归档;2026-10-10 各级联唯一日志(`runtime_verify/logs_20261010/` 9 件,含三次全量回归执行日志);工程计算如实记账:determinism-matrix 前缀探针共 5 次工程跑(85a879a4×2 含 detach 拒次、ae50a20c×1、24ddea34×1、0f494d27×1)+全量回归 6 次(2989 绿/2990 绿×2/3004 绿×1/两次时序 flake 如上)——均为既有工程电池/测试面,非科学资格计算——均为既有工程电池/测试面,非科学资格计算。
 
 ## RD09 最终交付
 COMMANDS_APPENDIX(E1–E4 绑 A3 终值)+ PENDING_APPROVAL_SUMMARY(批准建议文本)+ 本报告;reviewer 复验通过后封 RETURN,包外双回执绑定实算 SHA。
+
+## 已知残余离差(独立 reviewer P2 发现,非本轮矩阵项;如实披露)
+preflight 已覆盖上游 FAIL 判据的两大具名消费条件(digests_match/heb.ok)与 vendor 合同;cmd_audit 最终 ok 另含 r11_binding/r13_binding 等out-dir 绑定检查,其 **PIN 工作树证据层**(repair11/cue_event_trace.jsonl、repair13/r13_iteration_aborted.json 等)不在前置覆盖内——reviewer 实证:删除后 preflight 仍 ok、同条件下 audit 步 binding fail-closed 中止(首个一次性写之后)。判定:属前置与 audit 步的残余离差,**不在上游本轮收口矩阵内**(REVIEW.md §3/§4 具名遗漏已闭合),按"范围有界"原则本轮不扩面;建议下一候选把 *_binding.pass 的工作树读取面接入前置(见 evidence/reviewer_r3/ 之外的本轮 reviewer 报告 /f/trading/local/fr1_review/REVIEW_REPORT_FR1.md)。
 
 ## 结论
 上轮失败根因(freeze dev root 缺件)与发布源 HEAD 漂移冲突系统性闭合;reviewer R3 全矩阵审查的 F-1/F-2 已修复并在最终候选上全套复验;一次 A2 执行的全部事前静态输入已实装、对拍、活链前缀与全量回归证明。**未签发、未消费、未 launch——仅待用户批准。**

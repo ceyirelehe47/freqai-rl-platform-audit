@@ -47,7 +47,7 @@ cmd_audit 同源、同判据、零放宽),经 `preissue_gate` 覆盖两个受支
 | 合同 | 真实消费者读取器 | 前置判据(同 audit) | 拒绝标记 |
 |---|---|---|---|
 | vendor/freqtrade 身份 | `vendor_dir_default()`(r6_preflight;按最终 P3 导入位置解析)+`_vendor_state()`;`VENDOR_PIN`(r17_cli) | `exists and sha==VENDOR_PIN and clean`(audit 判决同式) | `vendor_static` |
-| PIN 历史原件 | `_historical_binding()`(r17_cli;17 件 digest txt+r11/r12 blob 对 R13_COMMIT_B 基线) | `digests_match is True` | `historical_digests` |
+| PIN 历史原件 | `_historical_binding()`(r17_cli;17 件 digest txt 记录+r11/r12 blob 对 R13_COMMIT_B 基线) | `digests_match is True`(布尔链成员=r2/r4-r10/r12 计划与参数 digest+r11/r12 blob;r13 三件 digest 记录于 binding 字段但不进布尔链——与 cmd_audit 判决语义逐字同源) | `historical_digests` |
 | PIN 分支/血统/历史证据 | `historical_evidence_binding(release_repo)`(r17_historical;命名分支+baseline ancestry+r16 链锚+R12/R13 保留件 blob) | `ok is True`(r16_branch_name_ok 按 R17 语义豁免——与读取器自身一致) | `branch_lineage` |
 
 上游遗漏类别的相邻读取已核对:r16/_r15 链保留件(R12/R13 PRESERVED_KEY
