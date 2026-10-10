@@ -1,0 +1,211 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+.....................................................s.................. [ 26%]
+..............................s......................................... [ 28%]
+....................................................s................... [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+.............................s.......................................... [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 43%]
+..............s.s.s..................................................... [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 55%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+............................R17ALERT {"event":"t06","n":1,"utc":"2026-10-10T17:28:10Z","run_id":"run"}
+R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-win_free_phys-0","kind":"win_free_phys","detail":"t06 注入","severity":"CRITICAL","first_seen_mono":0.6,"last_seen_mono":0.6,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_t06_stdout_full_pipe_does0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-10T17:28:10Z","run_id":"run"}
+............................................ [ 62%]
+....................F................................................... [ 64%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+............................R17ALERT {"action":"open","severity":"CRITICAL","incident":{"incident_id":"run-storage_ceiling-0","kind":"storage_ceiling","detail":"存储触顶(测试)","severity":"CRITICAL","first_seen_mono":0.0,"last_seen_mono":0.0,"samples":1,"peak":{},"recovered":false,"stopped_requested":true,"delivered_count":1},"metrics":{},"run_dir":"/tmp/pytest-of-cryptorl/pytest-0/test_c09_escalation_survives_c0/run","note":"停止请求由本地策略执行,不等待模型回复","utc":"2026-10-10T17:39:00Z","run_id":"run"}
+............................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+....................................................                     [100%]
+=================================== FAILURES ===================================
+_ TestW01BudgetBarrierFullChain.test_w01_budget_first_barrier_record_and_verify _
+
+self = <test_curriculum261_r17_fail_closed_integrity_unit.TestW01BudgetBarrierFullChain object at 0x7648023a19d0>
+tmp_path = PosixPath('/tmp/pytest-of-cryptorl/pytest-0/test_w01_budget_first_barrier_0')
+
+        def test_w01_budget_first_barrier_record_and_verify(
+                self, tmp_path):
+            """W01 组合:真实 guest emit 写屏障→emit2 后由采样线程调用
+            真实 budget_check()(受控预算 1B)→保护停止→正常收尾→屏障
+            未释放时句柄/关闭状态/record/完整性/实际 verifier 均不认
+            完整→释放→写者退出(不回写已终结结果)。"""
+            child_src = r'''
+    import argparse, json, os, sys, threading, time
+    probe_dir, base, ps1 = sys.argv[1], sys.argv[2], sys.argv[3]
+    sys.path.insert(0, probe_dir)
+    from r17_supervision import Supervisor
+    
+    hold = threading.Event()
+    emit_n = {"n": 0}
+    orig_emit = Supervisor._emit_guest
+    tref = {"t": None}
+    
+    def emit_patched(self, rec):
+        emit_n["n"] += 1
+        if emit_n["n"] == 2:
+            orig_emit(self, rec)  # 真实文件写完成
+            tref["t"] = threading.current_thread()
+            print("PROBE_EMIT_IN_FLIGHT=True", flush=True)
+            self.policy["telemetry_budget_bytes"] = 1
+            self.budget_check()  # 真实方法+真实统计
+            print("PROBE_BUDGET_CHECK_CALLED=True", flush=True)
+            hold.wait(timeout=300.0)
+            print("PROBE_EMIT_RELEASED=True", flush=True)
+            return
+        return orig_emit(self, rec)
+    
+    Supervisor._emit_guest = emit_patched
+    args = argparse.Namespace(
+        run_dir=os.path.join(base, "run"), task_kind="fixture",
+        argv=["bash", "-c", "sleep 8"], task_cwd=None, max_seconds=0,
+        samples_source="", win_sampler_ps1=ps1, win_volumes="C:,F:",
+        expect_artifact=[], obs_ready_deadline=45.0)
+    sup = Supervisor(args)
+    rc = sup.run()
+    print("PROBE_RUN_RC=%d" % rc, flush=True)
+    print("PROBE_GUEST_HANDLE_NONE=%s" % (sup.guest_sampler is None),
+          flush=True)
+    st = sup._guest_close_state
+    print("PROBE_CLOSE_STATE=%r" % (st,), flush=True)
+    t = tref["t"]
+    print("PROBE_GUEST_THREAD_ALIVE=%s" % (t.is_alive() if t else None),
+          flush=True)
+    rr = os.path.join(base, "run", "run_record.json")
+    d = json.loads(open(rr, encoding="utf-8").read())
+    print("PROBE_RR_EVIDENCE=%r" % d.get("evidence_complete"), flush=True)
+    w = (d.get("writers") or {}).get("guest") or {}
+    print("PROBE_RR_GUEST_ALIVE_AFTER=%r" % w.get("alive_after_join"),
+          flush=True)
+    tg = [r for r in d.get("required", []) if r.get("role") == "telemetry_guest"]
+    print("PROBE_RR_TG_LIVE=%r" % (tg[0].get("live_writers") if tg else None),
+          flush=True)
+    import subprocess as sp
+    man = os.path.join(base, "w1_manifest.jsonl")
+    anchor = os.path.join(base, "w1_anchor.json")
+    root = os.path.dirname(base)
+    b = sp.run([sys.executable, os.path.join(probe_dir,
+            "r17_verify_delivery.py"), "build", "--run-record", rr,
+            "--manifest-out", man, "--anchor-out", anchor, "--root", root],
+            capture_output=True, text=True, timeout=120)
+    print("PROBE_BUILD_RC=%d" % b.returncode, flush=True)
+    if b.returncode == 0:
+        v = sp.run([sys.executable, os.path.join(probe_dir,
+                "r17_verify_delivery.py"), "verify", "--root", root,
+                "--manifest", man, "--anchor-file", anchor,
+                "--run-record", rr], capture_output=True, text=True,
+                timeout=120)
+        print("PROBE_VERIFY_RC_HELD=%d" % v.returncode, flush=True)
+        print("PROBE_VERIFY_PROBLEMS=%s" % v.stdout.strip()[:200], flush=True)
+    # 屏障释放(测试 finally 语义:写者退出;不回写结果)
+    hold.set()
+    if t:
+        t.join(timeout=10.0)
+    print("PROBE_GUEST_ALIVE_AFTER_RELEASE=%s"
+          % (t.is_alive() if t else None), flush=True)
+    sys.exit(0)
+    '''
+            base = tmp_path / "w01b"
+            base.mkdir(parents=True)
+            (base / "child.py").write_text(child_src, encoding="utf-8")
+            p = subprocess.Popen(
+                [sys.executable, str(base / "child.py"), str(RUNNER_DIR),
+                 str(base), PS1_DEFAULT],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                start_new_session=True)
+            lines: list[str] = []
+    
+            def _reader():
+                for ln in p.stdout:
+                    lines.append(ln.rstrip("\n"))
+    
+            rt = threading.Thread(target=_reader, daemon=True)
+            rt.start()
+            try:
+                deadline = time.time() + 180.0
+                rc = None
+                while time.time() < deadline:
+                    rc = p.poll()
+                    if rc is not None:
+                        break
+                    time.sleep(0.2)
+                assert rc is not None, f"子进程未退出:{lines[-8:]}"
+                kv = {}
+                for ln in lines:
+                    if ln.startswith("PROBE_") and "=" in ln:
+                        k, _, v = ln.partition("=")
+                        kv.setdefault(k, v)
+                assert kv.get("PROBE_BUDGET_CHECK_CALLED") == "True"
+>               assert kv.get("PROBE_RUN_RC") == "6", \
+                    f"活写者未确认=evidence 非完整非成功,实际 {kv}"
+E                   AssertionError: 活写者未确认=evidence 非完整非成功,实际 {'PROBE_EMIT_IN_FLIGHT': 'True', 'PROBE_BUDGET_CHECK_CALLED': 'True', 'PROBE_RUN_RC': '94', 'PROBE_GUEST_HANDLE_NONE': 'False', 'PROBE_CLOSE_STATE': "{'stop_requested': True, 'started': True, 'joined': False, 'alive_after_join': True, 'thread_ident': 123234959750848}", 'PROBE_GUEST_THREAD_ALIVE': 'True', 'PROBE_RR_EVIDENCE': 'False', 'PROBE_RR_GUEST_ALIVE_AFTER': 'True', 'PROBE_RR_TG_LIVE': 'True', 'PROBE_BUILD_RC': '0', 'PROBE_VERIFY_RC_HELD': '1', 'PROBE_VERIFY_PROBLEMS': '{"rc": 1, "rows": 8, "problems": 6, "receipt": "/tmp/pytest-of-cryptorl/pytest-0/test_w01_budget_first_barrier_0/w01b/verify_receipts/verify_20261010T173104Z.json"}', 'PROBE_EMIT_RELEASED': 'True', 'PROBE_GUEST_ALIVE_AFTER_RELEASE': 'False'}
+E                   assert '94' == '6'
+E                     
+E                     - 6
+E                     + 94
+
+tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py:341: AssertionError
+=============================== warnings summary ===============================
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_curriculum261_r10_rehearsal.py:87: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+tests/route_c_stage2_6_1/test_curriculum261_attempts_plan.py::TestDifficultyMetric::test_metric_math_on_report
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+    ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:178: RuntimeWarning: invalid value encountered in divide
+    arrmean = um.true_divide(arrmean, div, out=arrmean,
+
+tests/route_c_stage2_6_1/test_curriculum261_r7_selection.py::test_shared_gate_not_repeated_per_candidate
+  /home/cryptorl/miniforge3/envs/freqtrade-rl/lib/python3.11/site-packages/numpy/_core/_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+tests/route_c_stage2_6_1/test_r17_c2_native_components.py::test_raw_reuse_detection_ignores_label_changes
+  /home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/tests/route_c_stage2_6_1/test_r17_c2_native_components.py:101: Pandas4Warning: 'd' is deprecated and will be removed in a future version. Please use 'D' instead of 'd'.
+    ep.df['date'] += __import__('pandas').Timedelta('1d')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/route_c_stage2_6_1/test_curriculum261_r17_fail_closed_integrity_unit.py::TestW01BudgetBarrierFullChain::test_w01_budget_first_barrier_record_and_verify
+1 failed, 2996 passed, 7 skipped, 10 warnings in 3373.18s (0:56:13)

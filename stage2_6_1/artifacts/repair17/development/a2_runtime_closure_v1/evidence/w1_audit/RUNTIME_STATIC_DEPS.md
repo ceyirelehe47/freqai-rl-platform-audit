@@ -35,3 +35,25 @@
 ## D. 生产者边界（不得预造）
 
 determinism/cue-audit/design/calibrate/qualify/smoke/full-cold 的产物（语料/V2 fit/MLP/资格计划/模型）一律由链步产生；本轮不预生成、不以历史数据补位。`chain_budget_gate.json` 由 launch 写（determinism 前提），事前 absent。
+
+## E. FiniteRepair R1 补遗:上游终验遗漏的三类静态合同(已入前置)
+
+上游独立终验(REVIEW.md RCW-F1/F-2)证明 0f494d27 前置未覆盖 audit
+消费者的三面静态输入;FiniteRepair R1(候选 0735f255)把同一读取器
+接入 `runtime_dependency_preflight`(探针子进程内真实 import,与
+cmd_audit 同源、同判据、零放宽),经 `preissue_gate` 覆盖两个受支持
+签发入口(operator execute / r17_admission_issue):
+
+| 合同 | 真实消费者读取器 | 前置判据(同 audit) | 拒绝标记 |
+|---|---|---|---|
+| vendor/freqtrade 身份 | `vendor_dir_default()`(r6_preflight;按最终 P3 导入位置解析)+`_vendor_state()`;`VENDOR_PIN`(r17_cli) | `exists and sha==VENDOR_PIN and clean`(audit 判决同式) | `vendor_static` |
+| PIN 历史原件 | `_historical_binding()`(r17_cli;17 件 digest txt+r11/r12 blob 对 R13_COMMIT_B 基线) | `digests_match is True` | `historical_digests` |
+| PIN 分支/血统/历史证据 | `historical_evidence_binding(release_repo)`(r17_historical;命名分支+baseline ancestry+r16 链锚+R12/R13 保留件 blob) | `ok is True`(r16_branch_name_ok 按 R17 语义豁免——与读取器自身一致) | `branch_lineage` |
+
+上游遗漏类别的相邻读取已核对:r16/_r15 链保留件(R12/R13 PRESERVED_KEY
+文件)经 heb 全量 blob 比对覆盖;`release_repo_candidates()` pin 优先
+解析与 freeze/历史读取同源(单一解析点);B 表既有项(HEAD==A、三代码
+面 clean、ls-files 身份)不变。成对正反例见
+`tests/route_c_stage2_6_1/test_curriculum261_qaf_v3_finite_repair_r1.py`
+(隔离域=真实对象 --shared 克隆:完整合法基线+单条件突变;两入口子进程
+实跑 rc=96 零一次性写)。
