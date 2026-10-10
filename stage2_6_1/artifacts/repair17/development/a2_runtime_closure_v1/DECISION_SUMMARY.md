@@ -15,7 +15,7 @@
 | admission-id(未来) | `qaf-v3-c0fb6858-a2` |
 | 预算 | 与原 A2 全等(生成 ≤113176/MC 1e6/bootstrap ≤7.5e6/V2 fit 10/MLP 85/PPO learn 2+rollout 512+step≤80/验证 100/check_env 20/save-load 2 对/Global-K 50000→≤200000/原子子进程 ≤19)——零扩张 |
 
-执行步骤:E1 配置激活→E2 prepare→E3 批准原件→E4 operator execute,完整实命令见包内 COMMANDS_APPENDIX.md(E4 关键参数:--admission-id qaf-v3-c0fb6858-a2 --plan-digest b5e719ff…(git_tree_digest) --code-freeze-sha 0735f255… --stop-after verify-formal-logs --model-update --attempt qaf_v3)。
+执行步骤:E1 配置激活→E2 prepare→E3 批准原件→E4 operator execute,完整实命令见包内 COMMANDS_APPENDIX.md(E4 关键参数:--admission-id qaf-v3-c0fb6858-a2 --plan-digest a2621f8e…(git_tree_digest) --code-freeze-sha c0fb6858… --stop-after verify-formal-logs --model-update --attempt qaf_v3)。
 
 ## 2. 本轮闭合要点
 
