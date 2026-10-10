@@ -1,0 +1,58 @@
+== [A] PIN -> A3 (branch) ==
+ * branch              route-c-stage2-6-1-repair17 -> FETCH_HEAD
+HEAD is now at 0f494d27 A2 RuntimeClosure R3 fix residual (reviewer F-1R): build_budget_items step-smoke items use ppo_smoke_ns (consumer x2 + metering), completing full attempt-family parameterization of plan identity texts; payload sweep confirms zero v1/r17 namespace tokens remain (all _r17 mentions are function symbols)
+branch=route-c-stage2-6-1-repair17 head=0f494d27bad2ed0de6876ff32f4cb7d656a19c98 porcelain:[]
+== [B] plan rebuild at A3 ==
+QPROD_PLAN_DIGEST: qbpl-c2dd9bb802ca890cc6aa2ef2b9ae4ffbb8f5f1788ee7e87dd7854816aabe8a36
+draft_equals_rebuilt: True
+== [C] preflight @A3 ==
+PREFLIGHT ok= True problems= []
+== [D] freeze engineering @A3 ==
+FREEZE_OK 0f494d27bad2 digest r17fs-5f36c3ca11d63b missing []
+== [F] three-way @A3 ==
+PAIRS {'P3D3': '698/698 equal', 'P3PIN': '597/597 equal', 'D3PIN': '660/660 equal'} mismatches: 0
+== [G] prefix probe 3 steps @A3 ==
+rc1=0
+[provenance-verify] pass=True stored=r17gtrec-3112e5deb863a... recomputed=r17gtrec-3112e5deb863a...
+rc2=0
+[determinism] A5 pass=True all_identical=True r10_consistent=True r10_failure_reproduced=False
+[determinism] A6 gate pass=True
+rc3=0
+[audit] code freeze anchored: 0f494d27bad2ed0de6876ff32f4cb7d656a19c98 (surface r17fs-5f36c3ca...; dev_files=572 repo_tracked=613)
+[audit] equivalence pass=True ns pass=True digests_match=True ancestry ok=True r11_binding pass=True r12_binding pass=True r13_binding pass=True r14_binding pass=True workflow pass=True provenance pass=True dep pass=True entry pass=True determinism_contract=bound
+== [H] dummy-sha refusal @A3 ==
+rc_refused=1
+    raise RuntimeError(
+RuntimeError: code_freeze_sha 与 repo HEAD 不一致——冻结必须绑定Commit A 提交(HEAD=0f494d27bad2ed0de6876ff32f4cb7d656a19c98,传入=0000000000000000000000000000000000000000)
+== [I] full regression @A3 ==
+regression start 2026-10-10T07:15:22Z commit-a=0f494d27bad2ed0de6876ff32f4cb7d656a19c98
+{"run_id": "r21_20261010_160557", "record_path": "regression_evidence_v3_record.json", "record_sha256": "2e9fccfb14ab9c67992a1031302b690d2af28c6c56f8c0d05d412fb2ce4d5548", "aggregate": {"tests": 2990, "failures": 0, "errors": 0, "skipped": 7}, "run_returncodes": [0, 0], "ok": true, "verify": {"collection_tests": 2990, "static_tests": 2490, "test_files": 175}}
+runner rc=0 end 2026-10-10T08:07:38Z
+{
+ "run_id": "r21_20261010_160557",
+ "record_path": "regression_evidence_v3_record.json",
+ "record_sha256": "2e9fccfb14ab9c67992a1031302b690d2af28c6c56f8c0d05d412fb2ce4d5548",
+ "aggregate": {
+  "tests": 2990,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 7
+ },
+ "run_returncodes": [
+  0,
+  0
+ ],
+ "ok": true,
+ "verify": {
+  "collection_tests": 2990,
+  "static_tests": 2490,
+  "test_files": 175
+ }
+}
+== [J] substance @A3 ==
+rc_d3=0
+{"substance": {"format": "cur261-r17-admission-substance-v1", "plan_digest_claimed": "7a2fecbbea921181562720b07e5b87ca6c4e5f7a", "plan_digest_method": "git_tree_digest", "plan_digest_recomputed": "7a2fecbbea921181562720b07e5b87ca6c4e5f7a", "regression_evidence
+rc_wr=2
+regression_collection_run_cwd_not_deploy_root
+
+part10 done

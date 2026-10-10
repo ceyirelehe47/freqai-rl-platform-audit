@@ -3,7 +3,7 @@
  "level": "level_a",
  "iteration_id": "qprod_a_formal_v3",
  "profile": "formal",
- "code_freeze_sha": "24ddea34f2a32ae08bf1238e95112391c0d84ab4",
+ "code_freeze_sha": "0f494d27bad2ed0de6876ff32f4cb7d656a19c98",
  "run_scope": {
   "entry": "qprod_formal_level_a_entry launch → rl_curriculum.curriculum261_r17_cli chain-run(受信任部署;PYTHONPATH=部署 src)",
   "gate_set": "r17 权威 17 步(prerequisites/postcondition 语义:smoke 仅 qualify final PASS 后;full-cold 仅 smoke PASS 后)+ qualification one_shot exposure",
@@ -352,8 +352,8 @@
     "formula": "bank 6/rung=144 eps+1 pair=2 eps(cmd_smoke 不传 envelope)",
     "typical": 146,
     "worst_upper": 146,
-    "consumer": "fit_preprocessor_v2_from_bank_r17('ppo_smoke_r17')+generate_pair",
-    "metering": "生成 envelope ledger(ppo_smoke_r17 工程面)"
+    "consumer": "fit_preprocessor_v2_from_bank_r17('ppo_smoke_qaf_v3')+generate_pair",
+    "metering": "生成 envelope ledger(ppo_smoke_qaf_v3 工程面)"
    },
    {
     "step": "smoke",
@@ -361,7 +361,7 @@
     "formula": "smoke 内 1 次",
     "typical": 1,
     "worst_upper": 1,
-    "consumer": "fit_preprocessor_v2_from_bank_r17(ppo_smoke_r17)",
+    "consumer": "fit_preprocessor_v2_from_bank_r17(ppo_smoke_qaf_v3)",
     "metering": "smoke manifest preprocessor_bundle_hash 绑定"
    },
    {
@@ -494,7 +494,7 @@
   "curriculum261_qprod_aggregate.py": "ea9bb967b409e07164cc1d7518a37a6e910b903db3facda57765b7ce59b8c45d",
   "curriculum261_qprod_formal.py": "ce7862884782932a7d47ec902cb042be4cf28d014959bc3cd95ff4af2539f765",
   "curriculum261_qprod_formal_levela.py": "d4d1ecd016760987e00893c77bd3737971710c3f40794d3a5bd6efe466f8f814",
-  "curriculum261_qprod_formal_budget.py": "4047a1323fe8aa18b3b7bc573e6b6c5b793eb0f42f5250e118438849b07adc69",
+  "curriculum261_qprod_formal_budget.py": "c9e69a52186534e12345497a0e96794c278b4cf82d469d2ad3d2f96a5668dfab",
   "curriculum261_qaf_attempt.py": "84743403f5e18c8f513dfdb96020af7cfc479791e4291b64bf957af08e34d183"
  },
  "stop_mode": "collect_all_k",
