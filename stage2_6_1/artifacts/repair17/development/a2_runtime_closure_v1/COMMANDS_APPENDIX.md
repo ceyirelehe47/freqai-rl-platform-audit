@@ -26,8 +26,8 @@ cd $P3 && PYTHONDONTWRITEBYTECODE=1 $PY $P3/stage2_6_1_runner/qaf_v2_operator_en
 ```
 
 注意:P3/D3/PIN 三面部署与运行依赖前置(本附录外的实装面)已由本轮完成并在
-`evidence/runtime_verify/`(preflight_P3 ok=true + freeze_engineering_P3 + prefix_probe_0f494d27 活链前缀 3 步全绿 + substance 同根 rc0/错根 rc2)+ `evidence/three_way_compare.json`
-(699/598/661 全等,meta 绑定 0f494d27)留档;operator execute 的 runtime_dependencies 检查(含 pin HEAD==A、freeze 路径 clean、
+`evidence/runtime_verify/`(preflight_P3 ok=true + freeze_engineering_P3 + prefix_probe_fr1_0735f255 活链前缀 3 步全绿(上轮 prefix_probe_0f494d27 同名留档) + substance 同根 rc0/错根 rc2)+ `evidence/three_way_compare.json`
+(699/598/661 全等,meta 绑定 0735f255)留档;operator execute 的 runtime_dependencies 检查(含 pin HEAD==A、freeze 路径 clean、
 三面 vs 候选 CR 投影、已接受原件字节)在首一次性写前强制执行(E1 未装时全门 fail-closed,已实测)。
 
 ## E3. 批准原件构造(用户提供批准原文后)

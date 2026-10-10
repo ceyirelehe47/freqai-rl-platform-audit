@@ -20,7 +20,7 @@
 `w1_audit/RUNTIME_STATIC_DEPS.md`:A 表(开发根 10 项)+ B 表(pinned 发布源身份+历史绑定件)+ C 表(D3 面)+ 生产者边界,全部来自冻结源码实读(reviewer 抽验 5 项全对)。98 项旧 P 血统 extras 清单钉死。
 
 ## RD03 候选与发布源
-`release_repo_candidates()` pin 优先接入全部 14 处 src 解析点(reviewer 实数核对);PIN=独立 clone `route-c-stage2-6-1-repair17` 分支态 HEAD==0f494d27、porcelain 干净(detach 会破 ancestry 分支名检查——留档负例)。成对实测@A3:工程隔离正例写出冻结产物(r17fs-4d507dee、missing=[]);活 audit 反例=dummy sha 拒(`prefix_probe_fr1_0735f255/audit_step_refused.stderr`);detach 反例(`prefix_probe_85a879a4/ancestry_refused_detached_head.json`);旧 P 52 目录历史探针同型拒绝。
+`release_repo_candidates()` pin 优先接入全部 14 处 src 解析点(reviewer 实数核对);PIN=独立 clone `route-c-stage2-6-1-repair17` 分支态 HEAD==0735f255(FR1 候选;R3 时点为 0f494d27)、porcelain 干净(detach 会破 ancestry 分支名检查——留档负例)。成对实测@A3:工程隔离正例写出冻结产物(r17fs-4d507dee、missing=[]);活 audit 反例=dummy sha 拒(`prefix_probe_fr1_0735f255/audit_step_refused.stderr`);detach 反例(`prefix_probe_85a879a4/ancestry_refused_detached_head.json`);旧 P 52 目录历史探针同型拒绝。
 
 ## RD04 前置生效
 `runtime_dependency_preflight`(真实 freeze 读取器子进程@P3+三面 CR 投影逐文件+原件字节)入 `preissue_gate`,operator execute 与直接 issue-permit 两入口首一次性写前同一前置;隔离正反例现 **18 项**(reviewer 实证 17 项全真实消费者形态+F-1 修复新增 1 项);E1 未装时全门 fail-closed(`preissue_gate_P3_preconfig_refused.json`,one_shot_writes=0,reviewer 当日重演同判)。
