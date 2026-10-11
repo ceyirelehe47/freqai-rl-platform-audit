@@ -27,10 +27,13 @@ NewAttempt_v1)。
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
+import hashlib
 import json
 import os
 import subprocess
 import sys
+from datetime import timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -548,10 +551,71 @@ def cmd_execute(args: argparse.Namespace) -> int:
     proc = subprocess.run(
         launch_argv, cwd=str(project_dir), capture_output=True,
         text=True, env=launch_env)
+    # RouteC_CueAudit_FormalIdentityClosure_v1(§3 原件保全):
+    # 关键 child 的完整 stdout/stderr 以 create-only 原件落盘
+    # (控制台仍显示 tail;tail 不冒充原件)。文件已存在=一次性
+    # 状态不明,fail closed。
+    try:
+        write_child_log_originals(
+            deploy_root, child="launch", argv=launch_argv,
+            cwd=str(project_dir), returncode=proc.returncode,
+            stdout=proc.stdout, stderr=proc.stderr)
+    except FileExistsError:
+        print(json.dumps({
+            "refused": "operator_child_logs 已存在完整原件"
+                       "(一次性状态不明;不覆盖,fail closed)",
+            "one_shot_writes": one_shot_writes,
+        }, ensure_ascii=False))
+        return 96
     print(proc.stdout[-8000:])
     if proc.stderr:
         print(proc.stderr[-2000:], file=sys.stderr)
     return proc.returncode
+
+
+def write_child_log_originals(
+        deploy_root: Path, *, child: str, argv: list[str], cwd: str,
+        returncode: int, stdout: str, stderr: str) -> None:
+    """关键 child 完整 stdout/stderr 的 create-only 原件落盘。
+
+    RouteC_CueAudit_FormalIdentityClosure_v1 §3:冻结入口此前只把
+    child stdout 尾部 8000 字符/stderr 尾部 2000 字符转发到控制台,
+    qaf_v3 E4 原件因此缺失前缀。本函数把完整输出与
+    argv/cwd/rc/时间/摘要落为独立原件;任何目标文件已存在即抛
+    FileExistsError(一次性状态不明,由调用方 fail closed),绝不
+    覆盖或截断。控制台 tail 展示与原件归档由此分离。
+    """
+    log_dir = deploy_root / "operator_child_logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "format": "cur261-qaf-operator-child-log-v1",
+        "child": child,
+        "argv": list(argv),
+        "cwd": cwd,
+        "returncode": returncode,
+        "utc": _dt.datetime.now(timezone.utc).isoformat(
+            timespec="seconds"),
+        "stdout_bytes": len(stdout.encode("utf-8", "replace")),
+        "stderr_bytes": len(stderr.encode("utf-8", "replace")),
+        "stdout_sha256": hashlib.sha256(
+            stdout.encode("utf-8", "replace")).hexdigest(),
+        "stderr_sha256": hashlib.sha256(
+            stderr.encode("utf-8", "replace")).hexdigest(),
+        "console_tail_note": "控制台仅转发 stdout 尾部 8000 字符/"
+                             "stderr 尾部 2000 字符;本目录文件为"
+                             "完整原件",
+    }
+    for name, data in (
+            (f"execute_{child}.stdout.full.txt", stdout),
+            (f"execute_{child}.stderr.full.txt", stderr),
+            (f"execute_{child}.meta.json", json.dumps(
+                meta, ensure_ascii=False, indent=1) + "\n")):
+        path = log_dir / name
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
 
 
 def main(argv: list[str] | None = None) -> int:

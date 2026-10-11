@@ -537,6 +537,27 @@ def _once_vs_attempts_bitwise_check_r17(
     }
 
 
+def registered_cue_contract_family(
+        model_namespace: str | None,
+        validation_namespace: str | None,
+) -> Any | None:
+    """(model, validation) 是否恰为同一注册 QAF 尝试族的 cue 契约
+    身份对(RouteC_CueAudit_FormalIdentityClosure_v1)。
+
+    注册族(QAF_ATTEMPTS)是显式 namespace 进入正式模式的**唯一**
+    身份来源:任意字符串、单边 namespace、跨族混配均返回 None
+    (按工程/非正式分类处理,不得获得正式权限)。
+    """
+    if model_namespace is None or validation_namespace is None:
+        return None
+    from rl_curriculum.curriculum261_qaf_attempt import QAF_ATTEMPTS
+    for _fam in QAF_ATTEMPTS.values():
+        if (model_namespace == _fam.cue_contract_model
+                and validation_namespace == _fam.cue_contract_validation):
+            return _fam
+    return None
+
+
 def run_cue_contract_audit(
         out_dir: Path | None = None,
         *,
@@ -552,15 +573,36 @@ def run_cue_contract_audit(
     为冻结合同数。B(MC)验证解析积分。C(direct generator)以两个
     500-block corpus 给出经验分布;audit PASS 判据见模块 docstring。
 
+    正式性判定(RouteC_CueAudit_FormalIdentityClosure_v1):正式 =
+    冻结科学规模(blocks/mc 未缩减)**且**命名空间身份来自
+    (a) 全缺省(历史 R17 冻结名)或 (b) 恰为同一注册 QAF 尝试族
+    的 cue 契约身份对。注册族身份**只能**以正式锁定计划形态执行
+    (不得以工程/缩减/免锁形态占用正式语料身份)。锁定计划在场时
+    另行核验计划与实际执行参数三方一致(namespace/规模错配拒绝)。
+
     兼容性合同(QProd 坐标级生产):本 wrapper 的报告字段在工程模式
     (显式参数)下沿用历史行为——写 AUDIT_* 常量(黄金向量冻结面);
-    需要"报告记录实际 namespace/MC/block 预算"的坐标级执行必须走
-    _run_cue_contract_audit_core(report_actual_values=True),由锁定
+    legacy 全缺省正式路径报告保持逐字节历史行为(实际值==常量);
+    注册族正式路径报告记录实际 namespace/预算
+    (report_actual_values=True;非 coordinate 执行,不带
+    coordinate_execution 键)。坐标级执行继续走
+    _run_cue_contract_audit_core(coordinate_context=...),由锁定
     坐标上下文的 wrapper(curriculum261_qprod_coordinate)调用。
     """
     out_dir = Path(out_dir) if out_dir is not None else None
-    formal = (blocks_per_corpus is None and mc_events is None
-              and model_namespace is None and validation_namespace is None)
+    formal_scale = (blocks_per_corpus is None and mc_events is None)
+    legacy_default_ns = (model_namespace is None
+                         and validation_namespace is None)
+    cue_family = registered_cue_contract_family(
+        model_namespace, validation_namespace)
+    if cue_family is not None and not (formal_scale
+                                       and require_locked_plan):
+        raise RuntimeError(
+            "注册尝试族 cue 契约 namespace 只能以正式锁定计划形态执行"
+            "(require_locked_plan+冻结规模;不得以工程/缩减/免锁计划"
+            "形态占用正式语料身份)")
+    formal = formal_scale and (legacy_default_ns
+                               or cue_family is not None)
     n_blocks_per_corpus = int(blocks_per_corpus or AUDIT_BLOCKS_PER_CORPUS)
     n_mc_events = int(mc_events or AUDIT_N_EVENTS)
     model_ns = model_namespace or AUDIT_MODEL_NAMESPACE
@@ -574,6 +616,19 @@ def run_cue_contract_audit(
         if out_dir is None:
             raise RuntimeError("require_locked_plan 需要 out_dir")
         audit_plan = load_locked_cue_audit_plan_r17(out_dir)
+        # 计划三方一致(§R17-10):锁定计划的 namespace/规模必须与
+        # 本次实际执行参数逐项一致——错计划/错身份/漂移在科学叶前
+        # 拒绝(不得静默改计划或回退工程模式)。
+        _plan_ns = audit_plan["audit_namespaces"]
+        if (str(_plan_ns["model"]) != model_ns
+                or str(_plan_ns["validation"]) != validation_ns
+                or int(audit_plan["blocks_per_corpus"])
+                != n_blocks_per_corpus
+                or int(audit_plan["monte_carlo"]["n_events"])
+                != n_mc_events):
+            raise RuntimeError(
+                "锁定 audit plan 与实际执行参数不一致(namespace/"
+                "规模错配;错计划拒绝,不得改写已锁定 plan)")
         audit_plan_digest_value = str(
             audit_plan["cue_audit_plan_digest"])
     return _run_cue_contract_audit_core(
@@ -584,6 +639,7 @@ def run_cue_contract_audit(
         validation_ns=validation_ns,
         formal=formal,
         audit_plan_digest_value=audit_plan_digest_value,
+        report_actual_values=cue_family is not None,
     )
 
 
@@ -983,7 +1039,11 @@ def _run_cue_contract_audit_core(
     report["pass"] = bool(all(report["checks"].values()))
     if report_actual_values:
         report["report_mode"] = "actual_values"
-        report["coordinate_execution"] = dict(coordinate_context or {})
+    if coordinate_context is not None:
+        # 仅坐标级执行(curriculum261_qprod_coordinate 锁定上下文)
+        # 携带 coordinate_execution;注册族正式路径(report_actual_
+        # values=True 但非 coordinate)不写入该键,不冒充 B 坐标。
+        report["coordinate_execution"] = dict(coordinate_context)
     report["audit_digest"] = cue_contract_audit_digest(report)
 
 
