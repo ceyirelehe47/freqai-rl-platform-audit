@@ -637,15 +637,17 @@ def _install_leaf_stubs(monkeypatch):
 class TestF2RealHandlerChain:
     def test_identity_chain_real_handlers_flow(self, tmp_path,
                                                monkeypatch):
-        """正式身份关键步骤真实 handler 串行链(audit→cue-audit→
-        preplan-smoke→plan-roundtrip→design-plan-lock→design):
+        """正式身份关键步骤真实 handler 串行链,实跑 4 步:
+        cue-audit→preplan-smoke→plan-roundtrip→design-plan-lock。
 
         - 全部经真实 cli.main(argv);科学重叶=生成函数级替身;
         - 跨步产物**真实流动**:cue-audit 写 cue_contract_audit.json
           (qaf_v3 实际 ns 报告)→ plan-roundtrip 真实读取并绑定
           audit_digest → design-plan-lock 真实读取 audit+plan+
           roundtrip,写入带族 design namespace 与真实锁定计划
-          digest 的 design plan → design 真实消费 design plan。
+          digest 的 design plan。audit/determinism-matrix 与
+          design 及其后步骤依赖真实 repo 冻结面,超出隔离工程域,
+          列为未验证层次(见下方内联注释),不在此冒充。
         """
         import rl_curriculum.curriculum261_r17_cli as cli
         _install_leaf_stubs(monkeypatch)
