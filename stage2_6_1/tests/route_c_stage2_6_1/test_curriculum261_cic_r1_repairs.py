@@ -5,9 +5,11 @@
 (非 reference/probes 旧片段):
 - F1:保留 cue namespace 任一侧涉及(混族/单边/跨角色)即拒绝,
   免锁/缩减组合零 core 调用;合法正式/普通工程对照。
-- F2:正式身份关键步骤真实 handler 链(audit→cue-audit→preplan-smoke
-  →plan-roundtrip→design-plan-lock→design),跨步产物真实流动与
-  消费;负例组合。科学重叶=生成函数级替身(边界明示)。
+- F2:正式身份关键步骤真实 handler 链,实跑 4 步:cue-audit→
+  preplan-smoke→plan-roundtrip→design-plan-lock(跨步产物真实流动
+  与消费);audit/determinism-matrix 与 design 及其后步骤依赖真实
+  repo 冻结面,如实列为未验证层次(测试内注释披露)。负例组合。
+  科学重叶=生成函数级替身(边界明示)。
 - F3:child 原件执行期落盘/原字节/冲突前置/中断保全/时刻区分。
 - F4:观察器 PID+starttime 绑定;父 shell 同 pattern/无关同名进程
   不误认;PID 复用识别;纯 pattern 拒绝。
@@ -98,7 +100,11 @@ class TestF1ProtectedIdentity:
         assert calls == [] and loads == []
 
     @pytest.mark.parametrize("scale", [
-        {}, {"blocks_per_corpus": 10}, {"mc_events": 2_000_000}])
+        {}, {"blocks_per_corpus": 10}, {"mc_events": 2_000_000},
+        # R1 复验整改补:显式等价规模(与正式默认同值的显式传入;
+        # 免锁形态下即使规模"正确"也必须拒绝)
+        {"blocks_per_corpus": cue_mod.AUDIT_BLOCKS_PER_CORPUS,
+         "mc_events": cue_mod.AUDIT_N_EVENTS}])
     def test_full_pair_unlocked_or_scaled_rejected(self, scale,
                                                    monkeypatch):
         calls = self._capture_core(monkeypatch)
@@ -381,6 +387,55 @@ class TestF4WatcherBinding:
                 (tmp_path / "w.jsonl").read_text().splitlines()]
         assert rows[-1]["final_reason"] == "rc_recorded_and_process_ended"
 
+
+    def test_max_ticks_exhausted(self, tmp_path):
+        """R1 复验整改补:max_ticks 用尽如实 rc=3,不伪装正常结束
+        (v1 终止形态回归覆盖)。"""
+        from qaf_child_watcher import ChildWatcher
+        child = self._spawn("", 5.0)   # 长跑目标
+        try:
+            w = ChildWatcher(
+                child.pid, rc_file=tmp_path / "rc",
+                out_file=tmp_path / "w.jsonl", interval_s=0.03,
+                max_ticks=3, grace_ticks=2)
+            rc = w.run()
+            assert rc == 3
+            rows = [json.loads(x) for x in
+                    (tmp_path / "w.jsonl").read_text().splitlines()]
+            assert rows[-1]["final_reason"] == "max_ticks_exhausted"
+        finally:
+            child.kill()
+            child.wait(timeout=10)
+
+    def test_out_create_only_conflict_refused(self, tmp_path):
+        """R1 复验整改补:观察输出已存在时拒绝创建(rc=2),既有
+        文件字节不被触碰。"""
+        from qaf_child_watcher import main as watcher_main
+        child = self._spawn("", 3.0)
+        try:
+            out = tmp_path / "w.jsonl"
+            out.write_text("EXISTING-ORIGINAL\n", encoding="utf-8")
+            rc = watcher_main([
+                "--pid", str(child.pid),
+                "--rc-file", str(tmp_path / "rc"),
+                "--out", str(out),
+                "--interval", "0.05", "--max-ticks", "5"])
+            assert rc == 2
+            assert out.read_text(
+                encoding="utf-8") == "EXISTING-ORIGINAL\n"
+        finally:
+            child.kill()
+            child.wait(timeout=10)
+
+    def test_init_dead_target_refused(self, tmp_path):
+        """R1 复验整改补:init 时目标已死(starttime 采样不到)拒绝
+        绑定(fail closed,不退化为 PID 存在性)。"""
+        from qaf_child_watcher import ChildWatcher
+        dead = self._spawn("", 0.05)
+        dead.wait(timeout=10)
+        with pytest.raises(RuntimeError, match="启动身份不可得"):
+            ChildWatcher(dead.pid, rc_file=tmp_path / "rc",
+                         out_file=tmp_path / "w.jsonl")
 
 # ==================== F5:多重集工具 ====================
 class TestF5MultisetComparator:

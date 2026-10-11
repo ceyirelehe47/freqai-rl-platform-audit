@@ -642,19 +642,23 @@ def run_child_with_originals(argv: list[str], *, cwd: str,
     """
     started = _dt.datetime.now(timezone.utc).isoformat(timespec="seconds")
     rc: int | None
-    rc_source = "wait"
+    rc_source: str | None = None
     try:
         proc = subprocess.Popen(
             argv, cwd=cwd, env=env,
             stdout=slots.out_fh, stderr=slots.err_fh)
         try:
             rc = proc.wait()
+            rc_source = "wait"
         except BaseException:
             # 父侧中断:child 可能仍在跑;不杀不重启,rc 不可得
             rc = None
             rc_source = "parent_interrupted"
             raise
     except BaseException:
+        if rc_source is None:
+            # R1 复验整改:Popen 自身失败(从未进入 wait)不得标 wait
+            rc_source = "spawn_failed"
         slots.close()
         _archive_child_originals(slots, child, argv, cwd, started,
                                  ended_utc=None, returncode=None,

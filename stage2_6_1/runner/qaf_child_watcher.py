@@ -86,9 +86,17 @@ class ChildWatcher:
                  grace_ticks: int = 3,
                  start_token: int | None = None) -> None:
         self.pid = int(pid)
-        self.start_token = (start_token
-                            if start_token is not None
-                            else proc_start_time(self.pid))
+        # R1 复验整改:init 时 starttime 采样不到(目标已死/不可
+        # 访问)则拒绝绑定——否则退化为纯 PID 存在性,死后 PID
+        # 复用会被误绑(fail closed,与无 --pid 同径)。
+        if start_token is not None:
+            self.start_token = start_token
+        else:
+            self.start_token = proc_start_time(self.pid)
+            if self.start_token is None:
+                raise RuntimeError(
+                    f"目标 {self.pid} 启动身份不可得(starttime 采样"
+                    "失败)——拒绝绑定,防止 PID 复用误绑(fail closed)")
         self.rc_file = Path(rc_file)
         self.out_file = Path(out_file)
         self.stop_file = Path(stop_file) if stop_file else None
