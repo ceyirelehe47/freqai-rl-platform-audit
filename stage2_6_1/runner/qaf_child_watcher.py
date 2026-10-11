@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""QAF 子进程观察器(RouteC_CueAudit_FormalIdentityClosure_v1 §3)。
+"""QAF 子进程观察器 v2(RouteC_CueAudit R1/F4)。
 
-qaf_v3 A2 轮的 bash 观察器因 ``snap()`` 内 ``local rc_alive`` 与循环
-终止条件读取的全局未设值互不可见而永不退出,在封包后继续写
-E4_watch.jsonl,导致 RETURN v1 冷读 FAIL。本工具以显式实例状态取代
-shell 变量作用域,修正三类终止形态并保留只读语义:
+v1 缺陷(IndependentReview_33407fd4 §F4):``_target_alive`` 以
+cmdline 子串判存活,仅排除自身 PID——父 shell 命令行含 pattern、
+无关同名进程、其他观察器都会被误认,导致永不退出。
 
-1. 正常: 目标进程结束 **且** rc 文件已落盘 → 再采样一个确认 tick,
-   ``reason=rc_recorded_and_process_ended`` 退出;
-2. 异常: 目标进程消失但 rc 文件连续 ``grace_ticks`` 个 tick 缺失 →
-   ``reason=abnormal_end_no_rc`` 退出(只记录,不重启不补跑);
-3. 停止请求: stop 文件出现 → ``reason=stop_requested`` 退出
-   (封包前冻结诊断写入源的机制化出口)。
+v2 绑定**运行实例身份**:
+- 目标 = (PID, /proc/<pid>/stat 的 starttime 字段 22)。starttime
+  在进程创建时由内核单调赋值,PID 复用后 starttime 改变 ⇒ 复用
+  立刻被识别为"目标已死",不会误绑新进程。
+- PID 来源:--pid(监督/run 身份给定)或 --pid-file(监督启动器
+  落盘的 child pid 文件;观察开始时读取一次,不追新值)。
+- --pattern 仅诊断字段进快照,**不参与**存活判定。
+- --pid-file 与 --pattern 同时缺省时拒绝运行(fail closed,不回退
+  子串匹配)。
 
-目标日志暂未存在不是错误: 记录 ``present=false``/``bytes=0``。
-
-观察器只读目标实例(进程表/文件尺寸);输出为单一 create-only
-JSONL(O_EXCL,不得覆盖既有观察记录)。本工具不执行任何业务动作。
+终止形态与 v1 一致:rc 落盘+进程结束确认(确认 tick)/异常结束
+(grace_ticks)/stop 文件/max_ticks 如实记录;输出 create-only。
+观察器绝不干预业务进程(不杀/不重启/不写目标任何文件)。
 """
 from __future__ import annotations
 
@@ -28,36 +29,71 @@ import sys
 import time
 from pathlib import Path
 
-FORMAT = "cur261-qaf-child-watcher-v1"
+FORMAT = "cur261-qaf-child-watcher-v2"
 
 
-def _target_alive(pattern: str) -> bool:
-    """纯 stdlib 进程表扫描(/proc/*/cmdline 含 pattern 即目标)。"""
-    for pid in os.listdir("/proc"):
-        if not pid.isdigit():
-            continue
-        try:
-            with open(f"/proc/{pid}/cmdline", "rb") as fh:
-                cmd = fh.read().decode("utf-8", "replace")
-        except OSError:
-            continue
-        if pattern in cmd and int(pid) != os.getpid():
-            return True
-    return False
+
+def _proc_state_and_start(pid: int) -> tuple[str, int] | None:
+    """(state, starttime) 或 None(进程不存在)。
+
+    僵尸(state=Z)=目标已终止(等待父进程收尸),按**不存活**处理
+    ——否则已被 wait 的目标因 /proc 残留条目被误判为一直运行。
+    """
+    try:
+        with open(f"/proc/{int(pid)}/stat", "rb") as fh:
+            stat = fh.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+    try:
+        rest = stat[stat.rindex(")") + 2:].split()
+        return rest[0], int(rest[19])
+    except (ValueError, IndexError):
+        return None
+
+
+def proc_start_time(pid: int) -> int | None:
+    """/proc/<pid>/stat 字段 22(starttime,时钟 tick)。不存在=None。"""
+    got = _proc_state_and_start(pid)
+    return None if got is None else got[1]
+
+
+def pid_alive_with_start(pid: int, start_token: int | None) -> bool:
+    """pid 存活(非僵尸)**且** starttime 与绑定值一致(防复用)。"""
+    got = _proc_state_and_start(pid)
+    if got is None or got[0] == "Z":
+        return False
+    return start_token is None or got[1] == start_token
+
+
+
+def cmdline_of(pid: int) -> str:
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as fh:
+            return fh.read().decode("utf-8", "replace").replace(
+                "\0", " ")
+    except OSError:
+        return ""
 
 
 class ChildWatcher:
-    """单实例显式状态观察器(所有终止判定用实例属性,无作用域陷阱)。"""
+    """绑定 (pid, starttime) 的单实例显式状态观察器。"""
 
-    def __init__(self, pattern: str, rc_file: Path, out_file: Path,
-                 stop_file: Path | None = None, target_log: Path | None = None,
+    def __init__(self, pid: int, rc_file: Path, out_file: Path,
+                 stop_file: Path | None = None,
+                 target_log: Path | None = None,
+                 pattern: str | None = None,
                  interval_s: float = 60.0, max_ticks: int = 1440,
-                 grace_ticks: int = 3) -> None:
-        self.pattern = pattern
+                 grace_ticks: int = 3,
+                 start_token: int | None = None) -> None:
+        self.pid = int(pid)
+        self.start_token = (start_token
+                            if start_token is not None
+                            else proc_start_time(self.pid))
         self.rc_file = Path(rc_file)
         self.out_file = Path(out_file)
         self.stop_file = Path(stop_file) if stop_file else None
         self.target_log = Path(target_log) if target_log else None
+        self.pattern = pattern  # 仅诊断
         self.interval_s = float(interval_s)
         self.max_ticks = int(max_ticks)
         self.grace_ticks = int(grace_ticks)
@@ -65,9 +101,8 @@ class ChildWatcher:
         self.tick_index = 0
         self.final_reason: str | None = None
 
-    # -- 单个采样点(纯读取;不 touch 目标)--------------------------
     def _snapshot(self) -> dict:
-        alive = _target_alive(self.pattern)
+        alive = pid_alive_with_start(self.pid, self.start_token)
         rc = (self.rc_file.read_text(encoding="utf-8").strip()
               if self.rc_file.is_file() else None)
         log: dict = {"present": False, "bytes": 0, "lines": None}
@@ -83,18 +118,28 @@ class ChildWatcher:
             "format": FORMAT,
             "tick": self.tick_index,
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "pid": self.pid,
+            "start_token": self.start_token,
             "target_alive": alive,
             "rc": rc,
             "target_log": log,
         }
-        # 终止判定(实例状态,非局部变量)
+        if self.pattern is not None:
+            # 诊断字段:同 pattern 其他进程计数(不影响判定)
+            snap["pattern_diagnostic"] = {
+                "pattern": self.pattern,
+                "other_pids_matching": [
+                    p for p in os.listdir("/proc")
+                    if p.isdigit() and int(p) != self.pid
+                    and self.pattern in cmdline_of(int(p))],
+            }
         if self.stop_file is not None and self.stop_file.is_file():
             self.final_reason = "stop_requested"
         elif rc is not None and not alive:
-            if self._no_rc_streak == -1:  # 已确认过一轮
+            if self._no_rc_streak == -1:
                 self.final_reason = "rc_recorded_and_process_ended"
             else:
-                self._no_rc_streak = -1  # 首见:下一 tick 复核确认
+                self._no_rc_streak = -1
                 snap["confirm_tick_pending"] = True
         elif rc is None and not alive:
             self._no_rc_streak += 1
@@ -127,7 +172,6 @@ class ChildWatcher:
                 if self.final_reason is not None:
                     return 0
                 time.sleep(self.interval_s)
-            # max_ticks 用尽仍未终止:如实记录,不伪装正常结束
             handle.write(json.dumps({
                 "format": FORMAT, "tick": self.tick_index,
                 "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ",
@@ -140,24 +184,46 @@ class ChildWatcher:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="qaf-child-watcher")
-    ap.add_argument("--pattern", required=True,
-                    help="目标进程 cmdline 匹配子串")
+    ap = argparse.ArgumentParser(
+        prog="qaf-child-watcher",
+        description="绑定 PID+starttime 的只读观察器;"
+                    "pattern 仅诊断;不提供 pid 绑定时拒绝运行")
+    ap.add_argument("--pid", type=int, default=None,
+                    help="目标进程 PID(监督/run 身份给定)")
+    ap.add_argument("--pid-file", default=None,
+                    help="含目标 PID 的文件(监督启动器落盘;"
+                         "观察开始时读取一次)")
     ap.add_argument("--rc-file", required=True,
-                    help="目标运行的 rc 文件(目标或其包装负责落盘)")
+                    help="目标运行的 rc 文件(目标/包装负责落盘)")
     ap.add_argument("--out", required=True, help="create-only JSONL 输出")
     ap.add_argument("--stop-file", default=None,
                     help="出现即停止(封包前冻结诊断写入源)")
     ap.add_argument("--target-log", default=None,
                     help="被观察日志(仅读尺寸/行数;可不存在)")
+    ap.add_argument("--pattern", default=None,
+                    help="诊断用 cmdline 子串(不参与存活判定)")
     ap.add_argument("--interval", type=float, default=60.0)
     ap.add_argument("--max-ticks", type=int, default=1440)
     ap.add_argument("--grace-ticks", type=int, default=3)
     args = ap.parse_args(argv)
-    w = ChildWatcher(args.pattern, Path(args.rc_file), Path(args.out),
+    pid = args.pid
+    if pid is None and args.pid_file:
+        try:
+            pid = int(Path(args.pid_file).read_text(
+                encoding="utf-8").strip())
+        except (OSError, ValueError):
+            print(f"pid-file 不可读/畸形: {args.pid_file}",
+                  file=sys.stderr)
+            return 2
+    if pid is None:
+        print("拒绝运行:未提供 --pid/--pid-file(v1 式纯 pattern "
+              "子串判定已移除,fail closed)", file=sys.stderr)
+        return 2
+    w = ChildWatcher(pid, Path(args.rc_file), Path(args.out),
                      Path(args.stop_file) if args.stop_file else None,
                      Path(args.target_log) if args.target_log else None,
-                     args.interval, args.max_ticks, args.grace_ticks)
+                     args.pattern, args.interval, args.max_ticks,
+                     args.grace_ticks)
     return w.run()
 
 

@@ -135,8 +135,10 @@ def test_unregistered_explicit_ns_with_plan_refused(tmp_path,
 
 
 def test_mixed_family_pair_refused(tmp_path, core_capture):
+    # RouteC_CueAudit R1/F1:任一侧涉及保留名即必须在 core 之前拒绝
+    #(F1 守卫消息取代旧"非正式"分类文案;零叶调用语义不变)
     fam2 = QAF_ATTEMPTS["qaf_v2"]
-    with pytest.raises(RuntimeError, match="非正式"):
+    with pytest.raises(RuntimeError, match="保留 cue namespace"):
         run_cue_contract_audit(
             tmp_path, require_locked_plan=True,
             model_namespace=FAM3.cue_contract_model,
@@ -145,12 +147,13 @@ def test_mixed_family_pair_refused(tmp_path, core_capture):
 
 
 def test_single_side_namespace_refused(tmp_path, core_capture):
-    with pytest.raises(RuntimeError, match="非正式"):
+    # RouteC_CueAudit R1/F1:单边保留名同前置拒绝(F1 守卫文案)
+    with pytest.raises(RuntimeError, match="保留 cue namespace"):
         run_cue_contract_audit(
             tmp_path, require_locked_plan=True,
             model_namespace=FAM3.cue_contract_model,
             validation_namespace=None)
-    with pytest.raises(RuntimeError, match="非正式"):
+    with pytest.raises(RuntimeError, match="保留 cue namespace"):
         run_cue_contract_audit(
             tmp_path, require_locked_plan=True, model_namespace=None,
             validation_namespace=FAM3.cue_contract_validation)

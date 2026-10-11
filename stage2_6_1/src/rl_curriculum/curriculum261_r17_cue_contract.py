@@ -537,6 +537,27 @@ def _once_vs_attempts_bitwise_check_r17(
     }
 
 
+def protected_cue_namespace_role(
+        namespace: str | None) -> tuple[Any, str] | None:
+    """namespace 是否为任一注册 QAF 尝试族的**保留** cue 契约名。
+
+    返回 (family, role);role ∈ {'model','validation'}。None=非保留
+    (legacy r17 名/工程名/rehearsal 名等,不受正式身份保护)。
+    RouteC_CueAudit R1/F1:保留名以**任一侧涉及**为准——混族、单边、
+    跨角色组合不得因 resolver(要求完整同族对)返回 None 而落入工程
+    分派。
+    """
+    if namespace is None:
+        return None
+    from rl_curriculum.curriculum261_qaf_attempt import QAF_ATTEMPTS
+    for _fam in QAF_ATTEMPTS.values():
+        if namespace == _fam.cue_contract_model:
+            return _fam, "model"
+        if namespace == _fam.cue_contract_validation:
+            return _fam, "validation"
+    return None
+
+
 def registered_cue_contract_family(
         model_namespace: str | None,
         validation_namespace: str | None,
@@ -545,8 +566,10 @@ def registered_cue_contract_family(
     身份对(RouteC_CueAudit_FormalIdentityClosure_v1)。
 
     注册族(QAF_ATTEMPTS)是显式 namespace 进入正式模式的**唯一**
-    身份来源:任意字符串、单边 namespace、跨族混配均返回 None
-    (按工程/非正式分类处理,不得获得正式权限)。
+    身份来源:任意字符串、单边 namespace、跨族混配均返回 None——
+    但**返回 None 不等于可以走工程分派**;任一侧涉及保留名时,
+    run_cue_contract_audit 的 F1 守卫仍会在 core 之前拒绝(见
+    protected_cue_namespace_role)。
     """
     if model_namespace is None or validation_namespace is None:
         return None
@@ -595,6 +618,27 @@ def run_cue_contract_audit(
                          and validation_namespace is None)
     cue_family = registered_cue_contract_family(
         model_namespace, validation_namespace)
+    # F1 守卫(RouteC_CueAudit R1):任一侧涉及保留 cue namespace,
+    # 就必须以完整同族身份对+正确角色+正式模式+锁定计划+冻结规模
+    # 执行;不完整/交叉/免锁/缩减组合在 core 之前拒绝——**不得**
+    # 因 resolver 返回 None 而按工程分派继续占用该身份。
+    _m_role = protected_cue_namespace_role(model_namespace)
+    _v_role = protected_cue_namespace_role(validation_namespace)
+    if (_m_role is not None or _v_role is not None
+            ) and cue_family is None:
+        _detail = []
+        if _m_role is not None:
+            _detail.append(
+                f"model={model_namespace!r} 是注册族 "
+                f"{_m_role[0].attempt_id!r} 的 {_m_role[1]} 侧保留名")
+        if _v_role is not None:
+            _detail.append(
+                f"validation={validation_namespace!r} 是注册族 "
+                f"{_v_role[0].attempt_id!r} 的 {_v_role[1]} 侧保留名")
+        raise RuntimeError(
+            "输入涉及注册尝试族的保留 cue namespace,但不是完整的"
+            "同族身份对(混族/单边/跨角色);" + ";".join(_detail)
+            + ";保留身份不得以工程分派占用,拒绝执行(core 零调用)")
     if cue_family is not None and not (formal_scale
                                        and require_locked_plan):
         raise RuntimeError(

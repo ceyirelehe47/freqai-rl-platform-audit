@@ -548,74 +548,167 @@ def cmd_execute(args: argparse.Namespace) -> int:
             return 96
         launch_env["CURRICULUM261_QAF_TEST_LEAF_SENTINEL"] = (
             args.leaf_sentinel)
-    proc = subprocess.run(
-        launch_argv, cwd=str(project_dir), capture_output=True,
-        text=True, env=launch_env)
-    # RouteC_CueAudit_FormalIdentityClosure_v1(§3 原件保全):
-    # 关键 child 的完整 stdout/stderr 以 create-only 原件落盘
-    # (控制台仍显示 tail;tail 不冒充原件)。文件已存在=一次性
-    # 状态不明,fail closed。
+    # RouteC_CueAudit R1/F3:launch child 完整原字节在 child **执行期**
+    # 直接落盘(child stdout/stderr 接文件描述符,父进程不再中转;
+    # 父进程中途中断也不丢已产生输出)。路径冲突在**启动 child 前**
+    # 受控拒绝(O_EXCL 预开),不出现"先执行才发现不能存";控制台
+    # tail 独立展示,不改原件。
     try:
-        write_child_log_originals(
-            deploy_root, child="launch", argv=launch_argv,
-            cwd=str(project_dir), returncode=proc.returncode,
-            stdout=proc.stdout, stderr=proc.stderr)
+        launch_slots = open_child_original_slots(deploy_root, "launch")
     except FileExistsError:
         print(json.dumps({
             "refused": "operator_child_logs 已存在完整原件"
-                       "(一次性状态不明;不覆盖,fail closed)",
+                       "(一次性状态不明;不覆盖,fail closed;"
+                       "child 未启动)",
             "one_shot_writes": one_shot_writes,
         }, ensure_ascii=False))
         return 96
-    print(proc.stdout[-8000:])
-    if proc.stderr:
-        print(proc.stderr[-2000:], file=sys.stderr)
-    return proc.returncode
+    rec = run_child_with_originals(
+        launch_argv, cwd=str(project_dir), env=launch_env,
+        slots=launch_slots, child="launch")
+    _print_child_tail(rec)
+    return rec["meta"]["returncode"]
 
 
-def write_child_log_originals(
-        deploy_root: Path, *, child: str, argv: list[str], cwd: str,
-        returncode: int, stdout: str, stderr: str) -> None:
-    """关键 child 完整 stdout/stderr 的 create-only 原件落盘。
+class ChildOriginalSlots:
+    """child 原件槽位:启动前 O_EXCL 预创建的两个二进制文件描述符。
 
-    RouteC_CueAudit_FormalIdentityClosure_v1 §3:冻结入口此前只把
-    child stdout 尾部 8000 字符/stderr 尾部 2000 字符转发到控制台,
-    qaf_v3 E4 原件因此缺失前缀。本函数把完整输出与
-    argv/cwd/rc/时间/摘要落为独立原件;任何目标文件已存在即抛
-    FileExistsError(一次性状态不明,由调用方 fail closed),绝不
-    覆盖或截断。控制台 tail 展示与原件归档由此分离。
+    槽位一经打开即占用路径(冲突=启动前拒绝);描述符直接交给
+    Popen,child 的原字节(含 CRLF/CR/任意二进制)不经任何文本
+    转换持久化。close() 幂等。
+    """
+
+    def __init__(self, out_fh, err_fh, out_path: Path, err_path: Path,
+                 meta_path: Path):
+        self.out_fh = out_fh
+        self.err_fh = err_fh
+        self.out_path = out_path
+        self.err_path = err_path
+        self.meta_path = meta_path
+        self.closed = False
+
+    def close(self) -> None:
+        if not self.closed:
+            self.closed = True
+            for fh in (self.out_fh, self.err_fh):
+                try:
+                    fh.close()
+                except OSError:
+                    pass
+
+
+def open_child_original_slots(deploy_root: Path, child: str
+                              ) -> ChildOriginalSlots:
+    """启动 child 前预创建 stdout/stderr 原件槽位(全部 O_EXCL)。
+
+    任一路径(含 meta 占位)已存在 → FileExistsError,调用方必须在
+    任何新的单次副作用之前 fail closed(child 未启动)。meta 占位
+    文件同批创建,避免"stdout 新建而 meta 已在"的半占位状态;占位
+    在 run_child_with_originals 归档时以 O_EXCL 重写标记(不覆盖
+    他人内容:占位由本次持有)。
     """
     log_dir = deploy_root / "operator_child_logs"
     log_dir.mkdir(parents=True, exist_ok=True)
+    names = (f"execute_{child}.stdout.full.txt",
+             f"execute_{child}.stderr.full.txt",
+             f"execute_{child}.meta.json")
+    fds = []
+    try:
+        for name in names:
+            fds.append(os.open(log_dir / name,
+                               os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                               0o644))
+    except FileExistsError:
+        for fd in fds:
+            os.close(fd)
+        raise
+    out_fd, err_fd, meta_fd = fds
+    return ChildOriginalSlots(
+        os.fdopen(out_fd, "wb", buffering=0),
+        os.fdopen(err_fd, "wb", buffering=0),
+        log_dir / names[0], log_dir / names[1], log_dir / names[2])
+
+
+def run_child_with_originals(argv: list[str], *, cwd: str,
+                             env: dict | None, slots: ChildOriginalSlots,
+                             child: str) -> dict:
+    """执行 child 并在执行期持续保全原字节;返回记录(不打印)。
+
+    - child 开始/结束/归档时刻分列(started/ended/archived_utc);
+    - rc 不可得(父侧 wait 中断/异常)时 returncode=None 且
+      rc_source 如实标注,不编造;已产生输出原样保留;
+    - 归档 = 结束后从原件文件计算长度/SHA256(对原字节,非文本
+      重编码)并写 meta;meta 只由本函数写一次。
+    """
+    started = _dt.datetime.now(timezone.utc).isoformat(timespec="seconds")
+    rc: int | None
+    rc_source = "wait"
+    try:
+        proc = subprocess.Popen(
+            argv, cwd=cwd, env=env,
+            stdout=slots.out_fh, stderr=slots.err_fh)
+        try:
+            rc = proc.wait()
+        except BaseException:
+            # 父侧中断:child 可能仍在跑;不杀不重启,rc 不可得
+            rc = None
+            rc_source = "parent_interrupted"
+            raise
+    except BaseException:
+        slots.close()
+        _archive_child_originals(slots, child, argv, cwd, started,
+                                 ended_utc=None, returncode=None,
+                                 rc_source=rc_source)
+        raise
+    ended = _dt.datetime.now(timezone.utc).isoformat(timespec="seconds")
+    slots.close()
+    meta = _archive_child_originals(
+        slots, child, argv, cwd, started, ended, rc, rc_source)
+    return {"proc": proc, "meta": meta, "slots": slots}
+
+
+def _archive_child_originals(slots, child, argv, cwd, started,
+                             ended_utc, returncode, rc_source) -> dict:
+    """从已落盘原件计算长度/摘要并写 meta(归档时刻独立标注)。"""
+    out_bytes = slots.out_path.read_bytes()
+    err_bytes = slots.err_path.read_bytes()
     meta = {
-        "format": "cur261-qaf-operator-child-log-v1",
+        "format": "cur261-qaf-operator-child-log-v2",
         "child": child,
         "argv": list(argv),
         "cwd": cwd,
-        "returncode": returncode,
-        "utc": _dt.datetime.now(timezone.utc).isoformat(
+        "started_utc": started,
+        "ended_utc": ended_utc,
+        "archived_utc": _dt.datetime.now(timezone.utc).isoformat(
             timespec="seconds"),
-        "stdout_bytes": len(stdout.encode("utf-8", "replace")),
-        "stderr_bytes": len(stderr.encode("utf-8", "replace")),
-        "stdout_sha256": hashlib.sha256(
-            stdout.encode("utf-8", "replace")).hexdigest(),
-        "stderr_sha256": hashlib.sha256(
-            stderr.encode("utf-8", "replace")).hexdigest(),
-        "console_tail_note": "控制台仅转发 stdout 尾部 8000 字符/"
-                             "stderr 尾部 2000 字符;本目录文件为"
-                             "完整原件",
+        "returncode": returncode,
+        "rc_source": rc_source,
+        "stdout_bytes": len(out_bytes),
+        "stderr_bytes": len(err_bytes),
+        "stdout_sha256": hashlib.sha256(out_bytes).hexdigest(),
+        "stderr_sha256": hashlib.sha256(err_bytes).hexdigest(),
+        "byte_fidelity": "原字节执行期直接落盘(无 text/换行转换)",
+        "console_tail_note": "控制台仅展示尾部;本目录文件为完整原件",
     }
-    for name, data in (
-            (f"execute_{child}.stdout.full.txt", stdout),
-            (f"execute_{child}.stderr.full.txt", stderr),
-            (f"execute_{child}.meta.json", json.dumps(
-                meta, ensure_ascii=False, indent=1) + "\n")):
-        path = log_dir / name
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(data)
-            fh.flush()
-            os.fsync(fh.fileno())
+    meta_fd = os.open(slots.meta_path,
+                      os.O_WRONLY | os.O_TRUNC)  # 占位由本次持有
+    with os.fdopen(meta_fd, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(meta, ensure_ascii=False, indent=1) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    return meta
+
+
+def _print_child_tail(rec: dict) -> None:
+    """控制台 tail 独立展示(默认 stdout 8000/stderr 2000 字符)。"""
+    out_tail = rec["slots"].out_path.read_bytes()[-8000:].decode(
+        "utf-8", "replace")
+    if out_tail:
+        print(out_tail)
+    err_tail = rec["slots"].err_path.read_bytes()[-2000:].decode(
+        "utf-8", "replace")
+    if err_tail:
+        print(err_tail, file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
