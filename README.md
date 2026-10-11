@@ -46,6 +46,21 @@ WSL2 Ubuntu 24.04 + conda(freqtrade-rl,Python 3.11)+ PyTorch cu130(RTX 3060)。
 按上游 `requirements-freqai-rl.txt` 固定安装,`pip install -e .`。
 复现步骤见 `reproduction/README.md`。
 
+## 当前工程路线(RouteC_PositionControl_IntegratedUpgrade_v1 起)
+
+当前任务已切换为**双向仓位控制工程升级**(2026-10-12 起):
+
+- `stage2_7_0/src/rl_posctl/`:独立新工程域(ENGINEERING_ONLY)——
+  `[-1,1]` 目标比例 + HOLD 混合动作、现金结算线性合约研究仿真
+  (精确扣费后目标求解、资金费、维持保证金风险动作、终端清算、
+  非正净值显式经济失败)、混合动作 PPO(原子+对称 Beta 目标分布,
+  HOLD 无伪目标似然)、C1–C4 双向课程(可观察解析/数值参考)、
+  容量(128/256/512/1024)与时序(窗口 MLP/LSTM)有限开发实验。
+- 旧二元 Long/Flat 域(stage2_5*/2_6_* 冻结面、正式资格、PIN)
+  全部保持原状;旧二元模型不得载入新环境(身份头显式拒绝)。
+- **下一轮正式实验以新环境重新规划**;不会自动重启旧二元 A2 或
+  任何 qaf 正式尝试。正式资格不能从工程域结果推定。
+
 ## 审计边界声明
 
 本仓库仅为平台审计:无实盘、无交易所 API Key、无正式策略开发、无参数调优。
