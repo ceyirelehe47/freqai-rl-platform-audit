@@ -175,6 +175,12 @@ class HybridPositionEnv(gym.Env):
                  np.asarray(self._account_features(self._close[tick]))]
         return np.concatenate(parts).astype(np.float32)
 
+    def _feature_row(self, tick: int) -> dict:
+        """决策 bar 的特征行(名称->值;供课程参考/基线只读当前
+        可观察状态,不含未来)。"""
+        return {name: float(v) for name, v in zip(
+            self.feature_names, self._features[tick])}
+
     def get_observation(self) -> np.ndarray:
         return self._observation(self._current_tick)
 
