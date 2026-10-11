@@ -1,0 +1,40 @@
+# REVIEWER FINAL RECEIPT — RouteC_QAFv3_A2_OneShotExecution_v1（第三关：最终 ZIP 冷读终签回执）
+
+- 出具人角色：**reviewer**（独立 reviewer，包外终签）
+- 出具时间：2026-10-11T11:22Z（+08:00 19:22）
+- 绑定对象：`/mnt/f/trading/local/RouteC_QAFv3_A2_OneShotExecution_v1_RETURN_TO_CHATGPT.zip`
+- **实际 ZIP SHA256（冷读实算）：`0ce55a93196badbe919b37d03e5094b3452baca88e1ec7ea0e8ad67b06a24f10`**（193,217 B；sidecar 同值）
+- 详细报告：`/mnt/f/trading/local/qafv3_gate3_review/GATE3_COLD_READ_REPORT.md`
+
+## 终判：**FAIL**（仅针对上述固定 SHA 的本包）
+
+唯一不通过项：`commands/E4_watch.jsonl` 封包竞态（发现 F-1）——ZIP 内 32 行为对照源的严格前缀，watcher 进程（pid 513）在封包（19:13:06）后仍持续续写（冷读时 19:20 已 39 行），检查项 4"与对照源逐字节对拍"对该件不成立。ZIP 自身完整性（SUMS 112/112 OK、CRC 全 OK）不受影响，包内该件自洽。修复路径：停止 watcher → 冻结/重staging 终态日志 → 重封新 ZIP（新 SHA、sidecar 与交付回执同步改绑）→ **重新冷读并出具新回执**；届时本回执失效。
+
+## 检查项结果（RETURN_REQUIREMENTS 字节验收节）
+1. ZIP SHA256 实算==期望==sidecar：**PASS**。
+2. `unzip -t` 126 成员全 OK；无绝对路径/`..`/盘符/链接成员/重复名/反斜杠名；单一顶层目录；仅普通文件/目录：**PASS**。
+3. 解压复算：`SHA256SUMS.txt` 112 条全 OK（rc=0）、不含自身、条数==内容文件数（113−1）、隐藏件 `.r17_formal_admission.json` 有覆盖：**PASS**。
+4. 对照源逐字节对拍：EXECUTION_REPORT.md / EX_SELF_CHECK.md / E0_READ_ONLY_CHECK_REPORT.md / d3_snapshot（78 件）/ reviewer_gate1 / reviewer_gate2 全 SAME；d3_snapshot 四件（r17_code_freeze.json、r17_execution_journal.jsonl、cue-audit.err、chain_budget_gate.json）与 D3 现场 `cmp` 全 SAME；**commands/E4_watch.jsonl DIFF（F-1）**：**FAIL（单件）**。
+5. 关联抽查：argv `--admission-id qaf-v3-c0fb6858-a2` == admission issued/consumed/formal_admission；`--attempt qaf_v3`、`--stop-after verify-formal-logs` == permit `iteration/authorized_stop_after`；permit `qppm-formal-ed1e6a965ab55ab6` == 消费行；`--code-freeze-sha` == admission `commit_a_sha` == permit `code_freeze_sha`；SUMS 不含自身；敏感串 grep 无命中：**PASS**。
+6. 无模型/语料大件（最大件 200 KB freeze JSON，无可疑后缀），无 Windows 反斜杠成员名：**PASS**。
+
+## 执行类别与资格结论的如实转述（转述自包内 EXECUTION_REPORT/交付回执，reviewer 不作科学判定）
+- 执行类别：一次 A2 真实执行（one-shot），**技术失败**（非科学负结果）：17 步权威工作流第 4 步 `cue-audit` rc=1（冻结代码内 `cmd_cue_audit` 显式 attempt-family namespace + `require_locked_plan=True` 与 `run_cue_contract_audit` formal 判据"四参数须全 None"互斥，守卫拒绝）。
+- 资格结论：**NOT_REACHED**；exposure=not_exposed；前缀 3 步全绿，其后 13 步 NOT_RUN；fail-closure 完整（journal integrity ok、期望/在场产物 multiset 10/10）。
+- 一次性资源如实记录：attempt 1/1；permit `qppm-formal-ed1e6a965ab55ab6` 签发 1 消费 1；admission `qaf-v3-c0fb6858-a2` 签发 1 消费 1（substance `r17sub-84648fff…`）。
+- 本回执**不构成亦不代签** ChatGPT 或用户的最终签收/CLOSED PASS；三层验收（主 Agent 自验、reviewer 内容验收、最终 ZIP 冷读）互不代签。
+
+## 请求与配置解析
+- 请求角色：**reviewer**。
+- 配置解析：`zhipu-coding-plan/glm-5.3-flash:max`（cfg `agentModelOverrides`；后端不可观测）。
+
+## 局限
+- 冷读仅核验产物与摘要：不重跑链、不重放科学计算、不训练/加载模型、不审计冷读时点之后 D3 现场的变化。
+- F-1 中 watcher 活性与源文件行数为冷读时点观察（2026-10-11T11:20:24Z 时 pid 513 存活、39 行），非终态断言。
+- 审查范围限定为上述固定 SHA 的 ZIP 字节与其声明的对照源；未审计包内 JSON 语义层面的科学正确性（属 Gate2 内容验收范围，已 PASS）。
+
+## 失效声明
+**本回执仅绑定 SHA256 `0ce55a93196badbe919b37d03e5094b3452baca88e1ec7ea0e8ad67b06a24f10` 的 ZIP 字节。** 该 ZIP 若发生任何字节变更（含主 Agent 修复重封、重压缩、时间戳重写），本回执即告失效，必须重新执行第三关冷读并出具新回执；任何以同路径新字节援引本回执的行为均无效。
+
+---
+Reviewer 签署（包外，reviewer 角色独立出具）：FAIL／绑定 SHA `0ce55a93…24f10`／2026-10-11T11:22Z

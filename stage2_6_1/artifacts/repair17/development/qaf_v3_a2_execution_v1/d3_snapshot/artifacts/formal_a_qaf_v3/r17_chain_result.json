@@ -1,0 +1,187 @@
+{
+ "ok": false,
+ "failed_step": "cue-audit",
+ "failure_reason": "formal chain step cue-audit rc=1(R17:停止后续正式计算;已冻结代码封口;不修代码继续)",
+ "profile": "formal",
+ "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+ "records": [
+  {
+   "step": "provenance-verify",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "formal",
+   "cli_command": "provenance-verify",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "provenance-verify",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl_qaf_v3",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl_qaf_v3/src"
+   },
+   "start_utc": "2026-10-11T10:49:34.444126+00:00",
+   "end_utc": "2026-10-11T10:49:35.491618+00:00",
+   "duration_s": 1.05,
+   "rc": 0,
+   "signal": null,
+   "effective_result": "completed",
+   "effective_failure": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/provenance-verify.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/provenance-verify.err",
+   "stdout_sha256": "d5dab955de2c49ad9e67a81e2b1b1d8a1d8bd325240a97ce7be6565a88708155",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 100,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "gate_topology_reconciliation.json": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff"
+   },
+   "output_artifacts": {
+    "gate_topology_provenance_verify.json": "78d6b1d3c4f57521d2f8dc39ab26f8975c64bf2f54a08c9b2c36f1540a10b1a5"
+   },
+   "delegation": null
+  },
+  {
+   "step": "determinism-matrix",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "formal",
+   "cli_command": "determinism-matrix",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "determinism-matrix",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3",
+    "--formal-namespace-attempt",
+    "qaf_v3"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl_qaf_v3",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl_qaf_v3/src"
+   },
+   "start_utc": "2026-10-11T10:49:35.494222+00:00",
+   "end_utc": "2026-10-11T10:50:36.715034+00:00",
+   "duration_s": 62.429,
+   "rc": 0,
+   "signal": null,
+   "effective_result": "completed",
+   "effective_failure": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/determinism-matrix.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/determinism-matrix.err",
+   "stdout_sha256": "7930b7b5b8bc78db4c7b0c6714ad639a24c65d956865103426c785b690ee0410",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 275,
+   "stderr_bytes": 0,
+   "input_artifacts": {},
+   "output_artifacts": {
+    "determinism/generation_determinism_contract.json": "6f232d3b8fad720046d1d8d523a0e4d943ce1e94c2192c124ec9dc02479b864f"
+   },
+   "delegation": null
+  },
+  {
+   "step": "audit",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "formal",
+   "cli_command": "audit",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "audit",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3",
+    "--code-freeze-sha",
+    "c0fb685823eb4733bda9f5920601311228d55fde",
+    "--formal-namespace-attempt",
+    "qaf_v3"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl_qaf_v3",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl_qaf_v3/src"
+   },
+   "start_utc": "2026-10-11T10:50:36.825187+00:00",
+   "end_utc": "2026-10-11T10:50:42.315810+00:00",
+   "duration_s": 5.494,
+   "rc": 0,
+   "signal": null,
+   "effective_result": "completed",
+   "effective_failure": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/audit.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/audit.err",
+   "stdout_sha256": "cd8579c6d25ec0bf472be1f0d17d56ea1fcd157a092921636e581ffa897429f5",
+   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "stdout_bytes": 395,
+   "stderr_bytes": 0,
+   "input_artifacts": {
+    "gate_topology_reconciliation.json": "9af551752d6b2989f4e9c09855fb421b05f90a1a7e972713e2753a01cd1102ff",
+    "determinism/generation_determinism_contract.json": "6f232d3b8fad720046d1d8d523a0e4d943ce1e94c2192c124ec9dc02479b864f"
+   },
+   "output_artifacts": {
+    "r17_code_freeze.json": "d559d0d0e0194881643f81f3376f117ebee6274754890fc24b75215c1b8b642a",
+    "baseline_ancestry.json": "344d2354314d94c4416ca013d26065dd10dcb51b34160b374d1a468ace1e0201",
+    "historical_evidence_binding.json": "8f4221ff9b1878e6dd773698bb3e84361a1c47370789cb1250c6f509a2a7c5c0",
+    "r12_abort_binding.json": "e6779368e9a3f01d187db903fab6078a5c5b28c0c14c54cb67aceb943f7d8cda",
+    "r12_iteration_failure_binding.json": "4f5259a4e4849fef4ceacc9baa42fad5aac7dfd1006c8cd68f1979929e7be42b",
+    "r14_failure_binding.json": "acd5a73c04e62fff87ecb80c1f0972e635187a2dddb9d6f2558b34d005b46922",
+    "r15_failure_binding.json": "290c7380ae5c2f7f8e3d4ec25ae5a98b3bd02a1eaea7aab4933476ccdea3f225",
+    "gate_topology_reconciliation_verify.json": "78d6b1d3c4f57521d2f8dc39ab26f8975c64bf2f54a08c9b2c36f1540a10b1a5"
+   },
+   "delegation": null
+  },
+  {
+   "step": "cue-audit",
+   "workflow_graph_digest": "r17wg-391895407d71ee751e8eda4a1cd4f4296a651752f4e8fbe54425887899511118",
+   "profile": "formal",
+   "cli_command": "cue-audit",
+   "argv": [
+    "/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python",
+    "-m",
+    "rl_curriculum.curriculum261_r17_cli",
+    "cue-audit",
+    "--out-dir",
+    "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3",
+    "--formal-namespace-attempt",
+    "qaf_v3"
+   ],
+   "cwd": "/home/cryptorl/projects/crypto_rl_qaf_v3",
+   "env_identity": {
+    "python": "3.11.16",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "conda_default_env": "",
+    "pythonpath": "/home/cryptorl/projects/crypto_rl_qaf_v3/src"
+   },
+   "start_utc": "2026-10-11T10:50:42.319200+00:00",
+   "end_utc": "2026-10-11T10:50:42.948553+00:00",
+   "duration_s": 0.632,
+   "rc": 1,
+   "signal": null,
+   "effective_result": "failed",
+   "effective_failure": null,
+   "stdout_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/cue-audit.log",
+   "stderr_path": "/home/cryptorl/projects/crypto_rl_formal_a_qaf_v3/artifacts/formal_a_qaf_v3_chain_logs/cue-audit.err",
+   "stdout_sha256": "5c5a9857d9a32588fc595da53ecb1558ebb8054ab2f4615360979779d8ec7e71",
+   "stderr_sha256": "5debf8b7ffac4b8bf6aa525b0aa17010bd9e57ed871377ed686572b551b3aa94",
+   "stdout_bytes": 108,
+   "stderr_bytes": 944,
+   "input_artifacts": {},
+   "output_artifacts": {
+    "cue_contract_audit.json": null,
+    "cue_event_trace.jsonl": null
+   },
+   "delegation": null
+  }
+ ],
+ "qualification_terminal_status": null
+}
