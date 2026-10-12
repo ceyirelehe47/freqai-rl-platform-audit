@@ -9,32 +9,37 @@
 - 非法输入(branch∉{0,1}/w 非有限/越界/branch=1 时 w 缺失)显式
   ValueError 拒绝,绝不静默转 HOLD/0。
 
-时间因果(PosctlEnvCore-v1):
-  观察 = 截至 close[t] 的特征窗口 + 账户状态(敞口比例/偿付余量)
+时间因果(PosctlEnvCore-v2,R1 修复开盘时序):
+  观察 = 截至 close[t] 的特征窗口 + 账户状态(敞口/偿付的数值变换)
+  -> **开盘检查(open[t+1],先于模型动作;HOLD 与 REBALANCE 对
+     同经济状态一致)**:
+     · equity(open) <= 0:显式经济失败终结(动作不执行、不收费;
+       失败信息完整进 info/step_records,不抛无记录异常);
+     · equity(open) > 0 且 < maintenance_margin*|qty|*open:
+       开盘风险平仓(risk action,支付全部摩擦),随后模型动作
+       在平仓后的账户上照常执行;
   -> 执行在 open[t+1](统一标记价 = 原始 open[t+1];
      成交价另按方向加不利滑点/tick 取整)
   -> 旧数量承担 close[t]->open[t+1] 跳空;新数量承担
      open[t+1]->close[t+1];
   -> 若 t+1 ∈ 资金费计划:在 close[t+1] 按标记结算(方向正确);
-  -> 维持保证金风险检查(close[t+1]):|qty|*close>0 且
-     equity < maintenance_margin*|qty|*close 时风险规则一次性全额
-     平仓(risk action,区别于模型动作,同样支付全部摩擦);
+  -> 收盘维持保证金风险检查(close[t+1]):与开盘同一规则;
   -> 终端(t+1 = 最后一根):清算以 close[last] 为参考价,与普通
      平仓完全相同的滑点/取整/费用;HOLD 不能阻止清算/费用/资金费。
 
 奖励(NetLogEquityReward-v2):reward_raw = log(E_end/E_start),
 E_start=equity(close[t]),E_end=equity(close[t+1])(含一切损益/费用/
-资金费/清算)。无任何附加持仓/空仓/HOLD/回撤奖惩项。E_end<=0 时
-log 未定义:显式经济失败终结(terminated=True,info.economic_failure,
-info.reward_valid=False;reward 数值 0.0 仅作占位,训练 harness 必须
-检测该标志并判运行无效,不得让该步参与学习)。
+资金费/清算)。无任何附加持仓/空仓/HOLD/回撤奖惩项。E_open<=0 或
+E_end<=0 时 log 未定义:显式经济失败终结(terminated=True,
+info.economic_failure,info.reward_valid=False;reward 数值 0.0 仅作
+占位,训练 harness 必须检测该标志并判运行无效,不得让该步参与学习)。
 
 自融资 telescoping(无失败时):sum(reward_raw) == log(final_cash/E0)。
 
-观察(PosctlObs-v1):window_size 行特征(平铺) + [exposure_ratio,
-solvency_ratio](close[t] 口径;HOLD 漂移致 |exposure|>1 不截断;
-空仓 solvency=+inf 以一个大常数有限值表示是为了 Box 观察的数值
-稳定,info 内保留真实 inf 语义标注)。
+观察(PosctlObs-v2):window_size 行特征(平铺) + 账户特征数值变换
+[asinh(exposure)/4, asinh(min(solvency,40))/4](close[t] 口径)。
+HOLD 漂移致 |exposure|>1 不截断(asinh 单调保留);原始经济值
+(equity/exposure/solvency/inf)逐保留在 info["account_state"]。
 """
 
 from __future__ import annotations
@@ -57,8 +62,19 @@ from rl_posctl.versions import (
     POSCTL_REWARD_SPEC_VERSION,
 )
 
-# 空仓偿付比例的有限表示(Box 观察);info 里同时保留 raw(=inf)。
-FLAT_SOLVENCY_OBS = 1e6
+# 账户观察数值变换(PosctlObs-v2;事前固定,不看评估结果调参):
+# - exposure: asinh(x)/4。单调、对称、无截断——HOLD 漂移 |x|>1 照实
+#   可见(不 clip 隐藏越界);|x|→∞ 缓慢增长,MLP 首层不再全饱和。
+# - solvency: asinh(min(s, 40))/4。CAP=40 远高于任何经济上可区分的
+#   偿付余量(维护线 0.05;>40 全部等价"绝对安全"),cap 只作用于
+#   我们自造的 inf 占位语义,不是隐藏真实敞口。
+# 原始经济值(exposure/solvency/inf)逐保留在 info["account_state"]。
+OBS_SCALE = 4.0
+SOLVENCY_CAP = 40.0
+
+# 全进程环境交互步计数(R1 计量:无梯度评估面实际步数的如实口径;
+# 运行器读数后按次记入预约账本,测试不隐式免计)
+ENV_STEP_COUNT = 0
 
 
 class HybridPositionEnv(gym.Env):
@@ -166,8 +182,19 @@ class HybridPositionEnv(gym.Env):
             solv = self.ledger.solvency_ratio(price)
         else:
             exposure, solv = 0.0, 0.0
-        return [float(exposure),
-                float(solv if math.isfinite(solv) else FLAT_SOLVENCY_OBS)]
+        return [
+            float(math.asinh(exposure) / OBS_SCALE),
+            float(math.asinh(
+                min(solv, SOLVENCY_CAP)) / OBS_SCALE)]
+
+    def _account_state_raw(self, price: float) -> dict[str, Any]:
+        """原始(未变换)账户经济值,进 info 日志供审计。"""
+        return {
+            "equity": self.ledger.equity(price),
+            "exposure_ratio": self.ledger.exposure_ratio(price),
+            "solvency_ratio": self.ledger.solvency_ratio(price),
+            "maintenance_margin": self.maintenance_margin,
+        }
 
     def _observation(self, tick: int) -> np.ndarray:
         window = self._features[tick - self.window_size + 1: tick + 1]
@@ -214,6 +241,7 @@ class HybridPositionEnv(gym.Env):
         super().reset(seed=seed)
         self.episode_reset_count += 1
         self.ledger.reset()
+        self._extra_risk_fills = []
         self._current_tick = self.first_decision_tick
         self.episode_reward_raw = 0.0
         self.episode_reward_scaled = 0.0
@@ -227,11 +255,77 @@ class HybridPositionEnv(gym.Env):
         if self.economic_failure is not None:
             raise RuntimeError("经济失败后环境已终结,不得继续 step")
         branch, w = self.decode_action(action)
+        global ENV_STEP_COUNT
+        ENV_STEP_COUNT += 1
         t = self._current_tick
         exec_tick = t + 1
         raw_open = self._open[exec_tick]
         exec_close = self._close[exec_tick]
         equity_start = self.ledger.equity(self._close[t])
+
+        # ------------------------------------------------------------------
+        # 0) 开盘偿付/维护检查(PosctlEnvCore-v2;先于模型动作)。
+        # 旧仓位承担 close[t]->open[t+1] 跳空;账户在模型可行动作时点
+        # 已不可偿付的,不允许 HOLD 穿过破产等收盘恢复(REBALANCE 与
+        # HOLD 对同经济状态一致):
+        # - equity(open) <= 0:显式经济失败终结(不 clamp、不执行任何
+        #   动作;失败可追踪到 info.economic_failure 与运行记录);
+        # - equity(open) > 0 但低于维护线:开盘风险平仓(risk action,
+        #   支付全部摩擦),随后模型动作在平仓后的账户上照常执行
+        #   (REBALANCE 可重新建仓;HOLD 保持空仓——一致性来自同一
+        #   风险处置,而非给某分支豁免)。
+        # ------------------------------------------------------------------
+        open_risk_action = None
+        equity_at_open = self.ledger.equity(raw_open)
+        if equity_at_open <= 0.0:
+            reason = (
+                f"开盘净值非正(equity_open={equity_at_open!r},"
+                f"E_start={equity_start!r}):账户在动作可执行时点已"
+                f"不可偿付;tick={t}->{exec_tick},"
+                f"请求动作=[{branch},{w}]未执行")
+            self.economic_failure = {
+                "phase": "open", "reason": reason,
+                "decision_tick": t, "execution_tick": exec_tick,
+                "equity_start": equity_start,
+                "equity_at_open": equity_at_open,
+                "action": [branch, w], "executed": False}
+            self._current_tick = exec_tick
+            self.episode_reward_raw = None
+            self.episode_reward_scaled = None
+            info = {
+                "decision_tick": t, "execution_tick": exec_tick,
+                "action_branch": branch, "action_w": w,
+                "fill_kind": None, "exec_price": None,
+                "raw_open": raw_open, "signed_qty": 0.0,
+                "fee": 0.0, "realized_pnl": 0.0,
+                "requested_ratio": (w if branch == 1 else None),
+                "achieved_ratio": None, "residual": None,
+                "qty": self.ledger.qty,
+                "avg_entry": self.ledger.avg_entry,
+                "cash": self.ledger.cash,
+                "funding_payment": 0.0,
+                "equity_start": equity_start,
+                "equity_end": equity_at_open,
+                "reward_raw": None, "reward_scaled": None,
+                "reward_valid": False,
+                "exposure_ratio_close": None,
+                "terminated": True, "truncated": False,
+                "funding_missing": self.funding_missing,
+                "open_equity": equity_at_open,
+                "risk_action": None, "terminal_liquidation": None,
+                "fees_cum": self.ledger.fees_total,
+                "funding_cum": self.ledger.funding_total,
+                "economic_failure": dict(self.economic_failure),
+                "account_state": self._account_state_raw(raw_open),
+            }
+            self._record(info, t)
+            obs = np.full(self.observation_space.shape, np.nan,
+                          np.float32)
+            return obs, 0.0, True, False, info
+        notional_open = abs(self.ledger.qty) * raw_open
+        if notional_open > 0.0 and equity_at_open < (
+                self.maintenance_margin * notional_open):
+            open_risk_action = self.ledger.risk_flatten(raw_open)
 
         # 1) 执行模型动作(open[t+1];HOLD 不交易)
         if branch == 1:
@@ -246,15 +340,22 @@ class HybridPositionEnv(gym.Env):
             funding_payment = self.ledger.settle_funding(
                 exec_close, rate)
 
-        # 3) 风险规则 / 终端清算
-        risk_action = None
+        # 3) 收盘风险规则 / 终端清算(维持原语义;开盘风险平仓后若
+        #    模型重新建仓,同样适用)
+        risk_action = open_risk_action
         liquidation = None
         terminated = exec_tick == self.n_rows - 1
         notional_close = abs(self.ledger.qty) * exec_close
         if not terminated and notional_close > 0.0:
             e_at_close = self.ledger.equity(exec_close)
             if e_at_close < self.maintenance_margin * notional_close:
-                risk_action = self.ledger.risk_flatten(exec_close)
+                close_flatten = self.ledger.risk_flatten(exec_close)
+                if risk_action is None:
+                    risk_action = close_flatten
+                else:   # 同 bar 开盘+收盘两次风险事件的罕见叠加
+                    self._extra_risk_fills = getattr(
+                        self, "_extra_risk_fills", [])
+                    self._extra_risk_fills.append(close_flatten)
         elif terminated:
             liquidation = self.ledger.liquidate(exec_close)
 
@@ -263,15 +364,20 @@ class HybridPositionEnv(gym.Env):
         # 4) 奖励与失败判定
         reward_valid = True
         if equity_start <= 0.0 or equity_end <= 0.0:
+            phase = ("open_risk_flatten"
+                     if open_risk_action is not None and
+                     equity_end <= 0.0 else "post_execution")
             reason = (
                 f"非正净值(E_start={equity_start!r},"
-                f"E_end={equity_end!r}):log 奖励未定义;"
+                f"E_end={equity_end!r},phase={phase}):log 奖励未定义;"
                 f"tick={t}->{exec_tick}")
             self.economic_failure = {
-                "reason": reason, "decision_tick": t,
-                "execution_tick": exec_tick,
-                "equity_start": equity_start, "equity_end": equity_end,
-                "action": [branch, w]}
+                "phase": phase, "reason": reason,
+                "decision_tick": t, "execution_tick": exec_tick,
+                "equity_start": equity_start,
+                "equity_at_open": equity_at_open,
+                "equity_end": equity_end,
+                "action": [branch, w], "executed": True}
             reward_raw = None
             reward = 0.0
             reward_valid = False
@@ -307,30 +413,58 @@ class HybridPositionEnv(gym.Env):
                 if equity_end > 0.0 else None),
             "terminated": terminated, "truncated": False,
             "funding_missing": self.funding_missing,
+            "open_equity": equity_at_open,
+            "open_risk_triggered": open_risk_action is not None,
+            "fees_cum": self.ledger.fees_total,
+            "funding_cum": self.ledger.funding_total,
+            "account_state": self._account_state_raw(exec_close),
         }
         if risk_action is not None:
             info["risk_action"] = {
+                "phase": "open" if open_risk_action is not None
+                else "close",
                 "exec_price": risk_action.exec_price,
                 "signed_qty": risk_action.signed_qty,
                 "fee": risk_action.fee}
+        else:
+            info["risk_action"] = None
         if liquidation is not None and liquidation.kind == "liquidate":
             info["terminal_liquidation"] = {
                 "reference_price": liquidation.raw_mark,
                 "exec_price": liquidation.exec_price,
                 "fee": liquidation.fee,
                 "signed_qty": liquidation.signed_qty}
+        else:
+            info["terminal_liquidation"] = None
+        extras = getattr(self, "_extra_risk_fills", None)
+        if extras:
+            info["extra_risk_fills"] = [
+                {"phase": "close", "exec_price": f.exec_price,
+                 "signed_qty": f.signed_qty, "fee": f.fee}
+                for f in extras]
+            self._extra_risk_fills = []
         if self.economic_failure is not None:
             info["economic_failure"] = dict(self.economic_failure)
-        rec = {k: v for k, v in info.items()
-               if isinstance(v, (int, float, str, bool, list, tuple,
-                                 type(None)))}
+        self._record(info, t)
+        obs = self._observation(exec_tick) if equity_end > 0.0 else (
+            np.full(self.observation_space.shape, np.nan, np.float32))
+        return obs, float(reward), terminated, False, info
+
+    def _record(self, info: dict[str, Any], t: int) -> None:
+        """把 info 精简为可序列化记录并登记(公共路径)。"""
+        rec: dict[str, Any] = {}
+        for k, v in info.items():
+            if isinstance(v, (int, float, str, bool, list, tuple,
+                              type(None))):
+                rec[k] = v
+            elif isinstance(v, dict):
+                rec[k] = {k2: v2 for k2, v2 in v.items()
+                          if isinstance(v2, (int, float, str, bool,
+                                             list, tuple, type(None)))}
         rec["ts_decision"] = (str(self._dates[t])
                               if self._dates is not None else None)
         self.step_records.append(rec)
         self._last_info = info
-        obs = self._observation(exec_tick) if equity_end > 0.0 else (
-            np.full(self.observation_space.shape, np.nan, np.float32))
-        return obs, float(reward), terminated, False, info
 
     def render(self):  # pragma: no cover
         return None

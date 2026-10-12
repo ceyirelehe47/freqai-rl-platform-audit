@@ -368,11 +368,38 @@ class TestScenario9FailureAndConservation:
         env.step([1, 0.5])
         o, r, t, _, info = env.step([0, 0.0])
         # qty≈0.5,P=130,E≈115: ratio≈0.565(HOLD 漂移)必须原样可见
-        assert abs(info["exposure_ratio_close"]) > 0.5
-        assert abs(info["exposure_ratio_close"]) < 1.0
+        ratio = info["exposure_ratio_close"]
+        assert abs(ratio) > 0.5
+        assert abs(ratio) < 1.0
+        # PosctlObs-v2:obs = asinh(ratio)/4(单调、无截断);
+        # 原始经济值保留在 info["account_state"](不 clip 隐藏越界)
+        import math as _m
         obs_exposure = float(o[-2])
         assert obs_exposure == pytest.approx(
-            info["exposure_ratio_close"], abs=1e-6)
+            _m.asinh(float(ratio)) / 4.0, abs=1e-6)
+        raw = info["account_state"]["exposure_ratio"]
+        assert raw == pytest.approx(float(ratio), abs=1e-9)
+
+    def test_obs_transform_unbounded_and_no_flat_placeholder(self):
+        """越界漂移(|exposure|>1)在变换后仍单调可见;空仓偿付不再
+        用 1e6 占位(修复首层全饱和)。"""
+        import math as _m
+        opens = [100, 100, 100, 100]
+        closes = [100, 100, 200, 200]
+        env = HybridPositionEnv(
+            features=_feats(4), prices=_prices(opens, closes),
+            fee=0.0, window_size=1)
+        obs_flat = env.reset()[0]
+        # 空仓:solvency=inf → asinh(min(inf,40))/4 = asinh(40)/4
+        assert float(obs_flat[-1]) == pytest.approx(
+            _m.asinh(40.0) / 4.0, abs=1e-6)
+        assert float(obs_flat[-1]) < 2.0   # 不再有 1e6 量纲
+        env.step([1, 1.0])
+        o2, r2, t2, _, info2 = env.step([0, 0.0])
+        ratio2 = info2["exposure_ratio_close"]   # qty=1,P=200,E=200 → 1.0
+        # 变换保持符号与单调:asinh(x)/4 对任意 x 有限
+        assert float(o2[-2]) == pytest.approx(
+            _m.asinh(float(ratio2)) / 4.0, abs=1e-6)
 
 
 # ==================== 录制/回放 ====================

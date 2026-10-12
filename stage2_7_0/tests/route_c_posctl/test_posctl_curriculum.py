@@ -1,202 +1,329 @@
 # -*- coding: utf-8 -*-
-"""课程有效性测试(W3):在看任何学习结果之前固定。
+"""课程有效性测试(W3 v2,R1 修复四档与参考数学;看学习结果前固定)。
 
 覆盖:
-- C4 核心:存在状态使内部仓位期望对数增长严格优于 0 与 ±1;
-  存在状态 HOLD 优于小幅再平衡(费用主导);存在状态调整优于
-  HOLD(机会变化主导)——全部由已知参数数值积分证明,不用未来
-  完美动作;
-- C1 空头边真实且不因做空出捷径(local_only 忽略信号显著差于
-  参考;镜像质量配对);
-- C2 同信号跨上下文最优动作不同(local-only 被门控击败);
-- C3 参考跳过低于费用的边际(always_retarget 多付费用);
-- 生成器因果性:特征不含未来;bar k 收益只依赖决策 k−1 状态;
-- 分区隔离:train/dev/eval 种子域不相交,同 seed 完全可复现。
+- C4 四档真实差异:同 seed 下价格/特征逐位不同(上轮 P1:四个名字
+  对应同一生成过程);每档能力点非空(D0 方向幅度/D1 风险敏感/
+  D2 动态调仓反手/D3 成本敏感 HOLD);
+- 参考数学:有界均匀噪声律下 gbar 闭式 = 幂级数精确(含支撑内
+  破产 → −inf,不用 GH 节点声称概率 0);DP 参考 = 可观察状态
+  MDP 精确解(h=6 独立暴力实现对照);
+- 训练面有效性:DP 参考在 TRAIN 规格下输出非平凡(内部仓位双侧/
+  HOLD/调仓/反手),且在固定 bank 上不劣于 flat 等基线;
+- C1 无门控结构(镜像边前提);C2 同信号跨上下文最优动作不同;
+  C3 参考跳过低于费用的边际;
+- 生成器因果性与分区隔离(v1 语义保留)。
 """
 
 import math
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from rl_posctl.curriculum import (
-    CourseSpec,
-    baseline_policies,
-    expected_log_growth,
-    generate_episode,
-    kelly_w,
-    reference_action,
-)
+    Q_LEVELS, generate_episode, gbar, kelly_w, mu_eff_of,
+    reference_action, reference_policy, spec_for, tier_validity,
+    baseline_policies, W_GRID, _state_chain, TIER_OVERRIDES)
 from rl_posctl.banks import domain_seed, episode_seed
 from rl_posctl.env import HybridPositionEnv
 from rl_posctl.evalreport import run_policy, summarize
+from rl_posctl import profiles
+
+MS = profiles.MASTER_SEED
+TIERS = ("c4d0", "c4d1", "c4d2", "c4d3")
 
 
 def make_env(spec, seed):
     prices, feats, _ = generate_episode(spec, seed)
     return HybridPositionEnv(
-        features=feats, prices=prices, fee=spec.fee,
-        slippage_bps=spec.slippage_bps, initial_cash=spec.initial_cash,
-        window_size=1)
+        features=feats, prices=prices, fee=spec.fee, window_size=1)
 
 
 def ref_fn(spec):
-    def fn(row, w):
-        return reference_action(spec, row, w)
+    def fn(row, w, sl):
+        return reference_action(spec, row, w, steps_left=sl)
     return fn
 
 
-# ==================== C4 有效性(事前解析/数值) ====================
-class TestC4Validity:
-    def test_interior_beats_endpoints_and_flat(self):
-        """μ=0.003,σ=0.10:μ/σ²≈0.3,Kelly 内点严格优于 0/±1
-        (费用的纯期望对数增长;手算数值积分)。"""
-        mu, sigma = 0.003, 0.10
-        w_star = kelly_w(mu, sigma)
-        assert 0.0 < w_star < 1.0, w_star
-        v_star = expected_log_growth(w_star, mu, sigma)
-        for other in (0.0, 1.0, -1.0, 0.5 * w_star):
-            assert v_star > expected_log_growth(other, mu, sigma), other
+# ==================== 参考数学(有界均匀律) ====================
+class TestGbarClosedForm:
+    def test_matches_power_series(self):
+        """闭式 vs log(1+cu) 幂级数(独立推导;双精度一致)。"""
+        rng = np.random.default_rng(3)
+        for _ in range(60):
+            mu = rng.uniform(-2e-3, 2e-3)
+            sig = rng.uniform(0.02, 0.06)
+            w = rng.uniform(-1.0, 1.0)
+            c = w * math.sqrt(3.0) * sig
+            b = 1.0 + w * mu
+            assert b - abs(c) > 0.05, "测试域须远离破产界"
+            eu = {2: 1 / 3, 4: 1 / 5, 6: 1 / 7, 8: 1 / 9,
+                  10: 1 / 11, 12: 1 / 13, 14: 1 / 15, 16: 1 / 17}
+            s = math.log(b)
+            for k, ek in eu.items():
+                s += (-(c / b) ** k) * ek / k
+            cf = float(gbar(np.array(w), mu, sig))
+            assert cf == pytest.approx(s, abs=1e-14, rel=1e-12), \
+                (mu, sig, w, cf, s)
 
-    def test_hold_beats_small_rebalance_when_cost_dominates(self):
-        """已持有小仓 w=0.02,边际 μ=0:清仓费(2e-5)大于持有
-        方差拖累((0.02·0.1)²/2=1e-6) -> HOLD 严格更优。"""
-        spec = CourseSpec(course="c4d3", fee=0.001)
-        row = {"s": 0.0, "c": 1.0, "q_step": 0.0, "g": 0.0}
-        act = reference_action(spec, row, current_w=0.02)
-        assert act == (0, 0.0)                 # HOLD
+    def test_variance_drag_mu_zero(self):
+        """μ=0 时 E = −w²σ²/2 + O(σ⁴)(波动拖累,无伪漂移)。"""
+        for sig in (0.03, 0.06):
+            w = 0.5
+            v = float(gbar(np.array(w), 0.0, sig))
+            assert v < 0
+            assert v == pytest.approx(
+                -(w ** 2) * sig ** 2 / 2.0, rel=0.1)
 
-    def test_adjust_beats_hold_when_opportunity_shifts(self):
-        """w≈0 时出现高质量机会:再平衡严格优于 HOLD。"""
-        spec = CourseSpec(course="c4d3", fee=0.001)
-        row = {"s": 1.0, "c": 1.0, "q_step": 1.0, "g": 0.0}
-        act = reference_action(spec, row, current_w=0.0)
-        assert act[0] == 1 and act[1] > 0.1
+    def test_ruin_inside_support_is_neg_inf(self):
+        """支撑内 1+w·r ≤ 0 可达时如实 −inf(不粉饰为节点均值)。"""
+        a = math.sqrt(3.0) * 0.06
+        mu = -(1.0 - 0.5 * a)      # 1+μ+a>0 但 1+μ−a<0
+        assert float(gbar(np.array(1.0), mu, 0.06)) == -math.inf
 
-    def test_risk_regime_reduces_exposure(self):
-        """D1:同 μ,σ 高 regime 参考敞口更低(风险敏感配置)。"""
-        spec = CourseSpec(course="c4d1")
-        row_lo = {"s": 1.0, "c": 1.0, "q_step": 1.0, "g": 0.0}
-        row_hi = {"s": 1.0, "c": 1.0, "q_step": 1.0, "g": 1.0}
-        w_lo = reference_action(spec, row_lo, 0.0)
-        w_hi = reference_action(spec, row_hi, 0.0)
-        assert w_lo[1] > w_hi[1] > 0.0
-
-    def test_reference_uses_no_future(self):
-        """参考只依赖特征行与当前比例(签名即合同;间接由生成器
-        因果测试保证特征本身无未来)。"""
-        spec = CourseSpec(course="c4d2")
-        row = {"s": 1.0, "c": 1.0, "q_step": 0.75, "g": 1.0}
-        a1 = reference_action(spec, row, 0.3)
-        a2 = reference_action(spec, row, 0.3)
-        assert a1 == a2                          # 确定性
+    def test_kelly_interior_for_train_face(self):
+        spec = spec_for("c4d2", seed=MS,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        mu = spec.mu_max * 0.5      # q=0.5 档(内部仓位考点状态)
+        w = kelly_w(mu, spec.sigma_lo)
+        assert 0.1 < w < 1.0       # 内点(非 0 非端点)
+        assert kelly_w(spec.mu_max, spec.sigma_lo) >= 0.99  # 端点考点
 
 
-# ==================== 生成器因果性 ====================
+# ==================== DP 参考精确性 ====================
+class TestDPReferenceExactness:
+    def test_small_horizon_bruteforce_parity(self):
+        """h=6:独立实现的逐步后向(显式 k/a 循环,与
+        reference_policy 不同代码路径)与其 values 完全一致。"""
+        spec = spec_for("c4d2", seed=MS, horizon=6,
+                        mu_max=1.2e-3, sigma_lo=0.03, sigma_hi=0.06)
+        pol = reference_policy(spec)
+        table, trans = _state_chain(spec)
+        K = table.shape[0]
+        G = np.array([gbar(W_GRID, mu_eff_of(
+            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0],
+            float(np.where(table[j, 3] == 1, spec.sigma_hi,
+                           spec.sigma_lo))) for j in range(K)])
+        fee = spec.fee
+        W = len(W_GRID)
+        V = -fee * np.abs(W_GRID)[None, :].repeat(K, 0)
+        for _ in range(6):
+            EV = trans @ V
+            newV = np.empty((K, W))
+            for k in range(W):
+                hold = G[:, k] + EV[:, k]
+                rebal = np.stack([G[:, a] + EV[:, a]
+                                  - fee * abs(W_GRID[a] - W_GRID[k])
+                                  for a in range(W)]).max(axis=0)
+                newV[:, k] = np.maximum(hold, rebal)
+            V = newV
+        v_dp = pol["values"][6]
+        assert np.allclose(V, v_dp, atol=1e-12), \
+            float(np.abs(V - v_dp).max())
+
+    def test_reference_beats_flat_on_train_face_exact(self):
+        """精确期望(初始分布加权 DP 值)> 0 = 恒空仓;抽样实现
+        统计仅要求无失败且不明显劣于 flat(弱断言,避免噪声误判)。"""
+        from rl_posctl.curriculum import initial_value
+        spec = spec_for("c4d2", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        assert initial_value(spec) > 0.0
+        st = tier_validity(spec, n_episodes=16)
+        assert st["n_failures"] == 0
+        assert st["net_log"] > st["flat_net_log"] - 0.25
+
+    def test_hold_is_real_action_candidate(self):
+        """策略表非空出现 HOLD(保持 w 是真实动作候选)。"""
+        spec = spec_for("c4d3", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        pol = reference_policy(spec)
+        n_hold = int(sum(
+            (p == -1).sum() for p in pol["policies"].values()))
+        assert n_hold > 0
+
+
+# ==================== C4 四档差异 ====================
+class TestC4TierSeparation:
+    def test_same_seed_bitwise_different(self):
+        outs = {}
+        for tier in TIERS:
+            sp = spec_for(tier, seed=MS, horizon=32)
+            p, f, _ = generate_episode(sp, 101)
+            outs[tier] = (p.values.tobytes(), f.values.tobytes())
+        for i in range(len(TIERS)):
+            for j in range(i + 1, len(TIERS)):
+                assert outs[TIERS[i]][0] != outs[TIERS[j]][0], \
+                    f"{TIERS[i]} vs {TIERS[j]} 价格逐位相同"
+                assert outs[TIERS[i]][1] != outs[TIERS[j]][1]
+
+    def test_tier_params_actually_differ(self):
+        vals = [tuple(sorted(TIER_OVERRIDES[t].items()))
+                for t in TIERS]
+        assert len(set(vals)) == len(TIERS)
+
+    @pytest.mark.parametrize("tier", TIERS)
+    def test_tier_capability_points(self, tier):
+        """每档参考行为非空:非零敞口、内部仓位、HOLD 都出现;
+        双侧方向;参考 ≥ flat。"""
+        spec = spec_for(tier, seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        st = tier_validity(spec, n_episodes=16)
+        assert st["steps"] > 0
+        assert st["n_failures"] == 0
+        assert st["interior"] > 0, f"{tier} 无内部仓位考点"
+        assert st["hold"] > 0, f"{tier} 无 HOLD 考点"
+        assert st["pos"] > 0 and st["neg"] > 0, \
+            f"{tier} 缺多空双侧"
+        from rl_posctl.curriculum import initial_value
+        assert initial_value(spec) > 0.0, f"{tier} 参考期望不优于 flat"
+
+    def test_d1_risk_sensitivity(self):
+        """D1:同一 μ 边际下 hi-σ 的 kelly 敞口收缩。"""
+        spec = spec_for("c4d1", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        mu = spec.mu_max * 0.75
+        w_lo = kelly_w(mu, spec.sigma_lo)
+        w_hi = kelly_w(mu, spec.sigma_hi)
+        assert abs(w_hi) < abs(w_lo)
+
+    def test_d2_has_flips_and_adjustments(self):
+        spec = spec_for("c4d2", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        st = tier_validity(spec, n_episodes=24)
+        assert st["flips"] > 0
+        assert st["rebal"] > 0
+
+
+# ==================== C1–C3 能力(双向适配) ====================
+class TestC123Capabilities:
+    def test_c1_mu_ignores_context_and_quality(self):
+        """C1 无门控:μ_eff 只依赖 s(镜像边=做空真实性的结构前提);
+        bar 收益 = μ_eff + a·U 且 |U|≤1(支撑内)。"""
+        spec = spec_for("c1", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        p, f, h = generate_episode(spec, 5)
+        # hidden v2 语义:mu_eff[t]/sigma[t] 驱动 bar t 收益(=t−1 状态)
+        mu = h["mu_eff"][1:]
+        sig = h["sigma"][1:]
+        for c_val in (0.0, 1.0):
+            for q_val in (0.0, 0.5, 1.0):
+                mu2 = mu_eff_of(spec, np.array([1.0]),
+                                np.array([c_val]), np.array([q_val]))
+                assert mu2[0] == pytest.approx(spec.mu_max)
+        r = p["close"].to_numpy()[1:] / p["close"].to_numpy()[:-1] - 1
+        a = np.sqrt(3.0) * sig
+        u = (r - mu) / a
+        assert np.all(np.abs(u) <= 1.0 + 1e-12)
+
+    def test_c2_context_gate_changes_optimal_action(self):
+        """C2:同 s,不同 c ⇒ 最优目标不同(门控真实)。"""
+        spec = spec_for("c2", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        row_c1 = {"s": 1.0, "c": 1.0, "q": 1.0, "g": 0.0}
+        row_c0 = {"s": 1.0, "c": 0.0, "q": 1.0, "g": 0.0}
+        a1 = reference_action(spec, row_c1, 0.0, steps_left=32)
+        a0 = reference_action(spec, row_c0, 0.0, steps_left=32)
+        assert a1[1] > 0
+        assert a0[1] == 0.0    # c=0 门关:不建仓/清仓
+
+    def test_c3_fee_skipping(self):
+        """C3 弱边际:零质量下参考不建仓(费用主导)。"""
+        spec = spec_for("c3", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        row_lo = {"s": 1.0, "c": 1.0, "q": 0.0, "g": 0.0}
+        a = reference_action(spec, row_lo, 0.0, steps_left=32)
+        assert a[1] == 0.0 or a[0] == 0
+
+    def test_reference_beats_local_only_on_c2(self):
+        spec = spec_for("c2", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        bases = baseline_policies()
+
+        def run_with(fn):
+            tot = 0.0
+            for i in range(12):
+                env = make_env(spec, 900 + i)
+                infos = run_policy(env, fn)
+                summ = summarize(infos)
+                tot += (summ["net_log_return"] or 0.0)
+            return tot
+
+        ref = run_with(ref_fn(spec))
+        local = run_with(bases["local_only"])
+        assert ref > local
+
+
+# ==================== 生成器因果性与分区隔离 ====================
 class TestGeneratorCausality:
-    def test_return_depends_on_prior_signal_only(self):
-        """bar k 收益的均值由 features[k−1] 决定:给定特征序列,
-        未来收益均值与 features[k] 无关(大样本均值检验)。"""
-        spec = CourseSpec(course="c1", mu_max=0.02,
-                          sigma_lo=0.001, sigma_hi=0.001,
-                          hold_p=0.999, signal_switch_p=0.0,
-                          horizon=2, seed=5)
-        # 每条 3 bar:bar1 收益取决于 s[0];统计两种 s[0] 的均值
-        rets = {"p": [], "m": [], "z": []}
-        for ep in range(4000):
-            prices, feats, _ = generate_episode(
-                spec, 1000 + ep)
-            r1 = float(np.log(prices["close"][1] / prices["open"][1]))
-            key = {1.0: "p", -1.0: "m", 0.0: "z"}[float(feats["s"][0])]
-            rets[key].append(r1)
-        mp = float(np.mean(rets["p"]))
-        mm = float(np.mean(rets["m"]))
-        mz = float(np.mean(rets["z"]))
-        assert mp == pytest.approx(0.02, abs=0.004), mp
-        assert mm == pytest.approx(-0.02, abs=0.004), mm
-        assert mz == pytest.approx(0.0, abs=0.004), mz
+    def test_return_depends_on_prior_state_only(self):
+        spec = spec_for("c4d1", seed=MS, horizon=32)
+        p, f, h = generate_episode(spec, 77)
+        mu = h["mu_eff"][1:]      # v2:hidden.mu_eff[t] 驱动 bar t
+        a = np.sqrt(3.0) * h["sigma"][1:]
+        r = p["close"].to_numpy()[1:] / p["close"].to_numpy()[:-1] - 1
+        u = (r - mu) / a
+        assert np.all(np.abs(u) <= 1.0 + 1e-12)
 
-    def test_features_contain_no_future_columns(self):
-        spec = CourseSpec(course="c4d0", horizon=8)
-        prices, feats, hidden = generate_episode(spec, 42)
-        for col in feats.columns:
-            assert col in ("s", "c", "q", "g", "q_step")
-        assert set(hidden) >= {"mu_eff", "sigma"}   # 隐藏面只留在 hidden
+    def test_features_contain_no_future(self):
+        """截断 horizon 只影响后续 bar,前缀逐位一致(无未来泄漏)。"""
+        sp32 = spec_for("c4d0", seed=MS, horizon=32)
+        sp16 = spec_for("c4d0", seed=MS, horizon=16)
+        p32, f32, _ = generate_episode(sp32, 55)
+        p16, f16, _ = generate_episode(sp16, 55)
+        assert np.allclose(p16["close"].to_numpy(),
+                           p32["close"].to_numpy()[:17])
+        assert np.allclose(f16.to_numpy(), f32.to_numpy()[:17])
+
+    def test_domain_seed_isolation(self):
+        ds = {d: domain_seed(MS, d) for d in ("train", "dev", "eval")}
+        assert len(set(ds.values())) == 3
+        seeds = [episode_seed(ds["train"], i) for i in range(50)]
+        assert len(set(seeds)) == 50
+        dev = [episode_seed(ds["dev"], i) for i in range(50)]
+        assert not set(seeds) & set(dev)
 
     def test_same_seed_reproducible(self):
-        spec = CourseSpec(course="c2", horizon=16)
-        a = generate_episode(spec, 77)
-        b = generate_episode(spec, 77)
-        assert np.allclose(a[0].to_numpy(), b[0].to_numpy())
-        assert np.allclose(a[1].to_numpy(), b[1].to_numpy())
-
-    def test_domain_seeds_disjoint(self):
-        tr = {episode_seed(domain_seed(11, "train"), i)
-              for i in range(50)}
-        dv = {episode_seed(domain_seed(11, "dev"), i)
-              for i in range(50)}
-        ev = {episode_seed(domain_seed(11, "eval"), i)
-              for i in range(50)}
-        assert not (tr & dv) and not (tr & ev) and not (dv & ev)
+        sp = spec_for("c4d2", seed=MS, horizon=32)
+        p1, f1, _ = generate_episode(sp, 42)
+        p2, f2, _ = generate_episode(sp, 42)
+        assert p1.equals(p2) and f1.equals(f2)
 
 
-# ==================== 课程参考 vs 失败对照(无梯度评估) ====================
-class TestReferenceVsBaselines:
-    N_EP = 30
-
-    SPEC_OVERRIDES = {
-        # C4 有效性面:提高信噪比使"参考 > 永远空仓"在测试规模内
-        # 显著(事前固定;不用于学习结果解释)
-        "c4d0": dict(mu_max=0.03, sigma_lo=0.15, sigma_hi=0.22),
-    }
-
-    def eval_suite(self, course, master=99, n_ep=None):
-        spec = CourseSpec(course=course, seed=master,
-                          **self.SPEC_OVERRIDES.get(course, {}))
-        n = n_ep or self.N_EP
-        results = {}
-        policies = {"reference": ref_fn(spec)}
-        policies.update(baseline_policies())
-        for name, fn in policies.items():
-            logs = []
-            fails = 0
-            for i in range(n):
-                env = make_env(spec, episode_seed(
-                    domain_seed(master, "eval"), i))
-                infos = run_policy(env, fn)
-                s = summarize(infos)
-                logs.append(s["net_log_return"])
-                fails += int(s["economic_failure"])
-            results[name] = (float(np.mean(logs)), fails)
-        return results
-
-    def test_c1_reference_beats_local_only_and_flat(self):
-        r = self.eval_suite("c1")
-        ref = r["reference"][0]
-        assert ref > r["local_only"][0], r
-        assert ref > r["flat"][0], r
-        # 恒定方向仓被方差拖累压垮(参考只在其优势状态持有)
-        assert ref > r["long_half"][0], r
-        assert ref > r["short_half"][0], r
-
-    def test_c2_context_gating(self):
-        r = self.eval_suite("c2")
-        # local_only 忽略上下文门,在同强度正负信号下被门控击败
-        assert r["reference"][0] > r["local_only"][0] + 0.01, r
-
-    def test_c3_cost_sensitivity(self):
-        spec = CourseSpec(course="c3", seed=99)
-        r = self.eval_suite("c3")
-        # 参考平均费用 <= 恒定半仓再平衡的变体(成本感知)
-        # (费用绝对值经由 env 记录;此处比较净收益即可)
-        assert r["reference"][0] > r["always_retarget_half"][0], r
-
-    def test_c4_reference_positive_edge(self):
-        r = self.eval_suite("c4d0", n_ep=60)
-        assert r["reference"][0] > r["flat"][0], r
-        assert r["reference"][0] > r["binary_sign"][0], r
-
-    def test_no_economic_failures_for_reference(self):
-        for course in ("c1", "c2", "c3", "c4d0"):
-            r = self.eval_suite(course, n_ep=10)
-            assert r["reference"][1] == 0, (course, r["reference"])
+# ==================== 参考费用近似对拍(披露义务) ====================
+class TestReferenceCostApproximation:
+    def test_linear_fee_model_vs_real_ledger_replay(self):
+        """DP 的 fee·|Δw| 线性费用模型 vs 真实账本回放(滑点/tick=0
+        面一致;偏差披露,不虚称精确)。"""
+        spec = spec_for("c4d2", seed=MS, horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        env = make_env(spec, 31337)
+        actions = []
+        obs, _ = env.reset()
+        while True:
+            t = env._current_tick
+            row = env._feature_row(t)
+            eq = env.ledger.equity(env._close[t])
+            ratio = (env.ledger.exposure_ratio(env._close[t])
+                     if eq > 0 else 0.0)
+            act = reference_action(spec, row, ratio,
+                                   steps_left=env.n_rows - 1 - t)
+            actions.append([float(act[0]), float(act[1])])
+            o, r, term, trunc, info = env.step(act)
+            if term or trunc:
+                break
+        prev = 0.0
+        assumed = 0.0          # DP 费用模型(log 收益量纲:fee·|Δw|)
+        real_log_fee = 0.0     # 真实账本费用折 log:Σ −ln(1−fee/E₀)
+        for k_rec, (branch, w) in enumerate(actions):
+            rec = env.step_records[k_rec]
+            if branch == 1:
+                assumed += spec.fee * abs(w - prev)
+            fee_i = rec.get("fee") or 0.0
+            if fee_i:
+                real_log_fee += -math.log1p(-fee_i / rec["equity_start"])
+            prev = w
+        # 线性费用模型 vs 真实账本(滑点/tick=0 面):log 量纲一致;
+        # 偏差来自扣费后净值求解与权益漂移(披露口径,不虚称精确)
+        assert real_log_fee == pytest.approx(assumed, rel=0.25,
+                                             abs=1e-9)

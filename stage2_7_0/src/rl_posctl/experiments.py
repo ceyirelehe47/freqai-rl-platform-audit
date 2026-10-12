@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
-"""pilot 执行器:训练 env bank、容量/时序候选运行、评估与记录
-(RouteC_PositionControl E5)。
+"""pilot 执行器:训练 env bank、候选运行、评估与记录
+(RouteC_PositionControl;R1 改为执行前预约计量 + create-only 目录)。
 
 - EpisodeBankEnv:固定训练域 episode 列表上的确定性轮转(reset
-  依序取 bank 项;全部候选/seed 同序 -> 语料顺序配对);
-- run_pilot:构建 PPO -> learn(总步数精确 = n_iterations × rollout,
-  SB3 向上取整如实计入预算) -> 无梯度评估 -> 落盘模型/指标/记录;
+  依序取 bank 项;全部候选/seed 同序 -> 语料顺序配对);补全全部
+  版本身份属性(loader 反序列化前比对用);
+- run_pilot:预约(ppo_learn_attempts+ppo_steps;单次步数上限在
+  预约时校验)→ learn → 实际步数如实结清(超预约 fail closed,
+  不再事后计账)→ 无梯度评估 → 落盘;out_dir create-only;
 - 经济失败:训练中任一 info.reward_valid=False -> RUN_INVALID,
-  保留已产生 checkpoint 与失败现场,不重抽;
-- 评估:deterministic 策略 vs 参考 vs 基线,同 eval 域同 seed,
-  记录每 episode 原始 net_log_return(未折扣)。
+  保留已产生 checkpoint 与失败现场,不删样本/不重抽;
+- 评估:eval_model_on_spec 在**固定 eval bank**上重放(从同一
+  固定原件读取/重放不重复算生成;评估步照记 eval_steps)。
+  上轮 eval_model 直接 generate_episode 绕过生成配额的路径已移除。
 """
 
 from __future__ import annotations
@@ -20,17 +23,16 @@ from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
-import pandas as pd
 import torch as th
 
 from rl_posctl.banks import QuotaLedger, build_bank, domain_seed, \
     episode_seed
-from rl_posctl.curriculum import CourseSpec, baseline_policies, \
-    generate_episode, reference_action
+from rl_posctl.curriculum import CourseSpec, spec_for, \
+    generate_episode
 from rl_posctl.env import HybridPositionEnv
 from rl_posctl.evalreport import run_policy, summarize
 from rl_posctl.policy import (
-    HybridActorCriticPolicy, attach_obs_dim, load_posctl_model,
+    HybridActorCriticPolicy, attach_env_identity, load_posctl_model,
     make_posctl_ppo, save_posctl_model)
 from rl_posctl import profiles
 
@@ -81,6 +83,7 @@ class EpisodeBankEnv(gym.Env):
     def ledger(self):
         return self._inner.ledger
 
+    # ---- 版本身份透传(load_posctl_model 反序列化前比对) ----
     @property
     def env_core_version(self):
         return self._inner.env_core_version
@@ -92,6 +95,18 @@ class EpisodeBankEnv(gym.Env):
     @property
     def action_spec_version(self):
         return self._inner.action_spec_version
+
+    @property
+    def reward_spec_version(self):
+        return self._inner.reward_spec_version
+
+    @property
+    def execution_spec_version(self):
+        return self._inner.execution_spec_version
+
+    @property
+    def ledger_version(self):
+        return self._inner.ledger_version
 
 
 class FailureAwareStop:
@@ -115,14 +130,13 @@ class FailureAwareStop:
 
 
 def train_course_spec(course: str, master_seed: int) -> CourseSpec:
-    """训练面规格(含 profiles.TRAIN_SPEC_OVERRIDES,事前固定)。"""
-    return CourseSpec(course=course, seed=master_seed,
-                      horizon=64,
-                      **profiles.TRAIN_SPEC_OVERRIDES)
+    """训练面规格(应用课程档参数 + TRAIN_SPEC_OVERRIDES,事前固定)。"""
+    return spec_for(course, seed=master_seed, horizon=64,
+                    **profiles.TRAIN_SPEC_OVERRIDES)
 
 
 def build_train_bank(course: str, master_seed: int, n_episodes: int,
-                     quota: QuotaLedger, window: int):
+                     quota: QuotaLedger, window: int = 1):
     """训练 bank(生成时按结构重试;同结构参数确定性)。"""
     spec = train_course_spec(course, master_seed)
     ds = domain_seed(master_seed, "train")
@@ -139,14 +153,21 @@ def build_train_bank(course: str, master_seed: int, n_episodes: int,
     return bank
 
 
-def eval_model(model, spec, master_seed, n_episodes, window,
-               ledger=None, tag=""):
-    """deterministic 模型在 eval 域的未折扣原始收益(逐 episode)。"""
-    ds = domain_seed(master_seed, "eval")
+def _episode_log(env, last_info):
+    """该 episode 的未折扣对数收益(账本口径,非折扣奖励和)。"""
+    er = env.episode_reward_raw
+    return None if er is None else float(er)
+
+
+def eval_model_on_spec(model, spec: CourseSpec, eval_bank, window,
+                       ledger=None, tag=""):
+    """deterministic 模型在**固定 eval bank**上重放(费用=spec.fee)。
+
+    重放固定 bank 不重复算生成(生成已在 bank 构建时计费);
+    eval_steps 逐 episode 走预约账本。
+    """
     rows = []
-    for i in range(n_episodes):
-        prices, feats, _ = generate_episode(
-            spec, episode_seed(ds, i))
+    for i, (prices, feats, _) in enumerate(eval_bank):
         env = HybridPositionEnv(
             features=feats, prices=prices, fee=spec.fee,
             window_size=window)
@@ -164,40 +185,46 @@ def eval_model(model, spec, master_seed, n_episodes, window,
             "final_equity": info["equity_end"],
             "economic_failure": not info["reward_valid"]})
         if ledger is not None:
-            ledger.charge(eval_steps=steps, tag=tag)
+            rid = ledger.reserve(
+                f"eval:{tag}:{i}", eval_steps=steps)
+            ledger.commit(rid, f"eval:{tag}:{i}", eval_steps=steps)
     return rows
-
-
-def _episode_log(env, last_info):
-    """该 episode 的未折扣对数收益(账本口径,非折扣奖励和)。"""
-    er = env.episode_reward_raw
-    return None if er is None else float(er)
 
 
 def run_pilot(*, name: str, course: str, window: int,
               policy_kwargs: dict, seed: int, total_steps: int,
-              bank, master_seed: int, out_dir: Path,
-              ledger: profiles.UsageLedger, device: str = "cpu"):
-    """一次 pilot 运行:训练 -> 评估 -> 模型/记录落盘。"""
+              bank, eval_bank, master_seed: int, out_dir: Path,
+              ledger, device: str = "cpu"):
+    """一次 bounded 运行:预约→训练→结清→评估→落盘(out_dir 唯一)。
+
+    ledger = ReservationLedger(执行前预约);out_dir 由调用方
+    create_only_dir 创建(已存在即拒绝)。
+    """
     spec = train_course_spec(course, master_seed)
     env = EpisodeBankEnv(bank, fee=spec.fee, window_size=window)
+    out_dir = Path(out_dir)
     model = make_posctl_ppo(
         env, policy_kwargs=policy_kwargs, seed=seed,
         n_steps=profiles.ROLLOUT, batch_size=profiles.BATCH,
         n_epochs=profiles.N_EPOCHS, gamma=profiles.GAMMA,
         ent_coef=profiles.ENT_COEF, device=device)
-    attach_obs_dim(model, int(np.prod(
-        env.observation_space.shape)))
+    attach_env_identity(model, env)
     stop = FailureAwareStop()
+    rid = ledger.reserve(f"pilot:{name}", ppo_learn_attempts=1,
+                         ppo_steps=int(total_steps))
     t0 = time.time()
-    model.learn(total_timesteps=total_steps,
-                callback=stop.cb)
+    try:
+        model.learn(total_timesteps=total_steps,
+                    callback=stop.cb)
+    except BaseException:
+        ledger.abandon(rid, f"pilot:{name}",
+                       note="learn 异常中断,保守保留预约")
+        raise
     elapsed = time.time() - t0
-    # SB3 按 rollout 倍数执行;经济失败提前停时按实际步数计费
+    # SB3 按 rollout 倍数执行;实际步数如实结清(超预约即拒绝)
     actual_steps = int(model.num_timesteps)
-    ledger.charge(ppo_steps=actual_steps, tag=f"pilot:{name}")
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    ledger.commit(rid, f"pilot:{name}", ppo_learn_attempts=1,
+                  ppo_steps=actual_steps)
     rec = {
         "name": name, "course": course, "window": window,
         "seed": seed, "device": device,
@@ -211,8 +238,8 @@ def run_pilot(*, name: str, course: str, window: int,
                        "计划停止,不删样本/不重抽"
     else:
         save_posctl_model(model, out_dir / f"{name}.zip")
-        rows = eval_model(
-            model, spec, master_seed, profiles.EVAL_EPISODES, window,
+        rows = eval_model_on_spec(
+            model, spec, eval_bank, window,
             ledger=ledger, tag=f"eval:{name}")
         logs = [r["net_log_return"] for r in rows
                 if r["net_log_return"] is not None]
@@ -237,7 +264,6 @@ def count_params(model) -> dict:
     total = sum(p.numel() for p in pol.parameters())
     actor = sum(p.numel() for p in pol.action_net.parameters())
     critic = sum(p.numel() for p in pol.value_net.parameters())
-    shared = 0
     fe = sum(p.numel() for p in (
         pol.features_extractor.parameters()))
     mlp = pol.mlp_extractor

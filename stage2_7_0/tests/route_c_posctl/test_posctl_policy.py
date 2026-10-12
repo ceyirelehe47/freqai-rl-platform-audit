@@ -6,8 +6,10 @@
 """
 
 import math
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -35,13 +37,17 @@ def inv_softplus(y: float) -> float:
     return math.log(math.expm1(y))
 
 
+ALPHA_FLOOR = 1.0   # v2:α=softplus(raw)+1.0(与实现一致)
+
+
 def make_dist(branch_p=(0.3, 0.7), mix=(0.1, 0.2, 0.3, 0.4),
               alpha=2.0):
     bl = th.tensor([math.log(branch_p[0]), math.log(branch_p[1])],
                    dtype=th.float64, requires_grad=True)
     ml = th.tensor([math.log(m) for m in mix], dtype=th.float64,
                    requires_grad=True)
-    ar = th.tensor([inv_softplus(alpha - 0.05)], dtype=th.float64,
+    ar = th.tensor([inv_softplus(alpha - ALPHA_FLOOR)],
+                   dtype=th.float64,
                    requires_grad=True)
     return (HybridAtomBetaDistribution(bl, ml, ar),
             {"bl": bl, "ml": ml, "ar": ar})
@@ -135,19 +141,20 @@ class TestRatioAndGradients:
         assert float(p["bl"].grad.abs().sum()) > 0.0
 
     def test_rebalance_atom_gradient_mask(self):
-        """REBALANCE(0 原子):只有对应 mix 分量+branch 得梯度;
-        连续/alpha 头零似然梯度。"""
+        """REBALANCE(执行值 0):被选合并原子质量得梯度,其余 mix
+        分量按 softmax 结构 −m_j;连续头似然梯度仅经 0 单元质量
+        b0(≈pdf·2^-150,数值上 ≈0 但非精确 0——这是执行映射的
+        精确性质,不是泄漏)。"""
         d, p = make_dist()
         lp = d.log_prob(th.tensor([[1.0, 0.0]]))
         lp.backward()
         g = p["ml"].grad                     # shape (4,)
-        # softmax 归一化结构:被选分量 g=1−m_used,其余 g=−m_j
-        # (HOLD 样本才是全零;见 test_hold_zero_target_gradient)
         m = [0.1, 0.2, 0.3, 0.4]
         assert float(g[1]) == pytest.approx(1.0 - m[1], abs=1e-9)
         for j in (0, 2, 3):
             assert float(g[j]) == pytest.approx(-m[j], abs=1e-9)
-        assert float(p["ar"].grad.abs().sum()) == 0.0
+        # b0 = pdf_u(0.5)·2^-150 ⇒ alpha 依赖 ~1e-45:可忽略但非 0
+        assert float(p["ar"].grad.abs().sum()) < 1e-30
 
     def test_rebalance_continuous_alpha_gradient(self):
         d, p = make_dist()
@@ -169,7 +176,7 @@ class TestRatioAndGradients:
         for branch_p in ((0.001, 0.999), (0.999, 0.001)):
             for mix in ((0.98, 0.01, 0.005, 0.005),
                         (0.002, 0.002, 0.002, 0.994)):
-                for alpha in (0.0501, 50.0):
+                for alpha in (1.0001, 50.0):   # v2:α∈(1,∞)
                     d, _ = make_dist(branch_p, mix, alpha)
                     acts = th.tensor([[0.0, 0.0], [1.0, -1.0],
                                       [1.0, 0.0], [1.0, 1.0],
@@ -302,6 +309,8 @@ class TestRealPPOChain:
         }
         spec_path = tmp_path / "spec.json"
         spec_path.write_text(json.dumps(spec), encoding="utf-8")
+        import rl_posctl as _rp
+        tested_src = str(Path(_rp.__file__).resolve().parent.parent)
         code = (
             "import json,sys\n"
             "sys.path.insert(0,{src!r})\n"
@@ -327,14 +336,17 @@ class TestRealPPOChain:
             "print(json.dumps({{'action':[float(x) for x in a[0]],\n"
             " 'logprob':float(lp[0]),\n"
             " 'entropy':float(b.entropy()[0])}}))\n"
-        ).format(
-            src="/home/cryptorl/projects/crypto_rl/src",
-            sp=str(spec_path))
+        ).format(src=tested_src, sp=str(spec_path))
         script = tmp_path / "cold_load.py"
         script.write_text(code, encoding="utf-8")
+        env_vars = dict(os.environ)
+        # 冷读必须解析到**被测源**(可编辑安装的 crypto_rl/src 面板
+        # 会影子导入旧版;显式 PYTHONPATH 固定导入域)
+        env_vars["PYTHONPATH"] = tested_src
         r = subprocess.run(
             [sys.executable, str(script)],
-            capture_output=True, text=True, timeout=180)
+            capture_output=True, text=True, timeout=180,
+            env=env_vars)
         assert r.returncode == 0, r.stderr[-800:]
         got = json.loads(r.stdout.strip().splitlines()[-1])
         with th.no_grad():
