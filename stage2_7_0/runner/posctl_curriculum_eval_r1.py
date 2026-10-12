@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""R1 课程有效性评估:四档+ C1–C3 参考统计、参考 vs 基线(固定
+bank 重放,不重复生成)、DP 精确期望值。评估步走预约账本。
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from pathlib import Path
+
+import numpy as np
+
+from rl_posctl import profiles
+from rl_posctl.banks import QuotaLedger, domain_seed, episode_seed
+from rl_posctl.budget import ReservationLedger, create_only_dir
+from rl_posctl.curriculum import (
+    baseline_policies, generate_episode, initial_value, spec_for,
+    tier_validity)
+from rl_posctl.env import ENV_STEP_COUNT, HybridPositionEnv
+from rl_posctl.evalreport import run_policy, summarize
+from rl_posctl.experiments import train_course_spec
+
+
+def replay_stats(spec, episodes, seed0, policy_fn, quota):
+    tot = 0.0
+    rows = []
+    for i in range(episodes):
+        quota.record(gen_calls=1, episodes=1,
+                     bank=f"posctl_{spec.course}_replay",
+                     domain="eval")
+        prices, feats, _ = generate_episode(spec, seed0 + i)
+        env = HybridPositionEnv(
+            features=feats, prices=prices, fee=spec.fee,
+            window_size=1)
+        infos = run_policy(env, policy_fn)
+        s = summarize(infos)
+        tot += (s["net_log_return"] or 0.0)
+        rows.append({
+            "episode": i,
+            "net_log": (s["net_log_return"] if
+                        s["net_log_return_valid"] else None),
+            "hold_share": s["hold_share"],
+            "interior": (s["model_action_fees"] >= 0),
+            "fees": s["total_fees"],
+            "failure": s["economic_failure"]})
+    return tot, rows
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out-root", required=True)
+    ap.add_argument("--ledger", required=True)
+    args = ap.parse_args()
+    out_dir = create_only_dir(
+        Path(args.out_root) /
+        time.strftime("curriculum_eval_%Y%m%dT%H%M%S"))
+    ledger = ReservationLedger(Path(args.ledger))
+    quota = QuotaLedger(out_dir / "gen_quota.jsonl")
+    result = {"run": "curriculum_eval_r1", "tiers": {},
+              "c123": {}, "baselines_c4d2": {}}
+    courses = ("c4d0", "c4d1", "c4d2", "c4d3")
+    for course in courses:
+        spec = spec_for(course, seed=profiles.MASTER_SEED,
+                        horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        st = tier_validity(spec, n_episodes=16, quota=quota)
+        result["tiers"][course] = {
+            "stats": st,
+            "dp_initial_value_exact": initial_value(spec),
+        }
+    for course in ("c1", "c2", "c3"):
+        spec = spec_for(course, seed=profiles.MASTER_SEED,
+                        horizon=64,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        st = tier_validity(spec, n_episodes=8, quota=quota)
+        result["c123"][course] = {
+            "stats": st,
+            "dp_initial_value_exact": initial_value(spec)}
+    # 参考 vs 基线(c4d2 训练面;固定 seed 域重放)
+    spec = train_course_spec(profiles.TRAIN_COURSE,
+                             profiles.MASTER_SEED)
+    from rl_posctl.curriculum import reference_action
+
+    def ref(row, w, sl):
+        return reference_action(spec, row, w, steps_left=sl)
+
+    bases = baseline_policies()
+    ref_tot, ref_rows = replay_stats(spec, 8, 5000, ref, quota)
+    result["baselines_c4d2"]["reference"] = {
+        "total_net_log": ref_tot, "rows": ref_rows}
+    for name, fn in bases.items():
+        tot, _ = replay_stats(spec, 8, 5000, fn, quota)
+        result["baselines_c4d2"][name] = {"total_net_log": tot}
+    # 生成调用计费(quota 已在 generate 处逐次计;此处汇总)
+    from rl_posctl.curriculum import GEN_CALL_COUNT
+    result["gen_quota_cum"] = {
+        "gen_calls": quota.gen_calls, "episodes": quota.episodes}
+    result["gen_call_count_module"] = int(GEN_CALL_COUNT)
+    env_steps = int(ENV_STEP_COUNT)
+    rid = ledger.reserve("curriculum_eval_env_steps",
+                         eval_steps=env_steps)
+    ledger.commit(rid, "curriculum_eval_env_steps",
+                  eval_steps=env_steps)
+    result["env_steps_total"] = env_steps
+    result["budget_snapshot"] = ledger.snapshot()
+    (out_dir / "curriculum_eval_r1.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=1),
+        encoding="utf-8")
+    print(json.dumps(
+        {k: v for k, v in result.items()
+         if k in ("tiers", "gen_quota_cum", "env_steps_total")},
+        ensure_ascii=False, indent=1)[:2000])
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

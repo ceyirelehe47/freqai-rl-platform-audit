@@ -178,6 +178,11 @@ def sigma_of(spec: CourseSpec, g):
     return np.full(g.shape, spec.sigma_lo, dtype=np.float64)
 
 
+# 全进程生成调用计数(R1 计量披露口径:bank 生成走 QuotaLedger,
+# 普通单测夹具生成按来源单列,不混入 bank 额度)
+GEN_CALL_COUNT = 0
+
+
 # ============================== 生成器 ==============================
 def generate_episode(spec: CourseSpec, seed: int):
     """一个训练 episode:返回 (prices, features, hidden)。
@@ -186,6 +191,8 @@ def generate_episode(spec: CourseSpec, seed: int):
     决定);hidden 仅用于生成诊断与课程有效性检查(= 可观察链,
     v2 无隐藏质量)。r 为**算术**收益(与线性合约经济/参考数学一致)。
     """
+    global GEN_CALL_COUNT
+    GEN_CALL_COUNT += 1
     rng = np.random.default_rng((spec.seed, int(seed)))
     n = spec.horizon + 1
     s = np.zeros(n, dtype=np.int64)
@@ -393,7 +400,7 @@ def reference_action(spec: CourseSpec, feat_row, current_w: float,
 
 # ============================== 课程有效性检查 ==============================
 def tier_validity(spec: CourseSpec, n_episodes: int = 32,
-                  seed0: int = 0) -> dict:
+                  seed0: int = 0, quota=None) -> dict:
     """参考轨迹统计(题目有效性检查;测试与 runner 共用)。
 
     断言素材:非零敞口步占比、内部仓位(0<|w|<1)步、HOLD 步、
@@ -409,6 +416,10 @@ def tier_validity(spec: CourseSpec, n_episodes: int = 32,
                  pos=0, neg=0, net_log=0.0, flat_net_log=0.0,
                  steps=0, n_failures=0)
     for i in range(n_episodes):
+        if quota is not None:
+            quota.record(gen_calls=1, episodes=1,
+                         bank=f"posctl_{spec.course}_validity",
+                         domain="eval")
         prices, feats, _ = generate_episode(spec, seed0 + i)
         env = HybridPositionEnv(
             features=feats, prices=prices, fee=spec.fee, window_size=1)
