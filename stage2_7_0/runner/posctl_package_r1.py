@@ -111,13 +111,21 @@ def main() -> int:
     zip_path = delivery / f"{top}.zip"
     if zip_path.exists():
         raise SystemExit("zip 已存在,拒绝覆盖")
+    def wsl_path(p: Path) -> str:
+        s = str(p.resolve()).replace("\\", "/")
+        if len(s) > 1 and s[1] == ":":
+            return "/mnt/" + s[0].lower() + s[2:]
+        return s
     r = subprocess.run(
         ["wsl.exe", "-e", "bash", "-c",
-         f"cd '{stage_parent.as_posix()}' && /usr/bin/zip -q -r -X "
-         f"'{top}.zip' '{top}' && sha256sum '{top}.zip'"],
-        capture_output=True, text=True)
+         f"cd '{wsl_path(stage_parent)}' && /usr/bin/zip -q -r -X "
+         f"'../{top}.zip' '{top}' && sha256sum '{wsl_path(zip_path)}'"],
+        capture_output=True, text=True, encoding="utf-8",
+        errors="replace")
     if r.returncode != 0:
-        raise SystemExit("zip 失败:" + r.stderr[-500:])
+        raise SystemExit("zip 失败:" + (r.stderr or "")[-500:])
+    if not zip_path.exists():
+        raise SystemExit("zip 未出现在 delivery(WSL drvfs 延迟?)")
     zip_sha = r.stdout.strip().split()[0]
     sidecar = delivery / f"{top}.zip.sha256.txt"
     sidecar.write_text(
