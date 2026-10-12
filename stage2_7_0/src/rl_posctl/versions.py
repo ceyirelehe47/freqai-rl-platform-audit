@@ -108,3 +108,22 @@ POSCTL_R3_BUDGET = {
     "episodes": 64,                # 成功 episode(各角色合计)
     "synthetic_total": 4_224,      # ppo_steps+eval_steps(128+4,096)
 }
+
+# R4 任务身份(FiniteRepair R4;真实训练/生成为零的收口轮)。
+POSCTL_R4_TASK_ID = "PosCtl_R4_20261013"
+
+# R4 面(本包 SCOPE_AND_BUDGET):0 真实 PPO/BC/生成;仅固定手工
+# 序列无梯度 env.step ≤128(主 Agent/reviewer/测试共享);派生
+# 总项 = ppo+eval = 128。
+POSCTL_R4_BUDGET = {
+    "ppo_learn_attempts": 0,
+    "ppo_steps_total": 0,
+    "ppo_steps_single": 0,
+    "bc_fits": 0,
+    "bc_epochs": 0,
+    "bc_minibatch_updates": 0,
+    "eval_steps": 128,
+    "gen_calls": 0,
+    "episodes": 0,
+    "synthetic_total": 128,
+}

@@ -301,13 +301,15 @@ class TestDPReferenceExactness:
                                           tier_validity as _tv)
         spec = spec_for("c4d2", seed=MS, horizon=64,
                         **profiles.TRAIN_SPEC_OVERRIDES)
+        # R4-B:细化链最细级必须覆盖判定网格(321/64/40),
+        # 且 tier_validity 消费完整报告对象(可复算绑定)。
         rep = error_report(spec, refinements=((81, 16, 12),
-                                              (161, 32, 24)))
+                                              (161, 32, 24),
+                                              (321, 64, 40)))
         v = initial_value(spec)
         assert v > 0.0
         assert v - rep["err_bound"] > 0.0, (v, rep)
-        st = _tv(spec, n_episodes=16,
-                 err_bound=rep["err_bound"])
+        st = _tv(spec, n_episodes=16, err_bound=rep)
         assert st["qualified"] is True
         assert st["n_failures"] == 0
         assert st["net_log"] > st["flat_net_log"] - 0.25

@@ -116,22 +116,39 @@ class TestRefinementValidation:
 
 class TestQualificationGate:
     def test_err_bound_bad_values_rejected(self):
-        """错规格证据(NaN/inf/负)不得经手填 qualified。"""
+        """错规格证据(NaN/inf/负/bool)结构性拒绝(R4:bool 也拒)。"""
         spec = _tiny_spec()
         for bad in (float("nan"), float("inf"), -1e-9):
             with pytest.raises(ValueError, match="err_bound"):
                 tier_validity(spec, n_episodes=0, err_bound=bad)
+        with pytest.raises(ValueError, match="布尔"):
+            tier_validity(spec, n_episodes=0, err_bound=False)
 
-    def test_qualified_is_conditional_numeric_judgement(self):
-        """qualified = value−err>0 的有条件数值开发判断(固定
-        规格;分型字段如实)。"""
+    def test_naked_scalar_is_diagnostic_only(self):
+        """R4-B:裸标量(含手填 0)只作诊断——qualified=False,
+        NOT_ESTABLISHED;不再冒充 empirical_adjacent_diff。"""
         spec = _tiny_spec()
         val = initial_value(spec, **TINY)
-        st = tier_validity(spec, n_episodes=0,
-                           err_bound=abs(val) / 2)
-        assert st["qualified"] is True
+        for naked in (0.0, abs(val) / 2, abs(val) * 2 + 1e-9):
+            st = tier_validity(spec, n_episodes=0, err_bound=naked)
+            assert st["qualified"] is False
+            assert st["err_bound_kind"] == "diagnostic_only"
+            assert "NOT_ESTABLISHED" in st["qualification_note"]
+            assert "dp_err_bound" not in st
+
+    def test_report_object_gives_conditional_judgement(self):
+        """完整报告对象(最细级=判定网格)→ 复算绑定通过,
+        qualified = value−err>0 的有条件数值开发判断。"""
+        spec = _tiny_spec()
+        rep = error_report(
+            spec, refinements=((81, 16, 12), (161, 32, 24),
+                               (321, 64, 40)))
+        st = tier_validity(spec, n_episodes=0, err_bound=rep)
         assert st["err_bound_kind"] == "empirical_adjacent_diff"
+        assert st["dp_err_bound"] == pytest.approx(
+            rep["err_bound"], rel=1e-12)
+        assert st["qualified"] == bool(
+            st["dp_initial_value"] - rep["err_bound"] > 0.0)
         assert "不构成一般误差保证" in st["qualification_note"]
-        st2 = tier_validity(spec, n_episodes=0,
-                            err_bound=abs(val) * 2 + 1e-9)
-        assert st2["qualified"] is False
+        assert st["err_evidence"]["verified_by"] == (
+            "tier_validity._verify_error_report")

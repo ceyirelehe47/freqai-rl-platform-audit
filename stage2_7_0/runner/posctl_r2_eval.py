@@ -164,7 +164,7 @@ def main() -> int:
                     st = tier_validity(spec,
                                        n_episodes=args.tier_episodes,
                                        quota=quota,
-                                       err_bound=rep["err_bound"])
+                                       err_bound=rep)
                     st["dp_error_report"] = rep
                     result["tiers"][course] = st
                 for course in C123:

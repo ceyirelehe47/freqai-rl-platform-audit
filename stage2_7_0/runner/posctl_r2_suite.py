@@ -144,6 +144,8 @@ def main() -> int:
     # 注入与账本任务面匹配的环境变量(conftest 读同一账本)
     env_var = ("POSCTL_R3_LEDGER"
                if led.task_id.endswith("R3_20261013")
+               else "POSCTL_R4_LEDGER" if led.task_id.endswith(
+                   "R4_20261013")
                else "POSCTL_R2_LEDGER")
     os.environ[env_var] = str(ledger_path)
 

@@ -98,23 +98,20 @@ class TestBudgetFaceBinding:
 
     def test_header_face_mismatch_refused_on_open(self, tmp_path):
         """reviewer F1-a 反例:头部 eval=0 的账本不得按代码缺省面
-        (32768)重新打开续花——打开即拒绝。"""
+        (32768)重新打开续花——打开即拒绝(其余头部字段齐全,单验
+        面不一致;缺字段场景见 R4 测试)。"""
         led, path = _mk_ledger(tmp_path)
         header_face = dict(led.limits, eval_steps=0)
         hdr = {"event": "task_bind", "task_id": led.task_id,
-               "budget_face": header_face}
+               "budget_face": header_face,
+               "single_caps": dict(led.single_caps),
+               "derived_totals": [
+                   {"name": n, "parts": list(pp), "cap": c}
+                   for n, pp, c in led._derived_spec]}
         p2 = tmp_path / "hdr0.jsonl"
         p2.write_text(json.dumps(hdr) + "\n", encoding="utf-8")
         with pytest.raises(RuntimeError, match="预算面与代码不一致"):
             TaskLedger(p2, led.task_id)
-
-    def test_divergent_limits_refused_at_create(self, tmp_path):
-        """同任务异预算在 create 即拒绝(头部面不可覆写)。"""
-        led, _ = _mk_ledger(tmp_path)
-        with pytest.raises(RuntimeError, match="同任务异预算"):
-            TaskLedger.create(
-                tmp_path / "bad.jsonl", led.task_id,
-                limits=dict(led.limits, episodes=5))
 
     def test_divergent_limits_refused_on_open(self, tmp_path):
         led, path = _mk_ledger(tmp_path)

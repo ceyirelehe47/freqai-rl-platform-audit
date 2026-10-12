@@ -53,7 +53,8 @@ from pathlib import Path
 
 from rl_posctl.versions import (
     POSCTL_R1_BUDGET, POSCTL_R2_BUDGET, POSCTL_R2_TASK_ID,
-    POSCTL_R3_BUDGET, POSCTL_R3_TASK_ID)
+    POSCTL_R3_BUDGET, POSCTL_R3_TASK_ID,
+    POSCTL_R4_BUDGET, POSCTL_R4_TASK_ID)
 
 METRICS = ("ppo_steps", "ppo_learn_attempts", "bc_fits", "bc_epochs",
            "bc_minibatch_updates", "eval_steps", "gen_calls", "episodes")
@@ -111,6 +112,29 @@ DERIVED_TOTALS = (("synthetic_total", ("ppo_steps", "eval_steps"),
 DERIVED_TOTALS_R3 = (("synthetic_total", ("ppo_steps", "eval_steps"),
                       POSCTL_R3_BUDGET["synthetic_total"]),)
 
+# R4 派生总项(上限 = R4 面 ppo+eval 合计 128)。
+DERIVED_TOTALS_R4 = (("synthetic_total", ("ppo_steps", "eval_steps"),
+                      POSCTL_R4_BUDGET["synthetic_total"]),)
+
+
+def r4_limits() -> dict:
+    """POSCTL_R4_BUDGET(R4 收口轮面)→ METRICS 键限额映射。"""
+    return {
+        "ppo_steps": POSCTL_R4_BUDGET["ppo_steps_total"],
+        "ppo_learn_attempts": POSCTL_R4_BUDGET["ppo_learn_attempts"],
+        "bc_fits": POSCTL_R4_BUDGET["bc_fits"],
+        "bc_epochs": POSCTL_R4_BUDGET["bc_epochs"],
+        "bc_minibatch_updates":
+            POSCTL_R4_BUDGET["bc_minibatch_updates"],
+        "eval_steps": POSCTL_R4_BUDGET["eval_steps"],
+        "gen_calls": POSCTL_R4_BUDGET["gen_calls"],
+        "episodes": POSCTL_R4_BUDGET["episodes"],
+    }
+
+
+def r4_single_caps() -> dict:
+    return {"ppo_steps": POSCTL_R4_BUDGET["ppo_steps_single"]}
+
 
 def task_registry() -> dict:
     """任务身份 → 预算面注册表(一一对应;TaskLedger 的唯一面来源)。
@@ -130,6 +154,12 @@ def task_registry() -> dict:
             "single_caps": r3_single_caps(),
             "derived_totals": DERIVED_TOTALS_R3,
             "budget_source": "rl_posctl.versions.POSCTL_R3_BUDGET",
+        },
+        POSCTL_R4_TASK_ID: {
+            "limits": r4_limits(),
+            "single_caps": r4_single_caps(),
+            "derived_totals": DERIVED_TOTALS_R4,
+            "budget_source": "rl_posctl.versions.POSCTL_R4_BUDGET",
         },
     }
 
@@ -467,6 +497,20 @@ class ReservationLedger:
             r = self.reservations[rid]
             d = self.drawn.get(rid) or {k: 0 for k in METRICS}
             problems = []
+            # R4-A1(B1):结清校验覆盖**整个已授权/已划拨计量域**,
+            # 不是只查调用者传入的键——旧实现计算 delta 用全 METRICS
+            # 而漏键按 0,遗漏 gen_calls 等已划拨字段会落盘负 delta
+            # 冲回已消费额度(probe:commit(eval_steps=0) 使 gen 9→0)。
+            # 修复:凡 authorized>0 或 drawn>0 的指标必须**显式**出现在
+            # actuals(显式 0 合法);不完整结清一律拒绝,预约保持占用。
+            required = [k for k in METRICS
+                        if r.get(k, 0) > 0 or d.get(k, 0) > 0]
+            missing = [k for k in required if k not in checked]
+            if missing:
+                problems.append(
+                    f"不完整结清:遗漏已授权/已划拨指标 {missing}"
+                    "(必结键必须显式给出;漏键按 0 会冲回已消费"
+                    "额度——fail closed,预约保持占用)")
             for k, v in checked.items():
                 if int(v) > r.get(k, 0):
                     problems.append(
@@ -715,16 +759,36 @@ class TaskLedger(ReservationLedger):
                 f"{self.path}:头部面 {face} != 任务 "
                 f"{self.task_id!r} 注册表面 {dict(self.limits)}"
                 "(同任务异预算 fail closed;不按代码缺省面扩权)")
+        # R4-A2(B1):头部约束**完整**核验——单次上限与派生总项必须
+        # 在场且与任务注册表逐项一致(旧:single_caps 改小/删除
+        # derived_totals 后仍可打开并按宽约束预约)。缺失即拒
+        # (fail closed;历史旧头只读留档,不经本类打开)。
+        sc_hdr = rec.get("single_caps")
+        if not isinstance(sc_hdr, dict):
+            raise RuntimeError(
+                f"task_bind 缺 single_caps 声明,拒绝打开 "
+                f"{self.path}:单次上限必须显式绑定任务面"
+                "(缺失/错值不能按代码缺省放行)")
+        if dict(sc_hdr) != dict(reg["single_caps"]):
+            raise RuntimeError(
+                f"task_bind 单次上限与代码不一致,拒绝打开 "
+                f"{self.path}:头部 {dict(sc_hdr)} != 任务 "
+                f"{self.task_id!r} 注册表 "
+                f"{dict(reg['single_caps'])}")
         derived_hdr = rec.get("derived_totals")
-        if isinstance(derived_hdr, list):
-            hdr_spec = tuple(
-                (d.get("name"), tuple(d.get("parts") or ()),
-                 d.get("cap")) for d in derived_hdr)
-            if hdr_spec != tuple(self._derived_spec):
-                raise RuntimeError(
-                    f"task_bind 派生总项与代码不一致,拒绝打开 "
-                    f"{self.path}:头部 {hdr_spec} != 代码 "
-                    f"{tuple(self._derived_spec)}")
+        if not isinstance(derived_hdr, list):
+            raise RuntimeError(
+                f"task_bind 缺 derived_totals 声明,拒绝打开 "
+                f"{self.path}:派生总项约束必须显式绑定任务面"
+                "(缺失不能按代码缺省放行)")
+        hdr_spec = tuple(
+            (d.get("name"), tuple(d.get("parts") or ()),
+             d.get("cap")) for d in derived_hdr)
+        if hdr_spec != tuple(self._derived_spec):
+            raise RuntimeError(
+                f"task_bind 派生总项与代码不一致,拒绝打开 "
+                f"{self.path}:头部 {hdr_spec} != 代码 "
+                f"{tuple(self._derived_spec)}")
         self._bind_seen = rec
 
     def _extra_problems(self, normalized: dict,

@@ -675,10 +675,100 @@ def error_report(spec: CourseSpec,
             "adjacent_diffs": diffs,
             "err_bound": (max(diffs) if diffs else 0.0),
             "err_bound_kind": "empirical_adjacent_diff",
+            "spec_key": spec_fingerprint(spec),
+            "judged_grid": [REF_N_DENSE, REF_N_EXT, REF_M_QUAD],
             "err_bound_note": (
                 "经验收敛差(相邻细化级最大差),不是已证明的误差"
                 "上界;qualified 判断仅为本固定规格下的有条件数值"
                 "开发判断")}
+
+
+def spec_fingerprint(spec: CourseSpec) -> tuple:
+    """课程规格语义指纹(全部影响参考值/适用性的字段;R4-B)。"""
+    return (spec.course, spec.horizon, spec.seed, spec.mu_max,
+            spec.sigma_lo, spec.sigma_hi, spec.fee,
+            spec.slippage_bps, spec.s_switch_p, spec.c_hold_p,
+            spec.g_hold_p, spec.q_hold_p, spec.sigma_regime,
+            spec.initial_cash)
+
+
+def _verify_error_report(spec: CourseSpec, report: dict) -> dict:
+    """复算绑定 error_report 证据(R4-B/C1;tier_validity 消费用)。
+
+    核验:结构完整、细化链合法(validate_refinements)、各级值
+    有限、err_bound == 重算 max|相邻差|、spec_key == 当前规格
+    指纹、最细级 == 当前判定值所用默认求解网格(REF_*)。
+    通过 → verified + err_bound + 证据摘要;不通过 → 未验证
+    原因(调用方输出 NOT_ESTABLISHED)。手改 err_bound/错规格
+    报告/最细级与判定网格不一致均不通过。
+    """
+    try:
+        vals = report["values"]
+        refs = report["refinements"]
+        diffs = report["adjacent_diffs"]
+        eb = report["err_bound"]
+        skey = report["spec_key"]
+        judged = report["judged_grid"]
+    except (KeyError, TypeError):
+        return {"verified": False,
+                "reason": "报告结构不完整(缺 values/refinements/"
+                          "adjacent_diffs/err_bound/spec_key/"
+                          "judged_grid;疑似非 error_report 输出)"}
+    try:
+        levels = validate_refinements(refs)
+    except ValueError as exc:
+        return {"verified": False,
+                "reason": f"细化链非法:{exc}"}
+    if (not isinstance(vals, list) or len(vals) != len(levels)
+            or not isinstance(diffs, list)
+            or len(diffs) != len(levels) - 1):
+        return {"verified": False,
+                "reason": "值/差数组长度与细化级不匹配"}
+    for v in vals:
+        if not isinstance(v, (int, float)) or isinstance(v, bool) \
+                or not math.isfinite(float(v)):
+            return {"verified": False,
+                    "reason": f"细化值非有限({v!r})"}
+    recompute = [abs(float(vals[i + 1]) - float(vals[i]))
+                 for i in range(len(vals) - 1)]
+    if any(abs(a - b) > 1e-15 * max(1.0, abs(b))
+           for a, b in zip(recompute, diffs)):
+        return {"verified": False,
+                "reason": "adjacent_diffs 与值序列复算不符(疑似"
+                          "手改)"}
+    if (not isinstance(eb, (int, float)) or isinstance(eb, bool)
+            or not math.isfinite(float(eb))
+            or abs(float(eb) - max(recompute))
+            > 1e-15 * max(1.0, abs(max(recompute)))):
+        return {"verified": False,
+                "reason": f"err_bound 与 max|相邻差| 复算不符"
+                          f"({eb!r} vs {max(recompute)!r};疑似手改)"}
+    if tuple(skey) != spec_fingerprint(spec):
+        return {"verified": False,
+                "reason": "spec_key 与当前课程规格不一致(错规格"
+                          "证据不得给本规格结论)"}
+    if [int(x) for x in judged] != [REF_N_DENSE, REF_N_EXT,
+                                    REF_M_QUAD]:
+        return {"verified": False,
+                "reason": "judged_grid 与判定值所用默认求解网格"
+                  f"不一致({judged} vs "
+                  f"{[REF_N_DENSE, REF_N_EXT, REF_M_QUAD]});误差"
+                  "基准与被判定值不同"}
+    finest = levels[-1]
+    if list(finest) != [REF_N_DENSE, REF_N_EXT, REF_M_QUAD]:
+        return {"verified": False,
+                "reason": f"最细级 {finest} != 判定网格 "
+                  f"{[REF_N_DENSE, REF_N_EXT, REF_M_QUAD]};误差"
+                  "声明未覆盖被判定值的求解设置"}
+    return {"verified": True,
+            "err_bound": float(eb),
+            "evidence": {
+                "refinements": [list(r) for r in levels],
+                "n_levels": len(levels),
+                "adjacent_diffs": recompute,
+                "spec_key": list(skey),
+                "judged_grid": [int(x) for x in judged],
+                "verified_by": "tier_validity._verify_error_report"}}
 
 def _state_index(spec: CourseSpec, s: float, c: float, q: float,
                  g: float) -> int:
@@ -841,20 +931,52 @@ def tier_validity(spec: CourseSpec, n_episodes: int = 32,
     stats["dp_solver_meta"] = dict(
         reference_policy(spec)["solver_meta"])
     if err_bound is not None:
-        eb = float(err_bound)
-        if not math.isfinite(eb) or eb < 0.0:
+        # R4-B(C1):有效性结论必须绑定**可复算证据**,裸标量只能作
+        # 诊断——不再把手填 0/False 贴上 empirical_adjacent_diff 并
+        # 给 qualified=true。三类输入:
+        # - bool/非有限/负数:结构性非法,拒绝(资源工作前);
+        # - 裸数值(含 0):diagnostic_only,qualified=False,
+        #   NOT_ESTABLISHED(没有细化链/规格绑定,不足以给结论);
+        # - error_report 输出(dict):复算绑定——细化链合法、
+        #   err_bound == 重算 max|相邻差|、spec 指纹一致、最细级
+        #   == 当前判定值所用默认求解网格;任一不满足即
+        #   NOT_ESTABLISHED(不误拒合法报告,也不给手改值放行)。
+        if isinstance(err_bound, bool):
             raise ValueError(
-                f"err_bound 非法({err_bound!r}):非有限/负值不得"
-                "经手填写 qualified(错误或错规格证据拒绝)")
-        stats["dp_err_bound"] = eb
-        stats["err_bound_kind"] = "empirical_adjacent_diff"
-        stats["qualified"] = bool(
-            stats["dp_initial_value"] - eb > 0.0)
-        stats["qualification_note"] = (
-            "value−err>0 才 qualified;误差=网格/求积收敛差"
-            "(error_report 经验相邻差,非已证明误差上界),不手设"
-            "宽容差;本判断为固定规格下的有条件数值开发判断,"
-            "不足即 NOT_ESTABLISHED,不构成一般误差保证")
+                f"err_bound 非法({err_bound!r}):布尔不是误差证据")
+        if isinstance(err_bound, dict):
+            verdict = _verify_error_report(spec, err_bound)
+            if verdict.get("verified"):
+                eb = float(verdict["err_bound"])
+                stats["dp_err_bound"] = eb
+                stats["err_bound_kind"] = "empirical_adjacent_diff"
+                stats["err_evidence"] = verdict["evidence"]
+                stats["qualified"] = bool(
+                    stats["dp_initial_value"] - eb > 0.0)
+                stats["qualification_note"] = (
+                    "value−err>0 才 qualified;误差=绑定复算的"
+                    "error_report 经验相邻差(非已证明误差上界);"
+                    "本判断为固定规格下的有条件数值开发判断,"
+                    "不足即 NOT_ESTABLISHED,不构成一般误差保证")
+            else:
+                stats["err_bound_kind"] = "unverified_report"
+                stats["qualified"] = False
+                stats["qualification_note"] = (
+                    "证据未通过绑定复算(" + verdict["reason"]
+                    + ");NOT_ESTABLISHED,不作有效性结论")
+        else:
+            eb = float(err_bound)
+            if not math.isfinite(eb) or eb < 0.0:
+                raise ValueError(
+                    f"err_bound 非法({err_bound!r}):非有限/负值"
+                    "不是误差证据(拒绝)")
+            stats["dp_err_bound_diagnostic_only"] = eb
+            stats["err_bound_kind"] = "diagnostic_only"
+            stats["qualified"] = False
+            stats["qualification_note"] = (
+                "裸标量 err_bound 仅作诊断:无细化链/规格/求解"
+                "设置绑定,不足以支撑有效性结论(NOT_ESTABLISHED);"
+                "合格判定请传入 error_report(spec) 的完整报告")
     return stats
 
 
