@@ -96,7 +96,9 @@ backward+step、evaluate_actions 形状、同进程重载一致、
 
 ## 6. 回归与验收(U17–U19)
 
-- 最终候选:<FINAL_SHA>(冻结后填)。
+- 最终候选:8379d33b16de9648fd9cde6241bbf132c3ada0f1(冻结;
+  链 0b6b94d9→ba7dcca7→b515c69d→ebbfc98a→91d1d548→a873c6f4
+  →cbc40c3a→4caac469→3daea6f3→1c0e0194→8379d33b)。
 - 261 全量回归(collection+JUnit+多重集 ci_multiset_compare 实测
   对比 A9 基线,计数不预填)+ 本轮新增 route_c_posctl 套件 +
   受影响 262 测试;stdout/stderr/rc/auditor/lifecycle 齐备。
