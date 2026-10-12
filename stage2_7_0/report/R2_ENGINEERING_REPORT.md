@@ -205,9 +205,21 @@ originals_handover/):
   合成合计 26,892/33,792——全分项/总项未超限,face 与代码一致。
 - 独立 reviewer:按用户配置 zhipu-coding-plan/glm-5.3-flash:max
   委派(请求别名/配置选择器/运行回执三者在 reviews/ 记录;
-  不代签 ChatGPT;原文随包)。
-- 最终 ZIP 冷读:固定 ZIP 副本新目录解压、重算哈希/CRC/成员/
-  安全路径/源码 Git/回执原文/预算分类;回执在包外绑定实际 ZIP。
+  不代签 ChatGPT;原文随包)。R2-01~08 全部 PASS(原文+
+  探针记录:reviews/reviewer_r2_content_review.md)。
+- **reviewer F1(已闭环)**:套件 wrapper 的 ppo 分类读跨 run
+  累计注册表,后续套件 run 的 eval 实耗被前次 ppo 步错误冲减
+  (两处活体共 64 步,不超限)。修复 ca0511d6(_registry_len 快照
+  +只计本次新增行);64 步 incident 补记(只增不减);活体验证
+  2 learn 单测 session_ppo=32/eval=0 分类精确(复验记录 reviews/
+  reviewer_r2_content_review.md §12;独立 reviewer 确认 overall
+  PASS 以 ca0511d6 为最终候选)。勘误:incident note 中
+  "55−32=23" 为措辞笔误,正确为 "87−32=55,少记 32";补记金额
+  64 与机制描述正确,账本行不可改写,勘误在此说明。
+- 最终账本快照(含 F1 补记与验证 run):ppo 320/1,024(6/8)、
+  eval 有效 26,678/32,768、gen 704/2,048、episodes 113/512、
+  synthetic 26,998/33,792,全部无超限,budget_face_matches_code=
+  true。
 
 ## 9. 分层结论(不互代签)
 
