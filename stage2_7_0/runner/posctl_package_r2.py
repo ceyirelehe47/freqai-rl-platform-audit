@@ -108,12 +108,16 @@ def main() -> int:
         json.dumps(git_id, ensure_ascii=False, indent=1) + "\n",
         encoding="utf-8")
 
-    # ---- SHA256SUMS(精确覆盖除自身;正斜杠) ----
+    # ---- SHA256SUMS(R3 修正:只排除**根级**清单自身——按相对
+    #      路径判等,不按 basename 过滤;嵌套同名清单照常覆盖) ----
     sums = []
     for p in sorted(stage.rglob("*")):
-        if p.is_file() and p.name != "SHA256SUMS.txt":
-            sums.append(f"{sha256_file(p)}  "
-                        f"{p.relative_to(stage).as_posix()}")
+        if not p.is_file():
+            continue
+        if p.relative_to(stage).as_posix() == "SHA256SUMS.txt":
+            continue
+        sums.append(f"{sha256_file(p)}  "
+                    f"{p.relative_to(stage).as_posix()}")
     (stage / "SHA256SUMS.txt").write_text(
         "\n".join(sums) + "\n", encoding="utf-8", newline="\n")
 

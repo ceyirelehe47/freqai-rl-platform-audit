@@ -27,14 +27,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+import rl_posctl.curriculum as _currmod  # noqa: E402
 import rl_posctl.env as _envmod  # noqa: E402
 from rl_posctl import profiles  # noqa: E402
 from rl_posctl.banks import QuotaLedger  # noqa: E402
-from rl_posctl.budget import TaskLedger  # noqa: E402
+from rl_posctl.budget import open_task_ledger  # noqa: E402
 from rl_posctl.curriculum import (  # noqa: E402
-    baseline_policies, error_report, spec_for, tier_validity)
+    baseline_policies, error_report, spec_for, tier_validity,
+    validate_refinements)
 from rl_posctl.runlog import RunLog, write_rejection  # noqa: E402
-from rl_posctl.versions import POSCTL_R2_TASK_ID  # noqa: E402
 
 TIERS = ("c4d0", "c4d1", "c4d2", "c4d3")
 C123 = ("c1", "c2", "c3")
@@ -55,7 +56,8 @@ def main() -> int:
     out_root = Path(args.out_root)
     ledger_path = Path(args.ledger)
 
-    # ---- 1) 前置校验(零工作叶;拒绝留痕) ----
+    # ---- 1) 前置校验(R3:全部参数含 refinements/输出在场,零工作叶;
+    #         拒绝留痕,不消耗额度)----
     problems = []
     bases_all = baseline_policies()
     for b in (args.baseline or []):
@@ -68,20 +70,36 @@ def main() -> int:
             problems.append(f"--{name.replace('_', '-')} 必须为正整数")
     if not ledger_path.exists():
         problems.append(f"任务账本不存在:{ledger_path}")
+    # R3-01/F1-d:refinement 语法/规格在**预约之前**解析校验
+    # (旧:总预约后才 int() 解析,零工作却留下未闭合预约)
+    refinements = None
+    try:
+        refinements = [
+            tuple(int(x) for x in s.split(","))
+            for s in args.err_refinements.split(";")]
+        refinements = validate_refinements(refinements)
+    except ValueError as exc:
+        problems.append(f"--err-refinements 非法({args.err_refinements!r}):"
+                        f"{exc}")
+    # R3-02:输出目录在场先拒绝(不混写旧 run;预约前检查)
+    out_dir = out_root / time.strftime("curriculum_eval_%Y%m%dT%H%M%S")
+    if out_dir.exists():
+        problems.append(f"运行目录已存在,拒绝覆盖输出:{out_dir}")
     if problems:
         d = write_rejection(out_root, "posctl_r2_eval",
                             "; ".join(problems), sys.argv)
         print(f"REJECTED {d}/rejection.json", flush=True)
         return 2
     try:
-        led = TaskLedger(ledger_path, POSCTL_R2_TASK_ID)
+        # R3-01/F1-a:按账本头部任务身份打开(face 与代码注册表核对)
+        led = open_task_ledger(ledger_path)
     except RuntimeError as exc:
         d = write_rejection(out_root, "posctl_r2_eval",
                             f"账本绑定校验失败:{exc}", sys.argv)
         print(f"REJECTED {d}/rejection.json", flush=True)
         return 2
 
-    # ---- 2) 上界计算 + 先预约(持久;崩溃保守保留) ----
+    # ---- 2) 上界计算 + 先预约(授权;崩溃保守保留) ----
     n_base = len(args.baseline) if args.baseline else len(bases_all)
     n_eval_eps = (len(TIERS) * args.tier_episodes
                   + len(C123) * args.c123_episodes)
@@ -106,110 +124,141 @@ def main() -> int:
         print(f"REJECTED {d}/rejection.json", flush=True)
         return 2
 
-    out_dir = out_root / time.strftime("curriculum_eval_%Y%m%dT%H%M%S")
-    out_dir.mkdir(parents=True, exist_ok=False)
-    quota = QuotaLedger(out_dir / "gen_quota.jsonl", task_ledger=led)
+    # ---- 3) 运行目录(create-only;预约后创建但工作前,同秒冲突
+    #     释放零工作预约后拒绝,不留未闭合占用)----
+    try:
+        out_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as exc:
+        led.release(rid, "posctl_r2_eval",
+                    note=f"输出目录竞争冲突(零工作退还):{exc}")
+        d = write_rejection(out_root, "posctl_r2_eval",
+                            f"运行目录已存在:{out_dir}", sys.argv)
+        print(f"REJECTED {d}/rejection.json", flush=True)
+        return 2
+    # R3-01:总预约=授权 grant;叶级经 QuotaLedger.draw 划拨,不双计
+    quota = QuotaLedger(out_dir / "gen_quota.jsonl", task_ledger=led,
+                        grant_rid=rid)
     env0 = int(_envmod.ENV_STEP_COUNT)
-    with RunLog(out_dir, argv=sys.argv,
-                meta_extra={"runner": "posctl_r2_eval",
-                            "reserve": {"eval_ub": eval_ub,
-                                        "gen_ub": gen_ub}}) as rl:
-        result = {"run": "posctl_r2_eval", "tiers": {}, "c123": {},
-                  "baselines_c4d2": {},
-                  "reserve_upper_bounds": {
-                      "eval_steps": eval_ub, "gen_calls": gen_ub}}
-        refinements = [tuple(int(x) for x in s.split(","))
-                       for s in args.err_refinements.split(";")]
-        try:
-            for course in TIERS:
-                spec = spec_for(course, seed=profiles.MASTER_SEED,
-                                horizon=64,
-                                **profiles.TRAIN_SPEC_OVERRIDES)
-                rep = error_report(spec, refinements=refinements)
-                st = tier_validity(spec,
-                                   n_episodes=args.tier_episodes,
-                                   quota=quota,
-                                   err_bound=rep["err_bound"])
-                st["dp_error_report"] = rep
-                result["tiers"][course] = st
-            for course in C123:
-                spec = spec_for(course, seed=profiles.MASTER_SEED,
-                                horizon=64,
-                                **profiles.TRAIN_SPEC_OVERRIDES)
-                st = tier_validity(spec,
-                                   n_episodes=args.c123_episodes,
-                                   quota=quota)
-                result["c123"][course] = st
+    gen0 = int(_currmod.GEN_CALL_COUNT)
+    # 执行中硬限(cap 之内的工作才发生;不是事后 commit 才发现)
+    _envmod.ENV_STEP_LIMIT = env0 + int(eval_ub)
+    _currmod.GEN_CALL_LIMIT = gen0 + int(gen_ub)
+    try:
+        with RunLog(out_dir, argv=sys.argv,
+                    meta_extra={"runner": "posctl_r2_eval",
+                                "reserve": {
+                                    "eval_ub": eval_ub,
+                                    "gen_ub": gen_ub,
+                                    "grant_rid": rid}}) as rl:
+            result = {"run": "posctl_r2_eval", "tiers": {}, "c123": {},
+                      "baselines_c4d2": {},
+                      "reserve_upper_bounds": {
+                          "eval_steps": eval_ub,
+                          "gen_calls": gen_ub}}
+            try:
+                for course in TIERS:
+                    spec = spec_for(course, seed=profiles.MASTER_SEED,
+                                    horizon=64,
+                                    **profiles.TRAIN_SPEC_OVERRIDES)
+                    rep = error_report(spec, refinements=refinements)
+                    st = tier_validity(spec,
+                                       n_episodes=args.tier_episodes,
+                                       quota=quota,
+                                       err_bound=rep["err_bound"])
+                    st["dp_error_report"] = rep
+                    result["tiers"][course] = st
+                for course in C123:
+                    spec = spec_for(course,
+                                    seed=profiles.MASTER_SEED,
+                                    horizon=64,
+                                    **profiles.TRAIN_SPEC_OVERRIDES)
+                    st = tier_validity(spec,
+                                       n_episodes=args.c123_episodes,
+                                       quota=quota)
+                    result["c123"][course] = st
 
-            # 参考 vs 基线(c4d2 训练面;同 seed 域重建=生成计调用)
-            from rl_posctl.curriculum import reference_action
-            from rl_posctl.env import HybridPositionEnv
-            from rl_posctl.evalreport import run_policy, summarize
-            from rl_posctl.experiments import train_course_spec
+                # 参考 vs 基线(c4d2 训练面;同 seed 域重建=生成计调用;
+                # R3:调用必计、成功才结 episode)
+                from rl_posctl.curriculum import reference_action
+                from rl_posctl.env import HybridPositionEnv
+                from rl_posctl.evalreport import (
+                    run_policy, summarize)
+                from rl_posctl.experiments import train_course_spec
 
-            spec = train_course_spec(profiles.TRAIN_COURSE,
-                                     profiles.MASTER_SEED)
+                spec = train_course_spec(profiles.TRAIN_COURSE,
+                                         profiles.MASTER_SEED)
 
-            def replay_stats(policy_fn):
-                tot, rows = 0.0, []
-                for i in range(args.replay_episodes):
-                    quota.record(
-                        gen_calls=1, episodes=1,
-                        bank="posctl_c4d2_replay", domain="eval")
-                    from rl_posctl.curriculum import generate_episode
-                    prices, feats, _ = generate_episode(spec, 5000 + i)
-                    env = HybridPositionEnv(
-                        features=feats, prices=prices, fee=spec.fee,
-                        window_size=1)
-                    infos = run_policy(env, policy_fn)
-                    s = summarize(infos)
-                    tot += (s["net_log_return"] or 0.0)
-                    rows.append({
-                        "episode": i,
-                        "net_log": (s["net_log_return"] if
-                                    s["net_log_return_valid"]
-                                    else None),
-                        "fees": s["total_fees"],
-                        "failure": s["economic_failure"]})
-                return tot, rows
+                def replay_stats(policy_fn):
+                    tot, rows = 0.0, []
+                    for i in range(args.replay_episodes):
+                        quota.record(
+                            gen_calls=1, bank="posctl_c4d2_replay",
+                            domain="eval")
+                        prices, feats, _ = _currmod.generate_episode(
+                            spec, 5000 + i)
+                        quota.record_episode(bank="posctl_c4d2_replay",
+                                             domain="eval")
+                        env = HybridPositionEnv(
+                            features=feats, prices=prices, fee=spec.fee,
+                            window_size=1)
+                        infos = run_policy(env, policy_fn)
+                        s = summarize(infos)
+                        tot += (s["net_log_return"] or 0.0)
+                        rows.append({
+                            "episode": i,
+                            "net_log": (s["net_log_return"] if
+                                        s["net_log_return_valid"]
+                                        else None),
+                            "fees": s["total_fees"],
+                            "failure": s["economic_failure"]})
+                    return tot, rows
 
-            def ref(row, w, sl):
-                return reference_action(spec, row, w, steps_left=sl)
+                def ref(row, w, sl):
+                    return reference_action(spec, row, w, steps_left=sl)
 
-            bases = ({k: bases_all[k] for k in args.baseline}
-                     if args.baseline else bases_all)
-            ref_tot, ref_rows = replay_stats(ref)
-            result["baselines_c4d2"]["reference"] = {
-                "total_net_log": ref_tot, "rows": ref_rows}
-            for name, fn in bases.items():
-                tot, _ = replay_stats(fn)
-                result["baselines_c4d2"][name] = {
-                    "total_net_log": tot}
-        except BaseException as exc:
-            led.abandon(rid, "posctl_r2_eval",
-                        note=f"运行异常中止(保守保留预约):{exc!r}")
-            raise
+                bases = ({k: bases_all[k] for k in args.baseline}
+                         if args.baseline else bases_all)
+                ref_tot, ref_rows = replay_stats(ref)
+                result["baselines_c4d2"]["reference"] = {
+                    "total_net_log": ref_tot, "rows": ref_rows}
+                for name, fn in bases.items():
+                    tot, _ = replay_stats(fn)
+                    result["baselines_c4d2"][name] = {
+                        "total_net_log": tot}
+            except BaseException as exc:
+                # 未划拨余额保守保留;已划拨实测已入账(不混类)
+                led.abandon(rid, "posctl_r2_eval",
+                            note=f"运行异常中止(保守保留余额):"
+                                 f"{exc!r}")
+                raise
 
-        # ---- 实结(实耗 ≤ 预约;分类:全部为无梯度 eval) ----
-        eval_actual = int(_envmod.ENV_STEP_COUNT) - env0
-        gen_actual = quota.gen_calls
-        led.commit(rid, "posctl_r2_eval",
-                   eval_steps=eval_actual,
-                   gen_calls=gen_actual, episodes=gen_actual)
-        result["env_steps_actual"] = eval_actual
-        result["gen_quota_cum"] = {"gen_calls": quota.gen_calls,
-                                   "episodes": quota.episodes}
-        result["budget_snapshot"] = led.snapshot()
-        (out_dir / "posctl_r2_eval.json").write_text(
-            json.dumps(result, ensure_ascii=False, indent=1),
-            encoding="utf-8")
-        print(json.dumps(
-            {k: {"dp_initial_value": v["dp_initial_value"],
-                 "qualified": v.get("qualified")}
-             for k, v in result["tiers"].items()},
-            ensure_ascii=False, indent=1))
-        rl.rc = 0
-        return 0
+            # ---- 实结(实际总量 ≤ 授权;已划拨部分不重复入账) ----
+            eval_actual = int(_envmod.ENV_STEP_COUNT) - env0
+            gen_actual = quota.gen_calls
+            episodes_actual = quota.episodes
+            led.commit(rid, "posctl_r2_eval",
+                       eval_steps=eval_actual,
+                       gen_calls=gen_actual,
+                       episodes=episodes_actual)
+            result["env_steps_actual"] = eval_actual
+            result["gen_quota_cum"] = {
+                "gen_calls": quota.gen_calls,
+                "episodes": quota.episodes}
+            result["budget_snapshot"] = led.snapshot()
+            (out_dir / "posctl_r2_eval.json").write_text(
+                json.dumps(result, ensure_ascii=False, indent=1),
+                encoding="utf-8")
+            print(json.dumps(
+                {k: {"dp_initial_value": v["dp_initial_value"],
+                     "qualified": v.get("qualified")}
+                 for k, v in result["tiers"].items()},
+                ensure_ascii=False, indent=1))
+            rl.rc = 0
+            return 0
+    finally:
+        # 进程内守卫不外泄(套件/后续运行按自身授权重设)
+        _envmod.ENV_STEP_LIMIT = None
+        _currmod.GEN_CALL_LIMIT = None
 
 
 if __name__ == "__main__":

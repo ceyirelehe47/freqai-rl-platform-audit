@@ -74,6 +74,51 @@ HALF_CELL_W0 = 2.0 ** -150
 _LN2 = math.log(2.0)
 
 
+def rollout_upper_bound(model, total_timesteps: int) -> int:
+    """SB3 PPO learn 的 rollout 向上取整**事前**上界(R3-01/F1-c)。
+
+    total_timesteps 会被 SB3 向上取整到 n_steps×n_envs 的整倍数;
+    本函数在**调用 learn 之前**从模型公开几何(n_steps/n_envs,
+    缺省回落 env.num_envs/get_env().num_envs)推上界。几何不可得
+    即拒绝(fail closed:无可信上界不 learn);请求量非法即拒绝。
+    上界超单次上限的情形由预算面 reserve 拒绝——learn 根本不被
+    调用,而不是先跑再在 commit 发现。
+    """
+    if (isinstance(total_timesteps, bool)
+            or not isinstance(total_timesteps, int)
+            or total_timesteps <= 0):
+        raise ValueError(
+            f"total_timesteps 非法({total_timesteps!r}):须正整数")
+    n_steps = getattr(model, "n_steps", None)
+    if (isinstance(n_steps, bool) or not isinstance(n_steps, int)
+            or n_steps <= 0):
+        raise ValueError(
+            f"模型未暴露合法 n_steps({n_steps!r}):无法给 rollout"
+            " 上界,拒绝 learn(fail closed,不赌实际步数)")
+    n_envs = getattr(model, "n_envs", None)
+    if (isinstance(n_envs, bool) or not isinstance(n_envs, int)
+            or n_envs <= 0):
+        n_envs = getattr(getattr(model, "env", None),
+                         "num_envs", None)
+    if (isinstance(n_envs, bool) or not isinstance(n_envs, int)
+            or n_envs <= 0):
+        getter = getattr(model, "get_env", None)
+        try:
+            n_envs = getattr(getter(), "num_envs", None) if callable(
+                getter) else None
+        except Exception:
+            n_envs = None
+    if (isinstance(n_envs, bool) or not isinstance(n_envs, int)
+            or n_envs <= 0):
+        raise ValueError(
+            "模型未暴露合法 n_envs(n_envs/env.num_envs/"
+            "get_env().num_envs 均不可得):无法给 rollout 上界,"
+            "拒绝 learn(fail closed)")
+    rollout = int(n_steps) * int(n_envs)
+    return ((int(total_timesteps) + rollout - 1)
+            // rollout) * rollout
+
+
 def torch_lgamma_beta(a: th.Tensor) -> th.Tensor:
     """lnB(a,a) = 2lnΓ(a) − lnΓ(2a)。"""
     return 2.0 * th.lgamma(a) - th.lgamma(2.0 * a)

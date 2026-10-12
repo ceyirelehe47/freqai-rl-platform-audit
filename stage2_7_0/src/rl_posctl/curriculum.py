@@ -186,6 +186,10 @@ def sigma_of(spec: CourseSpec, g):
 # 普通单测夹具生成按来源单列,不混入 bank 额度)
 GEN_CALL_COUNT = 0
 
+# R3-01 执行中硬限(suite/运行器在消费前设置;None=不限):
+# 越限的第 N+1 次生成调用在**任何采样之前**拒绝,不是事后结算发现。
+GEN_CALL_LIMIT = None
+
 
 # ============================== 生成器 ==============================
 def generate_episode(spec: CourseSpec, seed: int):
@@ -196,6 +200,13 @@ def generate_episode(spec: CourseSpec, seed: int):
     v2 无隐藏质量)。r 为**算术**收益(与线性合约经济/参考数学一致)。
     """
     global GEN_CALL_COUNT
+    if GEN_CALL_LIMIT is not None and (
+            GEN_CALL_COUNT + 1 > GEN_CALL_LIMIT):
+        from rl_posctl.budget import BudgetExceeded
+        raise BudgetExceeded(
+            "generate_episode 执行中硬限拒绝:已调用 "
+            f"{GEN_CALL_COUNT}+1 > 授权 {GEN_CALL_LIMIT};本次生成"
+            "不执行(fail closed,不是事后结算发现)")
     GEN_CALL_COUNT += 1
     rng = np.random.default_rng((spec.seed, int(seed)))
     n = spec.horizon + 1
@@ -401,8 +412,11 @@ def _state_chain(spec: CourseSpec):
 def _dp_key(spec: CourseSpec, steps: int, n_dense: int,
             n_ext: int, m_quad: int, mm: float,
             w_ext: float) -> tuple:
+    # R3-03(F3-a):缓存键必须绑定**全部**影响语义/适用性的参数——
+    # 旧键漏 slippage_bps,零滑点解出的对象可被 10bps 规格命中。
     return (spec.course, spec.mu_max, spec.sigma_lo, spec.sigma_hi,
-            spec.fee, spec.s_switch_p, spec.c_hold_p, spec.g_hold_p,
+            spec.fee, spec.slippage_bps, spec.s_switch_p,
+            spec.c_hold_p, spec.g_hold_p,
             spec.q_hold_p, spec.sigma_regime, spec.horizon, steps,
             len(W_GRID), n_dense, n_ext, m_quad, mm, w_ext)
 
@@ -426,17 +440,22 @@ def reference_policy(spec: CourseSpec, *,
     声明:本参考是"41 点动作网格 + 账户网格线性插值 + GL 求积"下的
     数值最优,**不是**连续动作最优,也不虚称精确;用于优势主张时
     必须配合 error_report 的收敛差(误差 < 优势)。
+
+    R3-03(F3-a):**假设检查先于缓存**——适用性(滑点=0)不满足时,
+    无论冷缓存还是暖缓存一律拒绝;缓存命中不得绕过假设校验,也不
+    能把不同滑点规格映射到同一缓存对象(键同时绑定 slippage_bps)。
     """
     w_ext_v = float(w_ext) if w_ext is not None else (
         1.0 / float(maintenance_margin))
+    if spec.slippage_bps != 0.0:
+        raise ValueError(
+            "参考求解器假设 slippage_bps=0(课程规格如此);非零滑点"
+            " 的近似与误差声明未建立,拒绝虚算(该检查先于缓存查询,"
+            "暖缓存同输入同拒绝)")
     key = _dp_key(spec, spec.horizon, n_dense, n_ext, m_quad,
                   maintenance_margin, w_ext_v)
     if key in _DP_CACHE:
         return _DP_CACHE[key]
-    if spec.slippage_bps != 0.0:
-        raise ValueError(
-            "参考求解器假设 slippage_bps=0(课程规格如此);非零滑点"
-            " 的近似与误差声明未建立,拒绝虚算")
     table, trans = _state_chain(spec)          # (K,4), (K,K)
     K = table.shape[0]
     A = W_GRID.shape[0]
@@ -572,25 +591,94 @@ def initial_value(spec: CourseSpec, *, n_dense: int = REF_N_DENSE,
     return float(total)
 
 
+def validate_refinements(refinements) -> list:
+    """细化规格校验(R3-03/F3-b;eval 运行器预约前用同一校验)。
+
+    拒绝:空/单级(无比较即无收敛证据)、重复级别(相邻差恒 0,
+    冒充零误差)、倒退/非严格细化、非正整数/bool/NaN/inf、
+    非法元组形状。空/单级/重复/倒退组合不得产出 err_bound——
+    "没有做新比较"不等于"误差为零"。
+    """
+    try:
+        levels = list(refinements)
+    except TypeError:
+        raise ValueError(
+            f"refinements 必须可迭代(得到 {type(refinements)!r})")
+    if len(levels) < 2:
+        raise ValueError(
+            f"refinements 至少两级(得到 {len(levels)} 级):单级/空"
+            "无收敛比较,err_bound 无从谈起(不得当零误差)")
+    norm = []
+    for i, lv in enumerate(levels):
+        if isinstance(lv, (str, bytes)) or not hasattr(
+                lv, "__iter__"):
+            raise ValueError(
+                f"refinements[{i}] 非法级别 {lv!r}:需"
+                "(n_dense, n_ext, m_quad) 三元组")
+        t = tuple(lv)
+        if len(t) != 3:
+            raise ValueError(
+                f"refinements[{i}]={lv!r}:长度 {len(t)}≠3"
+                "(n_dense, n_ext, m_quad)")
+        for x in t:
+            if isinstance(x, bool) or not isinstance(x, (int, float)):
+                raise ValueError(
+                    f"refinements[{i}]={lv!r}:分量 {x!r} 非数值")
+            xf = float(x)
+            if (not math.isfinite(xf) or xf != int(xf)
+                    or int(xf) <= 0):
+                raise ValueError(
+                    f"refinements[{i}]={lv!r}:分量 {x!r} 非正整数"
+                    "(NaN/inf/非整数/bool/≤0 拒绝)")
+        norm.append((int(t[0]), int(t[1]), int(t[2])))
+    for i in range(len(norm) - 1):
+        a, b = norm[i], norm[i + 1]
+        if b == a:
+            raise ValueError(
+                f"refinements 级别重复:{a}(相邻差恒 0 冒充零误差,"
+                "不是证明精确)")
+        if any(b[k] < a[k] for k in range(3)):
+            raise ValueError(
+                f"refinements 非细化(倒退):{a} -> {b}"
+                "(每分量须不减且至少一分量严格增)")
+        if not any(b[k] > a[k] for k in range(3)):
+            raise ValueError(
+                f"refinements 级别未细化:{a} -> {b}"
+                "(须至少一个分量严格增,否则无新比较)")
+    return norm
+
+
 def error_report(spec: CourseSpec,
                  refinements=((161, 32, 20), (321, 64, 40),
                               (481, 96, 80))) -> dict:
     """网格/求积细化收敛差(误差声明;用于优势主张的门槛)。
 
-    返回各级 initial_value 与相邻级最大差;err_bound = 观测到的
-    最大相邻差(保守)。有效性判断要求 err_bound < 声称优势。
+    R3-03(F3-b):细化输入先过 validate_refinements——空/单级/重复/
+    倒退/非法数值组合**拒绝**,不再产出退化 err_bound=0;各级值须
+    有限(−inf/NaN 无收敛意义)。err_bound 是**经验相邻级差**,
+    不是已证明的误差上界——输出 err_bound_kind 如实分型;基于它
+    的 qualified 只是有条件的数值开发判断,不是一般误差保证。
     """
+    levels = validate_refinements(refinements)
     vals = []
-    for nd, ne, mq in refinements:
-        vals.append(initial_value(
-            spec, n_dense=nd, n_ext=ne, m_quad=mq))
+    for nd, ne, mq in levels:
+        v = initial_value(spec, n_dense=nd, n_ext=ne, m_quad=mq)
+        if not isinstance(v, (int, float)) or not math.isfinite(v):
+            raise ValueError(
+                f"细化级别 {(nd, ne, mq)} 初值非有限({v!r}):"
+                "无收敛意义的值不得充当误差证据")
+        vals.append(float(v))
     diffs = [abs(vals[i + 1] - vals[i])
              for i in range(len(vals) - 1)]
     return {"values": vals,
-            "refinements": [list(r) for r in refinements],
+            "refinements": [list(r) for r in levels],
             "adjacent_diffs": diffs,
-            "err_bound": (max(diffs) if diffs else 0.0)}
-
+            "err_bound": (max(diffs) if diffs else 0.0),
+            "err_bound_kind": "empirical_adjacent_diff",
+            "err_bound_note": (
+                "经验收敛差(相邻细化级最大差),不是已证明的误差"
+                "上界;qualified 判断仅为本固定规格下的有条件数值"
+                "开发判断")}
 
 def _state_index(spec: CourseSpec, s: float, c: float, q: float,
                  g: float) -> int:
@@ -705,10 +793,16 @@ def tier_validity(spec: CourseSpec, n_episodes: int = 32,
                  steps=0, n_failures=0)
     for i in range(n_episodes):
         if quota is not None:
-            quota.record(gen_calls=1, episodes=1,
+            # 计数生成两步结算(调用必计;成功才结 episode)——
+            # 鸭子类型调用 quota 方法,避免 curriculum↔banks 循环导入
+            quota.record(gen_calls=1,
                          bank=f"posctl_{spec.course}_validity",
                          domain="eval")
-        prices, feats, _ = generate_episode(spec, seed0 + i)
+            prices, feats, _ = generate_episode(spec, seed0 + i)
+            quota.record_episode(
+                bank=f"posctl_{spec.course}_validity", domain="eval")
+        else:
+            prices, feats, _ = generate_episode(spec, seed0 + i)
         env = HybridPositionEnv(
             features=feats, prices=prices, fee=spec.fee, window_size=1)
         infos = run_policy(env, ref)
@@ -747,12 +841,20 @@ def tier_validity(spec: CourseSpec, n_episodes: int = 32,
     stats["dp_solver_meta"] = dict(
         reference_policy(spec)["solver_meta"])
     if err_bound is not None:
-        stats["dp_err_bound"] = float(err_bound)
+        eb = float(err_bound)
+        if not math.isfinite(eb) or eb < 0.0:
+            raise ValueError(
+                f"err_bound 非法({err_bound!r}):非有限/负值不得"
+                "经手填写 qualified(错误或错规格证据拒绝)")
+        stats["dp_err_bound"] = eb
+        stats["err_bound_kind"] = "empirical_adjacent_diff"
         stats["qualified"] = bool(
-            stats["dp_initial_value"] - float(err_bound) > 0.0)
+            stats["dp_initial_value"] - eb > 0.0)
         stats["qualification_note"] = (
             "value−err>0 才 qualified;误差=网格/求积收敛差"
-            "(error_report),不手设宽容差;不足即 NOT_ESTABLISHED")
+            "(error_report 经验相邻差,非已证明误差上界),不手设"
+            "宽容差;本判断为固定规格下的有条件数值开发判断,"
+            "不足即 NOT_ESTABLISHED,不构成一般误差保证")
     return stats
 
 

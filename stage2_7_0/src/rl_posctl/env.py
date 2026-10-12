@@ -77,6 +77,45 @@ SOLVENCY_CAP = 40.0
 # 运行器读数后按次记入预约账本,测试不隐式免计)
 ENV_STEP_COUNT = 0
 
+# ---------------------------------------------------------------------------
+# R3-01 执行中硬限(FiniteRepair R3,reviewer F1-c):
+# 旧实现只在套件/learn **commit 结算时**发现实际>预约,工作已经
+# 发生。现由运行器(suite/main/learn 门)在消费前设置进程内上限,
+# step 在执行任何经济转移**之前**检查——越限即抛 BudgetExceeded,
+# 该步工作不执行(可计数替身:cap=1 时第二叶不执行)。
+#   ENV_STEP_LIMIT:None=不限;否则 = 本进程允许的
+#     (ENV_STEP_COUNT − PPO_EXEMPT_STEPS) 绝对上限。
+#   PPO_EXEMPT_STEPS:learn 门按预约上界登记的 ppo 分类豁免
+#     (learn 的 env 步记 ppo 不挤占 eval 限额;实结后校正)。
+# ---------------------------------------------------------------------------
+ENV_STEP_LIMIT = None
+PPO_EXEMPT_STEPS = 0
+
+
+def grant_ppo_exempt(delta: int) -> None:
+    """learn 门调整 ppo 分类豁免步数(预占 +ub,实结 −(ub−actual))。"""
+    global PPO_EXEMPT_STEPS
+    if isinstance(delta, bool) or not isinstance(delta, int):
+        raise ValueError(f"grant_ppo_exempt: 非整数 {delta!r}")
+    PPO_EXEMPT_STEPS += delta
+
+
+def check_step_budget() -> None:
+    """执行前预算检查(下一步是否仍在授权内;越限抛 BudgetExceeded)。
+
+    供 step() 咽喉点与 learn 门回调共用;不在授权内的工作根本
+    不开始,而不是事后在 commit 发现。
+    """
+    if ENV_STEP_LIMIT is None:
+        return
+    used = ENV_STEP_COUNT - PPO_EXEMPT_STEPS
+    if used + 1 > ENV_STEP_LIMIT:
+        from rl_posctl.budget import BudgetExceeded
+        raise BudgetExceeded(
+            "env.step 执行中硬限拒绝:已用 "
+            f"{used}(ENV_STEP_COUNT={ENV_STEP_COUNT},"
+            f"ppo_exempt={PPO_EXEMPT_STEPS})+1 > 授权 {ENV_STEP_LIMIT}"
+            ";本步不执行(fail closed,不是事后结算发现)")
 
 class HybridPositionEnv(gym.Env):
     """HOLD/REBALANCE(w) 双向部分持仓环境(现金结算线性合约研究仿真)。
@@ -256,6 +295,7 @@ class HybridPositionEnv(gym.Env):
         if self.economic_failure is not None:
             raise RuntimeError("经济失败后环境已终结,不得继续 step")
         branch, w = self.decode_action(action)
+        check_step_budget()        # R3:执行中硬限(经济转移前)
         global ENV_STEP_COUNT
         ENV_STEP_COUNT += 1
         t = self._current_tick

@@ -105,8 +105,10 @@ class TestTaskLedgerBinding:
             TaskLedger(p, TASK_ID)
 
     def test_wrong_task_id_refused(self, tmp_path):
+        """未知任务身份拒绝打开(R3:注册表外身份在构造即拒,
+        不再等到读头部;仍是首资源消费前)。"""
         _, path = _mk_ledger(tmp_path)
-        with pytest.raises(RuntimeError, match="不匹配"):
+        with pytest.raises(RuntimeError, match="任务身份"):
             TaskLedger(path, "PosCtl_R_OTHER")
 
     def test_budget_face_maps_mechanically(self):

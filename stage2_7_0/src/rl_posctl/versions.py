@@ -32,6 +32,10 @@ R2(2026-10-13,FiniteRepair R2;旧 v2 存档/模型只读,不自动迁移):
 - 评分:资金费现金流符号修正(净成本 = 费用 − 资金费现金流,收到
   资金费允许抵扣),见 evalreport;
   REWARD/ACTION/LEDGER/OBSERVATION/POLICY 语义不变。
+R3(2026-10-13,FiniteRepair R3;不改任何经济/课程科学参数):
+- 预算/日志/参考适用性/封包四工程面修复(budget/banks/runlog/
+  curriculum 缓存与细化校验/打包器),语义详见各模块;
+- R3 任务账本面见 POSCTL_R3_BUDGET(与 R1/R2 分离;R2 账本只读)。
 """
 
 POSCTL_ENV_CORE_VERSION = "PosctlEnvCore-v3"
@@ -86,19 +90,21 @@ POSCTL_R2_BUDGET = {
 # R2 任务身份(TaskLedger 绑定;防止误开/误续旧账本)。
 POSCTL_R2_TASK_ID = "PosCtl_R2_20261012"
 
-# 观察账户特征(exposure/solvency 的数值变换;原始值保留在 info 日志)。
-POSCTL_ACCOUNT_FEATURES = ("exposure_asinh4", "solvency_asinh4")
+# R3 任务身份(FiniteRepair R3;与 R1/R2 面完全分离,历史账本只读)。
+POSCTL_R3_TASK_ID = "PosCtl_R3_20261013"
 
-# R1 修复轮资源上限(SCOPE_AND_BUDGET;旧轮 18 格/容量结果不重跑、
-# 旧预算违规留档不清零——见上轮 RETURN 与 usage_by_tag)。
-POSCTL_R1_BUDGET = {
-    "ppo_learn_attempts": 8,       # 主/reviewer/新增测试合计(含失败暖机)
-    "ppo_steps_total": 16_384,     # PPO 环境交互步合计
-    "ppo_steps_single": 2_048,     # 单次 learn 上限(SB3 取整事前控制)
-    "bc_fits": 1,
-    "bc_epochs": 20,
-    "bc_minibatch_updates": 320,
-    "eval_steps": 65_536,          # 无梯度环境评估步
-    "gen_calls": 2_560,            # 新工程 bank 生成调用(失败/重复同计)
-    "episodes": 512,               # 成功 episode
+# R3 有限工程修复预算面(本包 SCOPE_AND_BUDGET 表;主 Agent/reviewer/
+# 新增测试合并计量,不得另开账本绕开)。分项各自生效不可挪额;
+# synthetic_total = ppo_steps+eval_steps 派生总项(4,224)。
+POSCTL_R3_BUDGET = {
+    "ppo_learn_attempts": 2,       # 新 PPO learn 尝试(含失败)
+    "ppo_steps_total": 128,        # 新 PPO 实际环境步合计
+    "ppo_steps_single": 64,        # 单次 learn 实际 rollout 步上限
+    "bc_fits": 0,                  # 不重新训练
+    "bc_epochs": 0,
+    "bc_minibatch_updates": 0,
+    "eval_steps": 4_096,           # 无梯度 env.step(防回归/接口验证)
+    "gen_calls": 64,               # 真工程生成调用(失败/重复同计)
+    "episodes": 64,                # 成功 episode(各角色合计)
+    "synthetic_total": 4_224,      # ppo_steps+eval_steps(128+4,096)
 }

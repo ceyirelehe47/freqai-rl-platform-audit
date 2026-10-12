@@ -26,7 +26,7 @@ import numpy as np
 import torch as th
 
 from rl_posctl.banks import QuotaLedger, build_bank, domain_seed, \
-    episode_seed
+    episode_seed, generate_counted
 from rl_posctl.curriculum import CourseSpec, spec_for, \
     generate_episode
 from rl_posctl.env import HybridPositionEnv
@@ -137,19 +137,23 @@ def train_course_spec(course: str, master_seed: int) -> CourseSpec:
 
 def build_train_bank(course: str, master_seed: int, n_episodes: int,
                      quota: QuotaLedger, window: int = 1):
-    """训练 bank(生成时按结构重试;同结构参数确定性)。"""
+    """训练 bank(生成时按结构重试;同结构参数确定性)。
+
+    R3:经 generate_counted——调用必计,成功才结 episode(结构
+    重试失败不冒充成功 episode;重试走新调用计数)。
+    """
     spec = train_course_spec(course, master_seed)
     ds = domain_seed(master_seed, "train")
     bank = []
     made = 0
     while len(bank) < n_episodes:
-        quota.record(gen_calls=1, episodes=1, bank=f"posctl_{course}",
-                     domain="train")
         made += 1
         try:
-            bank.append(generate_episode(spec, episode_seed(ds, made)))
+            bank.append(generate_counted(
+                spec, episode_seed(ds, made), ledger=quota,
+                bank=f"posctl_{course}", domain="train"))
         except RuntimeError:
-            continue        # 结构重试(计数已计入,不按 PnL 拒收)
+            continue        # 结构重试(调用已计,不按 PnL 拒收)
     return bank
 
 
