@@ -634,6 +634,28 @@ def _install_leaf_stubs(monkeypatch):
     return stub
 
 
+
+def _f2_heavy_in_subprocess(node_name: str):
+    """真实 cue-audit 机力(bootstrap/MC/子进程探针)会在本 pytest
+    进程留下数百个后台线程,污染同进程后续 r17 Supervisor 测试的
+    截止点线程前提(unshielded_threads -> control rc=7)。因此重载
+    类测试在**子进程 pytest** 中执行:本体不变,仅隔离线程面;
+    子进程 rc/junit 如实透传。"""
+    if os.environ.get("_R1_F2_CHILD") == "1":
+        return True                        # 子进程:执行真实本体
+    import subprocess as _sp
+    argv = [sys.executable, "-m", "pytest", "-q",
+            f"{__file__}::TestF2RealHandlerChain::{node_name}"]
+    env = dict(os.environ)
+    env["_R1_F2_CHILD"] = "1"
+    r = _sp.run(argv, capture_output=True, text=True, env=env,
+                timeout=900, cwd=str(Path(__file__).resolve().parent))
+    tail = (r.stdout or "")[-2000:]
+    assert r.returncode == 0, (
+        f"子进程 F2 链测试失败 rc={r.returncode}:\n{tail}\n"
+        f"stderr={(r.stderr or '')[-500:]}")
+    return False                           # 父进程:已由子进程覆盖
+
 class TestF2RealHandlerChain:
     def test_identity_chain_real_handlers_flow(self, tmp_path,
                                                monkeypatch):
@@ -648,7 +670,14 @@ class TestF2RealHandlerChain:
           digest 的 design plan。audit/determinism-matrix 与
           design 及其后步骤依赖真实 repo 冻结面,超出隔离工程域,
           列为未验证层次(见下方内联注释),不在此冒充。
+        - 线程面隔离:真实 cue-audit 机力在进程内留下数百后台线程,
+          会污染同进程后续 r17 Supervisor 测试(unshielded_threads
+          -> control rc=7);本测试经子进程 pytest 执行(见
+          _f2_heavy_in_subprocess),本体与断言不变。
         """
+        if not _f2_heavy_in_subprocess(
+                "test_identity_chain_real_handlers_flow"):
+            return
         import rl_curriculum.curriculum261_r17_cli as cli
         _install_leaf_stubs(monkeypatch)
         out = tmp_path / "chain"
