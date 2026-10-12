@@ -103,7 +103,8 @@ def main() -> int:
     sums = []
     for p in sorted(stage.rglob("*")):
         if p.is_file() and p.name != "SHA256SUMS.txt":
-            sums.append(f"{sha256_file(p)}  {p.relative_to(stage)}")
+            sums.append(f"{sha256_file(p)}  "
+                        f"{p.relative_to(stage).as_posix()}")
     (stage / "SHA256SUMS.txt").write_text(
         "\n".join(sums) + "\n", encoding="utf-8", newline="\n")
 
