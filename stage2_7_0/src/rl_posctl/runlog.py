@@ -25,9 +25,9 @@ os.write 后硬退出日志全空 / 固定 sleep 代替排空):
   sleep)→ 收取状态;父包装先退时,子进程后续输出仍由持久进程
   排空到 EOF 或截止(deadline 内)并如实标记 truncated;
 - 终态区分:参数拒绝(rejected_*,无业务额度)vs started-only
-  (进程被杀,无 finished meta)vs finished(rc 已知/异常=−1)+
-  持久进程状态(bytes_file/console_errors/truncated)。缺终态 rc
-  不猜成 0(finished meta 只在明确得知 rc 时写 rc);
+  (进程被杀,无 finished meta、无 rc 键,不猜 0;输出完整性以
+  持久进程状态文件为准)vs finished(rc 已知;异常=−1;未设=1);
+  持久进程状态附 bytes_file/console_errors/truncated;
 - 合并原件 run_output.raw.txt 的跨流(stdout/stderr)顺序 = 到达
   序近似(两管道单读者);**单流内字节顺序严格保持**,原字节
   (CRLF/CR/NUL/ANSI)不经过筛选重建(与 R2 行为一致);
@@ -212,8 +212,11 @@ class RunLog:
         with RunLog(out_dir, argv=sys.argv) as rl:
             ... 业务 ...
             rl.rc = 0
-        # 退出时自动写 run_meta.json(未设置 rc 时如实标注
-        # rc_known=false——缺终态不猜 0;异常路径 rc=-1 留痕)
+        # 正常退出必须设置 rl.rc;未设置时 __exit__ 一律按 rc=1
+        # 结清(异常路径已先设 −1)。进程被杀(无 __exit__)时
+        # **没有 finished meta**——meta 停在 started、无 rc 键,
+        # 读者据此区分"缺终态",不猜 0;输出完整性的最终证词在
+        # run_output.status.json(持久进程状态)。
 
     文件:run_output.raw.txt(原字节,stdout/stderr 合并,含 ANSI/
     CRLF/NUL)、run_output.status.json(持久进程状态:字节数/控制台

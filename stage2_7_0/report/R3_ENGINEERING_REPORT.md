@@ -150,9 +150,10 @@ evidence/r3_runs/:
 |---|---|---|
 | A2 | r3_budget/r3_runlog/r3_reference/r3_package + r2_budget + r2_reference | 350 通过/0 失败(eval 实耗 20) |
 | B | economy + policy −2 learn + r1_distribution/open_boundary/scoring/metering + r2_costs/open_boundary(含 3 项 rl_platform 环境补路径测试) | 125 通过/2 deselect(eval 实耗 260) |
-| C2 | curriculum 纯数学子集 | 13 通过/14 deselect(eval 实耗 0) |
+| C(中间批) | curriculum 子集(误含 1 项生成依赖测试) | 13 过/1 失败/13 deselect(eval 0;JUnit=junit_r3_batchC.xml;失败=该测试经生成器取夹具,被 cap-gen 0 执行中硬限在采样前**正确拒绝**,非代码回归;其属下述 14 项生成依赖集) |
+| C2 | curriculum 纯数学子集(该 14 项生成依赖全部 deselect) | 13 通过/14 deselect(eval 实耗 0) |
 
-- 小额真实 PPO:2 次 learn 尝试/32 步(批 A1 中 policy 2 项,
+- 小额真实 PPO:2 次 learn 尝试/2 步(批 A1 中 policy 2 项,
   经门预约 ub=16;因当时门的回调返回语义缺陷各实走 1 步——
   真实调用如实计 2 attempts/2 步;修复后 16 步全程经隔离复检
   证明,见 §6 事故披露)。
@@ -172,9 +173,8 @@ evidence/r3_runs/:
 
 ## 6. R3 预算终态与事故披露(PosCtl_R3_20261013)
 
-| 分项 | 实耗/上限 | 说明 |
-|---|---|---|
-| eval_steps | 2,072/4,096 | 768 事故补记 + 1,204 实测结清 |
+| eval_steps | 2,072/4,096 | 768 事故补记 + 1,304 结清
+  (=280 实测:A2 20+B 260+C/C2 0;+1,024 A1 保守余额,非实测) |
 | gen_calls | 64/64 | 64 全部为 A1 保守余额(见下) |
 | episodes | 0/64 | 无成功结算(生成类未跑) |
 | ppo_learn_attempts | 2/2 | A1 两次真实 learn 调用 |
