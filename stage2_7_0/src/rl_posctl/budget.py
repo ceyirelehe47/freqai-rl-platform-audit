@@ -72,6 +72,7 @@ class ReservationLedger:
             if ev == "commit":
                 for k in METRICS:
                     self.committed[k] += rec.get(k, 0)
+                self.reservations.pop(rec["rid"], None)
             elif ev == "reserve":
                 rid = rec["rid"]
                 self.reservations[rid] = {
@@ -107,6 +108,7 @@ class ReservationLedger:
                     if ev == "commit":
                         for k in METRICS:
                             self.committed[k] += rec.get(k, 0)
+                        self.reservations.pop(rec["rid"], None)
                     elif ev == "reserve":
                         self.reservations[rec["rid"]] = {
                             k: rec.get(k, 0) for k in METRICS}
