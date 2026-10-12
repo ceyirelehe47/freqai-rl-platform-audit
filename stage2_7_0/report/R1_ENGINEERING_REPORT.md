@@ -136,10 +136,11 @@ test_posctl_policy.py(手算 logp/熵/梯度/冷读,α 域更新)。
   终态):**eval 76,432/65,536 = 超限 10,896(本轮真实预算违规
   事故,留档不清零)**;ppo 6,144/16,384(3 次尝试)、bc 1/1
   fit(40 minibatch)、bank 生成 248/2,560。
-  预算内构成(committed 65,168):补记 2,048+512+16,384(计数器
-  import 快照 bug,痕迹保留)+ smoke 2,048×3 + bc 512 + 课程评估
-  首轮 16,384 + 缩样 6,656 + 套件 counted 15,162(旧链)与
-  20,026(终候选 134 例)。
+  预算内构成(committed 65,168,逐项可加总):2,048+512+16,384
+  (三次运行计数器补记)+ 2,048×3(smoke)+ 512(bc 采集)
+  + 16,384(课程评估首轮)+ 6,656(课程评估缩样)+ 15,162
+  (套件 counted,旧链)+ 20,026(套件 counted,终候选 134 例)
+  = 65,168 ✓。
   事故构成(incident_backcharged 11,264):两次参数错误失败的
   课程评估运行各 5,632(KeyError 于 replay 段,此前 tier/c123
   已全部跑完;重建=4×8×128+3×4×128,44 条生成记录/次、零
@@ -186,7 +187,7 @@ VHDX 不压缩(约定)。保留:rl-regression-sept01.tar(23G,未判定
 | RC05 | PASS | §4 + scoring 测试(总账对账/初始回撤/失败语义) |
 | RC06 | PASS | §5 修正链四档(行随机+经验转移 4σ+路径模拟);C1–C3 |
 | RC07 | PASS | 网格 DP 期望>0(修正链)+参考混合+C2 精确策略评估+BC 标签公开(学习=不足,如实) |
-| RC08 | PASS | 预约账本(锁内/单次帽/保守保留)+ quota 路由 + create-only |
+| RC08 | PASS(含超限事故披露) | 预约账本(锁内/单次帽/保守保留)+ quota 路由 + create-only;eval 超限 10,896 事故如实入档(§6) |
 | RC09 | PASS | §9:261 3,084=3,084 零变化;262 三失败=既有(A9 证明);posctl 131/131 |
 | RC10 | PASS | workspace_cleanup/ 四件套 |
 | RC11 | REVIEW_PLACEHOLDER | reviews/(reviewer 原文+复验)+ 包外冷读回执 |
@@ -227,7 +228,8 @@ VHDX 不压缩(约定)。保留:rl-regression-sept01.tar(23G,未判定
 ## 10. Git 与交付
 
 - 候选链:3cfea667→47d64e0c→be433554→bd2882de(261/262 回归
-  绑定)→d753b57b(docs)→754f4b2a(账本重载修复)→**9201e49c
-  (reviewer F1/F2 修复,终候选)**。
+  绑定)→d753b57b(docs)→754f4b2a(账本重载修复)→9201e49c
+  (reviewer F1/F2 修复)→4b7fea50(docs)→**19f96b8e(F3R 事故
+  机制+计量测试+§6 重写,终候选=远端 HEAD)**。
 - 推送:PUSH_PLACEHOLDER
 - 四件:acceptance/PosCtl_R1_20261012/delivery/(DELIVERY_PLACEHOLDER)
