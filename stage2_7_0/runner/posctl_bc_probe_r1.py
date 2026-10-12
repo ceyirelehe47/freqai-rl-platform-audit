@@ -22,7 +22,8 @@ from rl_posctl import profiles
 from rl_posctl.banks import QuotaLedger, domain_seed, episode_seed
 from rl_posctl.budget import ReservationLedger, create_only_dir
 from rl_posctl.curriculum import generate_episode, reference_action
-from rl_posctl.env import ENV_STEP_COUNT, HybridPositionEnv
+import rl_posctl.env as _envmod
+from rl_posctl.env import HybridPositionEnv
 from rl_posctl.experiments import train_course_spec
 from rl_posctl.policy import make_posctl_ppo
 from rl_posctl.series_models import mlp_policy_kwargs
@@ -75,9 +76,9 @@ def main() -> int:
     x, y_branch, y_w = collect(spec, bank)
     # BC 数据收集的环境交互保守记 eval_steps
     rid = ledger.reserve("bc_collect_env_steps",
-                         eval_steps=int(ENV_STEP_COUNT))
+                         eval_steps=int(_envmod.ENV_STEP_COUNT))
     ledger.commit(rid, "bc_collect_env_steps",
-                  eval_steps=int(ENV_STEP_COUNT))
+                  eval_steps=int(_envmod.ENV_STEP_COUNT))
     # 标签分布先公开(事前;不得只拟合零动作宣称充分)
     n = len(x)
     label_stats = {

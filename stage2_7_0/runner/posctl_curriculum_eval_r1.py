@@ -19,7 +19,8 @@ from rl_posctl.budget import ReservationLedger, create_only_dir
 from rl_posctl.curriculum import (
     baseline_policies, generate_episode, initial_value, spec_for,
     tier_validity)
-from rl_posctl.env import ENV_STEP_COUNT, HybridPositionEnv
+import rl_posctl.env as _envmod
+from rl_posctl.env import HybridPositionEnv
 from rl_posctl.evalreport import run_policy, summarize
 from rl_posctl.experiments import train_course_spec
 
@@ -99,7 +100,7 @@ def main() -> int:
     result["gen_quota_cum"] = {
         "gen_calls": quota.gen_calls, "episodes": quota.episodes}
     result["gen_call_count_module"] = int(GEN_CALL_COUNT)
-    env_steps = int(ENV_STEP_COUNT)
+    env_steps = int(_envmod.ENV_STEP_COUNT)
     rid = ledger.reserve("curriculum_eval_env_steps",
                          eval_steps=env_steps)
     ledger.commit(rid, "curriculum_eval_env_steps",

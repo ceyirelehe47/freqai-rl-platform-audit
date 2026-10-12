@@ -20,7 +20,8 @@ from rl_posctl import profiles
 from rl_posctl.banks import QuotaLedger, domain_seed, episode_seed
 from rl_posctl.budget import ReservationLedger, create_only_dir
 from rl_posctl.curriculum import spec_for
-from rl_posctl.env import ENV_STEP_COUNT, HybridPositionEnv
+import rl_posctl.env as _envmod
+from rl_posctl.env import HybridPositionEnv
 from rl_posctl.experiments import (
     EpisodeBankEnv, FailureAwareStop, build_train_bank,
     train_course_spec)
@@ -133,7 +134,7 @@ def main() -> int:
         new_proc["action"] = got["action"]
         new_proc["logprob"] = got["logprob"]
     # 评估步计费(env 计数差 = 本进程全部交互,保守记 eval_steps)
-    env_steps = int(ENV_STEP_COUNT)
+    env_steps = int(_envmod.ENV_STEP_COUNT)
     rid2 = ledger.reserve("smoke_r1_env_steps",
                           eval_steps=env_steps)
     ledger.commit(rid2, "smoke_r1_env_steps",
