@@ -259,28 +259,38 @@ _DP_CACHE: dict[tuple, dict] = {}
 
 
 def _state_chain(spec: CourseSpec):
-    """可观察状态空间与转移矩阵(组件独立 → Kronecker)。"""
+    """可观察状态空间与转移矩阵(组件独立 → Kronecker)。
+
+    与生成器逐分量同语义(独立复核口径,勿复用本函数):
+    - s:以 p 重抽均匀(3 态)⇒ P=(1−p)I+p·U₃;
+    - c/g:以 1−p_hold 重抽均匀(2 态,重抽可回到同值)
+      ⇒ P=p_hold·I+(1−p_hold)·U₂;
+    - q:以 pq 保持,否则按 Q_FRESH_P 重抽(重抽可回到同级)
+      ⇒ P=pq·I+(1−pq)·Q_FRESH_P(按行广播)。
+    全部行随机(行和=1);先前版本 q 用 (1−pq)Q 偏对角+pq 对角
+    (行和<1,每步漏掉 (1−pq)·Q[i] 的"重抽回原级"质量,c4d3 漏
+    至 13.75%)、c/g 用硬翻转(P(same)=p_hold)——与生成器不符,
+    已由独立 reviewer 反例证实并修正。
+    """
     states, next_mats = [], []
     # s: 3 态
     p_switch = spec.s_switch_p
-    p_same = 1.0 - p_switch + p_switch / 3.0
-    p_jump = p_switch / 3.0
     states.append(_S_VALUES.astype(float))
-    next_mats.append(np.full((3, 3), p_jump) + np.eye(3) * (
-        p_same - p_jump))
+    next_mats.append((1.0 - p_switch) * np.eye(3)
+                     + p_switch / 3.0)
     # c: 2 态
     pc = spec.c_hold_p
     states.append(np.array([0.0, 1.0]))
-    next_mats.append(np.array([[pc, 1 - pc], [1 - pc, pc]]))
+    next_mats.append(pc * np.eye(2) + (1.0 - pc) / 2.0)
     # q: 5 级
     pq = spec.q_hold_p
     states.append(Q_LEVELS.copy())
-    next_mats.append(((1.0 - pq) * Q_FRESH_P)[None, :].repeat(
-        5, axis=0) + np.eye(5) * (
-        pq - (1.0 - pq) * Q_FRESH_P))
+    next_mats.append(pq * np.eye(5)
+                     + (1.0 - pq) * Q_FRESH_P[None, :])
+    # g: 2 态
     pg = spec.g_hold_p
     states.append(np.array([0.0, 1.0]))
-    next_mats.append(np.array([[pg, 1 - pg], [1 - pg, pg]]))
+    next_mats.append(pg * np.eye(2) + (1.0 - pg) / 2.0)
     # Kronecker 组合
     levels = np.meshgrid(*states, indexing="ij")
     table = np.stack([lv.reshape(-1) for lv in levels], axis=1)

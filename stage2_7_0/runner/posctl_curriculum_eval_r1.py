@@ -54,6 +54,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-root", required=True)
     ap.add_argument("--ledger", required=True)
+    ap.add_argument("--tier-episodes", type=int, default=16)
+    ap.add_argument("--c123-episodes", type=int, default=8)
+    ap.add_argument("--replay-episodes", type=int, default=8)
     args = ap.parse_args()
     out_dir = create_only_dir(
         Path(args.out_root) /
@@ -67,7 +70,8 @@ def main() -> int:
         spec = spec_for(course, seed=profiles.MASTER_SEED,
                         horizon=64,
                         **profiles.TRAIN_SPEC_OVERRIDES)
-        st = tier_validity(spec, n_episodes=16, quota=quota)
+        st = tier_validity(spec, n_episodes=args.tier_episodes,
+                           quota=quota)
         result["tiers"][course] = {
             "stats": st,
             "dp_initial_value_exact": initial_value(spec),
@@ -76,7 +80,8 @@ def main() -> int:
         spec = spec_for(course, seed=profiles.MASTER_SEED,
                         horizon=64,
                         **profiles.TRAIN_SPEC_OVERRIDES)
-        st = tier_validity(spec, n_episodes=8, quota=quota)
+        st = tier_validity(spec, n_episodes=args.c123_episodes,
+                           quota=quota)
         result["c123"][course] = {
             "stats": st,
             "dp_initial_value_exact": initial_value(spec)}
@@ -89,11 +94,13 @@ def main() -> int:
         return reference_action(spec, row, w, steps_left=sl)
 
     bases = baseline_policies()
-    ref_tot, ref_rows = replay_stats(spec, 8, 5000, ref, quota)
+    ref_tot, ref_rows = replay_stats(
+        spec, args.replay_episodes, 5000, ref, quota)
     result["baselines_c4d2"]["reference"] = {
         "total_net_log": ref_tot, "rows": ref_rows}
     for name, fn in bases.items():
-        tot, _ = replay_stats(spec, 8, 5000, fn, quota)
+        tot, _ = replay_stats(
+            spec, args.replay_episodes, 5000, fn, quota)
         result["baselines_c4d2"][name] = {"total_net_log": tot}
     # 生成调用计费(quota 已在 generate 处逐次计;此处汇总)
     from rl_posctl.curriculum import GEN_CALL_COUNT

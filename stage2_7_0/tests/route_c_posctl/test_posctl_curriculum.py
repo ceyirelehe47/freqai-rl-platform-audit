@@ -22,7 +22,7 @@ import pandas as pd
 import pytest
 
 from rl_posctl.curriculum import (
-    Q_LEVELS, generate_episode, gbar, kelly_w, mu_eff_of,
+    Q_FRESH_P, Q_LEVELS, generate_episode, gbar, kelly_w, mu_eff_of,
     reference_action, reference_policy, spec_for, tier_validity,
     baseline_policies, W_GRID, _state_chain, TIER_OVERRIDES)
 from rl_posctl.banks import domain_seed, episode_seed
@@ -93,13 +93,81 @@ class TestGbarClosedForm:
 
 # ==================== DP 参考精确性 ====================
 class TestDPReferenceExactness:
+    def _independent_chain(self, spec):
+        """从生成器文档语义独立构造转移(不复用 _state_chain)。
+
+        s:1−p 保持,p 均匀重抽(3);c/g:1−p_hold 均匀重抽(2);
+        q:pq 保持,否则 Q_FRESH_P 重抽(常量取模块真值,构造
+        逻辑独立)。"""
+        ms = ((1.0 - spec.s_switch_p) * np.eye(3)
+              + spec.s_switch_p / 3.0)
+        mc = (spec.c_hold_p * np.eye(2)
+              + (1.0 - spec.c_hold_p) / 2.0)
+        mq = (spec.q_hold_p * np.eye(5)
+              + (1.0 - spec.q_hold_p)
+              * np.broadcast_to(Q_FRESH_P, (5, 5)))
+        mg = (spec.g_hold_p * np.eye(2)
+              + (1.0 - spec.g_hold_p) / 2.0)
+        return ms, mc, mq, mg
+
+    def test_chain_is_row_stochastic_and_matches_independent(self):
+        """行随机(行和=1,非负)且与独立构造逐分量一致
+        (先前版本 q 行和<1、c/g 硬翻转——reviewer 反例回归)。"""
+        for tier in TIERS:
+            spec = spec_for(tier, seed=MS, horizon=8)
+            table, trans = _state_chain(spec)
+            assert np.allclose(trans.sum(axis=1), 1.0, atol=1e-15), \
+                (tier, float(np.abs(trans.sum(axis=1) - 1).max()))
+            assert (trans >= -1e-15).all(), tier
+            ms, mc, mq, mg = self._independent_chain(spec)
+            ref = np.kron(np.kron(np.kron(ms, mc), mq), mg)
+            assert np.allclose(trans, ref, atol=1e-14), tier
+
+    def test_chain_matches_generator_empirical_transitions(self):
+        """终极语义证明:生成器真实 hidden 状态序列的经验转移频率
+        = 转移矩阵(长 MC,4σ 容差;不依赖任何文档声明)。"""
+        spec = spec_for("c4d2", seed=MS, horizon=48)
+        table, _ = _state_chain(spec)
+        svals = np.sort(np.unique(table[:, 0]))
+        n = {k: np.zeros((m, m)) for k, m in (
+            ("s", 3), ("c", 2), ("q", 5), ("g", 2))}
+        for ep in range(60):
+            _, _, h = generate_episode(spec, 9000 + ep)
+            for comp, arr, vals in (
+                    ("s", h["s"], svals),
+                    ("c", h["c"], np.array([0.0, 1.0])),
+                    ("q", h["q"], Q_LEVELS),
+                    ("g", h["g"], np.array([0.0, 1.0]))):
+                vi = {v: i for i, v in enumerate(vals)}
+                a = arr[:-1]
+                b = arr[1:]
+                for x, y in zip(a, b):
+                    n[comp][vi[x], vi[y]] += 1
+        # 分量级模型(独立构造)与经验频率逐格 4σ 二项对照
+        ms, mc, mq, mg = self._independent_chain(spec)
+        for comp, mat in (("s", ms), ("c", mc), ("q", mq),
+                          ("g", mg)):
+            cnt = n[comp].sum(axis=1)
+            for r in range(mat.shape[0]):
+                for c2 in range(mat.shape[1]):
+                    p = mat[r, c2]
+                    m = int(cnt[r])
+                    if m < 5 or p < 1e-6:
+                        continue
+                    sigma = math.sqrt(p * (1 - p) * m)
+                    got = n[comp][r, c2]
+                    assert abs(got - p * m) <= 4.0 * sigma + 0.5, (
+                        comp, r, c2, got, p * m, m)
+
     def test_small_horizon_bruteforce_parity(self):
-        """h=6:独立实现的逐步后向(显式 k/a 循环,与
-        reference_policy 不同代码路径)与其 values 完全一致。"""
+        """h=6:独立实现的逐步后向(独立构造的转移 + 显式 k/a
+        循环,与 reference_policy 无共享代码路径)逐值一致。"""
         spec = spec_for("c4d2", seed=MS, horizon=6,
                         mu_max=1.2e-3, sigma_lo=0.03, sigma_hi=0.06)
         pol = reference_policy(spec)
-        table, trans = _state_chain(spec)
+        table, _ = _state_chain(spec)
+        ms, mc, mq, mg = self._independent_chain(spec)
+        trans = np.kron(np.kron(np.kron(ms, mc), mq), mg)
         K = table.shape[0]
         G = np.array([gbar(W_GRID, mu_eff_of(
             spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0],
@@ -121,6 +189,42 @@ class TestDPReferenceExactness:
         v_dp = pol["values"][6]
         assert np.allclose(V, v_dp, atol=1e-12), \
             float(np.abs(V - v_dp).max())
+
+    def test_initial_value_matches_pathwise_simulation(self):
+        """端到端:生成器真实 episode 上执行参考策略的路径平均
+        总对数增长 ≈ DP initial_value(MC 4σ;证明 DP 是该 MDP 的
+        精确期望,而非自洽假象)。"""
+        from rl_posctl.curriculum import initial_value
+        spec = spec_for("c4d0", seed=MS, horizon=16,
+                        **profiles.TRAIN_SPEC_OVERRIDES)
+        pol = reference_policy(spec)
+        exact = initial_value(spec)
+        rng_tot = []
+        n_eps = 400
+        for ep in range(n_eps):
+            prices, feats, _ = generate_episode(spec, 7000 + ep)
+            env = HybridPositionEnv(
+                features=feats, prices=prices, fee=spec.fee,
+                window_size=1)
+            env.reset()
+            done = False
+            while not done:
+                t = env._current_tick
+                row = feats.iloc[t]
+                eq = env.ledger.equity(env._close[t])
+                w_cur = (env.ledger.qty * env._close[t]
+                         / eq if eq > 0 else 0.0)
+                act = reference_action(
+                    spec, row, w_cur, steps_left=env.n_rows - 1 - t)
+                _, _, term, trunc, info = env.step(act)
+                done = term or trunc
+            s = summarize(env.step_records)
+            rng_tot.append(s["net_log_return"]
+                           if s["net_log_return_valid"] else -6.0)
+        mean = float(np.mean(rng_tot))
+        ci = 4.0 * float(np.std(rng_tot)) / math.sqrt(n_eps)
+        assert mean == pytest.approx(exact, abs=ci + 0.02), (
+            mean, exact, ci)
 
     def test_reference_beats_flat_on_train_face_exact(self):
         """精确期望(初始分布加权 DP 值)> 0 = 恒空仓;抽样实现
@@ -235,23 +339,58 @@ class TestC123Capabilities:
         a = reference_action(spec, row_lo, 0.0, steps_left=32)
         assert a[1] == 0.0 or a[0] == 0
 
+
+    def _exact_policy_value(self, spec, act_fn):
+        """固定策略的精确期望值(测试侧独立评估器,与
+        reference_policy 无共享路径)。act_fn(i,k,sl)->w 索引
+        (-1=HOLD 保持 k)。初始分布与生成器一致(s/c/g 均匀,
+        q~Q_FRESH_P)。"""
+        table, trans = _state_chain(spec)
+        K = table.shape[0]
+        W = len(W_GRID)
+        G = np.array([gbar(W_GRID, mu_eff_of(
+            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0],
+            float(np.where(table[j, 3] == 1, spec.sigma_hi,
+                           spec.sigma_lo))) for j in range(K)])
+        fee = spec.fee
+        V = -fee * np.abs(W_GRID)[None, :].repeat(K, 0)
+        for sl in range(1, spec.horizon + 1):
+            EV = trans @ V
+            Vn = np.empty((K, W))
+            for i in range(K):
+                for k in range(W):
+                    a = act_fn(i, k, sl)
+                    if a == -1:
+                        Vn[i, k] = G[i, k] + EV[i, k]
+                    else:
+                        Vn[i, k] = (G[i, a] + EV[i, a]
+                                    - fee * abs(W_GRID[a] - W_GRID[k]))
+            V = Vn
+        w0 = int(np.argmin(np.abs(W_GRID)))
+        pi = np.empty(K)
+        for i in range(K):
+            pi[i] = (1 / 3.0) * 0.5 * Q_FRESH_P[
+                int(np.argmin(np.abs(Q_LEVELS - table[i, 2])))] * 0.5
+        return float(pi @ V[:, w0])
+
     def test_reference_beats_local_only_on_c2(self):
-        spec = spec_for("c2", seed=MS, horizon=64,
+        """精确期望层断言(DP 固定策略评估,无抽样噪声):
+        参考 > local_only;抽样层只保留稳定性弱断言。"""
+        spec = spec_for("c2", seed=MS, horizon=32,
                         **profiles.TRAIN_SPEC_OVERRIDES)
-        bases = baseline_policies()
+        pol = reference_policy(spec)
 
-        def run_with(fn):
-            tot = 0.0
-            for i in range(12):
-                env = make_env(spec, 900 + i)
-                infos = run_policy(env, fn)
-                summ = summarize(infos)
-                tot += (summ["net_log_return"] or 0.0)
-            return tot
+        def ref_act(i, k, sl):
+            return int(pol["policies"][sl][i, k])
 
-        ref = run_with(ref_fn(spec))
-        local = run_with(bases["local_only"])
-        assert ref > local
+        def local_act(i, k, sl):
+            sv = pol["table"][i, 0]
+            w = float(np.clip(sv, -1.0, 1.0))
+            return int(np.argmin(np.abs(W_GRID - w)))
+
+        v_ref = self._exact_policy_value(spec, ref_act)
+        v_loc = self._exact_policy_value(spec, local_act)
+        assert v_ref > v_loc, (v_ref, v_loc)
 
 
 # ==================== 生成器因果性与分区隔离 ====================
@@ -308,21 +447,26 @@ class TestReferenceCostApproximation:
                      if eq > 0 else 0.0)
             act = reference_action(spec, row, ratio,
                                    steps_left=env.n_rows - 1 - t)
-            actions.append([float(act[0]), float(act[1])])
+            actions.append([float(act[0]), float(act[1]),
+                            float(ratio)])
             o, r, term, trunc, info = env.step(act)
             if term or trunc:
                 break
-        prev = 0.0
         assumed = 0.0          # DP 费用模型(log 收益量纲:fee·|Δw|)
         real_log_fee = 0.0     # 真实账本费用折 log:Σ −ln(1−fee/E₀)
-        for k_rec, (branch, w) in enumerate(actions):
+        # DP 口径:费用 = fee·|目标 w − 当前实际敞口比|(当前比随
+        # 净值漂移;用事前 ratio,与 V 的 (k→a) 转移一致)
+        prev_ratio = 0.0
+        for k_rec, (branch, w, ratio_now) in enumerate(actions):
             rec = env.step_records[k_rec]
             if branch == 1:
-                assumed += spec.fee * abs(w - prev)
+                assumed += spec.fee * abs(w - ratio_now)
             fee_i = rec.get("fee") or 0.0
             if fee_i:
                 real_log_fee += -math.log1p(-fee_i / rec["equity_start"])
-            prev = w
+            prev_ratio = ratio_now
+        # 终端清算腿(真实账本必平仓;DP 终值同含 fee·|w|)
+        assumed += spec.fee * abs(prev_ratio)
         # 线性费用模型 vs 真实账本(滑点/tick=0 面):log 量纲一致;
         # 偏差来自扣费后净值求解与权益漂移(披露口径,不虚称精确)
         assert real_log_fee == pytest.approx(assumed, rel=0.25,

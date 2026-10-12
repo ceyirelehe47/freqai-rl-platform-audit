@@ -74,16 +74,34 @@ def main() -> int:
                   ppo_steps=actual)
     elapsed = time.time() - t0
     save_posctl_model(model, out_dir / "smoke.zip")
-    # 同进程冷读对拍
+    # 同进程冷读对拍(确定性口径):
+    # 1) 权重逐张量回读一致(冷载等价的实质);
+    # 2) deterministic=True(分布 mode,无采样)输出一致——
+    #    随机 forward 是两次独立抽样,结构上不可能相等,不得
+    #    用作对拍(reviewer 反例修正)。
     m2 = load_posctl_model(out_dir / "smoke.zip", env)
+    sd1 = model.policy.state_dict()
+    sd2 = m2.policy.state_dict()
+    state_parity = (set(sd1) == set(sd2)) and all(
+        bool(th.equal(sd1[k], sd2[k])) for k in sd1)
     obs = env.reset()[0]
     with th.no_grad():
-        a0, _, lp0 = model.policy(th.as_tensor(
-            obs, dtype=th.float32).unsqueeze(0))
-        a1, _, lp1 = m2.policy(th.as_tensor(
-            obs, dtype=th.float32).unsqueeze(0))
-    same_proc_parity = bool(
-        th.allclose(a0, a1) and th.allclose(lp0, lp1))
+        a0, _, _ = model.policy(th.as_tensor(
+            obs, dtype=th.float32).unsqueeze(0), deterministic=True)
+        a1, _, _ = m2.policy(th.as_tensor(
+            obs, dtype=th.float32).unsqueeze(0), deterministic=True)
+    same_proc_parity = bool(th.equal(a0, a1)) and state_parity
+    # 父进程基线必须与子进程同 obs:eval bank 第 0 集(子进程
+    # 用同一确定性种子域构造)
+    from rl_posctl.env import HybridPositionEnv as _HPE
+    p0, f0, _ = eval_bank[0]
+    _env0 = _HPE(features=f0, prices=p0, fee=spec.fee,
+                 window_size=1)
+    obs0 = th.as_tensor(_env0.reset()[0],
+                        dtype=th.float32).unsqueeze(0)
+    with th.no_grad():
+        a0b, _, _ = model.policy(obs0, deterministic=True)
+    parent_action = [float(x) for x in a0b[0]]
     # 新进程冷读(独立解释器;PYTHONPATH 指向被测源)
     import rl_posctl as _rp
     src = str(Path(_rp.__file__).resolve().parent.parent)
@@ -91,13 +109,12 @@ def main() -> int:
         "import json,sys\n"
         "import torch as th\n"
         "from rl_posctl.policy import load_posctl_model\n"
-        "from rl_posctl.experiments import EpisodeBankEnv\n"
         "spec=json.load(open({sp!r}))\n"
         "import numpy as np, pandas as pd\n"
-        "from rl_posctl.curriculum import generate_episode\n"
+        "from rl_posctl.curriculum import (generate_episode, "
+        "spec_for)\n"
         "from rl_posctl.banks import episode_seed, domain_seed\n"
         "from rl_posctl import profiles\n"
-        "from rl_posctl.curriculum import spec_for\n"
         "sp=spec_for(profiles.TRAIN_COURSE, "
         "seed=profiles.MASTER_SEED, horizon=64, "
         "**profiles.TRAIN_SPEC_OVERRIDES)\n"
@@ -110,9 +127,8 @@ def main() -> int:
         "o=th.as_tensor(env.reset()[0],dtype=th.float32)"
         ".unsqueeze(0)\n"
         "with th.no_grad():\n"
-        "    a,v,lp=m.policy(o)\n"
-        "print(json.dumps({{'action':[float(x) for x in a[0]],"
-        "'logprob':float(lp[0])}}))\n"
+        "    a,v,lp=m.policy(o, deterministic=True)\n"
+        "print(json.dumps({{'action':[float(x) for x in a[0]]}}))\n"
     )
     spec_path = out_dir / "cold_spec.json"
     spec_path.write_text(json.dumps(
@@ -132,7 +148,10 @@ def main() -> int:
     if r.returncode == 0:
         got = json.loads(r.stdout.strip().splitlines()[-1])
         new_proc["action"] = got["action"]
-        new_proc["logprob"] = got["logprob"]
+        new_proc["parent_deterministic_action"] = parent_action
+        # 子进程确定性输出 == 父进程同一 obs 的确定性输出
+        new_proc["deterministic_parity"] = bool(
+            got["action"] == parent_action)
     # 评估步计费(env 计数差 = 本进程全部交互,保守记 eval_steps)
     env_steps = int(_envmod.ENV_STEP_COUNT)
     rid2 = ledger.reserve("smoke_r1_env_steps",
@@ -155,7 +174,13 @@ def main() -> int:
         json.dumps(rec, ensure_ascii=False, indent=1),
         encoding="utf-8")
     print(json.dumps(rec, ensure_ascii=False, indent=1))
-    return 0 if (same_proc_parity and r.returncode == 0
+    rec["state_dict_parity"] = state_parity
+    (out_dir / "smoke_record.json").write_text(
+        json.dumps(rec, ensure_ascii=False, indent=1),
+        encoding="utf-8")
+    return 0 if (same_proc_parity and state_parity
+                 and r.returncode == 0
+                 and new_proc.get("deterministic_parity")
                  and not stop.failure) else 1
 
 
