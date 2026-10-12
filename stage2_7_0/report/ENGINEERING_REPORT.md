@@ -82,8 +82,9 @@ backward+step、evaluate_actions 形状、同进程重载一致、
 
 - 逐参数统计(实际模型读取,非推算):见 param_stats.json
   (4 MLP 单步 + 窗口 MLP-16 + LSTM-16;obs_dim 7(单步)/82(窗口))。
-- 预算实耗(UsageLedger,fail-closed):smoke 11 次(3 次 RUN_
-  INVALID 后修训练面生存性,见 §7 变更记录)+ 8 次 OK;
+- 预算实耗(UsageLedger,fail-closed):smoke 11 次尝试共 21,516
+  步 = 第一轮 3 次(smoke_0/1 各 2,048 步 OK、smoke_2 于 1,036 步
+  RUN_INVALID)后修训练面生存性(见 §7),第二轮 8 次全 OK;
   capacity 12×65,536;series 6×32,768;perf ≤65,536;BC 1 次
   (≤2,000 minibatch);全部在 1,064,960 新 PPO 步内(明细见
   usage_ledger.jsonl)。
@@ -111,8 +112,10 @@ backward+step、evaluate_actions 形状、同进程重载一致、
   质量)空头数百 bar 内必然清零——夹具生存性缺陷;降为
   σ∈[0.03,0.06]、μ=8e-4(f*≈0.89 内点保持;清零概率 ~1e-3/
   run)。3 次 RUN_INVALID 步数如实计费不重置。
-- smoke 预算线偏差:11 次(计划 8 次)——3 次失败尝试计入;
-  总步数 ~19.5k vs 16,384 线,总 PPO 预算内。
+- smoke 预算线偏差:11 次尝试(计划 8 次)如实计费,总 21,516
+  步 vs 16,384 线(第一轮 5,132 步 + 第二轮 16,384 步);总 PPO
+  预算内。账本逐条可复算;第一轮 RUN_INVALID 运行记录已被同名
+  重跑覆盖,以账本 1,036 步计费行与本次更正说明为准。
 - 数值容限全部事前固定(1e-9/1e-6),未改 tol 救结果。
 
 ## 8. 分层结论

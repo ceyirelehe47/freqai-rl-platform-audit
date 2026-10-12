@@ -4,9 +4,10 @@
 (根目录全部 .md 为执行约定;reference/ 只读历史)
 
 仓库:F:/trading/freqai-rl-audit,分支 route-c-stage2-6-1-repair17
-最终候选:4caac4694c536dae232b4973198c92c4cabd5655(冻结)
+最终候选(回归绑定):8379d33b16de9648fd9cde6241bbf132c3ada0f1(冻结);
+证据头(docs-only):1ff24a9b 及后续 docs 修正提交
 候选链:0b6b94d9 → ba7dcca7(W0) → b515c69d(W1) → ebbfc98a(W2)
-→ 91d1d548(W3) → a873c6f4(W0整改) → cbc40c3a(docstring) → 4caac469(E5+文档)
+→ 91d1d548(W3) → a873c6f4(W0整改) → cbc40c3a(docstring) → 4caac469(E5+文档) → 3daea6f3 → 1c0e0194/8379d33b(F2 测试基建修复) → 1ff24a9b(证据 docs)
 
 代码(全部在候选内):
 - stage2_7_0/src/rl_posctl/{ledger,env,policy,replay,curriculum,
