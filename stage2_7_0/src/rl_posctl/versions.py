@@ -6,7 +6,7 @@
 
 R1(2026-10-12)语义变更与版本升级(旧 v1 存档/模型只读,不自动迁移):
 - ENV_CORE v2 / EXECUTION v2:开盘偿付/维护保证金检查先于模型动作
-  (HOLD 与 REBALANCE 同经济状态一致;非正开盘净值显式经济失败,
+  (HOLD 与 REBALANCE 对同经济状态一致;非正开盘净值显式经济失败,
   正净值但维护不足走开盘风险平仓);
 - OBSERVATION v2:账户特征数值变换(exposure=asinh(x)/4 原始值不截断;
   solvency=asinh(min(s,40))/4;去掉 1e6 占位);原始经济值保留在 info;
@@ -15,21 +15,76 @@ R1(2026-10-12)语义变更与版本升级(旧 v1 存档/模型只读,不自动�
 - CURRICULUM v2/C123 v2/BANKS v2:噪声律改为方差匹配有界均匀
   (a=√3·σ),C4 四档真实参数化,参考=可观察状态 MDP 精确 DP;
 - REWARD/ACTION/LEDGER 语义未变(奖励定义、动作编码、账本不变)。
+
+R2(2026-10-13,FiniteRepair R2;旧 v2 存档/模型只读,不自动迁移):
+- ENV_CORE v3 / EXECUTION v3:开盘风险平仓**扣费后**偿付复查——强制
+  风险成交使净值≤0 时统一经济失败终态(保全已发生成交/费用,不再执行
+  模型动作;HOLD/清仓/正负目标一致;旧 v2 该分支为未定义崩溃)。
+  失败 phase 细分(open/open_risk_flatten/funding/close_risk_flatten/
+  terminal_liquidation/post_execution,归因首个不可偿付事件)。
+- CURRICULUM v3:参考递推改为**真实账户状态转移**——固定数量 HOLD
+  撤销"保持 w 列"假设:w_next = w(1+r)/(1+w·r);扣费后口径调仓费、
+  终端清算费、维持保证金强制平仓与真实账本/env 一致(数值 V 插值 +
+  Gauss-Legendre 求积;网格/节点/收敛误差显式声明)。41 点动作网格 =
+  模型动作集限制,**不称连续最优上界**;撤销 v2"精确 DP"措辞。
+- BANKS v3:生成额度绑定任务共享账本(TaskLedger 先预约后生成;
+  同 seed 重建计生成调用);QuotaLedger 降级为来源日志。
+- 评分:资金费现金流符号修正(净成本 = 费用 − 资金费现金流,收到
+  资金费允许抵扣),见 evalreport;
+  REWARD/ACTION/LEDGER/OBSERVATION/POLICY 语义不变。
 """
 
-POSCTL_ENV_CORE_VERSION = "PosctlEnvCore-v2"
+POSCTL_ENV_CORE_VERSION = "PosctlEnvCore-v3"
 POSCTL_LEDGER_VERSION = "TwoSidedLinearLedger-v1"
 POSCTL_OBSERVATION_SPEC_VERSION = "PosctlObs-v2"
 POSCTL_ACTION_SPEC_VERSION = "HybridHoldRebalanceAction-v1"
 POSCTL_REWARD_SPEC_VERSION = "NetLogEquityReward-v2"
-POSCTL_EXECUTION_SPEC_VERSION = "MarketOpenCausalLinear-v2"
+POSCTL_EXECUTION_SPEC_VERSION = "MarketOpenCausalLinear-v3"
 POSCTL_POLICY_SPEC_VERSION = "HybridAtomBetaPolicy-v2"
 POSCTL_REPLAY_SPEC_VERSION = "PosctlReplay-v2"
-POSCTL_C4_CURRICULUM_VERSION = "PosctlC4Curriculum-v2"
+POSCTL_C4_CURRICULUM_VERSION = "PosctlC4Curriculum-v3"
 POSCTL_C123_ADAPTER_VERSION = "PosctlC123TwoSidedAdapter-v2"
 POSCTL_SERIES_MODEL_VERSION = "PosctlSeriesCandidates-v2"
-POSCTL_BANKS_VERSION = "PosctlEngBanks-v2"
-POSCTL_PROFILE_VERSION = "PosctlDevPlan-v2"
+POSCTL_BANKS_VERSION = "PosctlEngBanks-v3"
+POSCTL_PROFILE_VERSION = "PosctlDevPlan-v3"
+
+# 观察账户特征(exposure/solvency 的数值变换;原始值保留在 info 日志)。
+POSCTL_ACCOUNT_FEATURES = ("exposure_asinh4", "solvency_asinh4")
+
+# R1 修复轮资源上限(SCOPE_AND_BUDGET;旧轮 18 格/容量结果不重跑、
+# 旧预算违规留档不清零——见上轮 RETURN 与 usage_by_tag)。
+# R2 起新入口不得再引用本面(R1 账本已耗尽超限,读到应拒绝)。
+POSCTL_R1_BUDGET = {
+    "ppo_learn_attempts": 8,       # 主/reviewer/新增测试合计(含失败暖机)
+    "ppo_steps_total": 16_384,     # PPO 环境交互步合计
+    "ppo_steps_single": 2_048,     # 单次 learn 上限(SB3 取整事前控制)
+    "bc_fits": 1,
+    "bc_epochs": 20,
+    "bc_minibatch_updates": 320,
+    "eval_steps": 65_536,          # 无梯度环境评估步
+    "gen_calls": 2_560,            # 新工程 bank 生成调用(失败/重复同计)
+    "episodes": 512,               # 成功 episode
+}
+
+# R2 有限正确性复验预算面(FiniteRepair R2 SCOPE_AND_BUDGET;与 R1 面
+# 完全分离:R2 账本由任务身份显式创建,R1 账本及其事故原字节不动)。
+# 分项各自生效不可挪额;synthetic_total 为 ppo_steps+eval_steps 派生
+# 总项(TaskLedger.reserve 机械复算,与任务预算一一对应)。
+POSCTL_R2_BUDGET = {
+    "ppo_learn_attempts": 8,       # 真实 PPO learn 尝试合计(含原 16 步单测)
+    "ppo_steps_total": 1_024,      # 真 PPO 接口单测环境步合计
+    "ppo_steps_single": 128,       # 单次 learn 实际 rollout 步上限
+    "bc_fits": 0,                  # R2 不重训 BC(复用已有标签/模型证据)
+    "bc_epochs": 0,
+    "bc_minibatch_updates": 0,
+    "eval_steps": 32_768,          # 无梯度 env 交互(边界/重放/受影响单测/reviewer)
+    "gen_calls": 2_048,            # 固定工程夹具生成(失败/同 seed 重建均计)
+    "episodes": 512,               # 成功 episode
+    "synthetic_total": 33_792,     # ppo_steps+eval_steps 合计上限(派生检查)
+}
+
+# R2 任务身份(TaskLedger 绑定;防止误开/误续旧账本)。
+POSCTL_R2_TASK_ID = "PosCtl_R2_20261012"
 
 # 观察账户特征(exposure/solvency 的数值变换;原始值保留在 info 日志)。
 POSCTL_ACCOUNT_FEATURES = ("exposure_asinh4", "solvency_asinh4")

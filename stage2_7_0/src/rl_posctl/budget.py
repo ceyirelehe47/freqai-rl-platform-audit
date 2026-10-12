@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""R1 执行前预算预约账本(RouteC_PositionControl RepairAndCleanup R1)。
+"""执行前预算预约账本(RouteC_PositionControl R1→R2)。
 
-修复上轮计量缺陷(SCOPE_AND_BUDGET/FINDINGS R1-D):
+R1 修复上轮计量缺陷(SCOPE_AND_BUDGET/FINDINGS R1-D):
 - 上轮 UsageLedger 只在 learn 完成后计账、只查 PPO 总额,分项
   (smoke 次数/步数、BC、生成、评估)无执行前控制,smoke 21,516>
-  16,384 且 11>8 次成为既成事实。本轮全部动作**先预约后执行**:
+  16,384 且 11>8 次成为既成事实。全部动作**先预约后执行**:
   预约时即对"已提交+未闭合预约+本次"做分项与总额 fail-closed
   检查,超限在动作发生前拒绝。
 - 失败/中断/未闭合预约保守保留(abandon 不退还),不清零、不挪用。
@@ -13,20 +13,30 @@
 - 单次 PPO 步数上限在预约时校验(SB3 rollout 向上取整必须事前
   控制,不得事后把实际步数写小)。
 
-额度(versions.POSCTL_R1_BUDGET,主 Agent/reviewer/新增测试共用
-同一账本;旧轮 18 格/容量/时序结果不重跑、旧违规留档不清零)。
+R2 修复(FiniteRepair R2 / FINDINGS R2-01):
+- commit/incident_backcharge 的非法计量(负数/NaN/inf/非整数/bool/
+  未知指标)一律拒绝——旧实现只查上界,负值实际计量会**释放**已消耗
+  额度(reviewer 反例:commit(actual=-100)、incident(-50) 被接纳)。
+  事故补记只能增加消费。
+- 新增 TaskLedger:R2 任务共享账本。首行 task_bind 绑定任务身份与
+  预算面;读到无绑定的旧式账本(如已耗尽超限的 R1 账本)显式拒绝,
+  不自动改写/续用——R2 账本必须由任务身份显式创建。
+- 派生总项(ppo_steps+eval_steps 合计上限)在 reserve 内机械复算,
+  与任务预算面一一对应,无同名近似字段漏检查。
 """
 
 from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 import time
 import uuid
 from pathlib import Path
 
-from rl_posctl.versions import POSCTL_R1_BUDGET
+from rl_posctl.versions import (
+    POSCTL_R1_BUDGET, POSCTL_R2_BUDGET, POSCTL_R2_TASK_ID)
 
 METRICS = ("ppo_steps", "ppo_learn_attempts", "bc_fits", "bc_epochs",
            "bc_minibatch_updates", "eval_steps", "gen_calls", "episodes")
@@ -36,6 +46,58 @@ SINGLE_CAPS = {"ppo_steps": POSCTL_R1_BUDGET["ppo_steps_single"],
                "bc_epochs": POSCTL_R1_BUDGET["bc_epochs"],
                "bc_minibatch_updates":
                    POSCTL_R1_BUDGET["bc_minibatch_updates"]}
+
+
+def r2_limits() -> dict:
+    """POSCTL_R2_BUDGET(预算面)→ METRICS 键限额映射(一一对应)。"""
+    return {
+        "ppo_steps": POSCTL_R2_BUDGET["ppo_steps_total"],
+        "ppo_learn_attempts": POSCTL_R2_BUDGET["ppo_learn_attempts"],
+        "bc_fits": POSCTL_R2_BUDGET["bc_fits"],
+        "bc_epochs": POSCTL_R2_BUDGET["bc_epochs"],
+        "bc_minibatch_updates":
+            POSCTL_R2_BUDGET["bc_minibatch_updates"],
+        "eval_steps": POSCTL_R2_BUDGET["eval_steps"],
+        "gen_calls": POSCTL_R2_BUDGET["gen_calls"],
+        "episodes": POSCTL_R2_BUDGET["episodes"],
+    }
+
+
+def r2_single_caps() -> dict:
+    return {"ppo_steps": POSCTL_R2_BUDGET["ppo_steps_single"]}
+
+
+# R2 派生总项:(总项名, (分项指标元组), 上限) —— 与任务预算面同源。
+DERIVED_TOTALS = (("synthetic_total", ("ppo_steps", "eval_steps"),
+                   POSCTL_R2_BUDGET["synthetic_total"]),)
+
+
+def checked_amounts(amounts, *, context: str) -> dict:
+    """计量值校验:未知指标/bool/非有限/非整数/负数一律拒绝。
+
+    负数拒绝对所有路径生效(reserve/commit/incident_backcharge):
+    负计量会释放已消耗额度,等同伪造预算(R2-01 reviewer 反例)。
+    """
+    bad_names = [k for k in amounts if k not in METRICS]
+    if bad_names:
+        raise ValueError(
+            f"{context}: 未知计量项 {bad_names};可用={list(METRICS)}")
+    out = {}
+    for k, v in amounts.items():
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            raise ValueError(f"{context}[{k}]: 非数值计量 {v!r} 拒绝")
+        fv = float(v)
+        if not math.isfinite(fv):
+            raise ValueError(f"{context}[{k}]: 非有限计量 {v!r} 拒绝")
+        if fv != int(fv):
+            raise ValueError(f"{context}[{k}]: 非整数计量 {v!r} 拒绝")
+        iv = int(fv)
+        if iv < 0:
+            raise ValueError(
+                f"{context}[{k}]: 负计量 {iv} 拒绝"
+                "(计量只能增加消费,不得释放额度)")
+        out[k] = iv
+    return out
 
 
 class BudgetExceeded(RuntimeError):
@@ -70,7 +132,9 @@ class ReservationLedger:
                 continue
             rec = json.loads(line)
             ev = rec.get("event")
-            if ev == "commit":
+            if ev == "task_bind":
+                self._on_bind_record(rec)
+            elif ev == "commit":
                 for k in METRICS:
                     self.committed[k] += rec.get(k, 0)
                 self.reservations.pop(rec["rid"], None)
@@ -96,6 +160,8 @@ class ReservationLedger:
                 for k in METRICS:
                     self.incidents[k] += rec.get(k, 0)
 
+    def _on_bind_record(self, rec: dict) -> None:
+        """task_bind 行处理:基类(无绑定语义)跳过;TaskLedger 校验。"""
 
     def _synced_op(self, op) -> None:
         """锁内重读全部事件后执行 op(跨进程一致:检查基于最新
@@ -113,7 +179,9 @@ class ReservationLedger:
                         continue
                     rec = json.loads(line)
                     ev = rec.get("event")
-                    if ev == "commit":
+                    if ev == "task_bind":
+                        self._on_bind_record(rec)
+                    elif ev == "commit":
                         for k in METRICS:
                             self.committed[k] += rec.get(k, 0)
                         self.reservations.pop(rec["rid"], None)
@@ -150,11 +218,28 @@ class ReservationLedger:
 
     def effective(self) -> dict[str, int]:
         """已提交 + 未闭合预约 + 事故补记(预约检查口径)。
+
         事故补记使已发生的未预算消耗同样占用额度:后续预约对
-        超限 fail closed,超限不得被"忘记"。"""
+        超限 fail closed,超限不得被"忘记"。
+        """
         out_q = self.outstanding()
         return {k: (self.committed[k] + out_q[k]
                     + self.incidents[k]) for k in METRICS}
+
+    def derived_totals(self) -> dict:
+        """派生总项机械复算(总项 = 分项之和;与预算面一一对应)。"""
+        eff = self.effective()
+        out = {}
+        for name, parts, cap in DERIVED_TOTALS:
+            total = sum(eff[p] for p in parts)
+            out[name] = {"parts": list(parts), "effective": total,
+                         "cap": cap, "over": max(0, total - cap)}
+        return out
+
+    def _extra_problems(self, normalized: dict,
+                        eff: dict) -> list:
+        """子类钩子:额外 fail-closed 检查(如派生总项)。"""
+        return []
 
     # ------------------------------------------------------------ ops
     def reserve(self, tag: str, **amounts) -> str:
@@ -163,20 +248,14 @@ class ReservationLedger:
         检查与追加在同一文件锁内完成(跨进程一致:基于最新落盘
         状态检查,不用本进程陈旧快照)。
         """
-        bad = [k for k in amounts if k not in METRICS]
-        if bad:
-            raise ValueError(f"未知计量项 {bad};可用={list(METRICS)}")
-        normalized = {k: int(v) for k, v in amounts.items()}
+        normalized = checked_amounts(amounts, context=f"reserve[{tag}]")
         holder = {}
 
         def op(fh):
             eff = self.effective()
             problems = []
             for k, v in normalized.items():
-                if v < 0:
-                    problems.append(f"{k}: 负数 {v}")
-                    continue
-                cap = SINGLE_CAPS.get(k)
+                cap = self.single_caps.get(k)
                 if cap is not None and v > cap:
                     problems.append(
                         f"{k}: 单次 {v}>{cap}"
@@ -186,6 +265,7 @@ class ReservationLedger:
                     problems.append(
                         f"{k}: {eff[k]}+{v}>{lim}"
                         f"(已提交+未闭合+本次;fail closed)")
+            problems.extend(self._extra_problems(normalized, eff))
             if problems:
                 holder["error"] = BudgetExceeded(
                     f"预算预约被拒[{tag}]: " + "; ".join(problems)
@@ -205,11 +285,16 @@ class ReservationLedger:
             raise holder["error"]
         return holder["rid"]
 
+    # 单次上限(键 = 指标,值 = 单次最大);子类按预算面覆盖
+    single_caps = dict(SINGLE_CAPS)
+
     def commit(self, rid: str, tag: str = "", **actuals) -> None:
-        """以实际用量结清预约;实际>预约 = 违规,fail closed。"""
-        for k in actuals:
-            if k not in METRICS:
-                raise ValueError(f"未知计量项 {k}")
+        """以实际用量结清预约;实际>预约 = 违规,fail closed。
+
+        R2:实际计量先过 checked_amounts——负数/NaN/inf/非整数/bool/
+        未知指标在结清前拒绝,不得借 commit 释放已消耗额度。
+        """
+        checked = checked_amounts(actuals, context=f"commit[{tag}]")
         holder = {}
 
         def op(fh):
@@ -219,7 +304,7 @@ class ReservationLedger:
                     f"未知/已闭合预约 {rid}")
                 return
             problems = []
-            for k, v in actuals.items():
+            for k, v in checked.items():
                 if int(v) > r.get(k, 0):
                     problems.append(
                         f"{k}: 实际 {int(v)} > 预约 {r.get(k, 0)}"
@@ -231,10 +316,10 @@ class ReservationLedger:
                     + "; ".join(problems))
                 return
             rec = {"event": "commit", "rid": rid, "tag": tag}
-            rec.update({k: int(actuals.get(k, 0)) for k in METRICS})
+            rec.update({k: int(checked.get(k, 0)) for k in METRICS})
             self._append_rec(rec, fh)
             for k in METRICS:
-                self.committed[k] += int(actuals.get(k, 0))
+                self.committed[k] += int(checked.get(k, 0))
             self.reservations.pop(rid, None)
 
         self._synced_op(op)
@@ -286,6 +371,7 @@ class ReservationLedger:
                 "outstanding": self.outstanding(),
                 "effective": self.effective(),
                 "limits": dict(self.limits),
+                "derived_totals": self.derived_totals(),
                 "over_limit": {k: max(0, self.effective()[k]
                                        - self.limits.get(k, 10**18))
                                for k in METRICS},
@@ -294,25 +380,122 @@ class ReservationLedger:
     def incident_backcharge(self, tag: str, note: str = "",
                             **amounts) -> None:
         """事故补记:已发生但未经预约的消耗(诚实记录,非授权)。
+
         不走 reserve(那会在超限时拒记,使事故不可见);直接追加
         事故行,计入 effective ⇒ 后续预约 fail closed。调用方必须
-        同时在报告中披露事故与超限量。"""
-        bad = [k for k in amounts if k not in METRICS]
-        if bad:
-            raise ValueError(f"未知计量项 {bad};可用={list(METRICS)}")
+        同时在报告中披露事故与超限量。
+        R2:计量先过 checked_amounts——负数事故=释放额度,拒绝;
+        事故补记只能增加消费。
+        """
+        checked = checked_amounts(
+            amounts, context=f"incident_backcharge[{tag}]")
         rec = {"event": "incident_backcharge", "tag": tag,
                "note": note}
-        rec.update({k: int(v) for k, v in amounts.items()})
+        rec.update({k: int(v) for k, v in checked.items()})
         holder = {}
 
         def op(fh):
             self._append_rec(rec, fh)
             for k in METRICS:
-                self.incidents[k] += int(amounts.get(k, 0))
+                self.incidents[k] += int(checked.get(k, 0))
 
         self._synced_op(op)
         if "error" in holder:
             raise holder["error"]
+
+
+class TaskLedger(ReservationLedger):
+    """R2 任务共享账本:首行 task_bind 绑定任务身份与预算面。
+
+    - create() 显式创建(create-only;拒绝覆盖已存在账本);
+    - 打开既有账本时校验 task_id 与预算面一致;
+    - 无 task_bind 首行的旧式账本(如 R1 耗尽账本)显式拒绝,
+      不自动改写或续用——防"读到旧账本默默换个预算面继续花";
+    - 主 Agent/reviewer/新增测试/全部 runner 共用同一文件
+      (fcntl 跨进程一致);
+    - 派生总项(synthetic_total)在 reserve 内机械复算。
+    """
+
+    def __init__(self, path, task_id: str = POSCTL_R2_TASK_ID,
+                 *, limits: dict | None = None) -> None:
+        self.task_id = str(task_id)
+        self._bind_seen: dict | None = None
+        super().__init__(Path(path), limits=limits or r2_limits())
+        self.single_caps = dict(r2_single_caps())
+        if self._bind_seen is None:
+            raise RuntimeError(
+                f"账本无 task_bind 首行,拒绝打开:{self.path}"
+                f"(任务 {self.task_id!r};旧式/R1 账本不得自动续用,"
+                "R2 账本必须由 TaskLedger.create 显式创建)")
+
+    # ------------------------------------------------------------ bind
+    @classmethod
+    def create(cls, path, task_id: str = POSCTL_R2_TASK_ID,
+               *, limits: dict | None = None,
+               binding: dict | None = None) -> "TaskLedger":
+        """显式创建 R2 任务账本(create-only;已存在即拒绝)。"""
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        header = {
+            "event": "task_bind", "task_id": str(task_id),
+            "budget_face": dict(limits or r2_limits()),
+            "budget_source": "rl_posctl.versions.POSCTL_R2_BUDGET",
+            "derived_totals": [
+                {"name": n, "parts": list(pp), "cap": c}
+                for n, pp, c in DERIVED_TOTALS],
+            "binding": dict(binding or {}),
+            "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                         time.gmtime()),
+        }
+        try:
+            fh = p.open("x", encoding="utf-8")
+        except FileExistsError as exc:
+            raise RuntimeError(
+                f"任务账本已存在,拒绝覆盖(create-only):{p};"
+                "如需新预算面请新任务身份显式建新账本") from exc
+        with fh:
+            fh.write(json.dumps(header, ensure_ascii=False) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        return cls(p, task_id, limits=limits)
+
+    def _on_bind_record(self, rec: dict) -> None:
+        # _synced_op 每次锁内重放全文件:同一 bind 行重复出现视为
+        # 同一绑定(静默通过);不同/多出的 bind 行才拒绝。
+        if self._bind_seen is not None:
+            if (rec.get("task_id") != self.task_id
+                    or rec.get("task_id")
+                    != self._bind_seen.get("task_id")):
+                raise RuntimeError(
+                    f"账本含不一致 task_bind 行,拒绝:{self.path}")
+            return
+        if rec.get("task_id") != self.task_id:
+            raise RuntimeError(
+                f"task_bind 任务身份不匹配:账本 {rec.get('task_id')!r}"
+                f" != 请求 {self.task_id!r};拒绝打开 {self.path}")
+        self._bind_seen = rec
+
+    def _extra_problems(self, normalized: dict,
+                        eff: dict) -> list:
+        """派生总项 fail-closed 复算(与预算面一一对应)。"""
+        problems = []
+        for name, parts, cap in DERIVED_TOTALS:
+            asked = sum(eff[p] + normalized.get(p, 0) for p in parts)
+            if asked > cap:
+                problems.append(
+                    f"{name}[{'+'.join(parts)}]: "
+                    f"{asked}>{cap}(派生总项;fail closed)")
+        return problems
+
+    def snapshot(self) -> dict:
+        snap = super().snapshot()
+        snap["task_id"] = self.task_id
+        snap["budget_face"] = (self._bind_seen or {}).get("budget_face")
+        snap["budget_face_matches_code"] = bool(
+            self._bind_seen
+            and (self._bind_seen.get("budget_face") or {})
+            == dict(self.limits))
+        return snap
 
 
 def create_only_dir(path) -> Path:

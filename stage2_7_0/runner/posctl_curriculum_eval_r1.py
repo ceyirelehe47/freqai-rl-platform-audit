@@ -51,6 +51,13 @@ def replay_stats(spec, episodes, seed0, policy_fn, quota):
 
 
 def main() -> int:
+    import os as _os
+    if _os.environ.get("POSCTL_ALLOW_LEGACY_R1") != "1":
+        print("REFUSED: R1 入口已被 R2 取代(工作后预约/末段入账为"
+              "R1 两次 5,632 步事故根因;R2 用 posctl_r2_eval.py);"
+              "如确需复跑历史入口设 POSCTL_ALLOW_LEGACY_R1=1 显式"
+              "确认", flush=True)
+        return 2
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-root", required=True)
     ap.add_argument("--ledger", required=True)

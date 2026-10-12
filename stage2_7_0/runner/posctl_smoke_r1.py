@@ -33,6 +33,12 @@ import torch as th
 
 
 def main() -> int:
+    import os as _os
+    if _os.environ.get("POSCTL_ALLOW_LEGACY_R1") != "1":
+        print("REFUSED: R1 入口已被 R2 取代(bank/learn 先于预约;"
+              "R2 用 posctl_r2_smoke.py);如确需复跑历史入口设 "
+              "POSCTL_ALLOW_LEGACY_R1=1 显式确认", flush=True)
+        return 2
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-root", required=True)
     ap.add_argument("--ledger", required=True)

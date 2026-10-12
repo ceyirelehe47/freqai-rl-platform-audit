@@ -238,20 +238,21 @@ def tiny_env(n=8):
 
 
 class TestRealPPOChain:
-    def test_single_minibatch_backward_step(self):
+    def test_single_minibatch_backward_step(self, r2_learn):
         env = tiny_env()
         model = make_posctl_ppo(env, n_steps=8, batch_size=8, seed=0)
         p0 = [p.detach().clone() for p in model.policy.parameters()]
-        model.learn(total_timesteps=16)
+        # R2:测试内 learn 也走任务账本(先预约后执行;计 ppo 不混记 eval)
+        assert r2_learn.learn(model, 16) == 16
         changed = [not th.allclose(a, b) for a, b in zip(
             p0, model.policy.parameters())]
         assert any(changed)                       # 真实反向+step
 
-    def test_rollout_uses_env_decode(self):
+    def test_rollout_uses_env_decode(self, r2_learn):
         """真实 rollout:采样动作经 env.decode_action 合法执行。"""
         env = tiny_env()
         model = make_posctl_ppo(env, n_steps=8, batch_size=8, seed=0)
-        model.learn(total_timesteps=16)
+        assert r2_learn.learn(model, 16) == 16
         assert model.env.envs[0].unwrapped.ledger is not None
 
     def test_evaluate_actions_shapes(self):

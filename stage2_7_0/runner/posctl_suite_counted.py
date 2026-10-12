@@ -17,6 +17,12 @@ import rl_posctl.curriculum as _currmod
 
 
 def main() -> int:
+    import os as _os
+    if _os.environ.get("POSCTL_ALLOW_LEGACY_R1") != "1":
+        print("REFUSED: R1 入口已被 R2 取代(pytest 返回后才预约;"
+              "R2 用 posctl_r2_suite.py 先预约后执行);如确需复跑设"
+              " POSCTL_ALLOW_LEGACY_R1=1 显式确认", flush=True)
+        return 2
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--ledger", required=True)

@@ -11,6 +11,17 @@ R1 修复(P1:评分漏计真实成本、漏记第一段回撤):
   不用截断的部分 log 收益冒充整段;失败分母不隐藏;
 - gamma 折扣训练目标与未折扣账本对数分开呈现;不填未知年化前提
   的 Sharpe 年化分。
+
+R2 修复(FiniteRepair R2 / FINDINGS R2-03:资金费现金流符号):
+- 旧 total_cost_all_in = fees + funding_total 把带符号现金流
+  (负=支出)反向计入——多头付费例净成本被低估、空头收费例被高估
+  (reviewer 平价反例:fees=.09995,资金费现金流=-.049975,净值损失
+  .149925,旧口径只报 .049975)。
+- 新口径:funding_total/funding_cashflow_total=带符号现金流;
+  **net_cost = 全部费用 − 资金费现金流**(支付增成本、收到抵扣,
+  不伪造"成本必须非负")。分项对账(feess_match/funding_match)
+  各自相等不自动推出总成本正确,净成本由平价无滑点例的净值损失
+  独立复算(见 test_posctl_r2_costs)。
 """
 
 from __future__ import annotations
@@ -90,7 +101,9 @@ def summarize(infos: list[dict]) -> dict[str, Any]:
             extra_turnover += abs(float(ex["signed_qty"])) * float(
                 ex["exec_price"])
             n_extra += 1
-    funding_total = float(sum(
+    # 资金费现金流(带符号;负=账户支出,正=收到入账;与账本
+    # settle_funding 的 payment 口径一致)
+    funding_cashflow = float(sum(
         i.get("funding_payment") or 0.0 for i in infos))
 
     # ---- 总账对账(vs 账本累计;末步 info 携带) ----
@@ -101,7 +114,7 @@ def summarize(infos: list[dict]) -> dict[str, Any]:
         "report_total_fees": report_total_fees,
         "ledger_fees_cum": (float(fees_cum)
                             if fees_cum is not None else None),
-        "report_funding_total": funding_total,
+        "report_funding_cashflow": funding_cashflow,
         "ledger_funding_cum": (float(funding_cum)
                                if funding_cum is not None else None),
     }
@@ -111,8 +124,16 @@ def summarize(infos: list[dict]) -> dict[str, Any]:
             rel_tol=1e-9, abs_tol=1e-12))
     if funding_cum is not None:
         recon["funding_match"] = bool(math.isclose(
-            funding_total, float(funding_cum),
+            funding_cashflow, float(funding_cum),
             rel_tol=1e-9, abs_tol=1e-12))
+
+    # ---- 净成本(R2-03 符号修正) ----
+    # 净成本 = 全部费用 − 资金费现金流:
+    #   支付资金费(现金流<0)增加成本;收到资金费(现金流>0)抵扣
+    # 成本——不伪造"所有成本必须非负"(空头持续收资金费可使净成本
+    # 为负=净收益)。费用按实际成交价计(方向不利滑点/tick 取整已含
+    # 在 exec_price 内,净值口径与费用口径不重复计)。
+    net_cost = report_total_fees - funding_cashflow
 
     # ---- 换手(全腿) ----
     model_turnover = float(sum(
@@ -157,8 +178,16 @@ def summarize(infos: list[dict]) -> dict[str, Any]:
         "risk_action_fees": risk_fees,
         "terminal_liquidation_fees": term_fees,
         "extra_risk_fees": extra_fees,
-        "funding_total": funding_total,
-        "total_cost_all_in": report_total_fees + funding_total,
+        "funding_total": funding_cashflow,
+        # 资金费现金流(带符号;负=支出/正=收到;旧字段名保留为
+        # 现金流口径,勿再当"正值成本"相加——R2-03 符号修正)
+        "funding_cashflow_total": funding_cashflow,
+        "net_cost": net_cost,
+        "net_cost_definition": (
+            "model_action_fees+risk_action_fees"
+            "+terminal_liquidation_fees+extra_risk_fees"
+            "-funding_cashflow_total;费用按实际成交价(含滑点/tick)"
+            "计,不与净值口径重复"),
         "turnover_notional": turnover,
         "model_action_turnover": model_turnover,
         "risk_action_turnover": risk_turnover,

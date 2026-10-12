@@ -102,7 +102,10 @@ class TestReviewCounterexampleCosts:
         s2 = summarize(env2.step_records)
         assert s2["funding_total"] == pytest.approx(-25.0)
         assert s2["reconciliation"]["funding_match"] is True
-        assert s2["total_cost_all_in"] == pytest.approx(-25.0)
+        # R2-03 符号修正:多头付资金费(现金流 −25)是**支出**;
+        # 净成本 = 费用 − 现金流 = 0 −(−25) = +25(旧口径
+        # total_cost_all_in 把支出当收入报 −25,已废)
+        assert s2["net_cost"] == pytest.approx(25.0)
 
 
 class TestFailureScoring:

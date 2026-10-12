@@ -56,6 +56,12 @@ def collect(spec, bank):
 
 
 def main() -> int:
+    import os as _os
+    if _os.environ.get("POSCTL_ALLOW_LEGACY_R1") != "1":
+        print("REFUSED: R1 入口已被 R2 取代(R2 预算面 BC=0 不重训;"
+              "复用 R1 标签/模型原件);如确需复跑设 "
+              "POSCTL_ALLOW_LEGACY_R1=1 显式确认", flush=True)
+        return 2
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-root", required=True)
     ap.add_argument("--ledger", required=True)

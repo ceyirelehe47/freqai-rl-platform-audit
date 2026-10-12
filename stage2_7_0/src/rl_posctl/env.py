@@ -16,10 +16,11 @@
      · equity(open) <= 0:显式经济失败终结(动作不执行、不收费;
        失败信息完整进 info/step_records,不抛无记录异常);
      · equity(open) > 0 且 < maintenance_margin*|qty|*open:
-       开盘风险平仓(risk action,支付全部摩擦),随后模型动作
-       在平仓后的账户上照常执行;
-  -> 执行在 open[t+1](统一标记价 = 原始 open[t+1];
-     成交价另按方向加不利滑点/tick 取整)
+       开盘风险平仓(risk action,支付全部摩擦);**扣费后净值
+       ≤ 0 即统一经济失败终态**(保全已发生成交/费用,不执行
+       模型动作;HOLD/清仓/正负目标一致,失败后 step 拒绝)——
+       PosctlEnvCore-v3/MarketOpenCausalLinear-v3;扣费后仍为正
+       时模型动作在平仓后的账户上照常执行;
   -> 旧数量承担 close[t]->open[t+1] 跳空;新数量承担
      open[t+1]->close[t+1];
   -> 若 t+1 ∈ 资金费计划:在 close[t+1] 按标记结算(方向正确);
@@ -326,6 +327,20 @@ class HybridPositionEnv(gym.Env):
         if notional_open > 0.0 and equity_at_open < (
                 self.maintenance_margin * notional_open):
             open_risk_action = self.ledger.risk_flatten(raw_open)
+            # R2-02(ENV_CORE v3):强制风险成交**扣费后**偿付复查。
+            # 不可偿付即统一经济失败终态:保全已发生成交/费用,不再
+            # 执行模型动作(HOLD/清仓/正负目标对同一经济状态一致;
+            # 旧 v2 在 REBALANCE 分支抛无记录 ValueError、HOLD 分支
+            # 侥幸穿过——均不允许;也不得把负值裁小或等有利价格恢复)。
+            equity_after_risk = self.ledger.equity(raw_open)
+            if equity_after_risk <= 0.0:
+                return self._terminal_economic_failure(
+                    t, exec_tick, raw_open, equity_start,
+                    equity_at_open, equity_after_risk,
+                    (branch, w), open_risk_action,
+                    phase="open_risk_flatten",
+                    cause="risk_flatten_fee_insolvency",
+                    extra_note="开盘风险平仓费用使净值非正")
 
         # 1) 执行模型动作(open[t+1];HOLD 不交易)
         if branch == 1:
@@ -335,10 +350,14 @@ class HybridPositionEnv(gym.Env):
 
         # 2) 资金费(t+1 ∈ 计划,按 close[t+1] 标记)
         funding_payment = 0.0
+        funding_settled = False
         if exec_tick in self.funding_schedule:
             rate = self.funding_schedule[exec_tick]
             funding_payment = self.ledger.settle_funding(
                 exec_close, rate)
+            funding_settled = funding_payment != 0.0
+        eq_after_funding = (self.ledger.equity(exec_close)
+                            if funding_settled else None)
 
         # 3) 收盘风险规则 / 终端清算(维持原语义;开盘风险平仓后若
         #    模型重新建仓,同样适用)
@@ -346,6 +365,7 @@ class HybridPositionEnv(gym.Env):
         liquidation = None
         terminated = exec_tick == self.n_rows - 1
         notional_close = abs(self.ledger.qty) * exec_close
+        close_flatten = None
         if not terminated and notional_close > 0.0:
             e_at_close = self.ledger.equity(exec_close)
             if e_at_close < self.maintenance_margin * notional_close:
@@ -361,18 +381,36 @@ class HybridPositionEnv(gym.Env):
 
         equity_end = self.ledger.equity(exec_close)
 
-        # 4) 奖励与失败判定
+        # 4) 奖励与失败判定(R2-02:phase 归因**首个**不可偿付事件——
+        #    开盘风险平仓分支已提前 return;此处覆盖资金费/收盘风险
+        #    平仓/终端清算/其余执行后路径,已发生成交与费用全部保全
+        #    在 info(风险腿/终端腿/资金费),不再执行额外模型动作)
         reward_valid = True
         if equity_start <= 0.0 or equity_end <= 0.0:
-            phase = ("open_risk_flatten"
-                     if open_risk_action is not None and
-                     equity_end <= 0.0 else "post_execution")
+            if equity_start <= 0.0:
+                phase, cause = "post_execution", "nonpositive_start"
+            elif eq_after_funding is not None and eq_after_funding <= 0.0:
+                # 资金费结算后(收盘风险/终端清算前)即不可偿付
+                phase, cause = "funding", "funding_insolvency"
+            elif close_flatten is not None:
+                phase, cause = ("close_risk_flatten",
+                                "close_risk_fee_insolvency")
+            elif liquidation is not None:
+                phase, cause = ("terminal_liquidation",
+                                "terminal_fee_insolvency")
+            elif open_risk_action is not None:
+                # 开盘风险平仓后经模型动作/资金费仍非正(开盘腿扣费
+                # 后曾为正的相邻路径):归因开盘风险腿
+                phase, cause = ("open_risk_flatten",
+                                "post_risk_residual_insolvency")
+            else:
+                phase, cause = "post_execution", "post_action"
             reason = (
                 f"非正净值(E_start={equity_start!r},"
-                f"E_end={equity_end!r},phase={phase}):log 奖励未定义;"
-                f"tick={t}->{exec_tick}")
+                f"E_end={equity_end!r},phase={phase},cause={cause}):"
+                f"log 奖励未定义;tick={t}->{exec_tick}")
             self.economic_failure = {
-                "phase": phase, "reason": reason,
+                "phase": phase, "cause": cause, "reason": reason,
                 "decision_tick": t, "execution_tick": exec_tick,
                 "equity_start": equity_start,
                 "equity_at_open": equity_at_open,
@@ -449,6 +487,71 @@ class HybridPositionEnv(gym.Env):
         obs = self._observation(exec_tick) if equity_end > 0.0 else (
             np.full(self.observation_space.shape, np.nan, np.float32))
         return obs, float(reward), terminated, False, info
+
+    def _terminal_economic_failure(
+            self, t: int, exec_tick: int, raw_open: float,
+            equity_start: float, equity_at_open: float,
+            equity_end: float, action, risk_action,
+            *, phase: str, cause: str, extra_note: str):
+        """统一经济失败终态(开盘风险平仓扣费后不可偿付等)。
+
+        保全已发生成交与费用(risk_action 腿 + 账本累计),不再执行
+        模型动作;reward 0.0 仅占位且 reward_valid=False(训练 harness
+        必须检测该标志判运行无效,不得让该步参与学习)。后续 step
+        拒绝(step() 入口守卫)。
+        """
+        branch, w = action
+        reason = (
+            f"{extra_note}({phase}/{cause};E_start={equity_start!r},"
+            f"E_open={equity_at_open!r},E_end={equity_end!r}):"
+            f"log 奖励未定义;tick={t}->{exec_tick},"
+            f"请求动作=[{branch},{w}]未执行")
+        self.economic_failure = {
+            "phase": phase, "cause": cause, "reason": reason,
+            "decision_tick": t, "execution_tick": exec_tick,
+            "equity_start": equity_start,
+            "equity_at_open": equity_at_open,
+            "equity_end": equity_end,
+            "action": [branch, w], "executed": False}
+        self._current_tick = exec_tick
+        self.episode_reward_raw = None
+        self.episode_reward_scaled = None
+        info: dict[str, Any] = {
+            "decision_tick": t, "execution_tick": exec_tick,
+            "action_branch": branch, "action_w": w,
+            "fill_kind": None, "exec_price": None,
+            "raw_open": raw_open, "signed_qty": 0.0,
+            "fee": 0.0, "realized_pnl": 0.0,
+            "requested_ratio": (w if branch == 1 else None),
+            "achieved_ratio": None, "residual": None,
+            "qty": self.ledger.qty,
+            "avg_entry": self.ledger.avg_entry,
+            "cash": self.ledger.cash,
+            "funding_payment": 0.0,
+            "equity_start": equity_start, "equity_end": equity_end,
+            "reward_raw": None, "reward_scaled": None,
+            "reward_valid": False,
+            "exposure_ratio_close": None,
+            "terminated": True, "truncated": False,
+            "funding_missing": self.funding_missing,
+            "open_equity": equity_at_open,
+            "open_risk_triggered": True,
+            "risk_action": ({
+                "phase": "open",
+                "exec_price": risk_action.exec_price,
+                "signed_qty": risk_action.signed_qty,
+                "fee": risk_action.fee}
+                if risk_action is not None else None),
+            "terminal_liquidation": None,
+            "fees_cum": self.ledger.fees_total,
+            "funding_cum": self.ledger.funding_total,
+            "economic_failure": dict(self.economic_failure),
+            "account_state": self._account_state_raw(raw_open),
+        }
+        self._record(info, t)
+        obs = np.full(self.observation_space.shape, np.nan,
+                      np.float32)
+        return obs, 0.0, True, False, info
 
     def _record(self, info: dict[str, Any], t: int) -> None:
         """把 info 精简为可序列化记录并登记(公共路径)。"""

@@ -423,6 +423,52 @@ def load_posctl_model(path, env) -> PPO:
     return model
 
 
+def load_posctl_model_archive(path):
+    """旧版本存档的只读冷载(R2-06 原件移交;不构造新环境)。
+
+    - zip 内 _posctl_policy_header 必须完整(POSCTL_HEADER_FIELDS);
+    - policy_spec/n_dist_params 必须与当前代码一致(策略网络语义
+      未变,旧权重可加载);env_core/execution 等环境身份**原样
+      返回**(如 R1 的 PosctlEnvCore-v2)供调用方如实披露,不强制
+      匹配新环境——新环境热载请用 load_posctl_model(逐项比对拒绝)。
+    - PPO.load 不带 env(使用存档自带 spaces);仅供权重回读/
+      确定性前向核验,不得用于新训练。
+    """
+    import zipfile
+    path = str(path)
+    try:
+        with zipfile.ZipFile(path) as zf:
+            names = zf.namelist()
+    except zipfile.BadZipFile as exc:
+        raise RuntimeError(f"非 SB3 存档,拒绝加载:{path}") from exc
+    if "data" not in names:
+        raise RuntimeError(f"存档缺少 data,拒绝:{path}")
+    import json
+    with zipfile.ZipFile(path) as zf:
+        data = json.loads(zf.read("data").decode("utf-8"))
+    header = data.get(POSCTL_HEADER_KEY)
+    if not header:
+        raise RuntimeError(
+            f"存档缺少 {POSCTL_HEADER_KEY}(旧二元 PPO 或异源存档),"
+            f"显式拒绝误载:{path}")
+    missing = [k for k in POSCTL_HEADER_FIELDS if k not in header]
+    if missing:
+        raise RuntimeError(
+            f"存档 header 缺字段 {missing},拒绝:{path}")
+    if header.get("policy_spec") != POSCTL_POLICY_SPEC_VERSION:
+        raise RuntimeError(
+            f"策略语义不匹配(存档 {header.get('policy_spec')!r} != "
+            f"代码 {POSCTL_POLICY_SPEC_VERSION!r}),拒绝:{path}")
+    if int(header.get("n_dist_params", -1)) != N_DIST_PARAMS:
+        raise RuntimeError("分布参数数不匹配,拒绝误载")
+    model = PPO.load(
+        path, env=None, device="cpu",
+        custom_objects={
+            "policy_class": HybridActorCriticPolicy,
+            POSCTL_HEADER_KEY: getattr_local(header)})
+    return model, dict(header)
+
+
 def getattr_local(header):
     return header
 

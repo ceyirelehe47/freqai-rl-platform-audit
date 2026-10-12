@@ -159,41 +159,106 @@ class TestDPReferenceExactness:
                     assert abs(got - p * m) <= 4.0 * sigma + 0.5, (
                         comp, r, c2, got, p * m, m)
 
-    def test_small_horizon_bruteforce_parity(self):
-        """h=6:独立实现的逐步后向(独立构造的转移 + 显式 k/a
-        循环,与 reference_policy 无共享代码路径)逐值一致。"""
+    def test_small_horizon_account_dynamics_parity(self):
+        """h=6:测试侧**独立实现**的账户动力学后向归纳(自有网格/
+        求积/插值 + 内联转移公式;与 reference_policy 无共享代码
+        路径)在共同格点上与 DP 值一致(容差=两级收敛差量级)。
+
+        R1 版"独立暴力"复制了错误的固定 w 递推(把 HOLD 当保持
+        w 列)——不能叫独立证明;本版内联
+        w_next=w(1+r)/(1+w·r) 与扣费后口径费用。"""
         spec = spec_for("c4d2", seed=MS, horizon=6,
                         mu_max=1.2e-3, sigma_lo=0.03, sigma_hi=0.06)
-        pol = reference_policy(spec)
+        pol = reference_policy(spec)      # 默认网格(321/64/40)
         table, _ = _state_chain(spec)
         ms, mc, mq, mg = self._independent_chain(spec)
         trans = np.kron(np.kron(np.kron(ms, mc), mq), mg)
         K = table.shape[0]
-        G = np.array([gbar(W_GRID, mu_eff_of(
-            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0],
-            float(np.where(table[j, 3] == 1, spec.sigma_hi,
-                           spec.sigma_lo))) for j in range(K)])
+        mu = np.array([mu_eff_of(
+            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0]
+            for j in range(K)])
+        sig = np.array([float(np.where(
+            table[j, 3] == 1, spec.sigma_hi, spec.sigma_lo))
+            for j in range(K)])
         fee = spec.fee
-        W = len(W_GRID)
-        V = -fee * np.abs(W_GRID)[None, :].repeat(K, 0)
+        # 自有网格:密集 [-3,3] 均匀 1501 点 + 强制平仓延伸 ±20
+        g_in = np.linspace(-3.0, 3.0, 1501)
+        g_ex = np.geomspace(3.0, 20.0, 24)
+        grid = np.concatenate([-g_ex[::-1], g_in, g_ex])
+        zidx = int(np.argmin(np.abs(grid)))
+        xs, wq = np.polynomial.legendre.leggauss(60)
+        wq = wq / 2.0
+        A = len(W_GRID)
+
+        def fee_frac(w, wt):
+            if wt > w:
+                return fee * abs((wt - w) / (1.0 + wt * fee))
+            if wt < w:
+                return fee * abs((wt - w) / (1.0 - wt * fee))
+            return 0.0
+
+        def cont(ev_row, w_pts):
+            inside = np.abs(w_pts) <= 20.0
+            out = np.empty_like(w_pts)
+            out[inside] = np.interp(w_pts[inside], grid, ev_row)
+            if (~inside).any():
+                ext = np.where(
+                    fee * np.abs(w_pts[~inside]) < 1.0,
+                    np.log1p(-fee * np.abs(w_pts[~inside])), -np.inf)
+                out[~inside] = ext + float(ev_row[zidx])
+            return out
+
+        V = np.tile(np.where(
+            fee * np.abs(grid) < 1.0,
+            np.log1p(-fee * np.abs(grid)), -np.inf), (K, 1))
         for _ in range(6):
             EV = trans @ V
-            newV = np.empty((K, W))
-            for k in range(W):
-                hold = G[:, k] + EV[:, k]
-                rebal = np.stack([G[:, a] + EV[:, a]
-                                  - fee * abs(W_GRID[a] - W_GRID[k])
-                                  for a in range(W)]).max(axis=0)
-                newV[:, k] = np.maximum(hold, rebal)
-            V = newV
-        v_dp = pol["values"][6]
-        assert np.allclose(V, v_dp, atol=1e-12), \
-            float(np.abs(V - v_dp).max())
+            Vn = np.empty_like(V)
+            for i in range(K):
+                r_nodes = mu[i] + math.sqrt(3.0) * sig[i] * xs
+                # HOLD
+                gb = gbar(grid, mu[i], sig[i])
+                finite = np.isfinite(gb)
+                c_h = np.zeros_like(grid)
+                for m in range(len(xs)):
+                    r = float(r_nodes[m])
+                    g = 1.0 + grid * r
+                    wn = np.where(g > 0, grid * (1.0 + r)
+                                  / np.where(g > 0, g, 1.0), 0.0)
+                    c_h += wq[m] * cont(EV[i], wn)
+                hv = np.where(finite, gb + c_h, -np.inf)
+                # REBAL(动作网格;费用按当前格点 w 精确解)
+                best = np.full_like(grid, -np.inf)
+                for a in range(A):
+                    wa = float(W_GRID[a])
+                    f_col = np.array([fee_frac(float(grid[k]), wa)
+                                      for k in range(len(grid))])
+                    if f_col.max() >= 1.0:
+                        f_col = np.where(f_col < 1.0, f_col, 1.0)
+                    gn = 1.0 + wa * r_nodes
+                    if np.any(gn <= 0.0):
+                        continue
+                    wn_a = wa * (1.0 + r_nodes) / gn
+                    cont_a = float(np.dot(wq, cont(EV[i], wn_a)))
+                    q = (np.log1p(-f_col) + float(gbar(
+                        np.array(wa), mu[i], sig[i])) + cont_a)
+                    best = np.maximum(best, q)
+                Vn[i] = np.maximum(hv, best)
+            V = Vn
+        # 共同格点对照(DP 网格内的代表点;两级收敛差量级容差)
+        for w_pt in (0.0, 0.25, 0.5, 1.0, -0.5, -1.0):
+            k_in = int(np.argmin(np.abs(grid - w_pt)))
+            i = 17
+            got = float(np.interp(w_pt, pol["grid"],
+                                  pol["values"][6][i]))
+            exp = float(V[i, k_in])
+            assert got == pytest.approx(exp, abs=3e-5), (
+                w_pt, got, exp)
 
     def test_initial_value_matches_pathwise_simulation(self):
         """端到端:生成器真实 episode 上执行参考策略的路径平均
-        总对数增长 ≈ DP initial_value(MC 4σ;证明 DP 是该 MDP 的
-        精确期望,而非自洽假象)。"""
+        总对数增长 ≈ DP initial_value(MC 4σ + 求解器收敛差;
+        证明 DP 是**同一账户动力学**的期望,而非自洽假象)。"""
         from rl_posctl.curriculum import initial_value
         spec = spec_for("c4d0", seed=MS, horizon=16,
                         **profiles.TRAIN_SPEC_OVERRIDES)
@@ -223,17 +288,27 @@ class TestDPReferenceExactness:
                            if s["net_log_return_valid"] else -6.0)
         mean = float(np.mean(rng_tot))
         ci = 4.0 * float(np.std(rng_tot)) / math.sqrt(n_eps)
-        assert mean == pytest.approx(exact, abs=ci + 0.02), (
+        # R2:容差 = MC 4σ + 求解器误差量级(旧 +0.02 > 最小声称
+        # 优势 0.000428,不能证明动力学一致——reviewer F4)
+        assert mean == pytest.approx(exact, abs=ci + 5e-4), (
             mean, exact, ci)
 
-    def test_reference_beats_flat_on_train_face_exact(self):
-        """精确期望(初始分布加权 DP 值)> 0 = 恒空仓;抽样实现
-        统计仅要求无失败且不明显劣于 flat(弱断言,避免噪声误判)。"""
-        from rl_posctl.curriculum import initial_value
+    def test_reference_beats_flat_on_train_face_qualified(self):
+        """数值期望(初始分布加权 DP 值)− 收敛差 > 0 = 优于恒空仓
+        且误差 < 优势(qualified;不虚称精确);抽样实现统计仅要求
+        无失败且不明显劣于 flat(弱断言,避免噪声误判)。"""
+        from rl_posctl.curriculum import (error_report, initial_value,
+                                          tier_validity as _tv)
         spec = spec_for("c4d2", seed=MS, horizon=64,
                         **profiles.TRAIN_SPEC_OVERRIDES)
-        assert initial_value(spec) > 0.0
-        st = tier_validity(spec, n_episodes=16)
+        rep = error_report(spec, refinements=((81, 16, 12),
+                                              (161, 32, 24)))
+        v = initial_value(spec)
+        assert v > 0.0
+        assert v - rep["err_bound"] > 0.0, (v, rep)
+        st = _tv(spec, n_episodes=16,
+                 err_bound=rep["err_bound"])
+        assert st["qualified"] is True
         assert st["n_failures"] == 0
         assert st["net_log"] > st["flat_net_log"] - 0.25
 
@@ -340,57 +415,128 @@ class TestC123Capabilities:
         assert a[1] == 0.0 or a[0] == 0
 
 
-    def _exact_policy_value(self, spec, act_fn):
-        """固定策略的精确期望值(测试侧独立评估器,与
-        reference_policy 无共享路径)。act_fn(i,k,sl)->w 索引
-        (-1=HOLD 保持 k)。初始分布与生成器一致(s/c/g 均匀,
-        q~Q_FRESH_P)。"""
+    def _account_policy_value(self, spec, act_fn):
+        """固定策略的数值期望值(账户动力学;测试侧独立评估器,
+        与 reference_policy 无共享代码路径)。act_fn(i,w,sl)->w
+        动作索引(-1=HOLD;w=评估器格点实际值)。初始分布与生成器一致
+        (s/c/g 均匀,q~Q_FRESH_P)。R2:旧 _exact_policy_value 沿用
+        固定 w 递推(reviewer F4),已废。"""
         table, trans = _state_chain(spec)
         K = table.shape[0]
-        W = len(W_GRID)
-        G = np.array([gbar(W_GRID, mu_eff_of(
-            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0],
-            float(np.where(table[j, 3] == 1, spec.sigma_hi,
-                           spec.sigma_lo))) for j in range(K)])
+        mu = np.array([mu_eff_of(
+            spec, table[j, 0:1], table[j, 1:2], table[j, 2:3])[0]
+            for j in range(K)])
+        # σ 语义与 sigma_of 一致:仅 sigma_regime=True 时随 g 切换
+        # (旧实现忽略 sigma_regime,对 c1/c2/c3 误用 σ_hi——已修)
+        sig = np.where(
+            spec.sigma_regime & (table[:, 3] == 1),
+            spec.sigma_hi, spec.sigma_lo)
         fee = spec.fee
-        V = -fee * np.abs(W_GRID)[None, :].repeat(K, 0)
+        g_in = np.linspace(-3.0, 3.0, 1201)
+        g_ex = np.geomspace(3.0, 20.0, 20)
+        grid = np.concatenate([-g_ex[::-1], g_in, g_ex])
+        zidx = int(np.argmin(np.abs(grid)))
+        xs, wq = np.polynomial.legendre.leggauss(48)
+        wq = wq / 2.0
+        A = len(W_GRID)
+
+        def fee_frac(w, wt):
+            if wt > w:
+                return fee * abs((wt - w) / (1.0 + wt * fee))
+            if wt < w:
+                return fee * abs((wt - w) / (1.0 - wt * fee))
+            return 0.0
+
+        fmat = np.array([[fee_frac(float(grid[k]), float(W_GRID[a]))
+                          for k in range(len(grid))]
+                         for a in range(A)])          # (A, nW)
+
+        def cont(ev_row, w_pts):
+            inside = np.abs(w_pts) <= 20.0
+            out = np.empty_like(w_pts)
+            out[inside] = np.interp(w_pts[inside], grid, ev_row)
+            if (~inside).any():
+                ext = np.where(
+                    fee * np.abs(w_pts[~inside]) < 1.0,
+                    np.log1p(-fee * np.abs(w_pts[~inside])), -np.inf)
+                out[~inside] = ext + float(ev_row[zidx])
+            return out
+
+        G_act = np.array([[float(gbar(np.array(W_GRID[a]), mu[i],
+                                      sig[i])) for a in range(A)]
+                          for i in range(K)])
+        G_hold = np.array([[float(gbar(np.array(grid[k]), mu[i],
+                                       sig[i]))
+                            for k in range(len(grid))]
+                           for i in range(K)])
+        V = np.tile(np.where(
+            fee * np.abs(grid) < 1.0,
+            np.log1p(-fee * np.abs(grid)), -np.inf), (K, 1))
         for sl in range(1, spec.horizon + 1):
             EV = trans @ V
-            Vn = np.empty((K, W))
+            Vn = np.empty_like(V)
             for i in range(K):
-                for k in range(W):
-                    a = act_fn(i, k, sl)
-                    if a == -1:
-                        Vn[i, k] = G[i, k] + EV[i, k]
-                    else:
-                        Vn[i, k] = (G[i, a] + EV[i, a]
-                                    - fee * abs(W_GRID[a] - W_GRID[k]))
+                r_nodes = mu[i] + math.sqrt(3.0) * sig[i] * xs
+                hold_cont = np.zeros_like(grid)
+                rebal_cont = np.zeros(A)
+                for m in range(len(xs)):
+                    r = float(r_nodes[m])
+                    g = 1.0 + grid * r
+                    wn = np.where(g > 0, grid * (1.0 + r)
+                                  / np.where(g > 0, g, 1.0), 0.0)
+                    hold_cont += wq[m] * cont(EV[i], wn)
+                    ga = 1.0 + W_GRID * r
+                    wn_a = W_GRID * (1.0 + r) / ga
+                    rebal_cont += wq[m] * cont(EV[i], wn_a)
+                hv = np.where(np.isfinite(G_hold[i]),
+                              G_hold[i] + hold_cont, -np.inf)
+                q_rebal = (np.log1p(-fmat.T) + G_act[i][None, :]
+                           + rebal_cont[None, :])   # (nW, A)
+                a_idx = np.array([act_fn(i, float(grid[k]), sl)
+                                  for k in range(len(grid))])
+                pick_hold = a_idx < 0
+                # 按策略**选定**的动作取值(不是 max over actions——
+                # 那会把任意策略都评估成最优值)
+                safe_a = np.where(pick_hold, 0, a_idx)
+                chosen = q_rebal[np.arange(len(grid)), safe_a]
+                Vn[i] = np.where(pick_hold, hv, chosen)
             V = Vn
-        w0 = int(np.argmin(np.abs(W_GRID)))
         pi = np.empty(K)
         for i in range(K):
             pi[i] = (1 / 3.0) * 0.5 * Q_FRESH_P[
                 int(np.argmin(np.abs(Q_LEVELS - table[i, 2])))] * 0.5
-        return float(pi @ V[:, w0])
+        return float(pi @ V[:, zidx])
 
     def test_reference_beats_local_only_on_c2(self):
-        """精确期望层断言(DP 固定策略评估,无抽样噪声):
-        参考 > local_only;抽样层只保留稳定性弱断言。"""
-        spec = spec_for("c2", seed=MS, horizon=32,
+        """同账户动力学评估器(无抽样噪声;两策略共用网格/求积,
+        差值不受求解器共模误差影响):参考 > local_only。R2:旧版
+        用固定 w 评估器对照固定 w DP(错误递推的自洽对照)。"""
+        spec = spec_for("c2", seed=MS, horizon=16,
                         **profiles.TRAIN_SPEC_OVERRIDES)
         pol = reference_policy(spec)
 
-        def ref_act(i, k, sl):
-            return int(pol["policies"][sl][i, k])
+        # 评估器格点 ≠ DP 格点:把 DP 策略表按 w 最近邻映射到评估器
+        # 格点(纯查表,零 reference_action 逐点调用)
+        dp_grid = pol["grid"]
+        dp_pol = pol["policies"]
+        acts = {-1: -1}
+        for a in range(len(W_GRID)):
+            acts[int(np.argmin(np.abs(W_GRID - W_GRID[a])))] = a
 
-        def local_act(i, k, sl):
+        def ref_act(i, w, sl):
+            k = int(np.argmin(np.abs(dp_grid - w)))
+            return int(dp_pol[sl][i, k])
+
+        def local_act(i, w, sl):
             sv = pol["table"][i, 0]
-            w = float(np.clip(sv, -1.0, 1.0))
-            return int(np.argmin(np.abs(W_GRID - w)))
+            wl = float(np.clip(sv, -1.0, 1.0))
+            return int(np.argmin(np.abs(W_GRID - wl)))
 
-        v_ref = self._exact_policy_value(spec, ref_act)
-        v_loc = self._exact_policy_value(spec, local_act)
-        assert v_ref > v_loc, (v_ref, v_loc)
+        v_ref = self._account_policy_value(spec, ref_act)
+        v_loc = self._account_policy_value(spec, local_act)
+        # DP 最优策略 ≥ 局部信号基线;容差 = 求解器收敛差量级
+        # (网格映射误差;不设宽容差掩盖真实劣势)
+        assert v_ref > v_loc - 1e-5, (v_ref, v_loc)
 
 
 # ==================== 生成器因果性与分区隔离 ====================
@@ -429,16 +575,20 @@ class TestGeneratorCausality:
         assert p1.equals(p2) and f1.equals(f2)
 
 
-# ==================== 参考费用近似对拍(披露义务) ====================
-class TestReferenceCostApproximation:
-    def test_linear_fee_model_vs_real_ledger_replay(self):
-        """DP 的 fee·|Δw| 线性费用模型 vs 真实账本回放(滑点/tick=0
-        面一致;偏差披露,不虚称精确)。"""
+# ==================== 参考费用口径对拍(v3 精确费用) ====================
+class TestReferenceCostExactness:
+    def test_exact_fee_model_vs_real_ledger_replay(self):
+        """v3 参考的扣费后口径费用(与账本同解)vs 真实账本回放:
+        滑点/tick=0 面**逐位一致**(旧 v2 线性 fee·|Δw| 是披露近似,
+        rel=0.25;v3 精确后收紧到机器精度;风险腿同式计入)。"""
+        from rl_posctl.curriculum import rebal_fee_fraction
         spec = spec_for("c4d2", seed=MS, horizon=64,
                         **profiles.TRAIN_SPEC_OVERRIDES)
         env = make_env(spec, 31337)
-        actions = []
         obs, _ = env.reset()
+        n_risk = 0
+        assumed = 0.0          # DP 费用模型(log 量纲:Σ −ln(1−f))
+        real_log_fee = 0.0     # 真实账本费用折 log
         while True:
             t = env._current_tick
             row = env._feature_row(t)
@@ -447,27 +597,27 @@ class TestReferenceCostApproximation:
                      if eq > 0 else 0.0)
             act = reference_action(spec, row, ratio,
                                    steps_left=env.n_rows - 1 - t)
-            actions.append([float(act[0]), float(act[1]),
-                            float(ratio)])
+            if act[0] == 1:
+                assumed -= math.log1p(-rebal_fee_fraction(
+                    float(ratio), float(act[1]), spec.fee))
             o, r, term, trunc, info = env.step(act)
-            if term or trunc:
-                break
-        assumed = 0.0          # DP 费用模型(log 收益量纲:fee·|Δw|)
-        real_log_fee = 0.0     # 真实账本费用折 log:Σ −ln(1−fee/E₀)
-        # DP 口径:费用 = fee·|目标 w − 当前实际敞口比|(当前比随
-        # 净值漂移;用事前 ratio,与 V 的 (k→a) 转移一致)
-        prev_ratio = 0.0
-        for k_rec, (branch, w, ratio_now) in enumerate(actions):
-            rec = env.step_records[k_rec]
-            if branch == 1:
-                assumed += spec.fee * abs(w - ratio_now)
+            rec = env.step_records[-1]
             fee_i = rec.get("fee") or 0.0
             if fee_i:
-                real_log_fee += -math.log1p(-fee_i / rec["equity_start"])
-            prev_ratio = ratio_now
-        # 终端清算腿(真实账本必平仓;DP 终值同含 fee·|w|)
-        assumed += spec.fee * abs(prev_ratio)
-        # 线性费用模型 vs 真实账本(滑点/tick=0 面):log 量纲一致;
-        # 偏差来自扣费后净值求解与权益漂移(披露口径,不虚称精确)
-        assert real_log_fee == pytest.approx(assumed, rel=0.25,
-                                             abs=1e-9)
+                real_log_fee -= math.log1p(
+                    -fee_i / rec["equity_start"])
+            ra = rec.get("risk_action")
+            if isinstance(ra, dict) and ra.get("fee"):
+                n_risk += 1
+                # 风险腿费用按账本原值对账(与 DP 强制平仓模型同式
+                # fee·|w|;本 seed 下预期无风险事件,断言见下)
+            if term or trunc:
+                break
+        # 终端清算腿(真实账本必平仓;DP 终值同含 log(1−fee·|w|))
+        tl = rec.get("terminal_liquidation")
+        if isinstance(tl, dict) and tl.get("fee"):
+            assumed -= math.log1p(-tl["fee"] / rec["equity_start"])
+        assert n_risk == 0, "本 seed 预期无风险腿(如有请换对拍口径"
+        assert real_log_fee == pytest.approx(assumed, rel=1e-6,
+                                             abs=1e-9), (
+            real_log_fee, assumed, n_risk)
