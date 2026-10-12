@@ -72,11 +72,15 @@ def main() -> int:
                 "test_curriculum261_cic_r1_repairs.py",
             REPO / "stage2_6_1" / "tests" / "route_c_stage2_6_1" /
                 "test_curriculum261_r17_cue_formal_identity.py"):
-        target = pkg / "source" / "stage2_6_1" / (
-            "tests/route_c_stage2_6_1" / f.name if "tests" in
-            f.parts else (
-                "runner" / f.name if f.parent.name == "runner" else
-                "src/rl_curriculum" / f.name))
+        if "tests" in f.parts:
+            target = (pkg / "source" / "stage2_6_1" / "tests"
+                      / "route_c_stage2_6_1" / f.name)
+        elif f.parent.name == "runner":
+            target = (pkg / "source" / "stage2_6_1"
+                      / "runner" / f.name)
+        else:
+            target = (pkg / "source" / "stage2_6_1" / "src"
+                      / "rl_curriculum" / f.name)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(f, target)
         n += 1
@@ -86,6 +90,7 @@ def main() -> int:
         "usage_ledger.jsonl", "gen_quota.jsonl", "param_stats.json",
         "bc_diagnostic.json", "report_curriculum_eval.json",
         "demo_trajectory.json", "device_snapshot.json"]
+    (pkg / "experiments").mkdir(parents=True, exist_ok=True)
     for k in keep:
         p = EXP / k
         if p.exists():

@@ -100,18 +100,47 @@ backward+step、evaluate_actions 形状、同进程重载一致、
 - 最终候选:8379d33b16de9648fd9cde6241bbf132c3ada0f1(冻结;
   链 0b6b94d9→ba7dcca7→b515c69d→ebbfc98a→91d1d548→a873c6f4
   →cbc40c3a→4caac469→3daea6f3→1c0e0194→8379d33b)。
-- 261 全量回归(collection+JUnit+多重集 ci_multiset_compare 实测
-  对比 A9 基线,计数不预填)+ 本轮新增 route_c_posctl 套件 +
-  受影响 262 测试;stdout/stderr/rc/auditor/lifecycle 齐备。
+- 261 全量回归(A9 同构精简树 crypto_rl_posctl_ci;deploy 差集
+  逐项补齐 r17_win_process.cs / r20_design_calc_v4.py /
+  r17_win_sampler*.ps1):**3084 tests / 0 failures / 0 errors /
+  7 skips,rc=0**,record 绑定 8379d33b;A9 的 3 个精简树缺件
+  失败全部转绿。
+- 多重集实测(vs A9 3049 基线,ci_multiset_compare):+41(新
+  R1 测试)/−6(旧 watcher_originals 测试,被新文件取代,语义
+  覆盖已补回)/3 状态变更(全部 failure→passed)/0 新 skip/
+  0 身份减少。
+- posctl 新域套件:70/70 绿(0F/0E/0S)。
+- 262(相邻面保险全跑):240 tests,237 passed + 3 failures =
+  curriculum261_api.py 对旧 262 input-lock 计划的漂移,**既有**,
+  证明五点链:(a) 45a47547(A2 RuntimeClosure,2026-10-06)是
+  基线 0b6b94d9 的祖先,该提交修改了 api;(b) api 文件 sha256
+  在基线与本候选同为 22accf4a(45a47547^ 为 e439b4be,漂移先于
+  基线存在);(c) 本候选链内 262 源码零改动;(d) junit262 失败
+  消息即 "curriculum261_api.py 未登记漂移";(e) 漂移前基线
+  junit(v18_c23)为 240/0F。非本轮引入,不在本轮修复(超出
+  范围,留待 262 域裁决)。
+- 回归尝试史:到达终版全绿共 ~16 次尝试(存储上限击杀×3、
+  PYTEST_*/部署面/symlink/TMPDIR-9P 拒绝或失败×5、精简树切换、
+  F2 线程污染修复、缺件补齐×2 等),全程见同目录
+  REGRESSION_ATTEMPTS.md;存储保护上限从未放宽,全部拒绝均为
+  正确 fail-closed 语义。
 - 零正式副作用:无正式签发/消费/launch;预算封顶未触发。
 
 ## 7. 事前固定与变更记录
 
-- 训练面规格修正(实现缺陷层,未看任何学习结果):smoke 发现
-  默认 σ(0.10–0.20/bar)下未训练策略(混合分布 ±1 原子各 1/4
-  质量)空头数百 bar 内必然清零——夹具生存性缺陷;降为
-  σ∈[0.03,0.06]、μ=8e-4(f*≈0.89 内点保持;清零概率 ~1e-3/
-  run)。3 次 RUN_INVALID 步数如实计费不重置。
+- 训练面规格修正(实现缺陷层,未看任何学习结果):第一轮 smoke
+  的 smoke_2 于 1,036 步触发经济失败 RUN_INVALID(smoke_0/1 为
+  2,048 步 OK,被规格修正取代)——未训练策略(混合分布 ±1
+  原子各 1/4 质量)持续满仓空头在高波动(σ=0.10–0.20/bar)下
+  的清零是**稀有但不可忽略**事件(约每运行千步量级,足以污染
+  训练分布,而非必然);降为 σ∈[0.03,0.06]、μ=8e-4(f*≈0.89
+  内点保持,清零概率 ~1e-3/run)。全部步数如实计费不重置。
+  披露:profiles.py 头注 "BC 本轮不使用" 为事前计划声明,
+  实际 BC 诊断使用 1 次 fit(≤4 额度,320 minibatch),见
+  bc_diagnostic.json;validity_c1 面参考均值(-0.008)在生产
+  master seed 下略低于 flat(0.0)——该面费用主导,C1 条件
+  均值有效性由固定 seed 单测(4000-episode 条件均值)证明,
+  课程难度按费用后净边际如实呈现。
 - smoke 预算线偏差:11 次尝试(计划 8 次)如实计费,总 21,516
   步 vs 16,384 线(第一轮 5,132 步 + 第二轮 16,384 步);总 PPO
   预算内。账本逐条可复算;第一轮 RUN_INVALID 运行记录已被同名
