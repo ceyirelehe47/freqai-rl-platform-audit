@@ -56,6 +56,7 @@ class ReservationLedger:
             limits or {k: POSCTL_R1_BUDGET[k] for k in METRICS
                        if k in POSCTL_R1_BUDGET})
         self.committed = {k: 0 for k in METRICS}
+        self.incidents: dict[str, int] = {k: 0 for k in METRICS}
         self.reservations: dict[str, dict] = {}
         self._load()
 
@@ -88,6 +89,12 @@ class ReservationLedger:
                 rid = rec["rid"]
                 # release 仅允许未开始任何工作的预约(调用方负责)
                 self.reservations.pop(rid, None)
+            elif ev == "incident_backcharge":
+                # 已发生但未经预约的消耗(事故补记;计入占用并使
+                # 后续预约对超限 fail closed,超限事实在 snapshot
+                # 如实可见,不隐藏不回滚)
+                for k in METRICS:
+                    self.incidents[k] += rec.get(k, 0)
 
 
     def _synced_op(self, op) -> None:
@@ -99,6 +106,7 @@ class ReservationLedger:
                 fh.seek(0)
                 content = fh.read()
                 self.committed = {k: 0 for k in METRICS}
+                self.incidents = {k: 0 for k in METRICS}
                 self.reservations = {}
                 for line in content.splitlines():
                     if not line.strip():
@@ -119,6 +127,9 @@ class ReservationLedger:
                                 self.committed[k] += v
                     elif ev == "release":
                         self.reservations.pop(rec["rid"], None)
+                    elif ev == "incident_backcharge":
+                        for k in METRICS:
+                            self.incidents[k] += rec.get(k, 0)
                 op(fh)
                 fh.flush()
                 os.fsync(fh.fileno())
@@ -138,9 +149,12 @@ class ReservationLedger:
         return out
 
     def effective(self) -> dict[str, int]:
-        """已提交 + 未闭合预约(预约检查口径)。"""
-        return {k: self.committed[k] + self.outstanding()[k]
-                for k in METRICS}
+        """已提交 + 未闭合预约 + 事故补记(预约检查口径)。
+        事故补记使已发生的未预算消耗同样占用额度:后续预约对
+        超限 fail closed,超限不得被"忘记"。"""
+        out_q = self.outstanding()
+        return {k: (self.committed[k] + out_q[k]
+                    + self.incidents[k]) for k in METRICS}
 
     # ------------------------------------------------------------ ops
     def reserve(self, tag: str, **amounts) -> str:
@@ -268,10 +282,37 @@ class ReservationLedger:
 
     def snapshot(self) -> dict:
         return {"committed": dict(self.committed),
+                "incident_backcharged": dict(self.incidents),
                 "outstanding": self.outstanding(),
                 "effective": self.effective(),
                 "limits": dict(self.limits),
+                "over_limit": {k: max(0, self.effective()[k]
+                                       - self.limits.get(k, 10**18))
+                               for k in METRICS},
                 "open_rids": sorted(self.reservations)}
+
+    def incident_backcharge(self, tag: str, note: str = "",
+                            **amounts) -> None:
+        """事故补记:已发生但未经预约的消耗(诚实记录,非授权)。
+        不走 reserve(那会在超限时拒记,使事故不可见);直接追加
+        事故行,计入 effective ⇒ 后续预约 fail closed。调用方必须
+        同时在报告中披露事故与超限量。"""
+        bad = [k for k in amounts if k not in METRICS]
+        if bad:
+            raise ValueError(f"未知计量项 {bad};可用={list(METRICS)}")
+        rec = {"event": "incident_backcharge", "tag": tag,
+               "note": note}
+        rec.update({k: int(v) for k, v in amounts.items()})
+        holder = {}
+
+        def op(fh):
+            self._append_rec(rec, fh)
+            for k in METRICS:
+                self.incidents[k] += int(amounts.get(k, 0))
+
+        self._synced_op(op)
+        if "error" in holder:
+            raise holder["error"]
 
 
 def create_only_dir(path) -> Path:

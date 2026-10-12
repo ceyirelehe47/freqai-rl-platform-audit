@@ -116,6 +116,32 @@ def _src_root():
     return str(Path(rl_posctl.__file__).resolve().parent.parent)
 
 
+class TestIncidentBackcharge:
+    def test_incident_recorded_blocks_future_and_visible(self,
+                                                         tmp_path):
+        """事故补记:未预约消耗如实入账 → effective 含事故量,
+        后续预约对超限 fail closed,snapshot 披露 over_limit;
+        事故不是授权,不隐藏。"""
+        led = ReservationLedger(tmp_path / "b.jsonl",
+                                limits={"ppo_steps": 100})
+        rid = led.reserve("t1", ppo_steps=80)
+        led.commit(rid, "t1", ppo_steps=80)
+        led.incident_backcharge(
+            "crash-run-1", note="runner 崩溃前已发生的消耗",
+            ppo_steps=40)
+        assert led.effective()["ppo_steps"] == 120
+        snap = led.snapshot()
+        assert snap["incident_backcharged"]["ppo_steps"] == 40
+        assert snap["over_limit"]["ppo_steps"] == 20
+        with pytest.raises(BudgetExceeded):
+            led.reserve("t2", ppo_steps=1)
+        # 重载后事故仍占用(崩溃语义)
+        led2 = ReservationLedger(tmp_path / "b.jsonl",
+                                 limits={"ppo_steps": 100})
+        assert led2.effective()["ppo_steps"] == 120
+        assert led2.snapshot()["over_limit"]["ppo_steps"] == 20
+
+
 class TestCreateOnlyDir:
     def test_create_and_conflict(self, tmp_path):
         d = create_only_dir(tmp_path / "run1")

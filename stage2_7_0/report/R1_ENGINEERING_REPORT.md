@@ -132,15 +132,24 @@ test_posctl_policy.py(手算 logp/熵/梯度/冷读,α 域更新)。
 - ReservationLedger(budget.py):动作前预约,分项+总额+单次上限
   (SB3 取整事前控制)锁内检查+落盘(fcntl,跨进程一致测试);
   失败/中断 abandon 保守保留;create-only 运行目录。
-- R1 实耗(evidence/r1_runs/r1_budget_ledger.jsonl):
-  **终态 65,168/65,536 eval(余 368)、ppo 6,144/16,384(3 次
-  尝试)、bc 1/1 fit(40 minibatch)**;构成:三次运行补记
-  2,048+512+16,384(计数器 import 快照 bug 事故,痕迹保留)+
-  smoke 2,048×3+bc 512+课程评估 16,384(首轮)+缩样 6,656+
-  **一次参数错误失败的课程评估运行耗 6,512(KeyError 前环境步
-  已发生,如实计入,不回滚)**+套件 counted 15,162(旧链)与
-  20,026(终候选 134 例)。bank 生成 248 成功调用/2,560;套件内
-  单测夹具生成按来源单列不入 bank 额度(139/575 次)。
+- R1 实耗(evidence/r1_runs/r1_budget_ledger.jsonl,事故补记后
+  终态):**eval 76,432/65,536 = 超限 10,896(本轮真实预算违规
+  事故,留档不清零)**;ppo 6,144/16,384(3 次尝试)、bc 1/1
+  fit(40 minibatch)、bank 生成 248/2,560。
+  预算内构成(committed 65,168):补记 2,048+512+16,384(计数器
+  import 快照 bug,痕迹保留)+ smoke 2,048×3 + bc 512 + 课程评估
+  首轮 16,384 + 缩样 6,656 + 套件 counted 15,162(旧链)与
+  20,026(终候选 134 例)。
+  事故构成(incident_backcharged 11,264):两次参数错误失败的
+  课程评估运行各 5,632(KeyError 于 replay 段,此前 tier/c123
+  已全部跑完;重建=4×8×128+3×4×128,44 条生成记录/次、零
+  replay 生成,成功运行 6,656=5,632+1,024 精确印证)。
+  取证与补记:failed_runs_forensics/FORENSICS.md(含 verbatim
+  控制台残段、SUITE_COUNTS 行归档、根因三项与流程更正)。
+  套件内单测夹具生成按来源单列不入 bank 额度(139/575 次)。
+  incident 机制:budget.py `incident_backcharge`(事故行入
+  effective,后续预约对超限 fail closed,over_limit 在
+  snapshot 如实可见;测试 11/11)。
   smoke_2 历史覆盖事故:LOST_ORIGINAL(残存账本行+说明,不补造)。
 - smoke(2,048 步真实 PPO 更新,共 3 次:首跑暴露计数器 bug、
   二跑暴露对拍口径错误、终跑 smoke_20261012T223435):OK、零经济
