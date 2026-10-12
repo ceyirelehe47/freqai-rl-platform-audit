@@ -183,17 +183,29 @@ originals_handover/):
 
 ## 8. R2-08 候选回归与验收
 
-- 分层回归:先纯数学/账本对拍(零预算消耗)→ 计数定向冒烟 →
-  终版全套件(wrapper 先毯式预约;套件内 learn 记 ppo)。
-- 261/262:本轮改动全部在 stage2_7_0(src/runner/tests/report),
-  261/262 域(stage2_6_1/2)源树与候选哈希未变——按哈希适用性
-  复用 R1 终版 261(3084=3077+7 skip)/262(240=237+3 fail 同条件
-  既有)证据,不重跑;适用性由 git 树对象 SHA 与 R1 审计原件
-  (evidence 内 SHA 索引)支撑。
-- 预算终态:evidence/r2_task_ledger 终态快照 + 分项/总项复算
-  (见交付 ZIP evidence;r2_runs/ 各 run 目录含 RunLog 原件)。
+- 分层回归:纯数学/账本对拍先行(零预算消耗;h=6 独立递推、
+  1 步 GL-200、无费 24^4 张量、转移算子 vs 账本 3e-16)→ 计数
+  定向冒烟(tier c4d0,2,048 步)→ 终版全套件。
+- **终版全套件**(候选 f7251979;wrapper 先毯式预约 cap
+  23,000/700 后 pytest):430 通过 + 3 环境管道失败
+  (ModuleNotFoundError: rl_platform——套件 PYTHONPATH 缺部署树
+  一段;非代码回归)⇒ 同候选修正路径后定向补跑 3/3 通过
+  (55 步 0 生成;junit_r2_envfix_economy.xml)⇒ **合并多重集
+  433/433 通过**。实耗:19,949 eval + 32 ppo(2 次 16 步 learn
+  经 conftest r2_learn 精确分类)+ 575 生成,全部实结入账
+  (SUITE_COUNTS + JUnit 原件在 evidence/r2_runs/)。
+- 261/262:本轮改动全部在 stage2_7_0;261/262 域源/测试树对象
+  SHA 在 c785e0f5 与 f7251979 之间逐项相同(audit_applicability/
+  tree_shas_r1_vs_r2.txt)⇒ 按哈希适用性复用 R1 终版 261(3084
+  =3077+7 skip)/262(240=237+3 fail 既有同条件)证据,不重跑
+  (论证:AUDIT_261_262_APPLICABILITY.md;重跑须新预算授权)。
+- **R2 账本终态**(PosCtl_R2_20261012;r2_task_ledger_final_
+  snapshot.json):ppo 288/1,024(4/8 次)、eval 26,604/32,768
+  有效(含 200 事故补记)、gen 704/2,048、episodes 113/512、
+  合成合计 26,892/33,792——全分项/总项未超限,face 与代码一致。
 - 独立 reviewer:按用户配置 zhipu-coding-plan/glm-5.3-flash:max
-  委派(不代签 ChatGPT;原文入 reviews/)。
+  委派(请求别名/配置选择器/运行回执三者在 reviews/ 记录;
+  不代签 ChatGPT;原文随包)。
 - 最终 ZIP 冷读:固定 ZIP 副本新目录解压、重算哈希/CRC/成员/
   安全路径/源码 Git/回执原文/预算分类;回执在包外绑定实际 ZIP。
 
