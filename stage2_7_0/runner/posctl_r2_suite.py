@@ -37,16 +37,28 @@ from rl_posctl.runlog import RunLog, write_rejection  # noqa: E402
 from rl_posctl.versions import POSCTL_R2_TASK_ID  # noqa: E402
 
 
-def _session_ppo(ledger_path: Path) -> dict:
+def _registry_len(ledger_path: Path) -> int:
+    reg = ledger_path.parent / "suite_ppo_registry.jsonl"
+    if not reg.exists():
+        return 0
+    return sum(1 for line in reg.read_text(encoding="utf-8")
+               .splitlines() if line.strip())
+
+
+def _session_ppo(ledger_path: Path, since_line: int = 0) -> dict:
+    """本套件 run 的 ppo 分类(F1 修复:只计 since_line 之后的
+    **新增**注册行——旧行为读跨 run 累计注册表,使后续套件 run
+    的 eval 实耗被前次 run 的 ppo 步错误冲减,少记入账)。"""
     reg = ledger_path.parent / "suite_ppo_registry.jsonl"
     ppo_steps = 0
     attempts = 0
     if reg.exists():
-        for line in reg.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rec = json.loads(line)
-                ppo_steps += int(rec.get("ppo_steps", 0))
-                attempts += int(rec.get("learn_attempts", 0))
+        lines = [ln for ln in reg.read_text(
+            encoding="utf-8").splitlines() if ln.strip()]
+        for line in lines[max(0, since_line):]:
+            rec = json.loads(line)
+            ppo_steps += int(rec.get("ppo_steps", 0))
+            attempts += int(rec.get("learn_attempts", 0))
     return {"ppo_steps": ppo_steps, "learn_attempts": attempts}
 
 
@@ -89,6 +101,7 @@ def main() -> int:
     with RunLog(out_dir, argv=sys.argv,
                 meta_extra={"runner": "posctl_r2_suite"}) as rl:
         # ---- 2) 先预约(整套件上限;崩溃保守保留;被拒=pytest 前) ----
+        reg_before = _registry_len(ledger_path)
         try:
             rid = led.reserve(
                 "posctl_r2_suite_blanket",
@@ -117,7 +130,7 @@ def main() -> int:
         # ---- 4) 结算(实耗 ≤ 预约;分类不双计) ----
         env_total = int(_envmod.ENV_STEP_COUNT)
         gen_total = int(_currmod.GEN_CALL_COUNT)
-        sess = _session_ppo(ledger_path)
+        sess = _session_ppo(ledger_path, since_line=reg_before)
         eval_actual = env_total - sess["ppo_steps"]
         gen_actual = gen_total
         rec = {
