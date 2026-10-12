@@ -49,6 +49,13 @@ from rl_posctl.runlog import RunLog, write_rejection  # noqa: E402
 LEDGER_ENV_VARS = ("POSCTL_R3_LEDGER", "POSCTL_R2_LEDGER")
 
 
+def _ledger_lines(ledger_path: Path) -> int:
+    if not ledger_path.exists():
+        return 0
+    return sum(1 for line in ledger_path.read_text(
+        encoding="utf-8").splitlines() if line.strip())
+
+
 def _registry_len(ledger_path: Path) -> int:
     reg = ledger_path.parent / "suite_ppo_registry.jsonl"
     if not reg.exists():
@@ -57,10 +64,42 @@ def _registry_len(ledger_path: Path) -> int:
         encoding="utf-8").splitlines() if line.strip())
 
 
+def _session_ppo_from_ledger(ledger_path: Path,
+                             since_line: int = 0) -> dict:
+    """本套件 run 的 ppo 分类(R4-F1:以**任务账本**在 since_line
+    之后新增的 pytest_learn commit 行为准,不再读 suite_ppo_
+    registry——注册表行可能来自使用 tmp 测试账本的门测试,把
+    真实 env 步从共享面扣除等于 tmp 账本免计真实工作(G1 同类
+    模式)。tmp 账本的真实咽喉步留在 eval 结算(SCOPE:真实
+    env.step 一律计入共享面;纯计数器增量计入 eval 为保守方向,
+    不丢失任何真实工作)。)"""
+    ppo_steps = attempts = 0
+    if not ledger_path.exists():
+        return {"ppo_steps": 0, "learn_attempts": 0,
+                "source": "ledger_commits"}
+    lines = ledger_path.read_text(
+        encoding="utf-8").splitlines()
+    for line in lines[since_line:]:
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if (rec.get("event") == "commit"
+                and str(rec.get("tag", "")) == "pytest_learn"):
+            tot = rec.get("actual_total") or {}
+            ppo_steps += int(tot.get("ppo_steps",
+                                     rec.get("ppo_steps", 0)))
+            attempts += int(tot.get("ppo_learn_attempts",
+                                    rec.get(
+                                        "ppo_learn_attempts", 0)))
+    return {"ppo_steps": ppo_steps, "learn_attempts": attempts,
+            "source": "ledger_commits"}
+
+
 def _session_ppo(ledger_path: Path, since_line: int = 0) -> dict:
-    """本套件 run 的 ppo 分类(F1 修复:只计 since_line 之后的
-    注册表行——跨 run 累计注册表不得把别的 run 的 ppo 步读成
-    本 run 的豁免/分类)。"""
+    """注册表口径(仅诊断对照;结算用 _session_ppo_from_ledger)。"""
     reg = ledger_path.parent / "suite_ppo_registry.jsonl"
     ppo_steps = attempts = 0
     if reg.exists():
@@ -160,6 +199,7 @@ def main() -> int:
                 meta_extra={"runner": "posctl_r2_suite"}) as rl:
         # ---- 2) 先预约(整套件上限;崩溃保守保留;被拒=pytest 前)
         reg_before = _registry_len(ledger_path)
+        ledger_before = _ledger_lines(ledger_path)
         try:
             rid = led.reserve(
                 "posctl_r2_suite_blanket",
@@ -205,13 +245,16 @@ def main() -> int:
         # ---- 4) 结算(实耗 ≤ 预约;分类不双计) ----
         env_total = int(_envmod.ENV_STEP_COUNT)
         gen_total = int(_currmod.GEN_CALL_COUNT)
-        sess = _session_ppo(ledger_path, since_line=reg_before)
+        sess = _session_ppo_from_ledger(
+            ledger_path, since_line=ledger_before)
         eval_actual = env_total - sess["ppo_steps"]
         gen_actual = gen_total
         rec = {
             "run": "posctl_r2_suite",
             "env_steps_total": env_total,
             "session_ppo": sess,
+            "session_ppo_registry_diag": _session_ppo(
+                ledger_path, since_line=reg_before),
             "eval_steps_actual": eval_actual,
             "gen_calls_module": gen_actual,
             "pytest_rc": rc,

@@ -151,3 +151,32 @@ class TestReportEvidenceBinding:
         st = tier_validity(spec, n_episodes=0, err_bound=rep)
         assert st["qualified"] is False
         assert st["err_bound_kind"] == "unverified_report"
+
+
+class TestForgedChainHardening:
+    def test_selfconsistent_forged_values_not_established(self):
+        """F-2:全伪造但自洽的报告(values 手编、diffs/err_bound 按
+        式重算、spec_key/judged_grid 照抄)不通过——最细级值必须
+        等于被判定参考值。"""
+        spec = _tiny_spec()
+        rep = _valid_report(spec)
+        forged = copy.deepcopy(rep)
+        forged["values"] = [0.5, 0.6, 0.7]
+        forged["adjacent_diffs"] = [abs(0.6 - 0.5),
+                                    abs(0.7 - 0.6)]
+        forged["err_bound"] = 0.1
+        st = tier_validity(spec, n_episodes=0, err_bound=forged)
+        assert st["qualified"] is False
+        assert st["err_bound_kind"] == "unverified_report"
+        assert "被判定参考值" in st["qualification_note"]
+
+    def test_malformed_judged_grid_not_established(self):
+        """F-3:judged_grid 类型非法 → NOT_ESTABLISHED(不抛)。"""
+        spec = _tiny_spec()
+        for bad in ("junk", 5):
+            rep = _valid_report(spec)
+            rep["judged_grid"] = bad
+            st = tier_validity(spec, n_episodes=0, err_bound=rep)
+            assert st["qualified"] is False
+            assert st["err_bound_kind"] == "unverified_report"
+            assert "类型非法" in st["qualification_note"]

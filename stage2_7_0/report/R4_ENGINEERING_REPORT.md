@@ -99,30 +99,47 @@
 - ChatGPT 终验报告 §6 所称 reviewer 声称的真实 env/生成验证:
   无逐次可复算日志 → **不可观测**(不猜合计、不推定 0、不凑
   数),如实标注缺件。
-- 不改旧主账/limits、不回收保守 gen64、不追认预算、不重跑洗白;
-  代码防护在 R4 修复,历史事故以原件诚实封口。
 
-## 4. R4-D 回归与预算
+## 4. R4-D 回归与预算(含 reviewer F-1..F-3 修复轮)
 
-- 探针受控复跑(先预约 ub=8 后执行,实结 4 步):
-  probe_rerun/{learn_boundary,budget,reference} 三件全按新语义
-  闭合(§1/§2)。
-- 套件批次(posctl_r2_suite wrapper,R4 任务账本+执行中硬限,
-  JUnit 原件 evidence/r4_runs/):
+### 4.1 reviewer 复验发现修复(同轮闭环)
+
+- **F-1(P2,结算口径)**:套件结算原用 suite_ppo_registry 行扣
+  减 eval,使 4 个真实 learn 门 env 步(记录在 tmp 测试账本)从
+  R4 共享面扣除,同时 22 个纯计数器增量计入 eval——共享面数字
+  不是真实工作分解(G1 同类微观重现)。修复:结算改以**任务账本
+  本次运行新增的 pytest_learn commit 行**为准(_session_ppo_
+  from_ledger);tmp 账本的真实咽喉步留在 eval 结算(真实
+  env.step 一律计入 128),纯计数器增量计入 eval 为保守方向;
+  注册表保留为诊断对照(session_ppo_registry_diag)。
+- **F-2(P3)**:_verify_error_report 增**最细级值 == 被判定参考值**
+  核对(合法报告在判定网格上必与 initial_value 一致;自洽伪造
+  值链关闭)。
+- **F-3(P3)**:judged_grid 类型非法(junk/5)不再抛穿,按结构
+  残缺返回 unverified_report(NOT_ESTABLISHED)。
+- 批次:A2(中间批,10 失败=签名参数漏并的机械错误,eval 43
+  如实入账,junit_r4_batchA2.xml 留档)→ 修复后 **A3:84 通过/
+  0 失败**(新增 F-2/F-3 加固测试),eval_actual=43(新口径),
+  junit_r4_batchA3.xml。
+
+### 4.2 套件批次(posctl_r2_suite wrapper,R4 任务账本+执行中硬限)
 
 | 批 | 选择 | 结果 |
 |---|---|---|
-| A | r4_budget+r4_reference+r3_budget+r3_reference | 82 通过(env 43:ppo 分类 16+eval 27) |
+| 探针 | portable_probes 受控复跑(ub=8 先约后执行) | 4 真实步实结;三探针全按新语义闭合(§1/§2) |
+| A | r4_budget+r4_reference+r3_budget+r3_reference | 旧口径 82 通过(结算缺陷见 F-1) |
+| A2 | 同 A(F-1 修复中,签名机械错误) | 74 过/10 失败(留档;eval 43 入账) |
+| A3 | 同 A(F-1/F-2/F-3 修复后) | **84 通过/0 失败**;eval 43(账本口径) |
 | B | r2_budget+r3_runlog+r3_package+curriculum 纯数学子集 | 63 通过/14 deselect(env 0) |
 
-- R4 账本终态:eval 31/128(探针 4+批A 27+批B 0);ppo 0/0;
-  gen 0/0;episodes 0;synthetic 31/128;无未闭合预约。剩余
-  ~97 步留给独立 reviewer(共享面)。
+- R4 账本终态:eval 121/128(探针 4+reviewer 探针 4+A 27+A2 43
+  +A3 43);ppo 0/0;gen 0/0;episodes 0;synthetic 121/128;
+  无未闭合预约;A2 失败批消耗如实保留,不冲回。
 - 未重跑(如实披露):488 项 R3 上传合并覆盖沿用适用性论证
   (R4 改动集中在 budget/conftest/curriculum 消费面+eval runner
-  传参,经济/策略/日志/封包面由批 B 防回归;生成依赖 14 项与
-  2 项真实 learn 单测维持 R3 披露口径,R4 面为 0 生成/0 尝试
-  不可跑);不跑 18 格;不重算 64 四级。
+  传参+套件结算,经济/策略/日志/封包面由批 B 防回归;生成依赖
+  14 项与 2 项真实 learn 单测维持 R3 披露口径,R4 面为 0 生成/
+  0 尝试不可跑);不跑 18 格;不重算 64 四级。
 
 ## 5. 分层结论(不互代签)
 

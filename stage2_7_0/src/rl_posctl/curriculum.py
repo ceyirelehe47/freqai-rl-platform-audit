@@ -692,7 +692,8 @@ def spec_fingerprint(spec: CourseSpec) -> tuple:
             spec.initial_cash)
 
 
-def _verify_error_report(spec: CourseSpec, report: dict) -> dict:
+def _verify_error_report(spec: CourseSpec, report: dict,
+                         judged_value: float) -> dict:
     """复算绑定 error_report 证据(R4-B/C1;tier_validity 消费用)。
 
     核验:结构完整、细化链合法(validate_refinements)、各级值
@@ -747,11 +748,16 @@ def _verify_error_report(spec: CourseSpec, report: dict) -> dict:
         return {"verified": False,
                 "reason": "spec_key 与当前课程规格不一致(错规格"
                           "证据不得给本规格结论)"}
-    if [int(x) for x in judged] != [REF_N_DENSE, REF_N_EXT,
-                                    REF_M_QUAD]:
+    try:
+        judged_list = [int(x) for x in judged]
+    except (TypeError, ValueError):
+        return {"verified": False,
+                "reason": f"judged_grid 类型非法({judged!r});"
+                          "结构残缺按未验证处理"}
+    if judged_list != [REF_N_DENSE, REF_N_EXT, REF_M_QUAD]:
         return {"verified": False,
                 "reason": "judged_grid 与判定值所用默认求解网格"
-                  f"不一致({judged} vs "
+                  f"不一致({judged_list} vs "
                   f"{[REF_N_DENSE, REF_N_EXT, REF_M_QUAD]});误差"
                   "基准与被判定值不同"}
     finest = levels[-1]
@@ -760,6 +766,14 @@ def _verify_error_report(spec: CourseSpec, report: dict) -> dict:
                 "reason": f"最细级 {finest} != 判定网格 "
                   f"{[REF_N_DENSE, REF_N_EXT, REF_M_QUAD]};误差"
                   "声明未覆盖被判定值的求解设置"}
+    jv = float(judged_value)
+    if not math.isclose(float(vals[-1]), jv,
+                        rel_tol=1e-12, abs_tol=0.0):
+        return {"verified": False,
+                "reason": (f"最细级值 {vals[-1]!r} != 被判定参考值"
+                           f" {jv!r}(自洽伪造值链不通过;合法报告"
+                           "最细级在判定网格上必与参考值一致)")}
+
     return {"verified": True,
             "err_bound": float(eb),
             "evidence": {
@@ -945,7 +959,9 @@ def tier_validity(spec: CourseSpec, n_episodes: int = 32,
             raise ValueError(
                 f"err_bound 非法({err_bound!r}):布尔不是误差证据")
         if isinstance(err_bound, dict):
-            verdict = _verify_error_report(spec, err_bound)
+            verdict = _verify_error_report(
+                spec, err_bound,
+                judged_value=float(stats["dp_initial_value"]))
             if verdict.get("verified"):
                 eb = float(verdict["err_bound"])
                 stats["dp_err_bound"] = eb
