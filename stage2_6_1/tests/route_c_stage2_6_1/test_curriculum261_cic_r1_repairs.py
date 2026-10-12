@@ -648,8 +648,10 @@ def _f2_heavy_in_subprocess(node_name: str):
             f"{__file__}::TestF2RealHandlerChain::{node_name}"]
     env = dict(os.environ)
     env["_R1_F2_CHILD"] = "1"
+    # cwd 不指向测试目录:否则子 pytest 会在 tests/route_c_stage2_6_1
+    # 内建 .pytest_cache,污染 r21 部署面预检(unexpected 目录)
     r = _sp.run(argv, capture_output=True, text=True, env=env,
-                timeout=900, cwd=str(Path(__file__).resolve().parent))
+                timeout=900)
     tail = (r.stdout or "")[-2000:]
     assert r.returncode == 0, (
         f"子进程 F2 链测试失败 rc={r.returncode}:\n{tail}\n"
