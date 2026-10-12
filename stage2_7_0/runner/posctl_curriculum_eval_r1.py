@@ -57,6 +57,8 @@ def main() -> int:
     ap.add_argument("--tier-episodes", type=int, default=16)
     ap.add_argument("--c123-episodes", type=int, default=8)
     ap.add_argument("--replay-episodes", type=int, default=8)
+    ap.add_argument("--baseline", action="append", default=None,
+                    help="对照策略子集(可重复;缺省=全部)")
     args = ap.parse_args()
     out_dir = create_only_dir(
         Path(args.out_root) /
@@ -93,7 +95,9 @@ def main() -> int:
     def ref(row, w, sl):
         return reference_action(spec, row, w, steps_left=sl)
 
-    bases = baseline_policies()
+    bases_all = baseline_policies()
+    bases = ({k: bases_all[k] for k in args.baseline}
+             if args.baseline else bases_all)
     ref_tot, ref_rows = replay_stats(
         spec, args.replay_episodes, 5000, ref, quota)
     result["baselines_c4d2"]["reference"] = {
