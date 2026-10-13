@@ -291,7 +291,7 @@ def p0_category_decode(branch_logits: th.Tensor, atom_logp: th.Tensor,
     masses = th.cat([atom, interior], dim=1)           # (N,4)
     cat_idx = _argmax_lowest(masses)                   # 平局->低索引
     atom_w = th.tensor(_ATOM_W, device=masses.device,
-                       dtype=th.float64)[cat_idx]
+                       dtype=th.float64)[cat_idx.clamp(max=2)]
     w = th.where(cat_idx == 3, rep, atom_w)
     w = th.where(branch == 1, w, th.zeros_like(w))
     return th.stack([branch.to(th.float64), w], dim=1).to(th.float32)

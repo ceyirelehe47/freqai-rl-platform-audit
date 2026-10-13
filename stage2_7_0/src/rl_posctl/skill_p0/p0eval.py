@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """PSC_P0_v1 评估:episode 重放、固定基线、行为门与配对 bootstrap。
 
-- 经济评估一律走真实账本(evalreport.summarize 全量指标,失败不删
-  样本不置零);eval_steps 逐 episode 计量。
+- 经济评估一律走真实账本(evalreport.run_policy/summarize 全量指标,
+  失败不删样本不置零);eval_steps 逐 episode 计量。
+- 策略接口 = run_policy 原生 (feature_row, exposure_ratio,
+  steps_left)(全可观察;模型从 env.get_observation() 取 8 维观察)。
 - 行为门概率用**独立积分/原子质量**(scipy.special.betainc 主算,
   numpy 数值求积独立对拍;固定采样核对可选,计入 dist_sample_actions):
     P(REBAL ∧ w≥x) = p_r·[m₊ + m₃·(1 − I_{(1+x)/2}(α,β))]
@@ -11,14 +13,13 @@
                                   + m₃·(I_{(1+x)/2} − I_{(1−x)/2})]
   (原子质量含执行映射合并:±1 边界尾/0 单元;I_x 为正则化不完全
   Beta;A 臂 α=β 同式。)
-- bootstrap:pair 内镜像端点聚合 → pair 上三模型平均 → 配对重采样
+- bootstrap:pair 内镜像端点聚合 → pair 上模型平均 → 配对重采样
   (10,000 次/项;计入 bootstrap_draws)。
 """
 
 from __future__ import annotations
 
 import math
-from pathlib import Path
 
 import numpy as np
 import torch as th
@@ -29,15 +30,12 @@ from rl_posctl.skill_p0.p0spec import (
     BEHAVIOR_GRID, BEHAVIOR_MIN_P_DIRECTIONAL, BEHAVIOR_MIN_P_NEUTRAL,
     BEHAVIOR_W_MIN, BEHAVIOR_W_NEUTRAL, BOOTSTRAP_ALPHA, BOOTSTRAP_DRAWS,
     C1_FEE, FUNDING_SCHEDULE, INITIAL_CASH, MAINTENANCE_MARGIN,
-    OBS_SPEC_VERSION, REWARD_SCALE)
-from rl_posctl.versions import POSCTL_ACCOUNT_FEATURES
+    REWARD_SCALE)
 
 try:                                    # 独立对照库(可选)
     from scipy.special import betainc as _betainc
 except ImportError:                     # pragma: no cover
     _betainc = None
-
-_S_IX = 0          # 观察列序:s,c,q,g,exposure,solvency,remaining,H
 
 
 def _incbeta_quad(a: float, b: float, x: float, n: int = 200_001
@@ -65,7 +63,7 @@ def incbeta(a: float, b: float, x: float) -> float:
 # ---------------------------------------------------------------------------
 # episode 重放
 # ---------------------------------------------------------------------------
-def make_env(item, *, horizon_obs: int = 64) -> P0FiniteTimeEnv:
+def make_env(item) -> P0FiniteTimeEnv:
     prices, feats, _ = item
     return P0FiniteTimeEnv(
         features=feats, prices=prices, fee=C1_FEE, window_size=1,
@@ -75,11 +73,13 @@ def make_env(item, *, horizon_obs: int = 64) -> P0FiniteTimeEnv:
 
 
 def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "") -> list:
-    """逐 episode 重放(action_fn(env, obs, info) -> action)。"""
+    """逐 episode 重放。action_fn(env, row, ratio, steps_left)->action。"""
     rows = []
     for i, item in enumerate(items):
         env = make_env(item)
-        infos = run_policy(env, lambda obs: action_fn(env, obs, None))
+        infos = run_policy(
+            env, lambda row, ratio, sl: action_fn(
+                env, row, ratio, sl))
         summary = summarize(infos)
         steps = summary["n_steps"]
         if ledger is not None:
@@ -99,7 +99,8 @@ def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "") -> list:
 
 def model_action_fn(model, *, deterministic: bool):
     """模型执行(deterministic=公共解码;sampled=分布采样)。"""
-    def fn(env, obs, info):
+    def fn(env, row, ratio, steps_left):
+        obs = env.get_observation()
         act, _ = model.predict(np.asarray(obs)[None, :],
                                deterministic=deterministic)
         return np.asarray(act[0])
@@ -108,51 +109,43 @@ def model_action_fn(model, *, deterministic: bool):
 
 def constant_action_fn(w: float):
     """固定目标基线:每步 REBALANCE(w)(恒目标,重瞄比例付费)。"""
-    def fn(env, obs, info):
+    def fn(env, row, ratio, steps_left):
         return np.array([1.0, float(w)])
     return fn
 
 
 def hold_action_fn():
     """flat 基线:HOLD 每步(空仓起步即全程空仓,无费用)。"""
-    def fn(env, obs, info):
+    def fn(env, row, ratio, steps_left):
         return np.array([0.0, 0.0])
     return fn
 
 
 def sign_action_fn():
     """简单 sign(s) 规则:REBALANCE(s)(s∈{−1,0,+1} 可观察)。"""
-    def fn(env, obs, info):
-        s = float(obs[_S_IX])
+    def fn(env, row, ratio, steps_left):
+        s = float(row["s"])
         return np.array([1.0, float(np.clip(s, -1.0, 1.0))])
     return fn
 
 
 def reference_action_fn(ref: dict, spec):
-    """同信息数值参考重放:读当前可观察(s,c,q,g)+账户敞口+剩余步数,
-    DP 策略查表执行(教师知道公开转移律;不读未来)。"""
+    """同信息数值参考重放:可观察 (s,c,q,g)+账户敞口+剩余步数查
+    DP 表执行(教师知道公开转移律;不读未来)。"""
     table = ref["table"]
     grid = ref["grid"]
     from rl_posctl.curriculum import W_GRID
-    tol = 1e-9
 
-    def state_index(env):
-        row = env._feature_row(env._current_tick)   # noqa: SLF001
-        s, c, q, g = row["s"], row["c"], row["q"], row["g"]
-        d = np.abs(table - np.array([s, c, q, g]))
-        i = int(np.argmin(d.sum(axis=1)))
-        if d[i].sum() > tol:
-            raise RuntimeError(f"参考状态不匹配 {row}")
-        return i
-
-    def fn(env, obs, info):
-        i = state_index(env)
-        e = env.ledger.exposure_ratio(env._close[env._current_tick])
-        w_idx = int(np.argmin(np.abs(grid - e)))
-        remaining = int(round(float(obs[6]) * 128.0))
-        pol = ref["policies"].get(remaining)
+    def fn(env, row, ratio, steps_left):
+        state = np.array([row["s"], row["c"], row["q"], row["g"]])
+        d = np.abs(table - state).sum(axis=1)
+        i = int(np.argmin(d))
+        if d[i] > 1e-9:
+            raise RuntimeError(f"参考状态不匹配 {state}")
+        w_idx = int(np.argmin(np.abs(grid - ratio)))
+        pol = ref["policies"].get(int(steps_left))
         if pol is None:
-            raise RuntimeError(f"remaining {remaining} 超出 DP 表")
+            raise RuntimeError(f"steps_left {steps_left} 超出 DP 表")
         a = pol[i, w_idx]
         if a < 0:
             return np.array([0.0, 0.0])
@@ -211,6 +204,7 @@ def dist_probs(model, obs_batch: np.ndarray) -> dict:
         out["b0"] = dist.b0.to(th.float64).numpy()
     return out
 
+
 def gate_probabilities(model, obs_batch: np.ndarray) -> dict:
     """P(REBAL∧w≥x)/P(REBAL∧w≤−x)/P(HOLD∨|w|≤x)(原子+积分)。"""
     d = dist_probs(model, obs_batch)
@@ -233,15 +227,6 @@ def gate_probabilities(model, obs_batch: np.ndarray) -> dict:
         "p_neutral_band": (p_h + p_r * (
             m[:, 1] + m[:, 3] * d["b0"] + m[:, 3] * (i_nh - i_nl))),
     }
-
-
-def old_decode_diagnostic(model, obs_batch: np.ndarray) -> np.ndarray:
-    """旧 mean/质量差解码(只读附加诊断,不用于 P0 主评分)。"""
-    obs = th.as_tensor(np.asarray(obs_batch), dtype=th.float32)
-    with th.no_grad():
-        view = model.policy.get_distribution(obs)
-        return view.dist.mode().numpy()
-
 
 
 def behavior_gate(model, *, meter=None, sampled_check: int = 0) -> dict:
@@ -271,14 +256,13 @@ def behavior_gate(model, *, meter=None, sampled_check: int = 0) -> dict:
     result["pass"] = (result["pass_long"] and result["pass_short"]
                       and result["pass_neutral"])
     if sampled_check > 0:
-        # 固定采样核对(计量 dist_sample_actions)
-        rng = th.Generator().manual_seed(20261014)
+        th.manual_seed(20261014)
         sel = np.linspace(0, len(rows) - 1, min(
             sampled_check, len(rows))).astype(int)
         for k in sel:
-            view = model.policy.get_distribution(
-                th.as_tensor(obs[k][None, :], dtype=th.float32))
-            _ = view.sample()
+            model.policy.get_distribution(
+                th.as_tensor(obs[k][None, :], dtype=th.float32)
+            ).sample()
         if meter is not None:
             meter(int(len(sel)))
         result["sampled_check_conditions"] = int(len(sel))
@@ -291,7 +275,7 @@ def behavior_gate(model, *, meter=None, sampled_check: int = 0) -> dict:
 def pair_advantage_matrix(model_rows: dict, baseline_rows: list) -> dict:
     """model_rows:{model_key: rows};baseline rows 同 bank 顺序。
 
-    pair_value[p] = mean_3models(mean_2endpoints(netlog_model
+    pair_value[p] = mean_models(mean_endpoints(netlog_model
     − netlog_baseline))。失败(None)如实返回标记。
     """
     keys = sorted(model_rows)
@@ -341,3 +325,11 @@ def paired_bootstrap(pair_values: list, *, seed: int,
     return {"mean": float(vals.mean()), "ci95_lo": lo, "ci95_hi": hi,
             "draws": int(draws), "n_pairs": int(n),
             "lower_positive": bool(lo > 0.0)}
+
+
+def old_decode_diagnostic(model, obs_batch: np.ndarray) -> np.ndarray:
+    """旧 mean/质量差解码(只读附加诊断,不用于 P0 主评分)。"""
+    obs = th.as_tensor(np.asarray(obs_batch), dtype=th.float32)
+    with th.no_grad():
+        view = model.policy.get_distribution(obs)
+        return view.dist.mode().numpy()

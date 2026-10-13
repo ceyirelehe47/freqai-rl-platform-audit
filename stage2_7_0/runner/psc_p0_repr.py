@@ -36,11 +36,16 @@ from rl_posctl.skill_p0.p0spec import (  # noqa: E402
     CONC_MASS_FRAC, CONC_MEAN_TOL, CONC_SAMPLES_PER_TARGET,
     CONC_WITHIN_TOL, INTERIOR_TARGETS, p0_seed)
 
-_S_TOTAL = 160.0
-
+_S_TOTAL = 550.0
 
 def _conc_params(target: float) -> tuple:
-    """B 臂集中构造:u 均值=(target+1)/2,总浓度 S=160(α,β>1)。"""
+    """B 臂集中构造:u 均值=(target+1)/2,总浓度 S=550(α,β>1;
+    α_max=0.9·550=495 ∈ 验证域 [1,500])。
+
+    S 推导(浓度门的统计要求):95% 落 ±0.10 ⇒ σ_w ≤ 0.10/1.96
+    ≈ 0.051;最不利 u=0.5 时 σ_w = 1/√(S+1) ⇒ S ≥ 384;取 550
+    留裕量(σ_w ≤ 0.0426,P(|z|≤2.34)≈98%)。S=160 时中位目标
+    σ_w≈0.077 仅 ~80% 落界内(2026-10-14 repr_invalid_S160 复盘)。"""
     u = (target + 1.0) / 2.0
     return u * _S_TOTAL, (1.0 - u) * _S_TOTAL
 
@@ -141,8 +146,10 @@ def gradient_checks() -> dict:
         val.backward()
         g_a, g_b = float(a_t.grad), float(b_t.grad)
         h = 1e-6
-        f = lambda t, u: float(   # noqa: E731
-            p0policy.log_incbeta_eps(th.tensor(t), th.tensor(u)))
+        def f(t, u):    # noqa: E731
+            return float(p0policy.log_incbeta_eps(
+                th.tensor(t, dtype=th.float64),
+                th.tensor(u, dtype=th.float64)))
         fd_a = (f(ar + h, br) - f(ar - h, br)) / (2 * h)
         fd_b = (f(ar, br + h) - f(ar, br - h)) / (2 * h)
         for g, fd in ((g_a, fd_a), (g_b, fd_b)):
@@ -226,14 +233,17 @@ def atom_semantics_checks() -> dict:
     acts = d_hold.sample()
     hold_ok = bool(acts[0, 0] == 0.0 and acts[0, 1] == 0.0)
     lp_hold = float(d_hold.log_prob(acts)[0])
+    # 原子构造:mix 主导分量 0/1/2 ⇒ 采样精确 −1/0/+1;
+    # 内部类解码:集中构造目标 +0.8 ⇒ 代表值≈0.8(内部类胜出)。
     b2 = th.tensor([[0.0, 6.0]], dtype=th.float64)
     d_m1 = P0AsymBetaDistribution(
-        b2, th.tensor([[-9.0, -9.0, 0.0, -9.0]],
+        b2, th.tensor([[0.0, -9.0, -9.0, -9.0]],
                       dtype=th.float64), ar, br)
     d_z = P0AsymBetaDistribution(
-        b2, m, ar, br)
+        b2, th.tensor([[-9.0, 0.0, -9.0, -9.0]],
+                      dtype=th.float64), ar, br)
     d_p1 = P0AsymBetaDistribution(
-        b2, th.tensor([[-9.0, -9.0, -9.0, 0.0]],   # 连续集中 +1
+        b2, th.tensor([[-9.0, -9.0, 0.0, -9.0]],
                       dtype=th.float64), ar, br)
     th.manual_seed(6)
     a_m1 = d_m1.sample()
@@ -241,18 +251,20 @@ def atom_semantics_checks() -> dict:
     a_z = d_z.sample()
     th.manual_seed(8)
     a_p1 = d_p1.sample()
-    dec = p0policy.p0_category_decode(
-        d_p1.branch_logits, d_p1.merged_atom_logp(),
-        d_p1.interior_log_mass(), d_p1.interior_representative())
+    d_int = _make_b_dist(0.8)
+    dec_int = p0policy.p0_category_decode(
+        d_int.branch_logits, d_int.merged_atom_logp(),
+        d_int.interior_log_mass(), d_int.interior_representative())
     return {
         "hold_exact": hold_ok,
         "hold_lp": lp_hold,
         "atom_m1": bool(a_m1[0, 1] == -1.0),
         "atom_0": bool(a_z[0, 1] == 0.0),
-        "cont_tail_p1": bool(a_p1[0, 1] == 1.0),
-        "decode_interior_near_p1": bool(
-            dec[0, 0] == 1.0 and float(dec[0, 1]) > 0.9),
-    }
+         "atom_p1": bool(a_p1[0, 1] == 1.0),
+         "decode_interior_near_target": bool(
+             dec_int[0, 0] == 1.0 and abs(
+                 float(dec_int[0, 1]) - 0.8) < 0.05),
+     }
 
 
 def main() -> int:

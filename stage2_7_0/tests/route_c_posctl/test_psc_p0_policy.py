@@ -102,6 +102,19 @@ def test_mirror_swap_property():
         float(sci_betainc(a, a, EPS_COLL)), rel=1e-10)
 
 
+def test_common_decode_interior_wins():
+    """内部类质量胜出时不越界且输出代表值(浓度构造回归:
+    2026-10-14 repr 运行发现 cat_idx=3 索引 3 元素原子表越界)。"""
+    b = th.tensor([[0.0, 6.0]], dtype=th.float64)   # REBALANCE
+    atom = th.log(th.tensor([[1e-9, 1e-9, 1e-9]],
+                            dtype=th.float64))
+    inter = th.log(th.tensor([0.999], dtype=th.float64))
+    rep = th.tensor([0.6], dtype=th.float64)
+    dec = p0_category_decode(b, atom, inter, rep)
+    assert dec[0, 0] == 1.0
+    assert float(dec[0, 1]) == pytest.approx(0.6, abs=1e-6)
+
+
 def test_merged_atoms_sum_with_interior():
     """执行测度总质量:branch×(合并原子+内部)=1。"""
     d = _mk_b(n=6, ar=0.3, br=2.2)
