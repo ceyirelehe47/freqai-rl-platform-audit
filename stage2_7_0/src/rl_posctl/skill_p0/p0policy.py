@@ -55,8 +55,8 @@ _LN_EPS = math.log(EPS_COLL)
 
 def log_beta_ab(a: th.Tensor, b: th.Tensor) -> th.Tensor:
     """lnB(a,b) = lnΓ(a)+lnΓ(b)−lnΓ(a+b)。强制 float64:网络参数
-    为 float32,torch.lgamma 在 float32 下对大参数(如 lnΓ(499))
-    ulp 损失 ~1e-4——mpmath 50 位仲裁确认(2026-10-14 修复)。"""
+    为 float32,torch.lgamma 在 float32 下对大参数(如 lnΓ(499)≈
+    +2599)ulp 损失 ~1e-4——mpmath 50 位仲裁确认(2026-10-14 修复)。"""
     a = a.to(th.float64)
     b = b.to(th.float64)
     return th.lgamma(a) + th.lgamma(b) - th.lgamma(a + b)

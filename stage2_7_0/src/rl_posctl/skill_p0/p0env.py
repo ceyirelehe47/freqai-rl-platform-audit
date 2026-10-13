@@ -3,12 +3,12 @@
 
 P0FiniteTimeEnv(PosctlObsP0Time-v1):旧 6 维观察尾部追加 2 时间维:
   remaining_decisions/128(n_rows−1−tick;初始=H,最后一次行动前=1,
-  终止后不再构造观察)、original_horizon/128(=n_rows−1)。
+  终止步的终态观察为 0,此后环境终结不再 step)、
+  original_horizon/128(=n_rows−1)。
 时间维在构造、reset、step、VecEnv 自动 reset、eval、save/load 与
 新进程全部经同一 _observation 路径(无 only-info 假接入,无 critic
 特权信息)。经济语义/账本/失败分支逐位沿用 HybridPositionEnv(零改动)。
 """
-
 from __future__ import annotations
 
 import numpy as np
