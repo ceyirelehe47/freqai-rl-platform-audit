@@ -157,15 +157,25 @@ def reference_action_fn(ref: dict, spec):
 # 行为门(反事实网格;独立积分/原子质量)
 # ---------------------------------------------------------------------------
 def counterfactual_obs(s: float, c: float, q: float, g: float,
-                       remaining: int, horizon: int = 64) -> np.ndarray:
-    """空仓反事实观察(exposure=0,solvency 取上限 40;时间两维)。"""
+                       remaining: int, horizon: int = 64,
+                       feature_names=None) -> np.ndarray:
+    """空仓反事实观察(exposure=0,solvency 取上限 40;时间两维)。
+
+    feature_names = env 实际特征列序(默认 s,c,q,g)。bank 序列化经
+    json sort_keys 实际列为字母序 [c,g,q,s](计划修订 D):门构造必须
+    按 env.feature_names 排列,否则信号进错槽位(2026-10-14 confirm
+    行为门全数失真的根因;经济评估不受影响——训练/评估同一布局)。"""
+    names = list(feature_names or ("s", "c", "q", "g"))
+    vals = {"s": s, "c": c, "q": q, "g": g}
+    head = [vals[k] for k in names]
     return np.asarray(
-        [s, c, q, g, math.asinh(0.0) / 4.0,
-         math.asinh(40.0) / 4.0, remaining / 128.0, horizon / 128.0],
+        head + [math.asinh(0.0) / 4.0,
+                math.asinh(40.0) / 4.0,
+                remaining / 128.0, horizon / 128.0],
         dtype=np.float32)
 
 
-def behavior_grid_obs() -> list:
+def behavior_grid_obs(feature_names=None) -> list:
     rows = []
     for s in (-1.0, 0.0, 1.0):
         for c in BEHAVIOR_GRID["c"]:
@@ -173,7 +183,9 @@ def behavior_grid_obs() -> list:
                 for g in BEHAVIOR_GRID["g"]:
                     for rem in BEHAVIOR_GRID["remaining"]:
                         rows.append((s, c, q, g, rem,
-                                     counterfactual_obs(s, c, q, g, rem)))
+                                     counterfactual_obs(
+                                         s, c, q, g, rem,
+                                         feature_names=feature_names)))
     return rows
 
 
@@ -229,9 +241,10 @@ def gate_probabilities(model, obs_batch: np.ndarray) -> dict:
     }
 
 
-def behavior_gate(model, *, meter=None, sampled_check: int = 0) -> dict:
+def behavior_gate(model, *, meter=None, sampled_check: int = 0,
+                  feature_names=None) -> dict:
     """行为门:min-over-grid 口径(正负两侧分别;镜像条件即 s=∓)。"""
-    rows = behavior_grid_obs()
+    rows = behavior_grid_obs(feature_names=feature_names)
     obs = np.stack([r[5] for r in rows])
     gp = gate_probabilities(model, obs)
     s_arr = np.array([r[0] for r in rows])
