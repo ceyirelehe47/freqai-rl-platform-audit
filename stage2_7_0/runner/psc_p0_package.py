@@ -71,6 +71,16 @@ def main() -> int:
     args = ap.parse_args()
     repo = Path(args.repo)
     root = Path(args.root)
+    acceptance = Path(args.acceptance)
+    delivery = root / "delivery"
+    staging = root / "staging"
+    top = args.zip_name
+    stage_parent = staging / time.strftime("%Y%m%dT%H%M%S")
+    if stage_parent.exists():
+        raise SystemExit("stage 已存在,拒绝覆盖(create-only)")
+    stage = stage_parent / top
+    stage.mkdir(parents=True)
+
     jobs = [
         (repo / "stage2_7_0" / "src" / "rl_posctl",
          stage / "source" / "stage2_7_0" / "src" / "rl_posctl"),
