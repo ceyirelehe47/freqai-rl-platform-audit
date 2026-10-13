@@ -71,16 +71,6 @@ def main() -> int:
     args = ap.parse_args()
     repo = Path(args.repo)
     root = Path(args.root)
-    acceptance = Path(args.acceptance)
-    delivery = root / "delivery"
-    staging = root / "staging"
-    top = args.zip_name
-    stage_parent = staging / time.strftime("%Y%m%dT%H%M%S")
-    if stage_parent.exists():
-        raise SystemExit("stage 已存在,拒绝覆盖(create-only)")
-    stage = stage_parent / top
-    stage.mkdir(parents=True)
-
     jobs = [
         (repo / "stage2_7_0" / "src" / "rl_posctl",
          stage / "source" / "stage2_7_0" / "src" / "rl_posctl"),
@@ -99,12 +89,34 @@ def main() -> int:
         (root / "runs" / "smoke", stage / "runs" / "smoke"),
         (root / "runs" / "eval_dev", stage / "runs" / "eval_dev"),
         (root / "runs" / "confirm", stage / "runs" / "confirm"),
+        (root / "runs" / "confirm_v2", stage / "runs" / "confirm_v2"),
+        (root / "runs" / "prequal_failed_001",
+         stage / "runs" / "prequal_failed_001"),
+        (root / "runs" / "repr_failed_001",
+         stage / "runs" / "repr_failed_001"),
+        (root / "runs" / "repr_invalid_S160",
+         stage / "runs" / "repr_invalid_S160"),
     ]
+    runs_root_files = [
+        "psc_p0_v1_ledger.jsonl", "psc_p0_confirm_lock.json",
+        "w1_tests_junit.xml", "main6_driver.log",
+    ]
+    for fname in runs_root_files:
+        src = root / "runs" / fname
+        if src.exists():
+            jobs.append((src, stage / "runs" / fname))
+        else:
+            print(f"[skip] 缺少 runs 根文件:{src}")
     counts = {}
     for src, dst in jobs:
         if not src.exists():
             print(f"[skip] 缺少源(如实跳过,阶段未运行):{src}")
             counts[str(src)] = None
+            continue
+        if src.is_file():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            counts[str(src)] = 1
             continue
         counts[str(src)] = copy_tree(src, dst)
 
