@@ -56,7 +56,7 @@
 - 恢复合法夹具后正例成立(test_restored_header_positive_recovers);
   长生命周期对象多次操作与重开结果一致;重复结清仍只成功一次;
   注册表单次上限照常生效(不靠恒拒过负例)。
-- 新增测试:test_posctl_r5_budget.py(10 项)。
+- 新增测试:test_posctl_r5_budget.py(11 项)。
 
 ## 2. B(C4-EVIDENCE/P2):整条细化证据 + 资源前拒绝
 
@@ -110,7 +110,7 @@
   结果与伪造前逐位一致(test_forged_attempt_does_not_poison_
   trust_cache);冷/暖缓存一致(test_cold_and_warm_cache_
   consistent)。
-- 新增测试:test_posctl_r5_reference.py(15 项)。
+- 新增测试:test_posctl_r5_reference.py(14 项)。
 
 ## 3. 回归与选择集合
 
