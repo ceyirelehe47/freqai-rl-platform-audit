@@ -127,3 +127,55 @@ POSCTL_R4_BUDGET = {
     "episodes": 0,
     "synthetic_total": 128,
 }
+
+# PSC_P0_v1(渐进式技能课程 P0;2026-10-14;与 R1–R4 面完全分离,
+# 历史账本只读不作为余额来源)。
+#
+# P0 新观察身份(PosctlObsP0Time-v1):旧 6 维(4 市场+2 账户)尾部追加
+# 2 时间维(remaining_decisions/128, original_horizon/128)→ 8 维;
+# 仅 P0 路径使用,旧 PosctlObs-v2 观察与旧存档拒载规则不变。
+POSCTL_PSC_P0_OBS_SPEC_VERSION = "PosctlObsP0Time-v1"
+# P0 双臂分布家族身份(互载拒绝开关;A 复用对称 Beta 数学,新身份):
+POSCTL_PSC_P0_ARM_A_FAMILY = "P0SymBetaControl-v1"
+POSCTL_PSC_P0_ARM_B_FAMILY = "P0AsymBeta-v1"
+POSCTL_PSC_P0_DECODE_RULE = "P0CategoryMax-v1"
+POSCTL_PSC_P0_TIME_FEATURES = (
+    "remaining_decisions_frac128", "original_horizon_frac128")
+
+POSCTL_PSC_P0_TASK_ID = "PSC_P0_v1"
+
+# P0 预算面(SCOPE_AND_BUDGET.md 表逐项;上限非目标,分项独立生效
+# 不可挪额;*single = 预约单次上限)。派生总项:
+#   ppo_steps_total = main+smoke+techretry = 854,016
+#   ppo_learn_total = 6+4+2 = 12
+#   economic_total  = ppo_steps_total 分项 + eval_steps = 1,378,304
+# optimizer 上界按 rollout 几何:主 128rollout×10epoch×4batch=5,120/格
+# (6 格 30,720),smoke 4×20=80,技术复验 2×1,280=2,560,合计 33,360。
+POSCTL_PSC_P0_BUDGET = {
+    "ppo_steps_main": 786_432,          # 2 臂×3 seed×131,072
+    "ppo_steps_main_single": 131_072,
+    "ppo_steps_smoke": 2_048,           # 工程 smoke(单次≤512)
+    "ppo_steps_smoke_single": 512,
+    "ppo_steps_techretry": 65_536,      # 技术复验(单次≤32,768)
+    "ppo_steps_techretry_single": 32_768,
+    "ppo_learn_main_attempts": 6,
+    "ppo_learn_smoke_attempts": 4,
+    "ppo_learn_techretry_attempts": 2,
+    "ppo_optimizer_steps": 33_360,
+    "ppo_optimizer_steps_single": 5_120,
+    "eval_steps": 524_288,              # 非 PPO 经济交互(全体合计)
+    "gen_calls": 2_048,                 # 真实课程生成调用
+    "episodes": 1_024,                  # 物化 episode(镜像端点各计 1)
+    "bc_fits": 14,
+    "bc_epochs": 8_192,
+    "bc_epochs_single": 1_024,
+    "bc_minibatch_updates": 8_192,
+    "bc_minibatch_updates_single": 1_024,
+    "supervised_rows": 8_192,           # 人工/教师监督输入行(表行去重)
+    "dist_sample_actions": 1_048_576,   # 非 env 的分布采样行动
+    "bootstrap_draws": 1_000_000,
+    "evidence_kib": 524_288,            # 新证据与模型文件(512MiB)
+    "ppo_steps_total": 854_016,
+    "ppo_learn_total": 12,
+    "economic_total": 1_378_304,
+}

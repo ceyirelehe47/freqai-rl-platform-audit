@@ -202,3 +202,54 @@ def r2_task_ledger():
 def r2_learn(r2_task_ledger):
     """真实 learn 的单测用门(消耗 ppo 预算,不隐式免计)。"""
     return _LearnGate(r2_task_ledger)
+
+# ---------------------------- PSC_P0_v1 ------------------------------------
+def _psc_p0_ledger_path() -> Path | None:
+    p = os.environ.get("POSCTL_PSC_P0_LEDGER", "").strip()
+    return Path(p) if p else None
+
+
+@pytest.fixture(scope="session")
+def psc_p0_ledger():
+    """PSC_P0_v1 任务账本(P0 测试消费 dist 采样/env 步时计量;
+    未设置或不存在 → skip(fail closed,不隐式免计)。纯数学测试
+    不需要本 fixture。"""
+    path = _psc_p0_ledger_path()
+    if path is None or not path.exists():
+        pytest.skip(
+            "POSCTL_PSC_P0_LEDGER 未设置或账本不存在:P0 消费资源"
+            "测试必须经任务共享账本先预约后执行(fail closed)",
+            allow_module_level=False)
+    from rl_posctl.budget import TaskLedger
+    tid = _header_task_id(path)
+    if tid != "PSC_P0_v1":
+        pytest.skip(
+            f"账本任务身份 {tid!r} != PSC_P0_v1(拒绝跨面挪用):"
+            f"{path}")
+    return TaskLedger(path, tid)
+
+
+@pytest.fixture()
+def psc_p0_meter_dist(psc_p0_ledger):
+    """测试内分布采样计量器(真实记账;小额)。"""
+    def meter(n: int) -> None:
+        if n <= 0:
+            return
+        rid = psc_p0_ledger.reserve(
+            "pytest_p0_sample", dist_sample_actions=int(n))
+        psc_p0_ledger.commit(
+            rid, "pytest_p0_sample", dist_sample_actions=int(n))
+    return meter
+
+
+@pytest.fixture()
+def psc_p0_meter_eval(psc_p0_ledger):
+    """测试内真实 env.step 计量器(eval_steps;小额手工数据)。"""
+    def meter(n: int) -> None:
+        if n <= 0:
+            return
+        rid = psc_p0_ledger.reserve(
+            "pytest_p0_eval", eval_steps=int(n))
+        psc_p0_ledger.commit(
+            rid, "pytest_p0_eval", eval_steps=int(n))
+    return meter

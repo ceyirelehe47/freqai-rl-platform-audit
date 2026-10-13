@@ -54,10 +54,18 @@ from pathlib import Path
 from rl_posctl.versions import (
     POSCTL_R1_BUDGET, POSCTL_R2_BUDGET, POSCTL_R2_TASK_ID,
     POSCTL_R3_BUDGET, POSCTL_R3_TASK_ID,
-    POSCTL_R4_BUDGET, POSCTL_R4_TASK_ID)
+    POSCTL_R4_BUDGET, POSCTL_R4_TASK_ID,
+    POSCTL_PSC_P0_BUDGET, POSCTL_PSC_P0_TASK_ID)
 
 METRICS = ("ppo_steps", "ppo_learn_attempts", "bc_fits", "bc_epochs",
-           "bc_minibatch_updates", "eval_steps", "gen_calls", "episodes")
+           "bc_minibatch_updates", "eval_steps", "gen_calls", "episodes",
+           # PSC_P0_v1 扩展类目(旧任务面 limits 不含新键 ⇒ 不设限,
+           # 旧账本行 rec.get(k,0) 重放兼容;P0 面见 psc_p0_limits)。
+           "ppo_steps_main", "ppo_steps_smoke", "ppo_steps_techretry",
+           "ppo_learn_main_attempts", "ppo_learn_smoke_attempts",
+           "ppo_learn_techretry_attempts", "ppo_optimizer_steps",
+           "supervised_rows", "dist_sample_actions", "bootstrap_draws",
+           "evidence_kib")
 
 # 单次上限(预约时校验;键 = 指标,值 = 单次最大)
 SINGLE_CAPS = {"ppo_steps": POSCTL_R1_BUDGET["ppo_steps_single"],
@@ -135,6 +143,63 @@ def r4_limits() -> dict:
 def r4_single_caps() -> dict:
     return {"ppo_steps": POSCTL_R4_BUDGET["ppo_steps_single"]}
 
+# ---------------------------- PSC_P0_v1 ------------------------------------
+def psc_p0_limits() -> dict:
+    """POSCTL_PSC_P0_BUDGET(P0 面)→ METRICS 键限额映射(一一对应)。"""
+    b = POSCTL_PSC_P0_BUDGET
+    return {
+        "ppo_steps_main": b["ppo_steps_main"],
+        "ppo_steps_smoke": b["ppo_steps_smoke"],
+        "ppo_steps_techretry": b["ppo_steps_techretry"],
+        "ppo_learn_main_attempts": b["ppo_learn_main_attempts"],
+        "ppo_learn_smoke_attempts": b["ppo_learn_smoke_attempts"],
+        "ppo_learn_techretry_attempts": b["ppo_learn_techretry_attempts"],
+        "ppo_optimizer_steps": b["ppo_optimizer_steps"],
+        "eval_steps": b["eval_steps"],
+        "gen_calls": b["gen_calls"],
+        "episodes": b["episodes"],
+        "bc_fits": b["bc_fits"],
+        "bc_epochs": b["bc_epochs"],
+        "bc_minibatch_updates": b["bc_minibatch_updates"],
+        "supervised_rows": b["supervised_rows"],
+        "dist_sample_actions": b["dist_sample_actions"],
+        "bootstrap_draws": b["bootstrap_draws"],
+        "evidence_kib": b["evidence_kib"],
+    }
+
+
+def psc_p0_single_caps() -> dict:
+    b = POSCTL_PSC_P0_BUDGET
+    return {
+        "ppo_steps_main": b["ppo_steps_main_single"],
+        "ppo_steps_smoke": b["ppo_steps_smoke_single"],
+        "ppo_steps_techretry": b["ppo_steps_techretry_single"],
+        "ppo_learn_main_attempts": 1,
+        "ppo_learn_smoke_attempts": 1,
+        "ppo_learn_techretry_attempts": 1,
+        "ppo_optimizer_steps": b["ppo_optimizer_steps_single"],
+        "bc_fits": 1,
+        "bc_epochs": b["bc_epochs_single"],
+        "bc_minibatch_updates": b["bc_minibatch_updates_single"],
+    }
+
+
+# P0 派生总项:PPO 三分项合计 854,016;learn 尝试合计 12;
+# 全部经济交互 = PPO 三分项 + eval_steps = 1,378,304(绝不双计)。
+DERIVED_TOTALS_PSC_P0 = (
+    ("ppo_steps_total",
+     ("ppo_steps_main", "ppo_steps_smoke", "ppo_steps_techretry"),
+     POSCTL_PSC_P0_BUDGET["ppo_steps_total"]),
+    ("ppo_learn_total",
+     ("ppo_learn_main_attempts", "ppo_learn_smoke_attempts",
+      "ppo_learn_techretry_attempts"),
+     POSCTL_PSC_P0_BUDGET["ppo_learn_total"]),
+    ("economic_total",
+     ("ppo_steps_main", "ppo_steps_smoke", "ppo_steps_techretry",
+      "eval_steps"),
+     POSCTL_PSC_P0_BUDGET["economic_total"]),
+)
+
 
 def task_registry() -> dict:
     """任务身份 → 预算面注册表(一一对应;TaskLedger 的唯一面来源)。
@@ -160,6 +225,12 @@ def task_registry() -> dict:
             "single_caps": r4_single_caps(),
             "derived_totals": DERIVED_TOTALS_R4,
             "budget_source": "rl_posctl.versions.POSCTL_R4_BUDGET",
+        },
+        POSCTL_PSC_P0_TASK_ID: {
+            "limits": psc_p0_limits(),
+            "single_caps": psc_p0_single_caps(),
+            "derived_totals": DERIVED_TOTALS_PSC_P0,
+            "budget_source": "rl_posctl.versions.POSCTL_PSC_P0_BUDGET",
         },
     }
 
