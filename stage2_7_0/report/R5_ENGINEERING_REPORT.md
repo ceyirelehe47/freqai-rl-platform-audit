@@ -10,8 +10,9 @@
 - 预算面:本任务未开新真实账本。**真实 PPO learn/optimizer=0、
   BC=0、真实课程生成=0、真实经济 env.step=0**;全部复现用记录型
   临时账本、工作边界替身与固定 horizon3 纯数学完成。
-- git 候选:见 git_identity.json(封包时写入);候选提交在
-  ba5245ad 之上单提交增量。
+- git 候选:见 git_identity.json(封包时写入);候选 = ba5245ad
+  之上两个提交(修复 + R5 取件工具镜像;封包复用 R4 packager
+  经 --root/--zip-name 参数,未复制整套打包工具)。
 
 ## 1. A(BIND/P1):每次锁内重读完整核验任务头
 
