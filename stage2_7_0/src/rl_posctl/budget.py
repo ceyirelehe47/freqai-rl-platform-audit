@@ -321,9 +321,25 @@ class ReservationLedger:
     def _on_bind_record(self, rec: dict) -> None:
         """task_bind 行处理:基类(无绑定语义)跳过;TaskLedger 校验。"""
 
+    def _replay_reset(self) -> None:
+        """锁内重放前钩子:子类丢弃跨锁周期保留的"已验"状态。
+
+        R5-A(BIND):头部验证事实不得跨锁周期复用——每次重放都
+        必须从零重建(基类无绑定语义,空实现)。
+        """
+
+    def _replay_verify(self) -> None:
+        """锁内重放完成钩子:子类核验重放后必须成立的绑定事实
+        (在 op 追加任何事件**之前**;基类无绑定语义,空实现)。"""
+
     def _synced_op(self, op) -> None:
         """锁内重读全部事件后执行 op(跨进程一致:检查基于最新
-        落盘状态,而不是本进程的陈旧内存快照)。a+ 可读可追加。"""
+        落盘状态,而不是本进程的陈旧内存快照)。a+ 可读可追加。
+
+        R5-A(BIND):每次锁内重放前调用 _replay_reset 丢弃上次
+        验证状态,重放后调用 _replay_verify——本锁周期读到的
+        头缺失/冲突在 op 落盘前拒绝,不依赖首次打开时的已验
+        标志。"""
         with self.path.open("a+", encoding="utf-8") as fh:
             fcntl.flock(fh, fcntl.LOCK_EX)
             try:
@@ -333,10 +349,12 @@ class ReservationLedger:
                 self.incidents = {k: 0 for k in METRICS}
                 self.reservations = {}
                 self.drawn = {}
+                self._replay_reset()
                 for line in content.splitlines():
                     if not line.strip():
                         continue
                     self._apply_event(json.loads(line))
+                self._replay_verify()
                 op(fh)
                 fh.flush()
                 os.fsync(fh.fileno())
@@ -732,21 +750,20 @@ class TaskLedger(ReservationLedger):
         return cls(p, task_id)
 
     def _on_bind_record(self, rec: dict) -> None:
-        # 锁内重放全文件:同一 bind 行重复出现视为同一绑定;不同/
-        # 多出的 bind 行(任务或面不一致)拒绝。头部面必须与代码
-        # 注册表面逐项相等(F1-a:旧实现只核 task_id,缺省重开即
-        # 换面继续花)。
+        # 锁内重放全文件。R5-A(BIND):重复 bind 行的兼容政策是
+        # **逐字段全等**——与首头完全相同的重复头视为幂等重发,
+        # 可以容忍;任何字段差异(含同任务同总额但 single_caps/
+        # derived_totals/派生组成/上限不同)一律拒绝,不准用第一
+        # 头替第二头背书。首头每次出现都走完整核验(任务身份/
+        # 预算面/单次上限/派生总项逐项对注册表;F1-a + R4-A2),
+        # 不存在"已见即免检"。
         reg = self._registry_entry
         if self._bind_seen is not None:
-            same = (
-                rec.get("task_id") == self.task_id
-                and rec.get("task_id")
-                == self._bind_seen.get("task_id")
-                and dict(rec.get("budget_face") or {})
-                == dict(self._bind_seen.get("budget_face") or {}))
-            if not same:
+            if rec != self._bind_seen:
                 raise RuntimeError(
-                    f"账本含不一致 task_bind 行,拒绝:{self.path}")
+                    f"账本含不一致 task_bind 行,拒绝:{self.path}"
+                    f"(重复头须与首头逐字段全等;实得差异字段 "
+                    f"{sorted(k for k in set(rec) | set(self._bind_seen) if rec.get(k) != self._bind_seen.get(k))})")
             return
         if rec.get("task_id") != self.task_id:
             raise RuntimeError(
@@ -790,6 +807,23 @@ class TaskLedger(ReservationLedger):
                 f"{self.path}:头部 {hdr_spec} != 代码 "
                 f"{tuple(self._derived_spec)}")
         self._bind_seen = rec
+
+    def _replay_reset(self) -> None:
+        # R5-A(BIND):每次锁内重放从零重建头验证事实——_bind_seen
+        # 是"本锁周期已验"状态,不得跨锁周期保留复用(旧:首次
+        # 打开时的已验成为后续操作免检通行证,锁内改头/删头/
+        # 追加冲突头均绕过完整核验)。
+        self._bind_seen = None
+
+    def _replay_verify(self) -> None:
+        # R5-A(BIND):本锁周期重放完毕仍未见合法 task_bind 头
+        # ⇒ 账本头缺失/被移除——在任何事件落盘前拒绝(fail
+        # closed;不按内存里的旧头继续花)。
+        if self._bind_seen is None:
+            raise RuntimeError(
+                f"锁内重放未见合法 task_bind 头,拒绝操作:"
+                f"{self.path}(账本头缺失或被移除;长生命周期对象"
+                "与重新打开同一规则,不得按旧内存头续花)")
 
     def _extra_problems(self, normalized: dict,
                         eff: dict) -> list:
