@@ -72,15 +72,116 @@ def evidence_kib_settle(ledger, *, tag: str,
     return rec
 
 
+class CheckpointLifecycle:
+    """P0 训练检查点保存生命周期(R1/F1:采集→更新→保存次序)。
+
+    旧缺陷:_on_step 在采集到门槛步数时立即写盘(该 rollout 的
+    优化尚未发生)→ ck32768/65536/131072 实为 pre-update 状态;
+    learn 返回后又因同名文件存在跳过真正最终保存。修复后的次序:
+
+    - record_collect():采集期只登记越过的目标步(不写盘);
+    - after_train():每次 train() **正常返回后**把已越过且
+      target < total_steps 的目标保存为 mid(post-update,绑定
+      当时真实 optimizer 步数);
+    - finalize():learn 正常返回后唯一 final 保存(target=实际
+      步数;同名已存在显式拒绝,绝不静默跳过/覆盖);
+    - train 抛异常/经济失败 → 调用方不调 finalize,已有 mid
+      原件保留(真实阶段),不伪造 final。
+
+    saver 注入点供纯计数测试(假模型/假优化器)复用同一控制流;
+    真实 saver = save_p0_model_staged(带权重/optimizer 摘要绑定)。
+    """
+
+    def __init__(self, out_dir, checkpoints, total_steps: int,
+                 run_name: str, saver=None) -> None:
+        self.out_dir = Path(out_dir)
+        self.total_steps = int(total_steps)
+        self.run_name = str(run_name)
+        self._saver = saver
+        self._pending = sorted(
+            int(c) for c in checkpoints
+            if 0 < int(c) < self.total_steps)
+        self._crossed: list[int] = []
+        self.saved: list[dict] = []
+        self.finalized = False
+
+    def _save(self, *, stage: str, target: int, num_timesteps: int,
+              optimizer_steps: int) -> dict:
+        path = self.out_dir / f"ck{int(target)}.zip"
+        if self._saver is not None:
+            rec = dict(self._saver(
+                stage=stage, path=path, target_step=int(target),
+                num_timesteps=int(num_timesteps),
+                optimizer_steps=int(optimizer_steps)) or {})
+        else:
+            from rl_posctl.skill_p0.p0policy import (
+                save_p0_model_staged)
+            rec = dict(save_p0_model_staged(
+                _LIFECYCLE_MODEL_HOLDER["model"], path,
+                stage=stage, target_step=int(target),
+                optimizer_steps=int(optimizer_steps),
+                run_name=self.run_name))
+        rec.update({"num_timesteps": int(num_timesteps),
+                    "optimizer_steps": int(optimizer_steps),
+                    "event": "checkpoint", "stage": stage,
+                    "target": int(target), "ts": time.time()})
+        self.saved.append(rec)
+        return rec
+
+    def record_collect(self, num_timesteps: int) -> None:
+        """采集期(回调 _on_step):只登记,不写盘。"""
+        while self._pending and int(num_timesteps) >= (
+                self._pending[0]):
+            self._crossed.append(self._pending.pop(0))
+
+    def after_train(self, num_timesteps: int,
+                    optimizer_steps: int) -> list[dict]:
+        """train() 正常返回后:保存所有已越过目标的 post-update 档。"""
+        out = []
+        while self._crossed:
+            target = self._crossed.pop(0)
+            out.append(self._save(
+                stage="mid", target=target,
+                num_timesteps=num_timesteps,
+                optimizer_steps=optimizer_steps))
+        return out
+
+    def finalize(self, num_timesteps: int,
+                 optimizer_steps: int) -> dict:
+        """learn 正常返回后的唯一 final 保存(存在即拒绝)。"""
+        if self.finalized:
+            raise RuntimeError("final 已保存,拒绝重复 finalize")
+        if self._crossed:
+            raise RuntimeError(
+                f"仍有未 flush 的采集目标 {self._crossed}:"
+                "final 保存前必须完成对应更新或显式放弃")
+        rec = self._save(stage="final", target=num_timesteps,
+                         num_timesteps=num_timesteps,
+                         optimizer_steps=optimizer_steps)
+        self.finalized = True
+        return rec
+
+
+# 真实 saver 需要活动 model 引用(测试替身不走此路径)。
+_LIFECYCLE_MODEL_HOLDER: dict = {"model": None}
+
+
+def bind_lifecycle_model(model) -> None:
+    """登记 CheckpointLifecycle 默认 saver 使用的活动模型。"""
+    _LIFECYCLE_MODEL_HOLDER["model"] = model
+
+
 class P0LearnGate:
     """P0 训练门(镜像 tests conftest._LearnGate;P0 计量键 +
-    optimizer.step 实计)。kind ∈ main/smoke/techretry。"""
+    optimizer.step 实计)。kind ∈ main/smoke/techretry/engsmoke。"""
 
     STEP_KEY = {"main": "ppo_steps_main", "smoke": "ppo_steps_smoke",
-                "techretry": "ppo_steps_techretry"}
+                "techretry": "ppo_steps_techretry",
+                "engsmoke": "ppo_steps_smoke"}
     ATT_KEY = {"main": "ppo_learn_main_attempts",
                "smoke": "ppo_learn_smoke_attempts",
-               "techretry": "ppo_learn_techretry_attempts"}
+               "techretry": "ppo_learn_techretry_attempts",
+               "engsmoke": "ppo_learn_smoke_attempts"}
 
     def __init__(self, ledger, kind: str = "main") -> None:
         if kind not in self.STEP_KEY:

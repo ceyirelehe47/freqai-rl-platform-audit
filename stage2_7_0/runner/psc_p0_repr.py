@@ -81,8 +81,8 @@ def concentration_check(arm: str, meter) -> dict:
         dist = (_make_b_dist(target) if arm == "B"
                 else _make_a_dist(target))
         n = CONC_SAMPLES_PER_TARGET
+        meter(n)          # R1/F2:预约在采样执行之前
         ws = [float(dist.sample()[0, 1].item()) for _ in range(n)]
-        meter(n)
         ws = np.asarray(ws)
         within = float(np.mean(np.abs(ws - target)
                                <= CONC_WITHIN_TOL))
@@ -168,9 +168,9 @@ def mc_logprob_entropy_checks(meter) -> dict:
     m = th.tensor([[-0.4, -0.2, 0.1, -0.5]], dtype=th.float64)
     dist = P0AsymBetaDistribution(b, m, ar, br)
     n = 4096
+    meter(n)          # R1/F2:预约在采样执行之前
     th.manual_seed(123)
     acts = th.stack([dist.sample()[0] for _ in range(n)])
-    meter(n)
     lp = dist.log_prob(acts)
     # 独立重构联合概率:branch 概率 × 类别质量(Beta CDF 差/原子)
     from scipy.special import betainc as sci

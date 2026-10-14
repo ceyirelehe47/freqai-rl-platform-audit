@@ -36,14 +36,10 @@ from rl_posctl.skill_p0.p0banks import (  # noqa: E402
     build_p0_bank, load_p0_bank)
 from rl_posctl.skill_p0.p0env import P0EpisodeBankEnv  # noqa: E402
 from rl_posctl.skill_p0.p0eval import (  # noqa: E402
-    behavior_gate, constant_action_fn, eval_on_bank, hold_action_fn,
-    make_env, model_action_fn, pair_advantage_matrix,
-    paired_bootstrap, reference_action_fn, sign_action_fn)
-from rl_posctl.skill_p0.p0policy import (  # noqa: E402
-    load_p0_model, p0_code_digest)
-from rl_posctl.skill_p0.p0run import (  # noqa: E402
-    RUNS_DIR, evidence_kib_settle, make_bootstrap_meter,
-    make_sampler_meter, open_ledger)
+    behavior_gate, bootstrap_results_all_valid_positive,
+    constant_action_fn, eval_on_bank, hold_action_fn, make_env,
+    model_action_fn, pair_advantage_matrix, paired_bootstrap,
+    reference_action_fn, sign_action_fn)
 from rl_posctl.skill_p0.p0spec import (  # noqa: E402
     ARMS, BOOTSTRAP_DRAWS, C1_HORIZON, PPO_SEEDS, p0_seed)
 from rl_posctl.skill_p0.p0task import BASELINE_NAMES, baseline_fns
@@ -62,8 +58,11 @@ def main() -> int:
     if gate_path.exists():
         print(f"已有 confirm_report.json:{gate_path}", file=sys.stderr)
         return 2
-    # ---- 1. 六最终 checkpoint 在场 + 确认锁
+    # ---- 1. 六最终 checkpoint 在场 + 阶段核验(R1/F1:在任何账本
+    # 打开/bank 生成/评估资源之前) + 确认锁。旧 pre-update 档、
+    # RUN_INVALID、身份错配在此被拒,不消费任何资源。
     finals = {}
+    verifications = {}
     for arm in ARMS:
         for seed in PPO_SEEDS:
             rd = RUNS_DIR / "main" / f"{arm}_{seed}"
@@ -72,6 +71,17 @@ def main() -> int:
             if not rec_p.exists() or not ck.exists():
                 write_rejection(out_root, "psc_p0_confirm",
                                 f"缺最终模型:{rd}", sys.argv)
+                return 2
+            run_record = json.loads(
+                rec_p.read_text(encoding="utf-8"))
+            try:
+                verifications[f"{arm}_{seed}"] = (
+                    verify_final_checkpoint(ck, run_record))
+            except RuntimeError as exc:
+                write_rejection(
+                    out_root, "psc_p0_confirm",
+                    f"最终检查点核验失败(未消费资源):"
+                    f"{arm}_{seed}\n{exc}", sys.argv)
                 return 2
             finals[f"{arm}_{seed}"] = {
                 "path": str(ck),
@@ -82,6 +92,10 @@ def main() -> int:
         "locked_utc": __import__("datetime").datetime.now(
             __import__("datetime").timezone.utc).isoformat(),
         "final_checkpoints": finals,
+        "final_ck_verified": {
+            k: {kk: v[kk] for kk in (
+                "stage", "adam_steps", "policy_digest", "sha256")}
+            for k, v in verifications.items()},
         "analysis_code_digest": p0_code_digest(),
     }
     lock_path = RUNS_DIR / "psc_p0_confirm_lock.json"
@@ -91,6 +105,23 @@ def main() -> int:
     ledger = open_ledger(args.ledger)
     meter = make_sampler_meter(ledger, "confirm")
     bmeter = make_bootstrap_meter(ledger, "confirm")
+    # R1/F3a:原始行/逐 pair 输入先于聚合落盘(create-only JSONL;
+    # 每 episode/每 bootstrap 输入即时 append + flush,中断不丢)。
+    raw_dir = out_root / "raw"
+    if raw_dir.exists():
+        print(f"raw 目录已存在(create-only):{raw_dir}",
+              file=sys.stderr)
+        return 2
+    raw_dir.mkdir(parents=True)
+
+    def _raw_writer(name: str):
+        fh = (raw_dir / f"{name}.jsonl").open(
+            "x", encoding="utf-8")
+
+        def sink(row: dict) -> None:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.flush()
+        return sink, fh
     with RunLog(out_root, meta_extra={"runner": "psc_p0_confirm"}):
         lock_path.write_text(json.dumps(lock, ensure_ascii=False,
                                         indent=1), encoding="utf-8")
@@ -125,29 +156,41 @@ def main() -> int:
             for mode in ("deterministic", "sampled"):
                 if mode == "sampled":
                     th.manual_seed(p0_seed("evalsample", seed, 2, 1))
+                sink_m, fh_m = _raw_writer(
+                    f"model_{name}_{mode}")
                 rows[mode] = eval_on_bank(
                     items, model_action_fn(
                         model, deterministic=(mode
                                               == "deterministic")),
                     ledger=ledger,
-                    tag=f"confirm:{name}:{mode}")
+                    tag=f"confirm:{name}:{mode}",
+                    raw_sink=sink_m)
+                fh_m.close()
             model_rows[name] = rows
             behavior[name] = behavior_gate(
                 model, meter=meter, sampled_check=12)
         baselines = {}
         for bname, fn in baseline_fns().items():
+            sink_b, fh_b = _raw_writer(f"baseline_{bname}")
             baselines[bname] = eval_on_bank(
-                items, fn, ledger=ledger, tag=f"confirm:base:{bname}")
+                items, fn, ledger=ledger,
+                tag=f"confirm:base:{bname}", raw_sink=sink_b)
+            fh_b.close()
         spec = __import__(
             "rl_posctl.skill_p0.p0spec", fromlist=[""]).c1_spec(
             "confirm", 0)
         ref = reference_policy(spec)
+        sink_r, fh_r = _raw_writer("baseline_reference")
         baselines["reference"] = eval_on_bank(
             items, reference_action_fn(ref, spec),
-            ledger=ledger, tag="confirm:base:reference")
+            ledger=ledger, tag="confirm:base:reference",
+            raw_sink=sink_r)
+        fh_r.close()
+        sink_s, fh_s = _raw_writer("baseline_sign_rule")
         baselines["sign_rule"] = eval_on_bank(
             items, sign_action_fn(), ledger=ledger,
-            tag="confirm:base:sign")
+            tag="confirm:base:sign", raw_sink=sink_s)
+        fh_s.close()
         # ---- 4/6. 逐 seed 经济门 + 臂级 bootstrap
         per_seed = {}
         for name in sorted(model_rows):
@@ -214,21 +257,24 @@ def main() -> int:
                             "valid": False,
                             "reason": mat.get("reason")}
                         continue
+                    sink_p, fh_p = _raw_writer(
+                        f"bootstrap_{arm}_{bname}_{mode}")
                     boot[bname][mode] = paired_bootstrap(
                         mat["pair_values"], seed=p0_seed(
                             "bootstrap", 0, ord(arm),
                             1 + 2 * list(BASELINE_NAMES).index(bname)
                             + (0 if mode == "deterministic" else 1)),
-                        draws=BOOTSTRAP_DRAWS, meter=bmeter)
+                        draws=BOOTSTRAP_DRAWS, meter=bmeter,
+                        raw_sink=sink_p)
+                    fh_p.close()
             arm_level[arm] = {
                 "n_seed_gate_pass": len(ok),
                 "no_economic_failure_all_seeds": no_fail,
                 "bootstrap_vs_baselines": boot,
                 "arm_gate_pass": bool(
-                    len(ok) >= 2 and no_fail and all(
-                        m.get("valid") and m["lower_positive"]
-                        for b in boot.values()
-                        for m in b.values()))}
+                    len(ok) >= 2 and no_fail
+                    and bootstrap_results_all_valid_positive(
+                        boot))}
         # ---- 5. horizon-check
         horizon = {}
         for purpose in ("hz32", "hz96"):
@@ -301,14 +347,17 @@ def main() -> int:
     return 0
 
 
-def constant_time_template_probe(finals, items_h, ledger, purpose):
+def constant_time_template_probe(finals, items_h, ledger, purpose,
+                                 raw_sink_factory=None):
     """恒时间模板反例:remaining 维钳制为 episode 初始值(其余观察
     原样),确定性重放对照——期限模板依赖诊断(不改题、不训新模)。
 
-    取 2 个最终模型诊断样本;每 episode 真实账本执行,eval_steps
-    逐 episode 计量。"""
+    取 2 个最终模型诊断样本;R1/F2:每模型先按步数上界唯一预约
+    eval_steps,重放后按实际结算(旧版逐 episode 先执行后预约);
+    R1/F3:逐 episode 行经 raw_sink 即时落盘。"""
     from rl_posctl.evalreport import summarize
     results = {}
+    ub = sum(max(0, len(it[0]) - 1) for it in items_h)
     for name in sorted(finals)[:2]:
         arm = name.split("_")[0]
         rec = json.loads(Path(
@@ -317,29 +366,44 @@ def constant_time_template_probe(finals, items_h, ledger, purpose):
         model = load_p0_model(
             finals[name]["path"], env_m, arm=arm,
             bank_ref=rec["bank_ref"], horizon=C1_HORIZON)
+        sink = (raw_sink_factory(name)
+                if raw_sink_factory else None)
+        rid = ledger.reserve(
+            f"hzprobe:{purpose}:{name}", eval_steps=int(ub))
         rows = []
-        for i, item in enumerate(items_h):
-            env = make_env(item)
-            obs, _ = env.reset()
-            fixed_remaining = float(obs[6])
-            done = False
-            infos = []
-            while not done:
-                o = obs.copy()
-                o[6] = fixed_remaining     # 时间维钳制反例
-                act, _ = model.predict(o[None, :], deterministic=True)
-                obs, r, term, trunc, info = env.step(act[0])
-                infos.append(info)
-                done = term or trunc
-            summ = summarize(infos)
-            rows.append({"episode": i,
-                         "net_log_return": summ["net_log_return"],
-                         "n_failure": int(summ["economic_failure"])})
-            rid = ledger.reserve(
-                f"hzprobe:{purpose}:{name}:{i}",
-                eval_steps=summ["n_steps"])
-            ledger.commit(rid, f"hzprobe:{purpose}:{name}:{i}",
-                          eval_steps=summ["n_steps"])
+        observed = 0
+        try:
+            for i, item in enumerate(items_h):
+                env = make_env(item)
+                obs, _ = env.reset()
+                fixed_remaining = float(obs[6])
+                done = False
+                infos = []
+                while not done:
+                    o = obs.copy()
+                    o[6] = fixed_remaining     # 时间维钳制反例
+                    act, _ = model.predict(
+                        o[None, :], deterministic=True)
+                    obs, r, term, trunc, info = env.step(act[0])
+                    infos.append(info)
+                    done = term or trunc
+                summ = summarize(infos)
+                observed += int(summ["n_steps"])
+                row = {"episode": i,
+                       "net_log_return": summ["net_log_return"],
+                       "n_steps": summ["n_steps"],
+                       "n_failure": int(summ["economic_failure"])}
+                if sink is not None:
+                    sink(row)
+                rows.append(row)
+        except BaseException as exc:
+            ledger.abandon(rid, f"hzprobe:{purpose}:{name}", note=(
+                "期限探针异常中断,保守保留预约;"
+                f"observed_steps={observed},ub={int(ub)},"
+                f"exc={exc!r}"))
+            raise
+        ledger.commit(rid, f"hzprobe:{purpose}:{name}",
+                      eval_steps=int(observed))
         results[name] = rows
     return results
 

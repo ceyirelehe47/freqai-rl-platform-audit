@@ -193,12 +193,13 @@ def bc_validate(policy, table: dict, *, sampler_meter=None,
     if interior.any():
         th.manual_seed(seed)
         idx = np.where(interior)[0]
+        # R1/F2:预约在采样执行之前(旧版先采样后计量)
+        if sampler_meter is not None:
+            sampler_meter(int(len(idx) * _STOCH_PER_ROW * 2))
         with th.no_grad():
             view = policy.get_distribution(obs[th.as_tensor(idx)])
             samples = th.stack(
                 [view.sample() for _ in range(_STOCH_PER_ROW)], dim=1)
-        if sampler_meter is not None:
-            sampler_meter(int(samples.numel()))
         ws = samples[:, :, 1].numpy()
         stoch_frac = float(np.mean(
             np.abs(ws - targets[idx][:, None]) <= 0.10))

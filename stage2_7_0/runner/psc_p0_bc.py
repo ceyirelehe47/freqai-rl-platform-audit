@@ -27,7 +27,7 @@ from rl_posctl.skill_p0 import p0bc  # noqa: E402
 from rl_posctl.skill_p0.p0run import (  # noqa: E402
     RUNS_DIR, evidence_kib_settle, make_sampler_meter, open_ledger)
 from rl_posctl.skill_p0.p0spec import (  # noqa: E402
-    ARMS, BC_SEEDS, c1_spec)
+    ARMS, BC_SEEDS, BC_TRAIN_ROWS, BC_VAL_ROWS, c1_spec)
 
 
 def main() -> int:
@@ -57,23 +57,25 @@ def main() -> int:
     meter = make_sampler_meter(ledger, "bc")
     report = {"fits": []}
     with RunLog(out_root, meta_extra={"runner": "psc_p0_bc"}):
+        # R1/F2:监督输入行先唯一预约(上界 = 表构造常量,事后按
+        # 实际行数结算;旧版先建表后预约)。
+        rows_ub = BC_TRAIN_ROWS + BC_VAL_ROWS
+        rid_a = ledger.reserve("bc_rows:bc_a",
+                               supervised_rows=int(rows_ub))
         tables_a = p0bc.build_bc_a_tables()
-        # 监督输入行:表构建一次性计量(去重;重用表不再计)
-        rid = ledger.reserve("bc_rows:bc_a", supervised_rows=(
-            len(tables_a["train"]["kinds"])
-            + len(tables_a["val"]["kinds"])))
-        ledger.commit(rid, "bc_rows:bc_a", supervised_rows=(
-            len(tables_a["train"]["kinds"])
-            + len(tables_a["val"]["kinds"])))
+        n_rows_a = (len(tables_a["train"]["kinds"])
+                    + len(tables_a["val"]["kinds"]))
+        ledger.commit(rid_a, "bc_rows:bc_a",
+                      supervised_rows=int(n_rows_a))
         spec = c1_spec("prequal", 0)
         ref = reference_policy(spec)
+        rid_b = ledger.reserve("bc_rows:bc_b",
+                               supervised_rows=int(rows_ub))
         tables_b = p0bc.build_bc_b_tables(ref)
-        rid = ledger.reserve("bc_rows:bc_b", supervised_rows=(
-            len(tables_b["train"]["kinds"])
-            + len(tables_b["val"]["kinds"])))
-        ledger.commit(rid, "bc_rows:bc_b", supervised_rows=(
-            len(tables_b["train"]["kinds"])
-            + len(tables_b["val"]["kinds"])))
+        n_rows_b = (len(tables_b["train"]["kinds"])
+                    + len(tables_b["val"]["kinds"]))
+        ledger.commit(rid_b, "bc_rows:bc_b",
+                      supervised_rows=int(n_rows_b))
         for arm in ARMS:
             for seed in BC_SEEDS:
                 rec = p0bc.bc_fit(

@@ -72,28 +72,72 @@ def make_env(item) -> P0FiniteTimeEnv:
         initial_cash=INITIAL_CASH, reward_scale=REWARD_SCALE)
 
 
-def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "") -> list:
-    """逐 episode 重放。action_fn(env, row, ratio, steps_left)->action。"""
+def episode_steps_upper_bound(item) -> int:
+    """单 episode 重放步数上界(= 价格行数 − 1;决策期恒定)。"""
+    prices = item[0]
+    return max(0, len(prices) - 1)
+
+
+def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "",
+                 raw_sink=None, env_factory=None, runner=None,
+                 summarizer=None) -> list:
+    """逐 episode 重放(先校验+唯一预约 → 执行 → 按实际结算)。
+
+    R1/F2 修复:旧版先 make_env→run_policy→summarize(整个工作叶
+    已发生)再 reserve/commit;额度不足时工作已被执行。新次序:
+      1) 输入校验(items 非空/action_fn 可调/上界可计算)在任何
+         资源或工作之前;
+      2) 唯一一次预约,额度 = 全部 episode 步数上界合计;
+      3) 逐 episode 执行;raw_sink 在每个 episode 行产生时立即
+         持久化(先于任何聚合使用);
+      4) 按实际观察步数一次性结清;异常 → abandon 保守保留
+         (已发生量不归零)。
+    env_factory/runner/summarizer 为显式测试注入点(默认真实经济
+    环境;替身须明示,不得 mock 掉校验/预约/结算本身)。
+    """
+    if not items:
+        raise ValueError("eval_on_bank: items 为空,拒绝执行")
+    if not callable(action_fn):
+        raise TypeError("eval_on_bank: action_fn 不可调用,拒绝执行")
+    ub_total = sum(episode_steps_upper_bound(it) for it in items)
+    _env_factory = env_factory or make_env
+    _runner = runner or run_policy
+    _summarizer = summarizer or summarize
+    rid = None
+    if ledger is not None:
+        rid = ledger.reserve(f"eval:{tag}", eval_steps=int(ub_total))
     rows = []
-    for i, item in enumerate(items):
-        env = make_env(item)
-        infos = run_policy(
-            env, lambda row, ratio, sl: action_fn(
-                env, row, ratio, sl))
-        summary = summarize(infos)
-        steps = summary["n_steps"]
-        if ledger is not None:
-            rid = ledger.reserve(f"eval:{tag}:{i}", eval_steps=steps)
-            ledger.commit(rid, f"eval:{tag}:{i}", eval_steps=steps)
-        rows.append({"episode": i,
-                     "pair_index": item[2]["pair_index"],
-                     "variant": item[2]["variant"],
-                     "steps": steps, "summary": summary,
-                     "net_log_return": summary["net_log_return"],
-                     "reward_valid": bool(
-                         summary["net_log_return_valid"]),
-                     "economic_failure": bool(
-                         summary["economic_failure"])})
+    observed = 0
+    try:
+        for i, item in enumerate(items):
+            env = _env_factory(item)
+            infos = _runner(
+                env, lambda row, ratio, sl: action_fn(
+                    env, row, ratio, sl))
+            summary = _summarizer(infos)
+            steps = summary["n_steps"]
+            observed += int(steps)
+            row = {"episode": i,
+                   "pair_index": item[2]["pair_index"],
+                   "variant": item[2]["variant"],
+                   "steps": steps, "summary": summary,
+                   "net_log_return": summary["net_log_return"],
+                   "reward_valid": bool(
+                       summary["net_log_return_valid"]),
+                   "economic_failure": bool(
+                       summary["economic_failure"])}
+            if raw_sink is not None:
+                raw_sink(row)
+            rows.append(row)
+    except BaseException as exc:
+        if rid is not None:
+            ledger.abandon(rid, f"eval:{tag}", note=(
+                "eval_on_bank 异常中断,保守保留预约余额;"
+                f"observed_steps={observed},reserved_ub="
+                f"{int(ub_total)},exc={exc!r}"))
+        raise
+    if rid is not None:
+        ledger.commit(rid, f"eval:{tag}", eval_steps=int(observed))
     return rows
 
 
@@ -241,6 +285,30 @@ def gate_probabilities(model, obs_batch: np.ndarray) -> dict:
     }
 
 
+
+def bootstrap_results_all_valid_positive(boot: dict) -> bool:
+    """臂级 bootstrap 全门判定(R1/F3b:生产者-消费者一致)。
+
+    消费规则:每个 {baseline: {mode: result}} 的 result 必须
+    valid 为真且 lower_positive 为真;**缺 valid 一律判败**
+    (旧版生产者不产 valid 而消费者要求 valid → 正例永假断路)。
+    空集合判败(无证据 ≠ 通过)。
+    """
+    if not isinstance(boot, dict) or not boot:
+        return False
+    for b in boot.values():
+        if not isinstance(b, dict) or not b:
+            return False
+        for m in b.values():
+            if not isinstance(m, dict):
+                return False
+            if m.get("valid") is not True:
+                return False
+            if m.get("lower_positive") is not True:
+                return False
+    return True
+
+
 def behavior_gate(model, *, meter=None, sampled_check: int = 0,
                   feature_names=None) -> dict:
     """行为门:min-over-grid 口径(正负两侧分别;镜像条件即 s=∓)。"""
@@ -272,12 +340,13 @@ def behavior_gate(model, *, meter=None, sampled_check: int = 0,
         th.manual_seed(20261014)
         sel = np.linspace(0, len(rows) - 1, min(
             sampled_check, len(rows))).astype(int)
+        # R1/F2:预约在采样执行之前(旧版先采样后计量)
+        if meter is not None:
+            meter(int(len(sel)))
         for k in sel:
             model.policy.get_distribution(
                 th.as_tensor(obs[k][None, :], dtype=th.float32)
             ).sample()
-        if meter is not None:
-            meter(int(len(sel)))
         result["sampled_check_conditions"] = int(len(sel))
     return result
 
@@ -323,19 +392,56 @@ def pair_advantage_matrix(model_rows: dict, baseline_rows: list) -> dict:
             "n_pairs": len(pair_vals)}
 
 
-def paired_bootstrap(pair_values: list, *, seed: int,
+def paired_bootstrap(pair_values, *, seed: int,
                      draws: int = BOOTSTRAP_DRAWS,
-                     meter=None) -> dict:
-    rng = np.random.default_rng(seed)
-    vals = np.asarray(pair_values, dtype=np.float64)
+                     meter=None, raw_sink=None,
+                     rng_factory=None) -> dict:
+    """配对 bootstrap(R1/F3b:生产者显式 valid 语义 + 预约前置)。
+
+    - 输入校验(≥2 个有限数值、draws≥1)在任何采样/预约之前;
+      无效 → {"valid": False, "reason": ...},不消耗任何采样额度;
+    - meter(预约)在重采样矩阵生成**之前**调用(旧版工作后再计);
+    - raw_sink(pair_values/seed/draws/alpha 设置)先于结果写盘,
+      读回原件可独立重算汇总;
+    - 返回恒含 "valid";消费者(arm gate)对 valid 为假或缺失一律
+      判失败,不把缺 valid 默认为有效。
+    """
+    if (isinstance(draws, bool) or not isinstance(draws, int)
+            or draws < 1):
+        return {"valid": False,
+                "reason": f"draws={draws!r} 非法(须 ≥1)"}
+    try:
+        vals_in = list(pair_values)
+    except TypeError:
+        return {"valid": False, "reason": "pair_values 不可迭代"}
+    if len(vals_in) < 2:
+        return {"valid": False,
+                "reason": f"pair 数 {len(vals_in)} < 2,无法重采样"}
+    for v in vals_in:
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            return {"valid": False,
+                    "reason": f"pair 值 {v!r} 非数值"}
+        if not math.isfinite(float(v)):
+            return {"valid": False,
+                    "reason": f"pair 值 {v!r} 非有限(缺样本/无效)"}
+    if raw_sink is not None:
+        raw_sink({"kind": "bootstrap_input",
+                  "pair_values": [float(v) for v in vals_in],
+                  "seed": int(seed), "draws": int(draws),
+                  "alpha": BOOTSTRAP_ALPHA})
+    if meter is not None:
+        meter(int(draws))
+    factory = rng_factory or np.random.default_rng
+    rng = factory(seed)
+    vals = np.asarray(vals_in, dtype=np.float64)
     n = vals.shape[0]
     idx = rng.integers(0, n, size=(draws, n))
     means = vals[idx].mean(axis=1)
-    if meter is not None:
-        meter(int(draws))
     lo = float(np.quantile(means, BOOTSTRAP_ALPHA / 2.0))
     hi = float(np.quantile(means, 1.0 - BOOTSTRAP_ALPHA / 2.0))
-    return {"mean": float(vals.mean()), "ci95_lo": lo, "ci95_hi": hi,
+    return {"valid": True, "reason": None,
+            "mean": float(vals.mean()), "ci95_lo": lo,
+            "ci95_hi": hi,
             "draws": int(draws), "n_pairs": int(n),
             "lower_positive": bool(lo > 0.0)}
 

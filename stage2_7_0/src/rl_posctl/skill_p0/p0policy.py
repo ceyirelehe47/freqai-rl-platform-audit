@@ -27,6 +27,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import time
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -392,10 +394,14 @@ P0_EXTRA_FIELDS = (
 P0_HEADER_FIELDS = P0_BASE_FIELDS + P0_EXTRA_FIELDS
 
 
-def p0_hyperparams(*, n_steps: int = N_STEPS) -> dict:
+def p0_hyperparams(*, n_steps: int = N_STEPS,
+                   batch_size: int = BATCH_SIZE,
+                   n_epochs: int = N_EPOCHS) -> dict:
+    """超参身份字典。batch_size/n_epochs 仅 R1 工程 smoke(engsmoke)
+    覆盖;默认实参与旧 P0 逐字节相同(旧存档摘要不变)。"""
     return {
         "hidden": list(HIDDEN), "n_steps": int(n_steps),
-        "batch_size": BATCH_SIZE, "n_epochs": N_EPOCHS,
+        "batch_size": int(batch_size), "n_epochs": int(n_epochs),
         "learning_rate": LEARNING_RATE, "gamma": GAMMA,
         "gae_lambda": GAE_LAMBDA, "clip_range": CLIP_RANGE,
         "vf_coef": VF_COEF, "max_grad_norm": MAX_GRAD_NORM,
@@ -403,8 +409,12 @@ def p0_hyperparams(*, n_steps: int = N_STEPS) -> dict:
     }
 
 
-def p0_hyperparams_digest(*, n_steps: int = N_STEPS) -> str:
-    blob = json.dumps(p0_hyperparams(n_steps=n_steps),
+def p0_hyperparams_digest(*, n_steps: int = N_STEPS,
+                          batch_size: int = BATCH_SIZE,
+                          n_epochs: int = N_EPOCHS) -> str:
+    blob = json.dumps(p0_hyperparams(n_steps=n_steps,
+                                     batch_size=batch_size,
+                                     n_epochs=n_epochs),
                       sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
@@ -425,10 +435,18 @@ def _p0_obs_feature_names() -> list:
 
 def make_p0_ppo(env, *, arm: str, seed: int, bank_ref: str,
                 horizon: int, n_steps: int = N_STEPS,
-                learning_rate: float = LEARNING_RATE) -> PPO:
-    """构建 P0 PPO(超参冻结于 p0spec;bank_ref/horizon 绑定数据身份)。"""
+                learning_rate: float = LEARNING_RATE,
+                batch_size: int | None = None,
+                n_epochs: int | None = None) -> PPO:
+    """构建 P0 PPO(超参冻结于 p0spec;bank_ref/horizon 绑定数据身份)。
+
+    batch_size/n_epochs 显式覆盖仅限 R1 工程 smoke(ENGINEERING_ONLY,
+    见 psc_p0_train --kind engsmoke);不传 = 旧 P0 冻结几何逐字节不变。
+    """
     if arm not in ARMS:
         raise ValueError(f"未知 P0 臂 {arm!r}")
+    bs = BATCH_SIZE if batch_size is None else int(batch_size)
+    ep = N_EPOCHS if n_epochs is None else int(n_epochs)
     model = PPO(
         env=env, policy=P0ActorCriticPolicy,
         policy_kwargs={"arm": arm,
@@ -436,18 +454,21 @@ def make_p0_ppo(env, *, arm: str, seed: int, bank_ref: str,
                                     "vf": list(HIDDEN)},
                        "activation_fn": nn.Tanh},
         learning_rate=learning_rate, n_steps=n_steps,
-        batch_size=BATCH_SIZE, n_epochs=N_EPOCHS, gamma=GAMMA,
+        batch_size=bs, n_epochs=ep, gamma=GAMMA,
         gae_lambda=GAE_LAMBDA, clip_range=CLIP_RANGE,
         vf_coef=VF_COEF, max_grad_norm=MAX_GRAD_NORM,
         ent_coef=ENT_COEF, seed=seed, device="cpu")
-    header = _p0_expected_identity(env, arm=arm, bank_ref=bank_ref,
-                                   horizon=horizon, n_steps=n_steps)
+    header = _p0_expected_identity(
+        env, arm=arm, bank_ref=bank_ref, horizon=horizon,
+        n_steps=n_steps, batch_size=bs, n_epochs=ep)
     setattr(model, P0_HEADER_KEY, header)
     return model
 
 
 def _p0_expected_identity(env, *, arm: str, bank_ref: str,
-                          horizon: int, n_steps: int = N_STEPS) -> dict:
+                          horizon: int, n_steps: int = N_STEPS,
+                          batch_size: int = BATCH_SIZE,
+                          n_epochs: int = N_EPOCHS) -> dict:
     env_id = env_identity(env)
     header = dict(env_id)
     header.update({
@@ -463,7 +484,9 @@ def _p0_expected_identity(env, *, arm: str, bank_ref: str,
         "gamma": GAMMA,
         "task_id": TASK_ID,
         "bank_ref": str(bank_ref),
-        "hyperparams_digest": p0_hyperparams_digest(n_steps=n_steps),
+        "hyperparams_digest": p0_hyperparams_digest(
+            n_steps=n_steps, batch_size=batch_size,
+            n_epochs=n_epochs),
         "horizon": int(horizon),
         "code_digest": p0_code_digest(),
     })
@@ -501,13 +524,20 @@ def _read_p0_header(path) -> dict:
 
 
 def load_p0_model(path, env, *, arm: str, bank_ref: str,
-                  horizon: int, n_steps: int = N_STEPS) -> PPO:
+                  horizon: int, n_steps: int = N_STEPS,
+                  batch_size: int | None = None,
+                  n_epochs: int | None = None) -> PPO:
     """新进程冷读;旧档/A-B 互载/错观察/错解码/错 gamma 在任何权重
     反序列化之前逐项拒绝。bank_ref/n_steps 允许按用途放宽为 None
-    (检查点评估用训练同值)。"""
+    (检查点评估用训练同值)。batch_size/n_epochs 仅工程 smoke
+    几何覆盖(与训练时传值一致)。"""
     header, _ = _read_p0_header(path)
-    want = _p0_expected_identity(env, arm=arm, bank_ref=bank_ref,
-                                 horizon=horizon, n_steps=n_steps)
+    want = _p0_expected_identity(
+        env, arm=arm, bank_ref=bank_ref, horizon=horizon,
+        n_steps=n_steps,
+        batch_size=(BATCH_SIZE if batch_size is None
+                    else int(batch_size)),
+        n_epochs=(N_EPOCHS if n_epochs is None else int(n_epochs)))
     if bank_ref is None:
         want.pop("bank_ref")
     problems = []
@@ -581,3 +611,214 @@ def wrap_optimizer_counter(model: PPO) -> dict:
 
     opt.step = _counted
     return box
+
+
+# ---------------------------------------------------------------------------
+# 检查点阶段元数据(FiniteRepair R1 / F1:采集→更新→保存次序绑定)
+# ---------------------------------------------------------------------------
+P0_STAGE_KEY = "_psc_p0_stage"
+P0_STAGE_FIELDS = (
+    "stage", "target_step", "num_timesteps", "optimizer_steps",
+    "policy_digest", "optimizer_digest", "run_name", "code_digest",
+    "saved_utc")
+P0_STAGES = ("initial", "mid", "final")
+
+
+def policy_digest(model: PPO) -> str:
+    """整个 policy(state_dict 全参数/缓冲)的确定性摘要。"""
+    sd = model.policy.state_dict()
+    parts = [f"{k}:{_tensor_digest(v)}"
+             for k, v in sorted(sd.items())]
+    return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+
+
+def optimizer_state_digest(model: PPO) -> str:
+    """policy optimizer state_dict 摘要(含 Adam 步计数张量;
+    未更新前 state 为空 → 空态摘要,与已更新状态可区分)。"""
+    sd = model.policy.optimizer.state_dict()
+    parts = []
+    for k, v in sorted(sd.items()):
+        if isinstance(v, dict):
+            for kk, vv in sorted(v.items()):
+                parts.append(f"{k}.{kk}:{_tensor_digest(vv)}"
+                             if hasattr(vv, "detach")
+                             else f"{k}.{kk}:{vv!r}")
+        elif hasattr(v, "detach"):
+            parts.append(f"{k}:{_tensor_digest(v)}")
+        else:
+            parts.append(f"{k}:{v!r}")
+    return hashlib.sha256("|".join(parts).encode(
+        "utf-8")).hexdigest()
+
+
+def save_p0_model_staged(model: PPO, path, *, stage: str,
+                         target_step: int, optimizer_steps: int,
+                         run_name: str) -> dict:
+    """带阶段元数据的 P0 保存(create-only;R1/F1)。
+
+    - stage ∈ initial/mid/final;mid/final 只允许在对应更新完成后
+      由 CheckpointLifecycle 调用(采集计数/已完成优化计数不混用);
+    - 同名已存在 → 显式拒绝(不静默跳过、不覆盖旧文件);
+    - 元数据随 data JSON 落盘(_psc_p0_stage),与权重/optimizer
+      状态同一存档原子绑定。
+    """
+    if stage not in P0_STAGES:
+        raise ValueError(f"未知 stage {stage!r}")
+    p = Path(path)
+    if p.exists():
+        raise RuntimeError(
+            f"检查点已存在,拒绝覆盖(create-only):{p}"
+            "(final 保存不得因同名旧文件静默跳过)")
+    meta = {
+        "stage": stage,
+        "target_step": int(target_step),
+        "num_timesteps": int(model.num_timesteps),
+        "optimizer_steps": int(optimizer_steps),
+        "policy_digest": policy_digest(model),
+        "optimizer_digest": optimizer_state_digest(model),
+        "run_name": str(run_name),
+        "code_digest": p0_code_digest(),
+        "saved_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                   time.gmtime()),
+    }
+    setattr(model, P0_STAGE_KEY, meta)
+    try:
+        save_p0_model(model, p)
+    finally:
+        pass
+    return meta
+
+
+def read_p0_stage(path) -> dict:
+    """读存档阶段元数据;缺失(旧格式/无阶段绑定)显式拒绝。"""
+    _, data = _read_p0_header(path)
+    stage = data.get(P0_STAGE_KEY)
+    if not isinstance(stage, dict):
+        raise RuntimeError(
+            f"存档缺少 {P0_STAGE_KEY}(旧格式检查点,更新阶段未绑定,"
+            f"拒绝消费):{path}")
+    missing = [k for k in P0_STAGE_FIELDS if k not in stage]
+    if missing:
+        raise RuntimeError(
+            f"阶段元数据缺字段 {missing}:{path}")
+    return dict(stage)
+
+
+def inspect_p0_archive(path) -> dict:
+    """只读冷检(不动 torch 随机流;weights_only 安全加载)。
+
+    返回 header/stage/policy_digest/adam_steps(优化器状态内的
+    Adam step 计数;state 为空 = 0)。这是确认入口与复核方的
+    独立核验来源,不信文件名与日志。
+    """
+    import io
+    import zipfile
+    header, _ = _read_p0_header(path)
+    stage = read_p0_stage(path)
+    with zipfile.ZipFile(str(path)) as zf:
+        pol = th.load(io.BytesIO(zf.read("policy.pth")),
+                      map_location="cpu", weights_only=True)
+        parts = [f"{k}:{_tensor_digest(v)}"
+                 for k, v in sorted(pol.items())]
+        pdig = hashlib.sha256("|".join(parts).encode(
+            "utf-8")).hexdigest()
+        try:
+            opt = th.load(io.BytesIO(zf.read("policy.optimizer.pth")),
+                          map_location="cpu", weights_only=True)
+        except KeyError:
+            opt = None
+    adam_steps = 0
+    if opt:
+        states = opt.get("state") or {}
+        for v in states.values():
+            step = v.get("step") if isinstance(v, dict) else None
+            if step is None:
+                continue
+            adam_steps = max(adam_steps, int(
+                step.item() if hasattr(step, "item") else step))
+    return {"header": header, "stage": stage,
+            "policy_digest": pdig, "adam_steps": int(adam_steps)}
+
+
+def verify_final_checkpoint(path, run_record: dict) -> dict:
+    """确认入口前置核验(任何资源消费之前;R1/F1)。
+
+    拒绝:无阶段元数据(旧 pre-update 档)、stage≠final、
+    run_record status≠OK、num_timesteps/optimizer_steps 与
+    run_record 不符、run_name/code_digest/bank_ref/arm 身份错配、
+    存档 Adam 步数≠阶段声明、policy 摘要≠阶段声明。
+    全部通过才返回核验摘要(调用方据此放行后续资源)。
+    """
+    info = inspect_p0_archive(path)
+    stage = info["stage"]
+    problems = []
+    if stage["stage"] != "final":
+        problems.append(
+            f"stage={stage['stage']!r} != 'final'(pre-update 中间档"
+            "不得当最终模型消费)")
+    if run_record.get("status") != "OK":
+        problems.append(
+            f"run status={run_record.get('status')!r} != 'OK'")
+    for skey, rkey in (("num_timesteps", "actual_steps"),
+                       ("optimizer_steps", "optimizer_steps"),
+                       ("run_name", "run_name"),
+                       ("code_digest", "code_digest")):
+        want = run_record.get(rkey)
+        got = stage.get(skey)
+        if want is not None and got != want:
+            problems.append(
+                f"stage.{skey}={got!r} != run_record.{rkey}={want!r}")
+    if stage.get("code_digest") != info["header"].get("code_digest"):
+        problems.append("stage/header code_digest 不一致")
+    if run_record.get("bank_ref") is not None and (
+            info["header"].get("bank_ref")
+            != run_record["bank_ref"]):
+        problems.append("header.bank_ref != run_record.bank_ref")
+    if run_record.get("arm") is not None and (
+            info["header"].get("arm") != run_record["arm"]):
+        problems.append("header.arm != run_record.arm")
+    if info["adam_steps"] != int(stage["optimizer_steps"]):
+        problems.append(
+            f"存档 Adam 步 {info['adam_steps']} != 阶段声明 "
+            f"{stage['optimizer_steps']}(保存时点与声明不符)")
+    if info["policy_digest"] != stage["policy_digest"]:
+        problems.append("存档 policy 摘要 != 阶段声明摘要")
+    if problems:
+        raise RuntimeError(
+            "最终检查点核验失败,确认入口拒绝(未消费任何资源):\n  "
+            + "\n  ".join(problems) + f"\n  path={path}")
+    return {"path": str(path), "stage": stage,
+            "policy_digest": info["policy_digest"],
+            "adam_steps": info["adam_steps"],
+            "sha256": hashlib.sha256(
+                Path(path).read_bytes()).hexdigest()}
+
+
+def verify_post_update_save(path, *, expect_stage: str,
+                            expect_optimizer_steps: int,
+                            expect_timesteps: int) -> dict:
+    """单档 post-update 核验(mid/final 通用;smoke 新进程只读用)。"""
+    info = inspect_p0_archive(path)
+    stage = info["stage"]
+    problems = []
+    if stage["stage"] != expect_stage:
+        problems.append(f"stage={stage['stage']!r}!={expect_stage!r}")
+    if int(stage["optimizer_steps"]) != int(expect_optimizer_steps):
+        problems.append(
+            f"optimizer_steps={stage['optimizer_steps']}"
+            f"!={expect_optimizer_steps}")
+    if int(stage["num_timesteps"]) != int(expect_timesteps):
+        problems.append(
+            f"num_timesteps={stage['num_timesteps']}"
+            f"!={expect_timesteps}")
+    if info["adam_steps"] != int(stage["optimizer_steps"]):
+        problems.append(
+            f"Adam 步 {info['adam_steps']} != 声明 "
+            f"{stage['optimizer_steps']}")
+    if info["policy_digest"] != stage["policy_digest"]:
+        problems.append("policy 摘要与声明不符")
+    if problems:
+        raise RuntimeError(
+            f"post-update 保存核验失败:{path}\n  "
+            + "\n  ".join(problems))
+    return info

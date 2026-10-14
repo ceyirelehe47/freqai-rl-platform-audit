@@ -23,7 +23,8 @@ import torch as th
 from rl_posctl.runlog import RunLog  # noqa: E402
 from rl_posctl.skill_p0.p0banks import load_p0_bank  # noqa: E402
 from rl_posctl.skill_p0.p0env import P0EpisodeBankEnv  # noqa: E402
-from rl_posctl.skill_p0.p0eval import behavior_gate  # noqa: E402
+from rl_posctl.skill_p0.p0eval import (  # noqa: E402
+    behavior_gate, bootstrap_results_all_valid_positive)
 from rl_posctl.skill_p0.p0policy import load_p0_model  # noqa: E402
 from rl_posctl.skill_p0.p0run import (  # noqa: E402
     RUNS_DIR, evidence_kib_settle, make_sampler_meter, open_ledger)
@@ -87,11 +88,9 @@ def main() -> int:
                 n, {}).get("seed_gate_pass")]
             no_fail = all(report["per_seed"].get(n, {}).get(
                 "no_economic_failure") is True for n in names)
-            boot_ok = all(
-                m.get("valid") and m["lower_positive"]
-                for b in report["arm_level"][arm][
-                    "bootstrap_vs_baselines"].values()
-                for m in b.values())
+            boot_ok = bootstrap_results_all_valid_positive(
+                report["arm_level"][arm][
+                    "bootstrap_vs_baselines"])
             report["arm_level"][arm]["n_seed_gate_pass"] = len(ok)
             report["arm_level"][arm]["arm_gate_pass"] = bool(
                 len(ok) >= 2 and no_fail and boot_ok)

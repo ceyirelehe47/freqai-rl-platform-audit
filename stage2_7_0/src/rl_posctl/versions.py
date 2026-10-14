@@ -179,3 +179,36 @@ POSCTL_PSC_P0_BUDGET = {
     "ppo_learn_total": 12,
     "economic_total": 1_378_304,
 }
+
+# ---------------------- PSC_P0_v1 FiniteRepair R1 --------------------------
+# R1 有限工程修复轮(RUNBOOK_AND_BUDGET.md 表逐项;下发本包后才是新的
+# 有限工程验证额度,不退回/不重置旧 P0 已消费账,不挪用旧 main/techretry
+# 池)。零上限键 = 显式 fail closed(reserve 任何正量即拒):
+# 不新增科学实验、生成、BC、bootstrap 重采样与 bank 重放。
+POSCTL_PSC_P0_R1_TASK_ID = "PSC_P0_v1_FiniteRepair_R1"
+POSCTL_PSC_P0_R1_BUDGET = {
+    "ppo_steps_main": 0,                 # 主实验六格不重开
+    "ppo_steps_techretry": 0,            # 技术复验池不借用
+    "ppo_learn_main_attempts": 0,
+    "ppo_learn_techretry_attempts": 0,
+    "ppo_steps_smoke": 128,              # 唯一工程 smoke learn ≤128 步
+    "ppo_steps_smoke_single": 128,
+    "ppo_learn_smoke_attempts": 1,
+    "ppo_optimizer_steps": 8,            # 全部限于该 smoke
+    "ppo_optimizer_steps_single": 8,
+    "eval_steps": 128,                   # 非 PPO 经济环境步骤
+    "gen_calls": 0,                      # 真实课程生成 0
+    "episodes": 0,                       # 物化新课程 bank 0
+    "bc_fits": 0,
+    "bc_epochs": 0,
+    "bc_epochs_single": 0,
+    "bc_minibatch_updates": 0,
+    "bc_minibatch_updates_single": 0,
+    "supervised_rows": 0,                # 新增监督行 0(历史表只读复用)
+    "dist_sample_actions": 1_024,        # 额外独立随机动作采样
+    "bootstrap_draws": 0,                # 科学 bootstrap 重采样 0
+    "evidence_kib": 262_144,             # 本轮 runs/evidence 树(256MiB)
+    "ppo_steps_total": 128,              # 派生:全部 PPO 步(=smoke)
+    "ppo_learn_total": 1,                # 派生:learn 尝试合计
+    "economic_total": 256,               # 派生:全部经济步(PPO128+eval128)
+}
