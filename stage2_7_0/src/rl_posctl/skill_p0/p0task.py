@@ -22,10 +22,8 @@ from rl_posctl.skill_p0.p0eval import (
     constant_action_fn, eval_on_bank, hold_action_fn,
     reference_action_fn, sign_action_fn)
 from rl_posctl.skill_p0.p0spec import (
-    C1_HORIZON, REFINEMENTS, TASK_ERR_FRAC, TASK_VALUE_GATE, c1_spec)
-
-BASELINE_NAMES = ("flat", "const+1", "const-1", "const+0.5",
-                  "const-0.5")
+    BASELINE_NAMES, C1_HORIZON, REFINEMENTS, TASK_ERR_FRAC,
+    TASK_VALUE_GATE, c1_spec)
 
 
 def baseline_fns() -> dict:

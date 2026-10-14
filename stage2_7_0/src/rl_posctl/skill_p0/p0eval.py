@@ -27,10 +27,10 @@ import torch as th
 from rl_posctl.evalreport import run_policy, summarize
 from rl_posctl.skill_p0.p0env import P0FiniteTimeEnv
 from rl_posctl.skill_p0.p0spec import (
-    BEHAVIOR_GRID, BEHAVIOR_MIN_P_DIRECTIONAL, BEHAVIOR_MIN_P_NEUTRAL,
-    BEHAVIOR_W_MIN, BEHAVIOR_W_NEUTRAL, BOOTSTRAP_ALPHA, BOOTSTRAP_DRAWS,
-    C1_FEE, FUNDING_SCHEDULE, INITIAL_CASH, MAINTENANCE_MARGIN,
-    REWARD_SCALE)
+    BASELINE_NAMES, BEHAVIOR_GRID, BEHAVIOR_MIN_P_DIRECTIONAL,
+    BEHAVIOR_MIN_P_NEUTRAL, BEHAVIOR_W_MIN, BEHAVIOR_W_NEUTRAL,
+    BOOTSTRAP_ALPHA, BOOTSTRAP_DRAWS, BOOTSTRAP_MODES, C1_FEE,
+    FUNDING_SCHEDULE, INITIAL_CASH, MAINTENANCE_MARGIN, REWARD_SCALE)
 
 try:                                    # 独立对照库(可选)
     from scipy.special import betainc as _betainc
@@ -78,6 +78,39 @@ def episode_steps_upper_bound(item) -> int:
     return max(0, len(prices) - 1)
 
 
+def _validate_bank_items(items) -> None:
+    """全部 item 的 pair/variant 身份完整性校验(R2/C2)。
+
+    在任何预约/环境构造/经济工作之前执行:每个 item 须为长度 ≥3
+    的序列,item[2] 含 pair_index(int≥0)与 variant(int 或非空
+    str)。malformed 输入在此拒绝,不得先创建环境再 KeyError。
+    """
+    for i, item in enumerate(items):
+        try:
+            n = len(item)
+        except TypeError:
+            n = -1
+        if n < 3:
+            raise ValueError(
+                f"eval_on_bank: item[{i}] 结构非法(须 "
+                f"(prices, feats, meta) 三元组):{item!r}")
+        meta = item[2]
+        if not isinstance(meta, dict):
+            raise ValueError(
+                f"eval_on_bank: item[{i}].meta 非字典:{meta!r}")
+        pi = meta.get("pair_index")
+        if isinstance(pi, bool) or not isinstance(pi, int) or pi < 0:
+            raise ValueError(
+                f"eval_on_bank: item[{i}] 缺/非法 pair_index"
+                f"({pi!r};须 int≥0),在预约/工作前拒绝")
+        var = meta.get("variant")
+        if (isinstance(var, bool) or not isinstance(var, (int, str))
+                or var == "" or var is None):
+            raise ValueError(
+                f"eval_on_bank: item[{i}] 缺/非法 variant"
+                f"({var!r};须 int 或非空 str),在预约/工作前拒绝")
+
+
 def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "",
                  raw_sink=None, env_factory=None, runner=None,
                  summarizer=None) -> list:
@@ -85,11 +118,13 @@ def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "",
 
     R1/F2 修复:旧版先 make_env→run_policy→summarize(整个工作叶
     已发生)再 reserve/commit;额度不足时工作已被执行。新次序:
-      1) 输入校验(items 非空/action_fn 可调/上界可计算)在任何
-         资源或工作之前;
+      1) 输入校验(items 非空/action_fn 可调/上界可计算/**全部
+         item 的 pair/variant 身份完整**)在任何资源或工作之前
+         (R2/C2:缺 pair_index/variant 的 malformed 输入在预约、
+         建环境、经济工作之前拒绝,不得先建环境再 KeyError);
       2) 唯一一次预约,额度 = 全部 episode 步数上界合计;
       3) 逐 episode 执行;raw_sink 在每个 episode 行产生时立即
-         持久化(先于任何聚合使用);
+         持久化(先于任何聚合使用;行携带 tag/身份/成本/失败);
       4) 按实际观察步数一次性结清;异常 → abandon 保守保留
          (已发生量不归零)。
     env_factory/runner/summarizer 为显式测试注入点(默认真实经济
@@ -99,6 +134,7 @@ def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "",
         raise ValueError("eval_on_bank: items 为空,拒绝执行")
     if not callable(action_fn):
         raise TypeError("eval_on_bank: action_fn 不可调用,拒绝执行")
+    _validate_bank_items(items)
     ub_total = sum(episode_steps_upper_bound(it) for it in items)
     _env_factory = env_factory or make_env
     _runner = runner or run_policy
@@ -117,7 +153,7 @@ def eval_on_bank(items, action_fn, *, ledger=None, tag: str = "",
             summary = _summarizer(infos)
             steps = summary["n_steps"]
             observed += int(steps)
-            row = {"episode": i,
+            row = {"episode": i, "tag": str(tag),
                    "pair_index": item[2]["pair_index"],
                    "variant": item[2]["variant"],
                    "steps": steps, "summary": summary,
@@ -286,25 +322,37 @@ def gate_probabilities(model, obs_batch: np.ndarray) -> dict:
 
 
 
-def bootstrap_results_all_valid_positive(boot: dict) -> bool:
-    """臂级 bootstrap 全门判定(R1/F3b:生产者-消费者一致)。
+def bootstrap_results_all_valid_positive(
+        boot: dict, *, required_baselines=None,
+        required_modes=None) -> bool:
+    """臂级 bootstrap 全门判定(R1/F3b + R2/C2:必需结果集合)。
 
-    消费规则:每个 {baseline: {mode: result}} 的 result 必须
-    valid 为真且 lower_positive 为真;**缺 valid 一律判败**
-    (旧版生产者不产 valid 而消费者要求 valid → 正例永假断路)。
-    空集合判败(无证据 ≠ 通过)。
+    消费规则:
+    - 必需集合(p0spec 冻结的 5 基线 × 2 模式)**必须齐备**:
+      删除整基线、整个模式、缺任一 required 键 → 证据不足判败,
+      不得宽松遍历仅在场的结果后宣布完整(含从存档报告读入的
+      bgate_v2 共享消费端);
+    - 每个 result 的 valid 为真且 lower_positive 为真;缺 valid
+      一律判败(无证据 ≠ 通过;空集合判败);
+    - 出现集合外的多余基线/模式同样判败(结果集合必须精确)。
     """
-    if not isinstance(boot, dict) or not boot:
+    req_b = tuple(required_baselines or BASELINE_NAMES)
+    req_m = tuple(required_modes or BOOTSTRAP_MODES)
+    if not isinstance(boot, dict):
         return False
-    for b in boot.values():
-        if not isinstance(b, dict) or not b:
+    if set(boot) != set(req_b):
+        return False
+    for b in req_b:
+        per_mode = boot[b]
+        if not isinstance(per_mode, dict) or set(per_mode) != set(req_m):
             return False
-        for m in b.values():
-            if not isinstance(m, dict):
+        for m in req_m:
+            r = per_mode[m]
+            if not isinstance(r, dict):
                 return False
-            if m.get("valid") is not True:
+            if r.get("valid") is not True:
                 return False
-            if m.get("lower_positive") is not True:
+            if r.get("lower_positive") is not True:
                 return False
     return True
 
@@ -354,42 +402,126 @@ def behavior_gate(model, *, meter=None, sampled_check: int = 0,
 # ---------------------------------------------------------------------------
 # 配对 bootstrap
 # ---------------------------------------------------------------------------
-def pair_advantage_matrix(model_rows: dict, baseline_rows: list) -> dict:
-    """model_rows:{model_key: rows};baseline rows 同 bank 顺序。
+def _row_identity(row, where: str):
+    """行身份 (pair_index, variant);缺失/非法即拒绝(R2/C2)。"""
+    if not isinstance(row, dict):
+        raise ValueError(f"{where}: 行非字典 {row!r}")
+    pi = row.get("pair_index")
+    var = row.get("variant")
+    if isinstance(pi, bool) or not isinstance(pi, int):
+        raise ValueError(
+            f"{where}: 行缺/非法 pair_index({pi!r})")
+    if isinstance(var, bool) or not isinstance(var, (int, str)):
+        raise ValueError(
+            f"{where}: 行缺/非法 variant({var!r})")
+    return (int(pi), var)
 
-    pair_value[p] = mean_models(mean_endpoints(netlog_model
-    − netlog_baseline))。失败(None)如实返回标记。
+
+def _row_value_ok(row, where: str):
+    """行有效性/数值核验:失败标记如实拒绝,NaN/None 拒绝,
+    不静默消费带经济失败/无效奖励的有限数值(不删失败分母)。"""
+    if row.get("economic_failure") is True:
+        return (False, f"{where}: episode {row.get('episode')}"
+                " economic_failure=True(失败分母保留,不删除)")
+    if row.get("reward_valid") is False:
+        return (False, f"{where}: episode {row.get('episode')}"
+                " reward_valid=False")
+    v = row.get("net_log_return")
+    if v is None:
+        return (False, f"{where}: episode {row.get('episode')}"
+                " 经济失败(net_log_return=None)")
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return (False, f"{where}: episode {row.get('episode')}"
+                f" net_log_return 非数值({v!r})")
+    if not math.isfinite(float(v)):
+        return (False, f"{where}: episode {row.get('episode')}"
+                f" net_log_return 非有限({v!r};缺样本/NaN)")
+    return (True, float(v))
+
+
+def pair_advantage_matrix(model_rows: dict, baseline_rows: list) -> dict:
+    """model_rows:{model_key: rows};baseline rows 同 bank。
+
+    R2/C2:配对按 (pair_index, variant) 身份**显式对齐**,不做
+    位置默认匹配:
+    - baseline 身份重复/缺失即拒绝;每个模型的身份集合必须与
+      baseline 完全一致(pair_index=999、variant 错值、行序重排
+      中的错配 → 拒绝;行序重排但身份一致 → 正确映射,结果不变);
+    - 行有效性:economic_failure/reward_valid/None/NaN 在配对前
+      拒绝(失败分母保留在 reason,不删除、不给有效值);
+    - pair_value[p] = mean_models(mean_endpoints(netlog_model
+      − netlog_baseline)),数学与 R1 一致(仅在身份对齐后计算)。
+    行数不一致仍为结构错误(ValueError)。
     """
     keys = sorted(model_rows)
     n_eps = len(baseline_rows)
-    per_model = {}
+    if not baseline_rows:
+        return {"valid": False, "reason": "baseline 行为空(无证据)"}
     for k in keys:
         rows = model_rows[k]
+        if rows is None:
+            return {"valid": False, "reason":
+                    f"缺必需模型行 {k}(种子缺失/RUN_INVALID;"
+                    "必需结果集合不齐备,不得跳过)"}
+        if not isinstance(rows, list):
+            raise ValueError(f"{k} 行集非列表:{rows!r}")
         if len(rows) != n_eps:
             raise ValueError(f"{k} 行数 {len(rows)} != {n_eps}")
-        per_model[k] = [r["net_log_return"] for r in rows]
-    base = [r["net_log_return"] for r in baseline_rows]
-    if any(v is None for v in base):
-        return {"valid": False, "reason": "baseline 出现经济失败"}
-    pairs = {}
-    for idx in range(n_eps):
-        p = baseline_rows[idx]["pair_index"]
-        vals = []
-        for k in keys:
-            v = per_model[k][idx]
-            if v is None:
+    base_ids = {}
+    for idx, r in enumerate(baseline_rows):
+        rid_ = _row_identity(r, f"baseline[{idx}]")
+        if rid_ in base_ids:
+            return {"valid": False, "reason":
+                    f"baseline 身份重复 {rid_}"
+                    f"(episodes {base_ids[rid_]} 与 {idx})"}
+        base_ids[rid_] = idx
+    base_vals = {}
+    for idx, r in enumerate(baseline_rows):
+        rid_ = _row_identity(r, f"baseline[{idx}]")
+        ok, val = _row_value_ok(r, f"baseline[{rid_}]")
+        if not ok:
+            return {"valid": False, "reason": val}
+        base_vals[rid_] = val
+    per_model = {}
+    for k in keys:
+        m_map = {}
+        for idx, r in enumerate(model_rows[k]):
+            rid_ = _row_identity(r, f"{k}[{idx}]")
+            if rid_ in m_map:
                 return {"valid": False, "reason":
-                        f"{k} 在 episode {idx} 经济失败"}
-            vals.append(v - base[idx])
-        pairs.setdefault(p, []).append(sum(vals) / len(vals))
+                        f"{k} 身份重复 {rid_}"
+                        f"(episodes {m_map[rid_]} 与 {idx})"}
+            m_map[rid_] = idx
+        missing = [x for x in base_ids if x not in m_map]
+        extra = [x for x in m_map if x not in base_ids]
+        if missing or extra:
+            return {"valid": False, "reason":
+                    f"{k} 配对身份不一致(缺失 {missing[:4]} / "
+                    f"多余 {extra[:4]};须显式按 (pair_index,"
+                    "variant) 对齐,不做位置匹配)"}
+        vals = {}
+        for idx, r in enumerate(model_rows[k]):
+            rid_ = _row_identity(r, f"{k}[{idx}]")
+            ok, val = _row_value_ok(r, f"{k}[{rid_}]")
+            if not ok:
+                return {"valid": False, "reason": val}
+            vals[rid_] = val - base_vals[rid_]
+        per_model[k] = vals
+    pairs = {}
+    for rid_ in base_ids:
+        p = rid_[0]
+        pairs.setdefault(p, []).append(
+            sum(per_model[k][rid_] for k in keys) / len(keys))
     pair_vals = []
     for p in sorted(pairs):
         if len(pairs[p]) != 2:
             return {"valid": False, "reason":
-                    f"pair {p} 端点数 {len(pairs[p])} != 2"}
+                    f"pair {p} 端点数 {len(pairs[p])} != 2"
+                    "(缺端点/重复端点,必需端点集合不齐备)"}
         pair_vals.append(sum(pairs[p]) / len(pairs[p]))
     return {"valid": True, "pair_values": pair_vals,
-            "n_pairs": len(pair_vals)}
+            "n_pairs": len(pair_vals),
+            "identities": [list(x) for x in base_ids]}
 
 
 def paired_bootstrap(pair_values, *, seed: int,

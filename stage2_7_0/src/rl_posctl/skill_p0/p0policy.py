@@ -632,10 +632,9 @@ def policy_digest(model: PPO) -> str:
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
 
 
-def optimizer_state_digest(model: PPO) -> str:
-    """policy optimizer state_dict 摘要(含 Adam 步计数张量;
-    未更新前 state 为空 → 空态摘要,与已更新状态可区分)。"""
-    sd = model.policy.optimizer.state_dict()
+def _optimizer_state_dict_digest(sd: dict) -> str:
+    """optimizer state_dict 确定性摘要(对存档 th.load 后的纯字典
+    同样可复算;R2/C1:优化器证据实际核对,不只携带声明字符串)。"""
     parts = []
     for k, v in sorted(sd.items()):
         if isinstance(v, dict):
@@ -649,6 +648,13 @@ def optimizer_state_digest(model: PPO) -> str:
             parts.append(f"{k}:{v!r}")
     return hashlib.sha256("|".join(parts).encode(
         "utf-8")).hexdigest()
+
+
+def optimizer_state_digest(model: PPO) -> str:
+    """policy optimizer state_dict 摘要(含 Adam 步计数张量;
+    未更新前 state 为空 → 空态摘要,与已更新状态可区分)。"""
+    return _optimizer_state_dict_digest(
+        model.policy.optimizer.state_dict())
 
 
 def save_p0_model_staged(model: PPO, path, *, stage: str,
@@ -707,8 +713,9 @@ def read_p0_stage(path) -> dict:
 def inspect_p0_archive(path) -> dict:
     """只读冷检(不动 torch 随机流;weights_only 安全加载)。
 
-    返回 header/stage/policy_digest/adam_steps(优化器状态内的
-    Adam step 计数;state 为空 = 0)。这是确认入口与复核方的
+    返回 header/stage/policy_digest/adam_steps/optimizer_digest
+    (优化器状态内的 Adam step 计数与完整 state_dict 摘要均从
+    存档复算;state 为空 = 0/空态摘要)。这是确认入口与复核方的
     独立核验来源,不信文件名与日志。
     """
     import io
@@ -736,18 +743,23 @@ def inspect_p0_archive(path) -> dict:
                 continue
             adam_steps = max(adam_steps, int(
                 step.item() if hasattr(step, "item") else step))
+    odig = _optimizer_state_dict_digest(opt) if opt is not None else None
     return {"header": header, "stage": stage,
-            "policy_digest": pdig, "adam_steps": int(adam_steps)}
+            "policy_digest": pdig, "adam_steps": int(adam_steps),
+            "optimizer_digest": odig}
 
 
 def verify_final_checkpoint(path, run_record: dict) -> dict:
-    """确认入口前置核验(任何资源消费之前;R1/F1)。
+    """确认入口前置核验(任何资源消费之前;R1/F1 + R2/C1)。
 
-    拒绝:无阶段元数据(旧 pre-update 档)、stage≠final、
-    run_record status≠OK、num_timesteps/optimizer_steps 与
-    run_record 不符、run_name/code_digest/bank_ref/arm 身份错配、
-    存档 Adam 步数≠阶段声明、policy 摘要≠阶段声明。
-    全部通过才返回核验摘要(调用方据此放行后续资源)。
+    自洽层核验(档↔record 互证,工程 smoke 几何按自身 record 核):
+    拒绝无阶段元数据(旧 pre-update 档)、stage≠final、status≠OK、
+    num_timesteps/optimizer_steps/run_name/code_digest 与 record 不符、
+    run_name/code_digest/bank_ref/arm 身份错配、存档 Adam 步≠阶段
+    声明、policy 摘要≠阶段声明、**复算 optimizer 摘要≠阶段声明**
+    (R2/C1:优化器证据实际核对,声明全零/串改一律拒绝)。
+    缺 record 字段时该项跳过(宽松面仅限本层;主实验槽位绑定由
+    verify_final_checkpoint_for_slot 强制必需字段)。
     """
     info = inspect_p0_archive(path)
     stage = info["stage"]
@@ -783,15 +795,247 @@ def verify_final_checkpoint(path, run_record: dict) -> dict:
             f"{stage['optimizer_steps']}(保存时点与声明不符)")
     if info["policy_digest"] != stage["policy_digest"]:
         problems.append("存档 policy 摘要 != 阶段声明摘要")
+    if (info["optimizer_digest"] is None
+            or info["optimizer_digest"]
+            != stage["optimizer_digest"]):
+        problems.append(
+            "存档复算 optimizer 摘要 != 阶段声明 optimizer_digest"
+            "(优化器证据不实或缺失;R2/C1)")
     if problems:
         raise RuntimeError(
             "最终检查点核验失败,确认入口拒绝(未消费任何资源):\n  "
             + "\n  ".join(problems) + f"\n  path={path}")
     return {"path": str(path), "stage": stage,
+            "header": dict(info["header"]),
             "policy_digest": info["policy_digest"],
+            "optimizer_digest": info["optimizer_digest"],
             "adam_steps": info["adam_steps"],
             "sha256": hashlib.sha256(
                 Path(path).read_bytes()).hexdigest()}
+
+
+# ---------------------------------------------------------------------------
+# 主实验槽位期望(R2/C1:用途/身份/几何绑定,期望独立于 record 自述)
+# ---------------------------------------------------------------------------
+MAIN_RECORD_REQUIRED_FIELDS = (
+    "status", "run_name", "arm", "seed", "kind", "total_steps",
+    "actual_steps", "optimizer_steps", "reserved_ub", "n_steps",
+    "bank_ref", "code_digest", "checkpoint_manifest")
+
+
+def expected_main_checkpoint(arm: str, seed: int, *, bank_ref: str,
+                             code_digest: str | None = None) -> dict:
+    """冻结的主实验槽位期望(R2/C1)。
+
+    期望值全部推导自 p0spec 冻结常数与在场输入原件(train bank
+    字节),**不取自待验 run_record 自述**;确认入口据此把候选
+    绑定到独立确定的预期槽位(用途=main、arm/seed、训练几何、
+    输入/代码身份、预定采集与更新阶段)。
+    """
+    from rl_posctl.skill_p0.p0spec import (
+        ARMS, C1_HORIZON, CHECKPOINT_STEPS, MAIN_TOTAL_STEPS,
+        N_STEPS, OPT_STEPS_MAIN_UB, OPT_STEPS_PER_ROLLOUT,
+        PPO_SEEDS, TASK_ID)
+    if arm not in ARMS:
+        raise ValueError(f"未知 arm {arm!r}(须 ∈ {ARMS})")
+    if seed not in PPO_SEEDS:
+        raise ValueError(f"seed {seed!r} 不在预注册 {PPO_SEEDS}")
+    if not bank_ref:
+        raise ValueError("bank_ref 缺失:输入身份无法独立确定")
+    return {
+        "purpose": "main",
+        "run_name": f"{arm}_{seed}",
+        "arm": arm, "seed": int(seed),
+        "total_steps": int(MAIN_TOTAL_STEPS),
+        "optimizer_steps": int(OPT_STEPS_MAIN_UB),
+        "n_steps": int(N_STEPS),
+        "opt_steps_per_rollout": int(OPT_STEPS_PER_ROLLOUT),
+        "scheduled_mid_targets": tuple(
+            int(c) for c in CHECKPOINT_STEPS
+            if 0 < int(c) < int(MAIN_TOTAL_STEPS)),
+        "bank_ref": str(bank_ref),
+        "code_digest": str(code_digest or p0_code_digest()),
+        "task_id": TASK_ID, "horizon": int(C1_HORIZON),
+    }
+
+
+def _check_main_manifest(manifest, expected: dict) -> list:
+    """预定采集/更新阶段绑定:checkpoint_manifest 必须覆盖冻结计划
+    的 initial + 全部 mid + final,且 mid 为 post-update 几何
+    (num_timesteps 为 rollout 整数倍、优化步数与 rollout 数一致)。"""
+    problems = []
+    if not isinstance(manifest, list) or not manifest:
+        return ["run_record.checkpoint_manifest 缺失/非列表"]
+    per_stage: dict = {}
+    for ent in manifest:
+        if not isinstance(ent, dict):
+            problems.append("manifest 条目非字典")
+            continue
+        key = (ent.get("stage"), ent.get("target"))
+        per_stage.setdefault(key, []).append(ent)
+    dups = [k for k, v in per_stage.items() if len(v) > 1]
+    if dups:
+        problems.append(f"manifest 重复条目 {dups}")
+    total = expected["total_steps"]
+    opt_ub = expected["optimizer_steps"]
+    n_steps = expected["n_steps"]
+    per_ro = expected["opt_steps_per_rollout"]
+    init = per_stage.get(("initial", 0), [None])[0]
+    if init is None:
+        problems.append("manifest 缺 initial(0) 档")
+    elif int(init.get("optimizer_steps", -1)) != 0:
+        problems.append("initial 档 optimizer_steps != 0")
+    for t in expected["scheduled_mid_targets"]:
+        ent = per_stage.get(("mid", t), [None])[0]
+        if ent is None:
+            problems.append(
+                f"manifest 缺预定 mid({t})档:计划内采集目标"
+                "不得悬置(待 flush 的更新不算完成)")
+            continue
+        nts = int(ent.get("num_timesteps", -1))
+        opts = int(ent.get("optimizer_steps", -1))
+        if nts < t or nts % n_steps != 0:
+            problems.append(
+                f"mid({t}) num_timesteps={nts} 非 post-update"
+                f" rollout 边界(≥{t} 且 %{n_steps}==0)")
+        if opts != (nts // n_steps) * per_ro:
+            problems.append(
+                f"mid({t}) optimizer_steps={opts} != "
+                f"(num_timesteps/{n_steps})×{per_ro}(更新阶段绑定)")
+    fin = per_stage.get(("final", total), [None])[0]
+    if fin is None:
+        problems.append(f"manifest 缺 final({total}) 档")
+    else:
+        if int(fin.get("num_timesteps", -1)) != total:
+            problems.append(
+                f"final num_timesteps={fin.get('num_timesteps')}"
+                f" != 计划 {total}")
+        if int(fin.get("optimizer_steps", -1)) != opt_ub:
+            problems.append(
+                f"final optimizer_steps={fin.get('optimizer_steps')}"
+                f" != 计划 {opt_ub}")
+    return problems
+
+
+def verify_final_checkpoint_for_slot(path, run_record: dict,
+                                     expected: dict) -> dict:
+    """主实验槽位绑定核验(R2/C1:在任何 bank 生成/经济评估/随机
+    工作之前)。
+
+    在 verify_final_checkpoint(档↔record 自洽 + 存档复算摘要)
+    之上,把候选绑定到 expected_main_checkpoint 的独立期望:
+    - 必需 record 字段缺失即拒绝(不跳过、不默认合法);
+    - 用途:kind 必须 = main(工程 smoke/诊断档不得冒充主实验);
+    - 槽位:run_name/arm/seed 与冻结槽位一致;
+    - 完成度:total=actual=num_timesteps=131072、optimizer_steps
+      =5120、final 不得零更新/少步数;manifest 覆盖预定 mid;
+    - 身份:代码(stage/header/record/期望四方一致,过期即拒)、
+      输入(bank_ref 三方一致)、task_id/horizon;
+    - 优化器证据:存档复算摘要 = 阶段声明(错误声明拒绝)。
+    诊断/提前停机原件可在别处保存,但不给科学消费者放行。
+    """
+    missing = [k for k in MAIN_RECORD_REQUIRED_FIELDS
+               if k not in run_record]
+    if missing:
+        raise RuntimeError(
+            "主实验槽位核验失败:run_record 缺必需字段 "
+            f"{missing}(缺失即拒绝,不默认合法;R2/C1)\n"
+            f"  path={path}")
+    out = verify_final_checkpoint(path, run_record)
+    info_stage = out["stage"]
+    header = out["header"]
+    problems = []
+    if run_record["kind"] != expected["purpose"]:
+        problems.append(
+            f"kind={run_record['kind']!r} != 预期用途 "
+            f"{expected['purpose']!r}(工程 smoke/诊断档不得"
+            "冒充主实验 final)")
+    if run_record["run_name"] != expected["run_name"]:
+        problems.append(
+            f"run_name={run_record['run_name']!r} != 槽位 "
+            f"{expected['run_name']!r}(放错槽位/重复占用)")
+    if info_stage.get("run_name") != expected["run_name"]:
+        problems.append(
+            f"stage.run_name={info_stage.get('run_name')!r} != 槽位 "
+            f"{expected['run_name']!r}")
+    if run_record["arm"] != expected["arm"]:
+        problems.append(
+            f"arm={run_record['arm']!r} != 槽位 {expected['arm']!r}")
+    if header.get("arm") != expected["arm"]:
+        problems.append(
+            f"header.arm={header.get('arm')!r} != 槽位 "
+            f"{expected['arm']!r}")
+    if int(run_record["seed"]) != int(expected["seed"]):
+        problems.append(
+            f"seed={run_record['seed']!r} != 槽位 "
+            f"{expected['seed']!r}")
+    total = int(expected["total_steps"])
+    opt_ub = int(expected["optimizer_steps"])
+    for key, want in (("total_steps", total),
+                      ("actual_steps", total),
+                      ("optimizer_steps", opt_ub),
+                      ("n_steps", int(expected["n_steps"]))):
+        got = run_record[key]
+        if int(got) != want:
+            problems.append(
+                f"run_record.{key}={got!r} != 计划 {want!r}"
+                "(完成度/几何不匹配:少步数、零更新或不足计划"
+                "不得签完整 final)")
+    if int(run_record["reserved_ub"]) < int(run_record["actual_steps"]):
+        problems.append(
+            f"reserved_ub={run_record['reserved_ub']!r} < "
+            f"actual_steps={run_record['actual_steps']!r}(预算面不符)")
+    if int(info_stage["num_timesteps"]) != total:
+        problems.append(
+            f"stage.num_timesteps={info_stage['num_timesteps']!r}"
+            f" != 计划 {total}")
+    if int(info_stage["optimizer_steps"]) != opt_ub:
+        problems.append(
+            f"stage.optimizer_steps={info_stage['optimizer_steps']!r}"
+            f" != 计划 {opt_ub}(零更新/未完成计划的 final 不得签)")
+    if int(info_stage["target_step"]) != total:
+        problems.append(
+            f"stage.target_step={info_stage['target_step']!r}"
+            f" != 计划 {total}")
+    code4 = {
+        "stage": info_stage.get("code_digest"),
+        "header": header.get("code_digest"),
+        "record": run_record["code_digest"],
+        "expected": expected["code_digest"]}
+    bad_code = {k: v for k, v in code4.items() if v != code4["expected"]}
+    if bad_code:
+        problems.append(
+            f"代码身份不一致/过期 {bad_code} != 期望 "
+            f"{code4['expected']!r}")
+    bank3 = {"header": header.get("bank_ref"),
+             "record": run_record["bank_ref"],
+             "expected": expected["bank_ref"]}
+    bad_bank = {k: v for k, v in bank3.items()
+                if v != bank3["expected"]}
+    if bad_bank:
+        problems.append(
+            f"输入身份(bank_ref)不一致/错配 {bad_bank} != 期望 "
+            f"{bank3['expected']!r}")
+    if header.get("task_id") != expected["task_id"]:
+        problems.append(
+            f"header.task_id={header.get('task_id')!r} != "
+            f"{expected['task_id']!r}")
+    if int(header.get("horizon", -1)) != int(expected["horizon"]):
+        problems.append(
+            f"header.horizon={header.get('horizon')!r} != "
+            f"{expected['horizon']!r}")
+    problems.extend(_check_main_manifest(
+        run_record["checkpoint_manifest"], expected))
+    if problems:
+        raise RuntimeError(
+            "主实验槽位绑定核验失败,确认入口拒绝(未消费任何资源,"
+            "在 bank 生成/经济评估/随机工作之前;R2/C1):\n  "
+            + "\n  ".join(problems) + f"\n  path={path}")
+    out["expected"] = {
+        k: (list(v) if isinstance(v, tuple) else v)
+        for k, v in expected.items()}
+    out["slot_bound"] = True
+    return out
 
 
 def verify_post_update_save(path, *, expect_stage: str,

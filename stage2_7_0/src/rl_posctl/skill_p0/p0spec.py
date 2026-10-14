@@ -80,6 +80,9 @@ PLANNED_EPISODES = sum(p * v for p, v in BANK_SIZES.values())   # 832
 # ------------------------------ seed(冻结公式) ----------------------------
 BC_SEEDS = (270101, 270102, 270103)
 PPO_SEEDS = (270201, 270202, 270203)
+BASELINE_NAMES = ("flat", "const+1", "const-1", "const+0.5",
+                  "const-0.5")
+BOOTSTRAP_MODES = ("deterministic", "sampled")
 PURPOSES = tuple(BANK_SIZES) + (
     "bc_manual", "bc_teacher", "sampler", "bootstrap", "evalsample")
 
