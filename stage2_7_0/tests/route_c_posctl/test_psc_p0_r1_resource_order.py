@@ -351,3 +351,32 @@ class TestCallSiteOrderAst:
                           if c.endswith("open_ledger"))
         assert verify < open_ledger, (
             "确认入口核验必须在任何账本打开/资源消费之前")
+
+class TestRunnerLoadability:
+    """加载级防回归(P1 复验发现:psc_p0_confirm import 断裂)。"""
+
+    RUNNERS = (
+        "psc_p0_train", "psc_p0_confirm", "psc_p0_eval",
+        "psc_p0_bc", "psc_p0_repr", "psc_p0_bgate_v2",
+        "psc_p0_r1_ledger", "psc_p0_r1_prep", "psc_p0_r1_smoke",
+        "psc_p0_r1_verify")
+    NEED = {
+        "psc_p0_confirm": (
+            "RUNS_DIR", "open_ledger", "make_sampler_meter",
+            "make_bootstrap_meter", "evidence_kib_settle",
+            "load_p0_model", "p0_code_digest",
+            "verify_final_checkpoint"),
+    }
+
+    def test_all_r1_runners_importable(self):
+        import importlib.util
+        root = (Path(__file__).resolve().parents[2] / "runner")
+        for name in self.RUNNERS:
+            spec = importlib.util.spec_from_file_location(
+                name, root / f"{name}.py")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            for attr in self.NEED.get(name, ()):
+                assert hasattr(mod, attr), (
+                    f"{name} 缺 {attr}(import 断裂回归)")
+

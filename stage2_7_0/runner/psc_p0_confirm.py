@@ -40,6 +40,11 @@ from rl_posctl.skill_p0.p0eval import (  # noqa: E402
     constant_action_fn, eval_on_bank, hold_action_fn, make_env,
     model_action_fn, pair_advantage_matrix, paired_bootstrap,
     reference_action_fn, sign_action_fn)
+from rl_posctl.skill_p0.p0policy import (  # noqa: E402
+    load_p0_model, p0_code_digest, verify_final_checkpoint)
+from rl_posctl.skill_p0.p0run import (  # noqa: E402
+    RUNS_DIR, evidence_kib_settle, make_bootstrap_meter,
+    make_sampler_meter, open_ledger)
 from rl_posctl.skill_p0.p0spec import (  # noqa: E402
     ARMS, BOOTSTRAP_DRAWS, C1_HORIZON, PPO_SEEDS, p0_seed)
 from rl_posctl.skill_p0.p0task import BASELINE_NAMES, baseline_fns
