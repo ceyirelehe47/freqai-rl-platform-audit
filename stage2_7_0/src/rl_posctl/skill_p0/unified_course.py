@@ -19,12 +19,19 @@ STATUS = "candidate_uncalibrated"
 
 # 观察列序(按名绑定;生成器序 s,c,q,g / bank 序 c,g,q,s 都合法,
 # 序列化必须带 names,禁止按位置猜)
-OBS_COLUMNS = ["c", "g", "q", "s",
+OBS_COLUMNS = ("c", "g", "q", "s",
                "account_exposure", "account_solvency",
-               "remaining_horizon", "total_horizon"]
+               "remaining_horizon", "total_horizon")  # tuple 不可变
 ACTOR_INPUTS = OBS_COLUMNS
 CRITIC_INPUTS = OBS_COLUMNS
 TEACHER_INPUTS = OBS_COLUMNS
+
+# 接口版本(候选;校准未完成)
+SPEC_VERSIONS = {
+    "obs": "PosctlObsUnified-candidate-v1",
+    "reward": "net-log-equity-v1-candidate",
+    "action": "action-v1-candidate",
+    "execution": "execution-v1-candidate"}
 FORBIDDEN_INPUTS = ("future_return", "future_signal",
                     "ex_post_action", "bank_source_id",
                     "future_truncation_length")
@@ -53,22 +60,35 @@ UNIFIED_TASK = {
     "mu_candidate": 1.2e-3,      # 候选;未校准(旧C1实跑 .004 属旧任务)
     "noise": "r_t = mu_eff(state_{t-1}) + sqrt(3)*sigma(g)*U, U~Unif(-1,1)",
     "sigma_by_g": {"0": 0.03, "1": 0.06},   # 候选
+    "transition_independence": (
+        "候选声明:逐 bar 的 s/c/q/g 分量独立抽取,无跨分量"
+        "耦合;联合分布=分量乘积(未校准)"),
     "economy": {  # 固定费用/执行/终止语义(候选)
         "fee_rate": 1e-3,
         "slippage_bps": 0.0,
+        "price_tick": 0.0,          # 候选(与现 env 参数对齐待核)
+        "reward_scale": 1.0,
         "funding": "none_candidate",
         "maintenance_margin": 0.05,
         "initial_cash": 100.0,
         "execution": ("decision close[t] -> exec open[t+1] "
                       "-> settle close[t+1]"),
-        "termination": ("horizon H terminal settle; economic "
-                        "failure -> forced liquidation (not "
-                        "student-initiated)")},
+        "termination_threefold": {
+            "invalid_terminal": ("经济失败→reward_valid=False"
+                                 " 无效终结(非一律称强平)"),
+            "pre_action_risk": ("动作前强制风险处置(非学生"
+                                "主动决策,单列记账)"),
+            "terminal_liquidation": ("终端清算腿(期末结算单列,"
+                                     "不与学生主动退出混同)")}},
     "horizon": {"values": [32, 64, 128],  # 事前外生可见
                 "visible": "remaining/total 两列均可见"},
     "account_encoding": {
         "exposure": "asinh(exposure)/4",
-        "solvency": "asinh(solvency)/4; flat 原=inf 按 cap 40"},
+        "solvency": "asinh(min(solvency, 40))/4;"
+                    " flat 原值=+inf→min 后=40"},
+    "account_provenance": (
+        "not_established:比例一致仅证明比例关系,不等于合法"
+        "账本来源;本段不构造账本,合法起点链未建立"),
     "phase_selection": {
         "rule": ("仅选当前状态或合法账本起点;起点后按同一核"
                  "自然演化;禁止按未来实现挑路径/换核"),
@@ -78,22 +98,24 @@ UNIFIED_TASK = {
 ACTION_FAMILIES = {
     "A_symmetric_beta_atoms": {
         "arm": "A",
-        "decode_id": "P0CategoryMax-v1",
-        "decode_semantics": ("确定性解码仅出 {-1, 0, +1} 原子;"
+        "decode_id": "P0CategoryMax-v1",   # 当前 P0 A/B 公共解码
+        "decode_semantics": ("确定性解码仅出原子 {-1,0,+1};"
                              "内部幅度不可达(确定性)"),
-        "structure": ("HOLD 原子 + REBAL 原子 {-1,+1} + 关于零"
-                      "对称连续 Beta"),
+        "structure": ("HOLD 原子 + REBALANCE 原子 {-1, 0, +1}"
+                      "(REBALANCE(0)=目标零仓,与 HOLD 保持"
+                      "数量语义不同)+关于零对称连续 Beta"),
         "internal_upper_bound": 0.5,   # 解析事实:单侧内部开区间
-        # (不含 0/±1)概率质量上界 = 对称性一半
         "bound_status": "analytic_fact"},
     "B_asymmetric_beta": {
         "arm": "B",
-        "decode_id": "mixture-mean-v1",
-        "decode_semantics": ("连续均值可出内部点(候选解码;与 A "
-                             "的 CategoryMax 不可混述)"),
+        "decode_id": "P0CategoryMax-v1",  # 既有主接口同为公共解码
+        "candidate_decode": "mixture-mean-v1",  # 候选,未接入
+        "decode_semantics": ("当前公共解码=P0CategoryMax-v1;"
+                             "mixture-mean 仅为候选解码,不得"
+                             "写作既有主接口"),
         "structure": "非对称 Beta(α,β) + 原子",
-        "reachability": "candidate_unverified",  # 需参数域/数值
-        # 稳定性/可达性验证——本轮不求解
+        "reachability": "not_established",  # 未验证;不得与"已达"
+        # 等价返回(见 evaluate_action_expressiveness)
         "note": "幅度课程主候选(设计v1 §2/§4)"}}
 
 
@@ -218,35 +240,26 @@ def obs_vector(state: dict, account: dict,
     return {c: vals[c] for c in columns}
 
 
-def check_column_binding(ser: dict) -> None:
-    """列序置换检测:序列化必须 names+values 且与非零非对称
-    样例按名一致。"""
+def check_column_binding(ser: dict) -> dict:
+    """列序绑定:names+values 逐名取值(位置不作依据)。"""
     names = ser.get("names")
     values = ser.get("values")
     if not names or not values or len(names) != len(values):
         raise UnifiedSpecError("serialization lacks names/values")
-    if sorted(names) != sorted(OBS_COLUMNS):
+    if list(names) != list(OBS_COLUMNS):
         raise UnifiedSpecError(
-            "obs names %r != contract %r" % (
-                sorted(names), sorted(OBS_COLUMNS)))
-    probe = {"c": 0.3, "g": 0.7, "q": 0.25, "s": -1.0,
-             "account_exposure": 0.11, "account_solvency": 2.2,
-             "remaining_horizon": 5, "total_horizon": 64}
-    vec = dict(zip(names, values))
-    for k, v in probe.items():
-        if abs(float(vec[k]) - (v if k not in (
-                "account_exposure", "account_solvency")
-                else v)) == 0.0 and False:
-            pass
-    # 非零非对称样例:构造端若按位置重排必被下方逐名比对抓住
-    for k, v in probe.items():
-        if vec[k] != v and isinstance(v, float):
-            continue
-    return vec
+            "obs names %r != frozen columns %r (unknown/dup/"
+            "reorder rejected)" % (list(names),
+                                   list(OBS_COLUMNS)))
+    return dict(zip(names, values))
 
 
 def verify_serialization(ser: dict, expected_state: dict) -> None:
-    """实际逐名比对(非位置):expected_state 为按名样本。"""
+    """逐名比对(非位置);expected_state 必须非空。"""
+    if not isinstance(expected_state, dict) or not expected_state:
+        raise UnifiedSpecError(
+            "expected_state must be non-empty (empty validation "
+            "is a no-op and rejected)")
     vec = check_column_binding(ser)
     for k, v in expected_state.items():
         if float(vec[k]) != float(v):
@@ -311,9 +324,38 @@ def _typed_intersect(a: dict, b: dict) -> bool:
         iv["hi"])
 
 
+def _group_acceptable(acts) -> dict:
+    """一组 allowed 的可接受动作集合:hold 标记+原子集+区间。"""
+    atoms, ivs, hold = set(), [], False
+    for a in acts:
+        if a["kind"] == "hold":
+            hold = True
+        elif a["kind"] == "atom":
+            atoms.add(float(a["value"]))
+        else:
+            ivs.append((float(a["lo"]), float(a["hi"])))
+    return {"hold": hold, "atoms": atoms, "ivs": ivs}
+
+
+def _common_nonempty(gs: list) -> bool:
+    """多组可接受集合的**共同交集**是否非空(组内并,组间交)。
+    hold 与数值动作视为不同动作;共同交集可来自:全体含 hold,
+    或某数值点落在每组的原子/区间并内。"""
+    if all(g["hold"] for g in gs):
+        return True
+    cand = None
+    for g in gs:
+        pts = set(g["atoms"])
+        for lo, hi in g["ivs"]:
+            pts |= {a for a in (-1.0, -0.5, 0.0, 0.5, 1.0)
+                    if lo <= a <= hi}
+        cand = pts if cand is None else (cand & pts)
+    return bool(cand)
+
+
 def check_same_obs_mutex(teaching: list) -> None:
-    """同 obs 相容性(类型化):字符串标签交集不足以表达连续
-    动作;逐条目类型校验+两两类型化相交,全不相容即冲突。"""
+    """同 obs 相容性(类型化,共同交集):组内=条目并集,组间=
+    共同交集;空共同交集(即使两两重叠)=冲突。"""
     by_obs = {}
     for entry in teaching:
         acts = entry.get("allowed_actions")
@@ -324,22 +366,15 @@ def check_same_obs_mutex(teaching: list) -> None:
         for a in acts:
             _validate_action_entry(a)
         key = tuple(sorted(entry["obs"].items()))
-        by_obs.setdefault(key, []).append(acts)
+        by_obs.setdefault(key, []).append(
+            _group_acceptable(acts))
     for key, groups in by_obs.items():
-        flat = [a for g in groups for a in g]
-        for i in range(len(flat)):
-            for j in range(i + 1, len(flat)):
-                if _typed_intersect(flat[i], flat[j]):
-                    break
-            else:
-                continue
-            break
-        else:
-            if len(flat) > 1:
-                raise UnifiedSpecError(
-                    "conflicting labels: same obs %r has "
-                    "mutually-exclusive typed allowed sets"
-                    % (dict(key),))
+        if len(groups) > 1 and not _common_nonempty(groups):
+            raise UnifiedSpecError(
+                "conflicting labels: same obs %r typed allowed "
+                "sets have EMPTY COMMON INTERSECTION (pairwise "
+                "overlap is not compatibility)"
+                % (dict(key),))
 
 
 # 决策相关 spec 全字段(签名必须覆盖;缺一即换任务可被隐藏)
@@ -446,13 +481,32 @@ def internal_interval_upper_bound_arm_a() -> float:
         "A_symmetric_beta_atoms"]["internal_upper_bound"]
 
 
-def check_action_expressiveness(gate_request: dict) -> None:
-    """门可达性检查。**适用域**:A 臂内部上界规则仅适用于
-    flat 起点+目标区间(flat 开仓上界论断);其余域不套用。
-    NaN 门/倒置区间拒;B 臂可达性=candidate 未验不得宣称已证。"""
+METRICS = ("distribution_probability", "deterministic_hit")
+EXPRESSIVENESS_STATUS = ("proved_impossible",
+                         "not_established", "validated")
+
+
+def evaluate_action_expressiveness(gate_request: dict) -> dict:
+    """门可达性状态机:返回 {status,metric,decoder,reason}。
+    - proved_impossible:A 臂+分布概率门+严格单侧内部区间
+      (不含 0/±1)且 threshold>解析上界 .5 —— 上界属分布
+      本身,**换解码不能规避**(decode 无关性记录在 reason);
+    - validated:仅 deterministic_hit+原子目标(A 臂,CategoryMax
+      确定性出原子,结构可达);
+    - not_established:其余(含 B 全部——未验证,不得与已达
+      等价返回)。
+    输入校验失败(未知 arm/metric/decoder/区间/NaN 门)抛错。"""
     arm = gate_request.get("arm")
     if arm not in ARMS:
         raise UnifiedSpecError("unknown arm %r" % arm)
+    metric = gate_request.get("metric")
+    if metric not in METRICS:
+        raise UnifiedSpecError(
+            "unknown metric %r (bind distribution_probability|"
+            "deterministic_hit)" % metric)
+    decoder = gate_request.get("decoder")
+    if decoder not in ("P0CategoryMax-v1", "mixture-mean-v1"):
+        raise UnifiedSpecError("unknown decoder %r" % decoder)
     lo, hi = gate_request.get("interval", (None, None))
     for x in (lo, hi):
         if not (isinstance(x, (int, float))
@@ -469,28 +523,40 @@ def check_action_expressiveness(gate_request: dict) -> None:
             or not math.isfinite(float(p))):
         raise UnifiedSpecError(
             "NaN/invalid threshold %r" % p)
-    if gate_request.get("initial_state") != "flat":
-        # 上界论断仅 flat 起点;非 flat 不在本规则适用域
-        pass
-    else:
-        strictly_interior_one_side = (
-            (lo > 0 or hi < 0) and lo > -1 + 1e-12
-            and hi < 1 - 1e-12)
-        if arm == "A" and strictly_interior_one_side:
-            bound = internal_interval_upper_bound_arm_a()
-            if p > bound + 1e-12:
-                raise UnifiedSpecError(
-                    "not expressible: A-arm analytic upper bound "
-                    "%.2f < gate %.2f for interior interval "
-                    "[%.2f,%.2f] at flat start; use B-arm "
-                    "(candidate) or change decode"
-                    % (bound, p, lo, hi))
-    if arm == "B":
-        if ACTION_FAMILIES["B_asymmetric_beta"][
-                "reachability"] != "candidate_unverified":
-            raise UnifiedSpecError(
-                "B reachability must stay candidate_unverified "
-                "until verified")
+    base = {"metric": metric, "decoder": decoder}
+    strictly_interior_one_side = (
+        (lo > 0 or hi < 0) and lo > -1 + 1e-12
+        and hi < 1 - 1e-12)
+    if metric == "distribution_probability":
+        if (arm == "A" and strictly_interior_one_side
+                and p > internal_interval_upper_bound_arm_a()
+                + 1e-12):
+            return dict(base, status="proved_impossible",
+                        reason=("A-arm symmetric distribution "
+                                "mass over one-side interior "
+                                "interval <= .5 (decode-"
+                                "independent: bound is a "
+                                "property of the distribution,"
+                                "changing decoder cannot evade)"))
+        return dict(base, status="not_established",
+                    reason=("no validated reachability for "
+                            "this arm/metric/interval yet"))
+    # deterministic_hit
+    atom_target = (set(gate_request.get("atoms", ()))
+                   if gate_request.get("atoms") is not None
+                   else None)
+    if arm == "A" and decoder == "P0CategoryMax-v1" and (
+            atom_target is not None
+            and set(map(float, atom_target)) <= {
+                -1.0, 0.0, 1.0}):
+        return dict(base, status="validated",
+                    reason=("CategoryMax deterministic decode "
+                            "outputs atoms {-1,0,+1}; atom "
+                            "targets structurally attainable"))
+    return dict(base, status="not_established",
+                reason=("deterministic_hit validated only for "
+                        "A-arm CategoryMax atom targets in this "
+                        "phase"))
 
 
 def check_decode_identity(report: dict) -> None:

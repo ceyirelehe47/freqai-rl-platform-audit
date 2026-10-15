@@ -34,7 +34,7 @@ def ser(**overrides):
 # ---- 观察契约/列序 -------------------------------------------
 def test_obs_vector_binds_by_name():
     v = uc.obs_vector(STATE, ACCT, HOR)
-    assert list(v) == uc.OBS_COLUMNS
+    assert list(v) == list(uc.OBS_COLUMNS)
     assert v["s"] == 1 and v["q"] == 0.75
 
 
@@ -49,7 +49,7 @@ def test_column_permutation_detected():
     s = ser()
     uc.verify_serialization(s, {**STATE, **ACCT, **HOR})
     swapped = dict(s)
-    swapped["names"] = ["c", "g", "s", "q"] + uc.OBS_COLUMNS[4:]
+    swapped["names"] = ["c", "g", "s", "q"] + list(uc.OBS_COLUMNS[4:])
     with pytest.raises(uc.UnifiedSpecError,
                        match="permutation|names"):
         uc.verify_serialization(
@@ -59,10 +59,10 @@ def test_column_permutation_detected():
 def test_obs_vector_columns_strictly_frozen():
     # 未来列/未知列/重复列/改序全拒
     for bad_cols in (
-            ["future_return"] + uc.OBS_COLUMNS[1:],
-            ["c", "c"] + uc.OBS_COLUMNS[2:],
+            ["future_return"] + list(uc.OBS_COLUMNS[1:]),
+            ["c", "c"] + list(uc.OBS_COLUMNS[2:]),
             list(reversed(uc.OBS_COLUMNS)),
-            uc.OBS_COLUMNS[:-1]):
+            list(uc.OBS_COLUMNS[:-1])):
         with pytest.raises(uc.UnifiedSpecError,
                            match="frozen OBS_COLUMNS"):
             uc.obs_vector(STATE, ACCT, HOR,
@@ -70,7 +70,7 @@ def test_obs_vector_columns_strictly_frozen():
     # 唯一合法=逐字冻结序
     v = uc.obs_vector(STATE, ACCT, HOR,
                       columns=uc.OBS_COLUMNS)
-    assert list(v) == uc.OBS_COLUMNS
+    assert list(v) == list(uc.OBS_COLUMNS)
 
 
 # ---- 同 obs 互斥标签 ----------------------------------------
@@ -92,8 +92,41 @@ def test_same_obs_conflict_rejected():
     t = [{"obs": obs, "allowed_actions": [_atom(1.0)]},
          {"obs": obs, "allowed_actions": [_atom(-1.0)]}]
     with pytest.raises(uc.UnifiedSpecError,
-                       match="mutually-exclusive"):
+                       match="COMMON INTERSECTION"):
         uc.check_same_obs_mutex(t)
+
+
+def test_same_obs_common_intersection_semantics():
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    # 两两重叠但共同交集为空 → 冲突
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs,
+             "allowed_actions": [_iv(0.0, 0.5)]},
+            {"obs": obs,
+             "allowed_actions": [_iv(0.3, 0.8)]},
+            {"obs": obs,
+             "allowed_actions": [_iv(0.6, 1.0)]}])
+    # 同名标签不同区间(有共同重叠)→ 通过
+    uc.check_same_obs_mutex([
+        {"obs": obs, "label": "amplitude_hi",
+         "allowed_actions": [_iv(0.3, 0.6)]},
+        {"obs": obs, "label": "amplitude_hi",
+         "allowed_actions": [_iv(0.4, 0.7)]}])
+    # 不同表示但重叠(原子在区间)→ 通过
+    uc.check_same_obs_mutex([
+        {"obs": obs,
+         "allowed_actions": [_iv(0.5, 1.0)]},
+        {"obs": obs,
+         "allowed_actions": [_atom(1.0)]}])
+    # hold 组 vs 数值组 → 共同交集空 → 冲突
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs, "allowed_actions": [_hold()]},
+            {"obs": obs,
+             "allowed_actions": [_atom(1.0)]}])
 
 
 def test_same_obs_consistent_union_ok():
@@ -238,46 +271,46 @@ def test_future_inputs_rejected():
 
 
 # ---- 动作表达性 ----------------------------------------------
-def test_arm_a_interior_gate_impossible():
-    # 适用域:flat 起点才套上界
-    uc.check_action_expressiveness(
-        {"arm": "A", "interval": [0.3, 0.6],
-         "threshold": 0.4, "initial_state": "flat"})
-    with pytest.raises(uc.UnifiedSpecError,
-                       match="not expressible"):
-        uc.check_action_expressiveness(
-            {"arm": "A", "interval": [0.3, 0.6],
-             "threshold": 0.8, "initial_state": "flat"})
-    uc.check_action_expressiveness(
-        {"arm": "A", "interval": [0.6, 1.0],
-         "threshold": 0.8, "initial_state": "flat"})
-    # 非flat起点不在上界规则适用域(仅校验区间/门合法性)
-    uc.check_action_expressiveness(
-        {"arm": "A", "interval": [0.3, 0.6],
-         "threshold": 0.8, "initial_state": "held"})
+def _gq(arm="A", metric="distribution_probability",
+        decoder="P0CategoryMax-v1", lo=.3, hi=.6,
+        p=.8, atoms=None):
+    return {"arm": arm, "metric": metric, "decoder": decoder,
+            "interval": [lo, hi], "threshold": p,
+            "atoms": atoms}
+
+
+def test_expressiveness_status_machine():
+    # proved_impossible:A+分布概率+单侧内部+>.5
+    r = uc.evaluate_action_expressiveness(_gq())
+    assert r["status"] == "proved_impossible"
+    assert "decode-independent" in r["reason"] or \
+        "decode-" in r["reason"]
+    # 换解码不能规避(分布质量上界与解码无关)
+    r2 = uc.evaluate_action_expressiveness(
+        _gq(decoder="mixture-mean-v1"))
+    assert r2["status"] == "proved_impossible"
+    # 端点区间不适用内部上界→not_established
+    r3 = uc.evaluate_action_expressiveness(
+        _gq(lo=.6, hi=1.0, p=.8))
+    assert r3["status"] == "not_established"
+    # validated:仅 A+CategoryMax+deterministic_hit+原子目标
+    r4 = uc.evaluate_action_expressiveness(
+        _gq(metric="deterministic_hit", atoms=[1.0]))
+    assert r4["status"] == "validated"
+    # B 一律 not_established(不得与已达等价)
+    for metric in ("distribution_probability",
+                   "deterministic_hit"):
+        rb = uc.evaluate_action_expressiveness(
+            _gq(arm="B", metric=metric, atoms=[1.0]))
+        assert rb["status"] == "not_established"
 
 
 def test_expressiveness_input_validation():
-    for bad in ({"arm": "C", "interval": [.1, .2],
-                 "threshold": .5,
-                 "initial_state": "flat"},
-                {"arm": "A", "interval": [.6, .3],
-                 "threshold": .5,
-                 "initial_state": "flat"},
-                {"arm": "A", "interval": [-1.5, .3],
-                 "threshold": .5,
-                 "initial_state": "flat"},
-                {"arm": "A", "interval": [.1, .2],
-                 "threshold": float("nan"),
-                 "initial_state": "flat"}):
+    for bad in (_gq(arm="C"), _gq(lo=.6, hi=.3),
+                _gq(lo=-1.5), _gq(p=float("nan")),
+                _gq(metric="vibe"), _gq(decoder="v9")):
         with pytest.raises(uc.UnifiedSpecError):
-            uc.check_action_expressiveness(bad)
-
-
-def test_arm_b_reachability_stays_candidate():
-    uc.check_action_expressiveness(
-        {"arm": "B", "interval": [0.3, 0.6],
-         "threshold": 0.8, "initial_state": "flat"})
+            uc.evaluate_action_expressiveness(bad)
 
 
 def test_decode_identity():
@@ -367,6 +400,49 @@ def test_frozen_gate_graduation_needs_structured_identity():
     finally:
         uc.SEVEN_SKILLS.clear()
         uc.SEVEN_SKILLS.update(saved)
+
+
+def test_verify_serialization_rejects_empty_expected():
+    s0 = ser()
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="non-empty"):
+        uc.verify_serialization(s0, {})
+
+
+def test_frozen_columns_immutable():
+    import pytest as _pt
+    with _pt.raises(TypeError):
+        uc.OBS_COLUMNS[0] = "x"
+    assert isinstance(uc.OBS_COLUMNS, tuple)
+    assert uc.ACTOR_INPUTS is uc.OBS_COLUMNS   # 共享不可变元组
+
+
+def test_spec_versions_and_semantics_completeness():
+    t = uc.UNIFIED_TASK
+    for k in ("obs", "reward", "action", "execution"):
+        assert "candidate" in uc.SPEC_VERSIONS[k]
+    econ = t["economy"]
+    assert econ["price_tick"] == 0.0
+    assert econ["reward_scale"] == 1.0
+    term = econ["termination_threefold"]
+    for k in ("invalid_terminal", "pre_action_risk",
+              "terminal_liquidation"):
+        assert k in term
+    assert "transition_independence" in t
+    enc = t["account_encoding"]["solvency"]
+    assert "min(solvency, 40)" in enc
+    assert t["account_provenance"].startswith(
+        "not_established")
+
+
+def test_action_family_facts():
+    a = uc.ACTION_FAMILIES["A_symmetric_beta_atoms"]
+    assert "REBALANCE 原子 {-1, 0, +1}" in a["structure"]
+    b = uc.ACTION_FAMILIES["B_asymmetric_beta"]
+    # 当前 P0 A/B 公共解码=CategoryMax;mixture-mean 仅候选
+    assert b["decode_id"] == "P0CategoryMax-v1"
+    assert b["candidate_decode"] == "mixture-mean-v1"
+    assert b["reachability"] == "not_established"
 
 
 def test_registry_snapshot_shape_and_isolation():
