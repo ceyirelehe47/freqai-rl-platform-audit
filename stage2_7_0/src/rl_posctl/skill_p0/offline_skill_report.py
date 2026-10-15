@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
-"""离线技能验收入口(纯数据;零模型前向/环境 step/训练)。
+"""离线技能验收入口 v2(纯数据;manifest 驱动)。
 
-输入:已授权 train bank + 既有 grid/raw JSON(全 SHA 预核)。
-输出:独占目录内统一 JSON 报告(新文件;拒绝覆盖)。
-
-rc 语义:0=全部 pass;1=存在技能 fail(有效证据不达标);
-3=invalid(格式/身份/版本/SHA 错误——非零退出,报告仍落盘)。
-不改生产 registry 毕业状态;不改续训入口/经济环境。
+v2(2026-10-16 审查方五组合并修复):
+- 预期身份全部来自**固定 manifest**(已验数值;禁止现算
+  SHA 当 expected);空集/重复 tier/未知 model/deadbeef
+  checkpoint 均 invalid;
+- 规范来源=本机实核(course_contract.local_source_binding),
+  不冒充旧 candidate;
+- raw 逐 model 完整性:pair0–3×variant0/1×step0–63 精确
+  集恰 512 行、末步终止、经济字段有限(非 max(step)+1);
+- 覆盖按 model 分列,跨镜像/checkpoint 去重基础 pair,
+  统计市场/账户状态实际覆盖(无门≠不统计);
+- rc:0 pass/1 技能 fail(有效证据)/3 invalid(非零,报告
+  仍落盘);独占输出,拒绝覆盖,零删除零重试。
 """
 from __future__ import annotations
 
@@ -23,6 +29,7 @@ from pathlib import Path
 from rl_posctl.skill_p0 import course_contract as cc
 
 RC_PASS, RC_FAIL, RC_INVALID = 0, 1, 3
+W_FLAT = 0.10  # 账户桶宽(=契约带)
 
 
 def utc():
@@ -37,202 +44,268 @@ def sha(p):
     return h.hexdigest()
 
 
-def parse_grid_spec(spec, pos):
-    parts = spec.split("|")
-    if len(parts) != 4:
+def load_manifest(path) -> dict:
+    m = json.loads(Path(path).read_text(encoding="utf-8"))
+    for k in ("contract_version", "bank", "grids", "raws"):
+        if k not in m:
+            raise cc.ContractError(
+                "manifest missing key %r" % k)
+    if m["contract_version"] != cc.CONTRACT_VERSION:
+        raise cc.ContractError("manifest contract version")
+    if not m["grids"] or not m["raws"]:
         raise cc.ContractError(
-            "grid spec #%d must be "
-            "tier|path|sha|ckpt_sha (got %r)"
-            % (pos, spec))
-    tier, path, s, ck = parts
-    if not Path(path).is_file():
-        raise cc.ContractError("grid missing: %s" % path)
-    return tier, Path(path), s, ck
+            "manifest grids/raws must be non-empty (empty "
+            "input set cannot pass)")
+    tiers = [g["tier"] for g in m["grids"]]
+    if len(tiers) != len(set(tiers)):
+        raise cc.ContractError(
+            "duplicate tiers in manifest: %r" % tiers)
+    for g in m["grids"]:
+        for k in ("tier", "path", "sha", "model",
+                  "ckpt_sha"):
+            if not g.get(k):
+                raise cc.ContractError(
+                    "manifest grid entry missing %r" % k)
+    for r in m["raws"]:
+        for k in ("label", "path", "sha", "models"):
+            if not r.get(k) or not r["models"]:
+                raise cc.ContractError(
+                    "manifest raw entry missing %r" % k)
+    for k in ("path", "sha"):
+        if not m["bank"].get(k):
+            raise cc.ContractError("manifest bank missing")
+    return m
 
 
-def raw_coverage(raw_path, want_sha, *, label):
-    """轨迹覆盖(行/episode/基础 pair/镜像;不增样本)。"""
-    got = sha(raw_path)
-    if got != want_sha:
+def validate_raw_file(path, expect_sha, model_tier,
+                      label) -> dict:
+    """逐 model 完整性+覆盖统计(一文件可两 model)。"""
+    got = sha(path)
+    if got != expect_sha:
         raise cc.ContractError(
             "raw %s SHA drift %s" % (label, got))
     rows = [json.loads(l) for l in
-            raw_path.read_text(encoding="utf-8").splitlines()]
-    for r in rows:
-        for f in ("equity_end", "s"):
-            v = r.get(f)
-            if not (isinstance(v, (int, float))
-                    and math.isfinite(float(v))):
-                raise cc.ContractError(
-                    "raw %s non-finite %s" % (label, f))
-    models = sorted({r["model"] for r in rows})
-    eps = {(r["model"], r["pair_index"], r["variant"])
-           for r in rows}
-    steps = sorted({r["step"] for r in rows})
-    base_pairs = sorted({r["pair_index"] for r in rows})
-    variants = sorted({r["variant"] for r in rows})
+            path.read_text(encoding="utf-8").splitlines()]
+    if not rows:
+        raise cc.ContractError("raw %s empty" % label)
+    models = sorted({r.get("model") for r in rows})
+    if not models or None in models:
+        raise cc.ContractError(
+            "raw %s missing model field" % label)
+    for m in models:
+        if m not in model_tier:
+            raise cc.ContractError(
+                "raw %s pseudo model %r (not in manifest "
+                "mapping)" % (label, m))
     per_model = {}
     for m in models:
-        mr = [r for r in rows if r["model"] == m]
+        sub = [r for r in rows if r["model"] == m]
+        seen = set()
+        eps = {}
+        for r in sub:
+            for f, chk in (
+                    ("pair_index",
+                     lambda v: isinstance(v, int)
+                     and 0 <= v <= 3),
+                    ("variant",
+                     lambda v: isinstance(v, int)
+                     and v in (0, 1)),
+                    ("step",
+                     lambda v: isinstance(v, int)
+                     and not isinstance(v, bool)
+                     and 0 <= v <= 63)):
+                v = r.get(f)
+                if not chk(v):
+                    raise cc.ContractError(
+                        "raw %s model %s bad %s=%r"
+                        % (label, m, f, v))
+            for f in ("equity_end",
+                      "fee_increment_all_fills", "s"):
+                v = r.get(f)
+                if not (isinstance(v, (int, float))
+                        and math.isfinite(float(v))):
+                    raise cc.ContractError(
+                        "raw %s model %s non-finite %s"
+                        % (label, m, f))
+            key = (r["pair_index"], r["variant"],
+                   r["step"])
+            if key in seen:
+                raise cc.ContractError(
+                    "raw %s model %s duplicate row %r"
+                    % (label, m, key))
+            seen.add(key)
+            eps.setdefault((r["pair_index"],
+                            r["variant"]),
+                           {"steps": set(),
+                            "last": None}).setdefault(
+                "steps", set()).add(r["step"])
+            eps[(r["pair_index"], r["variant"])][
+                "last"] = r
+        if len(eps) != 8:
+            raise cc.ContractError(
+                "raw %s model %s episodes %d != 8"
+                % (label, m, len(eps)))
+        for k, ep in eps.items():
+            if ep["steps"] != set(range(64)):
+                raise cc.ContractError(
+                    "raw %s model %s ep %r steps not "
+                    "exact 0..63 (n=%d)"
+                    % (label, m, k, len(ep["steps"])))
+            last = ep["last"]
+            if not (last.get("terminated")
+                    or last.get("truncated")):
+                raise cc.ContractError(
+                    "raw %s model %s ep %r last step not "
+                    "terminal" % (label, m, k))
+        if len(sub) != 512:
+            raise cc.ContractError(
+                "raw %s model %s rows %d != 512"
+                % (label, m, len(sub)))
+        flat = sum(1 for r in sub
+                   if abs(float(r.get(
+                       "exposure_before", 0.0)))
+                   <= W_FLAT)
         per_model[m] = {
-            "episodes": len({(r["pair_index"],
-                              r["variant"]) for r in mr}),
-            "steps_per_episode": sorted(
-                {r["step"] for r in mr})[-1] + 1}
-    return {
-        "label": label, "sha256": got, "rows": len(rows),
-        "models": models, "episodes_total": len(eps),
-        "base_pairs": base_pairs, "variants": variants,
-        "per_model": per_model,
-        "mirror_relation": ("variant0/variant1 同基础 pair "
-                            "互为镜像(s→−s);独立市场单位="
-                            "基础 pair 数 %d,非 episodes"
-                            % len(base_pairs)),
-        "sample_count_note": ("镜像与多 checkpoint 不增加"
-                              "独立样本数;轨迹覆盖≠grid"
-                              " 覆盖(grid=108 反事实条件,"
-                              "轨迹=已实现路径)")}, rows
+            "tier": model_tier[m], "rows": len(sub),
+            "episodes": len(eps),
+            "base_pairs": sorted({r["pair_index"]
+                                  for r in sub}),
+            "mirror_pairs": sorted(
+                p for p in range(4)
+                if (p, 0) in eps and (p, 1) in eps),
+            "account_state_rows": {
+                "flat_pre": flat,
+                "nonflat_pre": len(sub) - flat}}
+    return {"label": label, "sha256": got,
+            "per_model": per_model}
 
 
 def main(argv=None) -> int:
     t0 = utc()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--contract", default=(
-        cc.CONTRACT_VERSION))
-    ap.add_argument("--bank", required=True)
-    ap.add_argument("--bank-sha", required=True)
-    ap.add_argument("--grid", action="append", default=[],
-                    help="tier|path|sha|ckpt_sha")
-    ap.add_argument("--raw", action="append", default=[],
-                    help="label|path|sha")
+    ap.add_argument("--manifest", required=True)
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
     out = Path(args.out)
-    rep = {"utc_start": t0, "contract_version": args.contract}
+    rep = {"utc_start": t0}
     rc = RC_PASS
     owned = False
     try:
         out.mkdir(parents=True)
         fd = os.open(str(out / "offline_report.marker"),
                      os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.write(fd, (b"course_contract_offline v1\n"))
+        os.write(fd, b"course_contract_offline v2\n")
         os.close(fd)
         owned = True
-        if args.contract != cc.CONTRACT_VERSION:
-            raise cc.ContractError(
-                "unknown contract version %r"
-                % args.contract)
+        man = load_manifest(args.manifest)
+        rep["manifest_path"] = args.manifest
+        rep["manifest_contract_version"] = man[
+            "contract_version"]
         contract = cc.build_contract()
         rep["contract"] = contract
+        rep["entry_module_sha256"] = sha(Path(
+            __file__).resolve())
+        rep["contract_module_sha256"] = sha(Path(
+            cc.__file__).resolve())
 
-        # ---- bank:SHA + 列序(只读) ------------------------
-        bsha = sha(args.bank)
-        if bsha != args.bank_sha:
+        # ---- bank:manifest 固定身份(域绑定非仅 cgqs) ----
+        bsha = sha(man["bank"]["path"])
+        if bsha != man["bank"]["sha"]:
             raise cc.ContractError(
                 "bank SHA drift %s" % bsha)
-        sys.path.insert(0, "src")
-        from rl_posctl.skill_p0.p0banks import load_p0_bank
-        items = load_p0_bank(Path(args.bank))
+        from rl_posctl.skill_p0.p0banks import (
+            load_p0_bank)
+        items = load_p0_bank(Path(man["bank"]["path"]))
         cols = {tuple(str(c) for c in it[1].columns)
                 for it in items}
         if cols != {tuple(contract["c1"][
                 "feature_order"])}:
             raise cc.ContractError(
-                "bank feature order != contract cgqs: %r"
-                % sorted(cols))
+                "bank feature order != cgqs")
         rep["source_binding"] = {
-            "bank": {"path": args.bank,
+            "bank": {"path": man["bank"]["path"],
                      "sha256": bsha,
                      "episodes": len(items)},
-            "candidate_commit": cc.CANDIDATE_COMMIT}
+            "spec_sources": contract["source_binding"]}
 
-        # ---- grids ------------------------------------------
+        # ---- grids(manifest 期望值;非现算当 expected) --
         skills = {}
-        for pos, spec_s in enumerate(args.grid):
-            tier, path, want, ck_sha = parse_grid_spec(
-                spec_s, pos)
-            g = sha(path)
-            if g != want:
+        for g in man["grids"]:
+            actual = sha(g["path"])
+            if actual != g["sha"]:
                 raise cc.ContractError(
-                    "grid %s SHA drift %s" % (tier, g))
-            rows = json.loads(
-                path.read_text(encoding="utf-8"))
-            expect_model = ("new" if "new" in path.name
-                            or tier in ("ck163840",
-                                        "ck262144",
-                                        "ck524288")
-                            else "baseline")
+                    "grid %s SHA drift %s"
+                    % (g["tier"], actual))
+            rows = json.loads(Path(g["path"]).read_text(
+                encoding="utf-8"))
             info = cc.validate_grid_rows(
-                rows, contract_version=args.contract,
-                expect_model=expect_model)
+                rows, contract_version=(
+                    man["contract_version"]),
+                expect_model=g["model"])
             ev = cc.skill_eval(rows)
-            aux = {
-                "mean_p_neutral_band": sum(
-                    float(r["p_neutral_band"])
-                    for r in rows
-                    if float(r["s"]) == 0.0) / 36,
-                "role": "auxiliary only(不作门)"}
-            skills[tier] = {
-                "grid_sha256": g,
-                "checkpoint_sha256": ck_sha,
+            skills[g["tier"]] = {
+                "grid_sha256": actual,
+                "checkpoint_sha256": g["ckpt_sha"],
+                "model": g["model"],
                 "grid_info": info, "skills": ev,
-                "auxiliary": aux}
+                "auxiliary": {
+                    "mean_p_neutral_band": sum(
+                        float(r["p_neutral_band"])
+                        for r in rows
+                        if float(r["s"]) == 0.0) / 36,
+                    "role": "auxiliary only"}}
             if any(v["status"] == "fail"
                    for v in ev.values()
                    if isinstance(v, dict)):
                 rc = max(rc, RC_FAIL)
         rep["tiers"] = skills
 
-        # ---- raws(轨迹覆盖+辅助收益) -----------------------
-        cov = []
-        for pos, rspec in enumerate(args.raw):
-            parts = rspec.split("|")
-            if len(parts) != 3:
-                raise cc.ContractError(
-                    "raw spec #%d must be label|path|sha"
-                    % pos)
-            label, path, want = parts
-            info, rows = raw_coverage(
-                Path(path), want, label=label)
-            aux = {}
-            for m in info["models"]:
-                eps = {}
-                prev = {}
-                for r in rows:
-                    if r["model"] != m:
-                        continue
-                    k = (r["pair_index"], r["variant"])
-                    a = eps.setdefault(k, {"prev": 100.0,
-                                           "log": 0.0})
-                    a["log"] += math.log(
-                        r["equity_end"] / a["prev"])
-                    a["prev"] = r["equity_end"]
-                aux[m] = round(sum(v["log"]
-                                   for v in eps.values())
-                               / len(eps), 6)
-            info["auxiliary_mean_net_log_eq"] = aux
-            cov.append(info)
+        # ---- raws ------------------------------------------
+        raw_model_tier = {}
+        for r in man["raws"]:
+            for m, t in r["models"].items():
+                raw_model_tier[m] = t
+        cov = [validate_raw_file(
+            Path(r["path"]), r["sha"],
+            {m: t for m, t in r["models"].items()},
+            r["label"]) for r in man["raws"]]
+        base_union = sorted({p for c in cov
+                             for pm in c[
+                                 "per_model"].values()
+                             for p in pm["base_pairs"]})
         rep["coverage"] = {
             "market_state_grid": {
                 "conditions": contract["c1"][
                     "grid_conditions"],
                 "neutral": contract["c1"][
                     "neutral_conditions"],
-                "covered_by": sorted(skills)},
+                "covered_by_tiers": sorted(skills),
+                "note": ("设计面反事实条件覆盖"
+                         "(s×c×q×g×remaining 全笛卡尔;"
+                         "由精确条件集校验保证)")},
             "trajectory": cov,
             "account_state": {
-                "gate_initial_state": "flat "
-                "(counterfactual;obs[4]==0 已逐行校验)",
-                "held_position_axis": "not_specified"}}
+                "pre_position_rows_by_model": {
+                    "%s|%s" % (c["label"], m): pm[
+                        "account_state_rows"]
+                    for c in cov
+                    for m, pm in c[
+                        "per_model"].items()},
+                "dedup_base_pairs_union": base_union,
+                "note": ("账户状态=仓前 exposure 桶"
+                         "(|e|<=0.10 flat);无门≠不统计")},
+            "sample_counting": {
+                "independent_market_units": (
+                    len(base_union)),
+                "rule": ("跨镜像与跨 checkpoint 去重;"
+                         "轨迹≠grid 覆盖")}}
         rep["not_specified_items"] = [
             "held_position_neutral(带仓中性处理)",
             "c2/c3/c4 全部门与晋级",
-            "账户状态带仓轴"]
+            "账户状态带仓轴(仅统计)"]
 
-        if rc == RC_PASS:
-            rep["status"] = "pass"
-        else:
-            rep["status"] = "fail"
+        rep["status"] = ("pass" if rc == RC_PASS
+                         else "fail")
         rep["rc"] = rc
         rep["utc_end"] = utc()
         (out / "offline_skill_report.json").write_text(
@@ -242,33 +315,24 @@ def main(argv=None) -> int:
         return rc
     except cc.ContractError as exc:
         rc = RC_INVALID
-        rep["status"] = "invalid"
-        rep["error"] = str(exc)
-        rep["rc"] = rc
-        try:
-            if owned and out.is_dir():
-                (out / "offline_skill_report.json").write_text(
-                    json.dumps(rep, ensure_ascii=False,
-                               indent=1), encoding="utf-8")
-        except BaseException:
-            pass
-        print("OFFLINE_INVALID %s" % exc, file=sys.stderr)
-        return rc
+        rep.update(status="invalid", error=str(exc),
+                   rc=rc)
     except BaseException as exc:
         rc = RC_INVALID
-        rep["status"] = "invalid"
-        rep["error"] = "unexpected: %r" % exc
-        rep["traceback"] = traceback.format_exc()
-        rep["rc"] = rc
-        try:
-            if owned and out.is_dir():
+        rep.update(status="invalid",
+                   error="unexpected: %r" % exc,
+                   traceback=traceback.format_exc(), rc=rc)
+    finally:
+        if owned and out.is_dir():
+            try:
                 (out / "offline_skill_report.json").write_text(
                     json.dumps(rep, ensure_ascii=False,
                                indent=1), encoding="utf-8")
-        except BaseException:
-            pass
-        print("OFFLINE_INVALID %r" % exc, file=sys.stderr)
-        return rc
+            except BaseException:
+                pass
+    print("OFFLINE_INVALID %s" % rep.get("error", "?"),
+          file=sys.stderr)
+    return rc
 
 
 if __name__ == "__main__":

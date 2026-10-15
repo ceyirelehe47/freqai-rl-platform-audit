@@ -17,16 +17,50 @@ from pathlib import Path
 
 CONTRACT_VERSION = "COURSE_CONTRACT_V1"
 
-# 来源绑定(候选 commit;12 模块 blob 全等核验由入口执行)
-CANDIDATE_COMMIT = ("3a241c4932476e3c9dfb2ebd5c94b"
-                    "b4f9cf41938")
+# 规范来源=本机实核(不冒充旧 candidate blob 全等)
 CODE_PATHS = {
     "p0spec": "src/rl_posctl/skill_p0/p0spec.py",
     "p0eval": "src/rl_posctl/skill_p0/p0eval.py",
     "curriculum": "src/rl_posctl/curriculum.py",
     "env": "src/rl_posctl/env.py",
-    "p0registry": "src/rl_posctl/skill_p0/p0registry.py",
-}
+    "p0registry": "src/rl_posctl/skill_p0/p0registry.py"}
+
+
+def _sha(p):
+    import hashlib
+    h = hashlib.sha256()
+    with open(p, "rb") as fh:
+        for c in iter(lambda: fh.read(1 << 20), b""):
+            h.update(c)
+    return h.hexdigest()
+
+
+def local_source_binding():
+    """实际导入模块的 __file__ + SHA + 本地 git HEAD(未知则
+    如实 unknown;不宣称候选 blob 全等)。"""
+    import subprocess
+    import rl_posctl.skill_p0.p0spec as spec_mod
+    mods = {
+        "p0spec": {"imported_path": str(Path(
+            spec_mod.__file__).resolve())}}
+    try:
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True,
+            timeout=60,
+            cwd=str(Path(spec_mod.__file__).resolve()
+                    .parents[4])).stdout.strip()
+    except Exception:
+        head = "unknown"
+    for name, rel in CODE_PATHS.items():
+        mods[name] = dict(mods.get(name, {}),
+                          declared_rel=rel)
+    mods["p0spec"]["sha256"] = _sha(
+        mods["p0spec"]["imported_path"])
+    return {"local_git_head": head or "unknown",
+            "note": ("本机导入实核;未做旧候选 blob 全等,"
+                     "不作 candidate 宣称"),
+            "modules": mods}
 
 
 class ContractError(Exception):
@@ -54,8 +88,8 @@ def build_contract() -> dict:
     n_neutral = sum(1 for c in conds if c[0] == 0.0)
     return {
         "contract_version": CONTRACT_VERSION,
-        "candidate_commit": CANDIDATE_COMMIT,
         "code_paths": dict(CODE_PATHS),
+        "source_binding": local_source_binding(),
         "c1": {
             "course_id": "c1",
             "feature_order": ["c", "g", "q", "s"],
@@ -156,34 +190,46 @@ def validate_grid_rows(rows, *, contract_version,
         except (KeyError, TypeError, ValueError) as exc:
             raise ContractError(
                 "bad condition fields %r: %r" % (r, exc))
+        rem = r["remaining"]
+        if isinstance(rem, bool) or not isinstance(
+                rem, (int, float)) or not math.isfinite(
+                float(rem)) or float(rem) != int(rem):
+            raise ContractError(
+                "remaining not integer-valued: %r at %r"
+                % (rem, key))
         got.append(key)
         for p in ("p_rebal_up", "p_rebal_down",
                   "p_neutral_band"):
             v = r.get(p)
-            if not (isinstance(v, (int, float))
-                    and math.isfinite(float(v))):
+            if isinstance(v, bool) or not isinstance(
+                    v, (int, float)) or not math.isfinite(
+                    float(v)) or not (0.0 <= float(v)
+                                      <= 1.0):
                 raise ContractError(
-                    "non-finite %s=%r at %r" % (p, v, key))
+                    "prob %s=%r not finite in [0,1] at %r"
+                    % (p, v, key))
         obs = r.get("obs")
         if not isinstance(obs, list) or len(obs) != 8:
             raise ContractError("obs dim != 8 at %r" % (key,))
-        # 布局:前 4 = [c,g,q,s];第 5 = asinh(exposure)/4
-        # (flat=0.0);第 6 = asinh(solv)/4(上限 40)
-        if any(abs(obs[i] - v) > 1e-6 for i, v in (
-                (0, float(r["c"])), (1, float(r["g"])),
-                (2, float(r["q"])), (3, float(r["s"])))):
+        if not all((isinstance(x, (int, float))
+                    and not isinstance(x, bool)
+                    and math.isfinite(float(x)))
+                   for x in obs):
             raise ContractError(
-                "obs layout not [c,g,q,s] at %r: %r"
-                % (key, obs[:4]))
-        if abs(float(obs[4])) > 1e-6:
+                "obs non-finite slot at %r: %r" % (key, obs))
+        # 逐槽等于 [c,g,q,s,0,asinh(40)/4,rem/128,64/128]
+        # (浮点容差 1e-6 绝对)
+        want_slots = (float(r["c"]), float(r["g"]),
+                      float(r["q"]), float(r["s"]),
+                      0.0, math.asinh(40.0) / 4.0,
+                      float(rem) / 128.0, 64.0 / 128.0)
+        bad = [i for i, (a, b) in enumerate(
+            zip(obs, want_slots))
+            if abs(float(a) - b) > 1e-6]
+        if bad:
             raise ContractError(
-                "non-flat initial exposure in obs[4]=%r "
-                "at %r (gate semantics is flat-only)"
-                % (obs[4], key))
-        if abs(float(obs[5])
-               - math.asinh(40.0) / 4.0) > 1e-6:
-            raise ContractError(
-                "solvency slot not flat-cap at %r" % (key,))
+                "obs slots %r mismatch at %r: got %r want %r"
+                % (bad, key, obs, list(want_slots)))
     if len(got) != len(set(got)):
         seen, dup = set(), []
         for k in got:

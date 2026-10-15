@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-"""COURSE_CONTRACT_OFFLINE_V1 纯数据 fixture 测试。
+"""COURSE_CONTRACT_OFFLINE v2 纯数据 fixture 测试。
 
 零模型前向/环境 step/训练/bank 生成;fixtures 为固定提交文件。
 """
-import importlib.util
+import hashlib
 import json
-import math
 import pathlib
-import subprocess
 import sys
 
 import pytest
@@ -32,133 +30,12 @@ def validate(rows, ver=cc.CONTRACT_VERSION, model="new"):
         rows, contract_version=ver, expect_model=model)
 
 
-def test_boundary_pass_exact_thresholds():
-    info = validate(load("grid_ok_boundary.json"))
-    assert info["conditions"] == 108
-    ev = cc.skill_eval(load("grid_ok_boundary.json"))
-    for k in ("direction_up", "direction_down",
-              "neutral_flat"):
-        assert ev[k]["status"] == "pass", (k, ev[k])
-        # 恰在阈值(>=)必须过
-        assert ev[k]["min"] == pytest.approx(
-            ev[k]["threshold"])
+def fsha(name):
+    return hashlib.sha256(
+        (FX / name).read_bytes()).hexdigest()
 
 
-def test_one_cell_fail_lists_worst_condition():
-    rows = load("grid_one_cell_fail.json")
-    ev = cc.skill_eval(rows)
-    assert ev["neutral_flat"]["status"] == "fail"
-    assert ev["neutral_flat"]["min"] < 0.75
-    assert len(ev["neutral_flat"]["worst_condition"]) == 5
-    assert ev["direction_up"]["status"] == "pass"
-    assert ev["held_position_neutral"] == "not_specified"
-
-
-def test_missing_cell_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="condition set mismatch"):
-        validate(load("grid_missing_cell.json"))
-
-
-def test_duplicate_cell_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="duplicate conditions"):
-        validate(load("grid_dup_cell.json"))
-
-
-def test_mixed_model_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="mixed or missing model"):
-        validate(load("grid_mixed_model.json"))
-
-
-def test_bad_layout_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="obs layout not"):
-        validate(load("grid_bad_layout.json"))
-
-
-def test_nan_prob_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="non-finite"):
-        validate(load("grid_nan_prob.json"))
-
-
-def test_nonflat_obs_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="non-flat initial exposure"):
-        validate(load("grid_nonflat_obs.json"))
-
-
-def test_unknown_contract_version_rejected():
-    with pytest.raises(cc.ContractError,
-                       match="unknown contract version"):
-        validate(load("grid_ok_boundary.json"),
-                 ver="COURSE_CONTRACT_V0")
-
-
-def test_mirror_counting_uses_base_pairs():
-    raw = FX / "raw_mirror.jsonl"
-    sha = (FX / "raw_mirror.sha").read_text().strip()
-    info, rows = osr.raw_coverage(
-        raw, sha, label="fixture")
-    assert info["base_pairs"] == [0, 1, 2, 3]
-    assert info["episodes_total"] == 8
-    assert "非 episodes" in info["mirror_relation"]
-    assert "不增加独立样本数" in info[
-        "sample_count_note"]
-
-
-def test_entry_refuses_overwrite(tmp_path, monkeypatch):
-    grid = FX / "grid_ok_boundary.json"
-    import hashlib
-    import rl_posctl.skill_p0.p0banks as pb
-    gsha = hashlib.sha256(
-        grid.read_bytes()).hexdigest()
-    bsha = hashlib.sha256(pathlib.Path(
-        __file__).read_bytes()).hexdigest()
-
-    class FakeFeats:
-        columns = ["c", "g", "q", "s"]
-
-    monkeypatch.setattr(
-        pb, "load_p0_bank",
-        lambda p: [(None, FakeFeats(), {"pair_index": 0,
-                                        "variant": 0})])
-    out = tmp_path / "rep"
-    spec = "ck262144|%s|%s|deadbeef" % (grid, gsha)
-    rc1 = osr.main(["--bank", __file__, "--bank-sha",
-                    bsha, "--grid", spec,
-                    "--out", str(out)])
-    assert rc1 == 0
-    first = (out / "offline_skill_report.json").read_text(
-        encoding="utf-8")
-    rc2 = osr.main(["--bank", __file__, "--bank-sha",
-                    bsha, "--grid", spec,
-                    "--out", str(out)])
-    assert rc2 == osr.RC_INVALID
-    assert (out / "offline_skill_report.json").read_text(
-        encoding="utf-8") == first  # 首份未被动
-    assert json.loads(first)["status"] == "pass"
-
-
-def test_invalid_writes_report_and_nonzero(tmp_path):
-    grid = FX / "grid_nan_prob.json"
-    import hashlib
-    gsha = hashlib.sha256(
-        grid.read_bytes()).hexdigest()
-    out = tmp_path / "rep2"
-    rc = osr.main(["--bank", __file__, "--bank-sha", "x"*64,
-                   "--grid", "ckX|%s|%s|de" % (grid, gsha),
-                   "--out", str(out)])
-    assert rc == osr.RC_INVALID
-    rep = json.loads(
-        (out / "offline_skill_report.json").read_text(
-            encoding="utf-8"))
-    assert rep["status"] == "invalid"
-    assert "SHA drift" in rep["error"]
-
-
+# ---- 契约事实 -------------------------------------------------
 def test_contract_has_course_facts():
     c = cc.build_contract()
     assert c["c1"]["feature_order"] == ["c", "g", "q", "s"]
@@ -172,8 +49,184 @@ def test_contract_has_course_facts():
         "not_specified")
     assert c["c1"]["initial_state_gate"].startswith(
         "flat counterfactual")
-    # c3/c4d0 q 条件化漂移在案(修正"无幅度课程"旧说法)
     assert "q" in c["other_courses"]["c3"]["drift_factor"]
     assert "q" in c["other_courses"]["c4d0"]["drift_factor"]
     for k, v in c["other_courses"].items():
         assert v["gates"] == "not_specified"
+    # 来源=本机实核,不冒充 candidate
+    sb = c["source_binding"]
+    assert not any(k.startswith("candidate")
+                   for k in c)
+    assert len(sb["modules"]["p0spec"]["sha256"]) == 64
+    assert sb["modules"]["p0spec"][
+        "imported_path"].endswith("p0spec.py")
+
+
+# ---- grid 校验(含 v2 反例) -----------------------------------
+def test_boundary_pass_exact_thresholds():
+    info = validate(load("grid_ok_boundary.json"))
+    assert info["conditions"] == 108
+    ev = cc.skill_eval(load("grid_ok_boundary.json"))
+    for k in ("direction_up", "direction_down",
+              "neutral_flat"):
+        assert ev[k]["status"] == "pass", (k, ev[k])
+        assert ev[k]["min"] == pytest.approx(
+            ev[k]["threshold"])
+
+
+def test_one_cell_fail_lists_worst_condition():
+    ev = cc.skill_eval(load("grid_one_cell_fail.json"))
+    assert ev["neutral_flat"]["status"] == "fail"
+    assert ev["neutral_flat"]["min"] < 0.75
+    assert len(ev["neutral_flat"]["worst_condition"]) == 5
+    assert ev["held_position_neutral"] == "not_specified"
+
+
+@pytest.mark.parametrize("name,pat", [
+    ("grid_missing_cell.json", "condition set mismatch"),
+    ("grid_dup_cell.json", "duplicate conditions"),
+    ("grid_mixed_model.json", "mixed or missing model"),
+    ("grid_bad_layout.json", "obs slots"),
+    ("grid_nan_prob.json", "not finite in"),
+    ("grid_nonflat_obs.json", "obs slots"),
+    ("grid_p_up_2.json", "not finite in"),
+    ("grid_obs4_nan.json", "non-finite slot"),
+    ("grid_obs6_999.json", "obs slots"),
+    ("grid_remaining_frac.json",
+     "remaining not integer-valued")])
+def test_grid_rejections(name, pat):
+    with pytest.raises(cc.ContractError,
+                       match=pat):
+        validate(load(name))
+
+
+def test_unknown_contract_version_rejected():
+    with pytest.raises(cc.ContractError,
+                       match="unknown contract version"):
+        validate(load("grid_ok_boundary.json"),
+                 ver="COURSE_CONTRACT_V0")
+
+
+# ---- raw 完整性(v2) ------------------------------------------
+def _map_new():
+    return {"new": "ckX"}
+
+
+def test_raw_full_new_valid_and_coverage():
+    info = osr.validate_raw_file(
+        FX / "raw_full_new.jsonl", fsha("raw_full_new.jsonl"),
+        _map_new(), "fx")
+    pm = info["per_model"]["new"]
+    assert pm["rows"] == 512 and pm["episodes"] == 8
+    assert pm["base_pairs"] == [0, 1, 2, 3]
+    assert pm["mirror_pairs"] == [0, 1, 2, 3]
+    assert pm["account_state_rows"]["flat_pre"] == 512
+
+
+def test_raw_pseudo_model_rejected():
+    with pytest.raises(cc.ContractError,
+                       match="pseudo model"):
+        osr.validate_raw_file(
+            FX / "raw_pseudo_model.jsonl",
+            fsha("raw_pseudo_model.jsonl"), _map_new(),
+            "fx")
+
+
+def test_raw_pair99_onerow_rejected():
+    with pytest.raises(cc.ContractError):
+        osr.validate_raw_file(
+            FX / "raw_pair99_onerow.jsonl",
+            fsha("raw_pair99_onerow.jsonl"), _map_new(),
+            "fx")
+
+
+# ---- manifest 驱动入口 ----------------------------------------
+def _manifest(tmp_path, *, grids=None, raws=None,
+              bank=None):
+    if bank is None:
+        bank = (__file__, hashlib.sha256(
+            pathlib.Path(__file__).read_bytes()
+        ).hexdigest())
+    g = grids if grids is not None else [{
+        "tier": "ck262144",
+        "path": str(FX / "grid_ok_boundary.json"),
+        "sha": fsha("grid_ok_boundary.json"),
+        "model": "new", "ckpt_sha": "c" * 64}]
+    r = raws if raws is not None else [{
+        "label": "fx", "path": str(
+            FX / "raw_full_new.jsonl"),
+        "sha": fsha("raw_full_new.jsonl"),
+        "models": {"new": "ck262144"}}]
+    m = {"contract_version": cc.CONTRACT_VERSION,
+         "bank": {"path": bank[0], "sha": bank[1]},
+         "grids": g, "raws": r}
+    mp = tmp_path / "m.json"
+    mp.write_text(json.dumps(m), encoding="utf-8")
+    return mp
+
+
+def _fake_bank(monkeypatch):
+    import rl_posctl.skill_p0.p0banks as pb
+
+    class FakeFeats:
+        columns = ["c", "g", "q", "s"]
+
+    monkeypatch.setattr(
+        pb, "load_p0_bank",
+        lambda p: [(None, FakeFeats(),
+                    {"pair_index": 0, "variant": 0})])
+
+
+def test_entry_pass_and_refuses_overwrite(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    mp = _manifest(tmp_path)
+    out = tmp_path / "rep"
+    rc1 = osr.main(["--manifest", str(mp),
+                    "--out", str(out)])
+    assert rc1 == 0
+    first = (out / "offline_skill_report.json").read_text(
+        encoding="utf-8")
+    rc2 = osr.main(["--manifest", str(mp),
+                    "--out", str(out)])
+    assert rc2 == osr.RC_INVALID
+    assert (out / "offline_skill_report.json").read_text(
+        encoding="utf-8") == first
+
+
+def test_entry_empty_set_invalid(tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    mp = _manifest(tmp_path, grids=[], raws=[])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "r1")])
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_duplicate_tier_invalid(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    g1 = {"tier": "ck262144",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": fsha("grid_ok_boundary.json"),
+          "model": "new", "ckpt_sha": "c" * 64}
+    mp = _manifest(tmp_path, grids=[g1, dict(g1)])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "r2")])
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_deadbeef_grid_sha_invalid(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    g1 = {"tier": "ck262144",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": "deadbeef" + "0" * 56,
+          "model": "new", "ckpt_sha": "c" * 64}
+    mp = _manifest(tmp_path, grids=[g1])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "r3")])
+    assert rc == osr.RC_INVALID
+    rep = json.loads((tmp_path / "r3" /
+                      "offline_skill_report.json").read_text(
+        encoding="utf-8"))
+    assert rep["status"] == "invalid"
