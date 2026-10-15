@@ -216,7 +216,9 @@ def _variant(**over):
          "horizon": uc.UNIFIED_TASK["horizon"],
          "account_encoding": uc.UNIFIED_TASK[
              "account_encoding"],
-         "action_families": uc.ACTION_FAMILIES}
+         "action_families": uc.ACTION_FAMILIES,
+         "spec_versions": uc.SPEC_VERSIONS,
+         "obs_columns": uc.OBS_COLUMNS}
     v.update(over)
     return v
 
@@ -274,7 +276,7 @@ def test_ledger_consistency_and_truncation():
               "solvency_capped": 999.0}, "1/\\|e\\|"),
             ({"exposure": 0.5,
               "solvency_raw": float("nan"),
-              "solvency_capped": 2.0}, "non-finite"),
+              "solvency_capped": 2.0}, "not finite"),
             ({"exposure": 0.0,
               "solvency_raw": float("-inf"),
               "solvency_capped": 40.0}, r"\+inf"),
@@ -285,7 +287,7 @@ def test_ledger_consistency_and_truncation():
               "solvency_capped": 999.0}, "fixed cap"),
             ({"exposure": float("nan"),
               "solvency_raw": 1.0,
-              "solvency_capped": 1.0}, "non-finite"),
+              "solvency_capped": 1.0}, "not finite"),
             ({"exposure": 0.5}, "missing")):
         with pytest.raises(uc.UnifiedSpecError,
                            match=pat):
@@ -413,6 +415,18 @@ def test_frozen_gate_graduation_needs_structured_identity():
             uc.check_graduation_claim(
                 {"direction_neutral_flat": {
                     "graduated": True, "gate": 0.91}})
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="gate_version empty"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True, "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": " ",
+                        "gate_digest": "0" * 64,
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}})
         # 缺 task 绑定/缺结构化批准也拒
         with pytest.raises(uc.UnifiedSpecError,
                            match="task binding"):
@@ -421,6 +435,7 @@ def test_frozen_gate_graduation_needs_structured_identity():
                     "graduated": True, "gate": {
                         "task_id": "other-task",
                         "gate_version": "1",
+                        "gate_digest": "0" * 64,
                         "approval": {"channel": "c",
                                      "ref": "r"}}}})
         with pytest.raises(uc.UnifiedSpecError,
@@ -431,6 +446,7 @@ def test_frozen_gate_graduation_needs_structured_identity():
                         "task_id": uc.UNIFIED_TASK[
                             "task_id"],
                         "gate_version": "1",
+                        "gate_digest": "0" * 64,
                         "approval": "approved"}}})
     finally:
         uc.SEVEN_SKILLS.clear()
@@ -478,6 +494,146 @@ def test_action_family_facts():
     assert b["decode_id"] == "P0CategoryMax-v1"
     assert b["candidate_decode"] == "mixture-mean-v1"
     assert b["reachability"] == "not_established"
+
+
+def test_numeric_purification_edges():
+    # solvency_capped=NaN / raw='nan' 字符串 / bool 全拒
+    for bad, pat in (
+            ({"exposure": 0.5, "solvency_raw": 2.0,
+              "solvency_capped": float("nan")},
+             "solvency_capped"),
+            ({"exposure": 0.5, "solvency_raw": "nan",
+              "solvency_capped": 2.0}, "solvency_raw"),
+            ({"exposure": 0.5, "solvency_raw": True,
+              "solvency_capped": 2.0}, "solvency_raw"),
+            ({"exposure": 0.0,
+              "solvency_raw": float("inf"),
+              "solvency_capped": "40"}, "solvency_capped")):
+        with pytest.raises(uc.UnifiedSpecError,
+                           match=pat):
+            uc.check_ledger_account(bad)
+
+
+def test_probability_gates_bounded():
+    # p_gate 2/-1 拒;threshold 2/-1 拒
+    for pg in (2.0, -1.0):
+        with pytest.raises(uc.UnifiedSpecError,
+                           match=r"p_gate out of \[0,1\]"):
+            uc.check_same_obs_mutex([{
+                "obs": uc.obs_vector(STATE, ACCT, HOR),
+                "allowed_actions": [
+                    dict(_atom(1.0), p_gate=pg)]}])
+    for th in (2.0, -1.0):
+        with pytest.raises(uc.UnifiedSpecError,
+                           match=r"threshold out of \[0,1\]"):
+            uc.evaluate_action_expressiveness(
+                _gq(p=th))
+
+
+def test_signature_requires_fields_no_none_none():
+    # 空 spec/缺字段不得经 None==None 判同任务
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="missing required field"):
+        uc.check_hidden_task_swap(
+            [{"task_id": "t"}, {"task_id": "t"}])
+    v = _variant()
+    for drop in ("mu_candidate", "economy", "noise",
+                 "action_families"):
+        v2 = {k: x for k, x in v.items() if k != drop}
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="missing required field"):
+            uc.check_hidden_task_swap([v, v2])
+    # spec_versions 与完整动作结构入签名
+    v3 = _variant()
+    v3["spec_versions"] = dict(uc.SPEC_VERSIONS,
+                               reward="other-v2")
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="hidden task swap"):
+        uc.check_hidden_task_swap([_variant(), v3])
+    v4 = _variant()
+    v4["action_families"] = dict(
+        uc.ACTION_FAMILIES,
+        A_symmetric_beta_atoms=dict(
+            uc.ACTION_FAMILIES[
+                "A_symmetric_beta_atoms"],
+            structure="changed-structure"))
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="hidden task swap"):
+        uc.check_hidden_task_swap([_variant(), v4])
+
+
+def test_gate_registry_digest_chain_test_isolation():
+    import copy
+    saved = copy.deepcopy(uc.SEVEN_SKILLS)
+    try:
+        uc.SEVEN_SKILLS["direction_neutral_flat"] = dict(
+            saved["direction_neutral_flat"],
+            gate_status="frozen")
+        # 生产注册表空:即使结构齐全也拒(本轮无新冻结门)
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="no registered frozen gate"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": "v1",
+                        "gate_digest": "0" * 64,
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}})
+        # 空串 gate_version 拒
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="gate_version empty"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": "",
+                        "gate_digest": "0" * 64,
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}},
+                registry_gates={"direction_neutral_flat": {
+                    "gate_def": {"x": 1}}})
+        # 测试隔离注入临时注册表:摘要不一致拒;一致才过
+        tmp_reg = {"direction_neutral_flat": {
+            "gate_def": {"metric": "min_over_grid",
+                         "threshold": 0.8}}}
+        good_digest = uc._gate_digest(
+            tmp_reg["direction_neutral_flat"][
+                "gate_def"])
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="gate_digest"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": "v1",
+                        "gate_digest": "f" * 64,
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}},
+                registry_gates=tmp_reg)
+        uc.check_graduation_claim(
+            {"direction_neutral_flat": {
+                "graduated": True,
+                "gate": {
+                    "task_id": uc.UNIFIED_TASK["task_id"],
+                    "gate_version": "v1",
+                    "gate_digest": good_digest,
+                    "approval": {
+                        "channel": "c", "ref": "r"}}}},
+            registry_gates=tmp_reg)
+    finally:
+        uc.SEVEN_SKILLS.clear()
+        uc.SEVEN_SKILLS.update(saved)
+    assert uc.REGISTRY_GATES == {}   # 生产仍空
 
 
 def test_registry_snapshot_shape_and_isolation():

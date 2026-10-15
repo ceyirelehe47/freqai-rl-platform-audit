@@ -299,11 +299,11 @@ def _validate_action_entry(a: dict) -> None:
                 "interval inverted/out-of-bounds [%r,%r]"
                 % (lo, hi))
     p = a.get("p_gate")
-    if p is not None and (not isinstance(p, (int, float))
-                          or isinstance(p, bool)
-                          or not math.isfinite(float(p))):
-        raise UnifiedSpecError(
-            "NaN/invalid p_gate %r" % p)
+    if p is not None:
+        pv = _num(p, "p_gate")
+        if not (0.0 <= pv <= 1.0):
+            raise UnifiedSpecError(
+                "p_gate out of [0,1]: %r" % p)
 
 
 def _group_acceptable(acts) -> dict:
@@ -365,21 +365,32 @@ def check_same_obs_mutex(teaching: list) -> None:
 TASK_SIGNATURE_FIELDS = (
     "transition_kernel", "drift", "mu_candidate", "noise",
     "sigma_by_g", "economy", "horizon", "account_encoding",
-    "obs_columns", "action_families", "decode_ids")
+    "obs_columns", "action_families")
+# reward/版本进签名:spec_versions(含 reward 版本)+economy 内
+# reward_scale/price_tick 已属 economy;完整动作结构=action_
+# families 全量(含 structure/bound/candidate 字段)。
 
 
 def task_signature(v: dict) -> tuple:
-    """同 task 决策签名:漂移/风险/噪声/完整转移/经济/观察
-    编码/期限/动作族/解码 全量;obs 列与解码从声明取。"""
-    parts = [json_lite(v.get(f)) for f in
-             TASK_SIGNATURE_FIELDS[:-2]]
-    parts.append(json_lite(list(
-        v.get("obs_columns") or OBS_COLUMNS)))
-    fam = v.get("action_families") or ACTION_FAMILIES
-    parts.append(json_lite(
-        {k: {"arm": x.get("arm"),
-             "decode_id": x.get("decode_id")}
-         for k, x in fam.items()}))
+    """同 task 决策签名。**必填字段必须显式在场**:缺失/空
+    spec 不得经"两个 None 相等"判为同任务(缺任一即抛错)。
+    覆盖:漂移/μ/噪声/σ_g/完整转移/经济(含 reward_scale/
+    price_tick)/期限/账户编码/obs 列/**spec_versions(含
+    reward 版本)**/**完整动作结构**(全量 action_families,
+    非仅 arm+decode)。"""
+    for f in TASK_SIGNATURE_FIELDS:
+        if f not in v or v[f] in (None, "", {}, []):
+            raise UnifiedSpecError(
+                "task spec missing required field %r "
+                "(empty/missing specs cannot be compared "
+                "as same-task)" % f)
+    if not v.get("spec_versions"):
+        raise UnifiedSpecError(
+            "task spec missing spec_versions (obs/reward/"
+            "action/execution)")
+    parts = [json_lite(v[f]) for f in
+             TASK_SIGNATURE_FIELDS]
+    parts.append(json_lite(v["spec_versions"]))
     return tuple(parts)
 
 
@@ -408,44 +419,59 @@ def json_lite(o) -> str:
 FLAT_SOLVENCY_CAP = 40.0   # 固定编码常数(输入不可自选 cap)
 
 
+def _num(x, what):
+    """数值净化:先拒 bool/字符串/非数值类型,再 isfinite;
+    不依赖差值比较吞 NaN。"""
+    if (isinstance(x, bool)
+            or not isinstance(x, (int, float))):
+        raise UnifiedSpecError(
+            "%s not numeric type (bool/str rejected): %r"
+            % (what, x))
+    x = float(x)
+    if not math.isfinite(x):
+        raise UnifiedSpecError(
+            "%s not finite: %r" % (what, x))
+    return x
+
+
 def check_ledger_account(acct: dict) -> None:
     """合法账本一致性(全有限;flat 唯一合法原值=+inf 再按固定
     cap 40 编码;非 flat=1/|e|;NaN/-inf/自选 cap 拒)。"""
-    e = float(acct["exposure"])
-    if not math.isfinite(e):
-        raise UnifiedSpecError(
-            "non-finite exposure %r" % e)
-    raw = acct.get("solvency_raw", "__missing__")
-    capped = acct.get("solvency_capped", "__missing__")
-    if raw == "__missing__" or capped == "__missing__":
+    e = _num(acct["exposure"], "exposure")
+    raw_sent = acct.get("solvency_raw", "__missing__")
+    capped_sent = acct.get("solvency_capped",
+                           "__missing__")
+    if raw_sent == "__missing__" or (
+            capped_sent == "__missing__"):
         raise UnifiedSpecError(
             "ledger entry missing solvency_raw/capped")
     if abs(e) < 1e-12:
-        # flat:唯一合法原值 = +inf(不允许 -inf/NaN/有限值)
-        if raw != math.inf:
+        # flat:唯一合法原值 = +inf(字符串/NaN/有限/bool 全拒)
+        if raw_sent is not math.inf and raw_sent != \
+                math.inf:
             raise UnifiedSpecError(
                 "flat solvency_raw must be +inf; got %r "
-                "(-inf/NaN/finite rejected)" % (raw,))
-        if abs(float(capped) - FLAT_SOLVENCY_CAP) > 1e-9:
+                "(str/NaN/-inf/finite/bool rejected)"
+                % (raw_sent,))
+        capped = _num(capped_sent, "solvency_capped")
+        if abs(capped - FLAT_SOLVENCY_CAP) > 1e-9:
             raise UnifiedSpecError(
                 "flat encoding must use fixed cap %.1f "
                 "(got %r; input cannot choose cap)"
                 % (FLAT_SOLVENCY_CAP, capped))
     else:
-        if (isinstance(raw, float)
-                and not math.isfinite(raw)):
-            raise UnifiedSpecError(
-                "non-flat non-finite solvency_raw %r" % raw)
+        raw = _num(raw_sent, "solvency_raw")
+        capped2 = _num(capped_sent, "solvency_capped")
         want = 1.0 / abs(e)
-        if abs(float(raw) - want) > 1e-9:
+        if abs(raw - want) > 1e-9:
             raise UnifiedSpecError(
                 "non-flat solvency %r != 1/|e|=%r "
                 "(silent truncation?)" % (raw, want))
         want_cap = min(want, FLAT_SOLVENCY_CAP)
-        if abs(float(capped) - want_cap) > 1e-9:
+        if abs(capped2 - want_cap) > 1e-9:
             raise UnifiedSpecError(
                 "non-flat capped %r != min(raw,%.1f)=%r"
-                % (capped, FLAT_SOLVENCY_CAP, want_cap))
+                % (capped2, FLAT_SOLVENCY_CAP, want_cap))
 
 
 def check_future_fields(inputs: dict) -> None:
@@ -501,12 +527,10 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
         raise UnifiedSpecError(
             "interval inverted/out-of-bounds [%r,%r]"
             % (lo, hi))
-    p = gate_request.get("threshold")
-    if (not isinstance(p, (int, float))
-            or isinstance(p, bool)
-            or not math.isfinite(float(p))):
+    p = _num(gate_request.get("threshold"), "threshold")
+    if not (0.0 <= p <= 1.0):
         raise UnifiedSpecError(
-            "NaN/invalid threshold %r" % p)
+            "probability threshold out of [0,1]: %r" % p)
     base = {"metric": metric, "decoder": decoder}
     strictly_interior_one_side = (
         (lo > 0 or hi < 0) and lo > -1 + 1e-12
@@ -560,7 +584,20 @@ def check_decode_identity(report: dict) -> None:
         raise UnifiedSpecError("unknown decode_id")
 
 
-def check_graduation_claim(skill_status: dict) -> None:
+# 已冻结门注册表(内容+摘要)。**生产当前为空**——本轮没有
+# 任何新冻结门;毕业主张必须绑定注册表内门的 gate_digest,
+# 自造字符串/摘要不能自证。测试隔离可注入临时注册表。
+REGISTRY_GATES: dict = {}
+
+
+def _gate_digest(gate_def: dict) -> str:
+    import hashlib
+    return hashlib.sha256(
+        json_lite(gate_def).encode("utf-8")).hexdigest()
+
+
+def check_graduation_claim(skill_status: dict,
+                           registry_gates=None) -> None:
     """毕业判定的合法身份链:须(1)注册表内技能;(2)门已 frozen;
     (3)graduated 附**结构化门记录**={task_id,spec/gate_version,
     approval{channel,ref}}——批准是身份/状态问题,不是数字黑名单;
@@ -585,11 +622,18 @@ def check_graduation_claim(skill_status: dict) -> None:
                 raise UnifiedSpecError(
                     "skill %r graduation requires structured "
                     "gate record, got %r" % (skill, gate))
-            for k in ("task_id", "gate_version", "approval"):
+            for k in ("task_id", "gate_version",
+                      "gate_digest", "approval"):
                 if k not in gate:
                     raise UnifiedSpecError(
                         "skill %r gate record missing %r"
                         % (skill, k))
+            gv = gate["gate_version"]
+            if (not isinstance(gv, str)
+                    or not gv.strip()):
+                raise UnifiedSpecError(
+                    "skill %r gate_version empty/invalid"
+                    % skill)
             ap = gate["approval"]
             if (not isinstance(ap, dict)
                     or not isinstance(ap.get("channel"),
@@ -599,10 +643,31 @@ def check_graduation_claim(skill_status: dict) -> None:
                     or not ap.get("ref").strip()):
                 raise UnifiedSpecError(
                     "skill %r approval must be structured "
-                    "{channel,ref}" % skill)
+                    "{channel,ref} (arbitrary strings "
+                    "cannot self-attest)" % skill)
             if gate["task_id"] != UNIFIED_TASK["task_id"]:
                 raise UnifiedSpecError(
                     "skill %r gate task binding mismatch" % skill)
+            # 报告必须与固定注册门内容/摘要一致
+            reg = (REGISTRY_GATES if registry_gates is None
+                   else registry_gates)
+            entry = reg.get(skill)
+            if not entry:
+                raise UnifiedSpecError(
+                    "skill %r has no registered frozen gate "
+                    "(production registry empty this round; "
+                    "simulated approvals are test-isolation "
+                    "only)" % skill)
+            want_digest = (entry.get("gate_digest")
+                           or _gate_digest(
+                               entry.get("gate_def", entry)))
+            if gate["gate_digest"] != want_digest:
+                raise UnifiedSpecError(
+                    "skill %r gate_digest %r != registered "
+                    "%r (report must match the registered "
+                    "gate content)" % (
+                        skill, gate["gate_digest"][:12],
+                        want_digest[:12]))
 
 
 def build_registry_snapshot() -> dict:
