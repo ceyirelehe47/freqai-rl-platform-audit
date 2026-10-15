@@ -201,6 +201,28 @@ def test_raw_bool_int_rejected(tmp_path):
             {"new": "ckX"}, "fx")
 
 
+def test_raw_s_out_of_domain_rejected():
+    with pytest.raises(cc.ContractError,
+                       match=r"s invalid \(not in"):
+        osr.validate_raw_file(
+            FX / "raw_s2_first.jsonl",
+            fsha("raw_s2_first.jsonl"),
+            {"new": "ckX"}, "fx")
+
+
+def test_raw_reversed_order_passes_same_stats():
+    """反序完整 raw 必须通过且统计与正序一致。"""
+    fwd = osr.validate_raw_file(
+        FX / "raw_full_new.jsonl",
+        fsha("raw_full_new.jsonl"), {"new": "ckX"}, "fx")
+    rev = osr.validate_raw_file(
+        FX / "raw_reversed.jsonl",
+        fsha("raw_reversed.jsonl"), {"new": "ckX"}, "fx")
+    assert rev["per_model"] == fwd["per_model"]
+    assert rev["per_model"]["new"]["rows"] == 512
+    assert rev["per_model"]["new"]["episodes"] == 8
+
+
 def test_raw_pseudo_model_rejected():
     with pytest.raises(cc.ContractError,
                        match="pseudo model"):

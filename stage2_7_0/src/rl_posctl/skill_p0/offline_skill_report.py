@@ -216,10 +216,11 @@ def validate_raw_file(path, expect_sha, model_tier,
             sv = r.get("s")
             if not (isinstance(sv, (int, float))
                     and not isinstance(sv, bool)
-                    and math.isfinite(sv)):
+                    and math.isfinite(sv)
+                    and float(sv) in (-1.0, 0.0, 1.0)):
                 raise cc.ContractError(
-                    "raw %s model %s s invalid %r"
-                    % (label, m, sv))
+                    "raw %s model %s s invalid (not in "
+                    "{-1,0,1}) %r" % (label, m, sv))
             # 终止位置按 step:0..62 不得终止;63 必须终止
             term_now = r["terminated"] or r["truncated"]
             if r["step"] < 63 and term_now:
@@ -239,11 +240,8 @@ def validate_raw_file(path, expect_sha, model_tier,
             seen.add(key)
             eps.setdefault((r["pair_index"],
                             r["variant"]),
-                           {"steps": set(),
-                            "last": None}).setdefault(
-                "steps", set()).add(r["step"])
-            eps[(r["pair_index"], r["variant"])][
-                "last"] = r
+                           {"steps": set()})[
+                "steps"].add(r["step"])
         if len(eps) != 8:
             raise cc.ContractError(
                 "raw %s model %s episodes %d != 8"
@@ -254,12 +252,8 @@ def validate_raw_file(path, expect_sha, model_tier,
                     "raw %s model %s ep %r steps not "
                     "exact 0..63 (n=%d)"
                     % (label, m, k, len(ep["steps"])))
-            last = ep["last"]
-            if not (last.get("terminated")
-                    or last.get("truncated")):
-                raise cc.ContractError(
-                    "raw %s model %s ep %r last step not "
-                    "terminal" % (label, m, k))
+            # 终止位置已按 step 逐行核验(step<63 禁终止,
+            # step==63 必终止);不依赖文件行序的 last 记录
         if len(sub) != 512:
             raise cc.ContractError(
                 "raw %s model %s rows %d != 512"
