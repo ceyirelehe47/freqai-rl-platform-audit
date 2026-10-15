@@ -90,6 +90,7 @@ UNIFIED_TASK = {
     "account_provenance": (
         "not_established:比例一致仅证明比例关系,不等于合法"
         "账本来源;本段不构造账本,合法起点链未建立"),
+
     "phase_selection": {
         "rule": ("仅选当前状态或合法账本起点;起点后按同一核"
                  "自然演化;禁止按未来实现挑路径/换核"),
@@ -118,6 +119,10 @@ ACTION_FAMILIES = {
         "reachability": "not_established",  # 未验证;不得与"已达"
         # 等价返回(见 evaluate_action_expressiveness)
         "note": "幅度课程主候选(设计v1 §2/§4)"}}
+
+# spec 自身 round-trip:obs 列与动作族绑进任务本体(在家族定义后)
+UNIFIED_TASK["obs_columns"] = OBS_COLUMNS
+UNIFIED_TASK["action_families"] = ACTION_FAMILIES
 
 
 class UnifiedSpecError(Exception):
@@ -215,7 +220,7 @@ SEVEN_SKILLS = {
 def obs_vector(state: dict, account: dict,
                horizon: dict, columns=None) -> dict:
     """按名构造观察。列绑定唯一:columns 必须逐字等于冻结
-    OBS_COLUMNS(顺序含);未知列/重复列/未来列/改序即拒。"""
+    OBS_COLUMNS;并做**特征域校验**(s/c/g/q/期限)。"""
     if columns is not None and list(columns) != list(
             OBS_COLUMNS):
         bad = [c for c in columns
@@ -238,6 +243,26 @@ def obs_vector(state: dict, account: dict,
         raise UnifiedSpecError(
             "obs carries non-contract fields %r "
             "(future/non-input leakage)" % extra)
+    # 特征域:严格类型+有限+合法域
+    sv = _num(vals["s"], "obs s")
+    if sv not in (-1.0, 0.0, 1.0):
+        raise UnifiedSpecError("obs s out of {-1,0,1}: %r"
+                               % sv)
+    for f, dom in (("c", (0.0, 1.0)), ("g", (0.0, 1.0)),
+                   ("q", (0.0, 1.0))):
+        fv = _num(vals[f], "obs %s" % f)
+        if not (dom[0] <= fv <= dom[1]):
+            raise UnifiedSpecError(
+                "obs %s out of [0,1]: %r" % (f, fv))
+    for f in ("remaining_horizon", "total_horizon"):
+        hv = vals[f]
+        if (isinstance(hv, bool)
+                or not isinstance(hv, int) or hv < 1):
+            raise UnifiedSpecError(
+                "obs %s must be positive int: %r" % (f, hv))
+    if vals["remaining_horizon"] > vals["total_horizon"]:
+        raise UnifiedSpecError(
+            "remaining > total horizon")
     return {c: vals[c] for c in columns}
 
 
@@ -255,8 +280,9 @@ def check_column_binding(ser: dict) -> dict:
     return dict(zip(names, values))
 
 
-def verify_serialization(ser: dict, expected_state: dict) -> None:
-    """逐名比对(非位置);expected_state 必须非空。"""
+def verify_serialization_partial(ser: dict,
+                                 expected_state: dict) -> None:
+    """**部分**逐名比对(另名;不得当作完整已验)。"""
     if not isinstance(expected_state, dict) or not expected_state:
         raise UnifiedSpecError(
             "expected_state must be non-empty (empty validation "
@@ -267,6 +293,24 @@ def verify_serialization(ser: dict, expected_state: dict) -> None:
             raise UnifiedSpecError(
                 "column permutation/labeling error at %r: got %r "
                 "want %r" % (k, vec[k], v))
+
+
+def verify_serialization_complete(ser: dict,
+                                  full_expected: dict) -> None:
+    """**完整**比对:八字段全给、全有限、特征域合法;缺任一
+    字段或其余七列错值都必须失败(partial 不算完整已验)。"""
+    if (not isinstance(full_expected, dict)
+            or set(full_expected) != set(OBS_COLUMNS)):
+        raise UnifiedSpecError(
+            "complete verification requires ALL %d fields "
+            "(partial subset rejected)" % len(OBS_COLUMNS))
+    obs_vector(  # 复用域校验
+        {k: full_expected[k] for k in ("c", "g", "q", "s")},
+        {k: full_expected[k] for k in (
+            "account_exposure", "account_solvency")},
+        {k: full_expected[k] for k in (
+            "remaining_horizon", "total_horizon")})
+    verify_serialization_partial(ser, full_expected)
 
 
 ARMS = ("A", "B")
@@ -285,7 +329,14 @@ def _validate_action_entry(a: dict) -> None:
         raise UnifiedSpecError("unknown kind %r" % kind)
     if kind == "atom":
         v = a.get("value")
-        if v not in (-1.0, 0.0, 1.0):
+        if isinstance(v, bool) or not isinstance(
+                v, (int, float)):
+            raise UnifiedSpecError(
+                "atom value must be numeric non-bool "
+                "(True/'1' rejected): %r" % (v,))
+        v = float(v)
+        if not math.isfinite(v) or v not in (
+                -1.0, 0.0, 1.0):
             raise UnifiedSpecError(
                 "atom value %r not in {-1,0,1}" % v)
     if kind == "interval":
@@ -297,12 +348,19 @@ def _validate_action_entry(a: dict) -> None:
                 "interval inverted/out-of-bounds [%r,%r]"
                 % (lo, hi))
         op = a.get("open")
-        if op is not None and op not in (
-                True, False, "lo", "hi", ("lo", "hi"),
-                ("hi", "lo")):
-            raise UnifiedSpecError(
-                "interval open flag invalid %r "
-                "(True/False/'lo'/'hi'/tuple)" % (op,))
+        if op is not None:
+            ok = (isinstance(op, bool)
+                  or op in ("lo", "hi")
+                  or (isinstance(op, tuple) and set(op) <=
+                      {"lo", "hi"} and op))
+            if isinstance(op, int) and not isinstance(
+                    op, bool):
+                ok = False   # open=1 不等价 True(严格 bool)
+            if not ok:
+                raise UnifiedSpecError(
+                    "interval open flag invalid %r "
+                    "(strict bool / 'lo' / 'hi' / tuple)"
+                    % (op,))
     p = a.get("p_gate")
     if p is not None:
         pv = _num(p, "p_gate")
@@ -327,7 +385,8 @@ def _iv_open(a: dict):
 
 def _group_acceptable(acts) -> dict:
     """一组 allowed 的可接受集合:hold 标记+原子集+**规范化**
-    区间并(排序+合并相接/重叠)。"""
+    区间并(排序;精确开闭合并:touch 比较旧段 hi_open 与新段
+    lo_open;同端合并 open=双方 open 的 AND)。"""
     atoms, ivs, hold = set(), [], False
     for a in acts:
         if a["kind"] == "hold":
@@ -338,33 +397,35 @@ def _group_acceptable(acts) -> dict:
             lo_o, hi_o = _iv_open(a)
             ivs.append((float(a["lo"]), float(a["hi"]),
                         lo_o, hi_o))
-    ivs.sort()
+    ivs.sort(key=lambda t: (t[0], t[1]))
     merged = []
     for lo, hi, lo_o, hi_o in ivs:
         if merged:
             m_lo, m_hi, m_lo_o, m_hi_o = merged[-1]
-            touch = (lo < m_hi or
-                     (lo == m_hi and not (hi_o and lo_o)))
+            touch = (lo < m_hi or (
+                lo == m_hi and not (
+                    m_hi_o and lo_o)))   # 旧 hi_open x 新 lo_open
             if touch:
-                merged[-1] = (
-                    m_lo, max(m_hi, hi), m_lo_o,
-                    m_hi_o if m_hi >= hi else hi_o)
+                n_hi, n_hi_o = (
+                    (m_hi, m_hi_o) if m_hi > hi else
+                    ((hi, hi_o) if hi > m_hi else
+                     (m_hi, m_hi_o and hi_o)))  # 同端:AND
+                n_lo_o = (m_lo_o and lo_o
+                          if m_lo == lo else m_lo_o)
+                merged[-1] = (m_lo, n_hi, n_lo_o, n_hi_o)
                 continue
         merged.append((lo, hi, lo_o, hi_o))
     return {"hold": hold, "atoms": atoms, "ivs": merged}
 
 
 def _in_union(x: float, g: dict) -> bool:
-    """x 是否属于该组的并集(原子命中或落入某区间,开闭感知)。"""
-    eps = 1e-12
+    """x 是否属于该组并集——**精确开闭比较,无 eps 扩张**
+    (间隙 [.2,.3] vs [.3000000000005,.4] 不被填平)。"""
     if x in g["atoms"]:
         return True
     for lo, hi, lo_o, hi_o in g["ivs"]:
-        if lo + eps < x < hi - eps:
-            return True
-        if abs(x - lo) <= eps and not lo_o:
-            return True
-        if abs(x - hi) <= eps and not hi_o:
+        if ((x > lo or (x == lo and not lo_o)) and
+                (x < hi or (x == hi and not hi_o))):
             return True
     return False
 
@@ -425,6 +486,103 @@ TASK_SIGNATURE_FIELDS = (
 # transition_independence 均为决策相关并绑定进签名;economy
 # 内 reward_scale/price_tick 已属 economy;完整动作结构=
 # action_families 全量。
+
+
+def validate_task_spec(v: dict) -> None:
+    """严格子 schema 校验(签名前必过;两份同样无效不得进入
+    比较通道)。候选未校准不影响 schema 严格性。"""
+    if not isinstance(v, dict) or not v.get("task_id"):
+        raise UnifiedSpecError("spec missing task_id")
+    k = v.get("transition_kernel")
+    if not isinstance(k, dict) or not k:
+        raise UnifiedSpecError("bad transition_kernel")
+    for comp, spec_c in k.items():
+        vals = spec_c.get("values")
+        if (not isinstance(vals, list) or not vals):
+            raise UnifiedSpecError(
+                "kernel %s values empty" % comp)
+        hp = _num(spec_c.get("hold_p"),
+                  "%s hold_p" % comp)
+        fp = spec_c.get("fresh_p")
+        if fp is None:
+            rp = _num(spec_c.get("resample_p"),
+                      "%s resample_p" % comp)
+            if not (0.0 <= hp <= 1.0
+                    and 0.0 <= rp <= 1.0):
+                raise UnifiedSpecError(
+                    "kernel %s hold/resample out of [0,1]"
+                    % comp)
+            if abs(hp + rp - 1.0) > 1e-9:
+                raise UnifiedSpecError(
+                    "kernel %s hold+resample != 1" % comp)
+        else:
+            # fresh_p 型(如 q):resample 隐含=1-hold
+            if "resample_p" in spec_c:
+                raise UnifiedSpecError(
+                    "kernel %s: fresh_p 与 resample_p "
+                    "互斥声明" % comp)
+            if not 0.0 <= hp <= 1.0:
+                raise UnifiedSpecError(
+                    "kernel %s hold_p out of [0,1]" % comp)
+        if fp is not None:
+            if (not isinstance(fp, list)
+                    or len(fp) != len(vals)):
+                raise UnifiedSpecError(
+                    "kernel %s fresh_p length" % comp)
+            for x in fp:
+                _num(x, "%s fresh_p entry" % comp)
+            if abs(sum(fp) - 1.0) > 1e-9:
+                raise UnifiedSpecError(
+                    "kernel %s fresh_p sum != 1" % comp)
+    sv = v.get("spec_versions")
+    if (not isinstance(sv, dict)
+            or set(sv) != {"obs", "reward", "action",
+                           "execution"}
+            or not all(isinstance(x, str) and x.strip()
+                       for x in sv.values())):
+        raise UnifiedSpecError(
+            "spec_versions must carry exactly the four "
+            "non-empty version subkeys")
+    econ = v.get("economy")
+    if not isinstance(econ, dict):
+        raise UnifiedSpecError("bad economy")
+    for f in ("fee_rate", "price_tick", "reward_scale",
+              "maintenance_margin", "initial_cash"):
+        _num(econ.get(f), "economy %s" % f)
+    if econ["fee_rate"] < 0 or econ["reward_scale"] <= 0:
+        raise UnifiedSpecError("economy domain violation")
+    hz = v.get("horizon")
+    if (not isinstance(hz, dict)
+            or not isinstance(hz.get("values"), list)
+            or not hz["values"]
+            or not all(isinstance(x, int)
+                       and not isinstance(x, bool)
+                       and x > 0
+                       for x in hz["values"])):
+        raise UnifiedSpecError(
+            "horizon values must be positive ints")
+    oc = v.get("obs_columns")
+    if (not isinstance(oc, (list, tuple)) or not oc
+            or len(set(oc)) != len(oc)
+            or not all(isinstance(c, str) and c
+                       for c in oc)):
+        raise UnifiedSpecError("bad obs_columns")
+    af = v.get("action_families")
+    if not isinstance(af, dict) or not af:
+        raise UnifiedSpecError("bad action_families")
+    _num(v.get("mu_candidate"), "mu_candidate")
+
+
+def make_task_spec(**overrides) -> dict:
+    """唯一完整构造器:基于 UNIFIED_TASK 深拷贝+覆盖+严格校验。
+    snapshot/task_signature/consumers 一律经此或 validate 通过
+    的对象;禁止测试手工拼装绕过真实入口。"""
+    import copy
+    v = copy.deepcopy(UNIFIED_TASK)
+    for k, val in overrides.items():
+        v[k] = copy.deepcopy(val)
+    validate_task_spec(v)
+    return v
 
 
 def task_signature(v: dict) -> tuple:
@@ -644,6 +802,13 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
         raise UnifiedSpecError(
             "empty atom target set — invalid request, "
             "cannot yield 'validated'")
+    if atom_target is not None:
+        for x in atom_target:
+            if isinstance(x, bool) or not isinstance(
+                    x, (int, float)):
+                raise UnifiedSpecError(
+                    "atom target must be numeric non-bool "
+                    "(True/'1' rejected): %r" % (x,))
     if arm == "A" and decoder == "P0CategoryMax-v1" and (
             atom_target is not None
             and set(map(float, atom_target)) <= {
@@ -658,21 +823,59 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
                         "phase"))
 
 
+def _declared_decoders(arm: str) -> set:
+    fams = (UNIFIED_TASK.get("action_families")
+            or ACTION_FAMILIES)
+    out = set()
+    for fam in fams.values():
+        if fam.get("arm") == arm:
+            if fam.get("decode_id"):
+                out.add(fam["decode_id"])
+            if fam.get("candidate_decode"):
+                out.add(fam["candidate_decode"])
+    return out
+
+
 def check_decode_identity(report: dict) -> None:
-    """解码身份:同一报告混用 decode_id 即拒;必须显式记录。"""
+    """解码身份绑定 task/arm/metric+该任务已声明 decoder;
+    A 臂+mixture-mean(仅 B 候选)不得通过;历史诊断须显式另
+    身份(scope)且不得与当前任务条目混排。"""
     ids = set()
+    scopes = set()
     for item in report.get("actions", []):
-        did = item.get("decode_id")
-        if not did:
+        for k in ("task_id", "arm", "metric",
+                  "decode_id"):
+            if not item.get(k):
+                raise UnifiedSpecError(
+                    "action entry lacks %r" % k)
+        if item["task_id"] != UNIFIED_TASK["task_id"]:
             raise UnifiedSpecError(
-                "action entry lacks decode_id")
-        ids.add(did)
+                "decode entry task binding mismatch")
+        if item["arm"] not in ARMS:
+            raise UnifiedSpecError("unknown arm %r"
+                                   % item["arm"])
+        if item["metric"] not in METRICS:
+            raise UnifiedSpecError("unknown metric %r"
+                                   % item["metric"])
+        declared = _declared_decoders(item["arm"])
+        if item["decode_id"] not in declared:
+            raise UnifiedSpecError(
+                "decode %r not declared for arm %r "
+                "(declared=%r)" % (
+                    item["decode_id"], item["arm"],
+                    sorted(declared)))
+        ids.add(item["decode_id"])
+        scopes.add(item.get("scope", "current_task"))
     if len(ids) > 1:
         raise UnifiedSpecError(
-            "mixed decode identities %r in one report" % sorted(ids))
-    if ids and ids.pop() not in (
-            "P0CategoryMax-v1", "mixture-mean-v1"):
-        raise UnifiedSpecError("unknown decode_id")
+            "mixed decode identities %r in one report"
+            % sorted(ids))
+    if scopes == {"historical_diagnostic"}:
+        return  # 历史诊断另身份:仅允许纯历史报告
+    if len(scopes) > 1:
+        raise UnifiedSpecError(
+            "cannot mix historical_diagnostic and "
+            "current-task entries")
 
 
 # 已冻结门注册表(内容+摘要)。**生产当前为空**——本轮没有
@@ -725,6 +928,17 @@ def check_graduation_claim(skill_status: dict,
                 raise UnifiedSpecError(
                     "skill %r gate_version empty/invalid"
                     % skill)
+            # 严格门引用:报告禁止携带任何覆盖字段(threshold
+            # /gate_def 重述等);验证一律采用注册完整门。
+            allowed = {"task_id", "gate_version",
+                       "gate_digest", "approval"}
+            extra_keys = set(gate) - allowed
+            if extra_keys:
+                raise UnifiedSpecError(
+                    "gate record carries forbidden override "
+                    "fields %r (strict reference only; the "
+                    "registered gate is authoritative)"
+                    % sorted(extra_keys))
             ap = gate["approval"]
             if (not isinstance(ap, dict)
                     or not isinstance(ap.get("channel"),
@@ -749,16 +963,24 @@ def check_graduation_claim(skill_status: dict,
                     "(production registry empty this round; "
                     "simulated approvals are test-isolation "
                     "only)" % skill)
-            want_digest = (entry.get("gate_digest")
-                           or _gate_digest(
-                               entry.get("gate_def", entry)))
+            # 注册条目须含版本+完整门定义;digest 每次现算
+            reg_ver = entry.get("gate_version")
+            if (not isinstance(reg_ver, str)
+                    or not reg_ver.strip()):
+                raise UnifiedSpecError(
+                    "registry entry for %r lacks gate_version"
+                    % skill)
+            if gv != reg_ver:
+                raise UnifiedSpecError(
+                    "skill %r gate_version %r != registered "
+                    "%r" % (skill, gv, reg_ver))
+            want_digest = _gate_digest(entry["gate_def"])
             if gate["gate_digest"] != want_digest:
                 raise UnifiedSpecError(
                     "skill %r gate_digest %r != registered "
-                    "%r (report must match the registered "
-                    "gate content)" % (
-                        skill, gate["gate_digest"][:12],
-                        want_digest[:12]))
+                    "%r (recomputed from full gate_def)"
+                    % (skill, gate["gate_digest"][:12],
+                       want_digest[:12]))
 
 
 def build_registry_snapshot() -> dict:

@@ -47,12 +47,12 @@ def test_obs_rejects_extra_future_field():
 
 def test_column_permutation_detected():
     s = ser()
-    uc.verify_serialization(s, {**STATE, **ACCT, **HOR})
+    uc.verify_serialization_complete(s, {**STATE, **ACCT, **HOR})
     swapped = dict(s)
     swapped["names"] = ["c", "g", "s", "q"] + list(uc.OBS_COLUMNS[4:])
     with pytest.raises(uc.UnifiedSpecError,
                        match="permutation|names"):
-        uc.verify_serialization(
+        uc.verify_serialization_complete(
             swapped, {**STATE, **ACCT, **HOR})
 
 
@@ -253,6 +253,10 @@ def test_typed_action_entry_validation():
 
 # ---- 隐藏换任务 ----------------------------------------------
 def _variant(**over):
+    return uc.make_task_spec(**over)
+
+
+def _variant_old(**over):
     v = {"task_id": "t",
          "transition_kernel": uc.UNIFIED_TASK[
              "transition_kernel"],
@@ -298,7 +302,8 @@ def test_hidden_swap_full_field_coverage():
             uc.check_hidden_task_swap(
                 [_variant(), _variant(**over)])
     k = dict(uc.UNIFIED_TASK["transition_kernel"])
-    k = dict(k, s=dict(k["s"], hold_p=0.10))
+    k = dict(k, s=dict(k["s"], hold_p=0.10,
+                       resample_p=0.90))
     with pytest.raises(uc.UnifiedSpecError,
                        match="hidden task swap"):
         uc.check_hidden_task_swap(
@@ -426,17 +431,60 @@ def test_expressiveness_applicability_domain_held_hold():
     assert "proved domain" in r3["reason"]
 
 
-def test_decode_identity():
+def _dec(arm="A", did="P0CategoryMax-v1", scope=None,
+         metric="deterministic_hit"):
+    e = {"task_id": uc.UNIFIED_TASK["task_id"],
+         "arm": arm, "metric": metric, "decode_id": did}
+    if scope:
+        e["scope"] = scope
+    return e
+
+
+def test_decode_identity_bound_to_task_arm_metric():
+    uc.check_decode_identity({"actions": [_dec()]})
+    # A+mixture-mean(B 的候选解码)不得过
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="not declared for arm"):
+        uc.check_decode_identity({"actions": [
+            _dec(did="mixture-mean-v1")]})
+    # B 的两个已声明解码都可
     uc.check_decode_identity({"actions": [
-        {"decode_id": "P0CategoryMax-v1", "a": 1}]})
+        _dec(arm="B")]})
+    uc.check_decode_identity({"actions": [
+        _dec(arm="B", did="mixture-mean-v1")]})
+    # 缺字段/未知 arm/metric/task 绑定
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="lacks"):
+        uc.check_decode_identity({"actions": [{"a": 1}]})
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="unknown arm"):
+        uc.check_decode_identity({"actions": [
+            _dec(arm="C")]})
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="unknown metric"):
+        uc.check_decode_identity({"actions": [
+            _dec(metric="vibe")]})
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="task binding"):
+        uc.check_decode_identity({"actions": [
+            dict(_dec(), task_id="other")]})
+    # 混用 decode / 历史 scope 混排
+    # 混用两个不同 decode(A:CategoryMax + B:mixture-mean)→拒
     with pytest.raises(uc.UnifiedSpecError,
                        match="mixed decode"):
         uc.check_decode_identity({"actions": [
-            {"decode_id": "P0CategoryMax-v1"},
-            {"decode_id": "mixture-mean-v1"}]})
+            _dec(), _dec(arm="B",
+                         did="mixture-mean-v1")]})
+    # 同一公共解码跨 A/B(当前既有主接口)→允许
+    uc.check_decode_identity({"actions": [
+        _dec(), _dec(arm="B")]})
     with pytest.raises(uc.UnifiedSpecError,
-                       match="lacks decode_id"):
-        uc.check_decode_identity({"actions": [{"a": 1}]})
+                       match="cannot mix"):
+        uc.check_decode_identity({"actions": [
+            _dec(), _dec(scope="historical_diagnostic")]})
+    # 纯历史诊断报告(另身份)允许
+    uc.check_decode_identity({"actions": [
+        _dec(scope="historical_diagnostic")]})
 
 
 # ---- 门/毕业 -------------------------------------------------
@@ -529,11 +577,21 @@ def test_frozen_gate_graduation_needs_structured_identity():
         uc.SEVEN_SKILLS.update(saved)
 
 
-def test_verify_serialization_rejects_empty_expected():
+def test_verify_serialization_partial_and_complete():
     s0 = ser()
     with pytest.raises(uc.UnifiedSpecError,
                        match="non-empty"):
-        uc.verify_serialization(s0, {})
+        uc.verify_serialization_partial(s0, {})
+    # partial:子集对即可过(另名,不算完整已验)
+    uc.verify_serialization_partial(s0, {"s": 1})
+    # complete:缺任一字段拒;expected 只给 {'c':1} 而其余七列
+    # 错值必须失败
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="ALL 8 fields"):
+        uc.verify_serialization_complete(s0, {"c": 1})
+    wrong = {**STATE, **ACCT, **HOR, "s": -1}
+    with pytest.raises(uc.UnifiedSpecError):
+        uc.verify_serialization_complete(s0, wrong)
 
 
 def test_frozen_columns_immutable():
@@ -674,14 +732,53 @@ def test_gate_registry_digest_chain_test_isolation():
                             "channel": "c",
                             "ref": "r"}}}},
                 registry_gates={"direction_neutral_flat": {
+                    "gate_version": "v1",
                     "gate_def": {"x": 1}}})
         # 测试隔离注入临时注册表:摘要不一致拒;一致才过
         tmp_reg = {"direction_neutral_flat": {
+            "gate_version": "v1",
             "gate_def": {"metric": "min_over_grid",
                          "threshold": 0.8}}}
         good_digest = uc._gate_digest(
             tmp_reg["direction_neutral_flat"][
                 "gate_def"])
+        # 伪造 gate_version:对不上注册版本→拒
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="gate_version .* != registered"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": "v9",
+                        "gate_digest": uc._gate_digest(
+                            tmp_reg[
+                                "direction_neutral_flat"][
+                                "gate_def"]),
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}},
+                registry_gates=tmp_reg)
+        # 额外覆盖字段(threshold=-999)→严格引用拒
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="forbidden override"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": {
+                        "task_id": uc.UNIFIED_TASK[
+                            "task_id"],
+                        "gate_version": "v1",
+                        "gate_digest": uc._gate_digest(
+                            tmp_reg[
+                                "direction_neutral_flat"][
+                                "gate_def"]),
+                        "threshold": -999,
+                        "approval": {
+                            "channel": "c",
+                            "ref": "r"}}}},
+                registry_gates=tmp_reg)
         with pytest.raises(uc.UnifiedSpecError,
                            match="gate_digest"):
             uc.check_graduation_claim(
@@ -734,6 +831,160 @@ def test_spec_versions_and_independence_bound():
         with pytest.raises(uc.UnifiedSpecError,
                            match="missing required field"):
             uc.check_hidden_task_swap([_variant(), v3])
+
+
+def test_interval_union_boundary_cases():
+    """收尾单组1 三个裁定+间隙不填平+同端 AND 语义。"""
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    # [-.5,0)∪(0,.5] 与 {0}:必须无交→冲突
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs, "allowed_actions": [
+                dict(_iv(-0.5, 0.0), open="hi"),
+                dict(_iv(0.0, 0.5), open="lo")]},
+            {"obs": obs,
+             "allowed_actions": [_atom(0.0)]}])
+    # [-.5,.5)∪[0,.5] 与 [.5,1]:有交(.5 闭)→过
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [
+            dict(_iv(-0.5, 0.5), open="hi"),
+            _iv(0.0, 0.5)]},
+        {"obs": obs,
+         "allowed_actions": [_iv(0.5, 1.0)]}])
+    # (0,.25]∪[0,.5] 与 [-.5,0]:有交(0 闭)→过
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [
+            dict(_iv(0.0, 0.25), open="lo"),
+            _iv(0.0, 0.5)]},
+        {"obs": obs,
+         "allowed_actions": [_iv(-0.5, 0.0)]}])
+    # 间隙不被 eps 填平
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs,
+             "allowed_actions": [_iv(0.2, 0.3)]},
+            {"obs": obs, "allowed_actions": [
+                _iv(0.3000000000005, 0.4)]}])
+    # 同端合并 AND:(0,.5]∪(0,.3] 左端保持开→与 {0} 仍无交
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs, "allowed_actions": [
+                dict(_iv(0.0, 0.5), open="lo"),
+                dict(_iv(0.0, 0.3), open="lo")]},
+            {"obs": obs,
+             "allowed_actions": [_atom(0.0)]}])
+    # 嵌套同 hi 不同开闭:hi 开闭=AND→开;区间内部仍有交
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [
+            _iv(0.2, 0.5),
+            dict(_iv(0.2, 0.5), open="hi")]},
+        {"obs": obs,
+         "allowed_actions": [_iv(0.45, 0.55)]}])
+    # 双方 hi 均开:union 端点仍开(并集=任一含即含,双开才开)
+    # → .5 不可达 → 与 [.5,.6] 无交
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs, "allowed_actions": [
+                dict(_iv(0.2, 0.5), open="hi"),
+                dict(_iv(0.21, 0.5), open="hi")]},
+            {"obs": obs,
+             "allowed_actions": [_iv(0.5, 0.6)]}])
+    # 一闭一开同端:并集端点闭合→.5 可达 → 有交
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [
+            dict(_iv(0.2, 0.5), open="hi"),
+            _iv(0.21, 0.5)]},
+        {"obs": obs,
+         "allowed_actions": [_iv(0.5, 0.6)]}])
+
+
+def test_make_task_spec_strict_schema():
+    snap_task = uc.build_registry_snapshot()["task"]
+    assert "obs_columns" in snap_task
+    assert "action_families" in snap_task
+    uc.check_hidden_task_swap(
+        [uc.make_task_spec(), uc.make_task_spec()])
+    tk = uc.UNIFIED_TASK["transition_kernel"]
+    k = {"transition_kernel": dict(
+        tk, s=dict(tk["s"], hold_p=2.0))}
+    k2 = {"transition_kernel": dict(
+        tk, s=dict(tk["s"], resample_p=-1.0))}
+    q_bad_len = {"transition_kernel": dict(
+        tk, q=dict(tk["q"], fresh_p=[0.5, 0.5]))}
+    q_bad_sum = {"transition_kernel": dict(
+        tk, q=dict(tk["q"], fresh_p=[
+            0.1, 0.1, 0.1, 0.1, 0.1]))}
+    sv_missing = {"spec_versions": {
+        "obs": "a", "reward": "b", "action": "c"}}
+    sv_extra = {"spec_versions": dict(
+        uc.SPEC_VERSIONS, extra="x")}
+    hz_bad = {"horizon": {"values": [0, 64]}}
+    hz_frac = {"horizon": {"values": [32.5]}}
+    mu_nan = {"mu_candidate": float("nan")}
+    for over in (k, k2, q_bad_len, q_bad_sum, sv_missing,
+                 sv_extra, hz_bad, hz_frac, mu_nan):
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.make_task_spec(**over)
+    # 两份同样无效:进入比较通道前即拒(不判"同任务")
+    with pytest.raises(uc.UnifiedSpecError):
+        uc.check_hidden_task_swap(
+            [uc.make_task_spec(**k),
+             uc.make_task_spec(**k)])
+    # 有效换值仍被签出
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="hidden task swap"):
+        uc.check_hidden_task_swap([
+            uc.make_task_spec(),
+            uc.make_task_spec(economy=dict(
+                uc.UNIFIED_TASK["economy"],
+                fee_rate=2e-3))])
+
+
+def test_obs_domain_strict():
+    for bad in ({"s": float("nan")}, {"s": 0.5},
+                {"q": 1.5}, {"c": 2}):
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.obs_vector({**STATE, **bad}, ACCT, HOR)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="positive int"):
+        uc.obs_vector(STATE, ACCT, {
+            "remaining_horizon": -1,
+            "total_horizon": 64})
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="remaining > total"):
+        uc.obs_vector(STATE, ACCT, {
+            "remaining_horizon": 65,
+            "total_horizon": 64})
+
+
+def test_strict_typing_atoms_open():
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="numeric non-bool"):
+        uc.check_same_obs_mutex([{"obs": obs, "allowed_actions": [
+            {"arm": "A", "kind": "atom",
+             "value": True}]}])
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="numeric non-bool"):
+        uc.evaluate_action_expressiveness(
+            _gq(metric="deterministic_hit",
+                atoms=[True]))
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="numeric non-bool"):
+        uc.evaluate_action_expressiveness(
+            _gq(metric="deterministic_hit",
+                atoms=["1"]))
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="open flag invalid"):
+        uc.check_same_obs_mutex([{"obs": obs, "allowed_actions": [
+            dict(_iv(0.1, 0.2), open=1)]}])
+    # open=True 严格布尔仍合法
+    uc.check_same_obs_mutex([{"obs": obs, "allowed_actions": [
+        dict(_iv(0.1, 0.2), open=True)]}])
 
 
 def test_registry_snapshot_shape_and_isolation():
