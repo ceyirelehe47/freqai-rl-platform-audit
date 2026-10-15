@@ -123,6 +123,84 @@ def test_raw_full_new_valid_and_coverage():
     assert pm["account_state_rows"]["flat_pre"] == 512
 
 
+def test_raw_missing_model_rejected():
+    """文件只含 new 而映射要求 {new} 之外的 baseline → 拒。"""
+    with pytest.raises(cc.ContractError,
+                       match="model set"):
+        osr.validate_raw_file(
+            FX / "raw_full_new.jsonl",
+            fsha("raw_full_new.jsonl"),
+            {"new": "ckX", "baseline": "ckY"}, "fx")
+
+
+def test_raw_missing_exposure_rejected(tmp_path):
+    rows = [json.loads(l) for l in (
+        FX / "raw_full_new.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    del rows[10]["exposure_before"]
+    p = tmp_path / "r.jsonl"
+    p.write_text("\n".join(
+        json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8")
+    with pytest.raises(cc.ContractError,
+                       match="exposure_before"):
+        osr.validate_raw_file(
+            p, hashlib.sha256(
+                p.read_bytes()).hexdigest(),
+            {"new": "ckX"}, "fx")
+
+
+def test_raw_early_termination_rejected(tmp_path):
+    rows = [json.loads(l) for l in (
+        FX / "raw_full_new.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    rows[5]["terminated"] = True
+    p = tmp_path / "r2.jsonl"
+    p.write_text("\n".join(
+        json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8")
+    with pytest.raises(cc.ContractError,
+                       match="early termination"):
+        osr.validate_raw_file(
+            p, hashlib.sha256(
+                p.read_bytes()).hexdigest(),
+            {"new": "ckX"}, "fx")
+
+
+def test_raw_econ_failure_rejected(tmp_path):
+    rows = [json.loads(l) for l in (
+        FX / "raw_full_new.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    rows[7]["economic_failure"] = True
+    p = tmp_path / "r3.jsonl"
+    p.write_text("\n".join(
+        json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8")
+    with pytest.raises(cc.ContractError,
+                       match="economic_failure"):
+        osr.validate_raw_file(
+            p, hashlib.sha256(
+                p.read_bytes()).hexdigest(),
+            {"new": "ckX"}, "fx")
+
+
+def test_raw_bool_int_rejected(tmp_path):
+    rows = [json.loads(l) for l in (
+        FX / "raw_full_new.jsonl").read_text(
+        encoding="utf-8").splitlines()]
+    rows[3]["pair_index"] = True
+    p = tmp_path / "r4.jsonl"
+    p.write_text("\n".join(
+        json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8")
+    with pytest.raises(cc.ContractError,
+                       match="bad pair_index"):
+        osr.validate_raw_file(
+            p, hashlib.sha256(
+                p.read_bytes()).hexdigest(),
+            {"new": "ckX"}, "fx")
+
+
 def test_raw_pseudo_model_rejected():
     with pytest.raises(cc.ContractError,
                        match="pseudo model"):
@@ -142,11 +220,13 @@ def test_raw_pair99_onerow_rejected():
 
 # ---- manifest 驱动入口 ----------------------------------------
 def _manifest(tmp_path, *, grids=None, raws=None,
-              bank=None):
+              bank=None, structure=None):
     if bank is None:
         bank = (__file__, hashlib.sha256(
             pathlib.Path(__file__).read_bytes()
         ).hexdigest())
+    if structure is None:
+        structure = "FULL"
     g = grids if grids is not None else [{
         "tier": "ck262144",
         "path": str(FX / "grid_ok_boundary.json"),
@@ -159,10 +239,12 @@ def _manifest(tmp_path, *, grids=None, raws=None,
         "models": {"new": "ck262144"}}]
     m = {"contract_version": cc.CONTRACT_VERSION,
          "bank": {"path": bank[0], "sha": bank[1]},
-         "grids": g, "raws": r}
+         "grids": g, "raws": r,
+         "_structure": structure}
     mp = tmp_path / "m.json"
     mp.write_text(json.dumps(m), encoding="utf-8")
-    return mp
+    return mp, hashlib.sha256(
+        mp.read_bytes()).hexdigest()
 
 
 def _fake_bank(monkeypatch):
@@ -180,25 +262,84 @@ def _fake_bank(monkeypatch):
 def test_entry_pass_and_refuses_overwrite(
         tmp_path, monkeypatch):
     _fake_bank(monkeypatch)
-    mp = _manifest(tmp_path)
+    mp, msha = _manifest(tmp_path)
     out = tmp_path / "rep"
     rc1 = osr.main(["--manifest", str(mp),
-                    "--out", str(out)])
+                    "--out", str(out)],
+                   expected_manifest_sha=msha)
     assert rc1 == 0
     first = (out / "offline_skill_report.json").read_text(
         encoding="utf-8")
     rc2 = osr.main(["--manifest", str(mp),
-                    "--out", str(out)])
+                    "--out", str(out)],
+                   expected_manifest_sha=msha)
     assert rc2 == osr.RC_INVALID
     assert (out / "offline_skill_report.json").read_text(
         encoding="utf-8") == first
+    # 默认信任 SHA(真实 manifest 钉值)下 fixture 必须 invalid
+    rc3 = osr.main(["--manifest", str(mp),
+                    "--out", str(tmp_path / "rep3")])
+    assert rc3 == osr.RC_INVALID
 
 
 def test_entry_empty_set_invalid(tmp_path, monkeypatch):
     _fake_bank(monkeypatch)
-    mp = _manifest(tmp_path, grids=[], raws=[])
+    mp, msha = _manifest(tmp_path, grids=[], raws=[])
     rc = osr.main(["--manifest", str(mp),
-                   "--out", str(tmp_path / "r1")])
+                   "--out", str(tmp_path / "r1")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_subset_one_tier_one_raw_invalid(
+        tmp_path, monkeypatch):
+    """只留 1 档 1 raw 不得通过(恰齐约束)。"""
+    _fake_bank(monkeypatch)
+    g1 = {"tier": "ck262144",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": fsha("grid_ok_boundary.json"),
+          "model": "new", "ckpt_sha": "c" * 64}
+    r1 = {"label": "v5",
+          "path": str(FX / "raw_full_new.jsonl"),
+          "sha": fsha("raw_full_new.jsonl"),
+          "models": {"new": "ck262144"}}
+    mp, msha = _manifest(tmp_path, grids=[g1], raws=[r1])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "rs")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_duplicate_raw_invalid(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    r1 = {"label": "v5",
+          "path": str(FX / "raw_full_new.jsonl"),
+          "sha": fsha("raw_full_new.jsonl"),
+          "models": {"new": "ck262144"}}
+    mp, msha = _manifest(tmp_path, raws=[r1, dict(r1)])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "rd")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_deadbeef_ckpt_rejected_by_structure(
+        tmp_path, monkeypatch):
+    """deadbeef ckpt 在结构恰齐核验即拒(先于文件读取)。"""
+    _fake_bank(monkeypatch)
+    g1 = {"tier": "ck163840",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": fsha("grid_ok_boundary.json"),
+          "model": "new", "ckpt_sha": "deadbeef"}
+    mp, msha = _manifest(tmp_path, grids=[g1])
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "rf")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
     assert rc == osr.RC_INVALID
 
 
@@ -209,9 +350,11 @@ def test_entry_duplicate_tier_invalid(
           "path": str(FX / "grid_ok_boundary.json"),
           "sha": fsha("grid_ok_boundary.json"),
           "model": "new", "ckpt_sha": "c" * 64}
-    mp = _manifest(tmp_path, grids=[g1, dict(g1)])
+    mp, msha = _manifest(tmp_path, grids=[g1, dict(g1)])
     rc = osr.main(["--manifest", str(mp),
-                   "--out", str(tmp_path / "r2")])
+                   "--out", str(tmp_path / "r2")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
     assert rc == osr.RC_INVALID
 
 
@@ -222,9 +365,11 @@ def test_entry_deadbeef_grid_sha_invalid(
           "path": str(FX / "grid_ok_boundary.json"),
           "sha": "deadbeef" + "0" * 56,
           "model": "new", "ckpt_sha": "c" * 64}
-    mp = _manifest(tmp_path, grids=[g1])
+    mp, msha = _manifest(tmp_path, grids=[g1])
     rc = osr.main(["--manifest", str(mp),
-                   "--out", str(tmp_path / "r3")])
+                   "--out", str(tmp_path / "r3")],
+                  expected_manifest_sha=msha,
+                  strict_structure=True)
     assert rc == osr.RC_INVALID
     rep = json.loads((tmp_path / "r3" /
                       "offline_skill_report.json").read_text(

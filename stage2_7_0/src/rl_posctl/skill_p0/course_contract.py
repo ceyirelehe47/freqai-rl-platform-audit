@@ -35,9 +35,17 @@ def _sha(p):
     return h.hexdigest()
 
 
+# 已审规范来源固定清单(冻结;任何漂移=invalid,不构建契约)
+EXPECTED_SPEC_SOURCES = {
+    "src/rl_posctl/skill_p0/p0spec.py":
+        "5ed6145c05a905b14f60c762ef61613922d09a56"
+        "3207f91a402982473e4cea54"}
+
+
 def local_source_binding():
-    """实际导入模块的 __file__ + SHA + 本地 git HEAD(未知则
-    如实 unknown;不宣称候选 blob 全等)。"""
+    """实际导入模块的 __file__ + SHA,并与已审清单**比对**
+    (不匹配抛 ContractError→invalid,契约不可用);另记本地
+    git HEAD(未知则 unknown;不作候选宣称)。"""
     import subprocess
     import rl_posctl.skill_p0.p0spec as spec_mod
     mods = {
@@ -55,10 +63,21 @@ def local_source_binding():
     for name, rel in CODE_PATHS.items():
         mods[name] = dict(mods.get(name, {}),
                           declared_rel=rel)
-    mods["p0spec"]["sha256"] = _sha(
-        mods["p0spec"]["imported_path"])
+    p0spec_sha = _sha(mods["p0spec"]["imported_path"])
+    mods["p0spec"]["sha256"] = p0spec_sha
+    exp_rel, exp_sha = next(iter(
+        EXPECTED_SPEC_SOURCES.items()))
+    ok = (p0spec_sha == exp_sha and mods["p0spec"][
+        "imported_path"].endswith(
+            "src/rl_posctl/skill_p0/p0spec.py"))
+    if not ok:
+        raise ContractError(
+            "spec source drift: p0spec %s != audited %s"
+            % (p0spec_sha, exp_sha))
     return {"local_git_head": head or "unknown",
-            "note": ("本机导入实核;未做旧候选 blob 全等,"
+            "spec_source_verified": True,
+            "expected": {"rel": exp_rel, "sha": exp_sha},
+            "note": ("已审清单比对通过;未做候选 blob 全等,"
                      "不作 candidate 宣称"),
             "modules": mods}
 

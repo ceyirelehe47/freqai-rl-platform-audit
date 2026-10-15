@@ -31,6 +31,29 @@ from rl_posctl.skill_p0 import course_contract as cc
 RC_PASS, RC_FAIL, RC_INVALID = 0, 1, 3
 W_FLAT = 0.10  # 账户桶宽(=契约带)
 
+# 受信约束:manifest 本体 SHA(独立已核)+恰齐结构(等价批准映射)
+EXPECTED_MANIFEST_SHA = ("a93397117c461be2d81f94a315d2cb46"
+                         "c6971f4f6989528ebfd40253e75e3210")
+EXPECTED_TIERS = {"ck131072", "ck163840", "ck262144",
+                  "ck524288"}
+EXPECTED_CKPT = {
+    "ck131072": ("1c39017ddc32a1f819cabb86281427351bb"
+                 "38e00b33b1cfde2a1672c69e83024"),
+    "ck163840": ("d684156dcb3c4ac48fa2d3dcbfc64ac66c7"
+                 "9ec61110aa8e178d7a471cef44710"),
+    "ck262144": ("f96ed8e45d3ad5699fd0693595e492b77a6"
+                 "a4010da1cfe333c899e483cf12b7c"),
+    "ck524288": ("b66e7c8b77cd82d385b764b2dc889f0902d"
+                 "f21bee5572d6c1d5b5ebb0fcf5d88")}
+EXPECTED_RAW_LABELS = {"v5", "s1", "s2"}
+EXPECTED_RAW_MODELS = {
+    "v5": {"baseline": "ck131072",
+           "new": "ck163840"},
+    "s1": {"new": "ck262144",
+           "source_frozen": "ck163840"},
+    "s2": {"new": "ck524288",
+           "source_frozen": "ck262144"}}
+
 
 def utc():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -44,7 +67,14 @@ def sha(p):
     return h.hexdigest()
 
 
-def load_manifest(path) -> dict:
+def load_manifest(path, expected_sha=None,
+                  strict_structure=None) -> dict:
+    actual = sha(path)
+    want = expected_sha or EXPECTED_MANIFEST_SHA
+    if actual != want:
+        raise cc.ContractError(
+            "manifest SHA %s != trusted %s" % (
+                actual, want))
     m = json.loads(Path(path).read_text(encoding="utf-8"))
     for k in ("contract_version", "bank", "grids", "raws"):
         if k not in m:
@@ -74,6 +104,35 @@ def load_manifest(path) -> dict:
     for k in ("path", "sha"):
         if not m["bank"].get(k):
             raise cc.ContractError("manifest bank missing")
+    # 结构恰齐(等价批准映射):四档/三raw/model→tier 精确集合
+    # (仅对受信路径强制;测试显式注入 sha 时按 strict_structure)
+    if strict_structure is None:
+        strict_structure = expected_sha is None
+    if not strict_structure:
+        m.pop("_structure", None)
+        return m
+    m.pop("_structure", None)
+    if {g["tier"] for g in m["grids"]} != EXPECTED_TIERS:
+        raise cc.ContractError(
+            "manifest tiers %r != expected four"
+            % sorted({g["tier"] for g in m["grids"]}))
+    for g in m["grids"]:
+        if g["ckpt_sha"] != EXPECTED_CKPT[g["tier"]]:
+            raise cc.ContractError(
+                "manifest ckpt for %s not approved mapping"
+                % g["tier"])
+    labels = [r["label"] for r in m["raws"]]
+    if len(labels) != len(set(labels)) or (
+            set(labels) != EXPECTED_RAW_LABELS):
+        raise cc.ContractError(
+            "manifest raws %r != expected {v5,s1,s2} "
+            "unique" % labels)
+    for r in m["raws"]:
+        if r["models"] != EXPECTED_RAW_MODELS[
+                r["label"]]:
+            raise cc.ContractError(
+                "manifest raw %s model->tier mapping not "
+                "approved" % r["label"])
     return m
 
 
@@ -97,36 +156,80 @@ def validate_raw_file(path, expect_sha, model_tier,
             raise cc.ContractError(
                 "raw %s pseudo model %r (not in manifest "
                 "mapping)" % (label, m))
+    if set(models) != set(model_tier):
+        raise cc.ContractError(
+            "raw %s model set %r != mapping %r "
+            "(missing/extra model)" % (
+                label, sorted(models),
+                sorted(model_tier)))
     per_model = {}
     for m in models:
         sub = [r for r in rows if r["model"] == m]
         seen = set()
         eps = {}
         for r in sub:
-            for f, chk in (
-                    ("pair_index",
-                     lambda v: isinstance(v, int)
-                     and 0 <= v <= 3),
-                    ("variant",
-                     lambda v: isinstance(v, int)
-                     and v in (0, 1)),
-                    ("step",
-                     lambda v: isinstance(v, int)
-                     and not isinstance(v, bool)
-                     and 0 <= v <= 63)):
+            def _int_nb(v):
+                return (isinstance(v, int)
+                        and not isinstance(v, bool))
+            for f, lo, hi in (("pair_index", 0, 3),
+                              ("variant", 0, 1),
+                              ("step", 0, 63)):
                 v = r.get(f)
-                if not chk(v):
+                if not (_int_nb(v) and lo <= v <= hi):
                     raise cc.ContractError(
                         "raw %s model %s bad %s=%r"
                         % (label, m, f, v))
-            for f in ("equity_end",
-                      "fee_increment_all_fills", "s"):
-                v = r.get(f)
-                if not (isinstance(v, (int, float))
-                        and math.isfinite(float(v))):
+            for f in ("terminated", "truncated",
+                      "economic_failure"):
+                if not isinstance(r.get(f), bool):
                     raise cc.ContractError(
-                        "raw %s model %s non-finite %s"
-                        % (label, m, f))
+                        "raw %s model %s %s not bool: %r"
+                        % (label, m, f, r.get(f)))
+            if r["economic_failure"] is True:
+                raise cc.ContractError(
+                    "raw %s model %s economic_failure "
+                    "true at step %d" % (
+                        label, m, r["step"]))
+            eb = r.get("exposure_before", "__missing__")
+            if (eb == "__missing__"
+                    or isinstance(eb, bool)
+                    or not isinstance(eb, (int, float))
+                    or not math.isfinite(float(eb))):
+                raise cc.ContractError(
+                    "raw %s model %s exposure_before "
+                    "missing/non-finite=%r (no default)"
+                    % (label, m, eb))
+            eq = r.get("equity_end")
+            if not (isinstance(eq, (int, float))
+                    and not isinstance(eq, bool)
+                    and math.isfinite(eq) and eq > 0):
+                raise cc.ContractError(
+                    "raw %s model %s equity_end invalid %r"
+                    % (label, m, eq))
+            fee = r.get("fee_increment_all_fills")
+            if not (isinstance(fee, (int, float))
+                    and not isinstance(fee, bool)
+                    and math.isfinite(fee) and fee >= 0):
+                raise cc.ContractError(
+                    "raw %s model %s fee invalid %r"
+                    % (label, m, fee))
+            sv = r.get("s")
+            if not (isinstance(sv, (int, float))
+                    and not isinstance(sv, bool)
+                    and math.isfinite(sv)):
+                raise cc.ContractError(
+                    "raw %s model %s s invalid %r"
+                    % (label, m, sv))
+            # 终止位置按 step:0..62 不得终止;63 必须终止
+            term_now = r["terminated"] or r["truncated"]
+            if r["step"] < 63 and term_now:
+                raise cc.ContractError(
+                    "raw %s model %s early termination at "
+                    "step %d" % (label, m, r["step"]))
+            if r["step"] == 63 and not term_now:
+                raise cc.ContractError(
+                    "raw %s model %s no terminal flag at "
+                    "step 63" % (label, m))
             key = (r["pair_index"], r["variant"],
                    r["step"])
             if key in seen:
@@ -162,8 +265,8 @@ def validate_raw_file(path, expect_sha, model_tier,
                 "raw %s model %s rows %d != 512"
                 % (label, m, len(sub)))
         flat = sum(1 for r in sub
-                   if abs(float(r.get(
-                       "exposure_before", 0.0)))
+                   if abs(float(
+                       r["exposure_before"]))
                    <= W_FLAT)
         per_model[m] = {
             "tier": model_tier[m], "rows": len(sub),
@@ -180,7 +283,8 @@ def validate_raw_file(path, expect_sha, model_tier,
             "per_model": per_model}
 
 
-def main(argv=None) -> int:
+def main(argv=None, expected_manifest_sha=None,
+         strict_structure=None) -> int:
     t0 = utc()
     ap = argparse.ArgumentParser()
     ap.add_argument("--manifest", required=True)
@@ -197,7 +301,10 @@ def main(argv=None) -> int:
         os.write(fd, b"course_contract_offline v2\n")
         os.close(fd)
         owned = True
-        man = load_manifest(args.manifest)
+        man = load_manifest(
+            args.manifest,
+            expected_sha=expected_manifest_sha,
+            strict_structure=strict_structure)
         rep["manifest_path"] = args.manifest
         rep["manifest_contract_version"] = man[
             "contract_version"]
