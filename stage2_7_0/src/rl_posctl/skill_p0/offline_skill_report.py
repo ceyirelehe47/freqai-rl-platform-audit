@@ -31,9 +31,42 @@ from rl_posctl.skill_p0 import course_contract as cc
 RC_PASS, RC_FAIL, RC_INVALID = 0, 1, 3
 W_FLAT = 0.10  # 账户桶宽(=契约带)
 
-# 受信约束:manifest 本体 SHA(独立已核)+恰齐结构(等价批准映射)
-EXPECTED_MANIFEST_SHA = ("a93397117c461be2d81f94a315d2cb46"
-                         "c6971f4f6989528ebfd40253e75e3210")
+# 受信约束:包内 trusted_manifests.json(同目录,__file__ 定位)
+# 生产 CLI 不接受信任表路径/信任 SHA/跳过审批参数;
+# 测试注入仅经 main(trusted_entries=...) 内部接口。
+TRUSTED_FILE_NAME = "trusted_manifests.json"
+GOLDEN_SHA = "a93397117c461be2d81f94a315d2cb46c6971f4f6989528ebfd40253e75e3210"  # noqa: E501  实测(manifest_v1.json)
+MANIFEST_SCHEMA_C1 = "MANIFEST_C1_V1"
+
+
+def _load_trusted_entries(trusted_path=None):
+    p = (Path(trusted_path) if trusted_path else
+         Path(__file__).resolve().parent / TRUSTED_FILE_NAME)
+    if not p.is_file():
+        raise cc.ContractError(
+            "trusted table missing: %s (fail-closed, no "
+            "fallback)" % p)
+    try:
+        t = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise cc.ContractError(
+            "trusted table unreadable/corrupt: %r "
+            "(fail-closed)" % exc)
+    if (not isinstance(t, dict)
+            or t.get("schema") != "TRUSTED_MANIFESTS_V1"
+            or not isinstance(t.get("entries"), list)
+            or not t["entries"]):
+        raise cc.ContractError("trusted table bad structure")
+    out = []
+    for e in t["entries"]:
+        sha = e.get("sha256")
+        if not (isinstance(sha, str) and len(sha) == 64
+                and all(c in "0123456789abcdef"
+                        for c in sha)):
+            raise cc.ContractError(
+                "trusted entry bad sha %r" % sha)
+        out.append(e)
+    return out
 EXPECTED_TIERS = {"ck131072", "ck163840", "ck262144",
                   "ck524288"}
 EXPECTED_CKPT = {
@@ -67,15 +100,21 @@ def sha(p):
     return h.hexdigest()
 
 
-def load_manifest(path, expected_sha=None,
-                  strict_structure=None) -> dict:
+def load_manifest(path, trusted_entries) -> dict:
     actual = sha(path)
-    want = expected_sha or EXPECTED_MANIFEST_SHA
-    if actual != want:
+    if not any(e["sha256"] == actual
+               for e in trusted_entries):
         raise cc.ContractError(
-            "manifest SHA %s != trusted %s" % (
-                actual, want))
+            "manifest SHA %s not in trusted table "
+            "(candidate/unapproved — fail-closed)" % actual)
     m = json.loads(Path(path).read_text(encoding="utf-8"))
+    # manifest 不得自带信任源
+    for bad_key in ("trusted", "trusted_manifest",
+                    "trust_source", "trust"):
+        if bad_key in m:
+            raise cc.ContractError(
+                "manifest must not carry trust key %r"
+                % bad_key)
     for k in ("contract_version", "bank", "grids", "raws"):
         if k not in m:
             raise cc.ContractError(
@@ -104,35 +143,63 @@ def load_manifest(path, expected_sha=None,
     for k in ("path", "sha"):
         if not m["bank"].get(k):
             raise cc.ContractError("manifest bank missing")
-    # 结构恰齐(等价批准映射):四档/三raw/model→tier 精确集合
-    # (仅对受信路径强制;测试显式注入 sha 时按 strict_structure)
-    if strict_structure is None:
-        strict_structure = expected_sha is None
-    if not strict_structure:
-        m.pop("_structure", None)
-        return m
-    m.pop("_structure", None)
-    if {g["tier"] for g in m["grids"]} != EXPECTED_TIERS:
+    # 结构:新 schema 自包含校验;golden legacy(无 schema 字段)
+    # 走内置恰齐映射;其余未知 schema/version invalid。
+    sch = m.get("manifest_schema")
+    if sch is None:
+        if actual != GOLDEN_SHA:
+            raise cc.ContractError(
+                "legacy no-schema manifest only allowed "
+                "for golden, got %s" % actual)
+        exp_tiers = EXPECTED_TIERS
+        exp_ckpt = EXPECTED_CKPT
+        exp_raws = EXPECTED_RAW_LABELS
+        exp_map = EXPECTED_RAW_MODELS
+    elif sch == MANIFEST_SCHEMA_C1:
+        if m.get("course_id") != "c1":
+            raise cc.ContractError(
+                "schema %s requires course_id c1, got %r"
+                % (sch, m.get("course_id")))
+        if m.get("contract_version") != cc.CONTRACT_VERSION:
+            raise cc.ContractError(
+                "manifest contract_version mismatch")
+        exp_tiers = set(m.get("expected_tiers") or ())
+        exp_ckpt = dict(m.get("expected_ckpt") or {})
+        if not exp_tiers or set(exp_ckpt) != exp_tiers:
+            raise cc.ContractError(
+                "manifest expected sets missing/conflict")
+        exp_raws = set(m.get("expected_raw_labels") or ())
+        exp_map = dict(m.get("expected_raw_models") or {})
+        if not exp_raws or set(exp_map) != exp_raws:
+            raise cc.ContractError(
+                "manifest raw mapping missing/conflict")
+    else:
         raise cc.ContractError(
-            "manifest tiers %r != expected four"
-            % sorted({g["tier"] for g in m["grids"]}))
+            "unknown manifest_schema %r" % sch)
+    # 恰齐核验(不得降低覆盖/改门:仍用同一套结构规则)
+    if {g["tier"] for g in m["grids"]} != exp_tiers:
+        raise cc.ContractError(
+            "manifest tiers %r != expected %r"
+            % (sorted({g["tier"] for g in m["grids"]}),
+               sorted(exp_tiers)))
     for g in m["grids"]:
-        if g["ckpt_sha"] != EXPECTED_CKPT[g["tier"]]:
+        if g["ckpt_sha"] != exp_ckpt[g["tier"]]:
             raise cc.ContractError(
                 "manifest ckpt for %s not approved mapping"
                 % g["tier"])
     labels = [r["label"] for r in m["raws"]]
     if len(labels) != len(set(labels)) or (
-            set(labels) != EXPECTED_RAW_LABELS):
+            set(labels) != exp_raws):
         raise cc.ContractError(
-            "manifest raws %r != expected {v5,s1,s2} "
-            "unique" % labels)
+            "manifest raws %r != expected %r unique"
+            % (labels, sorted(exp_raws)))
     for r in m["raws"]:
-        if r["models"] != EXPECTED_RAW_MODELS[
-                r["label"]]:
+        if r["models"] != exp_map[r["label"]]:
             raise cc.ContractError(
                 "manifest raw %s model->tier mapping not "
                 "approved" % r["label"])
+    m["_expected"] = {"tiers": exp_tiers, "ckpt": exp_ckpt,
+                      "raws": exp_raws, "map": exp_map}
     return m
 
 
@@ -277,13 +344,77 @@ def validate_raw_file(path, expect_sha, model_tier,
             "per_model": per_model}
 
 
-def main(argv=None, expected_manifest_sha=None,
-         strict_structure=None) -> int:
+def emit_candidate(args) -> int:
+    """候选清单生成(仅提案):现算哈希;untrusted 水印;
+    不写技能报告/不改信任表/独占输出拒绝覆盖。"""
+    out = Path(args.out)
+    if out.exists():
+        print("CANDIDATE_OUT_EXISTS (refuse overwrite)",
+              file=sys.stderr)
+        return 3
+    grids = []
+    for spec_s in args.grid:
+        tier, path, model = spec_s.split("|")
+        gsha = sha(path)
+        rows = json.loads(Path(path).read_text(
+            encoding="utf-8"))
+        models = {r.get("model") for r in rows}
+        if models != {model}:
+            print("CANDIDATE_BAD model set %r" % models,
+                  file=sys.stderr)
+            return 3
+        grids.append({"tier": tier, "path": path,
+                      "sha": gsha, "model": model,
+                      "ckpt_sha": "UNVERIFIED(review fills)"})
+    raws = []
+    for spec_s in args.raw:
+        parts = spec_s.split("|")
+        label, path = parts[0], parts[1]
+        models = parts[2].split(",")
+        rsha = sha(path)
+        rows = [json.loads(l) for l in Path(path)
+                .read_text(encoding="utf-8").splitlines()]
+        got = sorted({r.get("model") for r in rows})
+        if got != sorted(models):
+            print("CANDIDATE_BAD raw models %r" % got,
+                  file=sys.stderr)
+            return 3
+        raws.append({"label": label, "path": path,
+                     "sha": rsha,
+                     "models": {m: "UNVERIFIED"
+                                for m in models}})
+    cand = {
+        "manifest_schema": MANIFEST_SCHEMA_C1,
+        "course_id": "c1",
+        "contract_version": cc.CONTRACT_VERSION,
+        "untrusted_candidate": True,
+        "watermark": ("PROPOSAL ONLY — requires "
+                      "independent review + trusted-"
+                      "manifests commit; NOT approved"),
+        "grids": grids, "raws": raws}
+    out.write_text(json.dumps(cand, ensure_ascii=False,
+                              indent=1), encoding="utf-8")
+    print("CANDIDATE_WRITTEN %s (untrusted)" % out)
+    return 0
+
+
+def main(argv=None, trusted_entries=None) -> int:
+    """trusted_entries 仅内部测试注入;生产 CLI 无此参数。"""
     t0 = utc()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--manifest", required=True)
+    ap.add_argument("--manifest")
     ap.add_argument("--out", required=True)
+    ap.add_argument(
+        "--emit-candidate", action="store_true",
+        help="仅提案:现算哈希生成 candidate manifest,"
+             "不写技能报告,不改信任表,不自我批准")
+    ap.add_argument("--grid", action="append", default=[],
+                    help="candidate 模式:tier|path|model")
+    ap.add_argument("--raw", action="append", default=[],
+                    help="candidate 模式:label|path|model[,m2]")
     args = ap.parse_args(argv)
+    if args.emit_candidate:
+        return emit_candidate(args)
     out = Path(args.out)
     rep = {"utc_start": t0}
     rc = RC_PASS
@@ -295,15 +426,23 @@ def main(argv=None, expected_manifest_sha=None,
         os.write(fd, b"course_contract_offline v2\n")
         os.close(fd)
         owned = True
-        man = load_manifest(
-            args.manifest,
-            expected_sha=expected_manifest_sha,
-            strict_structure=strict_structure)
+        if not args.manifest:
+            raise cc.ContractError("--manifest required")
+        if trusted_entries is None:
+            trusted_entries = _load_trusted_entries()
+        man = load_manifest(args.manifest, trusted_entries)
+        entry = next(e for e in trusted_entries
+                     if e["sha256"] == sha(args.manifest))
+        rep["trusted_manifest"] = {
+            "sha256": entry["sha256"],
+            "kind": entry.get("kind"),
+            "course_id": entry.get("course_id")}
         rep["manifest_path"] = args.manifest
         rep["manifest_contract_version"] = man[
             "contract_version"]
         contract = cc.build_contract()
         rep["contract"] = contract
+        non_c1 = (entry.get("course_id") != "c1")
         rep["entry_module_sha256"] = sha(Path(
             __file__).resolve())
         rep["contract_module_sha256"] = sha(Path(
@@ -343,7 +482,10 @@ def main(argv=None, expected_manifest_sha=None,
                 rows, contract_version=(
                     man["contract_version"]),
                 expect_model=g["model"])
-            ev = cc.skill_eval(rows)
+            ev = (cc.skill_eval(rows) if not non_c1 else
+                  {"all_skills": "not_specified",
+                   "reason": "non-c1 course: no gates "
+                             "defined; cannot pass"})
             skills[g["tier"]] = {
                 "grid_sha256": actual,
                 "checkpoint_sha256": g["ckpt_sha"],
@@ -358,6 +500,9 @@ def main(argv=None, expected_manifest_sha=None,
             if any(v["status"] == "fail"
                    for v in ev.values()
                    if isinstance(v, dict)):
+                rc = max(rc, RC_FAIL)
+            if non_c1:
+                # 非 C1 不能整体 pass(无门即无达标)
                 rc = max(rc, RC_FAIL)
         rep["tiers"] = skills
 
