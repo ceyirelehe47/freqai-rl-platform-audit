@@ -37,6 +37,12 @@ INFRA_REPRO_EXTRA_TESTS="/nonexistent" \
   bash "$RUNNER" "$D/r4b" synthetic >/dev/null 2>&1
 rc=$?; echo "[E4b] rc=$rc expect=11"; [ "$rc" -eq 11 ] || SUM=1
 
+# E6 官方运行拒绝 PYTEST_ADDOPTS(同筛选漏洞封死)
+D="$R/e6"; mkdir -p "$D"
+PYTEST_ADDOPTS="-k test_contract_has_course_facts" \
+  bash "$RUNNER" "$D/runs" synthetic >/dev/null 2>&1
+rc=$?; echo "[E6] rc=$rc expect=12"; [ "$rc" -eq 12 ] || SUM=1
+
 # E5 位置式模式同义
 D="$R/e5"; mkdir -p "$D"
 bash "$RUNNER" "$D/runs" synthetic >/dev/null 2>&1

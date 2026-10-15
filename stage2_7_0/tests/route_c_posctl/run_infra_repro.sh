@@ -49,6 +49,8 @@ GOLDEN_DEPS="$G/acceptance/PSC_P0_v1/runs/banks/train/train_bank.json \
  $G/c1_scale_diag_s2_run_20261015/eval/grid_new.json \
  $G/c1_scale_diag_s2_run_20261015/eval/raw_episodes.jsonl"
 
+
+
 HOOK_VARS="INFRA_REPRO_EXTRA_TESTS INFRA_REPRO_SCAN_TARGET INFRA_REPRO_AFTER_HOOK INFRA_REPRO_GOLDEN_MANIFEST INFRA_REPRO_EXTRA_INPUTS"
 PRESENT_HOOKS=""
 for hv in $HOOK_VARS; do
@@ -65,6 +67,11 @@ if [ -n "$PRESENT_HOOKS" ]; then
 fi
 
 RUN_ID="run_$(date -u +%Y%m%dT%H%M%SZ)_$$"
+if [ "$TEST_SESSION" -eq 0 ] && [ -n "${PYTEST_ADDOPTS:-}" ]; then
+  echo "OFFICIAL_RUN_REFUSES_PYTEST_ADDOPTS:${PYTEST_ADDOPTS}" >&2
+  exit 12
+fi
+
 RUN="$ROOT/$RUN_ID"
 mkdir "$ROOT" 2>/dev/null || :
 if ! mkdir "$RUN"; then
@@ -168,52 +175,56 @@ $PY -m pytest tests/route_c_posctl/test_course_contract_offline.py $EXTRA \
   > "$RUN/pytest_stdout.log" 2> "$RUN/pytest_stderr.log"
 PYTEST_RC=$?
 
-# 官方模式:先 collect-only 取预期测试身份
+# 官方模式:collect-only 真实 rc + 冻结预期清单(不随当次缩水)
 COLLECT_FILE=""
+COLLECT_RC=0
 if [ "$TEST_SESSION" -eq 0 ]; then
   COLLECT_FILE="$RUN/collect_only.txt"
-  $PY -m pytest tests/route_c_posctl/test_course_contract_offline.py     -p no:cacheprovider -q --collect-only     > "$COLLECT_FILE" 2>/dev/null
+  $PY -m pytest tests/route_c_posctl/test_course_contract_offline.py \
+    -p no:cacheprovider -q --collect-only \
+    > "$COLLECT_FILE" 2>/dev/null
+  COLLECT_RC=$?
+  [ "$COLLECT_RC" -ne 0 ] && echo "COLLECT_RC=$COLLECT_RC" >> "$RUN/run_rc.txt"
 fi
+EXPECTED_CASES="$HERE/expected_infra_cases_v1.txt"
 # JUnit 一致性:rc↔零失败 + (官方)测试身份/数量与 collect-only 精确一致
 JUNIT_BAD=0
 JF="$RUN/junit.xml" PRC=$PYTEST_RC TS=$TEST_SESSION \
-CF="$COLLECT_FILE" $PY - <<'PYEOF' > "$RUN/junit_consistency.log" 2>&1
+CF="$COLLECT_FILE" CRC=$COLLECT_RC \
+EF="$EXPECTED_CASES" $PY - <<'PYEOF' > "$RUN/junit_consistency.log" 2>&1
 import os, sys, xml.etree.ElementTree as ET
 jf, prc = os.environ["JF"], int(os.environ["PRC"])
 ts_flag = int(os.environ["TS"]); cf = os.environ["CF"]
+crc = int(os.environ.get("CRC", "0")); ef_path = os.environ.get("EF", "")
 t = ET.parse(jf).getroot()
 suite = t.findall(".//testsuite")[-1]
 fe = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+skipped = int(suite.get("skipped", 0))
 got = {"%s::%s" % (tc.get("classname", ""), tc.get("name", ""))
        for tc in suite.iter("testcase")}
-print(f"junit tests={len(got)} failures+errors={fe} pytest_rc={prc}")
+print(f"junit tests={len(got)} failures+errors={fe} "
+      f"skipped={skipped} pytest_rc={prc}")
 ok = (fe == 0) == (prc == 0)
-if ts_flag == 0 and ok:
-    want = set()
-    for ln in open(cf, encoding="utf-8", errors="replace"):
-        ln = ln.strip()
-        if ln.endswith("::") or "::" not in ln or ln.startswith(("=", "collected", "tests/")):
-            continue
-        want.add(ln.split("::", 1)[0].rsplit("/", 1)[-1]
-                 + "::" + ln.split("::", 1)[1] if "::" in ln else ln)
-    # collect-only 行含全程 nodeid(tests/...py::cls::test);归一到
-    # junit 的 file-stem::test 形状不可靠 → 改比对数量+nodeid 后缀集合
-    want_nodes = {ln for ln in open(
-        cf, encoding="utf-8", errors="replace").read().splitlines()
-        if "::" in ln and not ln.startswith(("=", "collected "))
-        and not ln.startswith("tests/") is False}
-    want_nodes = {ln for ln in open(
-        cf, encoding="utf-8", errors="replace").read().splitlines()
-        if "::" in ln and ln.startswith("tests/")}
-    want_last = {"::".join(ln.split("::")[1:]) for ln in want_nodes}
-    got_last = {"::".join(g.split("::")[1:]) if "::" in g else g
-                for g in got}
-    print(f"collect_only nodes={len(want_last)} junit nodes={len(got_last)}")
-    if want_last != got_last:
-        miss = sorted(want_last - got_last)[:3]
-        extra = sorted(got_last - want_last)[:3]
-        print(f"IDENTITY_MISMATCH missing={miss} extra={extra}")
+if ts_flag == 0:
+    print(f"collect_rc={crc}")
+    if crc != 0:
         ok = False
+    if skipped != 0:
+        print("SKIPPED_NONZERO")
+        ok = False
+    # 冻结预期清单(版本化;新增测试须更新清单,不以当次收集为准)
+    if ef_path and os.path.isfile(ef_path):
+        frozen = {ln.strip() for ln in open(
+            ef_path, encoding="utf-8") if ln.strip()
+            and not ln.startswith("#")}
+        got_last = {g.split("::")[-1] for g in got}
+        frozen_last = {f.split("::")[-1] for f in frozen}
+        print(f"frozen_cases={len(frozen_last)} junit_cases={len(got_last)}")
+        if got_last != frozen_last:
+            miss = sorted(frozen_last - got_last)[:4]
+            extra = sorted(got_last - frozen_last)[:4]
+            print(f"FROZEN_MISMATCH missing={miss} extra={extra}")
+            ok = False
 print("junit_consistency=" + ("OK" if ok else "BAD"))
 sys.exit(0 if ok else 1)
 PYEOF
