@@ -1,22 +1,38 @@
 #!/usr/bin/env bash
-# INFRA_REPRO_V1 离线链路可复现 runner v3(纯离线;零模型/训练/confirm)
-# 用法: run_infra_repro.sh EVIDENCE_ROOT [--mode synthetic|golden]
+# INFRA_REPRO_V1 离线链路可复现 runner v4(纯离线;零模型/训练/confirm)
+# 用法: run_infra_repro.sh EVIDENCE_ROOT --mode synthetic|golden
+#       run_infra_repro.sh EVIDENCE_ROOT synthetic|golden   (位置式同义)
 #   synthetic = 仅合成 fixture 测试(干净树可用,零仓外依赖)
 #   golden    = 合成 + 仓外 golden 回归(需仓外 9 件在场)
+# 参数严格解析:未知模式/未知选项/多余参数 → rc97 拒绝。
+# 正式运行(无任何 INFRA_REPRO_* 环境钩子)拒绝全部故障钩子(rc11);
+# 故障注入仅在包装进程显式 INFRA_REPRO_ALLOW_HOOKS=1 的 TEST_SESSION
+# 下生效,该会话在 run_rc/env 明 stamp,不得作为正式证据。
+# 正式模式核验 JUnit 测试身份/数量与 --collect-only 精确一致(非仅零失败)。
 # 唯一 run_id 目录(mkdir 拒已存在;失败保留)。OVERALL 汇总真实子退出码:
 #   pytest 非零 | JUnit 不一致(8) | 扫描命中/错误(5) | 输入变化(9) |
-#   golden 有效完成仅 rc0/1,其余(10) | 补充检查失败(6)。
-# TEST-ONLY 环境钩子(默认全关,仅故障注入验证用):
-#   INFRA_REPRO_EXTRA_TESTS(附加失败测试) INFRA_REPRO_SCAN_TARGET
-#   (不可读扫描目标) INFRA_REPRO_AFTER_HOOK(前后 SHA 间改文件)
-#   INFRA_REPRO_GOLDEN_MANIFEST(篡改 manifest) INFRA_REPRO_EXTRA_INPUTS
-#   (附加哈希输入,配合 AFTER_HOOK 验证输入变化门)
+#   golden 有效完成仅 rc0/1,其余(10) | 补充检查失败(6) | 钩子(11) |
+#   参数错(97)。
 set -u
 set -o pipefail
 set -o noclobber
 
-ROOT=${1:?usage: run_infra_repro.sh EVIDENCE_ROOT [--mode synthetic|golden]}
-MODE=${2:-golden}
+usage() { echo "usage: run_infra_repro.sh EVIDENCE_ROOT --mode synthetic|golden (或位置式)" >&2; }
+ROOT=""; MODE=""
+case $# in
+  2) ROOT=$1
+     case "$2" in
+       synthetic|golden) MODE=$2 ;;
+       *) usage; exit 97 ;;
+     esac ;;
+  3) [ "$2" = "--mode" ] || { usage; exit 97; }
+     ROOT=$1
+     case "$3" in
+       synthetic|golden) MODE=$3 ;;
+       *) usage; exit 97 ;;
+     esac ;;
+  *) usage; exit 97 ;;
+esac
 PY=${PY:-/home/cryptorl/miniforge3/envs/freqtrade-rl/bin/python}
 HERE=$(cd "$(dirname "$0")" && pwd)
 STAGE=$(cd "$HERE/../.." && pwd)          # stage2_7_0
@@ -33,6 +49,21 @@ GOLDEN_DEPS="$G/acceptance/PSC_P0_v1/runs/banks/train/train_bank.json \
  $G/c1_scale_diag_s2_run_20261015/eval/grid_new.json \
  $G/c1_scale_diag_s2_run_20261015/eval/raw_episodes.jsonl"
 
+HOOK_VARS="INFRA_REPRO_EXTRA_TESTS INFRA_REPRO_SCAN_TARGET INFRA_REPRO_AFTER_HOOK INFRA_REPRO_GOLDEN_MANIFEST INFRA_REPRO_EXTRA_INPUTS"
+PRESENT_HOOKS=""
+for hv in $HOOK_VARS; do
+  [ -n "${!hv:-}" ] && PRESENT_HOOKS="$PRESENT_HOOKS $hv"
+done
+TEST_SESSION=0
+if [ -n "$PRESENT_HOOKS" ]; then
+  if [ "${INFRA_REPRO_ALLOW_HOOKS:-}" = "1" ]; then
+    TEST_SESSION=1                        # 仅包装进程测试会话
+  else
+    echo "OFFICIAL_RUN_REFUSES_HOOKS:$PRESENT_HOOKS" >&2
+    exit 11
+  fi
+fi
+
 RUN_ID="run_$(date -u +%Y%m%dT%H%M%SZ)_$$"
 RUN="$ROOT/$RUN_ID"
 mkdir "$ROOT" 2>/dev/null || :
@@ -40,7 +71,7 @@ if ! mkdir "$RUN"; then
   echo "RUN_DIR_EXISTS: $RUN — refusing (no cleanup)" >&2
   exit 96
 fi
-echo "RUN_ID=$RUN_ID MODE=$MODE" | tee "$RUN/run_rc.txt"
+echo "RUN_ID=$RUN_ID MODE=$MODE TEST_SESSION=$TEST_SESSION" | tee "$RUN/run_rc.txt"
 
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="$RUN/pycache_iso"
@@ -137,17 +168,52 @@ $PY -m pytest tests/route_c_posctl/test_course_contract_offline.py $EXTRA \
   > "$RUN/pytest_stdout.log" 2> "$RUN/pytest_stderr.log"
 PYTEST_RC=$?
 
-# JUnit 一致性: failures+errors==0 <=> PYTEST_RC==0
+# 官方模式:先 collect-only 取预期测试身份
+COLLECT_FILE=""
+if [ "$TEST_SESSION" -eq 0 ]; then
+  COLLECT_FILE="$RUN/collect_only.txt"
+  $PY -m pytest tests/route_c_posctl/test_course_contract_offline.py     -p no:cacheprovider -q --collect-only     > "$COLLECT_FILE" 2>/dev/null
+fi
+# JUnit 一致性:rc↔零失败 + (官方)测试身份/数量与 collect-only 精确一致
 JUNIT_BAD=0
-$PY - "$RUN/junit.xml" "$PYTEST_RC" <<'PYEOF' > "$RUN/junit_consistency.log" 2>&1
-import sys, xml.etree.ElementTree as ET
-jf, prc = sys.argv[1], int(sys.argv[2])
+JF="$RUN/junit.xml" PRC=$PYTEST_RC TS=$TEST_SESSION \
+CF="$COLLECT_FILE" $PY - <<'PYEOF' > "$RUN/junit_consistency.log" 2>&1
+import os, sys, xml.etree.ElementTree as ET
+jf, prc = os.environ["JF"], int(os.environ["PRC"])
+ts_flag = int(os.environ["TS"]); cf = os.environ["CF"]
 t = ET.parse(jf).getroot()
-ts = t.findall(".//testsuite")[-1]
-fe = int(ts.get("failures", 0)) + int(ts.get("errors", 0))
-n = int(ts.get("tests", 0))
-print(f"junit tests={n} failures+errors={fe} pytest_rc={prc}")
+suite = t.findall(".//testsuite")[-1]
+fe = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+got = {"%s::%s" % (tc.get("classname", ""), tc.get("name", ""))
+       for tc in suite.iter("testcase")}
+print(f"junit tests={len(got)} failures+errors={fe} pytest_rc={prc}")
 ok = (fe == 0) == (prc == 0)
+if ts_flag == 0 and ok:
+    want = set()
+    for ln in open(cf, encoding="utf-8", errors="replace"):
+        ln = ln.strip()
+        if ln.endswith("::") or "::" not in ln or ln.startswith(("=", "collected", "tests/")):
+            continue
+        want.add(ln.split("::", 1)[0].rsplit("/", 1)[-1]
+                 + "::" + ln.split("::", 1)[1] if "::" in ln else ln)
+    # collect-only 行含全程 nodeid(tests/...py::cls::test);归一到
+    # junit 的 file-stem::test 形状不可靠 → 改比对数量+nodeid 后缀集合
+    want_nodes = {ln for ln in open(
+        cf, encoding="utf-8", errors="replace").read().splitlines()
+        if "::" in ln and not ln.startswith(("=", "collected "))
+        and not ln.startswith("tests/") is False}
+    want_nodes = {ln for ln in open(
+        cf, encoding="utf-8", errors="replace").read().splitlines()
+        if "::" in ln and ln.startswith("tests/")}
+    want_last = {"::".join(ln.split("::")[1:]) for ln in want_nodes}
+    got_last = {"::".join(g.split("::")[1:]) if "::" in g else g
+                for g in got}
+    print(f"collect_only nodes={len(want_last)} junit nodes={len(got_last)}")
+    if want_last != got_last:
+        miss = sorted(want_last - got_last)[:3]
+        extra = sorted(got_last - want_last)[:3]
+        print(f"IDENTITY_MISMATCH missing={miss} extra={extra}")
+        ok = False
 print("junit_consistency=" + ("OK" if ok else "BAD"))
 sys.exit(0 if ok else 1)
 PYEOF

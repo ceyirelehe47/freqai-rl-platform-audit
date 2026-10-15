@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# 故障注入验证(TEST-ONLY):四类真实故障必须使 runner 非零。
+# 故障注入验证(TEST-ONLY 包装会话:INFRA_REPRO_ALLOW_HOOKS=1;
+# 官方运行拒绝一切钩子——见 test_entry_infra.sh E4)。
 # 用法: fault_inject_infra.sh EVIDENCE_ROOT
 set -u
+export INFRA_REPRO_ALLOW_HOOKS=1   # 包装测试会话(官方运行拒钩子)
 R=${1:?usage: fault_inject_infra.sh EVIDENCE_ROOT}
 HERE=$(cd "$(dirname "$0")" && pwd)
 RUNNER="$HERE/run_infra_repro.sh"
@@ -17,7 +19,8 @@ rc=$?; note F1_pytest_fail $rc; [ "$rc" -ne 0 ] || SUM=1
 # F2 真实扫描错误(扫描目标文件缺失;/mnt/f 上 chmod 000 被
 # DrvFs 忽略,不可读路径无法构造,故用缺文件路径)
 D="$R/f2"; mkdir -p "$D/scan"
-INFRA_REPRO_SCAN_TARGET="$D/scan" \
+INFRA_REPRO_ALLOW_HOOKS=1 \
+  INFRA_REPRO_SCAN_TARGET="$D/scan" \
   bash "$RUNNER" "$D/runs" synthetic >/dev/null 2>&1
 rc=$?; note F2_scan_error $rc; [ "$rc" -ne 0 ] || SUM=1
 
@@ -33,7 +36,8 @@ rc=$?; note F3_input_change $rc; [ "$rc" -ne 0 ] || SUM=1
 D="$R/f4"; mkdir -p "$D"
 G=/mnt/f/trading/c1_course_offline_v1_20261015/manifest_v1.json
 sed 's/ck131072/ckX31072/' "$G" > "$D/tampered.json"
-INFRA_REPRO_GOLDEN_MANIFEST="$D/tampered.json" \
+INFRA_REPRO_ALLOW_HOOKS=1 \
+  INFRA_REPRO_GOLDEN_MANIFEST="$D/tampered.json" \
   bash "$RUNNER" "$D/runs" golden >/dev/null 2>&1
 rc=$?; note F4_golden_abnormal $rc; [ "$rc" -ne 0 ] || SUM=1
 
