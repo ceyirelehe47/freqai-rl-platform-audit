@@ -73,6 +73,8 @@ SOURCE_MODULES = (
     "src/rl_posctl/skill_p0/p0eval.py",
     "src/rl_posctl/skill_p0/p0spec.py",
     "src/rl_posctl/skill_p0/p0run.py",
+    "src/rl_posctl/ledger.py",
+    "src/rl_posctl/policy.py",
 )
 
 _HYPERPARAM_FIELDS = ("n_steps", "batch_size", "n_epochs",
@@ -95,6 +97,12 @@ def validate_plan_pure(plan: dict) -> None:
     """阶段 1:纯结构校验。零文件系统副作用。"""
     if not isinstance(plan, dict):
         raise PlanError("plan must be a JSON object")
+    for key in ("source", "steps", "random_stream", "course",
+                "budget", "eval_scope", "evidence",
+                "hyperparams_frozen", "schedules_frozen"):
+        if key in plan and not isinstance(plan[key], dict):
+            raise PlanError(
+                f"top key {key!r} must be a JSON object")
     for key in ("experiment_id_hint", "source", "steps",
                 "random_stream", "course", "budget",
                 "eval_scope", "evidence", "hyperparams_frozen",
@@ -340,6 +348,68 @@ def _real_digests(model):
             "optimizer": optimizer_state_digest(model)}
 
 
+def _real_read_seed(plan):
+    """ZIP 顶层 data JSON 的 seed(data.seed 优先,data.model.seed
+    次之);两处皆无 → None(调用方按"无兼容路径"拒绝)。"""
+    import zipfile
+    ck = plan["source"]["checkpoint"]
+    with zipfile.ZipFile(ck) as zf:
+        data = json.loads(zf.read("data"))
+    seed = data.get("seed")
+    if seed is None and isinstance(data.get("model"), dict):
+        seed = data["model"].get("seed")
+    return seed
+
+
+def _real_load_new_ck(path, plan):
+    """保存后按新路径冷载(评估消费新文件本身)。"""
+    from rl_posctl.skill_p0.p0policy import (
+        load_p0_model_archive)
+    model, header = load_p0_model_archive(
+        Path(path), arm=plan["source"]["arm"])
+    model.policy.set_training_mode(False)
+    return model, header
+
+
+def _real_read_stage(path):
+    """读存档 data JSON 的 _psc_p0_stage 阶段元数据。"""
+    import zipfile
+    with zipfile.ZipFile(path) as zf:
+        data = json.loads(zf.read("data"))
+    return data.get("_psc_p0_stage")
+
+
+def _real_verify_module_binding(plan) -> dict:
+    """实际导入模块的 __file__ 必须落在已核 repo 的
+    stage2_7_0/src 内——防止核了 plan.repo 却跑在另一套
+    PYTHONPATH 上(身份链缺口,非未来数据泄露)。"""
+    import importlib
+    repo = str(plan["source"]["repo"]).replace("\\", "/")
+    roots = {repo.rstrip("/")}
+    if repo.startswith(("F:/", "f:/")):
+        roots.add("/mnt/f/" + repo[3:])
+    elif repo.startswith("/mnt/f/"):
+        roots.add("F:/" + repo[len("/mnt/f/"):])
+    out = {}
+    all_ok = True
+    for rel in SOURCE_MODULES:
+        name = rel[len("src/"):].replace("/", ".")[:-3]
+        mod = importlib.import_module(name)
+        f = str(Path(mod.__file__).resolve())
+        ok = any(
+            f.startswith(r + "/stage2_7_0/src/")
+            for r in roots)
+        out[name] = {"file": f, "under_verified_repo": ok}
+        all_ok = all_ok and ok
+    if not all_ok:
+        raise RuntimeError(
+            "imported module outside verified repo "
+            "(PYTHONPATH binding mismatch): %r"
+            % {k: v for k, v in out.items()
+               if not v["under_verified_repo"]})
+    return out
+
+
 def wrap_optimizer_gate(optimizer, cap: int) -> dict:
     """v5 门语义(已验收):attempts/successes/unknown + 上限
     前置拒绝。旧 P0LearnGate 不适用于续训(reset 语义/计数键
@@ -381,6 +451,10 @@ def _default_hooks() -> dict:
         "make_env": _real_make_env,
         "save_final": _real_save_final,
         "digests": _real_digests,
+        "read_seed": _real_read_seed,
+        "verify_module_binding": _real_verify_module_binding,
+        "load_new_ck": _real_load_new_ck,
+        "read_stage": _real_read_stage,
         "eval": {},
     }
 
@@ -391,16 +465,15 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
     """执行固定九阶段序;返回进程退出码(0=成功)。"""
     plan = json.loads(Path(plan_path).read_text(
         encoding="utf-8"))
-    hooks = dict(_default_hooks(), **(hooks or {}))
-    arm = plan["source"]["arm"]
-
-    # -- 1. 纯 plan 校验(先于 Registry 创建/任何目录副作用) --
+    # 阶段 1 先行:纯校验不导入默认 hooks(含 p0spec)、
+    # 不索引 source.arm——畸形输入零副作用干净失败。
     try:
         validate_plan_pure(plan)
     except PlanError as exc:
         print(f"[stage1/plan] FAIL: {exc}", file=sys.stderr)
         return FAIL["plan"]
-
+    hooks = dict(_default_hooks(), **(hooks or {}))
+    arm = plan["source"]["arm"]
     # -- 2. 冻结预算/超参核对(对照 p0spec;不采信 plan 自声明) --
     try:
         check_frozen_budget(plan, hooks["spec"])
@@ -451,21 +524,48 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
     if not items:
         print("[stage4/bank] FAIL: empty bank", file=sys.stderr)
         return FAIL["bank_order"]
-    bank_cols = [str(c) for c in items[0][1].columns]
-    if bank_cols != list(plan["course"]["feature_names"]):
-        print("[stage4/bank_order] FAIL: bank columns %r != "
-              "plan %r" % (bank_cols,
-                           plan["course"]["feature_names"]),
-              file=sys.stderr)
-        return FAIL["bank_order"]
+    want_cols = list(plan["course"]["feature_names"])
+    # 逐条核验整个 bank 的列序(R1 列序错位教训;首条+评估 8 条
+    # 均不足,训练消费的是全部 episodes)
+    for idx, it in enumerate(items):
+        cols_i = [str(c) for c in it[1].columns]
+        if cols_i != want_cols:
+            print("[stage4/bank_order] FAIL: item %d columns "
+                  "%r != plan %r" % (idx, cols_i, want_cols),
+                  file=sys.stderr)
+            return FAIL["bank_order"]
+    bank_cols = want_cols
     try:
         sources_check = hooks["verify_sources"](plan)
+        module_binding = hooks["verify_module_binding"](plan)
         head_actual = hooks["git_head"](plan)
     except Exception as exc:
         print(f"[stage4/sources] FAIL: {exc}", file=sys.stderr)
         return FAIL["sources"]
 
-    # -- 5. 载入 + header 核验 + 步数/超参/schedule ----------
+    # seed 实核:ZIP 顶层 data.seed/model.seed(header 无 seed)。
+    # 缺字段=拒绝(无兼容放行路径);与 base_model_seed_in_zip
+    # 不符=拒绝。
+    try:
+        zip_seed = hooks["read_seed"](plan)
+    except Exception as exc:
+        print(f"[stage5/seed] FAIL: {exc}", file=sys.stderr)
+        return FAIL["load"]
+    if zip_seed is None:
+        print("[stage5/seed] FAIL: archive data JSON carries "
+              "no seed (data.seed / data.model.seed); no "
+              "compat path defined — refusing",
+              file=sys.stderr)
+        return FAIL["load"]
+    if int(zip_seed) != int(
+            plan["source"]["base_model_seed_in_zip"]):
+        print("[stage5/seed] FAIL: archive seed %r != plan "
+              "base_model_seed_in_zip %r"
+              % (zip_seed,
+                 plan["source"]["base_model_seed_in_zip"]),
+              file=sys.stderr)
+        return FAIL["load"]
+    base_seed_check = "match"
     try:
         model, header = hooks["load_model"](plan)
     except Exception as exc:
@@ -537,7 +637,6 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
     registry = Registry(registry_root)
     digest = plan_digest(plan)
     experiment_id = plan["experiment_id_hint"]
-    base_seed_hdr = header.get("seed")
     try:
         registry.register_intent(
             plan, mode="executable", extra={
@@ -545,58 +644,115 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
                     "git_head_pinned"],
                 "entry_head_actual": head_actual,
                 "sources_vs_candidate": sources_check,
+                "module_binding": module_binding,
+                "entry_sources": {
+                    "p0continue.py": sha256_file(
+                        Path(__file__).resolve()),
+                    "p0registry.py": sha256_file(
+                        Path(__import__(
+                            "rl_posctl.skill_p0.p0registry",
+                            fromlist=["x"]).__file__
+                        ).resolve()),
+                },
                 "header": {
                     "observation_spec": header.get(
                         "observation_spec"),
                     "bank_ref": header.get("bank_ref"),
                     "hyperparams_digest": header.get(
                         "hyperparams_digest"),
-                    "seed_in_header": base_seed_hdr,
                 },
-                "base_seed_check": (
-                    "match" if base_seed_hdr == plan["source"][
-                        "base_model_seed_in_zip"]
-                    else "unverifiable_no_seed_field"
-                    if base_seed_hdr is None else
-                    "MISMATCH")})
+                "archive_seed": zip_seed,
+                "base_seed_check": base_seed_check})
     except RegistryError as exc:
         print(f"[stage6/intent] FAIL: {exc}", file=sys.stderr)
         return FAIL["intent"]
 
     # -- 7/8/9. 训练+保存+评估+实结 ---------------------------
     evidence_root = Path(plan["evidence"]["root"])
-    counters = {"optimizer": {"attempts": 0, "successes": 0,
-                              "unknown": False}}
+    counters = {
+        "optimizer": {"attempts": 0, "successes": 0,
+                      "unknown": False},
+        "train_env": {"base": None, "delta": None},
+        "eval_env": {"base": None, "delta": None},
+        "eval": {"steps_done": 0, "predicts_done": 0,
+                 "grids_done": 0, "grid_unknown": False,
+                 "predict_unknown": False,
+                 "rows_flushed": 0, "episodes_done": 0,
+                 "step_unknown_consumption": False},
+        "stage_reached": "evidence_root",
+    }
     try:
         from rl_posctl.budget import create_only_dir
         create_only_dir(evidence_root)
     except Exception as exc:
+        _persist_abort(evidence_root, counters,
+                       "evidence_root", repr(exc))
         registry.record_failed(experiment_id, digest, {
             "stage": "evidence_root", "reason": repr(exc),
-            "optimizer": counters["optimizer"]})
-        print(f"[stage7/evidence] FAIL: {exc}", file=sys.stderr)
+            "counters_snapshot": json.dumps(counters)})
+        print(f"[stage7/evidence] FAIL: {exc}",
+              file=sys.stderr)
         return FAIL["train"]
     try:
         settle = _execute_training(
             plan, model, hooks, evidence_root, counters,
-            items, bank_path, base_seed_hdr)
+            items, bank_path)
         registry.record_settled(experiment_id, digest, settle)
         return 0
     except BaseException as exc:
+        # 失败实结:先持久化 partial 计数/未知状态/账本,
+        # 再写 registry failed(实时共享计数,异常不丢)。
+        _persist_abort(evidence_root, counters,
+                       counters["stage_reached"], repr(exc))
         registry.record_failed(experiment_id, digest, {
-            "stage": "train/eval", "reason": repr(exc),
+            "stage": counters["stage_reached"],
+            "reason": repr(exc),
             "optimizer": counters["optimizer"],
+            "eval": counters["eval"],
+            "train_env": counters["train_env"],
+            "eval_env": counters["eval_env"],
             "num_timesteps_end": int(getattr(
                 model, "num_timesteps", -1))})
         print(f"[stage7] FAIL: {exc!r}", file=sys.stderr)
         return FAIL["train"]
 
 
+def _persist_abort(evidence_root, counters, stage,
+                   reason) -> None:
+    """aborted 账本(partial 计数+未知状态)落盘;目录不存在则
+    跳过(早期失败无证据目录,如实不伪造)。"""
+    root = Path(evidence_root)
+    if not root.is_dir():
+        return
+    payload = {
+        "status": "ABORTED",
+        "stage_reached": stage,
+        "reason": reason,
+        "counters": counters,
+        "utc": utc_now(),
+    }
+    ledger = root / "budget_ledger.json"
+    if ledger.exists():
+        try:
+            prev = json.loads(
+                ledger.read_text(encoding="utf-8"))
+        except ValueError:
+            prev = {}
+        payload["reserved_faces"] = prev.get("faces", {})
+    (root / "abort_ledger.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=1),
+        encoding="utf-8")
+
+
 def _execute_training(plan, model, hooks, evidence_root,
-                      counters, items, bank_path,
-                      base_seed_hdr) -> dict:
-    """训练(v5 断言)+ 唯一 final + 前后摘要 + 原件复核 +
-    独立预约评估。异常上抛由调用方实结。"""
+                      counters, items, bank_path) -> dict:
+    """训练(v5 断言)→ 唯一 final → 冷载新档评估 → 实结。
+
+    rev3:throat delta 断言(train==append / eval==1024);
+    保存后按新路径冷载再评估(不再用内存模型);评估完成复核
+    source/bank/new ck 三 SHA;全部计数写共享 counters(异常
+    时调用方可持久化 partial)。
+    """
     spec = hooks["spec"]
     n_steps = int(spec.N_STEPS)
     append = plan["steps"]["append_steps"]
@@ -610,9 +766,11 @@ def _execute_training(plan, model, hooks, evidence_root,
         raise RuntimeError(
             "PPO_EXEMPT_STEPS != 0 at start: %r"
             % getattr(envmod, "PPO_EXEMPT_STEPS"))
-    train_env_count_base = int(envmod.ENV_STEP_COUNT)
+    counters["train_env"]["base"] = int(envmod.ENV_STEP_COUNT)
     # 训练预约:throat 硬限(基线+append)
-    envmod.ENV_STEP_LIMIT = train_env_count_base + append
+    envmod.ENV_STEP_LIMIT = (
+        counters["train_env"]["base"] + append)
+    counters["stage_reached"] = "train"
 
     env = (hooks.get("make_train_env") or P0EpisodeBankEnv)(
         items)
@@ -647,7 +805,11 @@ def _execute_training(plan, model, hooks, evidence_root,
                     reset_num_timesteps=False,
                     callback=stop.cb)
 
-    # -- v5 保存前断言(零更新绝不 final) --------------------
+    counters["train_env"]["delta"] = int(
+        envmod.ENV_STEP_COUNT) - counters["train_env"]["base"]
+    counters["stage_reached"] = "pre_save"
+
+    # -- v5 保存前断言(零更新绝不 final;throat==append) --
     learned = int(model.num_timesteps) - base
     if int(model.num_timesteps) != target:
         raise RuntimeError(
@@ -659,6 +821,11 @@ def _execute_training(plan, model, hooks, evidence_root,
     if learned != append or append != (
             append // n_steps) * n_steps:
         raise RuntimeError("collected %r != append" % learned)
+    if counters["train_env"]["delta"] != append:
+        raise RuntimeError(
+            "train throat delta %r != append %d (hidden "
+            "steps?)" % (counters["train_env"]["delta"],
+                         append))
     if box["successes"] == 0:
         raise RuntimeError(
             "zero optimizer updates: refusing final save")
@@ -674,8 +841,28 @@ def _execute_training(plan, model, hooks, evidence_root,
         model, ck_path, target_step=target,
         optimizer_steps=box["successes"],
         run_name=plan["source"]["run_name"] + "_cont")
-    train_env_steps = int(envmod.ENV_STEP_COUNT) - (
-        train_env_count_base)
+    counters["stage_reached"] = "post_save"
+
+    # 保存后冷载新档:评估消费的是新文件本身(非内存模型)。
+    new_cold, new_hdr = hooks["load_new_ck"](
+        str(ck_path), plan)
+    new_sha = sha256_file(ck_path)
+    stage_meta = hooks["read_stage"](str(ck_path))
+    if not (isinstance(stage_meta, dict)
+            and stage_meta.get("stage") == "final"
+            and int(stage_meta.get("target_step", -1))
+            == target
+            and int(stage_meta.get("num_timesteps", -1))
+            == target
+            and int(stage_meta.get("optimizer_steps", -1))
+            == box["successes"]):
+        raise RuntimeError(
+            "new ck stage metadata mismatch: %r" % (stage_meta,))
+    if hooks["digests"](new_cold)["policy"] != (
+            digests_end["policy"]):
+        raise RuntimeError(
+            "cold-loaded policy digest != pre-save digest "
+            "(saved file identity mismatch)")
 
     # 原件复核(训练后)
     ck_after = sha256_file(Path(plan["source"]["checkpoint"]))
@@ -688,21 +875,38 @@ def _execute_training(plan, model, hooks, evidence_root,
     # -- 评估:独立预约,不沿用训练限额、不豁免 -------------
     if int(getattr(envmod, "PPO_EXEMPT_STEPS", 1)) != 0:
         raise RuntimeError("PPO_EXEMPT_STEPS drifted != 0")
-    eval_env_count_base = int(envmod.ENV_STEP_COUNT)
-    envmod.ENV_STEP_LIMIT = eval_env_count_base + (
-        TOTAL_STEP_CAP)
+    counters["eval_env"]["base"] = int(envmod.ENV_STEP_COUNT)
+    envmod.ENV_STEP_LIMIT = (
+        counters["eval_env"]["base"] + TOTAL_STEP_CAP)
+    counters["stage_reached"] = "eval"
 
     eval_summary = run_contrast_eval(
         [("source_frozen",
           hooks["load_model"](plan)[0]),
-         ("new", model)],
+         ("new", new_cold)],
         items=items,
         feature_names=plan["course"]["feature_names"],
         out_dir=evidence_root / "eval",
-        hooks=hooks.get("eval") or {})
+        hooks=hooks.get("eval") or {},
+        counters=counters["eval"])
 
-    eval_env_steps = int(envmod.ENV_STEP_COUNT) - (
-        eval_env_count_base)
+    counters["eval_env"]["delta"] = int(
+        envmod.ENV_STEP_COUNT) - counters["eval_env"]["base"]
+    counters["stage_reached"] = "post_eval"
+
+    # 评估后三 SHA 复核(source/bank/new ck 与保存时一致)
+    if sha256_file(Path(plan["source"]["checkpoint"])) != (
+            plan["source"]["checkpoint_sha256"]):
+        raise RuntimeError("post-eval: source ck SHA changed")
+    if sha256_file(Path(plan["course"]["bank_path"])) != (
+            plan["course"]["bank_sha256"]):
+        raise RuntimeError("post-eval: bank SHA changed")
+    if sha256_file(ck_path) != new_sha:
+        raise RuntimeError("post-eval: new ck SHA changed")
+    if counters["eval_env"]["delta"] != TOTAL_STEP_CAP:
+        raise RuntimeError(
+            "eval throat delta %r != %d"
+            % (counters["eval_env"]["delta"], TOTAL_STEP_CAP))
 
     ledger = {
         "faces": {
@@ -711,8 +915,10 @@ def _execute_training(plan, model, hooks, evidence_root,
             "optimizer_updates": {"reserved": cap_opt,
                                   "settled": box["successes"]},
             "eval_env_steps": {"reserved": TOTAL_STEP_CAP,
-                               "settled": eval_env_steps}},
-        "train_env_throat_delta": train_env_steps,
+                               "settled": counters[
+                                   "eval_env"]["delta"]}},
+        "train_env_throat_delta": counters["train_env"][
+            "delta"],
         "utc": utc_now()}
     (evidence_root / "budget_ledger.json").write_text(
         json.dumps(ledger, ensure_ascii=False, indent=1),
@@ -727,11 +933,14 @@ def _execute_training(plan, model, hooks, evidence_root,
         "digests_start": digests_start,
         "digests_end": digests_end,
         "new_checkpoint": str(ck_path),
-        "new_checkpoint_sha256": sha256_file(ck_path),
+        "new_checkpoint_sha256": new_sha,
+        "new_cold_header": new_hdr,
+        "new_cold_stage_meta": stage_meta,
         "final_stage_meta": meta,
         "originals_unchanged": True,
-        "base_seed_in_header": base_seed_hdr,
-        "train_env_throat_delta": train_env_steps,
+        "train_env_throat_delta": counters["train_env"][
+            "delta"],
+        "eval_env_throat_delta": counters["eval_env"]["delta"],
         "eval": eval_summary,
         "evidence_root": str(evidence_root),
         "rc": 0,
@@ -740,7 +949,7 @@ def _execute_training(plan, model, hooks, evidence_root,
 
 # ---- v5 对比评估引擎(整段移植自已验收 eval_contrast.py) ----------
 def run_contrast_eval(tiers, *, items, feature_names,
-                      out_dir, hooks=None) -> dict:
+                      out_dir, hooks=None, counters=None) -> dict:
     """两档 × (108 格分布 + 8 集固定 pair0-3×variant 逐 step)。
 
     v5 冻结面:16 集/1024 step/1024 predict/216 格;逐 step 立即
@@ -781,13 +990,18 @@ def run_contrast_eval(tiers, *, items, feature_names,
             raise RuntimeError(
                 "episode feature order != canonical")
 
-    steps_done = 0
-    predicts_done = 0
-    grids_done = 0
-    grids_unknown = False
-    predict_unknown = False
-    rows_flushed = 0
-    episodes_done = 0
+    # 共享实时计数(rev3):调用方在异常时可持久化 partial
+    C = counters if counters is not None else {}
+    C.setdefault("steps_done", 0)
+    C.setdefault("predicts_done", 0)
+    C.setdefault("grids_done", 0)
+    C.setdefault("grid_unknown", False)
+    C.setdefault("predict_unknown", False)
+    C.setdefault("rows_flushed", 0)
+    C.setdefault("episodes_done", 0)
+    C.setdefault("step_unknown_consumption", False)
+    steps_done = predicts_done = grids_done = (
+        rows_flushed) = episodes_done = 0
     raw_fh = (out_dir / "raw_episodes.jsonl").open(
         "x", encoding="utf-8")
     terminal_rows = []
@@ -802,9 +1016,10 @@ def run_contrast_eval(tiers, *, items, feature_names,
                 d = dist_fn(model, np.stack(
                     [r[5] for r in rows]))
             except BaseException:
-                grids_unknown = True
+                C["grid_unknown"] = True
                 raise
-            grids_done += 1  # 成功后才计数
+            grids_done += 1
+            C["grids_done"] = grids_done  # 成功后才计数
             a_, b_ = d["alpha"], d["beta"]
             m = d["m"]
             up_c = (1.0 + BEHAVIOR_W_MIN) / 2.0
@@ -876,9 +1091,10 @@ def run_contrast_eval(tiers, *, items, feature_names,
                             np.asarray(obs)[None, :],
                             deterministic=True)
                     except BaseException:
-                        predict_unknown = True
+                        C["predict_unknown"] = True
                         raise
                     predicts_done += 1
+                    C["predicts_done"] = predicts_done
                     if steps_done + 1 > TOTAL_STEP_CAP:
                         raise RuntimeError(
                             "step cap exceeded")
@@ -889,10 +1105,12 @@ def run_contrast_eval(tiers, *, items, feature_names,
                         obs, r_, term, trunc, info = env.step(
                             np.asarray(act[0]))
                     except BaseException:
+                        C["step_unknown_consumption"] = True
                         raise RuntimeError(
                             "env.step failed "
                             "(consumption unknown)")
                     steps_done += 1
+                    C["steps_done"] = steps_done
                     ep_steps += 1
                     ep_act_vol += abs(float(
                         info.get("signed_qty") or 0.0))
@@ -924,6 +1142,7 @@ def run_contrast_eval(tiers, *, items, feature_names,
                     }, ensure_ascii=False) + "\n")
                     raw_fh.flush()
                     rows_flushed += 1
+                    C["rows_flushed"] = rows_flushed
                     if info.get("economic_failure") is not None:
                         raise RuntimeError(
                             "economic failure in eval episode "
@@ -951,6 +1170,7 @@ def run_contrast_eval(tiers, *, items, feature_names,
                         % (EP_CAP, ep_steps))
                 terminal_rows.append(term_row)
                 episodes_done += 1
+                C["episodes_done"] = episodes_done
     finally:
         raw_fh.close()
 
@@ -959,12 +1179,12 @@ def run_contrast_eval(tiers, *, items, feature_names,
             and predicts_done == EVAL_FROZEN["predicts"]
             and grids_done == len(tiers)
             and len(grid_all) == 2 * EVAL_FROZEN["grids"]
-            and not grids_unknown):
+            and not C["grid_unknown"]):
         raise RuntimeError(
             "face totals mismatch: eps=%d steps=%d preds=%d "
             "grids=%d cells=%d unknown=%r"
             % (episodes_done, steps_done, predicts_done,
-               grids_done, len(grid_all), grids_unknown))
+               grids_done, len(grid_all), C["grid_unknown"]))
 
     summ = {}
     for tag_, _m in tiers:
@@ -1000,8 +1220,8 @@ def run_contrast_eval(tiers, *, items, feature_names,
         "grid_batches_done": grids_done,
         "grid_cells_total": len(grid_all),
         "rows_flushed": rows_flushed,
-        "grid_attempt_unknown": grids_unknown,
-        "predict_attempt_unknown": predict_unknown,
+        "grid_attempt_unknown": C["grid_unknown"],
+        "predict_attempt_unknown": C["predict_unknown"],
         "per_model": summ,
         "note": "IN-SAMPLE evaluation on the training bank; "
                 "training-fit contrast only — NOT unseen-data "

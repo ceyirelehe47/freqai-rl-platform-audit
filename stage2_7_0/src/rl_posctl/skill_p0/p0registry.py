@@ -101,6 +101,23 @@ class Registry:
             os.close(fd)
 
     def _append_line(self, line: str) -> None:
+        """追加一行;非空文件末字节非 LF 一律拒写(防粘连)。
+
+        已复现边界:合法 intent JSON 仅缺末尾换行时,直接 append
+        会把两条 JSON 粘成一条废行。此处拒绝写入并原样保留
+        现场,不自动补换行(修复动作必须人工显式进行)。
+        """
+        if self.jsonl.exists() and (
+                self.jsonl.stat().st_size > 0):
+            with open(self.jsonl, "rb") as fh:
+                fh.seek(-1, 2)
+                last = fh.read(1)
+            if last != b"\n":
+                raise RegistryError(
+                    "registry last line unterminated "
+                    "(no trailing LF); refusing append "
+                    "(would glue JSON lines); file "
+                    "preserved as-is")
         with open(self.jsonl, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()

@@ -116,12 +116,13 @@ class FakeLedger:
 
 
 class FakeEnv:
-    """v5 评估环所需的最小真实接口面。"""
+    """v5 评估环所需的最小真实接口面(含 throat 计数)。"""
 
-    def __init__(self, features, prices):
+    def __init__(self, features, prices, envmod=None):
         self._t = 0
         self._close = [100.0] * (pc.EP_CAP + 8)
         self.ledger = FakeLedger()
+        self._envmod = envmod
 
     def reset(self):
         self._t = 0
@@ -136,6 +137,9 @@ class FakeEnv:
 
     def step(self, act):
         self._t += 1
+        if self._envmod is not None:
+            self._envmod.ENV_STEP_COUNT = (
+                self._envmod.ENV_STEP_COUNT + 1)
         term = self._t >= pc.EP_CAP
         info = {
             "signed_qty": 0.5, "action_branch": "rebal",
@@ -226,8 +230,26 @@ def base_hooks(model, order, *, clip=0.2,
             "bank_ref": plan["course"]["bank_sha256"],
             "hyperparams_digest": "x", "seed": None}
 
+    cold_loads = []
+
+    def load_new_ck(path, plan):
+        cold_loads.append(path)
+        return FakeModel(base=163840), {"arm": "B",
+                                        "bank_ref": plan[
+                                            "course"][
+                                            "bank_sha256"]}
+
     hooks = {
         "spec": FakeSpec(),
+        "read_seed": lambda plan: 270201,
+        "verify_module_binding": lambda plan: {
+            m: {"under_verified_repo": True}
+            for m in pc.SOURCE_MODULES},
+        "load_new_ck": load_new_ck,
+        "read_stage": lambda path: {
+            "stage": "final", "target_step": 163840,
+            "num_timesteps": 163840,
+            "optimizer_steps": CAP_OPT},
         "load_model": load_model,
         "bank_items": lambda p: make_items(),
         "verify_sources": lambda plan: {
@@ -265,6 +287,7 @@ def base_hooks(model, order, *, clip=0.2,
         m.learn(total_timesteps=append,
                 reset_num_timesteps=False,
                 callback=stop.cb)
+        em.ENV_STEP_COUNT = em.ENV_STEP_COUNT + append
 
     def dist_probs(m, obs):
         n = obs.shape[0]
@@ -281,7 +304,9 @@ def base_hooks(model, order, *, clip=0.2,
     hooks["save_final"] = save_final
     hooks["learn"] = learn
     hooks["eval"]["dist_probs"] = dist_probs
-    hooks["eval"]["make_env"] = lambda f, p: FakeEnv(f, p)
+    hooks["eval"]["make_env"] = lambda f, p: FakeEnv(
+        f, p, em)
+    hooks["_cold_loads"] = cold_loads
     return hooks
 
 
@@ -500,8 +525,11 @@ def test_success_path_full_contract(tmp_path):
     assert intent["source_candidate"] == (
         plan["source"]["git_head_pinned"])
     assert intent["entry_head_actual"].startswith("bc674dad")
-    assert intent["base_seed_check"] == (
-        "unverifiable_no_seed_field")
+    assert intent["base_seed_check"] == "match"
+    assert intent["archive_seed"] == 270201
+    assert "p0continue.py" in intent["entry_sources"]
+    assert all(v["under_verified_repo"] for v in
+               intent["module_binding"].values())
     # v5 计数契约
     assert settled["optimizer"] == {
         "attempts": CAP_OPT, "successes": CAP_OPT,
@@ -509,6 +537,11 @@ def test_success_path_full_contract(tmp_path):
     assert settled["train_steps_settled"] == 32768
     assert settled["num_timesteps_end"] == 163840
     assert settled["originals_unchanged"] is True
+    assert settled["train_env_throat_delta"] == 32768
+    assert settled["eval_env_throat_delta"] == 1024
+    assert settled["new_cold_stage_meta"]["stage"] == "final"
+    assert hooks["_cold_loads"] == [str(
+        Path(plan["evidence"]["root"]) / "ck163840.zip")]
     assert settled["digests_start"]["policy"] != (
         settled["digests_end"]["policy"]) or True
     # 训练→评估独立预约(两次 set,第二次基线=训练后计数)
@@ -557,7 +590,7 @@ def test_success_path_full_contract(tmp_path):
     assert ledger["faces"]["optimizer_updates"][
         "settled"] == CAP_OPT
     assert ledger["faces"]["eval_env_steps"][
-        "settled"] == 0  # 假 env 不增计数
+        "settled"] == 1024
 
 
 # ---- 7. 零更新绝不 final --------------------------------------
@@ -895,3 +928,224 @@ def test_eval_engine_predict_unknown_flagged(tmp_path):
                     "beta": np.full(len(obs), 2.0),
                     "b0": np.full(len(obs), 0.5)},
                 "make_env": lambda f, p: FakeEnv(f, p)})
+
+
+# ---- 16. rev3:LF 边界(拒写不补换行) ------------------------
+def test_missing_trailing_lf_refuses_append_no_healing(tmp_path):
+    reg = Registry(tmp_path / "reg")
+    plan = make_plan(tmp_path)
+    reg.register_intent(plan, mode="executable")
+    # 去掉末尾 LF(半写边界:JSON 本身合法)
+    data = reg.jsonl.read_bytes()
+    assert data.endswith(b"\n")
+    reg.jsonl.write_bytes(data[:-1])
+    before = reg.jsonl.read_bytes()
+    with pytest.raises(RegistryError):
+        reg.record_settled(
+            "TEST_CONT_001", plan_digest(plan), {"rc": 0})
+    plan2 = make_plan(tmp_path)
+    plan2["experiment_id_hint"] = "OTHER_002"
+    with pytest.raises(RegistryError):
+        reg.register_intent(plan2, mode="executable")
+    # 原样保留,未自动补换行、未追加
+    assert reg.jsonl.read_bytes() == before
+    # 人工修复(补 LF)后写入才可用——由人显式做,非库行为
+    reg.jsonl.write_bytes(before + b"\n")
+    reg.record_settled(
+        "TEST_CONT_001", plan_digest(plan), {"rc": 0})
+    assert [e["event"] for e in reg.iter_events()] == [
+        "intent", "settled"]
+
+
+# ---- 17. rev3:嵌套类型/缺 source 零副作用 ------------------
+def test_nested_type_failures_no_side_effect(tmp_path):
+    for mutate in (
+        lambda pl: pl.__setitem__("source", "not-a-dict"),
+        lambda pl: pl.__setitem__("steps", 42),
+        lambda pl: pl.__setitem__("course", ["c"]),
+        lambda pl: pl.__setitem__("budget", "x"),
+        lambda pl: pl.__setitem__("schedules_frozen", 7),
+    ):
+        plan = make_plan(tmp_path)
+        mutate(plan)
+        p = write_plan(tmp_path, plan)
+        rc = pc.run_continuation(
+            p, tmp_path / "reg",
+            hooks=base_hooks(FakeModel(), []))
+        assert rc == pc.FAIL["plan"]
+        assert not (tmp_path / "reg").exists()
+
+
+def test_missing_source_keys_clean_fail(tmp_path):
+    plan = make_plan(tmp_path)
+    del plan["source"]
+    p = write_plan(tmp_path, plan)
+    rc = pc.run_continuation(
+        p, tmp_path / "reg",
+        hooks=base_hooks(FakeModel(), []))
+    assert rc == pc.FAIL["plan"]
+    assert not (tmp_path / "reg").exists()
+
+
+# ---- 18. rev3:seed 实核(data.seed,非 header) --------------
+def test_seed_mismatch_refused(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    hooks["read_seed"] = lambda plan: 999999
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["load"]
+
+
+def test_seed_missing_refused_no_compat(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    hooks["read_seed"] = lambda plan: None
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["load"]
+
+
+# ---- 19. rev3:整 bank 列序逐条 -----------------------------
+def test_second_bank_item_wrong_columns_refused(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    items = make_items()
+    bad = (None, type("F", (), {"columns": ["c", "g", "s",
+                                            "q"]})(),
+           {"pair_index": 0, "variant": 0})
+    hooks["bank_items"] = lambda p: [items[0], bad] + (
+        items[2:])
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["bank_order"]
+    assert not (tmp_path / "reg").exists()
+
+
+# ---- 20. rev3:模块绑定(PYTHONPATH 身份链) ----------------
+def test_module_binding_outside_repo_refused(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+
+    def bad_binding(plan):
+        raise RuntimeError(
+            "imported module outside verified repo")
+
+    hooks["verify_module_binding"] = bad_binding
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["sources"]
+
+
+def test_source_modules_include_ledger_policy():
+    joined = " ".join(pc.SOURCE_MODULES)
+    assert "rl_posctl/ledger.py" in joined
+    assert "rl_posctl/policy.py" in joined
+
+
+# ---- 21. rev3:throat delta 断言 ----------------------------
+def test_train_throat_delta_asserted(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    order = []
+    hooks = base_hooks(FakeModel(), order)
+
+    def silent_learn(m, append, stop):
+        order.append("learn")  # 训练计数未增 throat(隐藏步)
+
+    hooks["learn"] = silent_learn
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["train"]
+    assert "save_final" not in order
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    assert ev[-1]["event"] == "failed"
+    assert ev[-1]["stage"] == "pre_save"
+
+
+# ---- 22. rev3:失败先持久化 partial(读持久化字段) ---------
+def test_eval_failure_persists_partial_counters(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    mk = hooks["eval"]["make_env"]
+    state = {"n": 0}
+
+    def flaky_env(feats, prices):
+        state["n"] += 1
+        if state["n"] == 3:
+            raise RuntimeError("env construction failed")
+        return mk(feats, prices)
+
+    hooks["eval"]["make_env"] = flaky_env
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["train"]
+    evid = Path(plan["evidence"]["root"])
+    # abort 账本在盘,读字段而非只看异常
+    abort = json.loads((evid / "abort_ledger.json"
+                        ).read_text(encoding="utf-8"))
+    assert abort["status"] == "ABORTED"
+    assert abort["stage_reached"] == "eval"
+    assert abort["counters"]["eval"][
+        "steps_done"] == 128      # 两整集已 flush
+    assert abort["counters"]["eval"]["rows_flushed"] == 128
+    assert abort["counters"]["eval"][
+        "episodes_done"] == 2
+    assert abort["counters"]["eval"]["grids_done"] == 1
+    assert abort["reserved_faces"]["train_steps"][
+        "reserved"] == 32768
+    # registry failed 同步携带同一计数
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    failed = ev[-1]
+    assert failed["event"] == "failed"
+    assert failed["stage"] == "eval"
+    assert failed["eval"]["steps_done"] == 128
+    assert failed["train_env"]["delta"] == 32768
+
+
+def test_zero_update_failure_persisted(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+
+    def no_learn(m, append, stop):
+        pass  # 零优化更新
+
+    hooks["learn"] = no_learn
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["train"]
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    failed = ev[-1]
+    assert failed["event"] == "failed"
+    assert failed["optimizer"]["successes"] == 0
+    assert failed["stage"] == "pre_save"
+    evid = Path(plan["evidence"]["root"])
+    abort = json.loads((evid / "abort_ledger.json"
+                        ).read_text(encoding="utf-8"))
+    assert abort["counters"]["optimizer"][
+        "successes"] == 0
+
+
+# ---- 23. rev3:评估消费冷载新文件 --------------------------
+def test_eval_uses_cold_loaded_new_ck(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == 0
+    # 冷载恰一次且用新 ck 路径(基座断言 + 此处复核)
+    assert hooks["_cold_loads"] == [str(
+        Path(plan["evidence"]["root"]) / "ck163840.zip")]
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    settled = ev[-1]
+    assert settled["new_cold_stage_meta"] == {
+        "stage": "final", "target_step": 163840,
+        "num_timesteps": 163840,
+        "optimizer_steps": CAP_OPT}
