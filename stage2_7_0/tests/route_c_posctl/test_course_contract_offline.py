@@ -442,6 +442,97 @@ def test_entry_non_c1_cannot_pass(tmp_path, monkeypatch):
     assert rep["status"] != "pass"
 
 
+def test_entry_unverified_ckpt_rejected(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    mp, msha = _manifest(tmp_path, schema="C1",
+                         extra_expected=None)
+    # 改 ckpt 为 UNVERIFIED 并同步 expected
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["grids"][0]["ckpt_sha"] = "UNVERIFIED"
+    m["expected_ckpt"]["ck262144"] = "UNVERIFIED"
+    mp.write_text(json.dumps(m), encoding="utf-8")
+    rc = osr.main(
+        ["--manifest", str(mp),
+         "--out", str(tmp_path / "uv")],
+        trusted_entries=_trust(hashlib.sha256(
+            mp.read_bytes()).hexdigest()))
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_raw_to_nonexistent_tier_rejected(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    mp, msha = _manifest(tmp_path, schema="C1")
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["raws"][0]["models"] = {"new": "ckNOPE"}
+    mp.write_text(json.dumps(m), encoding="utf-8")
+    rc = osr.main(
+        ["--manifest", str(mp),
+         "--out", str(tmp_path / "np")],
+        trusted_entries=_trust(hashlib.sha256(
+            mp.read_bytes()).hexdigest()))
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_partial_coverage_rejected(
+        tmp_path, monkeypatch):
+    """两档 grid 但 raw 只覆盖一档→拒(并集恰覆盖)。"""
+    _fake_bank(monkeypatch)
+    g1 = {"tier": "ck262144",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": fsha("grid_ok_boundary.json"),
+          "model": "new", "ckpt_sha": "c" * 64}
+    g2 = {"tier": "ck999999",
+          "path": str(FX / "grid_ok_boundary.json"),
+          "sha": fsha("grid_ok_boundary.json"),
+          "model": "new", "ckpt_sha": "d" * 64}
+    r1 = {"label": "fx",
+          "path": str(FX / "raw_full_new.jsonl"),
+          "sha": fsha("raw_full_new.jsonl"),
+          "models": {"new": "ck262144"}}
+    mp, msha = _manifest(
+        tmp_path, grids=[g1, g2], raws=[r1], schema="C1",
+        extra_expected={
+            "expected_tiers": ["ck262144", "ck999999"],
+            "expected_ckpt": {"ck262144": "c" * 64,
+                              "ck999999": "d" * 64},
+            "expected_raw_labels": ["fx"],
+            "expected_raw_models": {
+                "fx": {"new": "ck262144"}}})
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(tmp_path / "pc")],
+                  trusted_entries=_trust(msha))
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_untrusted_marker_rejected(
+        tmp_path, monkeypatch):
+    _fake_bank(monkeypatch)
+    mp, msha = _manifest(tmp_path, schema="C1")
+    m = json.loads(mp.read_text(encoding="utf-8"))
+    m["untrusted_candidate"] = True
+    mp.write_text(json.dumps(m), encoding="utf-8")
+    rc = osr.main(
+        ["--manifest", str(mp),
+         "--out", str(tmp_path / "ut")],
+        trusted_entries=_trust(hashlib.sha256(
+            mp.read_bytes()).hexdigest()))
+    assert rc == osr.RC_INVALID
+
+
+def test_entry_single_tier_c1_with_full_cover_pass(
+        tmp_path, monkeypatch):
+    """合法单档 C1(grid/raw 映射恰覆盖)必须通过。"""
+    _fake_bank(monkeypatch)
+    mp, msha = _manifest(tmp_path, schema="C1")
+    out = tmp_path / "ok1"
+    rc = osr.main(["--manifest", str(mp),
+                   "--out", str(out)],
+                  trusted_entries=_trust(msha))
+    assert rc == 0
+
+
 def test_trusted_table_missing_corrupt(monkeypatch, tmp_path):
     bad = tmp_path / "trusted_manifests.json"
     rc = osr.main(
@@ -455,6 +546,46 @@ def test_trusted_table_missing_corrupt(monkeypatch, tmp_path):
                        match="fail-closed"):
         osr._load_trusted_entries(
             trusted_path=bad)
+
+
+def _tt(entries):
+    p = pathlib.Path(
+        osr.__file__).parent / "trusted_manifests.json"
+    import tempfile
+    d = pathlib.Path(tempfile.mkdtemp())
+    f = d / "t.json"
+    f.write_text(json.dumps(
+        {"schema": "TRUSTED_MANIFESTS_V1",
+         "entries": entries}), encoding="utf-8")
+    return f
+
+
+def test_trusted_entry_missing_approved_by():
+    f = _tt([{"sha256": "a" * 64, "kind": "k",
+              "course_id": "c1"}])
+    with pytest.raises(cc.ContractError,
+                       match="approved_by"):
+        osr._load_trusted_entries(trusted_path=f)
+
+
+def test_trusted_entry_dup_sha_conflict():
+    e = {"sha256": "a" * 64, "kind": "k",
+         "course_id": "c1",
+         "approved_by": {"channel": "C1", "ts": "1"}}
+    f = _tt([e, dict(e, course_id="c2")])
+    with pytest.raises(cc.ContractError,
+                       match="duplicate sha"):
+        osr._load_trusted_entries(trusted_path=f)
+
+
+def test_trusted_entry_bad_approved_by_text():
+    """非空文字≠真实性:approved_by 必须是结构化引用。"""
+    f = _tt([{"sha256": "a" * 64, "kind": "k",
+              "course_id": "c1",
+              "approved_by": "approved"}])
+    with pytest.raises(cc.ContractError,
+                       match="approved_by"):
+        osr._load_trusted_entries(trusted_path=f)
 
 
 def test_emit_candidate_proposal_only(

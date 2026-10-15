@@ -57,14 +57,41 @@ def _load_trusted_entries(trusted_path=None):
             or not isinstance(t.get("entries"), list)
             or not t["entries"]):
         raise cc.ContractError("trusted table bad structure")
-    out = []
+    out, seen = [], set()
     for e in t["entries"]:
+        if not isinstance(e, dict):
+            raise cc.ContractError(
+                "trusted entry not object: %r" % (e,))
         sha = e.get("sha256")
         if not (isinstance(sha, str) and len(sha) == 64
                 and all(c in "0123456789abcdef"
                         for c in sha)):
             raise cc.ContractError(
                 "trusted entry bad sha %r" % sha)
+        if sha in seen:
+            raise cc.ContractError(
+                "trusted table duplicate sha %s" % sha)
+        seen.add(sha)
+        for k in ("kind", "course_id"):
+            v = e.get(k)
+            if not (isinstance(v, str) and v.strip()):
+                raise cc.ContractError(
+                    "trusted entry %r missing/empty %s"
+                    % (sha[:8], k))
+        ap = e.get("approved_by")
+        if (not isinstance(ap, dict) or len(ap) < 2
+                or not isinstance(ap.get("channel"),
+                                  str)
+                or not ap["channel"].strip()
+                or not all(
+                    isinstance(v, str) and v.strip()
+                    for v in ap.values())):
+            raise cc.ContractError(
+                "trusted entry %r approved_by missing/"
+                "bad structure (need dict>=2 keys with "
+                "channel + evidence; non-empty text != "
+                "authenticity — 独立审核负责真实性)"
+                % sha[:8])
         out.append(e)
     return out
 EXPECTED_TIERS = {"ck131072", "ck163840", "ck262144",
@@ -145,6 +172,40 @@ def load_manifest(path, trusted_entries) -> dict:
             raise cc.ContractError("manifest bank missing")
     # 结构:新 schema 自包含校验;golden legacy(无 schema 字段)
     # 走内置恰齐映射;其余未知 schema/version invalid。
+    def _hex64(v, what):
+        if not (isinstance(v, str) and len(v) == 64
+                and all(c in "0123456789abcdef"
+                        for c in v)):
+            raise cc.ContractError(
+                "%s not full 64-hex (rejects UNVERIFIED "
+                "placeholders): %r" % (what, v))
+        return v
+
+    if m.get("untrusted_candidate") is True:
+        raise cc.ContractError(
+            "manifest is untrusted_candidate proposal "
+            "(approval must produce a marker-free list "
+            "whose SHA is then registered)")
+    grid_tiers = {g["tier"] for g in m["grids"]}
+    for g in m["grids"]:
+        _hex64(g.get("sha"), "grid %s sha" % g["tier"])
+        _hex64(g.get("ckpt_sha"),
+               "grid %s ckpt_sha" % g["tier"])
+    raw_targets = set()
+    for r in m["raws"]:
+        _hex64(r.get("sha"), "raw %s sha" % r["label"])
+        for mm, tt in r["models"].items():
+            if tt not in grid_tiers:
+                raise cc.ContractError(
+                    "raw %s model %r -> nonexistent grid "
+                    "tier %r" % (r["label"], mm, tt))
+            raw_targets.add(tt)
+    if raw_targets != grid_tiers:
+        raise cc.ContractError(
+            "raw mapping union %r != grid tiers %r "
+            "(must exactly cover; cross-file reuse of "
+            "same tier allowed)" % (
+                sorted(raw_targets), sorted(grid_tiers)))
     sch = m.get("manifest_schema")
     if sch is None:
         if actual != GOLDEN_SHA:
@@ -348,10 +409,6 @@ def emit_candidate(args) -> int:
     """候选清单生成(仅提案):现算哈希;untrusted 水印;
     不写技能报告/不改信任表/独占输出拒绝覆盖。"""
     out = Path(args.out)
-    if out.exists():
-        print("CANDIDATE_OUT_EXISTS (refuse overwrite)",
-              file=sys.stderr)
-        return 3
     grids = []
     for spec_s in args.grid:
         tier, path, model = spec_s.split("|")
@@ -392,8 +449,14 @@ def emit_candidate(args) -> int:
                       "independent review + trusted-"
                       "manifests commit; NOT approved"),
         "grids": grids, "raws": raws}
-    out.write_text(json.dumps(cand, ensure_ascii=False,
-                              indent=1), encoding="utf-8")
+    try:
+        with out.open("x", encoding="utf-8") as fh:
+            fh.write(json.dumps(
+                cand, ensure_ascii=False, indent=1))
+    except FileExistsError:
+        print("CANDIDATE_OUT_EXISTS (refuse overwrite)",
+              file=sys.stderr)
+        return 3
     print("CANDIDATE_WRITTEN %s (untrusted)" % out)
     return 0
 
