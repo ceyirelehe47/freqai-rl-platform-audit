@@ -306,24 +306,6 @@ def _validate_action_entry(a: dict) -> None:
             "NaN/invalid p_gate %r" % p)
 
 
-def _typed_intersect(a: dict, b: dict) -> bool:
-    """两个类型化条目是否存在共同可接受动作。"""
-    if a["kind"] == "hold" or b["kind"] == "hold":
-        # HOLD 与任何条目:仅当对方含 hold 或 atom 0/区间含 0
-        # (HOLD≈保持数量,不等于比例 0;此处仅集合相容性:
-        # hold 条目与 hold 条目相容)
-        return a["kind"] == "hold" and b["kind"] == "hold"
-    if a["kind"] == "atom" and b["kind"] == "atom":
-        return a["value"] == b["value"]
-    if a["kind"] == "interval" and b["kind"] == "interval":
-        return (max(float(a["lo"]), float(b["lo"]))
-                < min(float(a["hi"]), float(b["hi"])))
-    iv, at = ((a, b) if a["kind"] == "interval"
-              else (b, a))
-    return float(iv["lo"]) <= float(at["value"]) <= float(
-        iv["hi"])
-
-
 def _group_acceptable(acts) -> dict:
     """一组 allowed 的可接受动作集合:hold 标记+原子集+区间。"""
     atoms, ivs, hold = set(), [], False
@@ -354,8 +336,10 @@ def _common_nonempty(gs: list) -> bool:
 
 
 def check_same_obs_mutex(teaching: list) -> None:
-    """同 obs 相容性(类型化,共同交集):组内=条目并集,组间=
-    共同交集;空共同交集(即使两两重叠)=冲突。"""
+    """同 obs 相容性语义(单 1792096619 精确化):
+    每条记录先构造自身允许动作**并集**(hold 标记+原子集+区间),
+    再对同 obs 的**全部记录**求**共同交集**(非任意两项、非仅
+    两两);共同交集空=冲突;**单条非空合法集合直接相容**。"""
     by_obs = {}
     for entry in teaching:
         acts = entry.get("allowed_actions")

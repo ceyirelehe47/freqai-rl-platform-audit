@@ -129,6 +129,41 @@ def test_same_obs_common_intersection_semantics():
              "allowed_actions": [_atom(1.0)]}])
 
 
+def test_g1g2_g3_disjoint_atoms_rejected():
+    """完整单反例:G1={-1},G2={-1},G3={+1} 同 obs——
+    两两多有重叠但共同交集空,必须拒(不得 flatten 后
+    见任意两项重叠就放行)。"""
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs,
+             "allowed_actions": [_atom(-1.0)]},
+            {"obs": obs,
+             "allowed_actions": [_atom(-1.0)]},
+            {"obs": obs,
+             "allowed_actions": [_atom(1.0)]}])
+
+
+def test_single_record_union_atoms_directly_compatible():
+    """完整单反例:单条记录自身允许并集 {-1,+1} 合法——
+    直接相容(不得因"内部两项不相交"误拒);两条同并集亦过。"""
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions":
+         [_atom(-1.0), _atom(1.0)]}])       # 单条并集
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions":
+         [_atom(-1.0), _atom(1.0)]},
+        {"obs": obs, "allowed_actions":
+         [_atom(-1.0), _atom(1.0)]}])       # 两记录共同交集非空
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions":
+         [_atom(-1.0), _atom(1.0)]},
+        {"obs": obs,
+         "allowed_actions": [_atom(-1.0)]}])  # 交={-1}
+
+
 def test_same_obs_consistent_union_ok():
     obs = uc.obs_vector(STATE, ACCT, HOR)
     uc.check_same_obs_mutex([
