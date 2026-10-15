@@ -212,19 +212,31 @@ if ts_flag == 0:
     if skipped != 0:
         print("SKIPPED_NONZERO")
         ok = False
-    # 冻结预期清单(版本化;新增测试须更新清单,不以当次收集为准)
-    if ef_path and os.path.isfile(ef_path):
-        frozen = {ln.strip() for ln in open(
-            ef_path, encoding="utf-8") if ln.strip()
-            and not ln.startswith("#")}
-        got_last = {g.split("::")[-1] for g in got}
-        frozen_last = {f.split("::")[-1] for f in frozen}
-        print(f"frozen_cases={len(frozen_last)} junit_cases={len(got_last)}")
-        if got_last != frozen_last:
-            miss = sorted(frozen_last - got_last)[:4]
-            extra = sorted(got_last - frozen_last)[:4]
-            print(f"FROZEN_MISMATCH missing={miss} extra={extra}")
+    # 冻结预期清单:必须存在/可解析/数量正确(缺失即失败,不跳过)
+    if not ef_path or not os.path.isfile(ef_path):
+        print("FROZEN_MANIFEST_MISSING: %r" % ef_path)
+        ok = False
+    else:
+        sys.path.insert(0, os.path.dirname(ef_path) or ".")
+        import check_frozen_manifest as cfm
+        try:
+            info = cfm.validate_frozen_manifest(ef_path)
+        except SystemExit as exc:
+            print("FROZEN_MANIFEST_INVALID: %s" % exc)
             ok = False
+            info = None
+        if info is not None:
+            frozen = set(info["cases"])
+            got_last = {g.split("::")[-1] for g in got}
+            frozen_last = {f.split("::")[-1] for f in frozen}
+            print(f"frozen_cases={len(frozen_last)} "
+                  f"junit_cases={len(got_last)}")
+            if got_last != frozen_last:
+                miss = sorted(frozen_last - got_last)[:4]
+                extra = sorted(got_last - frozen_last)[:4]
+                print(f"FROZEN_MISMATCH missing={miss} "
+                      f"extra={extra}")
+                ok = False
 print("junit_consistency=" + ("OK" if ok else "BAD"))
 sys.exit(0 if ok else 1)
 PYEOF
