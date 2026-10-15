@@ -1253,3 +1253,129 @@ def test_existing_evidence_dir_untouched(tmp_path):
     assert [e["event"] for e in ev] == ["intent",
                                         "failed"]
     assert ev[1]["stage"] == "evidence_root"
+
+
+# ---- 27. rev5:git 平台选择(假 which/假 subprocess) ---------
+def test_git_selection_posix_native_only(monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "posix")
+    monkeypatch.setattr(pc.shutil, "which", lambda n: (
+        "/mnt/c/Program Files/Git/cmd/git.exe"
+        if n == "git.exe" else "/usr/bin/git"))
+    sel = pc._select_git_impl()
+    assert sel["exe"] == "/usr/bin/git"
+    assert sel["platform"] == "posix"
+    assert sel["selection"] == "native-git-only"
+
+
+def test_git_selection_posix_exe_resolution_refused(
+        monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "posix")
+    monkeypatch.setattr(pc.shutil, "which", lambda n: (
+        "/mnt/c/Program Files/Git/cmd/git.exe"))
+    with pytest.raises(RuntimeError,
+                       match="interop hazard"):
+        pc._select_git_impl()
+
+
+def test_git_selection_nt_prefers_exe(monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "nt")
+    monkeypatch.setattr(pc.shutil, "which", lambda n: (
+        "C:/Program Files/Git/cmd/git.EXE"
+        if n == "git.exe" else "C:/other/git"))
+    sel = pc._select_git_impl()
+    assert sel["exe"].endswith(".EXE")
+    assert sel["platform"] == "nt"
+
+
+def test_git_selection_missing_raises(monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "posix")
+    monkeypatch.setattr(pc.shutil, "which",
+                        lambda n: None)
+    with pytest.raises(RuntimeError,
+                       match="native git missing"):
+        pc._select_git_impl()
+
+
+def test_git_head_native_and_diag_on_fail(monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "posix")
+    monkeypatch.setattr(pc.shutil, "which", lambda n: (
+        "/usr/bin/git" if n == "git"
+        else "/x/git.exe"))
+    calls = []
+
+    class FR:
+        def __init__(self, rc, out, err):
+            self.returncode = rc
+            self.stdout = out
+            self.stderr = err
+
+    def fake_run(cmd, **k):
+        calls.append(cmd)
+        return FR(128, "",
+                  "fatal: cannot change to '/mnt/f/x'")
+
+    monkeypatch.setattr(pc.subprocess, "run", fake_run)
+    plan = {"source": {"repo": "/mnt/f/x"}}
+    with pytest.raises(RuntimeError) as ei:
+        pc._real_git_head(plan)
+    assert calls[0][0] == "/usr/bin/git"
+    assert "fatal: cannot change to '/mnt/f/x'" in str(
+        ei.value)
+    assert "rc=128" in str(ei.value)
+
+
+def test_verify_sources_native_meta_and_match(monkeypatch):
+    monkeypatch.setattr(pc.os, "name", "posix")
+    monkeypatch.setattr(pc.shutil, "which", lambda n: (
+        "/usr/bin/git" if n == "git" else None))
+    blob = "b" * 40
+
+    class FR:
+        def __init__(self, rc, out, err=""):
+            self.returncode = rc
+            self.stdout = out
+            self.stderr = err
+
+    def fake_run(cmd, **k):
+        if "ls-tree" in cmd:
+            return FR(0, "100644 blob %s\tp\n" % blob)
+        return FR(0, blob + "\n")
+
+    monkeypatch.setattr(pc.subprocess, "run", fake_run)
+    plan = {"source": {"repo": "/r",
+                       "git_head_pinned": "c" * 40}}
+    out = pc._real_verify_sources(plan)
+    assert out["_git_impl"]["exe"] == "/usr/bin/git"
+    mods = [k for k in out if k != "_git_impl"]
+    assert len(mods) == len(pc.SOURCE_MODULES)
+    assert all(out[m]["match"] for m in mods)
+
+
+# ---- 28. rev5:护栏方法解析(纯类语义,零真实 step) ----------
+def test_guard_method_resolution_adam_override():
+    """torch 语义:Adam.step 覆盖 Optimizer.step——只打基类
+    不拦 Adam 实例;必须直接覆盖实际 Adam.step(纯类演示,
+    不导入 torch、不执行任何真实 step)。"""
+    class FakeOptimizer:
+        def step(self):
+            return "base"
+
+    class FakeAdam(FakeOptimizer):
+        def step(self):
+            return "adam"
+
+    def base_guard(self):
+        return "base-guard"
+
+    FakeOptimizer.step = base_guard
+    a = FakeAdam()
+    assert a.step() == "adam"  # 基类护栏被覆盖绕过
+    hits = []
+
+    def adam_guard(self):
+        hits.append(1)
+        return "adam-guard"
+
+    FakeAdam.step = adam_guard
+    assert a.step() == "adam-guard"
+    assert hits == [1]

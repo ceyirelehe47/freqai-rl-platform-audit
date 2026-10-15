@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -269,33 +270,71 @@ def _real_bank_items(bank_path):
     return load_p0_bank(Path(bank_path))
 
 
+def _select_git_impl() -> dict:
+    """按平台选定唯一 git 实现(整轮固定,不静默回退)。
+
+    POSIX/WSL:只选原生 git(绝不回退 git.exe——WSL 的
+    Windows PATH interop 会让 which("git.exe") 命中的
+    Windows git 无法 -C /mnt/f/...,ls-tree rc=128)。
+    Windows(nt):选 Windows Git(git.exe)。
+    选择失败立即报错,不做任何降级。
+    """
+    if os.name == "nt":
+        exe = shutil.which("git.exe") or shutil.which("git")
+        if not exe:
+            raise RuntimeError(
+                "git executable missing on nt")
+        return {"exe": exe, "platform": "nt",
+                "selection": "git.exe-or-git"}
+    exe = shutil.which("git")
+    if not exe:
+        raise RuntimeError(
+            "native git missing on posix (no fallback to "
+            "git.exe)")
+    if exe.lower().endswith(".exe"):
+        raise RuntimeError(
+            "posix selection resolved to a .exe (%r); "
+            "refusing (interop hazard)" % exe)
+    return {"exe": exe, "platform": "posix",
+            "selection": "native-git-only"}
+
+
+def _git_run(sel, repo, args) -> subprocess.CompletedProcess:
+    """运行选定 git;诊断(exe/args/rc/stderr)随结果携带。"""
+    cmd = [sel["exe"], "-C", repo] + list(args)
+    r = subprocess.run(cmd, capture_output=True, text=True,
+                       timeout=600)
+    r.diag = {"exe": sel["exe"], "platform": sel[
+        "platform"], "args": list(args), "rc": (
+        r.returncode), "stderr": r.stderr}
+    return r
+
+
 def _real_verify_sources(plan) -> dict:
-    """源码 vs 来源候选 commit blob 全等(Windows git.exe)。"""
+    """源码 vs 来源候选 commit blob 全等(平台化 git 选择)。
+
+    失败时 RuntimeError 内嵌完整诊断(exe/args/rc/stderr,
+    不截断);成功时返回体携带 _git_impl 诊断键(非模块项)。
+    """
     repo = plan["source"]["repo"]
     candidate = plan["source"]["git_head_pinned"]
-    exe = shutil.which("git.exe") or shutil.which("git")
-    if not exe:
-        raise RuntimeError("git executable missing")
+    sel = _select_git_impl()
     out = {}
     for rel in SOURCE_MODULES:
         rel_repo = ("stage2_7_0/" + rel)
-        lt = subprocess.run(
-            [exe, "-C", repo, "ls-tree", candidate, "--",
-             rel_repo], capture_output=True, text=True,
-            timeout=120)
+        lt = _git_run(sel, repo, [
+            "ls-tree", candidate, "--", rel_repo])
         if lt.returncode != 0:
             raise RuntimeError(
-                "ls-tree rc=%d for %s" % (
-                    lt.returncode, rel_repo))
+                "ls-tree rc=%d for %s diag=%r" % (
+                    lt.returncode, rel_repo, lt.diag))
         blob = (lt.stdout.split("\t")[0].split()[2]
                 if len(lt.stdout.split()) >= 3 else None)
-        ho = subprocess.run(
-            [exe, "-C", repo, "hash-object", rel_repo],
-            capture_output=True, text=True, timeout=120)
+        ho = _git_run(sel, repo, ["hash-object", rel_repo])
         if ho.returncode != 0:
             raise RuntimeError(
-                "hash-object rc=%d for %s" % (
-                    ho.returncode, rel_repo))
+                "hash-object rc=%d for %s diag=%r" % (
+                    ho.returncode, rel_repo, ho.diag))
         ok = (blob is not None
               and ho.stdout.strip() == blob)
         out[rel] = {"candidate_blob": blob,
@@ -304,17 +343,18 @@ def _real_verify_sources(plan) -> dict:
         if not ok:
             raise RuntimeError(
                 "source drifted vs candidate: %s" % rel)
+    out["_git_impl"] = dict(sel, match=True,
+                            note="meta key; not a module")
     return out
 
 
 def _real_git_head(plan) -> str:
     repo = plan["source"]["repo"]
-    exe = shutil.which("git.exe") or shutil.which("git")
-    r = subprocess.run(
-        [exe, "-C", repo, "rev-parse", "HEAD"],
-        capture_output=True, text=True, timeout=120)
+    sel = _select_git_impl()
+    r = _git_run(sel, repo, ["rev-parse", "HEAD"])
     if r.returncode != 0:
-        raise RuntimeError("rev-parse rc=%d" % r.returncode)
+        raise RuntimeError("rev-parse rc=%d diag=%r" % (
+            r.returncode, r.diag))
     return r.stdout.strip()
 
 
