@@ -34,17 +34,21 @@ UNIFIED_TASK = {
     "task_id": "unified-posctl-candidate-v1",
     "schema": SPEC_SCHEMA,
     "status": STATUS,
-    "transition_kernel": {  # 完整 Markov 转移(候选值)
+    "transition_kernel": {  # 完整 Markov 转移(候选值;语义精确:
+        # D2 候选=重抽概率 .22 → hold=.78;校准未完成不影响语义)
         "s": {"values": [-1, 0, 1],
-              "hold_p": 0.22,          # D2 候选
-              "resample": "uniform_over_values"},
+              "hold_p": 0.78, "resample_p": 0.22,
+              "resample_dist": "uniform_over_values"},
         "c": {"values": [0, 1],
-              "hold_p": 0.75},
+              "hold_p": 0.75, "resample_p": 0.25,
+              "resample_dist": "uniform_over_{0,1}"},
         "q": {"values": [0.0, 0.25, 0.5, 0.75, 1.0],
               "hold_p": 0.80,
-              "fresh_p": [0.125, 0.25, 0.25, 0.25, 0.125]},
+              "fresh_p": [0.125, 0.25, 0.25, 0.25, 0.125],
+              "resample_dist": "fresh_p_over_5_levels"},
         "g": {"values": [0, 1],
-              "hold_p": 0.80}},
+              "hold_p": 0.80, "resample_p": 0.20,
+              "resample_dist": "uniform_over_{0,1}"}},
     "drift": "mu_eff = s*c*q*mu_candidate",
     "mu_candidate": 1.2e-3,      # 候选;未校准(旧C1实跑 .004 属旧任务)
     "noise": "r_t = mu_eff(state_{t-1}) + sqrt(3)*sigma(g)*U, U~Unif(-1,1)",
@@ -180,16 +184,26 @@ SEVEN_SKILLS = {
         "coverage_axes": ["q(5)", "现仓(4类)", "horizon(3)"],
         "gate_status": "not_specified"}}
 
-# 演示用示例数字(仅冻结逻辑演示;禁止作为正式门)
-EXAMPLE_NUMBERS = (0.90, 0.95, 0.70)
+
 
 
 # ================= 纯数据验证器 =================================
 
 def obs_vector(state: dict, account: dict,
                horizon: dict, columns=None) -> dict:
-    """按名构造观察(列序由 columns 决定;必须带名序列化)。"""
-    columns = list(columns or OBS_COLUMNS)
+    """按名构造观察。列绑定唯一:columns 必须逐字等于冻结
+    OBS_COLUMNS(顺序含);未知列/重复列/未来列/改序即拒。"""
+    if columns is not None and list(columns) != list(
+            OBS_COLUMNS):
+        bad = [c for c in columns
+               if list(columns).count(c) > 1
+               or c not in OBS_COLUMNS]
+        raise UnifiedSpecError(
+            "columns %r != frozen OBS_COLUMNS (unknown/"
+            "duplicate/future/reordered rejected%s)"
+            % (list(columns),
+               "; e.g. %r" % bad[:3] if bad else ""))
+    columns = list(OBS_COLUMNS)
     vals = dict(state)
     vals.update(account)
     vals.update(horizon)
@@ -241,38 +255,129 @@ def verify_serialization(ser: dict, expected_state: dict) -> None:
                 "want %r" % (k, vec[k], v))
 
 
+ARMS = ("A", "B")
+KINDS = ("hold", "atom", "interval")
+
+
+def _validate_action_entry(a: dict) -> None:
+    if not isinstance(a, dict):
+        raise UnifiedSpecError(
+            "allowed entry must be typed dict, got %r" % (a,))
+    arm = a.get("arm")
+    if arm not in ARMS:
+        raise UnifiedSpecError("unknown arm %r" % arm)
+    kind = a.get("kind")
+    if kind not in KINDS:
+        raise UnifiedSpecError("unknown kind %r" % kind)
+    if kind == "atom":
+        v = a.get("value")
+        if v not in (-1.0, 0.0, 1.0):
+            raise UnifiedSpecError(
+                "atom value %r not in {-1,0,1}" % v)
+    if kind == "interval":
+        lo, hi = a.get("lo"), a.get("hi")
+        for x in (lo, hi):
+            if not (isinstance(x, (int, float))
+                    and math.isfinite(float(x))):
+                raise UnifiedSpecError(
+                    "interval bound non-finite %r/%r" % (lo, hi))
+        if not (-1.0 <= float(lo) < float(hi) <= 1.0):
+            raise UnifiedSpecError(
+                "interval inverted/out-of-bounds [%r,%r]"
+                % (lo, hi))
+    p = a.get("p_gate")
+    if p is not None and (not isinstance(p, (int, float))
+                          or isinstance(p, bool)
+                          or not math.isfinite(float(p))):
+        raise UnifiedSpecError(
+            "NaN/invalid p_gate %r" % p)
+
+
+def _typed_intersect(a: dict, b: dict) -> bool:
+    """两个类型化条目是否存在共同可接受动作。"""
+    if a["kind"] == "hold" or b["kind"] == "hold":
+        # HOLD 与任何条目:仅当对方含 hold 或 atom 0/区间含 0
+        # (HOLD≈保持数量,不等于比例 0;此处仅集合相容性:
+        # hold 条目与 hold 条目相容)
+        return a["kind"] == "hold" and b["kind"] == "hold"
+    if a["kind"] == "atom" and b["kind"] == "atom":
+        return a["value"] == b["value"]
+    if a["kind"] == "interval" and b["kind"] == "interval":
+        return (max(float(a["lo"]), float(b["lo"]))
+                < min(float(a["hi"]), float(b["hi"])))
+    iv, at = ((a, b) if a["kind"] == "interval"
+              else (b, a))
+    return float(iv["lo"]) <= float(at["value"]) <= float(
+        iv["hi"])
+
+
 def check_same_obs_mutex(teaching: list) -> None:
-    """同 obs 互斥标签拒绝:完全相同可见状态的允许集合冲突即败。"""
+    """同 obs 相容性(类型化):字符串标签交集不足以表达连续
+    动作;逐条目类型校验+两两类型化相交,全不相容即冲突。"""
     by_obs = {}
     for entry in teaching:
+        acts = entry.get("allowed_actions")
+        if not acts:
+            raise UnifiedSpecError(
+                "empty allowed set for obs %r"
+                % (entry.get("obs"),))
+        for a in acts:
+            _validate_action_entry(a)
         key = tuple(sorted(entry["obs"].items()))
-        by_obs.setdefault(key, []).append(entry)
-    for key, group in by_obs.items():
-        allowed = [frozenset(e["allowed_actions"])
-                   for e in group]
-        if any(not a for a in allowed):
-            raise UnifiedSpecError(
-                "empty allowed set for obs %r" % (dict(key),))
-        inter = frozenset.intersection(*allowed)
-        if not inter:
-            raise UnifiedSpecError(
-                "conflicting labels: same obs %r has disjoint "
-                "allowed sets %r" % (dict(key),
-                                     [sorted(a) for a in allowed]))
+        by_obs.setdefault(key, []).append(acts)
+    for key, groups in by_obs.items():
+        flat = [a for g in groups for a in g]
+        for i in range(len(flat)):
+            for j in range(i + 1, len(flat)):
+                if _typed_intersect(flat[i], flat[j]):
+                    break
+            else:
+                continue
+            break
+        else:
+            if len(flat) > 1:
+                raise UnifiedSpecError(
+                    "conflicting labels: same obs %r has "
+                    "mutually-exclusive typed allowed sets"
+                    % (dict(key),))
+
+
+# 决策相关 spec 全字段(签名必须覆盖;缺一即换任务可被隐藏)
+TASK_SIGNATURE_FIELDS = (
+    "transition_kernel", "drift", "mu_candidate", "noise",
+    "sigma_by_g", "economy", "horizon", "account_encoding",
+    "obs_columns", "action_families", "decode_ids")
+
+
+def task_signature(v: dict) -> tuple:
+    """同 task 决策签名:漂移/风险/噪声/完整转移/经济/观察
+    编码/期限/动作族/解码 全量;obs 列与解码从声明取。"""
+    parts = [json_lite(v.get(f)) for f in
+             TASK_SIGNATURE_FIELDS[:-2]]
+    parts.append(json_lite(list(
+        v.get("obs_columns") or OBS_COLUMNS)))
+    fam = v.get("action_families") or ACTION_FAMILIES
+    parts.append(json_lite(
+        {k: {"arm": x.get("arm"),
+             "decode_id": x.get("decode_id")}
+         for k, x in fam.items()}))
+    return tuple(parts)
 
 
 def check_hidden_task_swap(variants: list) -> None:
-    """同 task_id 不同核/费/期限 = 隐藏换任务,拒绝。"""
+    """同 task_id 决策签名不同 = 隐藏换任务,拒绝(全字段)。"""
     seen = {}
     for v in variants:
         tid = v["task_id"]
-        sig = (json_lite(v.get("transition_kernel")),
-               json_lite(v.get("economy")),
-               v.get("horizon"))
+        sig = task_signature(v)
         if tid in seen and seen[tid] != sig:
+            import difflib
+            diff = [f for f in TASK_SIGNATURE_FIELDS
+                    [:len(TASK_SIGNATURE_FIELDS) - 2]]
             raise UnifiedSpecError(
-                "hidden task swap: task_id %r differs in kernel/"
-                "economy/horizon" % tid)
+                "hidden task swap: task_id %r differs in "
+                "decision-relevant spec (fields: %r...)"
+                % (tid, diff[:4]))
         seen[tid] = sig
 
 
@@ -281,25 +386,47 @@ def json_lite(o) -> str:
     return json.dumps(o, sort_keys=True, default=str)
 
 
+FLAT_SOLVENCY_CAP = 40.0   # 固定编码常数(输入不可自选 cap)
+
+
 def check_ledger_account(acct: dict) -> None:
-    """合法账本 exposure/solvency 一致性。
-    非 flat: solvency = 1/|exposure|;flat: solvency 原值 inf→cap40;
-    禁止静默截断(截断痕迹=提供值与应得值不符且带 truncate 标记)。"""
+    """合法账本一致性(全有限;flat 唯一合法原值=+inf 再按固定
+    cap 40 编码;非 flat=1/|e|;NaN/-inf/自选 cap 拒)。"""
     e = float(acct["exposure"])
-    s_raw = acct.get("solvency_raw")
+    if not math.isfinite(e):
+        raise UnifiedSpecError(
+            "non-finite exposure %r" % e)
+    raw = acct.get("solvency_raw", "__missing__")
+    capped = acct.get("solvency_capped", "__missing__")
+    if raw == "__missing__" or capped == "__missing__":
+        raise UnifiedSpecError(
+            "ledger entry missing solvency_raw/capped")
     if abs(e) < 1e-12:
-        if s_raw is not None and math.isfinite(s_raw):
+        # flat:唯一合法原值 = +inf(不允许 -inf/NaN/有限值)
+        if raw != math.inf:
             raise UnifiedSpecError(
-                "flat with finite solvency_raw %r" % s_raw)
-        if abs(float(acct["solvency_capped"]) - 40.0) > 1e-9:
+                "flat solvency_raw must be +inf; got %r "
+                "(-inf/NaN/finite rejected)" % (raw,))
+        if abs(float(capped) - FLAT_SOLVENCY_CAP) > 1e-9:
             raise UnifiedSpecError(
-                "flat solvency cap must be 40")
+                "flat encoding must use fixed cap %.1f "
+                "(got %r; input cannot choose cap)"
+                % (FLAT_SOLVENCY_CAP, capped))
     else:
+        if (isinstance(raw, float)
+                and not math.isfinite(raw)):
+            raise UnifiedSpecError(
+                "non-flat non-finite solvency_raw %r" % raw)
         want = 1.0 / abs(e)
-        if abs(float(s_raw) - want) > 1e-9:
+        if abs(float(raw) - want) > 1e-9:
             raise UnifiedSpecError(
                 "non-flat solvency %r != 1/|e|=%r "
-                "(silent truncation?)" % (s_raw, want))
+                "(silent truncation?)" % (raw, want))
+        want_cap = min(want, FLAT_SOLVENCY_CAP)
+        if abs(float(capped) - want_cap) > 1e-9:
+            raise UnifiedSpecError(
+                "non-flat capped %r != min(raw,%.1f)=%r"
+                % (capped, FLAT_SOLVENCY_CAP, want_cap))
 
 
 def check_future_fields(inputs: dict) -> None:
@@ -320,23 +447,44 @@ def internal_interval_upper_bound_arm_a() -> float:
 
 
 def check_action_expressiveness(gate_request: dict) -> None:
-    """门可达性检查:A 臂 + 严格单侧内部区间(不含 0/±1)+ 门
-    > .5 → 不可表达拒绝(建议 B 臂);B 臂可达性=candidate 未验,
-    不得宣称已证。"""
-    arm = gate_request["arm"]
-    lo, hi = gate_request["interval"]
-    p = gate_request["threshold"]
-    strictly_interior_one_side = (
-        (lo > 0 or hi < 0) and lo > -1 + 1e-12
-        and hi < 1 - 1e-12 and lo < hi)
-    if arm == "A" and strictly_interior_one_side:
-        bound = internal_interval_upper_bound_arm_a()
-        if p > bound + 1e-12:
+    """门可达性检查。**适用域**:A 臂内部上界规则仅适用于
+    flat 起点+目标区间(flat 开仓上界论断);其余域不套用。
+    NaN 门/倒置区间拒;B 臂可达性=candidate 未验不得宣称已证。"""
+    arm = gate_request.get("arm")
+    if arm not in ARMS:
+        raise UnifiedSpecError("unknown arm %r" % arm)
+    lo, hi = gate_request.get("interval", (None, None))
+    for x in (lo, hi):
+        if not (isinstance(x, (int, float))
+                and math.isfinite(float(x))):
             raise UnifiedSpecError(
-                "not expressible: A-arm analytic upper bound %.2f "
-                "< requested gate %.2f for interior interval "
-                "[%.2f,%.2f]; use B-arm (candidate) or change "
-                "decode" % (bound, p, lo, hi))
+                "interval bound invalid %r/%r" % (lo, hi))
+    if not (-1.0 <= float(lo) < float(hi) <= 1.0):
+        raise UnifiedSpecError(
+            "interval inverted/out-of-bounds [%r,%r]"
+            % (lo, hi))
+    p = gate_request.get("threshold")
+    if (not isinstance(p, (int, float))
+            or isinstance(p, bool)
+            or not math.isfinite(float(p))):
+        raise UnifiedSpecError(
+            "NaN/invalid threshold %r" % p)
+    if gate_request.get("initial_state") != "flat":
+        # 上界论断仅 flat 起点;非 flat 不在本规则适用域
+        pass
+    else:
+        strictly_interior_one_side = (
+            (lo > 0 or hi < 0) and lo > -1 + 1e-12
+            and hi < 1 - 1e-12)
+        if arm == "A" and strictly_interior_one_side:
+            bound = internal_interval_upper_bound_arm_a()
+            if p > bound + 1e-12:
+                raise UnifiedSpecError(
+                    "not expressible: A-arm analytic upper bound "
+                    "%.2f < gate %.2f for interior interval "
+                    "[%.2f,%.2f] at flat start; use B-arm "
+                    "(candidate) or change decode"
+                    % (bound, p, lo, hi))
     if arm == "B":
         if ACTION_FAMILIES["B_asymmetric_beta"][
                 "reachability"] != "candidate_unverified":
@@ -363,39 +511,58 @@ def check_decode_identity(report: dict) -> None:
 
 
 def check_graduation_claim(skill_status: dict) -> None:
-    """未冻结门不得毕业;示例数字不得当正式门。"""
+    """毕业判定的合法身份链:须(1)注册表内技能;(2)门已 frozen;
+    (3)graduated 附**结构化门记录**={task_id,spec/gate_version,
+    approval{channel,ref}}——批准是身份/状态问题,不是数字黑名单;
+    未校准(not_specified)一律不可毕业(本段七技能全部如此)。"""
     for skill, st in skill_status.items():
         if skill not in SEVEN_SKILLS:
             raise UnifiedSpecError(
                 "unknown skill %r (not in seven-skill registry)"
                 % skill)
-        gate = st.get("gate")
-        if st.get("graduated") and gate is None:
-            raise UnifiedSpecError(
-                "skill %r claims graduation without frozen gate"
-                % skill)
-        if gate is not None:
-            # 示例数字优先拒绝(即使门未冻结也先点名)
-            for ex in EXAMPLE_NUMBERS:
-                if (isinstance(gate, (int, float))
-                        and abs(float(gate) - ex) < 1e-12):
-                    raise UnifiedSpecError(
-                        "example number %.2f used as official "
-                        "gate (design-v1 demo only)" % ex)
-            if SEVEN_SKILLS[skill][
-                    "gate_status"] != "frozen":
+        if SEVEN_SKILLS[skill]["gate_status"] != "frozen":
+            if st.get("graduated") or st.get("gate") is not None:
                 raise UnifiedSpecError(
-                    "skill %r gate not frozen; cannot graduate "
-                    "or evaluate" % skill)
+                    "skill %r gate not frozen (uncalibrated); "
+                    "no graduation/gate claim allowed — "
+                    "rejection is about missing independent "
+                    "approval & uncalibrated status, not about "
+                    "any particular number" % skill)
+            continue
+        gate = st.get("gate")
+        if st.get("graduated"):
+            if not isinstance(gate, dict):
+                raise UnifiedSpecError(
+                    "skill %r graduation requires structured "
+                    "gate record, got %r" % (skill, gate))
+            for k in ("task_id", "gate_version", "approval"):
+                if k not in gate:
+                    raise UnifiedSpecError(
+                        "skill %r gate record missing %r"
+                        % (skill, k))
+            ap = gate["approval"]
+            if (not isinstance(ap, dict)
+                    or not isinstance(ap.get("channel"),
+                                      str)
+                    or not ap.get("channel").strip()
+                    or not isinstance(ap.get("ref"), str)
+                    or not ap.get("ref").strip()):
+                raise UnifiedSpecError(
+                    "skill %r approval must be structured "
+                    "{channel,ref}" % skill)
+            if gate["task_id"] != UNIFIED_TASK["task_id"]:
+                raise UnifiedSpecError(
+                    "skill %r gate task binding mismatch" % skill)
 
 
 def build_registry_snapshot() -> dict:
-    """七技能注册表快照(门状态/先修/覆盖只读)。"""
+    """七技能注册表快照(深拷贝;改快照不得反写全局注册)。"""
+    import copy
     return {
         "schema": SPEC_SCHEMA,
-        "task": UNIFIED_TASK,
-        "action_families": ACTION_FAMILIES,
-        "skills": SEVEN_SKILLS,
+        "task": copy.deepcopy(UNIFIED_TASK),
+        "action_families": copy.deepcopy(ACTION_FAMILIES),
+        "skills": copy.deepcopy(SEVEN_SKILLS),
         "combination_module": {
             "note": ("七技能通过不自动证明组合;组合题单列"
                      "(设计v1 §6),门 not_specified"),
