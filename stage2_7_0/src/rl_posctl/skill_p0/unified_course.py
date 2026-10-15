@@ -217,6 +217,38 @@ SEVEN_SKILLS = {
 
 # ================= 纯数据验证器 =================================
 
+def validate_obs_fields(vals: dict) -> None:
+    """完整 8 字段观察的**双侧同一严格 schema**:全字段在场、
+    严格数值类型(拒 bool/str,不做静默 float 转换)、有限、
+    特征域合法。obs_vector / same-obs / 序列化 complete 校验
+    共用本函数。"""
+    if (not isinstance(vals, dict)
+            or set(vals) != set(OBS_COLUMNS)):
+        raise UnifiedSpecError(
+            "obs must carry exactly the 8 contract fields "
+            "(got %r)" % (sorted(vals) if isinstance(
+                vals, dict) else type(vals).__name__))
+    sv = _num(vals["s"], "obs s")
+    if sv not in (-1.0, 0.0, 1.0):
+        raise UnifiedSpecError(
+            "obs s out of {-1,0,1}: %r" % sv)
+    for f in ("c", "g", "q"):
+        fv = _num(vals[f], "obs %s" % f)
+        if not 0.0 <= fv <= 1.0:
+            raise UnifiedSpecError(
+                "obs %s out of [0,1]: %r" % (f, fv))
+    for f in ("account_exposure", "account_solvency"):
+        _num(vals[f], "obs %s" % f)   # 有限即可(编码域)
+    for f in ("remaining_horizon", "total_horizon"):
+        hv = vals[f]
+        if (isinstance(hv, bool)
+                or not isinstance(hv, int) or hv < 1):
+            raise UnifiedSpecError(
+                "obs %s must be positive int: %r" % (f, hv))
+    if vals["remaining_horizon"] > vals["total_horizon"]:
+        raise UnifiedSpecError("remaining > total horizon")
+
+
 def obs_vector(state: dict, account: dict,
                horizon: dict, columns=None) -> dict:
     """按名构造观察。列绑定唯一:columns 必须逐字等于冻结
@@ -243,26 +275,7 @@ def obs_vector(state: dict, account: dict,
         raise UnifiedSpecError(
             "obs carries non-contract fields %r "
             "(future/non-input leakage)" % extra)
-    # 特征域:严格类型+有限+合法域
-    sv = _num(vals["s"], "obs s")
-    if sv not in (-1.0, 0.0, 1.0):
-        raise UnifiedSpecError("obs s out of {-1,0,1}: %r"
-                               % sv)
-    for f, dom in (("c", (0.0, 1.0)), ("g", (0.0, 1.0)),
-                   ("q", (0.0, 1.0))):
-        fv = _num(vals[f], "obs %s" % f)
-        if not (dom[0] <= fv <= dom[1]):
-            raise UnifiedSpecError(
-                "obs %s out of [0,1]: %r" % (f, fv))
-    for f in ("remaining_horizon", "total_horizon"):
-        hv = vals[f]
-        if (isinstance(hv, bool)
-                or not isinstance(hv, int) or hv < 1):
-            raise UnifiedSpecError(
-                "obs %s must be positive int: %r" % (f, hv))
-    if vals["remaining_horizon"] > vals["total_horizon"]:
-        raise UnifiedSpecError(
-            "remaining > total horizon")
+    validate_obs_fields(vals)   # 与 same-obs/complete 同一 schema
     return {c: vals[c] for c in columns}
 
 
@@ -289,28 +302,32 @@ def verify_serialization_partial(ser: dict,
             "is a no-op and rejected)")
     vec = check_column_binding(ser)
     for k, v in expected_state.items():
-        if float(vec[k]) != float(v):
+        if vec[k] != v:
             raise UnifiedSpecError(
                 "column permutation/labeling error at %r: got %r "
-                "want %r" % (k, vec[k], v))
+                "want %r (strict equality; no silent coercion)"
+                % (k, vec[k], v))
 
 
 def verify_serialization_complete(ser: dict,
                                   full_expected: dict) -> None:
-    """**完整**比对:八字段全给、全有限、特征域合法;缺任一
-    字段或其余七列错值都必须失败(partial 不算完整已验)。"""
+    """**完整**比对(双侧同 schema):expected 八字段严格域校验;
+    actual(wire)值同样严格类型检查——bool/数字字符串不做
+    静默 float 转换;随后逐字段相等。"""
     if (not isinstance(full_expected, dict)
             or set(full_expected) != set(OBS_COLUMNS)):
         raise UnifiedSpecError(
             "complete verification requires ALL %d fields "
             "(partial subset rejected)" % len(OBS_COLUMNS))
-    obs_vector(  # 复用域校验
-        {k: full_expected[k] for k in ("c", "g", "q", "s")},
-        {k: full_expected[k] for k in (
-            "account_exposure", "account_solvency")},
-        {k: full_expected[k] for k in (
-            "remaining_horizon", "total_horizon")})
-    verify_serialization_partial(ser, full_expected)
+    validate_obs_fields(full_expected)
+    vec = check_column_binding(ser)
+    validate_obs_fields(vec)   # actual 侧同一严格 schema
+    for k in OBS_COLUMNS:
+        if vec[k] != full_expected[k]:
+            raise UnifiedSpecError(
+                "complete mismatch at %r: actual=%r "
+                "expected=%r" % (k, vec[k],
+                                 full_expected[k]))
 
 
 ARMS = ("A", "B")
@@ -462,6 +479,7 @@ def check_same_obs_mutex(teaching: list) -> None:
             raise UnifiedSpecError(
                 "empty allowed set for obs %r"
                 % (entry.get("obs"),))
+        validate_obs_fields(entry["obs"])   # 完整8字段严格
         for a in acts:
             _validate_action_entry(a)
         key = tuple(sorted(entry["obs"].items()))
@@ -493,9 +511,17 @@ def validate_task_spec(v: dict) -> None:
     比较通道)。候选未校准不影响 schema 严格性。"""
     if not isinstance(v, dict) or not v.get("task_id"):
         raise UnifiedSpecError("spec missing task_id")
+    if v.get("schema") != SPEC_SCHEMA:
+        raise UnifiedSpecError(
+            "unknown schema %r (want %r)"
+            % (v.get("schema"), SPEC_SCHEMA))
     k = v.get("transition_kernel")
-    if not isinstance(k, dict) or not k:
-        raise UnifiedSpecError("bad transition_kernel")
+    if (not isinstance(k, dict)
+            or set(k) != {"s", "c", "q", "g"}):
+        raise UnifiedSpecError(
+            "transition_kernel must have exactly s/c/q/g "
+            "(missing/extra components rejected): %r"
+            % (sorted(k) if isinstance(k, dict) else k))
     for comp, spec_c in k.items():
         vals = spec_c.get("values")
         if (not isinstance(vals, list) or not vals):
@@ -524,6 +550,12 @@ def validate_task_spec(v: dict) -> None:
             if not 0.0 <= hp <= 1.0:
                 raise UnifiedSpecError(
                     "kernel %s hold_p out of [0,1]" % comp)
+            for x in fp:
+                xv = _num(x, "%s fresh_p entry" % comp)
+                if not 0.0 <= xv <= 1.0:
+                    raise UnifiedSpecError(
+                        "kernel %s fresh_p entry out of "
+                        "[0,1]: %r" % (comp, x))
         if fp is not None:
             if (not isinstance(fp, list)
                     or len(fp) != len(vals)):
@@ -547,10 +579,29 @@ def validate_task_spec(v: dict) -> None:
     if not isinstance(econ, dict):
         raise UnifiedSpecError("bad economy")
     for f in ("fee_rate", "price_tick", "reward_scale",
-              "maintenance_margin", "initial_cash"):
+              "maintenance_margin", "initial_cash",
+              "slippage_bps"):
         _num(econ.get(f), "economy %s" % f)
     if econ["fee_rate"] < 0 or econ["reward_scale"] <= 0:
         raise UnifiedSpecError("economy domain violation")
+    if econ["initial_cash"] <= 0:
+        raise UnifiedSpecError("initial_cash must be > 0")
+    if econ["maintenance_margin"] <= 0:
+        raise UnifiedSpecError("maintenance_margin must be > 0")
+    if econ["slippage_bps"] < 0:
+        raise UnifiedSpecError("slippage_bps must be >= 0")
+    sg = v.get("sigma_by_g")
+    if not isinstance(sg, dict) or not sg:
+        raise UnifiedSpecError("bad sigma_by_g")
+    for gk, gv in sg.items():
+        gv = _num(gv, "sigma_by_g[%s]" % gk)
+        if gv <= 0:
+            raise UnifiedSpecError(
+                "sigma_by_g[%s] must be > 0" % gk)
+    for f in ("drift", "noise", "transition_independence"):
+        if (not isinstance(v.get(f), str)
+                or not v[f].strip()):
+            raise UnifiedSpecError("bad %s" % f)
     hz = v.get("horizon")
     if (not isinstance(hz, dict)
             or not isinstance(hz.get("values"), list)
@@ -609,7 +660,11 @@ def task_signature(v: dict) -> tuple:
 
 
 def check_hidden_task_swap(variants: list) -> None:
-    """同 task_id 决策签名不同 = 隐藏换任务,拒绝(全字段)。"""
+    """同 task_id 决策签名不同 = 隐藏换任务,拒绝(全字段)。
+    入口强制严格 validate——直接传原始 dict 的旁路同样先过
+    schema(无效输入在比较前即拒,两份无效不判同任务)。"""
+    for v in variants:
+        validate_task_spec(v)   # 消费入口强制,非仅构造器
     seen = {}
     for v in variants:
         tid = v["task_id"]
@@ -731,13 +786,11 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
     decoder = gate_request.get("decoder")
     if decoder not in ("P0CategoryMax-v1", "mixture-mean-v1"):
         raise UnifiedSpecError("unknown decoder %r" % decoder)
-    lo, hi = gate_request.get("interval", (None, None))
-    for x in (lo, hi):
-        if not (isinstance(x, (int, float))
-                and math.isfinite(float(x))):
-            raise UnifiedSpecError(
-                "interval bound invalid %r/%r" % (lo, hi))
-    if not (-1.0 <= float(lo) < float(hi) <= 1.0):
+    lo = _num((gate_request.get("interval") or
+               (None, None))[0], "interval lo")
+    hi = _num((gate_request.get("interval") or
+               (None, None))[1], "interval hi")
+    if not (-1.0 <= lo < hi <= 1.0):
         raise UnifiedSpecError(
             "interval inverted/out-of-bounds [%r,%r]"
             % (lo, hi))
@@ -950,10 +1003,12 @@ def check_graduation_claim(skill_status: dict,
                     "skill %r approval must be structured "
                     "{channel,ref} (arbitrary strings "
                     "cannot self-attest)" % skill)
+            # 报告侧 task 绑定先查(先于注册表)
             if gate["task_id"] != UNIFIED_TASK["task_id"]:
                 raise UnifiedSpecError(
-                    "skill %r gate task binding mismatch" % skill)
-            # 报告必须与固定注册门内容/摘要一致
+                    "skill %r gate task binding mismatch"
+                    % skill)
+            # 注册条目先取:版本+完整门定义+权威批准
             reg = (REGISTRY_GATES if registry_gates is None
                    else registry_gates)
             entry = reg.get(skill)
@@ -981,6 +1036,25 @@ def check_graduation_claim(skill_status: dict,
                     "%r (recomputed from full gate_def)"
                     % (skill, gate["gate_digest"][:12],
                        want_digest[:12]))
+            # approval 与注册权威完全一致(注册无批准→报告
+            # 不得自补;伪造 channel/ref 拒)
+            reg_ap = entry.get("approval")
+            if (not isinstance(reg_ap, dict)
+                    or not isinstance(
+                        reg_ap.get("channel"), str)
+                    or not reg_ap.get("channel").strip()
+                    or not isinstance(
+                        reg_ap.get("ref"), str)
+                    or not reg_ap.get("ref").strip()):
+                raise UnifiedSpecError(
+                    "skill %r registered gate carries no "
+                    "authoritative approval — report "
+                    "cannot supply one" % skill)
+            if ap != reg_ap:
+                raise UnifiedSpecError(
+                    "skill %r approval %r != registered "
+                    "authoritative %r (exact match "
+                    "required)" % (skill, ap, reg_ap))
 
 
 def build_registry_snapshot() -> dict:

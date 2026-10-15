@@ -667,7 +667,7 @@ def test_probability_gates_bounded():
 def test_signature_requires_fields_no_none_none():
     # 空 spec/缺字段不得经 None==None 判同任务
     with pytest.raises(uc.UnifiedSpecError,
-                       match="missing required field"):
+                       match="schema|missing required field|not numeric|bad |version subkeys"):
         uc.check_hidden_task_swap(
             [{"task_id": "t"}, {"task_id": "t"}])
     v = _variant()
@@ -675,7 +675,7 @@ def test_signature_requires_fields_no_none_none():
                  "action_families"):
         v2 = {k: x for k, x in v.items() if k != drop}
         with pytest.raises(uc.UnifiedSpecError,
-                           match="missing required field"):
+                           match="schema|missing required field|not numeric|bad |version subkeys"):
             uc.check_hidden_task_swap([v, v2])
     # spec_versions 与完整动作结构入签名
     v3 = _variant()
@@ -735,8 +735,11 @@ def test_gate_registry_digest_chain_test_isolation():
                     "gate_version": "v1",
                     "gate_def": {"x": 1}}})
         # 测试隔离注入临时注册表:摘要不一致拒;一致才过
+        tmp_auth = {"channel": "C0C6C4UT588",
+                    "ref": "iso-ref-1"}
         tmp_reg = {"direction_neutral_flat": {
             "gate_version": "v1",
+            "approval": tmp_auth,
             "gate_def": {"metric": "min_over_grid",
                          "threshold": 0.8}}}
         good_digest = uc._gate_digest(
@@ -800,8 +803,7 @@ def test_gate_registry_digest_chain_test_isolation():
                     "task_id": uc.UNIFIED_TASK["task_id"],
                     "gate_version": "v1",
                     "gate_digest": good_digest,
-                    "approval": {
-                        "channel": "c", "ref": "r"}}}},
+                    "approval": tmp_auth}}},
             registry_gates=tmp_reg)
     finally:
         uc.SEVEN_SKILLS.clear()
@@ -829,7 +831,7 @@ def test_spec_versions_and_independence_bound():
         v3 = {k: x for k, x in _variant().items()
               if k != drop}
         with pytest.raises(uc.UnifiedSpecError,
-                           match="missing required field"):
+                           match="schema|missing required field|not numeric|bad |version subkeys"):
             uc.check_hidden_task_swap([_variant(), v3])
 
 
@@ -985,6 +987,137 @@ def test_strict_typing_atoms_open():
     # open=True 严格布尔仍合法
     uc.check_same_obs_mutex([{"obs": obs, "allowed_actions": [
         dict(_iv(0.1, 0.2), open=True)]}])
+
+
+def test_approval_matches_registered_authority():
+    import copy
+    saved = copy.deepcopy(uc.SEVEN_SKILLS)
+    try:
+        uc.SEVEN_SKILLS["direction_neutral_flat"] = dict(
+            saved["direction_neutral_flat"],
+            gate_status="frozen")
+        auth = {"channel": "C0C6C4UT588",
+                "ref": "auth-record-1"}
+        reg_ok = {"direction_neural_flat": None,
+                  "direction_neutral_flat": {
+                      "gate_version": "v1",
+                      "approval": auth,
+                      "gate_def": {"metric":
+                                   "min_over_grid"}}}
+        reg_ok = {"direction_neutral_flat":
+                  reg_ok["direction_neutral_flat"]}
+        gd = uc._gate_digest(
+            reg_ok["direction_neutral_flat"]["gate_def"])
+        base_gate = {
+            "task_id": uc.UNIFIED_TASK["task_id"],
+            "gate_version": "v1", "gate_digest": gd}
+        # 真:与权威完全一致→过
+        uc.check_graduation_claim(
+            {"direction_neutral_flat": {
+                "graduated": True,
+                "gate": dict(base_gate,
+                             approval=auth)}},
+            registry_gates=reg_ok)
+        # 伪:正确 digest+伪造 approval→拒
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="authoritative"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": dict(
+                        base_gate,
+                        approval={"channel": "made-up",
+                                  "ref": "forged"})}},
+                registry_gates=reg_ok)
+        # 注册无批准记录→报告不得自补
+        reg_noap = {"direction_neutral_flat": {
+            "gate_version": "v1",
+            "gate_def": {"metric": "min_over_grid"}}}
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="no authoritative approval"):
+            uc.check_graduation_claim(
+                {"direction_neutral_flat": {
+                    "graduated": True,
+                    "gate": dict(base_gate,
+                                 approval=auth)}},
+                registry_gates=reg_noap)
+    finally:
+        uc.SEVEN_SKILLS.clear()
+        uc.SEVEN_SKILLS.update(saved)
+
+
+def test_direct_raw_dict_bypass_closed():
+    """直接传原始 dict 给比较入口:六类无效在入口即拒
+    (不依赖构造器包装)。"""
+    import copy
+    good = uc.make_task_spec()
+    cases = []
+    tk = good["transition_kernel"]
+    cases.append(dict(good, transition_kernel={
+        k: v for k, v in tk.items()
+        if k != "c"}))                       # 缺 c
+    q2 = dict(tk["q"], fresh_p=[
+        1.125, -0.125, 0.0, 0.0, 0.0])       # 值域崩
+    cases.append(dict(good, transition_kernel=dict(
+        tk, q=q2)))
+    cases.append(dict(good, sigma_by_g={
+        "0": float("nan"), "1": 0.06}))      # sigma NaN
+    cases.append(dict(good, economy=dict(
+        good["economy"],
+        slippage_bps=float("nan"))))
+    cases.append(dict(good, economy=dict(
+        good["economy"], initial_cash=-1.0)))
+    cases.append(dict(good, schema="OTHER_V9"))
+    for bad in cases:
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.check_hidden_task_swap([good, bad])
+
+
+def test_same_obs_requires_complete_obs():
+    """same-obs 记录 obs 必须完整八字段({'s':1} 拒)。"""
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="8 contract fields"):
+        uc.check_same_obs_mutex([{
+            "obs": {"s": 1},
+            "allowed_actions": [
+                {"arm": "A", "kind": "hold"}]}])
+    for bad_acct in (
+            {"account_exposure": float("nan"),
+             "account_solvency": 9.5},
+            {"account_exposure": "0.1",
+             "account_solvency": 9.5}):
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.obs_vector(STATE, bad_acct, HOR)
+
+
+def test_complete_actual_strict_no_coercion():
+    s0 = ser()
+    good = {**STATE, **ACCT, **HOR}
+    uc.verify_serialization_complete(s0, good)
+    # actual 数字字符串/bool 不得静默 float/相等放过
+    import copy
+    s_str = copy.deepcopy(s0)
+    s_str["values"] = list(s_str["values"])
+    s_str["values"][3] = "1"          # s 字段字符串化
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="not numeric type|8 contract"):
+        uc.verify_serialization_complete(s_str, good)
+    s_bool = copy.deepcopy(s0)
+    s_bool["values"] = list(s_bool["values"])
+    s_bool["values"][3] = True
+    with pytest.raises(uc.UnifiedSpecError):
+        uc.verify_serialization_complete(s_bool, good)
+    # partial 同样严格相等(字符串化值不等于数值)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="no silent coercion"):
+        uc.verify_serialization_partial(s_str, {"s": 1})
+
+
+def test_expressiveness_interval_strict_types():
+    for bad_iv in ([False, 0.6], ["0.3", 0.6]):
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.evaluate_action_expressiveness(
+                _gq(lo=bad_iv[0], hi=bad_iv[1]))
 
 
 def test_registry_snapshot_shape_and_isolation():
