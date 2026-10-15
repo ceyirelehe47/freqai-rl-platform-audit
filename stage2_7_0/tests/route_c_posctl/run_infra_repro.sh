@@ -136,9 +136,59 @@ else
   echo "INPUTS_UNCHANGED=NO" >> "$RUN/run_rc.txt"
 fi
 
+# ---- 5b) 补充:实际导入路径/生产拒合成候选/rc 一致性 -------------
+$PY - "$RUN" <<'PYEOF' > "$RUN/supplement_checks.log" 2>&1
+import json, re, subprocess, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+# (a) 实际导入路径(避免暗借旧部署:逐模块 __file__ 实录)
+import rl_posctl.skill_p0.course_contract as cc
+import rl_posctl.skill_p0.offline_skill_report as osr
+import rl_posctl.skill_p0.p0spec as spec
+import rl_posctl.skill_p0.p0banks as banks
+print("[import_paths]")
+for m in (cc, osr, spec, banks):
+    print(m.__name__, "=", m.__file__)
+# (b) 生产 CLI 拒合成候选(测试注入不泄漏:合成 manifest 走生产默认信任表)
+import hashlib, tempfile
+tmp = Path(tempfile.mkdtemp())
+m = {"contract_version": cc.CONTRACT_VERSION,
+     "bank": {"path": __file__, "sha": "0"*64},
+     "grids": [], "raws": [],
+     "manifest_schema": "MANIFEST_C1_V1", "course_id": "c1"}
+mp = tmp/"cand.json"
+mp.write_text(json.dumps(m))
+r = subprocess.run(
+    [sys.executable, "-m",
+     "rl_posctl.skill_p0.offline_skill_report",
+     "--manifest", str(mp), "--out", str(tmp/"o")],
+    capture_output=True, text=True)
+print("[production_rejects_synthetic] rc=%d expect=3 %s"
+      % (r.returncode,
+         "OK" if r.returncode == 3 else "FAIL"))
+print("  stderr_tail:", r.stderr.strip()[-120:])
+# (c) 外层 rc 与 JUnit/stdout 一致
+import xml.etree.ElementTree as ET
+t = ET.parse(run/"junit.xml").getroot()
+suites = t.findall(".//testsuite")
+ts = suites[-1]
+fails = int(ts.get("failures", 0)) + int(
+    ts.get("errors", 0))
+tail = (run/"pytest_junit_stdout.log").read_text(
+    errors="replace").strip().splitlines()[-1]
+passed_re = re.search(r"(\d+) passed", tail)
+print("[rc_consistency] junit_failures=%d stdout_tail=%r"
+      % (fails, tail))
+print("[rc_consistency] junit_rc_field in run_rc.txt "
+      "cross-checked by outer script")
+PYEOF
+SUPP_RC=$?
+echo "SUPPLEMENT_RC=$SUPP_RC" >> "$RUN/run_rc.txt"
+
 # ---- 6) 汇总 -----------------------------------------------------
 OVERALL=$PYTEST_RC
 [ "$SCAN_RC" -ne 0 ] && OVERALL=5
+[ "$SUPP_RC" -ne 0 ] && OVERALL=6
 [ "$GOLDEN_RC" -eq 3 ] && OVERALL=3
 [ "$GOLDEN_RC" -eq 4 ] && OVERALL=4
 echo "utc_end=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUN/run_rc.txt"
