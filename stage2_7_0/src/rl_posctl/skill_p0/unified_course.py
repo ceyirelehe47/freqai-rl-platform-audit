@@ -41,6 +41,7 @@ UNIFIED_TASK = {
     "task_id": "unified-posctl-candidate-v1",
     "schema": SPEC_SCHEMA,
     "status": STATUS,
+    "spec_versions": SPEC_VERSIONS,   # 绑定入任务本体
     "transition_kernel": {  # 完整 Markov 转移(候选值;语义精确:
         # D2 候选=重抽概率 .22 → hold=.78;校准未完成不影响语义)
         "s": {"values": [-1, 0, 1],
@@ -418,10 +419,12 @@ def check_same_obs_mutex(teaching: list) -> None:
 TASK_SIGNATURE_FIELDS = (
     "transition_kernel", "drift", "mu_candidate", "noise",
     "sigma_by_g", "economy", "horizon", "account_encoding",
-    "obs_columns", "action_families")
-# reward/版本进签名:spec_versions(含 reward 版本)+economy 内
-# reward_scale/price_tick 已属 economy;完整动作结构=action_
-# families 全量(含 structure/bound/candidate 字段)。
+    "obs_columns", "action_families",
+    "transition_independence", "spec_versions")
+# 全部字段必须显式在场:spec_versions(含 reward 版本)与
+# transition_independence 均为决策相关并绑定进签名;economy
+# 内 reward_scale/price_tick 已属 economy;完整动作结构=
+# action_families 全量。
 
 
 def task_signature(v: dict) -> tuple:
@@ -584,24 +587,55 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
     if not (0.0 <= p <= 1.0):
         raise UnifiedSpecError(
             "probability threshold out of [0,1]: %r" % p)
-    base = {"metric": metric, "decoder": decoder}
+    init_state = gate_request.get("initial_state")
+    if init_state not in ("flat", "held"):
+        raise UnifiedSpecError(
+            "initial_state must be flat|held, got %r"
+            % init_state)
+    hold_allowed = gate_request.get("hold_allowed")
+    if not isinstance(hold_allowed, bool):
+        raise UnifiedSpecError(
+            "hold_allowed must be explicit bool")
+    target_kind = gate_request.get("target_kind")
+    if target_kind not in ("rebal_target",
+                           "effective_exposure"):
+        raise UnifiedSpecError(
+            "target_kind must be rebal_target|"
+            "effective_exposure (REBAL 目标分布 vs 完整 "
+            "HOLD 混合行为), got %r" % target_kind)
+    base = {"metric": metric, "decoder": decoder,
+            "initial_state": init_state,
+            "hold_allowed": hold_allowed,
+            "target_kind": target_kind}
     strictly_interior_one_side = (
         (lo > 0 or hi < 0) and lo > -1 + 1e-12
         and hi < 1 - 1e-12)
     if metric == "distribution_probability":
-        if (arm == "A" and strictly_interior_one_side
+        # 解析上界唯一已证明适用域:A 臂对称 REBAL 目标分布、
+        # flat 起点、HOLD 不参与该门(target 不受持仓保持影响)。
+        # 已有仓位+允许 HOLD 时,有效敞口可停在区间内(如 .4 持仓
+        # HOLD 使 [.3,.6] 命中概率 1)——上界不适用,not_established。
+        proved_domain = (arm == "A"
+                         and target_kind == "rebal_target"
+                         and init_state == "flat"
+                         and hold_allowed is False)
+        if (proved_domain and strictly_interior_one_side
                 and p > internal_interval_upper_bound_arm_a()
                 + 1e-12):
             return dict(base, status="proved_impossible",
-                        reason=("A-arm symmetric distribution "
-                                "mass over one-side interior "
-                                "interval <= .5 (decode-"
-                                "independent: bound is a "
-                                "property of the distribution,"
-                                "changing decoder cannot evade)"))
+                        reason=("A-arm symmetric REBAL target "
+                                "distribution mass over one-"
+                                "side interior interval <= .5 "
+                                "(decode-independent; proved "
+                                "domain: flat start, HOLD not "
+                                "part of this gate)"))
         return dict(base, status="not_established",
-                    reason=("no validated reachability for "
-                            "this arm/metric/interval yet"))
+                    reason=("outside the proved domain of the "
+                            "analytic bound (e.g. held posi- "
+                            "tion with HOLD allowed can keep "
+                            "effective exposure inside the "
+                            "interval with probability 1); no "
+                            "validated reachability claim"))
     # deterministic_hit
     atom_target = (set(gate_request.get("atoms", ()))
                    if gate_request.get("atoms") is not None

@@ -266,7 +266,9 @@ def _variant(**over):
              "account_encoding"],
          "action_families": uc.ACTION_FAMILIES,
          "spec_versions": uc.SPEC_VERSIONS,
-         "obs_columns": uc.OBS_COLUMNS}
+         "obs_columns": uc.OBS_COLUMNS,
+         "transition_independence":
+             uc.UNIFIED_TASK["transition_independence"]}
     v.update(over)
     return v
 
@@ -358,10 +360,14 @@ def test_future_inputs_rejected():
 # ---- 动作表达性 ----------------------------------------------
 def _gq(arm="A", metric="distribution_probability",
         decoder="P0CategoryMax-v1", lo=.3, hi=.6,
-        p=.8, atoms=None):
+        p=.8, atoms=None, initial_state="flat",
+        hold_allowed=False,
+        target_kind="rebal_target"):
     return {"arm": arm, "metric": metric, "decoder": decoder,
             "interval": [lo, hi], "threshold": p,
-            "atoms": atoms}
+            "atoms": atoms, "initial_state": initial_state,
+            "hold_allowed": hold_allowed,
+            "target_kind": target_kind}
 
 
 def test_expressiveness_status_machine():
@@ -393,9 +399,31 @@ def test_expressiveness_status_machine():
 def test_expressiveness_input_validation():
     for bad in (_gq(arm="C"), _gq(lo=.6, hi=.3),
                 _gq(lo=-1.5), _gq(p=float("nan")),
-                _gq(metric="vibe"), _gq(decoder="v9")):
+                _gq(metric="vibe"), _gq(decoder="v9"),
+                _gq(initial_state="midair"),
+                dict(_gq(), hold_allowed=None),
+                _gq(target_kind="vague")):
         with pytest.raises(uc.UnifiedSpecError):
             uc.evaluate_action_expressiveness(bad)
+
+
+def test_expressiveness_applicability_domain_held_hold():
+    # 已有仓位+允许 HOLD+有效敞口口径:[.3,.6] 命中概率可为 1
+    # (HOLD 保持数量,敞口随价漂移停区间内)——不得判 proved_
+    # impossible,必须 not_established。
+    r = uc.evaluate_action_expressiveness(_gq(
+        initial_state="held", hold_allowed=True,
+        target_kind="effective_exposure"))
+    assert r["status"] == "not_established"
+    # flat 但 HOLD 参与门(有效敞口含 HOLD 混合):同 not_established
+    r2 = uc.evaluate_action_expressiveness(_gq(
+        initial_state="flat", hold_allowed=True,
+        target_kind="effective_exposure"))
+    assert r2["status"] == "not_established"
+    # 已证明适用域保持:flat+rebal 目标+HOLD 不参与→proved
+    r3 = uc.evaluate_action_expressiveness(_gq())
+    assert r3["status"] == "proved_impossible"
+    assert "proved domain" in r3["reason"]
 
 
 def test_decode_identity():
@@ -682,6 +710,30 @@ def test_gate_registry_digest_chain_test_isolation():
         uc.SEVEN_SKILLS.clear()
         uc.SEVEN_SKILLS.update(saved)
     assert uc.REGISTRY_GATES == {}   # 生产仍空
+
+
+def test_spec_versions_and_independence_bound():
+    # SPEC_VERSIONS 真正进入任务本体与快照
+    assert uc.UNIFIED_TASK["spec_versions"] is \
+        uc.SPEC_VERSIONS or uc.UNIFIED_TASK[
+            "spec_versions"] == uc.SPEC_VERSIONS
+    snap = uc.build_registry_snapshot()
+    assert snap["task"]["spec_versions"] == \
+        uc.SPEC_VERSIONS
+    # transition_independence 绑定进任务与签名
+    assert "transition_independence" in uc.UNIFIED_TASK
+    v = _variant()
+    v2 = _variant(transition_independence="coupled_candidate")
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="hidden task swap"):
+        uc.check_hidden_task_swap([v, v2])
+    for drop in ("transition_independence",
+                 "spec_versions"):
+        v3 = {k: x for k, x in _variant().items()
+              if k != drop}
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="missing required field"):
+            uc.check_hidden_task_swap([_variant(), v3])
 
 
 def test_registry_snapshot_shape_and_isolation():
