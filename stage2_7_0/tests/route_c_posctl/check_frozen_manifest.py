@@ -43,6 +43,14 @@ def validate_frozen_manifest(path) -> dict:
         raise SystemExit(
             "FROZEN_MANIFEST_COUNT_MISMATCH: declared=%d "
             "actual=%d" % (declared, len(cases)))
+    if len(set(cases)) != len(cases):
+        dup = sorted({c for c in cases
+                      if cases.count(c) > 1})[:3]
+        raise SystemExit(
+            "FROZEN_MANIFEST_DUPLICATE: %d duplicate "
+            "nodeids e.g. %r (later set() would shrink to "
+            "%d unique)" % (len(cases) - len(set(cases)),
+                            dup, len(set(cases))))
     return {"declared": declared, "actual": len(cases),
             "cases": cases}
 
