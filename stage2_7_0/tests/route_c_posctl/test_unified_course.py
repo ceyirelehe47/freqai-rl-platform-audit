@@ -164,6 +164,54 @@ def test_single_record_union_atoms_directly_compatible():
          "allowed_actions": [_atom(-1.0)]}])  # 交={-1}
 
 
+def test_precise_interval_intersection():
+    """[.21,.31]∩[.25,.35]=[.25,.31] 真实非空——固定五点
+    采样会误拒;精确端点/中点运算必须放行。"""
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [_iv(0.21, 0.31)]},
+        {"obs": obs, "allowed_actions": [_iv(0.25, 0.35)]}])
+    # 规范化并集:同组两段重叠先合并再参与交集
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions":
+         [_iv(0.0, 0.3), _iv(0.25, 0.6)]},
+        {"obs": obs, "allowed_actions": [_iv(0.5, 0.8)]}])
+    # 真实不相交仍拒
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs,
+             "allowed_actions": [_iv(0.21, 0.25)]},
+            {"obs": obs,
+             "allowed_actions": [_iv(0.30, 0.35)]}])
+
+
+def test_open_interval_flags_respected():
+    obs = uc.obs_vector(STATE, ACCT, HOR)
+    # (0.2,0.3) 开 vs [0.3,0.4] 闭:端点 0.3 不在开区间,
+    # 但相邻端点中点 0.25∈开区间?0.25∉[0.3,0.4] → 空,拒
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="COMMON INTERSECTION"):
+        uc.check_same_obs_mutex([
+            {"obs": obs, "allowed_actions": [
+                dict(_iv(0.2, 0.3), open=True)]},
+            {"obs": obs, "allowed_actions": [
+                _iv(0.3, 0.4)]}])
+    # (0.2,0.4) 开 vs [0.25,0.35] 闭 → 内部 0.25 命中,过
+    uc.check_same_obs_mutex([
+        {"obs": obs, "allowed_actions": [
+            dict(_iv(0.2, 0.4), open=True)]},
+        {"obs": obs, "allowed_actions": [
+            _iv(0.25, 0.35)]}])
+
+
+def test_expressiveness_empty_atoms_rejected():
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="empty atom target"):
+        uc.evaluate_action_expressiveness(
+            _gq(metric="deterministic_hit", atoms=[]))
+
+
 def test_same_obs_consistent_union_ok():
     obs = uc.obs_vector(STATE, ACCT, HOR)
     uc.check_same_obs_mutex([

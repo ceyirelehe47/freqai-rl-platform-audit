@@ -289,15 +289,19 @@ def _validate_action_entry(a: dict) -> None:
                 "atom value %r not in {-1,0,1}" % v)
     if kind == "interval":
         lo, hi = a.get("lo"), a.get("hi")
-        for x in (lo, hi):
-            if not (isinstance(x, (int, float))
-                    and math.isfinite(float(x))):
-                raise UnifiedSpecError(
-                    "interval bound non-finite %r/%r" % (lo, hi))
-        if not (-1.0 <= float(lo) < float(hi) <= 1.0):
+        lo = _num(lo, "interval lo")
+        hi = _num(hi, "interval hi")
+        if not (-1.0 <= lo < hi <= 1.0):
             raise UnifiedSpecError(
                 "interval inverted/out-of-bounds [%r,%r]"
                 % (lo, hi))
+        op = a.get("open")
+        if op is not None and op not in (
+                True, False, "lo", "hi", ("lo", "hi"),
+                ("hi", "lo")):
+            raise UnifiedSpecError(
+                "interval open flag invalid %r "
+                "(True/False/'lo'/'hi'/tuple)" % (op,))
     p = a.get("p_gate")
     if p is not None:
         pv = _num(p, "p_gate")
@@ -306,8 +310,23 @@ def _validate_action_entry(a: dict) -> None:
                 "p_gate out of [0,1]: %r" % p)
 
 
+def _iv_open(a: dict):
+    """返回 (lo_open, hi_open)。"""
+    op = a.get("open", False)
+    if op is True:
+        return True, True
+    if op in ("lo",):
+        return True, False
+    if op in ("hi",):
+        return False, True
+    if isinstance(op, tuple):
+        return ("lo" in op, "hi" in op)
+    return False, False
+
+
 def _group_acceptable(acts) -> dict:
-    """一组 allowed 的可接受动作集合:hold 标记+原子集+区间。"""
+    """一组 allowed 的可接受集合:hold 标记+原子集+**规范化**
+    区间并(排序+合并相接/重叠)。"""
     atoms, ivs, hold = set(), [], False
     for a in acts:
         if a["kind"] == "hold":
@@ -315,24 +334,58 @@ def _group_acceptable(acts) -> dict:
         elif a["kind"] == "atom":
             atoms.add(float(a["value"]))
         else:
-            ivs.append((float(a["lo"]), float(a["hi"])))
-    return {"hold": hold, "atoms": atoms, "ivs": ivs}
+            lo_o, hi_o = _iv_open(a)
+            ivs.append((float(a["lo"]), float(a["hi"]),
+                        lo_o, hi_o))
+    ivs.sort()
+    merged = []
+    for lo, hi, lo_o, hi_o in ivs:
+        if merged:
+            m_lo, m_hi, m_lo_o, m_hi_o = merged[-1]
+            touch = (lo < m_hi or
+                     (lo == m_hi and not (hi_o and lo_o)))
+            if touch:
+                merged[-1] = (
+                    m_lo, max(m_hi, hi), m_lo_o,
+                    m_hi_o if m_hi >= hi else hi_o)
+                continue
+        merged.append((lo, hi, lo_o, hi_o))
+    return {"hold": hold, "atoms": atoms, "ivs": merged}
+
+
+def _in_union(x: float, g: dict) -> bool:
+    """x 是否属于该组的并集(原子命中或落入某区间,开闭感知)。"""
+    eps = 1e-12
+    if x in g["atoms"]:
+        return True
+    for lo, hi, lo_o, hi_o in g["ivs"]:
+        if lo + eps < x < hi - eps:
+            return True
+        if abs(x - lo) <= eps and not lo_o:
+            return True
+        if abs(x - hi) <= eps and not hi_o:
+            return True
+    return False
 
 
 def _common_nonempty(gs: list) -> bool:
-    """多组可接受集合的**共同交集**是否非空(组内并,组间交)。
-    hold 与数值动作视为不同动作;共同交集可来自:全体含 hold,
-    或某数值点落在每组的原子/区间并内。"""
+    """多组可接受集合的**共同交集**是否非空——**精确区间运算**:
+    候选点=所有区间端点+相邻端点中点+全体原子;某候选属于每组
+    并集(开闭感知)即非空。不投固定采样点(如 [.21,.31]∩
+    [.25,.35]=[.25,.31] 必须判非空),无数值求解。"""
     if all(g["hold"] for g in gs):
         return True
-    cand = None
+    cands = set()
     for g in gs:
-        pts = set(g["atoms"])
-        for lo, hi in g["ivs"]:
-            pts |= {a for a in (-1.0, -0.5, 0.0, 0.5, 1.0)
-                    if lo <= a <= hi}
-        cand = pts if cand is None else (cand & pts)
-    return bool(cand)
+        cands |= g["atoms"]
+        for lo, hi, _lo, _hi in g["ivs"]:
+            cands |= {lo, hi}
+    pts = sorted(cands)
+    for a, b in zip(pts, pts[1:]):
+        cands.add((a + b) / 2.0)
+    return any(_in_union(c, g) for c in cands
+               for g in [gs[0]]) and any(
+        all(_in_union(c, g) for g in gs) for c in cands)
 
 
 def check_same_obs_mutex(teaching: list) -> None:
@@ -553,6 +606,10 @@ def evaluate_action_expressiveness(gate_request: dict) -> dict:
     atom_target = (set(gate_request.get("atoms", ()))
                    if gate_request.get("atoms") is not None
                    else None)
+    if atom_target is not None and not atom_target:
+        raise UnifiedSpecError(
+            "empty atom target set — invalid request, "
+            "cannot yield 'validated'")
     if arm == "A" and decoder == "P0CategoryMax-v1" and (
             atom_target is not None
             and set(map(float, atom_target)) <= {
