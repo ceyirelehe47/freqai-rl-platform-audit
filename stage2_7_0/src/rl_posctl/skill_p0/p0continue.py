@@ -685,14 +685,16 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
         from rl_posctl.budget import create_only_dir
         create_only_dir(evidence_root)
     except Exception as exc:
-        _persist_abort(evidence_root, counters,
-                       "evidence_root", repr(exc))
+        # 目录创建失败=未获得本次所有权:绝不写该证据目录
+        # (可能是他人已有目录),只记录本次 registry failed。
         registry.record_failed(experiment_id, digest, {
             "stage": "evidence_root", "reason": repr(exc),
             "counters_snapshot": json.dumps(counters)})
         print(f"[stage7/evidence] FAIL: {exc}",
               file=sys.stderr)
         return FAIL["train"]
+    # 所有权到手后失败实结才允许写该目录(独占创建)
+    counters["evidence_owned"] = True
     try:
         settle = _execute_training(
             plan, model, hooks, evidence_root, counters,
@@ -719,8 +721,14 @@ def run_continuation(plan_path, registry_root, *, hooks=None,
 
 def _persist_abort(evidence_root, counters, stage,
                    reason) -> None:
-    """aborted 账本(partial 计数+未知状态)落盘;目录不存在则
-    跳过(早期失败无证据目录,如实不伪造)。"""
+    """aborted 账本(partial 计数+未知状态)落盘。
+
+    仅当本轮已获得证据目录所有权(create_only_dir 成功,
+    counters['evidence_owned'])才写;写入用独占创建("x"),
+    绝不覆盖既有文件。
+    """
+    if not counters.get("evidence_owned"):
+        return
     root = Path(evidence_root)
     if not root.is_dir():
         return
@@ -739,9 +747,10 @@ def _persist_abort(evidence_root, counters, stage,
         except ValueError:
             prev = {}
         payload["reserved_faces"] = prev.get("faces", {})
-    (root / "abort_ledger.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=1),
-        encoding="utf-8")
+    with open(root / "abort_ledger.json", "x",
+              encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False,
+                            indent=1))
 
 
 def _execute_training(plan, model, hooks, evidence_root,
@@ -797,16 +806,20 @@ def _execute_training(plan, model, hooks, evidence_root,
     from rl_posctl.experiments import FailureAwareStop
     stop = FailureAwareStop()
 
-    learn = hooks.get("learn")
-    if learn is not None:
-        learn(model, append, stop)
-    else:
-        model.learn(total_timesteps=append,
-                    reset_num_timesteps=False,
-                    callback=stop.cb)
-
-    counters["train_env"]["delta"] = int(
-        envmod.ENV_STEP_COUNT) - counters["train_env"]["base"]
+    # 阶段内 try/finally:异常路径也立即冻结实际 train delta
+    # (评估步绝不计入训练阶段;learn 内部异常保留 unknown 标志)
+    try:
+        learn = hooks.get("learn")
+        if learn is not None:
+            learn(model, append, stop)
+        else:
+            model.learn(total_timesteps=append,
+                        reset_num_timesteps=False,
+                        callback=stop.cb)
+    finally:
+        counters["train_env"]["delta"] = int(
+            envmod.ENV_STEP_COUNT) - counters[
+                "train_env"]["base"]
     counters["stage_reached"] = "pre_save"
 
     # -- v5 保存前断言(零更新绝不 final;throat==append) --
@@ -880,18 +893,22 @@ def _execute_training(plan, model, hooks, evidence_root,
         counters["eval_env"]["base"] + TOTAL_STEP_CAP)
     counters["stage_reached"] = "eval"
 
-    eval_summary = run_contrast_eval(
-        [("source_frozen",
-          hooks["load_model"](plan)[0]),
-         ("new", new_cold)],
-        items=items,
-        feature_names=plan["course"]["feature_names"],
-        out_dir=evidence_root / "eval",
-        hooks=hooks.get("eval") or {},
-        counters=counters["eval"])
-
-    counters["eval_env"]["delta"] = int(
-        envmod.ENV_STEP_COUNT) - counters["eval_env"]["base"]
+    try:
+        eval_summary = run_contrast_eval(
+            [("source_frozen",
+              hooks["load_model"](plan)[0]),
+             ("new", new_cold)],
+            items=items,
+            feature_names=plan["course"]["feature_names"],
+            out_dir=evidence_root / "eval",
+            hooks=hooks.get("eval") or {},
+            counters=counters["eval"])
+    finally:
+        # 异常路径同样实读 partial eval delta(env.step 消费
+        # 未知标志由引擎置位并保留)
+        counters["eval_env"]["delta"] = int(
+            envmod.ENV_STEP_COUNT) - counters[
+                "eval_env"]["base"]
     counters["stage_reached"] = "post_eval"
 
     # 评估后三 SHA 复核(source/bank/new ck 与保存时一致)

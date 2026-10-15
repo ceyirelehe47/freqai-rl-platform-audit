@@ -1149,3 +1149,107 @@ def test_eval_uses_cold_loaded_new_ck(tmp_path):
         "stage": "final", "target_step": 163840,
         "num_timesteps": 163840,
         "optimizer_steps": CAP_OPT}
+
+
+# ---- 24. rev4:训练阶段中途抛错,partial delta 实结 ----------
+def test_train_partial_consumption_delta_persisted(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    order = []
+    em = FakeEnvmod()
+    hooks = base_hooks(FakeModel(), order, envmod=em)
+
+    def partial_learn(m, append, stop):
+        order.append("learn")
+        for _ in range(500):
+            m.policy.optimizer.step()
+        em.ENV_STEP_COUNT = em.ENV_STEP_COUNT + 4096
+        raise RuntimeError("train died mid-way")
+
+    hooks["learn"] = partial_learn
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["train"]
+    evid = Path(plan["evidence"]["root"])
+    abort = json.loads((evid / "abort_ledger.json"
+                        ).read_text(encoding="utf-8"))
+    # abort 实读 delta(非 None),评估未启动
+    assert abort["counters"]["train_env"][
+        "delta"] == 4096
+    assert abort["counters"]["eval_env"] == {
+        "base": None, "delta": None}
+    assert abort["counters"]["optimizer"] == {
+        "attempts": 500, "successes": 500,
+        "unknown": False}
+    assert abort["stage_reached"] == "train"
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    failed = ev[-1]
+    assert failed["event"] == "failed"
+    assert failed["train_env"]["delta"] == 4096
+    assert failed["eval_env"]["delta"] is None
+
+
+# ---- 25. rev4:评估阶段中途抛错,训练 delta 冻结不混入 ----
+def test_eval_partial_delta_train_frozen(tmp_path):
+    plan = make_plan(tmp_path)
+    p = write_plan(tmp_path, plan)
+    hooks = base_hooks(FakeModel(), [])
+    mk = hooks["eval"]["make_env"]
+    state = {"n": 0}
+
+    def flaky_env(feats, prices):
+        state["n"] += 1
+        if state["n"] == 3:
+            raise RuntimeError("env construction failed")
+        return mk(feats, prices)
+
+    hooks["eval"]["make_env"] = flaky_env
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=hooks)
+    assert rc == pc.FAIL["train"]
+    evid = Path(plan["evidence"]["root"])
+    abort = json.loads((evid / "abort_ledger.json"
+                        ).read_text(encoding="utf-8"))
+    # 训练 delta 冻结在 32768(评估步绝不计入)
+    assert abort["counters"]["train_env"][
+        "delta"] == 32768
+    # 评估 partial delta 实读=两整集 128 步
+    assert abort["counters"]["eval_env"][
+        "delta"] == 128
+    assert abort["counters"]["eval"][
+        "steps_done"] == 128
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    failed = ev[-1]
+    assert failed["train_env"]["delta"] == 32768
+    assert failed["eval_env"]["delta"] == 128
+
+
+# ---- 26. rev4:已有证据目录零触碰 ---------------------------
+def test_existing_evidence_dir_untouched(tmp_path):
+    plan = make_plan(tmp_path)
+    # 预置他人目录(含旧 abort_ledger 与其他文件)
+    old_root = tmp_path / "evid" / "r1"
+    old_root.mkdir(parents=True)
+    files = {
+        "abort_ledger.json": '{"OLD": true}',
+        "budget_ledger.json": '{"old": 1}',
+        "other.txt": "bytes",
+    }
+    for name, body in files.items():
+        (old_root / name).write_text(body,
+                                     encoding="utf-8")
+    before = {name: (old_root / name).read_bytes()
+              for name in files}
+    p = write_plan(tmp_path, plan)
+    rc = pc.run_continuation(p, tmp_path / "reg",
+                             hooks=base_hooks(FakeModel(),
+                                              []))
+    # create_only_dir 拒绝已有目录 → failed,不写该目录
+    assert rc == pc.FAIL["train"]
+    after = {f.name: f.read_bytes()
+             for f in old_root.iterdir()}
+    assert after == before  # 所有文件字节不变,无新增
+    ev = list(Registry(tmp_path / "reg").iter_events())
+    assert [e["event"] for e in ev] == ["intent",
+                                        "failed"]
+    assert ev[1]["stage"] == "evidence_root"
