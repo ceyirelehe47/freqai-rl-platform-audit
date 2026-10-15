@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
 """P0 实验登记(append-only 事件日志 + 课程状态表)。
 
-批准版设计(2026-10-15,route-c-p0-continuation 分支):
+rev2(审阅 NO-GO 修正版,2026-10-15):
 
-- 一事件一行(JSONL)。事件类型:intent / settled / failed /
-  stage_change / backfill;torn(半写行)只由读取侧合成,不可写占位。
-- 全局锁文件 + fcntl.flock 独占:读-查-追加-fsync 在同一临界区内
-  完成,杜绝"先查后 append"竞态(跨进程互斥)。
-- settled 每实验至多一行,且必须引用既有 intent(experiment_id +
-  plan_digest 双匹配);重复 settle、未知 intent 的 settle、
-  failed 之后再 settle(失败即终态,不自动重试)均拒绝。
-- intent 后失败写 failed 事件(带真实计数);保留现场、不删除、
-  不冒充 settled。半写(torn)行在迭代时显式标记并保留原始片段,
-  torn 行不可充当任何有效事件。
-- plan 哈希 = 规范化 JSON(键排序/紧凑分隔符/ensure_ascii=False)
-  的 SHA-256。显式声明:不保证跨不同路径/日期的全面去重——
-  同一实验意图以不同路径或日期写入即视为不同计划记录。
-- 课程状态表(curriculum_status.json):GRADUATED 必须携带人工
-  批准引用(promotion.approved_by/approval_ref/utc);状态变更
-  以旧文件 SHA 证明 + 历史行追加(永不删除历史)。
+- **损坏即停写**:日志存在 torn(半写/无效 JSON)行时,一切自动
+  写入立即拒绝(RegistryError)并保留现场,由人工恢复;绝不
+  "补换行自愈后继续接受同 ID"。
+- **保留字段不可覆盖**:settled/failed 的 payload 与 intent 的
+  extra 中出现 event/experiment_id/plan_digest/utc 等保留键
+  即拒绝(防止 payload 伪装成新事件/二次 settle)。
+- 全局锁文件 + fcntl.flock 独占:读-查-追加-fsync 同一临界区。
+- settled 每实验至多一行,须引用既有 intent(experiment_id +
+  plan_digest 双匹配);failed 为终态(不自动重试)。
+- plan 哈希 = 规范化 JSON(键排序/紧凑分隔符)SHA-256;不保证
+  跨不同路径/日期全面去重。
+- 课程状态表:read-SHA→校验→改写→原子 replace 全程持锁;唯一
+  临时文件(tempfile.mkstemp 同目录);stage 白名单校验;首版
+  仅允许 course="c1";GRADUATED 须人工批准引用;历史追加。
 """
 from __future__ import annotations
 
@@ -26,6 +24,7 @@ import fcntl
 import hashlib
 import json
 import os
+import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,9 +32,20 @@ from pathlib import Path
 EVENT_TYPES = ("intent", "settled", "failed", "stage_change",
                "backfill")
 
+#: 任何写入 payload/extra 里出现这些键 = 试图覆盖保留字段
+RESERVED_EVENT_KEYS = frozenset({
+    "event", "experiment_id", "plan_digest", "utc", "_line"})
+
+#: 课程状态白名单
+VALID_STAGES = ("NOT_STARTED", "IN_PROGRESS", "NOT_GRADUATED",
+                "GRADUATED")
+
+#: 首版状态表只承载 c1
+STATUS_COURSES = ("c1",)
+
 
 class RegistryError(RuntimeError):
-    """登记不变量被违反(重复/未知/半写冒充等)。"""
+    """登记不变量被违反(重复/未知/损坏/保留字段覆盖等)。"""
 
 
 def utc_now() -> str:
@@ -44,14 +54,12 @@ def utc_now() -> str:
 
 
 def canonical_json(obj) -> str:
-    """规范化 JSON 文本(排序键/紧凑分隔符)。"""
     return json.dumps(obj, sort_keys=True,
                       separators=(",", ":"),
                       ensure_ascii=False)
 
 
 def plan_digest(plan: dict) -> str:
-    """计划规范化摘要。见模块 docstring 的去重边界声明。"""
     return hashlib.sha256(
         canonical_json(plan).encode("utf-8")).hexdigest()
 
@@ -63,6 +71,13 @@ def sha256_file(path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
+def _check_no_reserved_keys(payload: dict, where: str) -> None:
+    hit = sorted(RESERVED_EVENT_KEYS & set(payload or {}))
+    if hit:
+        raise RegistryError(
+            f"{where}: payload must not override reserved "
+            f"keys {hit}")
 
 
 class Registry:
@@ -76,7 +91,6 @@ class Registry:
 
     @contextmanager
     def _locked(self):
-        """全局独占锁:持锁期间完成 读-查-追加-fsync。"""
         fd = os.open(str(self.lock_path),
                      os.O_CREAT | os.O_RDWR, 0o644)
         try:
@@ -87,19 +101,6 @@ class Registry:
             os.close(fd)
 
     def _append_line(self, line: str) -> None:
-        """追加一行;若文件尾无换行(前次半写)先补边界换行。
-
-        torn 片段因此保持独立行,后续事件不被粘连污染;
-        torn 行本身仍由读取侧标记,不冒充任何有效事件。
-        """
-        if self.jsonl.exists():
-            with open(self.jsonl, "r+b") as probe:
-                size = probe.seek(0, 2)
-                if size > 0:
-                    probe.seek(size - 1)
-                    if probe.read(1) != b"\n":
-                        probe.seek(0, 2)
-                        probe.write(b"\n")
         with open(self.jsonl, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()
@@ -124,8 +125,19 @@ class Registry:
                 ev["_line"] = line_no
                 yield ev
 
-    def _events_under_lock(self):
-        return list(self.iter_events())
+    def corrupt_lines(self) -> list:
+        """torn 行清单(空=日志完好)。"""
+        return [e for e in self.iter_events()
+                if e.get("event") == "torn"]
+
+    def _guard_writable(self):
+        """损坏即停:存在 torn 行时拒绝任何自动写入。"""
+        torn = self.corrupt_lines()
+        if torn:
+            raise RegistryError(
+                "registry corrupt: torn line(s) "
+                f"{[t['torn_line'] for t in torn]}; auto "
+                "writes disabled, manual recovery required")
 
     def find_intent(self, experiment_id, digest):
         for ev in self.iter_events():
@@ -135,14 +147,15 @@ class Registry:
                 return ev
         return None
 
-    # ---- 写入侧(全部持锁) --------------------------------------
+    # ---- 写入侧(全部持锁 + 完好性守卫) ------------------------
     def register_intent(self, plan: dict, *, mode: str,
                         extra: dict | None = None) -> dict:
         digest = plan_digest(plan)
         experiment_id = plan["experiment_id_hint"]
+        _check_no_reserved_keys(extra or {}, "intent extra")
         with self._locked():
-            events = self._events_under_lock()
-            for ev in events:
+            self._guard_writable()
+            for ev in self.iter_events():
                 if ev.get("event") != "intent":
                     continue
                 if ev.get("plan_digest") == digest:
@@ -187,11 +200,13 @@ class Registry:
 
     def _record_terminal(self, kind: str, experiment_id: str,
                          digest: str, payload: dict) -> dict:
+        _check_no_reserved_keys(payload, kind)
         with self._locked():
+            self._guard_writable()
             intent = None
             settled_seen = False
             failed_seen = False
-            for ev in self._events_under_lock():
+            for ev in self.iter_events():
                 if ev.get("event") == "intent":
                     if (ev.get("experiment_id") == experiment_id
                             and ev.get("plan_digest") == digest):
@@ -224,28 +239,45 @@ class Registry:
 
     def record_settled(self, experiment_id, digest,
                        payload: dict) -> dict:
-        """唯一成功实结;半写行(解析失败)不构成 settled。"""
         return self._record_terminal(
             "settled", experiment_id, digest, payload)
 
     def record_failed(self, experiment_id, digest,
                       payload: dict) -> dict:
-        """失败实结(终态):真实计数,不删除、不重试。"""
         return self._record_terminal(
             "failed", experiment_id, digest, payload)
 
 
 class CurriculumStatus:
-    """课程状态表:先表后跑;GRADUATED 须人工批准引用。"""
+    """课程状态表:先表后跑;GRADUATED 须人工批准引用。
+
+    rev2:read-SHA→校验→改写→原子 replace 全程持锁(同一把
+    .curriculum.lock);唯一临时文件(tempfile.mkstemp 同目录,
+    用后即删);stage/course 白名单;历史追加不删除。
+    """
 
     def __init__(self, registry_root) -> None:
-        self.path = Path(registry_root) / "curriculum_status.json"
+        self.root = Path(registry_root)
+        self.path = self.root / "curriculum_status.json"
+        self.lock_path = self.root / ".curriculum.lock"
 
     def _load(self) -> dict:
         if not self.path.exists():
             return {"rows": [], "history": []}
         return json.loads(
             self.path.read_text(encoding="utf-8"))
+
+    @contextmanager
+    def _locked(self):
+        self.root.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(self.lock_path),
+                     os.O_CREAT | os.O_RDWR, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
 
     def row(self, arm: str, course: str) -> dict | None:
         for r in self._load()["rows"]:
@@ -264,11 +296,16 @@ class CurriculumStatus:
     def set_stage(self, arm: str, course: str, stage: str,
                   *, promotion: dict | None = None,
                   expected_sha256: str | None = None) -> dict:
-        """状态变更:旧文件 SHA 证明 + 历史追加,不删历史。
-
-        expected_sha256 为当前文件 SHA(文件不存在时必须传 None
-        且文件确实不存在);防止基于过期读的丢失更新。
-        """
+        if not isinstance(arm, str) or not arm:
+            raise RegistryError("arm must be non-empty str")
+        if course not in STATUS_COURSES:
+            raise RegistryError(
+                f"course {course!r} not allowed in status "
+                f"table (first version: {STATUS_COURSES})")
+        if stage not in VALID_STAGES:
+            raise RegistryError(
+                f"unknown stage {stage!r}; valid: "
+                f"{VALID_STAGES}")
         if stage == "GRADUATED":
             if not (promotion and promotion.get("approved_by")
                     and promotion.get("approval_ref")):
@@ -276,33 +313,49 @@ class CurriculumStatus:
                     "GRADUATED requires promotion with "
                     "approved_by + approval_ref (manual "
                     "approval; no auto promotion)")
-        if self.path.exists():
-            current = sha256_file(self.path)
-            if expected_sha256 != current:
+        with self._locked():
+            if self.path.exists():
+                current = sha256_file(self.path)
+                if expected_sha256 != current:
+                    raise RegistryError(
+                        f"stale status file: expected "
+                        f"{expected_sha256!r}, on-disk "
+                        f"{current!r}")
+            elif expected_sha256 is not None:
                 raise RegistryError(
-                    f"stale status file: expected "
-                    f"{expected_sha256!r}, on-disk "
-                    f"{current!r}")
-        elif expected_sha256 is not None:
-            raise RegistryError(
-                "status file does not exist; expected_sha256 "
-                "must be None")
-        data = self._load()
-        old_row = self.row(arm, course)
-        new_row = {"arm": arm, "course": course, "stage": stage,
-                   "promotion": promotion,
-                   "utc": utc_now()}
-        rows = [r for r in data["rows"]
-                if not (r.get("arm") == arm
-                        and r.get("course") == course)]
-        rows.append(new_row)
-        data["rows"] = rows
-        data["history"].append({
-            "arm": arm, "course": course,
-            "from": (old_row or {}).get("stage"),
-            "to": stage, "utc": utc_now()})
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".json.tmp")
-        tmp.write_text(canonical_json(data), encoding="utf-8")
-        os.replace(str(tmp), str(self.path))
-        return new_row
+                    "status file does not exist; "
+                    "expected_sha256 must be None")
+            data = self._load()
+            old_row = self.row(arm, course)
+            new_row = {"arm": arm, "course": course,
+                       "stage": stage,
+                       "promotion": promotion,
+                       "utc": utc_now()}
+            rows = [r for r in data["rows"]
+                    if not (r.get("arm") == arm
+                            and r.get("course") == course)]
+            rows.append(new_row)
+            data["rows"] = rows
+            data["history"].append({
+                "arm": arm, "course": course,
+                "from": (old_row or {}).get("stage"),
+                "to": stage, "utc": utc_now()})
+            # 唯一临时文件(同目录,原子 replace)
+            tmp_fd, tmp_name = tempfile.mkstemp(
+                dir=str(self.path.parent),
+                prefix=".curriculum_status.",
+                suffix=".tmp")
+            try:
+                with os.fdopen(tmp_fd, "w",
+                               encoding="utf-8") as fh:
+                    fh.write(canonical_json(data))
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                os.replace(tmp_name, str(self.path))
+            except BaseException:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+                raise
+            return new_row
