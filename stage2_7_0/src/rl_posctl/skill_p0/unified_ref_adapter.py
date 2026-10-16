@@ -211,7 +211,12 @@ def make_query(question: dict) -> dict:
         and not isinstance(acct.get("exposure"),
                            bool)
         and float(acct["exposure"]) == 0.0
-        and acct.get("solvency_raw") is math.inf)
+        and isinstance(
+            acct.get("solvency_raw"), float)
+        and not isinstance(
+            acct.get("solvency_raw"), bool)
+        and math.isinf(acct["solvency_raw"])
+        and acct["solvency_raw"] > 0)
     if not _flat_ok:
         raise ValueError(
             "account must be exactly flat cash100/"
@@ -434,6 +439,59 @@ def forced_invalid(post_e, growth) -> bool:
             * abs(float(post_e))) <= 0.0
 
 
+def _hold_support_mask(acc, mu_vec, sig_vec,
+                       fee):
+    """HOLD 支撑检查(纯代数,不跑积分):
+    L(r)=1+e*r-fee*|e|*(1+r) 关于 r 仿射 → 支撑端点
+    r_lo=mu-√3σ, r_hi=mu+√3σ。任一端点 L<0 → 正测度失败
+    (HOLD 臂 -inf);恰 =0 记边界(不当正概率破产)。"""
+    r_lo = mu_vec - math.sqrt(3) * sig_vec
+    r_hi = mu_vec + math.sqrt(3) * sig_vec
+    a = acc[None, :]
+    Llo = (1.0 + a * r_lo[:, None]
+           - fee * np.abs(a) * (1.0 + r_lo)[:, None])
+    Lhi = (1.0 + a * r_hi[:, None]
+           - fee * np.abs(a) * (1.0 + r_hi)[:, None])
+    fails = (Llo < 0) | (Lhi < 0)
+    edge = (Llo == 0) | (Lhi == 0)
+    return fails, edge
+
+
+def _risk_select_hold(Vi, e_next, growth, Vavg,
+                      fee, ext, flat_i):
+    """HOLD 风险选择:Vi(含正常插值续值)在越界格替换为
+    **仅清算费+下一 flat 续值**(当期增长只由外层 lg 计一次);
+    真无效(净值/清算后权益≤0)→-inf。全部 (S,K)。"""
+    risk = np.abs(e_next) > ext
+    dead = (growth <= 0) | (
+        1.0 - fee * np.abs(e_next) <= 0)
+    fee_log = np.log(np.maximum(
+        1.0 - fee * np.abs(e_next), 1e-300))
+    forced = (fee_log
+              + Vavg[:, flat_i:flat_i + 1])
+    Vi = np.where(risk & ~dead, forced, Vi)
+    Vi[dead] = -np.inf
+    return Vi
+
+
+def _risk_select_rebal(Vi1d, e_row, growth,
+                       Vavg, fee, ext, flat_i):
+    """REBAL 风险选择(一维):e_row/growth 均为 (S,);
+    正常插值续值 Vi1d (S,);越界→清算费+Vavg[:,flat_i] (S,);
+    真无效→-inf;返回 (S,1)(唯一一次升维)。"""
+    risk = (np.abs(e_row) > ext)
+    dead = (growth <= 0) | (
+        1.0 - fee * np.abs(e_row) <= 0)
+    fee_log = np.log(np.maximum(
+        1.0 - fee * np.abs(e_row), 1e-300))
+    flat_cont = Vavg[np.arange(Vavg.shape[0]),
+                     flat_i]
+    sel = np.where(risk & ~dead,
+                   fee_log + flat_cont, Vi1d)
+    sel[dead] = -np.inf
+    return sel[:, None]
+
+
 def _backward_induction(profile: dict,
                         checkpoint=None) -> dict:
     """真实后向归纳(纯函数,无预算副作用)。
@@ -471,7 +529,9 @@ def _backward_induction(profile: dict,
         1.0 - fee * np.abs(acc[None, :]), 1e-300))
     V[0][np.where(
         1.0 - fee * np.abs(acc[None, :]) <= 0)[1]] = -np.inf
-    E_arr = np.empty((S, K))
+    flat_i = K // 2
+    sup_fail, sup_edge = _hold_support_mask(
+        acc, mu, sig, fee)
     for t in range(1, bars + 1):
         why = _ck(t, "bar_begin")
         if why:
@@ -485,16 +545,14 @@ def _backward_induction(profile: dict,
         Vprev = V[t - 1]
         Vavg = P @ Vprev            # 期望在插值前(线性可交换)
         best = np.full((S, K), -np.inf)
-        if _ck(t, "action_loop"):
-            return {"partial": True,
-                    "stop_reason": checkpoint(
-                        t, "action_loop"),
-                    "bars_done": t - 1, "V": V[:t],
-                    "accounts": acc,
-                    "actions": np.asarray(acts),
-                    "gl": gl, "bars": bars,
-                    "solver": SOLVER_VERSION}
+        first_why = None
         for w in np.concatenate([acts, [None]]):
+            why_w = _ck(t, "action_loop")
+            if why_w is not None and \
+                    first_why is None:
+                first_why = why_w
+            if first_why is not None:
+                break
             # None=HOLD(目标=当前 e,零费)
             Q = np.zeros((S, K))
             for j in range(gl):
@@ -551,31 +609,27 @@ def _backward_induction(profile: dict,
                         w == 0.0, 0.0,
                         w * (1.0 + x) / np.maximum(
                             growth, 1e-300))    # (S,)
-                    risk = (np.abs(e_row) > ext) & \
-                        (w != 0.0)
-                    dead_r = (growth <= 0) | (
-                        1.0 - fee * np.abs(e_row) <= 0)
-                    flat_i = K // 2
-                    forced_r = (
-                        np.log(np.maximum(
-                            growth, 1e-300))
-                        + np.log(np.maximum(
-                            1.0 - fee * np.abs(
-                                e_row), 1e-300))
-                        + Vavg[:, flat_i:flat_i + 1])
                     i2, f2 = _interp_weights(e_row, acc)
-                    Vi = (Vavg[np.arange(S), i2]
-                          * (1.0 - f2)
-                          + Vavg[np.arange(S), np.minimum(
-                              i2 + 1, K - 1)] * f2)[:, None]
-                    Vi = np.where(
-                        risk & ~dead_r, forced_r, Vi)
-                    Vi[dead_r] = -np.inf
+                    Vi1d = (Vavg[np.arange(S), i2]
+                            * (1.0 - f2)
+                            + Vavg[np.arange(S), np.minimum(
+                                i2 + 1, K - 1)] * f2)
+                    Vi = _risk_select_rebal(
+                        Vi1d, e_row, growth, Vavg,
+                        fee, ext, flat_i)
                 step = lg + Vi
                 step = np.where(
                     np.isfinite(step), step, -np.inf)
                 Q += w_nodes[j] * step
             best = np.maximum(best, Q)
+        if first_why is not None:
+            return {"partial": True,
+                    "stop_reason": first_why,
+                    "bars_done": t - 1, "V": V[:t],
+                    "accounts": acc,
+                    "actions": np.asarray(acts),
+                    "gl": gl, "bars": bars,
+                    "solver": SOLVER_VERSION}
         V[t] = best
     return {"V": V, "accounts": acc,
             "actions": np.asarray(acts),
@@ -603,10 +657,25 @@ def _tier_profile(tier: str) -> dict:
 
 # ---- 预算 guard(实际预约/消费/计时/RSS) -----------------------
 _RUNS = {"used": 0, "open": None,
-         "total_wall_s": 0.0, "total_cpu_s": 0.0,
          "tiers_used": []}
+_JOB = None        # 单一活时钟:首包创建,横跨三档/query/analysis
 _now_wall = time.perf_counter
 _now_cpu = time.process_time
+
+
+def _job() -> dict:
+    """首包只建一次;之后所有检查读真实 elapsed。"""
+    global _JOB
+    if _JOB is None:
+        _JOB = {"wall0": _now_wall(),
+                "cpu0": _now_cpu()}
+    return _JOB
+
+
+def _job_elapsed() -> tuple:
+    j = _job()
+    return (_now_wall() - j["wall0"],
+            _now_cpu() - j["cpu0"])
 
 
 def _now_rss_gib() -> float:
@@ -629,14 +698,13 @@ def _begin_run(tier: str) -> dict:
         raise RuntimeError(
             "tier %r already consumed a run — repeat "
             "refused" % tier)
-    if (_RUNS["total_wall_s"] > BUDGET["wall_clock_s"]
-            or _RUNS["total_cpu_s"]
-            > BUDGET["cpu_s"]):
+    wall, cpu = _job_elapsed()
+    if (wall > BUDGET["wall_clock_s"]
+            or cpu > BUDGET["cpu_s"]):
         raise RuntimeError(
-            "cumulative budget already exceeded "
+            "job budget already exceeded "
             "(wall=%.1fs cpu=%.1fs) — new run "
-            "refused" % (_RUNS["total_wall_s"],
-                         _RUNS["total_cpu_s"]))
+            "refused" % (wall, cpu))
     if _now_rss_gib() > BUDGET["rss_gib"]:
         raise RuntimeError(
             "rss budget already exceeded — new run "
@@ -649,16 +717,9 @@ def _begin_run(tier: str) -> dict:
     return dict(_RUNS["open"])
 
 
-def _cumulative(handle: dict) -> tuple:
-    wall = (_RUNS["total_wall_s"]
-            + _now_wall() - handle["wall0"])
-    cpu = (_RUNS["total_cpu_s"]
-           + _now_cpu() - handle["cpu0"])
-    return wall, cpu
-
-
 def _run_checkpoint(handle: dict) -> tuple:
-    wall, cpu = _cumulative(handle)
+    """读 job 真实 elapsed(不叠加旧 total、不按段重置)。"""
+    wall, cpu = _job_elapsed()
     rss = _now_rss_gib()
     why = None
     if wall > BUDGET["wall_clock_s"]:
@@ -676,8 +737,6 @@ def _finish_run(stop_reason: str = None) -> dict:
         raise RuntimeError("no open run")
     h = _RUNS["open"]
     why, meters = _run_checkpoint(h)
-    _RUNS["total_wall_s"] += _now_wall() - h["wall0"]
-    _RUNS["total_cpu_s"] += _now_cpu() - h["cpu0"]
     _RUNS["open"] = None
     return {"tier": h["tier"], "seq": h["seq"],
             "stop_reason": why or (stop_reason
@@ -687,13 +746,13 @@ def _finish_run(stop_reason: str = None) -> dict:
 
 def budget_allows(wall_elapsed: float,
                   cpu_elapsed: float) -> tuple:
+    """外部预算预判:候选增量叠加 job 真实 elapsed。"""
     if _RUNS["used"] >= BUDGET["max_runs"]:
         return False, "runs_exhausted(%d)" % _RUNS["used"]
-    if (_RUNS["total_wall_s"] + wall_elapsed
-            > BUDGET["wall_clock_s"]):
+    wall, cpu = _job_elapsed()
+    if wall + wall_elapsed > BUDGET["wall_clock_s"]:
         return False, "wall_clock"
-    if (_RUNS["total_cpu_s"] + cpu_elapsed
-            > BUDGET["cpu_s"]):
+    if cpu + cpu_elapsed > BUDGET["cpu_s"]:
         return False, "cpu"
     if _now_rss_gib() > BUDGET["rss_gib"]:
         return False, "rss"
@@ -752,20 +811,28 @@ def solve_reference(tier: str) -> dict:
     res["tier"] = tier
     res["completed"] = (fin["stop_reason"]
                         == "completed")
+    if res["completed"] and res.get("V") \
+            is not None and not np.isfinite(
+                np.asarray(res["V"])).all():
+        res["completed"] = False
+        res["partial"] = True
+        res["stop_reason"] = "value_domain"
     if not res["completed"]:
         res["partial"] = True
-        res["stop_reason"] = fin["stop_reason"]
+        res.setdefault("stop_reason",
+                       fin["stop_reason"])
     return res
 
 
 def _budget_gate() -> None:
-    """query/analysis/表验真共用同一 job 累计预算门:
-    solver 段已耗尽的累计墙/CPU/RSS 超限时,下游消费也拒。"""
-    if _RUNS["total_wall_s"] > BUDGET["wall_clock_s"]:
+    """query/analysis/表验真共用同一 job 活时钟预算门
+    (真实 elapsed,横跨三档与全部下游消费)。"""
+    wall, cpu = _job_elapsed()
+    if wall > BUDGET["wall_clock_s"]:
         raise RuntimeError(
             "job budget exceeded (wall) — downstream "
             "consumption refused")
-    if _RUNS["total_cpu_s"] > BUDGET["cpu_s"]:
+    if cpu > BUDGET["cpu_s"]:
         raise RuntimeError(
             "job budget exceeded (cpu) — downstream "
             "consumption refused")
@@ -799,6 +866,17 @@ def validate_dp_tables(tier: str,
             "bars must equal H=%d; got %r"
             % (CALIB_CONFIG["H"],
                tables.get("bars")))
+    # 完成状态必须一致:completed 与任何中断/异常原因矛盾即拒
+    for path, reason in (
+            ("stop_reason", tables.get("stop_reason")),
+            ("budget.stop_reason",
+             (tables.get("budget") or {}).get(
+                 "stop_reason"))):
+        if reason not in (None, "completed"):
+            raise ValueError(
+                "inconsistent completion: %s=%r "
+                "while completed=True" % (path,
+                                          reason))
     if not np.array_equal(
             np.asarray(tables["actions"]),
             action_grid(tier)):
@@ -815,10 +893,15 @@ def validate_dp_tables(tier: str,
     if V.shape != want:
         raise ValueError(
             "V shape %r != %r" % (V.shape, want))
-    if np.isnan(V).any():
-        raise ValueError("V contains NaN")
-    if np.isposinf(V).any():
-        raise ValueError("V contains +inf")
+    # 固定域不变量:任意网格 |e|≤20 可 REBAL0(费≤.02)后永
+    # flat → max-value 必有限;内部高杠杆 HOLD 臂可 -inf 但
+    # 不应逃出 max。任何非有限 V(含 -inf)都 invalid。
+    if not np.isfinite(V).all():
+        n_bad = int((~np.isfinite(V)).sum())
+        raise ValueError(
+            "V contains %d non-finite entries "
+            "(fixed-domain max must be finite)"
+            % n_bad)
 
 
 def query_Q(query: dict, tier: str,
@@ -859,6 +942,7 @@ def query_Q(query: dict, tier: str,
 
     q_out = {}
     for w in dp_tables["actions"]:
+        _budget_gate()            # 每动作检查
         tot = 0.0
         for ui, wi in zip(u, wu):
             x = mu + math.sqrt(3) * sig * ui
@@ -876,6 +960,7 @@ def query_Q(query: dict, tier: str,
             q_hold += 0.5 * wi * -math.inf
             continue
         q_hold += 0.5 * wi * (lg + val_at(e2))
+    _budget_gate()                # 返回前检查
     return {"qid_state": si,
             "state": [q["s"], q["c"], float(q["q"]),
                       q["g"]],
@@ -971,11 +1056,28 @@ def analyze_tiers(per_tier_full: dict) -> dict:
         *(set(per_tier[t]) for t in tiers))
     fine = tiers[-1]
     for qid in sorted(qids):
+        _budget_gate()            # 每题检查
         rows = {t: per_tier[t][qid] for t in tiers}
         bests, margins, act_class = {}, {}, {}
         for t, row in rows.items():
+            if (not _q_ok(row["q_hold"]) or
+                    row["q_hold"] == -math.inf or
+                    any(q == -math.inf
+                        for q in
+                        row["q_rebals"].values())):
+                # 64 flat 根上意外 -inf:不可判定,不产
+                # act/no_act(也避免 -inf−(−inf)=NaN 被
+                # max 隐藏)
+                out[qid] = {
+                    "status": "not_established",
+                    "reason": ("non-finite Q at flat "
+                               "root (unexpected "
+                               "-inf)")}
+                rows[t] = None
+                break
             diffs = {w: q - row["q_hold"]
-                     for w, q in row["q_rebals"].items()}
+                     for w, q in
+                     row["q_rebals"].items()}
             vals = sorted(diffs.values())
             if (not vals) or any(
                     not _q_ok(v) for v in vals):
@@ -986,6 +1088,9 @@ def analyze_tiers(per_tier_full: dict) -> dict:
             margins[t] = diffs[bw]
             act_class[t] = ("act" if diffs[bw] > 0
                             else "no_act")
+        if any(rows.get(t) is None
+               for t in tiers):
+            continue        # 已判 not_established
         if any(v == "unstable"
                for v in act_class.values()):
             out[qid] = {"status": "unstable"}
@@ -1051,9 +1156,15 @@ def analyze_tiers(per_tier_full: dict) -> dict:
             "common_coord_value_dev": val_dev,
             "uncertainty_q_units": uncertainty,
             "near_opt_points_final": near,
+            "near_opt_note": (
+                "numerical max-tie set only "
+                "(1e-12 equality); NOT an error-"
+                "aware near-optimal set and NOT a "
+                "continuous band"),
             "value_uncertainty_band_q_units": [
                 m_final - uncertainty,
                 m_final + uncertainty]}
+    _budget_gate()                # 返回前检查
     return out
 
 

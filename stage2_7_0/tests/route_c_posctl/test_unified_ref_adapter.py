@@ -81,6 +81,117 @@ def test_strict_query():
             ur.make_query(bad)
     q = ur.make_query(good)
     assert "id" not in q
+    # solvency 数值判定:任意 +inf float 等值通过
+    alt = dict(good, account={
+        "cash": 100.0, "exposure": 0.0,
+        "solvency_raw": float("inf")})
+    assert ur.make_query(alt)["account"][
+        "solvency_raw"] == float("inf")
+
+
+def test_risk_select_hold_no_double_count():
+    """HOLD 风险选择:forced 续值**不含当期增长**(growth 只由
+    外层 lg 计一次);直接以 (60,113) 假数组驱动内核表达式。"""
+    S, K = 60, 113
+    rng = np.random.default_rng(7)
+    Vavg = rng.normal(size=(S, K))
+    Vi = np.zeros((S, K))
+    flat_i = K // 2
+    growth = np.full((S, K), 0.9)
+    e_next = np.full((S, K), 5.0)
+    e_next[3, 4] = 96.0            # 越界可清算
+    e_next[5, 6] = 1901.0          # 越界且清算后权益<0
+    fee = ur.CALIB_CONFIG["fee"]
+    out = ur._risk_select_hold(
+        Vi.copy(), e_next, growth, Vavg, fee, 20.0,
+        flat_i)
+    # 正常格不变
+    assert out[0, 0] == 0.0
+    # 越界格=清算费+flat 续值(无 log(growth) 项!)
+    want = (math.log(1 - fee * 96.0)
+            + Vavg[3, flat_i])
+    assert abs(out[3, 4] - want) < 1e-15
+    assert abs(out[3, 4]
+               - (want + math.log(0.9))) > 1e-6
+    # 真无效格 -inf
+    assert out[5, 6] == -math.inf
+
+
+def test_risk_select_rebal_shapes_and_values():
+    """REBAL:一维完成选择后唯一一次升维 (S,)→(S,1);
+    正常/越界/无效三态;输入 (60,)/(60,113) 假数组。"""
+    S, K = 60, 113
+    flat_i = K // 2
+    Vavg = np.tile(np.arange(K, dtype=float),
+                   (S, 1))
+    Vi1d = np.full(S, 7.0)
+    growth = np.full(S, 0.5)
+    e_row = np.full(S, 0.25)
+    e_row[10] = 104.0             # 越界(负向对称由 abs 覆盖)
+    e_row[11] = -1901.0           # 无效
+    fee = ur.CALIB_CONFIG["fee"]
+    out = ur._risk_select_rebal(
+        Vi1d, e_row, growth, Vavg, fee, 20.0,
+        flat_i)
+    assert out.shape == (S, 1)    # 不产生 (S,S)
+    assert out[0, 0] == 7.0
+    want = math.log(1 - fee * 104.0) + Vavg[
+        10, flat_i]
+    assert abs(out[10, 0] - want) < 1e-15
+    assert abs(out[10, 0]
+               - (want + math.log(0.5))) > 1e-6
+    assert out[11, 0] == -math.inf
+
+
+def test_hold_support_mask_algebra():
+    """支撑检查纯代数:e=20 在 σ=.06 支撑内失败;e=.5 安全;
+    精确端点=0 记边界不记失败。"""
+    fee = ur.CALIB_CONFIG["fee"]
+    acc = np.array([20.0, 0.5, 1.0])
+    mu = np.array([0.0])
+    sig = np.array([0.06])
+    fails, edge = ur._hold_support_mask(
+        acc, mu, sig, fee)
+    assert fails[0, 0] and not fails[0, 1]
+    assert not edge[0, 0] and not edge[0, 1]
+    # 精确端点:L(r*)=0 → 边界
+    e = 1.0
+    r_star = -((1 - fee * e)
+               / (e * (1 - fee)))
+    mu0 = np.array([r_star])
+    sig0 = np.array([0.0])       # r_lo=r_hi=r*
+    f2, e2 = ur._hold_support_mask(
+        np.array([e]), mu0, sig0, fee)
+    assert (not f2[0, 0]) and e2[0, 0]
+
+
+def test_analyze_nonfinite_q_not_established():
+    """64 flat 根上意外 -inf → not_established(非 act/
+    no_act;-inf−(−inf) 不进 max)。"""
+    rows = {}
+    for t in ("L0", "L1", "L2"):
+        rows[t] = {"G006": (
+            0.0, {0.5: -math.inf, -0.5: -1e-3})}
+    r = ur.analyze_tiers(_full_fake(rows))["G006"]
+    assert r["status"] == "not_established"
+    assert "non-finite" in r["reason"]
+    # q_hold -inf 同理
+    rows2 = {}
+    for t in ("L0", "L1", "L2"):
+        rows2[t] = {"G007": (
+            -math.inf, {0.5: 1e-3})}
+    r2 = ur.analyze_tiers(
+        _full_fake(rows2))["G007"]
+    assert r2["status"] == "not_established"
+    # act 行含 near_opt_note(数值平局集声明)
+    act_rows = {}
+    for t in ("L0", "L1", "L2"):
+        acts = {0.5: 1e-3, -0.5: -1e-3}
+        act_rows[t] = {"G008": (0.0, acts)}
+    r3 = ur.analyze_tiers(
+        _full_fake(act_rows))["G008"]
+    assert r3["status"] == "act"
+    assert "max-tie" in r3["near_opt_note"]
 
 
 def test_tail_boundary():
@@ -139,9 +250,10 @@ def fake_clock(monkeypatch):
 
 
 def test_guard_cumulative_and_refusals(fake_clock):
-    ur._RUNS.update(used=0, open=None, total_wall_s=0.0,
-                    total_cpu_s=0.0, tiers_used=[])
-    # run1: L0, +500 墙/+250 CPU
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
+    ur._JOB = None          # 单一活时钟重建
+    # run1: L0, job elapsed +500 墙/+250 CPU
     h1 = ur._begin_run("L0")
     fake_clock.wall += 500
     fake_clock.cpu += 250
@@ -152,7 +264,7 @@ def test_guard_cumulative_and_refusals(fake_clock):
     with pytest.raises(RuntimeError,
                        match="repeat refused"):
         ur._begin_run("L0")
-    # run2: L1, 进行中累计 500+401=901>900 → checkpoint=wall
+    # run2: L1, job elapsed 901>900 → wall_clock
     h2 = ur._begin_run("L1")
     fake_clock.wall += 401
     fake_clock.cpu += 300
@@ -160,27 +272,30 @@ def test_guard_cumulative_and_refusals(fake_clock):
     assert why == "wall_clock" and m["cum_wall_s"] == 901
     fin2 = ur._finish_run(why)
     assert fin2["stop_reason"] == "wall_clock"
-    # 累计已越限 → 第三个 run 拒开
+    # job 已越限 → 第三个 run 拒开
     with pytest.raises(RuntimeError,
-                       match="cumulative budget"):
+                       match="job budget already exceeded"):
         ur._begin_run("L2")
     assert ur._RUNS["used"] == 2
-    # budget_allows 累计口径
     ok, why2 = ur.budget_allows(0.0, 0.0)
     assert not ok and why2 == "wall_clock"
+    ur._JOB = None
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
 
 
 def test_guard_cpu_and_rss_paths(fake_clock):
-    ur._RUNS.update(used=0, open=None, total_wall_s=0.0,
-                    total_cpu_s=0.0, tiers_used=[])
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
+    ur._JOB = None
     h = ur._begin_run("L0")
     fake_clock.cpu += 601
     why, _ = ur._run_checkpoint(h)
     assert why == "cpu"
     ur._finish_run("cpu")
     ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
                     tiers_used=[])
+    ur._JOB = None
     h2 = ur._begin_run("L0")
     fake_clock.rss = 1.5
     why2, _ = ur._run_checkpoint(h2)
@@ -188,13 +303,14 @@ def test_guard_cpu_and_rss_paths(fake_clock):
     fake_clock.rss = 0.1
     ur._finish_run()
     ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
                     tiers_used=[])
+    ur._JOB = None
 
 
 def test_guard_4th_run_refused(fake_clock):
-    ur._RUNS.update(used=0, open=None, total_wall_s=0.0,
-                    total_cpu_s=0.0, tiers_used=[])
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
+    ur._JOB = None
     for t in ("L0", "L1", "L2"):
         ur._begin_run(t)
         fake_clock.wall += 100
@@ -204,8 +320,14 @@ def test_guard_4th_run_refused(fake_clock):
                        match="4th run refused"):
         ur._begin_run("L0")
     ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
                     tiers_used=[])
+    ur._JOB = None
+
+
+def _reset_job():
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
+    ur._JOB = None
 
 
 def test_solve_exception_closes_run_and_counts(
@@ -217,9 +339,7 @@ def test_solve_exception_closes_run_and_counts(
 
     monkeypatch.setattr(ur, "_backward_induction",
                         boom)
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
-                    tiers_used=[])
+    _reset_job()
     with pytest.raises(MemoryError):
         ur.solve_reference("L0")
     assert ur._RUNS["open"] is None      # 已关闭
@@ -227,26 +347,24 @@ def test_solve_exception_closes_run_and_counts(
     with pytest.raises(RuntimeError,
                        match="repeat refused"):
         ur.solve_reference("L0")
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
-                    tiers_used=[])
+    _reset_job()
 
 
 def test_query_analysis_budget_gate(fake_clock):
+    """活 job 时钟:下游运行期间推进越限要实际阻止。"""
     tables = _fake_tables("L0")
     qrow = ur.QUESTIONS[0]
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=950.0, total_cpu_s=0.0,
-                    tiers_used=[])
+    _reset_job()
+    h = ur._begin_run("L0")     # 建 job 时钟
+    ur._finish_run()
+    fake_clock.wall += 1000     # 下游期间推进越限
     with pytest.raises(RuntimeError,
                        match="job budget"):
         ur.query_Q(qrow, "L0", tables)
     with pytest.raises(RuntimeError,
                        match="job budget"):
         ur.analyze_tiers(_full_fake())
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
-                    tiers_used=[])
+    _reset_job()
 
 
 def test_solve_wiring_with_fake_kernel(fake_clock,
@@ -273,16 +391,12 @@ def test_solve_wiring_with_fake_kernel(fake_clock,
 
     monkeypatch.setattr(ur, "_backward_induction",
                         fake_kernel)
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=800.0,
-                    total_cpu_s=550.0, tiers_used=[])
-    h_probe = ur._begin_run("L2")   # 先占名额接假时钟基准
-    fake_clock.wall += 5            # 累计 805<900;仅校准
+    _reset_job()
+    h_probe = ur._begin_run("L2")   # 建 job 时钟
+    fake_clock.wall += 800          # job elapsed ≈800
     ur._finish_run()
     ur._RUNS.update(used=0, open=None,
-                    total_wall_s=800.0,
-                    total_cpu_s=550.0,
-                    tiers_used=[])
+                    tiers_used=[])   # 时钟保留
     res_holder = {}
 
     def fake_kernel2(profile, checkpoint=None):
@@ -301,9 +415,7 @@ def test_solve_wiring_with_fake_kernel(fake_clock,
     assert ur._RUNS["used"] == 1
     with pytest.raises(RuntimeError):
         ur.solve_reference("L0")
-    ur._RUNS.update(used=0, open=None,
-                    total_wall_s=0.0, total_cpu_s=0.0,
-                    tiers_used=[])
+    _reset_job()
 
 
 # ---------- 组3:假表验真与内容级强制 ----------------------------
@@ -364,12 +476,26 @@ def test_validate_dp_tables_rejects_bad(fake_clock):
     with pytest.raises(ValueError, match="bars"):
         ur.validate_dp_tables(
             "L0", dict(good, bars=3))
-    # V 含 +inf 拒
-    Vp = good["V"].copy()
-    Vp[0, 0, 0] = math.inf
-    with pytest.raises(ValueError, match="\+inf"):
-        ur.validate_dp_tables("L0",
-                              dict(good, V=Vp))
+    # V 非有限(+inf/-inf/NaN)拒
+    for bad_v in (math.inf, -math.inf,
+                  float("nan")):
+        Vp = good["V"].copy()
+        Vp[0, 0, 0] = bad_v
+        with pytest.raises(ValueError,
+                           match="non-finite"):
+            ur.validate_dp_tables(
+                "L0", dict(good, V=Vp))
+    # completed=True 与 stop_reason 矛盾拒
+    with pytest.raises(ValueError,
+                       match="inconsistent"):
+        ur.validate_dp_tables(
+            "L0", dict(good, completed=True,
+                       stop_reason="wall_clock"))
+    with pytest.raises(ValueError,
+                       match="inconsistent"):
+        ur.validate_dp_tables(
+            "L0", dict(good, budget={
+                "stop_reason": "cpu"}))
 
 
 def _fake_key(tier, acts):
