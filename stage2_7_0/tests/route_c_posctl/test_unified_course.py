@@ -279,26 +279,30 @@ def _variant_old(**over):
 
 def test_hidden_swap_full_field_coverage():
     uc.check_hidden_task_swap([_variant(), _variant()])
+    # 数值候选域内变化→hidden task swap;结构/语义模板项
+    # (noise/account_encoding/obs_columns/decode)→schema 拒
     for field, over in (
             ("mu_candidate", {"mu_candidate": 2.4e-3}),
             ("sigma_by_g", {"sigma_by_g": {"0": 0.05,
-                                           "1": 0.06}}),
-            ("noise", {"noise": "gauss_candidate"}),
-            ("account_encoding",
-             {"account_encoding": dict(
-                 uc.UNIFIED_TASK["account_encoding"],
-                 solvency="asinh(e)/4_candidate")}),
-            ("obs_columns", {"obs_columns":
-                             ["c", "g", "q", "s", "a", "b",
-                              "r", "h"]}),
-            ("decode_ids", {"action_families": dict(
-                uc.ACTION_FAMILIES,
-                B_asymmetric_beta=dict(
-                    uc.ACTION_FAMILIES[
-                        "B_asymmetric_beta"],
-                    decode_id="other-v9"))})):
+                                           "1": 0.06}})):
         with pytest.raises(uc.UnifiedSpecError,
                            match="hidden task swap"):
+            uc.check_hidden_task_swap(
+                [_variant(), _variant(**over)])
+    for over in ({"noise": "gauss_candidate"},
+                 {"account_encoding": dict(
+                     uc.UNIFIED_TASK["account_encoding"],
+                     solvency="asinh(e)/4_candidate")},
+                 {"obs_columns": ["c", "g", "q", "s", "a",
+                                  "b", "r", "h"]},
+                 {"action_families": dict(
+                     uc.ACTION_FAMILIES,
+                     B_asymmetric_beta=dict(
+                         uc.ACTION_FAMILIES[
+                             "B_asymmetric_beta"],
+                         decode_id="other-v9"))}):
+        with pytest.raises(uc.UnifiedSpecError,
+                           match="template|schema"):
             uc.check_hidden_task_swap(
                 [_variant(), _variant(**over)])
     k = dict(uc.UNIFIED_TASK["transition_kernel"])
@@ -667,7 +671,7 @@ def test_probability_gates_bounded():
 def test_signature_requires_fields_no_none_none():
     # 空 spec/缺字段不得经 None==None 判同任务
     with pytest.raises(uc.UnifiedSpecError,
-                       match="schema|missing required field|not numeric|bad |version subkeys"):
+                       match="schema|missing required field|not numeric|bad |version subkeys|template"):
         uc.check_hidden_task_swap(
             [{"task_id": "t"}, {"task_id": "t"}])
     v = _variant()
@@ -675,7 +679,7 @@ def test_signature_requires_fields_no_none_none():
                  "action_families"):
         v2 = {k: x for k, x in v.items() if k != drop}
         with pytest.raises(uc.UnifiedSpecError,
-                           match="schema|missing required field|not numeric|bad |version subkeys"):
+                           match="schema|missing required field|not numeric|bad |version subkeys|template"):
             uc.check_hidden_task_swap([v, v2])
     # spec_versions 与完整动作结构入签名
     v3 = _variant()
@@ -831,7 +835,7 @@ def test_spec_versions_and_independence_bound():
         v3 = {k: x for k, x in _variant().items()
               if k != drop}
         with pytest.raises(uc.UnifiedSpecError,
-                           match="schema|missing required field|not numeric|bad |version subkeys"):
+                           match="schema|missing required field|not numeric|bad |version subkeys|template"):
             uc.check_hidden_task_swap([_variant(), v3])
 
 
@@ -1118,6 +1122,57 @@ def test_expressiveness_interval_strict_types():
         with pytest.raises(uc.UnifiedSpecError):
             uc.evaluate_action_expressiveness(
                 _gq(lo=bad_iv[0], hi=bad_iv[1]))
+
+
+def test_nested_schema_ten_raw_negatives_and_roundtrip():
+    """A10:固定模板递归校验——10 个直接 raw 反例+完整候选
+    正常 roundtrip(构造/签名/比较同一入口)。"""
+    import copy
+    good = uc.make_task_spec()
+
+    def mut(fn):
+        v = copy.deepcopy(good)
+        fn(v)
+        return v
+
+    S = good["transition_kernel"]["s"]
+    Q = good["transition_kernel"]["q"]
+    E = good["economy"]
+    negs = [
+        mut(lambda v: v["transition_kernel"]["s"].pop(
+            "resample_dist")),                      # n1
+        mut(lambda v: v["transition_kernel"]["s"].update(
+            values=["-1", "0", "1"])),              # n2 字符串值
+        mut(lambda v: v["transition_kernel"]["q"].update(
+            values=[0.0, 0.25, float("nan"),
+                    0.75, 1.0])),                   # n3 NaN 值
+        mut(lambda v: v.update(
+            sigma_by_g={"0": 0.03})),               # n4 缺 g=1
+        mut(lambda v: v["economy"].update(
+            price_tick=-1.0)),                      # n5
+        mut(lambda v: v["economy"].pop("execution")),   # n6
+        mut(lambda v: v["economy"].pop(
+            "termination_threefold")),              # n7
+        mut(lambda v: v["economy"].pop("funding")),  # n8
+        mut(lambda v: v.update(account_encoding={
+            "a": "non-empty-but-fake"})),           # n9 伪非空
+        mut(lambda v: v.update(action_families={
+            "F1": {"arm": "A", "x": 1}})),          # n10 伪非空
+    ]
+    for bad in negs:
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.check_hidden_task_swap([good, bad])
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.make_task_spec(**{}) if False else \
+                uc.validate_task_spec(bad)
+    # 完整候选正常 roundtrip:构造→签名→比较全链
+    g2 = uc.make_task_spec()
+    assert uc.task_signature(g2) == uc.task_signature(good)
+    uc.check_hidden_task_swap([good, g2])
+    # 快照任务本体同样通过同一校验(发布物=合法完整候选)
+    snap = uc.build_registry_snapshot()
+    uc.validate_task_spec(snap["task"])
+    assert snap["task"]["status"] == "candidate_uncalibrated"
 
 
 def test_registry_snapshot_shape_and_isolation():

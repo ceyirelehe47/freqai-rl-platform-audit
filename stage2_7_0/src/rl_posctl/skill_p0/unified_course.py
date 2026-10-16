@@ -507,65 +507,43 @@ TASK_SIGNATURE_FIELDS = (
 
 
 def validate_task_spec(v: dict) -> None:
-    """严格子 schema 校验(签名前必过;两份同样无效不得进入
-    比较通道)。候选未校准不影响 schema 严格性。"""
+    """本版本唯一候选的**完整递归 schema 校验**(非黑名单):
+    结构=固定模板精确匹配(未知结构/不支持语义直接拒,扩展须
+    显式新 schema);数值=仅验证声明允许的候选域(可变候选仍受
+    域约束并参与签名)。构造/签名/比较共用本入口。"""
     if not isinstance(v, dict) or not v.get("task_id"):
         raise UnifiedSpecError("spec missing task_id")
     if v.get("schema") != SPEC_SCHEMA:
         raise UnifiedSpecError(
             "unknown schema %r (want %r)"
             % (v.get("schema"), SPEC_SCHEMA))
-    k = v.get("transition_kernel")
-    if (not isinstance(k, dict)
-            or set(k) != {"s", "c", "q", "g"}):
+    _tpl_top(v)
+    _tpl_kernel(v["transition_kernel"])
+    _tpl_sigma(v.get("sigma_by_g"))
+    _tpl_economy(v.get("economy"))
+    _tpl_encoding(v.get("account_encoding"))
+    _tpl_actions(v.get("action_families"))
+
+
+def _tpl_top(v):
+    if v.get("obs_columns") is not None and \
+            list(v["obs_columns"]) != list(OBS_COLUMNS):
         raise UnifiedSpecError(
-            "transition_kernel must have exactly s/c/q/g "
-            "(missing/extra components rejected): %r"
-            % (sorted(k) if isinstance(k, dict) else k))
-    for comp, spec_c in k.items():
-        vals = spec_c.get("values")
-        if (not isinstance(vals, list) or not vals):
+            "obs_columns template mismatch (change requires "
+            "a new schema version)")
+    mu = _num(v.get("mu_candidate"), "mu_candidate")
+    if mu <= 0:
+        raise UnifiedSpecError("mu_candidate must be > 0")
+    for f, tpl in (("drift", UNIFIED_TASK["drift"]),
+                   ("noise", UNIFIED_TASK["noise"])):
+        if v.get(f) != tpl:
             raise UnifiedSpecError(
-                "kernel %s values empty" % comp)
-        hp = _num(spec_c.get("hold_p"),
-                  "%s hold_p" % comp)
-        fp = spec_c.get("fresh_p")
-        if fp is None:
-            rp = _num(spec_c.get("resample_p"),
-                      "%s resample_p" % comp)
-            if not (0.0 <= hp <= 1.0
-                    and 0.0 <= rp <= 1.0):
-                raise UnifiedSpecError(
-                    "kernel %s hold/resample out of [0,1]"
-                    % comp)
-            if abs(hp + rp - 1.0) > 1e-9:
-                raise UnifiedSpecError(
-                    "kernel %s hold+resample != 1" % comp)
-        else:
-            # fresh_p 型(如 q):resample 隐含=1-hold
-            if "resample_p" in spec_c:
-                raise UnifiedSpecError(
-                    "kernel %s: fresh_p 与 resample_p "
-                    "互斥声明" % comp)
-            if not 0.0 <= hp <= 1.0:
-                raise UnifiedSpecError(
-                    "kernel %s hold_p out of [0,1]" % comp)
-            for x in fp:
-                xv = _num(x, "%s fresh_p entry" % comp)
-                if not 0.0 <= xv <= 1.0:
-                    raise UnifiedSpecError(
-                        "kernel %s fresh_p entry out of "
-                        "[0,1]: %r" % (comp, x))
-        if fp is not None:
-            if (not isinstance(fp, list)
-                    or len(fp) != len(vals)):
-                raise UnifiedSpecError(
-                    "kernel %s fresh_p length" % comp)
-            for x in fp:
-                _num(x, "%s fresh_p entry" % comp)
-            if abs(sum(fp) - 1.0) > 1e-9:
-                raise UnifiedSpecError(
-                    "kernel %s fresh_p sum != 1" % comp)
+                "%s template mismatch: unsupported semantics "
+                "rejected (new schema required)" % f)
+    if not isinstance(v.get("transition_independence"),
+                      str) or not v[
+                          "transition_independence"].strip():
+        raise UnifiedSpecError("bad transition_independence")
     sv = v.get("spec_versions")
     if (not isinstance(sv, dict)
             or set(sv) != {"obs", "reward", "action",
@@ -575,53 +553,213 @@ def validate_task_spec(v: dict) -> None:
         raise UnifiedSpecError(
             "spec_versions must carry exactly the four "
             "non-empty version subkeys")
-    econ = v.get("economy")
-    if not isinstance(econ, dict):
-        raise UnifiedSpecError("bad economy")
-    for f in ("fee_rate", "price_tick", "reward_scale",
-              "maintenance_margin", "initial_cash",
-              "slippage_bps"):
-        _num(econ.get(f), "economy %s" % f)
-    if econ["fee_rate"] < 0 or econ["reward_scale"] <= 0:
-        raise UnifiedSpecError("economy domain violation")
-    if econ["initial_cash"] <= 0:
-        raise UnifiedSpecError("initial_cash must be > 0")
-    if econ["maintenance_margin"] <= 0:
-        raise UnifiedSpecError("maintenance_margin must be > 0")
-    if econ["slippage_bps"] < 0:
-        raise UnifiedSpecError("slippage_bps must be >= 0")
-    sg = v.get("sigma_by_g")
-    if not isinstance(sg, dict) or not sg:
-        raise UnifiedSpecError("bad sigma_by_g")
-    for gk, gv in sg.items():
-        gv = _num(gv, "sigma_by_g[%s]" % gk)
+    hz = v.get("horizon")
+    if (not isinstance(hz, dict)
+            or set(hz) != {"values", "visible"}
+            or not isinstance(hz["values"], list)
+            or not hz["values"]
+            or not all(isinstance(x, int)
+                       and not isinstance(x, bool) and x > 0
+                       for x in hz["values"])
+            or not isinstance(hz["visible"], str)):
+        raise UnifiedSpecError("bad horizon structure")
+
+
+def _tpl_kernel(k):
+    if not isinstance(k, dict) or set(k) != {
+            "s", "c", "q", "g"}:
+        raise UnifiedSpecError(
+            "transition_kernel must have exactly s/c/q/g")
+    S = k.get("s")
+    if (not isinstance(S, dict)
+            or set(S) != {"values", "hold_p",
+                          "resample_p", "resample_dist"}
+            or S.get("values") != [-1, 0, 1]
+            or S.get("resample_dist")
+            != "uniform_over_values"):
+        raise UnifiedSpecError(
+            "kernel s template mismatch")
+    for f in ("c", "g"):
+        C = k.get(f)
+        if (not isinstance(C, dict)
+                or set(C) != {"values", "hold_p",
+                              "resample_p",
+                              "resample_dist"}
+                or C.get("values") != [0, 1]
+                or C.get("resample_dist")
+                != "uniform_over_{0,1}"):
+            raise UnifiedSpecError(
+                "kernel %s template mismatch" % f)
+    Q = k.get("q")
+    qv = Q.get("values") if isinstance(Q, dict) else None
+    if (not isinstance(Q, dict)
+            or set(Q) != {"values", "hold_p",
+                          "fresh_p", "resample_dist"}
+            or not isinstance(qv, list) or len(qv) != 5
+            or not all(_num_ok_in01(x) for x in qv)
+            or [float(x) for x in qv] != [
+                0.0, 0.25, 0.5, 0.75, 1.0]
+            or Q.get("resample_dist")
+            != "fresh_p_over_5_levels"):
+        raise UnifiedSpecError(
+            "kernel q template mismatch (values must be "
+            "the five finite levels)")
+    for comp in ("s", "c", "q", "g"):
+        hp = _num(k[comp].get("hold_p"),
+                  "%s hold_p" % comp)
+        if not 0.0 <= hp <= 1.0:
+            raise UnifiedSpecError(
+                "kernel %s hold_p out of [0,1]" % comp)
+    for comp in ("s", "c", "g"):
+        hp2 = _num(k[comp].get("hold_p"),
+                   "%s hold_p" % comp)
+        rp = _num(k[comp].get("resample_p"),
+                  "%s resample_p" % comp)
+        if not 0.0 <= rp <= 1.0:
+            raise UnifiedSpecError(
+                "kernel %s resample_p out of [0,1]" % comp)
+        if abs(hp2 + rp - 1.0) > 1e-9:
+            raise UnifiedSpecError(
+                "kernel %s hold+resample != 1" % comp)
+    fp = k["q"].get("fresh_p")
+    if (not isinstance(fp, list) or len(fp) != 5):
+        raise UnifiedSpecError("kernel q fresh_p length")
+    for x in fp:
+        xv = _num(x, "q fresh_p entry")
+        if not 0.0 <= xv <= 1.0:
+            raise UnifiedSpecError(
+                "q fresh_p entry out of [0,1]: %r" % x)
+    if abs(sum(map(float, fp)) - 1.0) > 1e-9:
+        raise UnifiedSpecError("q fresh_p sum != 1")
+
+
+def _num_ok_in01(x):
+    try:
+        xv = _num(x, "probe")
+        return 0.0 <= xv <= 1.0
+    except UnifiedSpecError:
+        return False
+
+
+def _tpl_sigma(sg):
+    if (not isinstance(sg, dict)
+            or set(sg) != {"0", "1"}):
+        raise UnifiedSpecError(
+            "sigma_by_g keys must be exactly g0/g1")
+    for gk in ("0", "1"):
+        gv = _num(sg[gk], "sigma_by_g[%s]" % gk)
         if gv <= 0:
             raise UnifiedSpecError(
                 "sigma_by_g[%s] must be > 0" % gk)
-    for f in ("drift", "noise", "transition_independence"):
-        if (not isinstance(v.get(f), str)
-                or not v[f].strip()):
-            raise UnifiedSpecError("bad %s" % f)
-    hz = v.get("horizon")
-    if (not isinstance(hz, dict)
-            or not isinstance(hz.get("values"), list)
-            or not hz["values"]
-            or not all(isinstance(x, int)
-                       and not isinstance(x, bool)
-                       and x > 0
-                       for x in hz["values"])):
+
+
+def _tpl_economy(econ):
+    if not isinstance(econ, dict):
+        raise UnifiedSpecError("bad economy")
+    need = {"fee_rate", "slippage_bps", "price_tick",
+            "reward_scale", "funding", "maintenance_margin",
+            "initial_cash", "execution",
+            "termination_threefold"}
+    if set(econ) != need:
         raise UnifiedSpecError(
-            "horizon values must be positive ints")
-    oc = v.get("obs_columns")
-    if (not isinstance(oc, (list, tuple)) or not oc
-            or len(set(oc)) != len(oc)
-            or not all(isinstance(c, str) and c
-                       for c in oc)):
-        raise UnifiedSpecError("bad obs_columns")
-    af = v.get("action_families")
-    if not isinstance(af, dict) or not af:
-        raise UnifiedSpecError("bad action_families")
-    _num(v.get("mu_candidate"), "mu_candidate")
+            "economy must declare exactly the full set "
+            "(execution/termination/funding included): "
+            "missing=%r extra=%r"
+            % (sorted(need - set(econ)),
+               sorted(set(econ) - need)))
+    if econ["funding"] != "none_candidate":
+        raise UnifiedSpecError(
+            "funding semantics unsupported (template: "
+            "none_candidate)")
+    if econ["execution"] != UNIFIED_TASK[
+            "economy"]["execution"]:
+        raise UnifiedSpecError(
+            "execution template mismatch")
+    term = econ["termination_threefold"]
+    if (not isinstance(term, dict)
+            or set(term) != {"invalid_terminal",
+                             "pre_action_risk",
+                             "terminal_liquidation"}
+            or not all(isinstance(x, str) and x
+                       for x in term.values())):
+        raise UnifiedSpecError(
+            "termination_threefold template mismatch")
+    for f in ("fee_rate", "slippage_bps", "price_tick",
+              "reward_scale", "maintenance_margin",
+              "initial_cash"):
+        _num(econ.get(f), "economy %s" % f)
+    if econ["fee_rate"] < 0:
+        raise UnifiedSpecError("fee_rate must be >= 0")
+    if econ["slippage_bps"] < 0:
+        raise UnifiedSpecError(
+            "slippage_bps must be >= 0")
+    if econ["price_tick"] < 0:
+        raise UnifiedSpecError(
+            "price_tick must be >= 0")
+    if econ["reward_scale"] <= 0:
+        raise UnifiedSpecError("reward_scale must be > 0")
+    if econ["maintenance_margin"] <= 0:
+        raise UnifiedSpecError(
+            "maintenance_margin must be > 0")
+    if econ["initial_cash"] <= 0:
+        raise UnifiedSpecError("initial_cash must be > 0")
+
+
+def _tpl_encoding(enc):
+    if (not isinstance(enc, dict)
+            or set(enc) != {"exposure", "solvency"}
+            or enc.get("exposure") != "asinh(exposure)/4"
+            or enc.get("solvency")
+            != UNIFIED_TASK["account_encoding"][
+                "solvency"]):
+        raise UnifiedSpecError(
+            "account_encoding template mismatch "
+            "(unsupported semantics rejected)")
+
+
+def _tpl_actions(af):
+    if not isinstance(af, dict) or set(af) != {
+            "A_symmetric_beta_atoms",
+            "B_asymmetric_beta"}:
+        raise UnifiedSpecError(
+            "action_families template mismatch")
+    A = af.get("A_symmetric_beta_atoms")
+    if (not isinstance(A, dict)
+            or set(A) != {"arm", "decode_id",
+                          "decode_semantics",
+                          "structure",
+                          "internal_upper_bound",
+                          "bound_status"}
+            or A.get("arm") != "A"
+            or A.get("decode_id")
+            != "P0CategoryMax-v1"
+            or not isinstance(
+                A.get("internal_upper_bound"),
+                (int, float))
+            or isinstance(
+                A.get("internal_upper_bound"), bool)
+            or not isinstance(A.get("structure"), str)
+            or not A.get("structure")):
+        raise UnifiedSpecError(
+            "A family template mismatch")
+    B = af.get("B_asymmetric_beta")
+    if (not isinstance(B, dict)
+            or set(B) != {"arm", "decode_id",
+                          "candidate_decode",
+                          "decode_semantics",
+                          "structure", "reachability",
+                          "note"}
+            or B.get("arm") != "B"
+            or B.get("decode_id")
+            != "P0CategoryMax-v1"
+            or B.get("candidate_decode")
+            != "mixture-mean-v1"
+            or B.get("reachability")
+            != "not_established"
+            or not isinstance(B.get("structure"), str)
+            or not B.get("structure")):
+        raise UnifiedSpecError(
+            "B family template mismatch")
 
 
 def make_task_spec(**overrides) -> dict:
