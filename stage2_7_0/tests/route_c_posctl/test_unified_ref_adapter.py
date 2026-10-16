@@ -91,27 +91,27 @@ def test_tail_boundary():
 
 
 # ---------- 组2:越界强制清算(标量双侧) --------------------------
-def test_forced_invalid_boundaries():
-    # e=20, r=-.0495: growth=.01>0 但 post≈1901>20 → 无效
-    lg, e2 = ur.hold_step(20.0, -0.0495)
-    assert math.isfinite(lg)          # bar 本身 log(.01)
-    assert ur.forced_invalid(e2, 1 + 20 * -0.0495) is True
-    # 对称:e=-20, r=+.0495 → post≈-1901 → 无效
-    lg2, e3 = ur.hold_step(-20.0, 0.0495)
-    assert ur.forced_invalid(e3, 1 + (-20) * 0.0495) is True
-    # 域内边界:|e'|≤20 → 合法
-    _, ein = ur.hold_step(19.0, 0.0)
-    assert ur.forced_invalid(ein, 1.0) is False
-    _, edge = ur.hold_step(20.0, 0.0)
-    assert ur.forced_invalid(edge, 1.0) is False  # =20 不越界
-    _, over = ur.hold_step(20.0, -0.04)
-    # growth=.2, post=20*.96/.2=96>20 → 越界
-    assert ur.forced_invalid(over, 1.0 + 20 * -0.04) \
-        is True
-    # growth<=0 → 无效(破产)
-    assert ur.forced_invalid(0.5, 0.0) is True
-    assert ur.forced_invalid(float("nan"), 1.0) is True
-    assert ur.forced_invalid(True, 1.0) is True
+def test_forced_liquidation_semantics():
+    """越界≠破产:强制清算值有限;仅净值/清算后权益≤0 才 -inf。"""
+    # e=20,r=-.04: growth=.2,post=96,因子 .904 → 有限
+    v = ur.forced_liquidation_value(20.0, -0.04)
+    assert abs(v - (math.log(0.2)
+                    + math.log(0.904))) < 1e-12
+    # 负侧:e=-20,r=+.04 → post=-104,因子 .896 → 有限
+    vn = ur.forced_liquidation_value(-20.0, 0.04)
+    assert abs(vn - (math.log(0.2)
+                     + math.log(0.896))) < 1e-12
+    # post≈1901:因子 1-1.901<0 → 真无效
+    assert ur.forced_liquidation_value(
+        20.0, -0.0495) == -math.inf
+    # 净值≤0 → -inf
+    assert ur.forced_liquidation_value(
+        1.0, -2.0) == -math.inf
+    # forced_invalid 现仅表真无效
+    _, post = ur.hold_step(20.0, -0.04)
+    assert ur.forced_invalid(post, 0.2) is False
+    _, post2 = ur.hold_step(20.0, -0.0495)
+    assert ur.forced_invalid(post2, 0.01) is True
 
 
 # ---------- 组1:guard 累计+假时钟 -------------------------------
@@ -203,6 +203,47 @@ def test_guard_4th_run_refused(fake_clock):
     with pytest.raises(RuntimeError,
                        match="4th run refused"):
         ur._begin_run("L0")
+    ur._RUNS.update(used=0, open=None,
+                    total_wall_s=0.0, total_cpu_s=0.0,
+                    tiers_used=[])
+
+
+def test_solve_exception_closes_run_and_counts(
+        fake_clock, monkeypatch):
+    """profile/内核异常:运行关闭、名额仍消费。"""
+
+    def boom(profile, checkpoint=None):
+        raise MemoryError("synthetic OOM")
+
+    monkeypatch.setattr(ur, "_backward_induction",
+                        boom)
+    ur._RUNS.update(used=0, open=None,
+                    total_wall_s=0.0, total_cpu_s=0.0,
+                    tiers_used=[])
+    with pytest.raises(MemoryError):
+        ur.solve_reference("L0")
+    assert ur._RUNS["open"] is None      # 已关闭
+    assert ur._RUNS["used"] == 1         # 失败也计
+    with pytest.raises(RuntimeError,
+                       match="repeat refused"):
+        ur.solve_reference("L0")
+    ur._RUNS.update(used=0, open=None,
+                    total_wall_s=0.0, total_cpu_s=0.0,
+                    tiers_used=[])
+
+
+def test_query_analysis_budget_gate(fake_clock):
+    tables = _fake_tables("L0")
+    qrow = ur.QUESTIONS[0]
+    ur._RUNS.update(used=0, open=None,
+                    total_wall_s=950.0, total_cpu_s=0.0,
+                    tiers_used=[])
+    with pytest.raises(RuntimeError,
+                       match="job budget"):
+        ur.query_Q(qrow, "L0", tables)
+    with pytest.raises(RuntimeError,
+                       match="job budget"):
+        ur.analyze_tiers(_full_fake())
     ur._RUNS.update(used=0, open=None,
                     total_wall_s=0.0, total_cpu_s=0.0,
                     tiers_used=[])
@@ -314,6 +355,21 @@ def test_validate_dp_tables_rejects_bad(fake_clock):
     with pytest.raises(ValueError, match="dp_key"):
         ur.validate_dp_tables(
             "L0", dict(good, dp_key="forged"))
+    # partial 标志拒;bars 错拒
+    with pytest.raises(ValueError,
+                       match="partial"):
+        ur.validate_dp_tables(
+            "L0", dict(good, completed=True,
+                       partial=True))
+    with pytest.raises(ValueError, match="bars"):
+        ur.validate_dp_tables(
+            "L0", dict(good, bars=3))
+    # V 含 +inf 拒
+    Vp = good["V"].copy()
+    Vp[0, 0, 0] = math.inf
+    with pytest.raises(ValueError, match="\+inf"):
+        ur.validate_dp_tables("L0",
+                              dict(good, V=Vp))
 
 
 def _fake_key(tier, acts):
@@ -347,10 +403,18 @@ def test_query_Q_validates_and_outputs(fake_clock):
     with pytest.raises(ValueError, match="completed"):
         ur.query_Q(qrow, "L0",
                    dict(tables, completed=False))
-    # 越界 remaining 拒
+    # 越界 remaining 拒;total≠32 拒;账户 bool 拒
     with pytest.raises(ValueError):
         ur.query_Q(dict(qrow, remaining=40), "L0",
                    tables)
+    with pytest.raises(ValueError, match="fixes total"):
+        ur.query_Q(dict(qrow, total=64), "L0",
+                   tables)
+    bad_acct = dict(qrow, account={
+        "cash": 100.0, "exposure": False,
+        "solvency_raw": math.inf})
+    with pytest.raises(ValueError):
+        ur.query_Q(bad_acct, "L0", tables)
 
 
 def test_validate_tier_outputs_content_level(
@@ -390,28 +454,113 @@ def test_validate_tier_outputs_content_level(
         "questions"][:63]
     with pytest.raises(ValueError, match="missing"):
         ur.validate_tier_outputs(per)
+    # Q 值域:NaN/+inf/字符串/bool 拒(-inf 允许)
+    per = _full_fake()
+    per["L0"]["questions"][2]["q_rebals"][
+        0.5] = float("nan")
+    with pytest.raises(ValueError, match="invalid"):
+        ur.validate_tier_outputs(per)
+    per["L0"]["questions"][2]["q_rebals"][
+        0.5] = "0.5"
+    with pytest.raises(ValueError, match="invalid"):
+        ur.validate_tier_outputs(per)
+    per["L0"]["questions"][2]["q_rebals"][
+        0.5] = True
+    with pytest.raises(ValueError, match="invalid"):
+        ur.validate_tier_outputs(per)
+    per["L0"]["questions"][2]["q_rebals"][
+        0.5] = -math.inf   # 合法
+    ur.validate_tier_outputs(per)
 
 
-def _row(qh, rb):
-    return {"q_hold": qh, "q_rebals": rb}
+def _full_fake(tiers_rows=None, mutate=None):
+    """受控完整假产物:三档真键/坐标/形状+64 条 questions;
+    tiers_rows={tier:{qid:(q_hold,{w:q})}} 注入场景行。"""
+    per = {}
+    for t in ("L0", "L1", "L2"):
+        tb = _fake_tables(t)
+        qs = []
+        for q in ur.QUESTIONS:
+            base = {float(x): -1e-3
+                    for x in ur.action_grid(t)}
+            row = (tiers_rows or {}).get(
+                t, {}).get(q["id"])
+            qh = -0.5e-3
+            if row is not None:
+                qh = row[0]
+                for k, v in row[1].items():
+                    kf = float(k)
+                    near = min(base, key=lambda g:
+                               abs(g - kf))
+                    assert abs(near - kf) < 1e-9
+                    base[near] = float(v)
+            qs.append({"id": q["id"], "s": q["s"],
+                       "c": q["c"], "q": q["q"],
+                       "g": q["g"],
+                       "remaining": q["remaining"],
+                       "total": q["total"],
+                       "q_hold": qh,
+                       "q_rebals": base})
+        tb["questions"] = qs
+        per[t] = tb
+    if mutate:
+        mutate(per)
+    return per
 
 
-def test_analyze_tiers_semantics_kept():
-    per = {
-        "L0": {"G001": _row(0.0, {0.5: 1e-3,
-                                  -1.0: -1e-3})},
-        "L1": {"G001": _row(0.0, {0.5: 1.2e-3,
-                                  -1.0: -1e-3})},
-        "L2": {"G001": _row(0.0, {0.5: 1.3e-3,
-                                  -1.0: -1e-3})}}
-    r = ur.analyze_tiers(per)["G001"]
+def test_analyze_single_official_entry():
+    # 完整假产物端到端通过
+    rows = {}
+    for t in ("L0", "L1", "L2"):
+        acts = {0.5: 1e-3, -0.5: -1e-3}
+        rows[t] = {"G001": (0.0, acts)}
+    r = ur.analyze_tiers(_full_fake(rows))["G001"]
     assert r["status"] == "act"
-    drift = {
-        "L0": {"G002": _row(
-            0.0, {0.1: 1e-3, 0.5: 9.9e-4})},
-        "L1": {"G002": _row(
-            0.0, {0.5: 1e-3, 0.1: 9.9e-4})},
-        "L2": {"G002": _row(
-            0.0, {0.9: 1e-3, 0.5: 9.9e-4})}}
-    r2 = ur.analyze_tiers(drift)["G002"]
+    # 旧 qid→Q 字典格式 → validate 拒
+    with pytest.raises(ValueError):
+        ur.analyze_tiers({"L0": {"G001": {
+            "q_hold": 0, "q_rebals": {}}}})
+    # 缺一档 → 拒
+    with pytest.raises(ValueError):
+        full = _full_fake()
+        del full["L2"]
+        ur.analyze_tiers(full)
+    # 缺一题 → 拒
+    def drop(per):
+        per["L1"]["questions"] = \
+            per["L1"]["questions"][:63]
+    with pytest.raises(ValueError, match="missing"):
+        ur.analyze_tiers(_full_fake(mutate=drop))
+    # 错身份 → 拒
+    def swap(per):
+        per["L0"]["tier"] = "L1"
+    with pytest.raises(ValueError):
+        ur.analyze_tiers(_full_fake(mutate=swap))
+    # 漂移 → not_established
+    drift_rows = {
+        "L0": {"G002": (0.0, {0.1: 1e-3,
+                              0.5: 9.9e-4})},
+        "L1": {"G002": (0.0, {0.5: 1e-3,
+                              0.1: 9.9e-4})},
+        "L2": {"G002": (0.0, {0.9: 1e-3,
+                              0.5: 9.9e-4})}}
+    r2 = ur.analyze_tiers(
+        _full_fake(drift_rows))["G002"]
     assert r2["status"] == "not_established"
+    assert "drifted" in r2["reason"]
+    # 正 margin 小于不确定尺度 → not_established(非 no_act)
+    small_rows = {t: {"G003": (0.0, {
+        0.5: {"L0": 0.5e-4, "L1": 0.2e-4,
+              "L2": 0.05e-4}[t],
+        -0.5: -1e-3})}
+        for t in ("L0", "L1", "L2")}
+    r3 = ur.analyze_tiers(
+        _full_fake(small_rows))["G003"]
+    assert r3["status"] == "not_established"
+    # 无行动(best diff≤0)与无法判定分开
+    noact_rows = {t: {"G004": (0.0, {
+        0.5: -1e-3, -0.5: -2e-3})}
+        for t in ("L0", "L1", "L2")}
+    r4 = ur.analyze_tiers(
+        _full_fake(noact_rows))["G004"]
+    assert r4["status"] == "no_act"

@@ -192,13 +192,31 @@ def make_query(question: dict) -> dict:
                 "%s must be positive int: %r" % (f, v))
     if question["remaining"] > question["total"]:
         raise ValueError("remaining > total")
+    if question["total"] != CALIB_CONFIG["H"]:
+        raise ValueError(
+            "this calibration package fixes total=%d; "
+            "got %r" % (CALIB_CONFIG["H"],
+                        question["total"]))
     acct = question["account"]
-    if not isinstance(acct, dict) or acct != {
-            "cash": 100.0, "exposure": 0.0,
-            "solvency_raw": math.inf}:
+    _flat_ok = (
+        isinstance(acct, dict)
+        and set(acct) == {"cash", "exposure",
+                          "solvency_raw"}
+        and isinstance(acct.get("cash"),
+                       (int, float))
+        and not isinstance(acct.get("cash"), bool)
+        and float(acct["cash"]) == 100.0
+        and isinstance(acct.get("exposure"),
+                       (int, float))
+        and not isinstance(acct.get("exposure"),
+                           bool)
+        and float(acct["exposure"]) == 0.0
+        and acct.get("solvency_raw") is math.inf)
+    if not _flat_ok:
         raise ValueError(
             "account must be exactly flat cash100/"
-            "exposure0/solvency+inf: %r" % (acct,))
+            "exposure0(non-bool)/solvency+inf: %r"
+            % (acct,))
     _reject_extra(question, {
         "s": (), "c": (), "q": (), "g": (),
         "remaining": (), "total": (), "id": (),
@@ -382,9 +400,26 @@ def _interp_weights(points: np.ndarray,
     return idx, frac
 
 
+def forced_liquidation_value(e: float,
+                             r: float) -> float:
+    """风险越界(|e'|>延伸域)时的强制清算值(原参考语义):
+    在触发时点收费清仓回 flat——log(growth)+log(1-fee·|post|),
+    之后续值在 flat 上。仅当净值 growth<=0 或清算后权益
+    1-fee·|post|<=0 才 -inf。e=20,r=-.04: growth=.2,post=96,
+    因子 .904 → 有限;post=1901 → 因子 -0.901 → -inf。"""
+    _verify_binding()
+    lg, post = hold_step(e, r)
+    if not math.isfinite(lg):
+        return -math.inf
+    fee = CALIB_CONFIG["fee"]
+    factor = 1.0 - fee * abs(post)
+    if factor <= 0.0:
+        return -math.inf
+    return lg + math.log(factor)
+
+
 def forced_invalid(post_e, growth) -> bool:
-    """强制清算/无效净值判定(|e'|>延伸域 或 growth<=0)。
-    e=20,r=-.0495→post≈1901→True(清算 −inf,不截断网格)。"""
+    """真无效判定:净值非正或清算后权益非正(仅此才 -inf)。"""
     _verify_binding()
     if (isinstance(post_e, bool)
             or not isinstance(post_e, (int, float))
@@ -393,9 +428,10 @@ def forced_invalid(post_e, growth) -> bool:
     if not isinstance(growth, (int, float)) \
             or not math.isfinite(float(growth)):
         return True
-    return (abs(float(post_e))
-            > ACCOUNT_EXT_DOMAIN) or (float(growth)
-                                      <= 0.0)
+    if float(growth) <= 0.0:
+        return True
+    return (1.0 - CALIB_CONFIG["fee"]
+            * abs(float(post_e))) <= 0.0
 
 
 def _backward_induction(profile: dict,
@@ -449,6 +485,15 @@ def _backward_induction(profile: dict,
         Vprev = V[t - 1]
         Vavg = P @ Vprev            # 期望在插值前(线性可交换)
         best = np.full((S, K), -np.inf)
+        if _ck(t, "action_loop"):
+            return {"partial": True,
+                    "stop_reason": checkpoint(
+                        t, "action_loop"),
+                    "bars_done": t - 1, "V": V[:t],
+                    "accounts": acc,
+                    "actions": np.asarray(acts),
+                    "gl": gl, "bars": bars,
+                    "solver": SOLVER_VERSION}
         for w in np.concatenate([acts, [None]]):
             # None=HOLD(目标=当前 e,零费)
             Q = np.zeros((S, K))
@@ -474,9 +519,22 @@ def _backward_induction(profile: dict,
                     Vi = (Vavg[rows, idx] * (1.0 - frac)
                           + Vavg[rows, np.minimum(
                               idx + 1, K - 1)] * frac)
-                    inv_h = ((np.abs(e_next) > ext)
-                             | (growth <= 0))
-                    Vi[inv_h] = -np.inf
+                    risk_h = np.abs(e_next) > ext
+                    dead_h = (growth <= 0) | (
+                        1.0 - fee * np.abs(e_next)
+                        <= 0)
+                    flat_i = K // 2   # 账户网格含 0(奇数 dense)
+                    forced_h = (
+                        np.log(np.maximum(
+                            growth, 1e-300))
+                        + np.log(np.maximum(
+                            1.0 - fee * np.abs(
+                                e_next), 1e-300))
+                        + Vavg[:, flat_i:flat_i + 1])
+                    Vi = np.where(
+                        risk_h & ~dead_h,
+                        forced_h, Vi)
+                    Vi[dead_h] = -np.inf
                 else:
                     # REBAL:目标 w 固定;费随起始敞口
                     d = w - acc[None, :]
@@ -493,14 +551,26 @@ def _backward_induction(profile: dict,
                         w == 0.0, 0.0,
                         w * (1.0 + x) / np.maximum(
                             growth, 1e-300))    # (S,)
-                    invalid = ((np.abs(e_row) > ext)
-                               & (w != 0.0))
+                    risk = (np.abs(e_row) > ext) & \
+                        (w != 0.0)
+                    dead_r = (growth <= 0) | (
+                        1.0 - fee * np.abs(e_row) <= 0)
+                    flat_i = K // 2
+                    forced_r = (
+                        np.log(np.maximum(
+                            growth, 1e-300))
+                        + np.log(np.maximum(
+                            1.0 - fee * np.abs(
+                                e_row), 1e-300))
+                        + Vavg[:, flat_i:flat_i + 1])
                     i2, f2 = _interp_weights(e_row, acc)
                     Vi = (Vavg[np.arange(S), i2]
                           * (1.0 - f2)
                           + Vavg[np.arange(S), np.minimum(
                               i2 + 1, K - 1)] * f2)[:, None]
-                    Vi[invalid] = -np.inf
+                    Vi = np.where(
+                        risk & ~dead_r, forced_r, Vi)
+                    Vi[dead_r] = -np.inf
                 step = lg + Vi
                 step = np.where(
                     np.isfinite(step), step, -np.inf)
@@ -664,15 +734,18 @@ def solve_reference(tier: str) -> dict:
         why, _m = _run_checkpoint(h)
         return why
 
-    prof = _tier_profile(tier)
     try:
+        prof = _tier_profile(tier)
         res = _backward_induction(prof, checkpoint=_ck)
         stopped = bool(res.get("partial"))
         fin = _finish_run(
             res.get("stop_reason") if stopped
             else None)
     except Exception:
-        _finish_run("exception")
+        try:
+            _finish_run("exception")
+        except RuntimeError:
+            pass          # 已被 finally 关闭
         raise
     res["budget"] = fin
     res["dp_key"] = dp_cache_key(tier)
@@ -683,6 +756,23 @@ def solve_reference(tier: str) -> dict:
         res["partial"] = True
         res["stop_reason"] = fin["stop_reason"]
     return res
+
+
+def _budget_gate() -> None:
+    """query/analysis/表验真共用同一 job 累计预算门:
+    solver 段已耗尽的累计墙/CPU/RSS 超限时,下游消费也拒。"""
+    if _RUNS["total_wall_s"] > BUDGET["wall_clock_s"]:
+        raise RuntimeError(
+            "job budget exceeded (wall) — downstream "
+            "consumption refused")
+    if _RUNS["total_cpu_s"] > BUDGET["cpu_s"]:
+        raise RuntimeError(
+            "job budget exceeded (cpu) — downstream "
+            "consumption refused")
+    if _now_rss_gib() > BUDGET["rss_gib"]:
+        raise RuntimeError(
+            "job budget exceeded (rss) — downstream "
+            "consumption refused")
 
 
 def validate_dp_tables(tier: str,
@@ -702,6 +792,13 @@ def validate_dp_tables(tier: str,
         raise ValueError(
             "tables not completed (stop=%r)"
             % tables.get("stop_reason"))
+    if tables.get("partial"):
+        raise ValueError("partial tables rejected")
+    if tables.get("bars") != CALIB_CONFIG["H"]:
+        raise ValueError(
+            "bars must equal H=%d; got %r"
+            % (CALIB_CONFIG["H"],
+               tables.get("bars")))
     if not np.array_equal(
             np.asarray(tables["actions"]),
             action_grid(tier)):
@@ -720,6 +817,8 @@ def validate_dp_tables(tier: str,
             "V shape %r != %r" % (V.shape, want))
     if np.isnan(V).any():
         raise ValueError("V contains NaN")
+    if np.isposinf(V).any():
+        raise ValueError("V contains +inf")
 
 
 def query_Q(query: dict, tier: str,
@@ -727,6 +826,7 @@ def query_Q(query: dict, tier: str,
     """逐题输出(需已验真 dp_tables;查询内容重验规范):
     Q_HOLD+全部动作 Q、状态/期限、grid/task 键。"""
     _verify_binding()
+    _budget_gate()
     validate_dp_tables(tier, dp_tables)
     q = make_query(query)
     acc = dp_tables["accounts"]
@@ -824,19 +924,44 @@ def validate_tier_outputs(per_tier: dict) -> None:
                         % (tier, entry["id"], f))
             qr = entry.get("q_rebals")
             if (not isinstance(qr, dict)
-                    or set(map(float, qr)) != acts
-                    or not isinstance(
-                        entry.get("q_hold"),
-                        (int, float))):
+                    or set(map(float, qr)) != acts):
                 raise ValueError(
                     "tier %r qid %s q_rebals must "
                     "cover the full action set"
                     % (tier, entry["id"]))
 
+            def _ok_q(x):
+                return (isinstance(x, float)
+                        and (math.isfinite(x)
+                             or x == -math.inf))
+
+            if not _ok_q(entry.get("q_hold")) or \
+                    not all(_ok_q(v)
+                            for v in qr.values()):
+                raise ValueError(
+                    "tier %r qid %s Q values "
+                    "invalid (NaN/+inf/str/bool "
+                    "rejected; only finite or "
+                    "exact -inf allowed)"
+                    % (tier, entry["id"]))
+
 
 # ---- 跨档分析(动作集合漂移感知) --------------------------------
-def analyze_tiers(per_tier: dict) -> dict:
+def analyze_tiers(per_tier_full: dict) -> dict:
+    """唯一正式分析入口:per_tier_full={tier: tables(含
+    questions 全 64 条)}——先 validate_tier_outputs(缺/重复/
+    错身份/旧 qid→Q 格式均拒),再逐题三档分析。
+    判定:act 仅当 margin>不确定尺度;best diff≤0→no_act;
+    0<margin≤不确定尺度→not_established(无法判定,与无行动
+    分开);换类/反号/漂移→not_established;NaN→unstable。"""
     _verify_binding()
+    _budget_gate()
+    validate_tier_outputs(per_tier_full)
+    per_tier = {
+        t: {e["id"]: {"q_hold": e["q_hold"],
+                      "q_rebals": e["q_rebals"]}
+            for e in tables["questions"]}
+        for t, tables in per_tier_full.items()}
     tiers = sorted(per_tier)
     if len(tiers) < 2:
         return {"status": "not_established",
@@ -852,8 +977,8 @@ def analyze_tiers(per_tier: dict) -> dict:
             diffs = {w: q - row["q_hold"]
                      for w, q in row["q_rebals"].items()}
             vals = sorted(diffs.values())
-            if (not vals) or not all(
-                    math.isfinite(v) for v in vals):
+            if (not vals) or any(
+                    not _q_ok(v) for v in vals):
                 act_class[t] = "unstable"
                 continue
             bw = max(diffs, key=diffs.get)
@@ -877,24 +1002,23 @@ def analyze_tiers(per_tier: dict) -> dict:
                 "best_w": bests,
                 "act_class": act_class}
             continue
-        # 动作集合漂移:best_w 跨档位移超过最粗档动作间距之半
         acts0 = sorted(rows[tiers[0]]["q_rebals"])
         if len(acts0) >= 2:
             spacing0 = min(
-                b - a for a, b in zip(acts0, acts0[1:]))
+                b - a for a, b in
+                zip(acts0, acts0[1:]))
         else:
-            spacing0 = float("inf")   # 单动作无间距概念
+            spacing0 = float("inf")
         if spacing0 != float("inf") and \
                 drift > spacing0 / 2.0:
             out[qid] = {
                 "status": "not_established",
-                "reason": ("best_w drifted across tiers "
-                           "(%.3f > spacing/2 %.4f) — "
-                           "action set not stable"
-                           % (drift, spacing0 / 2)),
+                "reason": ("best_w drifted across "
+                           "tiers (%.3f > spacing/2 "
+                           "%.4f)" % (drift,
+                                      spacing0 / 2)),
                 "best_w": bests}
             continue
-        # 公共坐标(L0 ⊂ L1 ⊂ L2)Q 值一致性
         common = set(rows[tiers[0]]["q_rebals"])
         for t in tiers[1:]:
             common &= set(rows[t]["q_rebals"])
@@ -913,8 +1037,12 @@ def analyze_tiers(per_tier: dict) -> dict:
         near = sorted(
             w for w, d in ref["q_rebals"].items()
             if d - ref["q_hold"] >= m_final - 1e-12)
-        status = ("act" if m_final > uncertainty
-                  else "no_act")
+        if m_final <= 0.0:
+            status = "no_act"       # 无行动(可判)
+        elif m_final > uncertainty:
+            status = "act"
+        else:
+            status = "not_established"   # 无法判定
         out[qid] = {
             "status": status,
             "best_w": bests,
@@ -927,6 +1055,12 @@ def analyze_tiers(per_tier: dict) -> dict:
                 m_final - uncertainty,
                 m_final + uncertainty]}
     return out
+
+
+def _q_ok(v) -> bool:
+    return (isinstance(v, float)
+            and (math.isfinite(v)
+                 or v == -math.inf))
 
 
 # ---- 解析边界(尾题负控) ----------------------------------------
