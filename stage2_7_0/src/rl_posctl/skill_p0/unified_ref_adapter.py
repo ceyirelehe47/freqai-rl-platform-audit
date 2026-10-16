@@ -101,7 +101,6 @@ TIERS = {
 BUDGET = {"max_runs": 3, "wall_clock_s": 900.0,
           "cpu_s": 600.0, "rss_gib": 1.0}
 FORBIDDEN_SWEEP = ("mu", "sigma", "fee", "seed")
-_RUNS = {"used": 0, "open": None}
 ACCOUNT_DENSE_DOMAIN = 1.25
 ACCOUNT_EXT_DOMAIN = 20.0
 
@@ -383,7 +382,24 @@ def _interp_weights(points: np.ndarray,
     return idx, frac
 
 
-def _backward_induction(profile: dict) -> dict:
+def forced_invalid(post_e, growth) -> bool:
+    """强制清算/无效净值判定(|e'|>延伸域 或 growth<=0)。
+    e=20,r=-.0495→post≈1901→True(清算 −inf,不截断网格)。"""
+    _verify_binding()
+    if (isinstance(post_e, bool)
+            or not isinstance(post_e, (int, float))
+            or not math.isfinite(float(post_e))):
+        return True
+    if not isinstance(growth, (int, float)) \
+            or not math.isfinite(float(growth)):
+        return True
+    return (abs(float(post_e))
+            > ACCOUNT_EXT_DOMAIN) or (float(growth)
+                                      <= 0.0)
+
+
+def _backward_induction(profile: dict,
+                        checkpoint=None) -> dict:
     """真实后向归纳(纯函数,无预算副作用)。
     profile: {actions, accounts, gl, bars, states, P,
     mu_vec, sigma_vec, fee}。V[t] 对每状态×账户。"""
@@ -396,11 +412,23 @@ def _backward_induction(profile: dict) -> dict:
     sig = profile["sigma_vec"]      # (S,)
     fee = profile["fee"]
     S, K = len(mu), len(acc)
+    ext = ACCOUNT_EXT_DOMAIN
     from numpy.polynomial.legendre import leggauss
     u, wu = leggauss(gl)
+
+    def _ck(bar, phase):
+        if checkpoint is None:
+            return None
+        return checkpoint(bar, phase)
+
     x_all = (mu[:, None] + (np.sqrt(3) * sig)[:, None]
              * u[None, :])          # (S, gl)
     w_nodes = 0.5 * wu              # U∈[-1,1] 密度 1/2
+    pre = _ck(-1, "alloc_V")
+    if pre:
+        return {"partial": True, "stop_reason": pre,
+                "bars_done": -1, "V": None,
+                "solver": SOLVER_VERSION}
     V = np.empty((bars + 1, S, K))
     # 终端:清算腿只收当前 post_w(=e)
     V[0] = np.log(np.maximum(
@@ -409,6 +437,15 @@ def _backward_induction(profile: dict) -> dict:
         1.0 - fee * np.abs(acc[None, :]) <= 0)[1]] = -np.inf
     E_arr = np.empty((S, K))
     for t in range(1, bars + 1):
+        why = _ck(t, "bar_begin")
+        if why:
+            return {"partial": True,
+                    "stop_reason": why,
+                    "bars_done": t - 1, "V": V[:t],
+                    "accounts": acc,
+                    "actions": np.asarray(acts),
+                    "gl": gl, "bars": bars,
+                    "solver": SOLVER_VERSION}
         Vprev = V[t - 1]
         Vavg = P @ Vprev            # 期望在插值前(线性可交换)
         best = np.full((S, K), -np.inf)
@@ -437,6 +474,9 @@ def _backward_induction(profile: dict) -> dict:
                     Vi = (Vavg[rows, idx] * (1.0 - frac)
                           + Vavg[rows, np.minimum(
                               idx + 1, K - 1)] * frac)
+                    inv_h = ((np.abs(e_next) > ext)
+                             | (growth <= 0))
+                    Vi[inv_h] = -np.inf
                 else:
                     # REBAL:目标 w 固定;费随起始敞口
                     d = w - acc[None, :]
@@ -453,11 +493,14 @@ def _backward_induction(profile: dict) -> dict:
                         w == 0.0, 0.0,
                         w * (1.0 + x) / np.maximum(
                             growth, 1e-300))    # (S,)
+                    invalid = ((np.abs(e_row) > ext)
+                               & (w != 0.0))
                     i2, f2 = _interp_weights(e_row, acc)
                     Vi = (Vavg[np.arange(S), i2]
                           * (1.0 - f2)
                           + Vavg[np.arange(S), np.minimum(
                               i2 + 1, K - 1)] * f2)[:, None]
+                    Vi[invalid] = -np.inf
                 step = lg + Vi
                 step = np.where(
                     np.isfinite(step), step, -np.inf)
@@ -489,6 +532,19 @@ def _tier_profile(tier: str) -> dict:
 
 
 # ---- 预算 guard(实际预约/消费/计时/RSS) -----------------------
+_RUNS = {"used": 0, "open": None,
+         "total_wall_s": 0.0, "total_cpu_s": 0.0,
+         "tiers_used": []}
+_now_wall = time.perf_counter
+_now_cpu = time.process_time
+
+
+def _now_rss_gib() -> float:
+    return (resource.getrusage(
+        resource.RUSAGE_SELF).ru_maxrss
+        / (1024 * 1024))
+
+
 def _begin_run(tier: str) -> dict:
     if _RUNS["open"] is not None:
         raise RuntimeError(
@@ -499,22 +555,41 @@ def _begin_run(tier: str) -> dict:
             "budget exhausted: %d/%d runs used — "
             "4th run refused"
             % (_RUNS["used"], BUDGET["max_runs"]))
+    if tier in _RUNS["tiers_used"]:
+        raise RuntimeError(
+            "tier %r already consumed a run — repeat "
+            "refused" % tier)
+    if (_RUNS["total_wall_s"] > BUDGET["wall_clock_s"]
+            or _RUNS["total_cpu_s"]
+            > BUDGET["cpu_s"]):
+        raise RuntimeError(
+            "cumulative budget already exceeded "
+            "(wall=%.1fs cpu=%.1fs) — new run "
+            "refused" % (_RUNS["total_wall_s"],
+                         _RUNS["total_cpu_s"]))
+    if _now_rss_gib() > BUDGET["rss_gib"]:
+        raise RuntimeError(
+            "rss budget already exceeded — new run "
+            "refused")
     _RUNS["used"] += 1
+    _RUNS["tiers_used"].append(tier)
     _RUNS["open"] = {
         "tier": tier, "seq": _RUNS["used"],
-        "wall0": time.perf_counter(),
-        "cpu0": time.process_time(),
-        "rss0_gib": (resource.getrusage(
-            resource.RUSAGE_SELF).ru_maxrss
-            / (1024 * 1024))}
+        "wall0": _now_wall(), "cpu0": _now_cpu()}
     return dict(_RUNS["open"])
 
 
+def _cumulative(handle: dict) -> tuple:
+    wall = (_RUNS["total_wall_s"]
+            + _now_wall() - handle["wall0"])
+    cpu = (_RUNS["total_cpu_s"]
+           + _now_cpu() - handle["cpu0"])
+    return wall, cpu
+
+
 def _run_checkpoint(handle: dict) -> tuple:
-    wall = time.perf_counter() - handle["wall0"]
-    cpu = time.process_time() - handle["cpu0"]
-    rss = resource.getrusage(
-        resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
+    wall, cpu = _cumulative(handle)
+    rss = _now_rss_gib()
     why = None
     if wall > BUDGET["wall_clock_s"]:
         why = "wall_clock"
@@ -522,33 +597,35 @@ def _run_checkpoint(handle: dict) -> tuple:
         why = "cpu"
     elif rss > BUDGET["rss_gib"]:
         why = "rss"
-    return why, {"wall_s": wall, "cpu_s": cpu,
+    return why, {"cum_wall_s": wall, "cum_cpu_s": cpu,
                  "rss_gib": rss}
 
 
-def _finish_run() -> dict:
+def _finish_run(stop_reason: str = None) -> dict:
     if _RUNS["open"] is None:
         raise RuntimeError("no open run")
     h = _RUNS["open"]
     why, meters = _run_checkpoint(h)
+    _RUNS["total_wall_s"] += _now_wall() - h["wall0"]
+    _RUNS["total_cpu_s"] += _now_cpu() - h["cpu0"]
     _RUNS["open"] = None
     return {"tier": h["tier"], "seq": h["seq"],
-            "stop_reason": why or "completed",
+            "stop_reason": why or (stop_reason
+                                   or "completed"),
             **meters}
 
 
 def budget_allows(wall_elapsed: float,
                   cpu_elapsed: float) -> tuple:
-    """参数式检查保留(供外部预算预判);真消费走 begin/finish。"""
     if _RUNS["used"] >= BUDGET["max_runs"]:
         return False, "runs_exhausted(%d)" % _RUNS["used"]
-    if wall_elapsed > BUDGET["wall_clock_s"]:
+    if (_RUNS["total_wall_s"] + wall_elapsed
+            > BUDGET["wall_clock_s"]):
         return False, "wall_clock"
-    if cpu_elapsed > BUDGET["cpu_s"]:
+    if (_RUNS["total_cpu_s"] + cpu_elapsed
+            > BUDGET["cpu_s"]):
         return False, "cpu"
-    rss = resource.getrusage(
-        resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
-    if rss > BUDGET["rss_gib"]:
+    if _now_rss_gib() > BUDGET["rss_gib"]:
         return False, "rss"
     return True, "ok"
 
@@ -575,63 +652,110 @@ def solve_plan(tier: str) -> dict:
 
 
 def solve_reference(tier: str) -> dict:
-    """一次档内 H32 后向归纳:预约消费、逐 bar checkpoint、
-    超限即停(部分结果+stop_reason)。**验收前不得调用**。"""
+    """一次档内 H32 后向归纳:名额即时消费(失败也计)、逐
+    bar/大分配 checkpoint(三档累计墙/CPU+RSS)、越限停止保留
+    部分状态且不可 completed;同档重复与第 4 次拒。验收前禁调。"""
     _verify_binding()
     if tier not in TIERS:
         raise ValueError("unknown tier %r" % tier)
     h = _begin_run(tier)
+
+    def _ck(bar, phase):
+        why, _m = _run_checkpoint(h)
+        return why
+
     prof = _tier_profile(tier)
     try:
-        res = _backward_induction(prof)
-    finally:
-        fin = _finish_run()
+        res = _backward_induction(prof, checkpoint=_ck)
+        stopped = bool(res.get("partial"))
+        fin = _finish_run(
+            res.get("stop_reason") if stopped
+            else None)
+    except Exception:
+        _finish_run("exception")
+        raise
     res["budget"] = fin
     res["dp_key"] = dp_cache_key(tier)
     res["tier"] = tier
-    if fin["stop_reason"] != "completed":
+    res["completed"] = (fin["stop_reason"]
+                        == "completed")
+    if not res["completed"]:
         res["partial"] = True
+        res["stop_reason"] = fin["stop_reason"]
     return res
+
+
+def validate_dp_tables(tier: str,
+                       tables: dict) -> None:
+    """DP 表验真(真接线):tier/solver/dp_key/真实动作与账户
+    坐标/GL/形状((H+1,60,len(acc)))/完成标志全绑定。"""
+    _verify_binding()
+    if tier not in TIERS:
+        raise ValueError("unknown tier %r" % tier)
+    if tables.get("solver") != SOLVER_VERSION:
+        raise ValueError("solver mismatch")
+    if tables.get("tier") != tier:
+        raise ValueError("tier identity mismatch")
+    if tables.get("dp_key") != dp_cache_key(tier):
+        raise ValueError("dp_key mismatch")
+    if not tables.get("completed"):
+        raise ValueError(
+            "tables not completed (stop=%r)"
+            % tables.get("stop_reason"))
+    if not np.array_equal(
+            np.asarray(tables["actions"]),
+            action_grid(tier)):
+        raise ValueError("action coordinates mismatch")
+    acc_t = account_grid(tier)
+    if not np.array_equal(
+            np.asarray(tables["accounts"]), acc_t):
+        raise ValueError("account coordinates mismatch")
+    if tables.get("gl") != TIERS[tier][
+            "gauss_legendre"]:
+        raise ValueError("gl mismatch")
+    V = np.asarray(tables["V"])
+    want = (CALIB_CONFIG["H"] + 1, 60, len(acc_t))
+    if V.shape != want:
+        raise ValueError(
+            "V shape %r != %r" % (V.shape, want))
+    if np.isnan(V).any():
+        raise ValueError("V contains NaN")
 
 
 def query_Q(query: dict, tier: str,
             dp_tables: dict) -> dict:
-    """逐题输出 Q_HOLD+每个 REBAL Q(需已解 dp_tables)。"""
+    """逐题输出(需已验真 dp_tables;查询内容重验规范):
+    Q_HOLD+全部动作 Q、状态/期限、grid/task 键。"""
     _verify_binding()
-    if dp_tables.get("solver") != SOLVER_VERSION:
-        raise ValueError("dp_tables solver mismatch")
-    if dp_tables.get("tier") != tier:
-        raise ValueError("dp_tables tier mismatch")
+    validate_dp_tables(tier, dp_tables)
+    q = make_query(query)
     acc = dp_tables["accounts"]
     V = dp_tables["V"]
     states = state_space()
     try:
         si = states.index((
-            query["s"], query["c"],
-            float(query["q"]), query["g"]))
+            q["s"], q["c"], float(q["q"]), q["g"]))
     except ValueError:
         raise ValueError("query state not in space")
-    t = query["remaining"]
-    e0 = float(query["account"]["exposure"])
-    mu = (query["s"] * query["c"] * query["q"]
+    t = q["remaining"]
+    if not 1 <= t <= CALIB_CONFIG["H"]:
+        raise ValueError("remaining outside 1..H")
+    e0 = float(q["account"]["exposure"])
+    mu = (q["s"] * q["c"] * q["q"]
           * CALIB_CONFIG["mu"])
-    sig = CALIB_CONFIG["sigma_by_g"][str(query["g"])]
-    fee = CALIB_CONFIG["fee"]
+    sig = CALIB_CONFIG["sigma_by_g"][str(q["g"])]
     from numpy.polynomial.legendre import leggauss
     u, wu = leggauss(dp_tables["gl"])
-    Vavg_row = None
     P = full_state_transition()
     Vprev = V[t - 1] if t >= 1 else V[0]
     Vavg = P @ Vprev
     row = Vavg[si]
-    idx0, frac0 = _interp_weights(
-        np.array([e0]), acc)
 
     def val_at(e):
         i, fr = _interp_weights(np.array([e]), acc)
         return float(row[i[0]] * (1 - fr[0])
-                     + row[min(i[0] + 1, len(acc) - 1)]
-                     * fr[0])
+                     + row[min(i[0] + 1,
+                               len(acc) - 1)] * fr[0])
 
     q_out = {}
     for w in dp_tables["actions"]:
@@ -652,26 +776,30 @@ def query_Q(query: dict, tier: str,
             q_hold += 0.5 * wi * -math.inf
             continue
         q_hold += 0.5 * wi * (lg + val_at(e2))
-    return {"qid_state": si, "remaining": t,
+    return {"qid_state": si,
+            "state": [q["s"], q["c"], float(q["q"]),
+                      q["g"]],
+            "remaining": t, "total": q["total"],
             "q_hold": q_hold, "q_rebals": q_out,
-            "dp_key": dp_tables.get("dp_key")}
+            "dp_key": dp_tables.get("dp_key"),
+            "grid": {"n_actions":
+                     len(dp_tables["actions"]),
+                     "gl": dp_tables["gl"]}}
 
 
 # ---- 完整性强制(64×3) ------------------------------------------
 def validate_tier_outputs(per_tier: dict) -> None:
-    """缺题/重复/错身份输出→拒。"""
+    """64×3 内容级强制:身份/坐标/形状经 validate_dp_tables;
+    每条输出须携带与规范题一致的 (s,c,q,g,remaining,total) 与
+    全动作 Q 集——只有 ID 的伪元数据/改内容保 ID/缺 Q 全拒。"""
     _verify_binding()
     if set(per_tier) != set(TIERS):
         raise ValueError(
             "need exactly tiers L0/L1/L2, got %r"
             % sorted(per_tier))
+    canon = {q["id"]: q for q in QUESTIONS}
     for tier, tables in per_tier.items():
-        if tables.get("tier") != tier:
-            raise ValueError(
-                "tier identity mismatch at %r" % tier)
-        if tables.get("dp_key") != dp_cache_key(tier):
-            raise ValueError(
-                "dp_key mismatch at %r" % tier)
+        validate_dp_tables(tier, tables)
         qs = tables.get("questions", [])
         ids = [q.get("id") for q in qs]
         if ids != _QIDS:
@@ -682,6 +810,28 @@ def validate_tier_outputs(per_tier: dict) -> None:
                 "tier %r questions invalid: "
                 "missing=%r duplicates=%d"
                 % (tier, missing[:4], dup))
+        acts = set(float(x) for x in
+                   action_grid(tier))
+        for entry in qs:
+            c = canon[entry["id"]]
+            for f in ("s", "c", "q", "g",
+                      "remaining", "total"):
+                if entry.get(f) != c[f]:
+                    raise ValueError(
+                        "tier %r qid %s field %s "
+                        "content mismatch (forged "
+                        "metadata rejected)"
+                        % (tier, entry["id"], f))
+            qr = entry.get("q_rebals")
+            if (not isinstance(qr, dict)
+                    or set(map(float, qr)) != acts
+                    or not isinstance(
+                        entry.get("q_hold"),
+                        (int, float))):
+                raise ValueError(
+                    "tier %r qid %s q_rebals must "
+                    "cover the full action set"
+                    % (tier, entry["id"]))
 
 
 # ---- 跨档分析(动作集合漂移感知) --------------------------------
