@@ -526,11 +526,14 @@ def validate_task_spec(v: dict) -> None:
 
 
 def _tpl_top(v):
-    if v.get("obs_columns") is not None and \
-            list(v["obs_columns"]) != list(OBS_COLUMNS):
+    oc = v.get("obs_columns")
+    if (oc is None
+            or not isinstance(oc, (list, tuple))
+            or list(oc) != list(OBS_COLUMNS)):
         raise UnifiedSpecError(
-            "obs_columns template mismatch (change requires "
-            "a new schema version)")
+            "obs_columns must be present and exactly the "
+            "frozen tuple (change requires a new schema "
+            "version); got %r" % (oc,))
     mu = _num(v.get("mu_candidate"), "mu_candidate")
     if mu <= 0:
         raise UnifiedSpecError("mu_candidate must be > 0")
@@ -570,26 +573,38 @@ def _tpl_kernel(k):
             "s", "c", "q", "g"}:
         raise UnifiedSpecError(
             "transition_kernel must have exactly s/c/q/g")
+    def _vals_exact(lst, want, comp):
+        if (not isinstance(lst, list)
+                or len(lst) != len(want)):
+            raise UnifiedSpecError(
+                "kernel %s values shape mismatch" % comp)
+        for x, w in zip(lst, want):
+            xv = _num(x, "%s values entry" % comp)
+            if xv != float(w):
+                raise UnifiedSpecError(
+                    "kernel %s values entry %r != %r "
+                    "(bool/str/non-finite/foreign values "
+                    "rejected)" % (comp, x, w))
     S = k.get("s")
     if (not isinstance(S, dict)
             or set(S) != {"values", "hold_p",
                           "resample_p", "resample_dist"}
-            or S.get("values") != [-1, 0, 1]
             or S.get("resample_dist")
             != "uniform_over_values"):
         raise UnifiedSpecError(
             "kernel s template mismatch")
+    _vals_exact(S.get("values"), (-1, 0, 1), "s")
     for f in ("c", "g"):
         C = k.get(f)
         if (not isinstance(C, dict)
                 or set(C) != {"values", "hold_p",
                               "resample_p",
                               "resample_dist"}
-                or C.get("values") != [0, 1]
                 or C.get("resample_dist")
                 != "uniform_over_{0,1}"):
             raise UnifiedSpecError(
                 "kernel %s template mismatch" % f)
+        _vals_exact(C.get("values"), (0, 1), f)
     Q = k.get("q")
     qv = Q.get("values") if isinstance(Q, dict) else None
     if (not isinstance(Q, dict)
@@ -676,14 +691,14 @@ def _tpl_economy(econ):
         raise UnifiedSpecError(
             "execution template mismatch")
     term = econ["termination_threefold"]
+    want_term = UNIFIED_TASK[
+        "economy"]["termination_threefold"]
     if (not isinstance(term, dict)
-            or set(term) != {"invalid_terminal",
-                             "pre_action_risk",
-                             "terminal_liquidation"}
-            or not all(isinstance(x, str) and x
-                       for x in term.values())):
+            or term != want_term):
         raise UnifiedSpecError(
-            "termination_threefold template mismatch")
+            "termination_threefold must exactly match the "
+            "fixed three-part semantics of this version "
+            "(non-empty ≠ supported; got %r)" % (term,))
     for f in ("fee_rate", "slippage_bps", "price_tick",
               "reward_scale", "maintenance_margin",
               "initial_cash"):
@@ -723,43 +738,40 @@ def _tpl_actions(af):
             "B_asymmetric_beta"}:
         raise UnifiedSpecError(
             "action_families template mismatch")
+    WA = ACTION_FAMILIES["A_symmetric_beta_atoms"]
     A = af.get("A_symmetric_beta_atoms")
-    if (not isinstance(A, dict)
-            or set(A) != {"arm", "decode_id",
-                          "decode_semantics",
-                          "structure",
-                          "internal_upper_bound",
-                          "bound_status"}
-            or A.get("arm") != "A"
-            or A.get("decode_id")
-            != "P0CategoryMax-v1"
-            or not isinstance(
-                A.get("internal_upper_bound"),
-                (int, float))
-            or isinstance(
-                A.get("internal_upper_bound"), bool)
-            or not isinstance(A.get("structure"), str)
-            or not A.get("structure")):
+    if not isinstance(A, dict) or set(A) != set(WA):
         raise UnifiedSpecError(
-            "A family template mismatch")
+            "A family template mismatch (key set)")
+    for f in ("arm", "decode_id",
+              "decode_semantics", "structure",
+              "bound_status"):
+        if A.get(f) != WA[f]:
+            raise UnifiedSpecError(
+                "A family field %r must exactly match "
+                "the fixed template (%r ≠ %r; non-empty/"
+                "alternative semantics are NOT supported "
+                "in this version)"
+                % (f, A.get(f), WA[f]))
+    bnd = _num(A.get("internal_upper_bound"),
+               "A internal_upper_bound")
+    if bnd != 0.5:
+        raise UnifiedSpecError(
+            "A analytic bound is a fixed fact (0.5), not "
+            "a new gate or free parameter")
+    WB = ACTION_FAMILIES["B_asymmetric_beta"]
     B = af.get("B_asymmetric_beta")
-    if (not isinstance(B, dict)
-            or set(B) != {"arm", "decode_id",
-                          "candidate_decode",
-                          "decode_semantics",
-                          "structure", "reachability",
-                          "note"}
-            or B.get("arm") != "B"
-            or B.get("decode_id")
-            != "P0CategoryMax-v1"
-            or B.get("candidate_decode")
-            != "mixture-mean-v1"
-            or B.get("reachability")
-            != "not_established"
-            or not isinstance(B.get("structure"), str)
-            or not B.get("structure")):
+    if not isinstance(B, dict) or set(B) != set(WB):
         raise UnifiedSpecError(
-            "B family template mismatch")
+            "B family template mismatch (key set)")
+    for f in ("arm", "decode_id", "candidate_decode",
+              "decode_semantics", "structure",
+              "reachability", "note"):
+        if B.get(f) != WB[f]:
+            raise UnifiedSpecError(
+                "B family field %r must exactly match "
+                "the fixed template (%r ≠ %r)"
+                % (f, B.get(f), WB[f]))
 
 
 def make_task_spec(**overrides) -> dict:

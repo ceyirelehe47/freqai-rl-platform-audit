@@ -696,7 +696,7 @@ def test_signature_requires_fields_no_none_none():
                 "A_symmetric_beta_atoms"],
             structure="changed-structure"))
     with pytest.raises(uc.UnifiedSpecError,
-                       match="hidden task swap"):
+                       match="template|schema"):
         uc.check_hidden_task_swap([_variant(), v4])
 
 
@@ -1173,6 +1173,88 @@ def test_nested_schema_ten_raw_negatives_and_roundtrip():
     snap = uc.build_registry_snapshot()
     uc.validate_task_spec(snap["task"])
     assert snap["task"]["status"] == "candidate_uncalibrated"
+
+
+def test_final_template_eleven_negatives_and_positives():
+    """A11:11 例终版模板反例+三类正例(完整候选/JSON roundtrip/
+    合法数值变化)。"""
+    import copy
+    import json
+    good = uc.make_task_spec()
+
+    def mut(fn):
+        v = copy.deepcopy(good)
+        fn(v)
+        return v
+
+    A = good["action_families"][
+        "A_symmetric_beta_atoms"]
+    B = good["action_families"]["B_asymmetric_beta"]
+    negs = [
+        mut(lambda v: v["transition_kernel"]["s"]
+            .update(values=[-1, False, 1])),     # n1
+        mut(lambda v: v["transition_kernel"]["c"]
+            .update(values=[False, True])),      # n2
+        mut(lambda v: v["transition_kernel"]["g"]
+            .update(values=[0, True])),          # n3
+        mut(lambda v: v["action_families"][
+            "A_symmetric_beta_atoms"].update(
+                internal_upper_bound=float("nan"))),  # n4
+        mut(lambda v: v["action_families"][
+            "A_symmetric_beta_atoms"].update(
+                internal_upper_bound=float("inf"))),  # n5
+        mut(lambda v: v["action_families"][
+            "A_symmetric_beta_atoms"].update(
+                bound_status=[])),               # n6
+        mut(lambda v: v["action_families"][
+            "A_symmetric_beta_atoms"].update(
+                decode_semantics={})),           # n7
+        mut(lambda v: v["action_families"][
+            "A_symmetric_beta_atoms"].update(
+                structure="unsupported-action-family")),  # n8
+        mut(lambda v: v["action_families"][
+            "B_asymmetric_beta"].update(
+                structure="symmetric-only")),    # n9
+        mut(lambda v: v["economy"][
+            "termination_threefold"].update(
+                terminal_liquidation="disabled")),  # n10
+    ]
+    for bad in negs:
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.check_hidden_task_swap([good, bad])
+        with pytest.raises(uc.UnifiedSpecError):
+            uc.validate_task_spec(bad)
+    # n11:obs_columns=None 在构造入口即拒(非延迟到签名)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="obs_columns must be present"):
+        uc.make_task_spec(obs_columns=None)
+    raw_none = copy.deepcopy(good)
+    raw_none["obs_columns"] = None
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="obs_columns must be present"):
+        uc.validate_task_spec(raw_none)
+
+    # 正例 1:完整候选本身(validate/比较/快照)
+    uc.validate_task_spec(good)
+    uc.check_hidden_task_swap([good, uc.make_task_spec()])
+    uc.validate_task_spec(
+        uc.build_registry_snapshot()["task"])
+    # 正例 2:JSON roundtrip(构造→dumps→loads→validate)
+    rt = json.loads(json.dumps(uc.make_task_spec()))
+    uc.validate_task_spec(rt)
+    assert uc.task_signature(rt) == uc.task_signature(
+        good)
+    # 正例 3:合法数值变化(域内)→仍合法且被签名检出
+    v_num = uc.make_task_spec(mu_candidate=2.4e-3)
+    uc.validate_task_spec(v_num)
+    with pytest.raises(uc.UnifiedSpecError,
+                       match="hidden task swap"):
+        uc.check_hidden_task_swap([good, v_num])
+    k2 = uc.make_task_spec(transition_kernel=dict(
+        good["transition_kernel"],
+        s=dict(good["transition_kernel"]["s"],
+               hold_p=0.70, resample_p=0.30)))
+    uc.validate_task_spec(k2)
 
 
 def test_registry_snapshot_shape_and_isolation():
