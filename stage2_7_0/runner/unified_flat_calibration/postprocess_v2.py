@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """UNIFIED_FLAT_CALIBRATION_V1 后处理 v2(仅冻结 Q 上的再分析)。
 
-修正浮点边界:drift 用 **Fraction 精确有理坐标** -1+2i/(n-1) 比较
+修正:drift 用 **Fraction 精确有理坐标** -1+2i/(n-1) 比较
 (相等=通过,仅 > 粗间距/2 拒);禁止改 Q/新增收益 epsilon/松门槛。
 amplitude_status:candidate_act 的次优间隙 ≤ 原误差 proxy →
 not_established;课程门恒 not_frozen。原 analysis.json 不动。
+
+可移植性(入库版):OUT 不在导入期取 argv;参数解析移入 CLI
+入口(__main__);库用法经显式 out= 参数。
 """
 import json
 import math
@@ -12,10 +15,11 @@ import os
 import sys
 from fractions import Fraction
 
-SRC = "/mnt/f/trading/freqai-rl-audit/stage2_7_0/src"
+SRC = ("/mnt/f/trading/freqai-rl-audit/"
+       "stage2_7_0/src")
 sys.path.insert(0, SRC)
 
-OUT = sys.argv[1]
+OUT = None      # CLI 入口设置;库用法显式传 out=
 
 
 def load_tier(tier, out=None):
@@ -81,22 +85,28 @@ def drift_ok_exact(best_indices, ns):
     return drift <= coarse / 2, drift, coarse / 2
 
 
-def main():
-    tm0, _, _, _ = load_tier("L0")
+def main(out=None):
+    out = out or OUT
+    if not out:
+        raise SystemExit(
+            "usage: postprocess_v2.py "
+            "<evidence_dir>")
+    tm0, _, _, _ = load_tier("L0", out=out)
     per_rows = {}
     tiers_data = {}
     per_tier_full = {}
     for tier in ("L0", "L1", "L2"):
-        tm, acts, accs, rows = load_tier(tier)
+        tm, acts, accs, rows = load_tier(
+            tier, out=out)
         tiers_data[tier] = (tm, acts, accs, rows)
         per_rows[tier] = {
             r["id"]: r for r in rows}
-    _tm, _acts, _accs, _rows = tiers_data["L0"]
     tables0, ur = rehydrate(
-        "L0", _tm, _acts, _accs)
+        "L0", *tiers_data["L0"][:3], out=out)
     for tier in ("L0", "L1", "L2"):
         tm, acts, accs, rows = tiers_data[tier]
-        tables, _ = rehydrate(tier, tm, acts, accs)
+        tables, _ = rehydrate(
+            tier, tm, acts, accs, out=out)
         tables["questions"] = rows
         per_tier_full[tier] = tables
     # 64×3 身份/数值/键完整校验(冻结原件)
@@ -105,11 +115,11 @@ def main():
     ns = {t: len(tiers_data[t][1])
           for t in ("L0", "L1", "L2")}
     with open(os.path.join(
-            OUT, "analysis.json"),
+            out, "analysis.json"),
             encoding="utf-8") as f:
         old = json.load(f)["analysis"]
 
-    out = {}
+    out_doc = {}
     diff_rows = []
     for qid in sorted(per_rows["L0"]):
         rows = {t: per_rows[t][qid]
@@ -150,7 +160,6 @@ def main():
         m_final = margins["L2"]
         signs = {math.copysign(1.0, b)
                  for b in bests.values() if b != 0}
-        # 次优间隙(最终档):最佳与次佳动作差
         dvals = sorted(
             diffs["L2"].values(), reverse=True)
         sub_gap = (dvals[0] - dvals[1]
@@ -193,15 +202,14 @@ def main():
                 diffs["L2"].items()
                 if d >= m_final - 1e-12),
             "near_opt_note": (
-                "numerical max-tie set only"),
-        }
+                "numerical max-tie set only")}
         if status == "act":
             rec["amplitude_status"] = (
                 "not_established"
                 if sub_gap <= unc
                 else "established_candidate")
             rec["course_gate"] = "not_frozen"
-        out[qid] = rec
+        out_doc[qid] = rec
         o = old.get(qid, {})
         if o.get("status") != status:
             diff_rows.append({
@@ -219,11 +227,11 @@ def main():
                 "unc": unc})
 
     summary = {}
-    for v in out.values():
+    for v in out_doc.values():
         summary[v["status"]] = (
             summary.get(v["status"], 0) + 1)
     doc = {
-        "analysis_v2": out,
+        "analysis_v2": out_doc,
         "summary": summary,
         "changed_rows": diff_rows,
         "method": {
@@ -238,7 +246,7 @@ def main():
                           "gate stays not_frozen")},
         "course_gate": "not_frozen"}
     with open(os.path.join(
-            OUT, "analysis_v2.json"), "w",
+            out, "analysis_v2.json"), "w",
             encoding="utf-8") as f:
         json.dump(doc, f, indent=1,
                   allow_nan=False)
@@ -249,4 +257,9 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        raise SystemExit(
+            "usage: postprocess_v2.py "
+            "<evidence_dir>")
+    OUT = sys.argv[1]
     main()
