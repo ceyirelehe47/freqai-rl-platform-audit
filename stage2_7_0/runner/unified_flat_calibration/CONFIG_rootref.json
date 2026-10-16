@@ -1,0 +1,107 @@
+{
+ "_status": "PREPARED_NOT_RUN_CONFIG",
+ "pins": {
+  "locked_manifest_sha256": "c5c0b65aa4d1b1743c512e2f2b64cd26949c42a9eb275290cbd47e22f2c825a8",
+  "tier_L2_sha256": "124eb67c5f63cd3cc8fd5dfe83ac8e71fab54dd1e907755202413de0fa3277c7",
+  "V_L2_sha256": "RUNTIME_FIRST_READ_PENDING",
+  "root_integrals_sha256": "1c4e319b456d37ea88729402fc127137022abd461db23a73177b2224be8a9e13",
+  "dp_key": "4e7f6b39f205608dd24e43cb52b88f8b8ac11274eea1dcd0ce6797ff2f655b39",
+  "gl": 48,
+  "tier": "L2"
+ },
+ "_V_L2_note": "V_L2.npy 完整 SHA 于首读前必须实测并与 LOCKED_MANIFEST.v_l2.sha256 一致;该值以 manifest 为准,此处不重复抄写(单一事实源)。",
+ "kernel_frozen": {
+  "_provenance": "unified_course.py UNIFIED_TASK.transition_kernel(e4fc7ed3);P 公式同 unified_ref_adapter.full_state_transition",
+  "s": {
+   "values": [
+    -1,
+    0,
+    1
+   ],
+   "hold_p": 0.78,
+   "resample_p": 0.22
+  },
+  "c": {
+   "values": [
+    0,
+    1
+   ],
+   "hold_p": 0.75,
+   "resample_p": 0.25
+  },
+  "q": {
+   "values": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+   ],
+   "hold_p": 0.8,
+   "fresh_p": [
+    0.125,
+    0.25,
+    0.25,
+    0.25,
+    0.125
+   ]
+  },
+  "g": {
+   "values": [
+    0,
+    1
+   ],
+   "hold_p": 0.8,
+   "resample_p": 0.2
+  },
+  "state_order": "(s,c,q,g) 逐分量乘积;states=product(s,c,q,g)"
+ },
+ "calib_frozen": {
+  "_provenance": "unified_ref_adapter.CALIB_CONFIG(同 e1eb33e5)",
+  "mu": 0.0012,
+  "sigma_by_g": {
+   "0": 0.03,
+   "1": 0.06
+  },
+  "fee": 0.001,
+  "H": 32
+ },
+ "domains_frozen": {
+  "_provenance": "unified_ref_adapter.ACCOUNT_DENSE_DOMAIN/EXT",
+  "dense_domain": 1.25,
+  "ext_domain": 20.0,
+  "account_grid_source": "tier_L2.json tier_meta.accounts(449 实节点,SHA 钉)"
+ },
+ "caps": {
+  "items": 24,
+  "per_rebal_segments_max": 450,
+  "total_segments_max": 7200,
+  "hold_items": 8
+ },
+ "budget_planned": {
+  "wall_s": 10.0,
+  "cpu_s": 5.0,
+  "rss_kib": 131072,
+  "note": "拟;完整入口就绪后再验;覆盖导入/验SHA/读V/P行/积分/保存/退出"
+ },
+ "semantics": {
+  "title": "冻结L2延续表下根积分工程对比(independent-reference engineering comparison)",
+  "certified_total_error": "not_certified",
+  "course_gate": "not_frozen",
+  "no": [
+   "query_Q",
+   "leggauss",
+   "new DP",
+   "tau change",
+   "eps shrink",
+   "labels",
+   "training"
+  ]
+ },
+ "reviewed_source_shas": {
+  "_note": "已审来源SHA(人工核对自 R7/unified_course 提交版);非运行时核验——运行时身份由 pins 其余字段+本文件SHA+参数digest绑定",
+  "r7_adapter": "e1eb33e568ad20697213c584e77e240a18497cf1c43a779fef9de5aa96897773",
+  "unified_course": "e4fc7ed3acac94b73d15ff03f3e40aa9df512e04cc6672fa4b1065ed4819e9e2"
+ },
+ "param_digest": "63ded102accffc65ce3649c0c06318793ff55c9be2f2d7ad7b491e55790c8dc5"
+}

@@ -1,0 +1,227 @@
+{
+ "spec_id": "UnifiedTeachingPilot-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "world": {
+  "source": "unified_course.py UNIFIED_TASK(A11 已验,e4fc7ed3);本 pilot 只读复用,不改世界",
+  "H": 32,
+  "mu": 0.0012,
+  "sigma_by_g": {
+   "0": 0.03,
+   "1": 0.06
+  },
+  "fee": 0.001,
+  "initial_cash": 100.0,
+  "kernel": {
+   "s": {
+    "values": [
+     -1,
+     0,
+     1
+    ],
+    "hold_p": 0.78,
+    "resample_p": 0.22
+   },
+   "c": {
+    "values": [
+     0,
+     1
+    ],
+    "hold_p": 0.75,
+    "resample_p": 0.25
+   },
+   "q": {
+    "values": [
+     0.0,
+     0.25,
+     0.5,
+     0.75,
+     1.0
+    ],
+    "hold_p": 0.8,
+    "fresh_p": [
+     0.125,
+     0.25,
+     0.25,
+     0.25,
+     0.125
+    ]
+   },
+   "g": {
+    "values": [
+     0,
+     1
+    ],
+    "hold_p": 0.8,
+    "resample_p": 0.2
+   }
+  },
+  "return_process": "r=mu_eff(s,c,q)+sqrt(3)*sigma(g)*U, U~Unif(-1,1)",
+  "obs_columns": [
+   "c",
+   "g",
+   "q",
+   "s",
+   "account_exposure",
+   "account_solvency",
+   "remaining_horizon",
+   "total_horizon"
+  ]
+ },
+ "policy": {
+  "action_family": "B_asymmetric_beta(已审,ACTION_FAMILIES)",
+  "decode": "P0CategoryMax-v1(公共解码;atoms {-1,0,+1}+Beta 连续体;mixture-mean 仅为候选不接入)",
+  "head": "branch_logits(2)+mix_logits(4)+alpha_raw+beta_raw;alpha=softplus+1,beta 同",
+  "nets": "actor/value 各 8→[128,128] Tanh→头;param 静态估 36489(actor 18696+value 17793),运行时打印核对",
+  "init": "从头初始化(torch 默认 kaiming uniform);旧 C1/H64/bank 续训身份不挪用,旧拒载门保留"
+ },
+ "ppo": {
+  "n_steps": 1024,
+  "batch_size": 256,
+  "epochs": 10,
+  "lr": 0.0003,
+  "gamma": 1.0,
+  "other": "clip_range=0.2(p0spec.CLIP_RANGE,原 P0;此前 .1 为未授权漂移已更正),ent_coef=0.001,vf_coef=0.5,max_grad_norm=0.5,GAE lambda 0.95,Adam eps 1e-5",
+  "total_teach_steps": 32768,
+  "rollouts": 32,
+  "expected_minibatch_optimizer_calls": 1280,
+  "note_epochs_vs_adam": "10 epoch × 4 minibatch/rollout × 32 rollout = 1280 Adam 步(区分 epoch 与 Adam 步)"
+ },
+ "reset_mix": {
+  "per_episode_quotas": {
+   "full_pos": {
+    "remaining": 32,
+    "s": 1,
+    "c": 1,
+    "q": 1.0,
+    "g": 0
+   },
+   "full_neg": {
+    "remaining": 32,
+    "s": -1,
+    "c": 1,
+    "q": 1.0,
+    "g": 0
+   },
+   "tail_pos": {
+    "remaining": 1,
+    "s": 1,
+    "c": 1,
+    "q": 1.0,
+    "g": 0
+   },
+   "tail_neg": {
+    "remaining": 1,
+    "s": -1,
+    "c": 1,
+    "q": 1.0,
+    "g": 0
+   }
+  },
+  "proportions": "各 25%(按 episode 计,非按步)",
+  "flat": "exposure=0,cash=100;original_horizon 恒 32",
+  "evolution": "起点后 s/c/q/g 按原 Markov 核自然演化(无强制)",
+  "tail_semantics": "合法 mid-episode reset:remaining=1 起,obs 的 remaining/128=1/128,total/128=32/128;不藏 31 步预热;p0env horizon 不变 32",
+  "clock_features": "remaining_horizon=剩余步/128,total_horizon=32/128"
+ },
+ "evaluation": {
+  "checkpoints": [
+   "initial",
+   "final"
+  ],
+  "per_ckpt": {
+   "h32_episodes": 64,
+   "h32_split": "s0 起 flat 各 32(±)",
+   "tail_episodes": 64,
+   "tail_split": "remaining1 flat ±各 32",
+   "max_env_steps": 2112,
+   "readouts": "四标准状态(c1,q1,g0;rem32 与 rem1 × s±)各 256 独立策略动作=1024",
+   "deterministic": "另存 P0CategoryMax 确定性解码"
+  },
+  "two_ckpt_total_steps": 4224,
+  "grand_total_steps_cap": 36992,
+  "rng": "评价 RNG 独立训练;种子事前固定:init_eval_seed=1010,final_eval_seed=2020(配对初末,不挑成绩/不丢失败轨迹)",
+  "baseline_controls": [
+   "全 HOLD 净 log=0(精确基线)",
+   "恒多(+1)与恒空(−1)单侧控制",
+   "按信号满仓(sign(μ) 开满)——末段课必败控制"
+  ],
+  "report_metrics": [
+   "每侧方向正确/反向/有效 flat 质量(执行意义 HOLD+REBAL0 合并;抽样质量与确定性 mode 分列)",
+   "正负配对响应变化",
+   "tail 有效零交易质量",
+   "动作合法性/B 参数域(α,β≥1)"
+  ]
+ },
+ "tail_zero_trade_analytic": {
+  "claim": "末段有效零交易最优(解析依据,授权口径):f=.001,a=|w|,终端权益比=[1−f·a+(w−f·a)·r]/[1+f·a];|μ|≤.0012 → 期望权益增量 ≤ a·((1+f)·.0012−.002)/(1+f·a) <0(a>0);Jensen → E[Δlog]<0;flat HOLD 或 REBAL0 为 0",
+  "fees": "保留原入场/末端清算费;不凭单次盈利否定期望结论",
+  "interpretation_limits": [
+   "全 HOLD 也能过末段课,不能冒称学会开仓",
+   "sign(μ) 只可解释当前信号,不能当 H32 最优动作标签",
+   "单 seed 不宣称稳健毕业;全 HOLD 坍缩=开仓能力未建立"
+  ]
+ },
+ "budget": {
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0,
+  "scope": "全 pilot 累计:启动导入+训练+两次冷评价+保存;分阶段及累计双记账",
+  "fail_stop": [
+   "预算触限",
+   "非有限梯度/损失",
+   "非法动作",
+   "未来字段",
+   "账本错误"
+  ],
+  "on_fail": "保存 partial 停止;禁止自动加步/换 seed/改 reward/改初态配比;达到/未达到/不确定均在固定预算内结束",
+  "inner_shell": "inner_teach.sh 实施本 pilot 累计 900s/600CPU/1GiB(非通用 10s)"
+ },
+ "prohibited": [
+  "方向奖/HOLD 奖/精确动作 BC 标签",
+  "改 fee/sigma/世界期限",
+  "旧 C1/H64/bank 续训身份挪用",
+  "learn/rollout/DP/积分/新 bank(准备期)",
+  "把全 H32 精细误差证明增为 pilot 启动门"
+ ],
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env": 311001,
+  "eval_init": 1010,
+  "eval_final": 2020
+ },
+ "identity": {
+  "local_files": [
+   "teach_env.py",
+   "policy.py",
+   "runner.py",
+   "eval_pilot.py",
+   "run_spec.json"
+  ],
+  "repo_files": [
+   "unified_course.py",
+   "p0policy.py",
+   "p0spec.py",
+   "ledger.py",
+   "env.py"
+  ],
+  "binding": "runner.collect_identity() 运行时全 SHA 入 pilot.json;身份不符即停"
+ },
+ "identity_expected": {
+  "_note": "runner 运行时比较(不符即停);repo=PILOT_REPO_SRC 同根实测;local 不含 run_spec.json(自身 SHA 由 launcher manifest/快照钉)",
+  "repo": {
+   "rl_posctl/skill_p0/unified_course.py": "e4fc7ed3acac94b73d15ff03f3e40aa9df512e04cc6672fa4b1065ed4819e9e2",
+   "rl_posctl/skill_p0/p0policy.py": "ba1b64f999123f0eb2ad4ea9d028cca436d8cb5d5cd21aa46f6232016b6ae069",
+   "rl_posctl/skill_p0/p0spec.py": "5ed6145c05a905b14f60c762ef61613922d09a563207f91a402982473e4cea54",
+   "rl_posctl/ledger.py": "7d43a500c842d0d8e6ecef31fc5fa0f2314ba2730b200a9ee2c60eb58f724f42",
+   "rl_posctl/env.py": "2ef7efca6861f2544ea9d051ed501164ce9dffdf4bd370746e38b7590986d9ba",
+   "rl_posctl/curriculum.py": "667c05227cb17f4078de8ff6476a7be0e1610f27206082fa96961be72434d15c"
+  },
+  "local": {
+   "teach_env.py": "236db8e31cbd41f4ba9ccbdbfb114d3f1c9bfe60c99e5e08e373258ac2283000",
+   "policy.py": "b249c0e16dfbd1f2eea07eb416455bf8b151122852f54dd4f8bc8742a1c22875",
+   "runner.py": "929d44d077944f01da6212214eb81ffb7946c9a476ae930f02876adeff91e399",
+   "eval_pilot.py": "8750d05a08b5fac9712ea023a302b7d6b883597a2eb316ba0837e5b2bced00f3"
+  }
+ }
+}
