@@ -12,11 +12,14 @@ not_established;课程门恒 not_frozen。原 analysis.json 不动。
 import json
 import math
 import os
+import pathlib
 import sys
 from fractions import Fraction
 
-SRC = ("/mnt/f/trading/freqai-rl-audit/"
-       "stage2_7_0/src")
+# 从自身文件定位本 checkout 的 src(不硬编码证据仓库
+# 绝对路径,避免把外部副本插到当前 checkout/src 之前)
+SRC = str(pathlib.Path(
+    __file__).resolve().parents[2] / "src")
 sys.path.insert(0, SRC)
 
 OUT = None      # CLI 入口设置;库用法显式传 out=

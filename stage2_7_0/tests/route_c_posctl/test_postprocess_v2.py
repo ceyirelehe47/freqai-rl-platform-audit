@@ -28,28 +28,48 @@ EVIDENCE = os.environ.get(
     "UFC_EVIDENCE_DIR")        # 显式配置,不隐式回退
 
 
+_REQUIRED = ("tier_L0.json", "tier_L1.json",
+             "tier_L2.json", "V_L0.npy",
+             "V_L1.npy", "V_L2.npy",
+             "analysis.json",
+             "analysis_v2.json")
+
+
+def _gate():
+    """Config semantics: unset -> skip; set -> strict
+    (wrong path / missing originals = FAIL, never a
+    silent skip)."""
+    if EVIDENCE is None:
+        return "skip"
+    if not pathlib.Path(
+            EVIDENCE).is_dir():
+        return ("fail: UFC_EVIDENCE_DIR is "
+                "not a directory: %r"
+                % EVIDENCE)
+    missing = [
+        n for n in _REQUIRED
+        if not (pathlib.Path(EVIDENCE)
+                / n).exists()]
+    if missing:
+        return ("fail: missing required "
+                "originals in %r: %r"
+                % (EVIDENCE, missing[:3]))
+    return "ok"
+
+
+def _guard():
+    g = _gate()
+    if g == "skip":
+        pytest.skip(
+            "UFC_EVIDENCE_DIR not "
+            "configured - frozen tests "
+            "skipped (these 2 items only)")
+    if g != "ok":
+        pytest.fail(g)
+
+
 def _artifacts_present():
-    if not EVIDENCE:
-        return False
-    return all(
-        (pathlib.Path(EVIDENCE)
-         / name).exists()
-        for name in
-        ("tier_L0.json", "tier_L1.json",
-         "tier_L2.json", "V_L0.npy",
-         "V_L1.npy", "V_L2.npy",
-         "analysis.json",
-         "analysis_v2.json"))
-
-
-pytestmark_no_ev = pytest.mark.skipif(
-    not _artifacts_present(),
-    reason=(
-        "frozen artifacts not configured: "
-        "set UFC_EVIDENCE_DIR to the official "
-        "evidence directory (originals kept "
-        "locally; skipping only these 2 "
-        "frozen-data tests)"))
+    return _gate() == "ok"
 
 
 # ---------- 纯 Fraction(必须跑) --------------------------------
@@ -104,11 +124,7 @@ def test_cli_entry_no_import_argv(monkeypatch):
 
 # ---------- 冻结产物(显式证据目录;缺则 skip) -------------------
 def test_frozen_artifacts_validate_64x3():
-    if not _artifacts_present():
-        pytest.skip(
-            "UFC_EVIDENCE_DIR not set/missing "
-            "originals — frozen validation "
-            "skipped (documented limitation)")
+    _guard()
     import numpy as np
     per = {}
     for tier in ("L0", "L1", "L2"):
@@ -125,10 +141,7 @@ def test_frozen_artifacts_validate_64x3():
 
 
 def test_analysis_v2_changed_rows_as_measured():
-    if not _artifacts_present():
-        pytest.skip(
-            "UFC_EVIDENCE_DIR not set/missing "
-            "originals — analysis check skipped")
+    _guard()
     with open(os.path.join(
             EVIDENCE, "analysis_v2.json"),
             encoding="utf-8") as f:
