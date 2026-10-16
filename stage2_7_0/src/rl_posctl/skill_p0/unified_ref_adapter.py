@@ -577,22 +577,9 @@ def _backward_induction(profile: dict,
                     Vi = (Vavg[rows, idx] * (1.0 - frac)
                           + Vavg[rows, np.minimum(
                               idx + 1, K - 1)] * frac)
-                    risk_h = np.abs(e_next) > ext
-                    dead_h = (growth <= 0) | (
-                        1.0 - fee * np.abs(e_next)
-                        <= 0)
-                    flat_i = K // 2   # 账户网格含 0(奇数 dense)
-                    forced_h = (
-                        np.log(np.maximum(
-                            growth, 1e-300))
-                        + np.log(np.maximum(
-                            1.0 - fee * np.abs(
-                                e_next), 1e-300))
-                        + Vavg[:, flat_i:flat_i + 1])
-                    Vi = np.where(
-                        risk_h & ~dead_h,
-                        forced_h, Vi)
-                    Vi[dead_h] = -np.inf
+                    Vi = _risk_select_hold(
+                        Vi, e_next, growth, Vavg,
+                        fee, ext, flat_i)
                 else:
                     # REBAL:目标 w 固定;费随起始敞口
                     d = w - acc[None, :]
@@ -621,6 +608,10 @@ def _backward_induction(profile: dict,
                 step = np.where(
                     np.isfinite(step), step, -np.inf)
                 Q += w_nodes[j] * step
+            if w is None:
+                # 支撑失败(正测度破产)仅杀 HOLD 臂;
+                # sup_edge 只记边界,不当失败;不影响 REBAL0
+                Q[sup_fail] = -math.inf
             best = np.maximum(best, Q)
         if first_why is not None:
             return {"partial": True,
@@ -855,9 +846,10 @@ def validate_dp_tables(tier: str,
         raise ValueError("tier identity mismatch")
     if tables.get("dp_key") != dp_cache_key(tier):
         raise ValueError("dp_key mismatch")
-    if not tables.get("completed"):
+    if tables.get("completed") is not True:
         raise ValueError(
-            "tables not completed (stop=%r)"
+            "tables not completed (stop=%r); truthy "
+            "non-True rejected"
             % tables.get("stop_reason"))
     if tables.get("partial"):
         raise ValueError("partial tables rejected")

@@ -194,6 +194,48 @@ def test_analyze_nonfinite_q_not_established():
     assert "max-tie" in r3["near_opt_note"]
 
 
+
+def test_completed_strict_true():
+    """completed must be exactly True: yes/1/etc truthy rejected."""
+    good = _fake_tables("L0")
+    ur.validate_dp_tables("L0", good)
+    for fake in ("yes", 1, [True], np.bool_(True)):
+        with pytest.raises(ValueError, match="truthy"):
+            ur.validate_dp_tables(
+                "L0", dict(good, completed=fake))
+
+
+def test_hold_branch_calls_helper_and_supfail(
+        monkeypatch):
+    """Kernel wiring for real (spy on _risk_select_hold):
+    HOLD branch actually calls the helper; sup_fail kills only
+    the HOLD arm; REBAL0 keeps the max finite."""
+    ur._RUNS.update(used=0, open=None,
+                    tiers_used=[])
+    ur._JOB = None
+    calls = {"n": 0}
+    real = ur._risk_select_hold
+
+    def spy(Vi, e_next, growth, Vavg, fee, ext,
+            flat_i):
+        calls["n"] += 1
+        return real(Vi, e_next, growth, Vavg,
+                    fee, ext, flat_i)
+
+    monkeypatch.setattr(ur,
+                        "_risk_select_hold", spy)
+    prof = ur._tier_profile("L0")
+    prof["actions"] = np.array([-1.0, 0.0])
+    prof["accounts"] = np.array(
+        [-20.0, -1.0, 0.0, 1.0, 16.8179, 20.0])
+    prof["gl"] = 3
+    prof["bars"] = 2
+    res = ur._backward_induction(prof)
+    assert calls["n"] > 0
+    assert np.isfinite(res["V"]).all()
+    ur._JOB = None
+
+
 def test_tail_boundary():
     b = ur.last_bar_fee_boundary()
     assert abs(b["lhs"] - 0.0012 * 1.001) < 1e-15
