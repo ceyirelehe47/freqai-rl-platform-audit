@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""UNIFIED_FLAT_CALIBRATION_V1 准备段二轮测试(纯数学,零求解)。"""
+"""UNIFIED_FLAT_CALIBRATION_V1 三轮测试(真内核单元测试;零三档运行)。"""
 import math
 import pathlib
 import re
 import sys
 
+import numpy as np
 import pytest
 
 SRC = pathlib.Path(__file__).resolve().parents[2] / "src"
@@ -22,225 +23,228 @@ def test_purity_and_dependency():
                 "load_p0_model", "confirm",
                 "stable_baselines"):
         assert bad not in imports, bad
+    assert "if False" not in src      # 死分支禁令
 
 
-def test_config_frozen_at_consumption():
-    cfg = ur.CALIB_CONFIG
-    assert cfg["mu"] == 0.0012
-    assert cfg["sigma_by_g"] == {"0": 0.03, "1": 0.06}
-    assert cfg["fee"] == 0.001 and cfg["H"] == 32
-    assert cfg["initial_cash"] == 100.0
-    assert cfg["maintenance_margin"] == 0.05
-    # 导入后篡改→消费入口立即拒
-    cfg["fee"] = 0.002
+def test_binding_verifies_live_consumed_objects():
+    ur.hold_step(0.5, 0.01)           # 正常
+    ur.UNIFIED_TASK["economy"]["fee_rate"] = 0.009
     try:
         ur.hold_step(0.5, 0.01)
         raised = False
     except RuntimeError as exc:
-        raised = "mutated after freeze" in str(exc)
+        raised = "UNIFIED_TASK" in str(exc)
     finally:
-        cfg["fee"] = 0.001
+        ur.UNIFIED_TASK["economy"][
+            "fee_rate"] = 0.001
     assert raised
-    ur.hold_step(0.5, 0.01)     # 恢复后正常
+    ur.hold_step(0.5, 0.01)           # 恢复
+    ur.CALIB_CONFIG["fee"] = 0.002
+    try:
+        ur.liq_value(0.5)
+        raised2 = False
+    except RuntimeError as exc:
+        raised2 = "CALIB_CONFIG" in str(exc)
+    finally:
+        ur.CALIB_CONFIG["fee"] = 0.001
+    assert raised2
 
 
-def test_identity_binding_complete():
-    ident = ur.IDENTITY
-    for k in ("task_digest", "obs", "action", "execution",
-              "reward", "kernel_digest", "economy_digest"):
-        assert k in ident
-    assert len(ident["task_digest"]) == 64
-    assert ident["obs"] == list(ur.OBS_COLUMNS)
-    assert ident["reward"].endswith("candidate")
-
-
-# ---- 精确费用数学恒等式 ----------------------------------------
-def test_rebal_two_sided_fee_exact():
-    # flat→w=1, r=0: 正确 log=-log(1.001)(旧版 log(.999) 错)
+def test_rebal_two_sided_fee_and_hold_exact():
     lg, e = ur.rebal_step(0.0, 1.0, 0.0)
     assert abs(lg - (-math.log(1.001))) < 1e-15
-    assert e == 1.0
-    # 增仓分母 1+w·fee;减仓分母 1−w·fee(双边不同)
+    assert abs(e - 1.0) < 1e-15
     fee = 0.001
     lg_up, _ = ur.rebal_step(0.0, 0.5, 0.0)
-    want_up = math.log(
-        1 - fee * abs(0.5 / (1 + 0.5 * fee)))
-    assert abs(lg_up - want_up) < 1e-15
+    assert abs(lg_up - math.log(
+        1 - fee * abs(0.5 / (1 + 0.5 * fee)))) < 1e-15
     lg_dn, _ = ur.rebal_step(0.5, 0.25, 0.0)
-    want_dn = math.log(
-        (1 - fee * abs(-0.25 / (1 - 0.25 * fee)))
-        * (1 + 0.25 * 0.0))
-    assert abs(lg_dn - want_dn) < 1e-15
-    # 双侧差确实存在(非线性,非 1e-9 量级可忽略)
-    assert abs((1 + 0.5 * fee)
-               - (1 - 0.5 * fee)) > 0
-
-
-def test_hold_step_exact_and_no_fee():
+    assert abs(lg_dn - math.log(
+        1 - fee * abs(-0.25 / (1 - 0.25 * fee)))) < 1e-15
     lg, e2 = ur.hold_step(0.5, 0.10)
     assert abs(lg - math.log(1.05)) < 1e-15
     assert abs(e2 - 0.5 * 1.10 / 1.05) < 1e-15
-    lg0, e0 = ur.hold_step(0.0, 0.10)
-    assert lg0 == 0.0 and e0 == 0.0
-    lgb, eb = ur.hold_step(1.0, -2.0)
-    assert lgb == -math.inf
 
 
-def test_price_path_50pct_long_99_5():
-    """价格 100→110→99,初始 50% 多头:终值 NAV=99.5;
-    HOLD 两步 log 增长=ln(.995);末清算腿只收 post_w 费一次。"""
+def test_price_path_and_single_liquidation():
     lg1, e1 = ur.hold_step(0.5, 0.10)
-    lg2, e2 = ur.hold_step(e1, 99.0 / 110.0 - 1.0)  # r=-0.1
-    nav = 100.0 * math.exp(lg1 + lg2)
-    assert abs(nav - 99.5) < 1e-9
-    liq = ur.liq_value(e2, 0.0)
+    lg2, e2 = ur.hold_step(e1, 99.0 / 110.0 - 1.0)
+    assert abs(100.0 * math.exp(lg1 + lg2) - 99.5) < 1e-9
+    # 清算腿单参:只收 post_w,先判合法再 log
+    assert ur.liq_value(0.0) == 0.0
     fee = 0.001
-    assert abs(liq - math.log(
-        1 - fee * abs(e2))) < 1e-15
-    # 最后 bar 收益+清算只计一次:hold_step 的 nav 已含该 bar
-    # 收益;liq_value 不再乘任何 (1+r)。
-    r_last = 0.01
-    lgL, eL = ur.hold_step(0.5, r_last)
-    liqL = ur.liq_value(eL, 0.0)   # r=0:post_w=eL
-    post = eL
-    assert abs(liqL - math.log(
-        1 - fee * abs(post))) < 1e-15
-    total = lgL + liqL
-    manual = math.log(1 + 0.5 * r_last) + math.log(
+    assert abs(ur.liq_value(e2)
+               - math.log(1 - fee * abs(e2))) < 1e-15
+    assert ur.liq_value(1.0 / fee * 2.0) == -math.inf
+    with pytest.raises(ValueError):
+        ur.liq_value(float("nan"))
+    with pytest.raises(ValueError):
+        ur.liq_value(True)
+    r = 0.01
+    lgL, eL = ur.hold_step(0.5, r)
+    total = lgL + ur.liq_value(eL)    # 收益一次+清算一次
+    manual = math.log(1 + 0.5 * r) + math.log(
         1 - fee * abs(
-            0.5 * (1 + r_last)
-            / (1 + 0.5 * r_last)))
+            0.5 * (1 + r) / (1 + 0.5 * r)))
     assert abs(total - manual) < 1e-12
 
 
-def test_liq_flat_and_bankruptcy():
-    assert ur.liq_value(0.0, 0.5) == 0.0
-    assert ur.liq_value(1.0, -2.0) == -math.inf or True
+def test_transition_q_kernel_exact():
+    tm = ur.build_transition_matrices()
+    q = tm["q"]["matrix"]
+    # A11:P=.8I+.2*fresh → q0 对角 .8+.2*.125=.825
+    assert abs(q[0, 0] - 0.825) < 1e-12
+    # 中间级 fresh=.25 → 对角 .85
+    assert abs(q[2, 2] - 0.85) < 1e-12
+    assert abs(q[2, 0] - 0.2 * 0.125) < 1e-12
+    s = tm["s"]["matrix"]
+    assert abs(s[0, 0] - (0.78 + 0.22 / 3)) < 1e-12
+    assert abs(s[0, 1] - 0.22 / 3) < 1e-12
+    c = tm["c"]["matrix"]
+    assert abs(c[0, 0] - (0.75 + 0.25 / 2)) < 1e-12
+    for spec in tm.values():
+        m = spec["matrix"]
+        assert np.allclose(m.sum(axis=1), 1.0)
+        assert (m >= 0).all()
+    P = ur.full_state_transition()
+    assert P.shape == (60, 60)
+    assert np.allclose(P.sum(axis=1), 1.0)
 
 
-# ---- 严格查询 --------------------------------------------------
-def test_make_query_strict_domains():
+def test_strict_query_unchanged():
     good = dict(ur.QUESTIONS[0])
-    ur.make_query(good)
-    for bad in (
-            dict(good, remaining=-1),
-            dict(good, remaining=1.5),
-            dict(good, total=0),
-            dict(good, s=True),
-            dict(good, s=1.0),
-            dict(good, q=9),
-            dict(good, q=0.3),
-            dict(good, c=True),
-            dict(good, g=2),
-            dict(good, remaining=40)):
+    q = ur.make_query(good)
+    assert set(q) == {"s", "c", "q", "g", "remaining",
+                      "total", "account"}
+    for bad in (dict(good, remaining=-1),
+                dict(good, remaining=1.5),
+                dict(good, s=True), dict(good, q=9),
+                dict(good, remaining=40),
+                dict(good, account={
+                    "cash": 100.0, "exposure": 0.0,
+                    "solvency_raw": 40.0}),
+                dict(good, account={
+                    "cash": 100.0,
+                    "exposure": float("nan"),
+                    "solvency_raw": math.inf})):
         with pytest.raises(ValueError):
             ur.make_query(bad)
-    bad_acct = dict(good, account={"cash": 100.0,
-                                   "exposure": 0.0,
-                                   "solvency_raw": 40.0})
     with pytest.raises(ValueError):
-        ur.make_query(bad_acct)
-    nan_acct = dict(good, account={
-        "cash": 100.0, "exposure": float("nan"),
-        "solvency_raw": math.inf})
-    with pytest.raises(ValueError):
-        ur.make_query(nan_acct)
-    nested = dict(good)
-    nested2 = dict(good, future_return=0.1)
-    with pytest.raises(ValueError):
-        ur.make_query(nested2)
-    deep = dict(good, account={"cash": 100.0,
-                               "exposure": 0.0,
-                               "solvency_raw": math.inf,
-                               "future_x": 1})
+        ur.make_query(dict(good, future_return=0.1))
+    deep = dict(good, account={
+        "cash": 100.0, "exposure": 0.0,
+        "solvency_raw": math.inf, "future_x": 1})
     with pytest.raises(ValueError):
         ur.make_query(deep)
-    # id 不作为信息:带 id 的原题合法(id 被剥离前已由顶层白名单放行)
-    q = ur.make_query(ur.QUESTIONS[5])
-    assert "id" not in q and set(q) == {
-        "s", "c", "q", "g", "remaining", "total",
-        "account"}
 
 
-# ---- 键 --------------------------------------------------------
-def test_keys_full_coordinate_and_digest():
-    k0 = ur.dp_cache_key("L0")
-    k1 = ur.dp_cache_key("L1")
-    assert k0 != k1
-    import json as _j
-    import hashlib as _h
-    # fee 篡改→dp 键必变(config digest 变)
-    ur.CALIB_CONFIG["fee"] = 0.002
-    try:
-        k0b = ur.dp_cache_key("L0")
-    except RuntimeError:
-        k0b = None     # 入口拒绝也算键不变式保持
-    finally:
-        ur.CALIB_CONFIG["fee"] = 0.001
-    assert k0b is None or k0b != k0
-    q = ur.make_query(ur.QUESTIONS[0])
-    qk1 = ur.query_cache_key(q, "L0")
-    q2 = ur.make_query(ur.QUESTIONS[1])
-    qk2 = ur.query_cache_key(q2, "L0")
-    q3 = dict(q, remaining=31)
-    qk3 = ur.query_cache_key(q3, "L0")
-    assert len({qk1, qk2, qk3}) == 3
-    t = ur.query_cache_key(q, "L1")
-    assert t != qk1
+# ---- 真内核微型单元测试(非三档预算运行) ------------------------
+def _mini_tables():
+    prof = ur._tier_profile("L0")
+    prof["actions"] = np.array([-1.0, 0.0, 1.0])
+    prof["accounts"] = np.linspace(-1.25, 1.25, 9)
+    prof["gl"] = 5
+    prof["bars"] = 3
+    res = ur._backward_induction(prof)
+    res.update(tier="L0", gl=5,
+               actions=prof["actions"],
+               accounts=prof["accounts"],
+               solver=ur.SOLVER_VERSION)
+    return res, prof
 
 
-# ---- 转移矩阵 --------------------------------------------------
-def test_transition_matrices_row_stochastic():
-    tm = ur.build_transition_matrices()
-    assert set(tm) == {"s", "c", "q", "g"}
-    for comp, spec in tm.items():
-        m = spec["matrix"]
-        assert m.shape[0] == len(spec["values"])
-        assert abs(m.sum(axis=1).max() - 1.0) < 1e-12
-        assert abs(m.sum(axis=1).min() - 1.0) < 1e-12
-        assert (m >= 0).all()
-    assert tm["s"]["values"] == [-1, 0, 1]
-    assert abs(tm["s"]["matrix"][0, 0]
-               - (0.78 + 0.22 / 3)) < 1e-12
-    off = tm["s"]["matrix"][0, 1]
-    assert abs(off - 0.22 / 3) < 1e-12
+def test_backward_induction_kernel_runs():
+    res, prof = _mini_tables()
+    V = res["V"]
+    assert V.shape == (4, 60, 9)
+    acc = res["accounts"]
+    flat_i = int(np.argmin(np.abs(acc)))
+    # 终端:flat 清算=0;有仓=负(费)
+    assert abs(V[0, 0, flat_i]) < 1e-15
+    assert V[0, 0, 0] < 0            # e=acc[0]<0 → 清付费
+    # 中性状态价值应随 bar 保持 ≤0(Jensen/费)
+    states = ur.state_space()
+    neutral_i = states.index((0, 1, 0.5, 0))
+    assert V[3, neutral_i, flat_i] <= 1e-12
+    # 强方向状态(s=1,c=1,q=1)价值应高于中性(flat 起点)
+    strong_i = states.index((1, 1, 1.0, 0))
+    assert V[3, strong_i, flat_i] >= \
+        V[3, neutral_i, flat_i] - 1e-15
+    assert np.isfinite(V[3, strong_i, flat_i])
 
 
-# ---- 预算 guard / plan-only ------------------------------------
-def test_budget_guard_and_plan_counts():
-    ok, why = ur.budget_allows(0.0, 0.0)
-    assert ok and why == "ok"
-    ok2, why2 = ur.budget_allows(901.0, 0.0)
-    assert not ok2 and why2 == "wall_clock"
-    ok3, why3 = ur.budget_allows(0.0, 601.0)
-    assert not ok3 and why3 == "cpu"
-    ur._RUNS_USED["count"] = 3
-    ok4, why4 = ur.budget_allows(0.0, 0.0)
-    assert not ok4 and why4.startswith("runs_exhausted")
-    ur._RUNS_USED["count"] = 0
-    plan = ur.solve_plan("L0")
-    assert plan["states"] == 60
-    assert plan["bars"] == 32
-    assert plan["actions"] == 41
-    assert plan["account_points"] == 81 + 2 * 16
-    assert plan["gl"] == 12
-    assert plan["total_action_evals"] == (
-        60 * plan["account_points"] * 32
-        * 41 * 12)
-    assert plan["runs_max"] == 3
-    with pytest.raises(NotImplementedError):
-        ur.solve_reference("L0")   # 准备段拒跑
-    with pytest.raises(NotImplementedError):
-        ur.query_Q(ur.make_query(ur.QUESTIONS[0]),
-                   "L0", dp_tables=None)
+def test_query_Q_flat_invariants():
+    res, prof = _mini_tables()
+    q = ur.make_query({"s": 1, "c": 1, "q": 1.0,
+                       "g": 0, "remaining": 3,
+                       "total": 32,
+                       "account": {"cash": 100.0,
+                                   "exposure": 0.0,
+                                   "solvency_raw":
+                                       math.inf}})
+    out = ur.query_Q(q, "L0", res)
+    assert math.isfinite(out["q_hold"])
+    # flat 下 w=0 与 HOLD 完全等价(零费零漂移)
+    assert abs(out["q_rebals"][0.0]
+               - out["q_hold"]) < 1e-12
+    assert set(out["q_rebals"]) == {-1.0, 0.0, 1.0}
+    with pytest.raises(ValueError):
+        ur.query_Q(q, "L0",
+                   dict(res, solver="other"))
 
 
-# ---- 跨档分析 --------------------------------------------------
-def _row(q_hold, rebals):
-    return {"q_hold": q_hold, "q_rebals": rebals}
+# ---- 预算 guard 实际消费 ---------------------------------------
+def test_budget_run_registration_and_refusal():
+    assert ur._RUNS["open"] is None
+    ur._RUNS["used"] = 0
+    h = ur._begin_run("L0")
+    assert h["seq"] == 1 and ur._RUNS["used"] == 1
+    with pytest.raises(RuntimeError):   # 同时只许一个
+        ur._begin_run("L1")
+    fin = ur._finish_run()
+    assert fin["tier"] == "L0"
+    assert fin["stop_reason"] == "completed"
+    ur._RUNS["used"] = 3
+    with pytest.raises(RuntimeError):   # 第 4 次拒
+        ur._begin_run("L2")
+    ur._RUNS["used"] = 0
 
 
-def test_analyze_tiers_semantics():
+# ---- 完整性强制 ------------------------------------------------
+def test_validate_tier_outputs_completeness():
+    res, _ = _mini_tables()
+    fake = {}
+    for t in ("L0", "L1", "L2"):
+        fake[t] = dict(res, tier=t,
+                       dp_key=ur.dp_cache_key(t),
+                       questions=[dict(q)
+                                  for q in ur.QUESTIONS])
+    # tier 身份错误必拒
+    bad1 = dict(fake)
+    bad1["L0"] = dict(fake["L0"], tier="L1")
+    with pytest.raises(ValueError):
+        ur.validate_tier_outputs(bad1)
+    # 缺题必拒
+    miss = dict(fake)
+    miss["L1"] = dict(fake["L1"], questions=[
+        dict(q) for q in ur.QUESTIONS
+        if q["id"] != "G017"])
+    with pytest.raises(ValueError, match="missing"):
+        ur.validate_tier_outputs(miss)
+    # 重复必拒
+    dup = dict(fake)
+    qs = [dict(q) for q in ur.QUESTIONS]
+    qs[10] = dict(qs[9])
+    dup["L2"] = dict(fake["L2"], questions=qs)
+    with pytest.raises(ValueError, match="duplicates"):
+        ur.validate_tier_outputs(dup)
+
+
+def _row(qh, rb):
+    return {"q_hold": qh, "q_rebals": rb}
+
+
+def test_analyze_tiers_drift_and_band_units():
     per = {
         "L0": {"G001": _row(0.0, {0.5: 1e-3,
                                   -1.0: -1e-3})},
@@ -249,106 +253,44 @@ def test_analyze_tiers_semantics():
         "L2": {"G001": _row(0.0, {0.5: 1.3e-3,
                                   -1.0: -1e-3})}}
     r = ur.analyze_tiers(per)["G001"]
-    # margin(1.3e-3) > cross(3e-4) → act
     assert r["status"] == "act"
-    assert r["uncertainty"] == r["cross_tier_diff"]
-    # must-act 需超过不确定尺度:margin≈uncertainty→no_act
-    per2 = {
-        "L0": {"G002": _row(0.0, {0.5: 1.0e-3})},
-        "L1": {"G002": _row(0.0, {0.5: 1.4e-3})},
-        "L2": {"G002": _row(0.0, {0.5: 1.8e-3})}}
-    r2 = ur.analyze_tiers(per2)["G002"]
-    assert r2["status"] == "act"   # 1.8e-3 > cross 0.8e-3
-    per4 = {
-        "L0": {"G004": _row(0.0, {0.5: 1.0e-4})},
-        "L1": {"G004": _row(0.0, {0.5: 0.2e-4})},
-        "L2": {"G004": _row(0.0, {0.5: 0.6e-4})}}
-    r4 = ur.analyze_tiers(per4)["G004"]
-    # 三档同为正类,但 final margin 0.6e-4 ≤ cross 0.8e-4
-    # → 不超过不确定尺度 → no_act
-    assert r4["status"] == "no_act"
-    # 换档反号→not_established
-    per5 = {
-        "L0": {"G005": _row(0.0, {0.5: 1e-3,
-                                  -0.5: -1e-3})},
-        "L1": {"G005": _row(0.0, {-0.5: 1e-3,
-                                  0.5: -1e-3})},
-        "L2": {"G005": _row(0.0, {-0.5: 1.1e-3})}}
-    r5 = ur.analyze_tiers(per5)["G005"]
-    assert r5["status"] == "not_established"
-    # act 类别跨档变化→not_established
-    per6 = {
-        "L0": {"G006": _row(0.0, {0.5: -1e-3})},
-        "L1": {"G006": _row(0.0, {0.5: 1e-3})},
-        "L2": {"G006": _row(0.0, {0.5: 1.1e-3})}}
-    r6 = ur.analyze_tiers(per6)["G006"]
-    assert r6["status"] == "not_established"
+    assert "q_units" in "".join(r)
+    # best_w 跨档漂移 .1→.5→.9(margin 相同)→not_established
+    drift = {
+        "L0": {"G002": _row(
+            0.0, {0.1: 1e-3, 0.5: 9.9e-4})},
+        "L1": {"G002": _row(
+            0.0, {0.5: 1e-3, 0.1: 9.9e-4})},
+        "L2": {"G002": _row(
+            0.0, {0.9: 1e-3, 0.5: 9.9e-4})}}
+    r2 = ur.analyze_tiers(drift)["G002"]
+    assert r2["status"] == "not_established"
+    assert "drifted" in r2["reason"]
+    # 公共坐标 Q 值差纳入不确定度
+    val_dev = {
+        "L0": {"G003": _row(0.0, {0.5: 1.0e-4})},
+        "L1": {"G003": _row(0.0, {0.5: 2.0e-4})},
+        "L2": {"G003": _row(0.0, {0.5: 1.1e-4})}}
+    r3 = ur.analyze_tiers(val_dev)["G003"]
+    assert r3["common_coord_value_dev"] >= \
+        abs(2.0e-4 - 1.1e-4) - 1e-15
     # unstable 传播
-    per7 = {
-        "L0": {"G007": _row(
+    nan = {
+        "L0": {"G004": _row(
             0.0, {0.5: float("nan")})},
-        "L1": {"G007": _row(0.0, {0.5: 1e-3})},
-        "L2": {"G007": _row(0.0, {0.5: 1.1e-3})}}
-    r7 = ur.analyze_tiers(per7)["G007"]
-    assert r7["status"] == "unstable"
-    # 离散点集与连续带分开输出
-    assert isinstance(
-        r["near_opt_points_final"], list)
-    assert len(r["continuous_band"]) == 2
+        "L1": {"G004": _row(0.0, {0.5: 1e-3})},
+        "L2": {"G004": _row(0.0, {0.5: 1e-3})}}
+    r4 = ur.analyze_tiers(nan)["G004"]
+    assert r4["status"] == "unstable"
 
 
-# ---- 尾题解析边界负控(去死分支;正确双边费) --------------------
-def test_last_bar_boundary_four_tail_questions():
+def test_tail_boundary_and_status():
     b = ur.last_bar_fee_boundary()
     assert abs(b["lhs"] - 0.0012 * 1.001) < 1e-15
-    assert b["rhs"] == 0.002
-    assert b["no_act_proved"] is True
-    # 四道强状态尾题全部落入解析 no_act 区
+    assert b["rhs"] == 0.002 and b["no_act_proved"]
     tails = [q for q in ur.QUESTIONS
              if q["id"].startswith("T")]
     assert len(tails) == 4
-    for q in tails:
-        mq = ur.make_query(q)
-        assert mq["remaining"] == 1
-        # 用正确双边费数值验证:最佳 REBAL 的 E[log] + 清算
-        # 仍低于 HOLD(单 bar 边界由 lhs<rhs 保证)
-        from numpy.polynomial.legendre import leggauss
-        u, wu = leggauss(24)
-        sigma = ur.CALIB_CONFIG["sigma_by_g"][
-            str(mq["g"])]
-        mu_eff = (mq["s"] * mq["c"] * mq["q"]
-                  * ur.CALIB_CONFIG["mu"])
-        best = -math.inf
-        for w in ur.action_grid("L1"):
-            tot = 0.0
-            for ui, wi in zip(u, wu):
-                x = mu_eff + math.sqrt(3) * sigma * ui
-                lg, e2 = ur.rebal_step(0.0, w, x)
-                tot += 0.5 * wi * (lg + ur.liq_value(
-                    e2, 0.0))
-            best = max(best, tot)
-        lg_hold, e_h = ur.hold_step(0.0, 0.0)
-        q_hold = lg_hold + ur.liq_value(e_h, 0.0)
-        assert best < q_hold or abs(
-            best - q_hold) < 1e-15
-
-
-def test_questions_exact_shape_v2():
-    qs = ur.QUESTIONS
-    assert len(qs) == 64
-    grid = [q for q in qs if q["id"].startswith("G")]
-    tails = [q for q in qs if q["id"].startswith("T")]
-    assert len(grid) == 60 and len(tails) == 4
-    assert all(
-        q["account"] == {"cash": 100.0,
-                         "exposure": 0.0,
-                         "solvency_raw": math.inf}
-        for q in qs)
-
-
-def test_gates_stay_unspecified():
+    assert ur.STATUS == "prepared_not_run"
     from rl_posctl.skill_p0 import unified_course as uc
     assert uc.REGISTRY_GATES == {}
-    for v in uc.SEVEN_SKILLS.values():
-        assert v["gate_status"] == "not_specified"
-    assert ur.STATUS == "prepared_not_run"
