@@ -1,0 +1,39 @@
+{
+ "spec_id": "H1GATE-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "design_ref": {
+  "doc": "stage2_7_0/docs/DESIGN_NOTE_H1FLATGATE_20261017.md",
+  "sha256": "68efe51b3cba9d829e3ec4e5525da3f13fbddc481e5dd08a09d4bab7138894d7"
+ },
+ "objective": {
+  "total_loss": "PPO + 1.0*方向辅助(4 行 H32, mean(relu(.05−y·m)²)) + 1.0*gate(2 行 flat rem=1, −mean(log p_flat))",
+  "p_flat": "pH+(1−pH)·p0;log_p_flat=logaddexp(logpH, logpREBAL+logA0);A0=冻结分布 merged 零原子(mix_zero+mix_cont·b0,不重算)",
+  "declared_change": "目标与监督剂量同时改变(方向 4 行保留+gate 2 行=6 行同批,零额外 optimizer step);不冒称原净 log 单目标;λ_gate=1 仅单一候选",
+  "prohibited": ["系数/seed 扫描", "加步", "修改 MDP/奖励/P0/HOLD/REBAL 语义", "H1 标签施加给 H32/已有仓位/其它期限", "把 aux 条件均值 m 当概率"]
+ },
+ "inputs": {
+  "dir_obs_sha256": "50aaa47e3b7baeededd67d6950b8aec1e070883e981acab45e6abfe157fcf79e",
+  "gate_obs_sha256": "b9fc74f14e17c5698694060d3f312a9e103970284fffe0cbad8ff7bf9fe0768d",
+  "gate_rows": "rem=1,s=±1,q=1,c=1,g=0,flat/solvency40;其余观测与原 H32 编码相同",
+  "dir_src_pin": "f985e90153ba2ef9ad40f50469f0fb84ccbed1fe4b35b1bff1f00916b35593f2"
+ },
+ "boundary": {
+  "preteach": "256 方向预教学整段保留(不含 gate)",
+  "compare_target": "auxkeep_a1 boundary_post_aux.pt=4cf160e71f72f46ffa7702b0650c12cd74ff1fed5b036a9c9d3cbc634709d74c",
+  "rule": "确定性重建后严格比较参数/Adam/RNG/obs/flags;匹配→post_aux_matched;否则明确 post_aux_new,不伪称同起点;比较只读零污染"
+ },
+ "panels": "六批:pre_aux/post_aux+8192/16384/24576/32768(末次即 final,post-update tap;阈值核 epoch/opt/dir/gate=80/320/320/320…320/1280/1280/1280);每批恰 1 forward",
+ "budget": {"ppo": 32768, "eval": 2112, "total": 34880, "wall_s": 900.0, "cpu_s": 600.0, "rss_gib": 1.0, "scope": "全调用"},
+ "eval": {"episodes": 128, "steps": 2112, "action_seed": 4243, "strict": "valid is True;net_log 缺失/None/非有限拒;eval 后 params_digest 不变"},
+ "writer": {"numpy_to_native": "递归(ak_reissue 式)", "atomic": "先序列化成功→tmp+fsync→replace", "data_first": "eval_data/eval_actions 先独立原子落,summary 引用", "taxonomy": "completed/failed/serialization_refused;首因保留;不覆盖已落 failed receipt;RUNNING/遗留 DONE→FAILED"},
+ "metrics_split": {"H1": ["实际 flat 开仓率", "net/费用拖累", "pH/p0/p_flat 分解"], "H32": ["方向 m", "整体实际概率/公共 mode", "双侧根开仓与符号"], "rules": ["不以全 flat 通过开仓课", "收益仅描述(差+SE)", "缺旧 a1 原评价与旧 DPT post_aux 的限制保留"]},
+ "identity_expected": {
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "B_final_sha256": "5499983789b4886a1b53d01ee451ffd38ff86b35b1612dc7b8ab4ac09fa9cb1b",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41",
+  "contrast_json_sha256": "53de5abb231fab1d841a5d493f0ec3107a724613b4ea75607d932e06522075a6",
+  "a2_dirpt_sha256": "741d5a202245b452d08f6efcfdc775a661415b04fe5424476cedb67b55a61907"
+ },
+ "seeds": {"torch_init": 20261016, "train_env": 311002, "eval_action": 4243}
+}
