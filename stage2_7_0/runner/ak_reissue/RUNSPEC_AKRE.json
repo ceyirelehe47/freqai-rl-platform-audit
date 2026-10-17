@@ -1,0 +1,72 @@
+{
+ "spec_id": "AKRE-v1",
+ "status": "PREPARED_NOT_RUN",
+ "kind": "reissue_eval_only",
+ "course_gate": "not_frozen",
+ "note": "该 2112 评价新增单列;不称恢复原评价;不计入原 34880;原 a1 保持 FAILED",
+ "inputs": {
+  "AK_final.zip": "c743ba5d68f65addf9f6dad1fcdeb4e774edc4d3a6d885f79ba0b7cff1149d3a",
+  "param_hash_must_equal": "44cb869039a5c5502804e575d4936cc58ba4e47e2f71d6e4919b1928a3c78d2a",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41"
+ },
+ "eval": {
+  "episodes": 128,
+  "steps": 2112,
+  "action_seed": 4243,
+  "device": "cpu",
+  "evaluator": "SC._eval_on_traces(原 trace 顺序+TwoSidedLinearLedger 账本)",
+  "strict": "valid is True;net_log 缺失/None/非有限均拒"
+ },
+ "prohibited": [
+  "learn",
+  "optimizer step",
+  "新增锚点面板",
+  "覆盖任何 a1 原件(截断 JSON/FAILED.marker/模型)",
+  "将本评价计入原 34880 或称恢复原评价"
+ ],
+ "budget": {
+  "wall_s": 180.0,
+  "cpu_s": 60.0,
+  "rss_gib": 1.0,
+  "scope": "全调用封顶"
+ },
+ "serialization": {
+  "numpy_scalar_to_native": "递归(np.bool_/np.integer/np.floating/ndarray)",
+  "reject": "非有限(带 path 诊断)与未知类型→status=serialization_refused,零截断",
+  "write": "先完整序列化成功→同目录临时文件+fsync→os.replace 原子写;仅新 receipt 文件"
+ },
+ "status_semantics": "completed/failed/serialization_refused 三分,依据真实结果",
+ "paths": {
+  "traces": "/mnt/f/trading/seed_contrast_a1_20261016_output/traces.json",
+  "checkpoint": "/mnt/f/trading/auxkeep_a1_20261017_output/AK_final.zip",
+  "pilot_run_spec": "/mnt/f/trading/teaching_pilot_prep_20261016/run_spec.json",
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "note": "ROOT 直接拼接;不经 cout/..;冷载前核 pilot spec+collect_identity"
+ },
+ "cold_load": {
+  "device": "cpu",
+  "custom_objects": {
+   "pilot_env": null,
+   "_auxkeep_prun": null,
+   "_auxkeep_book": null,
+   "_auxkeep_obs": null,
+   "_auxkeep_y": null,
+   "_auxkeep_logger": [],
+   "note": "反序列化前替换,避免恢复 dir_preteach.panel8 等无关依赖;不改原档"
+  }
+ },
+ "data_files": {
+  "eval_data": "eval_data.json(先原子写;输入 SHA/seed/计数/episodes/完整性 complete)",
+  "eval_actions": "eval_actions.json(2112 动作原子写)",
+  "summary_rule": "summary(ak_reissue.json)引用数据;失败不覆盖数据文件;中途失败 partial 动作如实 incomplete"
+ },
+ "post_eval_gates": [
+  "params_digest==44cb8690…78d2a(释放前)",
+  "post_save 预算门:超限 failed/FAILED/非零,不因 rp 已在保 completed"
+ ],
+ "error_taxonomy": {
+  "SerializationError": "serialization_refused",
+  "OSError/预算/其它": "failed 保首因"
+ },
+ "source_training_run_status": "failed"
+}

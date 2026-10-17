@@ -1,0 +1,77 @@
+{
+ "spec_id": "AuxKeep-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "design_ref": {
+  "doc": "stage2_7_0/docs/DESIGN_NOTE_AUXKEEP_20261017.md",
+  "sha256": "fd82508e8c5794359c132fba8cb68ee5df494551cc6e7b09dfe1d52071cb6c86"
+ },
+ "objective": {
+  "lambda": 1.0,
+  "lambda_status": "未验证候选;不扫",
+  "form": "loss = 原 PPO 损失 + λ·mean(relu(.05−y·m)²);m=条件 REBAL 均值(真实 raw8 链);y=sign(s·q·c) 仅可见 μ",
+  "wiring": "train 由安装版 SB3 PPO.train 源码导入期逐字生成+唯一插入块(锚 loss 行后);每 optimizer minibatch 同一总 loss 求一次 aux;无额外 optimizer.step;全局 clip_grad_norm 作用于合并梯度",
+  "declared_change": "目标与监督剂量同时改变(256 预教学+1280 持续=1536 批);不冒称原净 log 单目标;主比较=旧 a2 现件"
+ },
+ "batch_accounting": {
+  "sustained_aux": 1280,
+  "preteach": 256,
+  "total_batches": 1536,
+  "note": "320 为 epoch 更新轮数,非 optimizer 步数"
+ },
+ "boundary": "reset_ppo_adam 先于保存(此后不再重置);deepcopy 完整参数/Adam/四 RNG/last_obs/starts/环境标志/λ=不可变 expected;回读逐项比较结构/dtype/shape/全部值;load 后核 live 未污染;payload 含 SB3 2.9.0 版本+原/生成 train 原文与 SHA(去插入块逐字一致);AK_final/partial save 均 exclude=[train];仅新臂 post_aux 边界",
+ "panels": "post-update tap:augmented train 完整返回后核阈值(epoch/opt/aux=80/320/320·160/640/640·240/960/960·320/1280/1280);四点各单批 8 行(32768 即 final·param hash 与最终保存前一致);面板前后核四 RNG/last_obs 身份及值/starts/环境标志·finally 恢复 training;pre/post_aux 两批;总六批不增;guard 原样交 learn(attach_counter 仅包 _on_step)",
+ "logger_cap": 32,
+ "budget": {
+  "econ_steps": {
+   "ppo": 32768,
+   "eval": 2112,
+   "total": 34880
+  },
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0,
+  "note": "覆盖全部新增开销(边界档/6 面板/logger 读数)"
+ },
+ "reporting": {
+  "split": [
+   "方向符号响应",
+   "未监督 q 响应",
+   "公开分布",
+   "实际开仓(H32/H1)",
+   "H1 成本"
+  ],
+  "rules": [
+   "收益仅描述比较(配对差+SE)",
+   "全 HOLD 不算开仓通过",
+   "方向正确≠最优交易"
+  ],
+  "gate": "此轮不冻结毕业门"
+ },
+ "identity_expected": {
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "a1_initial_sha256": "f87005f35210c64c117f247afdc984bd1244cda8e3da8690c45e87a2c7184dba",
+  "B_final_sha256": "5499983789b4886a1b53d01ee451ffd38ff86b35b1612dc7b8ab4ac09fa9cb1b",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41",
+  "contrast_json_sha256": "53de5abb231fab1d841a5d493f0ec3107a724613b4ea75607d932e06522075a6",
+  "a2_dirpt_sha256": "741d5a202245b452d08f6efcfdc775a661415b04fe5424476cedb67b55a61907",
+  "a2_DPT_final_sha256": "896c1c5b702d22746994e6552557eee5276c5a71a74e9222974e4e70ee5d8d79",
+  "dir_preteach_src_sha256": "f985e90153ba2ef9ad40f50469f0fb84ccbed1fe4b35b1bff1f00916b35593f2"
+ },
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env": 311002,
+  "eval_action": 4243
+ },
+ "prohibited": [
+  "准备期真实 policy forward/rollout/learn",
+  "额外 optimizer.step",
+  "λ 扫描",
+  "冒称原净 log 单目标",
+  "冒称与 a2 同 post_aux 边界",
+  "冻结毕业门",
+  "超预算"
+ ],
+ "evaluation_strict": "valid is True(严格恒等);net_log 缺失/None/非有限均失败,不默认 0;128/128",
+ "sync": "learn 前 panels/logger 绑 report;成功/异常收尾同步 env/model/epoch/optimizer 成功与 aux attempted/tail(attempted 可大于成功,不伪填 1280)"
+}
