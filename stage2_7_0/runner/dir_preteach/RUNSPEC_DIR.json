@@ -1,0 +1,82 @@
+{
+ "spec_id": "DirectionPreteach-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "corrections_accepted": [
+  "末步比例改正:原 H32/H1 混合 4/66≈6.06% 经济步为末步;删 H1 后 2/64≈3.125%——不是'不减'",
+  "H1 段均值近零不证明末步未覆盖/无费用"
+ ],
+ "single_auxiliary_objective": {
+  "definition": "原 P0-B raw8 布局中,条件 REBAL 潜在均值的方向裕度(margin):对 4 个合法 flat H32 输入(s±1 × q∈{1.0,0.75},c=1,g=0),辅助损失作用于策略头输出的 REBAL 分支潜在 w 的条件均值 E[w|REBAL] 的符号与可见信号 sign(s·c·q) 的裕度对齐",
+  "constraints": [
+   "不得把 s 符号监督成 HOLD/REBAL 分类(不动 branch 结构/不监督开仓)",
+   "不用未来收益、不用精确 w 最优标签",
+   "辅助目标改变教学、存在归纳偏置(明示)",
+   "保留 HOLD 自由与幅度自由(仅方向裕度,不锁幅度)"
+  ],
+  "inputs": "恰 4 个合法 flat H32 输入(s±1×q∈{1.0,0.75},c=1,g=0);固定字节 4×8 little-endian float32 C-order 128B,SHA256=50aaa47e3b7baeededd67d6950b8aec1e070883e981acab45e6abfe157fcf79e"
+ },
+ "pretraining": {
+  "mode": "纯监督固定批:4 输入反复,最多 256 次参数更新,零环境步",
+  "optimizer": "Adam(lr=3e-4, 与主链同类;独立于 PPO 优化器实例)",
+  "loss": "mean(relu(0.05-y*m)^2);m=p+−p−+p_cont·(a−b)/(a+b) 真实 raw8 链;y=sign(s·q·c);恰 256 更新无早停",
+  "margin": 0.05,
+  "real_chain": "extract_features→mlp_extractor.forward_actor→action_net raw8;p=softmax(raw[2:6]);a/b=softplus(raw[6/7])+1(参数化内);m=p+−p−+p_cont·(a−b)/(a+b);仅 actor;branch 列不进"
+ },
+ "main_chain": {
+  "control": "旧 B32 为唯一主控制:相同初态(fresh 20261016 重建,签名门)、env seed 311002、PPO 32768(reset=True 语义同 B)",
+  "background": "A(a1 final)与 B64 仅背景引用,不重跑",
+  "after_aux": "辅助后重置 PPO Adam(空 state)+核 RNG(fresh 三 RNG 快照),再进主链;不要求新 32k 末权等于旧 B_final(轨迹必然不同)"
+ },
+ "budget": {
+  "econ_steps": {
+   "ppo": 32768,
+   "eval_trace": 2112,
+   "total": 34880
+  },
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0
+ },
+ "reporting": {
+  "split": [
+   "方向条件响应",
+   "实际开仓",
+   "H1 末步成本"
+  ],
+  "rules": [
+   "全 HOLD 不算开仓通过",
+   "条件方向正确≠最优交易",
+   "三项分开报告"
+  ],
+  "gate": "此轮不冻结毕业门(not_frozen)"
+ },
+ "identity_expected": {
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "a1_initial_sha256": "f87005f35210c64c117f247afdc984bd1244cda8e3da8690c45e87a2c7184dba",
+  "a1_final_sha256": "9cb6113387716f3b76f9f198aedd0ac284b199d94363f79f7830bbe347b7b7d1",
+  "B_final_sha256": "5499983789b4886a1b53d01ee451ffd38ff86b35b1612dc7b8ab4ac09fa9cb1b",
+  "B64_final_sha256": "0cae31518d7caa63ae563c444e12b6963f1330d29aa694f0697d0f9272b8cdc9",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41",
+  "contrast_json_sha256": "53de5abb231fab1d841a5d493f0ec3107a724613b4ea75607d932e06522075a6"
+ },
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env": 311002,
+  "eval_action": 4243
+ },
+ "prohibited": [
+  "真实训练/forward/rollout(准备期)",
+  "s 符号→HOLD/REBAL 分类监督",
+  "未来收益/精确 w 标签",
+  "早停/主观对齐阈值",
+  "末权==B_final 的错误要求",
+  "冻结毕业门",
+  "超预算"
+ ],
+ "panels": "3 阶段各恰 1 NN batch(hook+get_distribution 同次);diag._row 全量行+实际 q obs 覆盖+_check_rows 质量核+latent 条件均值读出;aux 4×8 SHA 50aaa47e…f79e·panel 8×8 SHA 71787965…d8ce 双核",
+ "aux_obs_sha256": "50aaa47e3b7baeededd67d6950b8aec1e070883e981acab45e6abfe157fcf79e",
+ "panel8_obs_sha256": "717879654dba0f3b7561e3ce3839002d9a20526acd7a6aed300748ebc74d8ce9",
+ "evaluation_contract": "128 episodes 全 valid+net_log 有限;捕获 predict 恰 2 维有限(branch∈{0,1}·w∈[-1,1]);总动作 2112 按锁 trace 步长分段核对",
+ "readouts": "本模型辅助前/辅助后/PPO 后三阶段 panel8 各恰 1 batch;A initial(a1)/B64 为外部现成对照引用,不重跑"
+}
