@@ -1,0 +1,70 @@
+{
+ "spec_id": "SeedExtend-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "question": "同路径预算延长:B(初态/env 311002/冻结超参)重放 32768 到边界,与已验 B_final 逐位相等后才在原进程续训至 65536;不换第三 seed/奖励/模型",
+ "conclusion_correction_accepted": [
+  "a1 对照口径修正(审查方 4379):条件 Beta 偏度(α,β)、±1 原子、整体动作均值、符号概率、公开 mode 五类分列;'α>β 故整体更偏正'的混用撤回;B 负 s 整体均值可轻微负",
+  "单对路径末态不同已证;B−A 均值 +0.003393 不证收益显著改善;负 s 公开 mode 仍正仓,课程未通过"
+ ],
+ "boundary": {
+  "replay": "同初态(manual_seed 20261016→R5.build_real_ppo)/env seed 311002/冻结超参(23ce1892)重放恰 32768 步(与 a1 B 完全同路径)",
+  "equality_gate": "边界对真实权重(param_hash)+完整 Adam(R5._optimizer_state_equal)+num_timesteps==32768+_n_updates==320 与已验 B_final(5499983…cb1b)相等;任何不匹配即停保留证据",
+  "no_eval_no_stream": "边界不做评价、不消耗随机流(evaluate/panel/基线零调用,spy 断言)",
+  "rng_snapshot": "相等后、续训前保存完整 RNG(torch/np/python/env.rng getstate)至 boundary_rng.pt(供后续恢复;续训在同一进程原 env/优化器/RNG 上继续,reset_num_timesteps=False)",
+  "cold_read_order": "B_final 冷读提取(param_hash/param_spec/完整 Adam 纯数据副本/计数)先于 fresh build/manual_seed;提取后释放;边界只比较纯数据不再 load(避免污染后段 RNG)",
+  "rng_invariance": "boundary_rng 保存前后核 torch/NumPy/Python/env RNG 与 _last_obs/episode 标志/env 对象身份不变;续段保留原 env 与常数 lr/clip"
+ },
+ "extension": {
+  "continue_steps": 32768,
+  "total_train_cap": 65536,
+  "semantics": "model.learn(total_timesteps=32768, reset_num_timesteps=False)——SB3 追加量语义:当前 32768+追加 32768=65536(传 65536 目标会变 98304,已按追加量修)",
+  "stop": "完成 64k 或任何失败即停;不自动翻倍",
+  "continue_call": "learn 调用传追加量 32768"
+ },
+ "final_eval": {
+  "trace": "旧共同 trace(引用 seed_contrast_a1_20261016_output/traces.json,canon SHA 门 d153e39d…c841),恰 2112 步",
+  "panel": "4 锚点(diag_panel v2 行级合同,obsSHA effc181a)",
+  "baseline_32k": "直接引用现件(contrast.json 53de5abb…75a6),不重跑"
+ },
+ "budget": {
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0,
+  "process": "单进程",
+  "total_env_cap": 67648
+ },
+ "counters_expected": {
+  "replay_env": 32768,
+  "continue_env": 32768,
+  "final_eval": 2112,
+  "total": 67648,
+  "boundary_model_ts": 32768,
+  "final_model_ts": 65536,
+  "final_n_updates": 640,
+  "final_optimizer_success": 2560,
+  "optimizer_replay": 1280
+ },
+ "identity_expected": {
+  "contrast_out_dir": "/mnt/f/trading/seed_contrast_a1_20261016_output",
+  "B_final_sha256": "5499983789b4886a1b53d01ee451ffd38ff86b35b1612dc7b8ab4ac09fa9cb1b",
+  "B_initial_sha256": "30dfe0efba791a8264cdecca13daaaa949c842ccd56c714e5c5b849e5546f57b",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41",
+  "contrast_json_sha256": "53de5abb231fab1d841a5d493f0ec3107a724613b4ea75607d932e06522075a6",
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "a1_initial_sha256": "f87005f35210c64c117f247afdc984bd1244cda8e3da8690c45e87a2c7184dba"
+ },
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env": 311002,
+  "final_eval_action": 4243,
+  "note": "final_eval_action=4243(与对照 B 评价同 seed 减少不必要差别);边界不消耗随机流"
+ },
+ "prohibited": [
+  "第三 seed/改奖励/改模型",
+  "边界评价/基线/面板(零调用)",
+  "自动翻倍/追加训练",
+  "load B_final 冒充原轨迹续训(B_final 未存 RNG,必须重放)",
+  "覆盖旧 label/原件"
+ ]
+}

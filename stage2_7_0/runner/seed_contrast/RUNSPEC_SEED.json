@@ -1,0 +1,67 @@
+{
+ "spec_id": "SeedContrast-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "question": "两条训练路径(仅训练环境 seed 不同)的差异;不认证普遍原因",
+ "arms": {
+  "A": {
+   "policy": "复用 unified_teaching_pilot_a1 final.zip(只读)",
+   "ckpt_sha256": "9cb6113387716f3b76f9f198aedd0ac284b199d94363f79f7830bbe347b7b7d1",
+   "panel": "已验 diag_panel_a1 8 行(引用,不重跑)",
+   "panel_reference_sha256": "af2dd1c393d0230db664a28404ef9027492a2aa1a1ef5397dc38206fbca270b8"
+  },
+  "B": {
+   "initial_weights": "th.manual_seed(torch_init=20261016) 后经 build_real_ppo 同路径重建(与 a1 初始完全同源;不沿用任何已消耗 RNG 状态)",
+   "only_change": "训练环境 seed 311001 -> 311002(其余:优化器初态/动作 RNG 流构造/超参/课程/奖励/reset 配比/预算 全同 a1 run_spec 23ce1892)",
+   "train_steps": 32768,
+   "panel_B": "仅新增 4 锚点解析一批(rem32/rem1 × s±;obs SHA effc181a 合同)"
+  }
+ },
+ "common_market": {
+  "lock": "事前锁定:trace_lock.py,episode 种子 990001 起逐 episode 递增;纯核演化+r 抽样,零策略输入",
+  "structure": "64 H32(s+/-各32)+64 tail(s+/-各32)=128 episode trace;r/核演化序列与动作无关(任何策略见同一市场)",
+  "visibility": "行动前只见当时观测(t 时 trace 前缀+账户);不暴露未来",
+  "usage": "A/B 各 128 episode 评价共用同一 trace 文件;基线只重放该 trace(零新增 env 步)"
+ },
+ "budget": {
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0,
+  "note": "上限不提高;a1 峰值 RSS 995,708KiB 余量约 52MiB——顺序加载/释放:A_eval(load->eval->del+gc) -> B_train(重建->learn->save->del) -> B_eval -> B_panel;每相间 RSS 回落记录",
+  "caps": {
+   "A_eval_steps": 2112,
+   "B_eval_steps": 2112,
+   "B_train_steps": 32768,
+   "total_real_env_steps": 36992
+  },
+  "fail_stop": "预算/非有限/非法动作/账本错/身份不符 -> partial 保存停;不自动加 seed/步数"
+ },
+ "identity_expected": {
+  "teaching_pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "a1_final_sha256": "9cb6113387716f3b76f9f198aedd0ac284b199d94363f79f7830bbe347b7b7d1",
+  "a1_initial_sha256": "f87005f35210c64c117f247afdc984bd1244cda8e3da8690c45e87a2c7184dba",
+  "frozen_sources_root": "/mnt/f/trading/teaching_pilot_prep_20261016"
+ },
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env_A": 311001,
+  "train_env_B": 311002,
+  "trace_base": 990001,
+  "action_rng_stream": "SB3 内部(与 a1 同构造,不人工预热)",
+  "eval_action_A": 4242,
+  "eval_action_B": 4243
+ },
+ "prohibited": [
+  "真实 learn/rollout/真实权重前向(准备期)",
+  "提高预算限额",
+  "追加 seed/步数(无论结果)",
+  "市场流依赖策略动作",
+  "把 a1 评价消耗后的 RNG 状态当 B 起点",
+  "动 course_gate/奖励/世界"
+ ],
+ "effective_B": {
+  "rule": "旧实际训练配置(run_spec 23ce1892)深拷贝仅改 seeds.train_env=311002;真实输入树比较,任何其他差异(含 torch_init/train_steps)即拒"
+ },
+ "launch": "launch_seed.sh+inner_seed.sh(900s)复用已验 outer/inner 语义;准备期不启动",
+ "rss_note": "所有 RSS 读数=ru_maxrss 峰值(如实命名 _peak_rss_gib),非释放后当前值"
+}

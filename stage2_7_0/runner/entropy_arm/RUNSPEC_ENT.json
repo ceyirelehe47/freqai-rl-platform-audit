@@ -1,0 +1,74 @@
+{
+ "spec_id": "EntropyArm-v1",
+ "status": "PREPARED_NOT_RUN",
+ "course_gate": "not_frozen",
+ "question": "有限单因素臂:同 B 路径重放 32768+边界匹配后,仅真实 PPO ent_coef 0.001→0.001? 否——0.001→0.010,续训 32768 至 65536;旧 B64 作现成控制(不重训)。HOLD 集中不等于已证明熵为原因;0.01 只是候选。",
+ "conclusion_boundaries_accepted": [
+  "四锚点公开 mode 皆 HOLD、负 s 更 flat 且整体 mean 转正——不能称延长已学会方向",
+  "收益均值变化不证显著改善;course_gate 未冻结",
+  "更活跃却错向/成本恶化不算改善;完成或失败都停"
+ ],
+ "single_change": {
+  "param": "ent_coef",
+  "from": 0.001,
+  "to": 0.01,
+  "applied_at": "边界匹配后·续训前(原进程原 optimizer 上直接设 model.ent_coef=0.010;SB3 常数调度不变其余)",
+  "unchanged": [
+   "MDP/世界/奖励",
+   "模型结构",
+   "env seed 311002/初态 20261016",
+   "lr/clip 等其余超参",
+   "评价动作 seed 4243",
+   "共同 trace/4 锚点 obs"
+  ]
+ },
+ "pipeline": {
+  "replay": "同 B 路径重放恰 32768(与 B_final 边界全门:param_hash 5cf4206009df683a50f861eb207baa5c0fda3862da40f8f4eebe4f770454655c+完整 Adam+ts/updates/optimizer 1280)",
+  "then": "仅改 ent_coef→learn(32768, reset=False)→65536",
+  "final_eval": "旧共同 trace 2112+4 锚点(diag_panel v2 行级);B64 引用现件不重训",
+  "observed_from_existing": [
+   "logger 记录至多 64 条现成 KL/clip/entropy(续训段;不新增 forward)",
+   "评价逐 episode 步动作已在结果落盘→账本复算(不新增经济步)"
+  ]
+ },
+ "budget": {
+  "wall_s": 900.0,
+  "cpu_s": 600.0,
+  "rss_gib": 1.0,
+  "total_env_cap": 67648
+ },
+ "counters_expected": {
+  "replay": 32768,
+  "continue": 32768,
+  "final_eval": 2112,
+  "total": 67648,
+  "final_model_ts": 65536,
+  "final_n_updates": 640,
+  "final_optimizer_success": 2560
+ },
+ "identity_expected": {
+  "B_final_sha256": "5499983789b4886a1b53d01ee451ffd38ff86b35b1612dc7b8ab4ac09fa9cb1b",
+  "traces_canon_sha256": "d153e39d9f2f008ecf3531fc3497f85d4848a3b0a14fb184da3068dc3bdc8f41",
+  "pilot_run_spec_sha256": "23ce189231b3359765d05af1df1d4403d682ce598d17067e952b7d9595b82b47",
+  "B64_final_sha256": "0cae31518d7caa63ae563c444e12b6963f1330d29aa694f0697d0f9272b8cdc9",
+  "B64_extend_json_ref": "/mnt/f/trading/seed_extend_a1_20261017_output/extend.json",
+  "contrast_out_dir": "/mnt/f/trading/seed_contrast_a1_20261016_output",
+  "contrast_json_sha256": "53de5abb231fab1d841a5d493f0ec3107a724613b4ea75607d932e06522075a6",
+  "B64_ent_control": {
+   "role": "现成控制不重训",
+   "final_sha256": "0cae31518d7caa63ae563c444e12b6963f1330d29aa694f0697d0f9272b8cdc9"
+  }
+ },
+ "seeds": {
+  "torch_init": 20261016,
+  "train_env": 311002,
+  "final_eval_action": 4243
+ },
+ "prohibited": [
+  "扫系数/继续加倍",
+  "新增 forward/经济步",
+  "把 HOLD 集中归因为熵(未证)",
+  "改 MDP/奖励/模型/seed",
+  "重训 B64"
+ ]
+}
